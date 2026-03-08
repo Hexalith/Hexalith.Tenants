@@ -1,0 +1,16 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <UserSecretsId>hexalith-tenants</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
+    <ProjectReference Include="..\..\samples\Hexalith.Tenants.Sample\Hexalith.Tenants.Sample.csproj" />
+    <ProjectReference Include="..\Hexalith.Tenants.Aspire\Hexalith.Tenants.Aspire.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+</Project>

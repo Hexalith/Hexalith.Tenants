@@ -1,0 +1,25 @@
+# DAPR Pub/Sub Component -- Local Development
+# ================================================================
+# Redis-backed pub/sub for event distribution.
+# Dead-letter enabled for undeliverable messages.
+#
+# Component Scoping:
+#   Only commandapi can access this pub/sub component.
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "{env:REDIS_HOST|localhost:6379}"
+    - name: redisPassword
+      value: "{env:REDIS_PASSWORD}"
+    - name: enableDeadLetter
+      value: "true"
+    - name: deadLetterTopic
+      value: "deadletter"
+scopes:
+  - commandapi
