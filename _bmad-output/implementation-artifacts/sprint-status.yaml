@@ -44,12 +44,12 @@ development_status:
   epic-1: in-progress
   1-1-solution-structure-and-build-configuration: done
   1-2-dapr-component-configuration-and-servicedefaults: review
-  1-3-ci-cd-pipeline: backlog
+  1-3-ci-cd-pipeline: review
   epic-1-retrospective: optional
 
   # Epic 2: Core Tenant Management & Global Administration
-  epic-2: backlog
-  2-1-tenant-domain-contracts: backlog
+  epic-2: in-progress
+  2-1-tenant-domain-contracts: ready-for-dev
   2-2-global-administrator-aggregate: backlog
   2-3-tenant-aggregate-lifecycle: backlog
   2-4-commandapi-bootstrap-and-event-publishing: backlog

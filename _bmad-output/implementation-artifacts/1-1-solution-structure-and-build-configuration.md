@@ -16,7 +16,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
 
 2. **Given** the solution structure exists **When** `dotnet build` is executed **Then** all projects compile successfully with zero errors and warnings-as-errors enabled
 
-3. **Given** the solution structure exists **When** `dotnet test` is executed **Then** the test runner discovers all 6 test projects (5 under tests/ + Sample.Tests under samples/) and reports zero failures (no tests yet, infrastructure verified)
+3. **Given** the solution structure exists **When** `dotnet test` is executed **Then** the test runner discovers all 6 test projects (5 under tests/ + Sample.Tests under samples/), executes smoke tests in each project, and reports zero failures
 
 4. **Given** the solution is built **When** a developer inspects `global.json` **Then** it specifies SDK version 10.0.103 with `rollForward: latestPatch`
 
@@ -61,13 +61,13 @@ so that I can begin implementing domain logic on a proven, consistent project st
 - [x] Task 5: Add minimal source files for compilation (AC: #2)
   - [x] 5.1: Library SDK projects (Contracts, Client, Server, Testing, Aspire) compile empty — NO placeholder needed. Only Web SDK and Exe projects need entry points.
   - [x] 5.2: Add `Program.cs` stub for CommandApi (minimal ASP.NET host: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
-  - [x] 5.3: Add `Program.cs` stub for AppHost (minimal Aspire host: `var builder = DistributedApplication.CreateBuilder(args); builder.Build().Run();`)
-  - [x] 5.4: Add `Extensions.cs` stub for ServiceDefaults (empty static class with placeholder extension method)
+  - [x] 5.3: Add `Program.cs` stub for AppHost (initial minimal Aspire host; later expanded in Story 1.2 with DAPR component wiring)
+  - [x] 5.4: Add `Extensions.cs` stub for ServiceDefaults (initial placeholder extension method; later expanded in Story 1.2 with OpenTelemetry and health endpoint setup)
   - [x] 5.5: Add `Program.cs` stub for Sample (minimal web app: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
 - [x] Task 6: Verify build and test (AC: #2, #3)
   - [x] 6.1: Run `dotnet restore Hexalith.Tenants.slnx` — verify all packages resolve
   - [x] 6.2: Run `dotnet build Hexalith.Tenants.slnx --configuration Release` — verify zero errors
-  - [x] 6.3: Run `dotnet test Hexalith.Tenants.slnx` — verify 6 test projects discovered with zero failures
+  - [x] 6.3: Run `dotnet test Hexalith.Tenants.slnx` — verify 6 test projects discovered, one smoke test per project executed, and zero failures
 
 ## Dev Notes
 
@@ -257,19 +257,22 @@ Hexalith.Tenants/
 
 ## Change Log
 
-- 2026-03-08: Implemented full solution scaffolding — 15 projects, root build configs, all build and test verification passed (zero errors, zero warnings, 6 test projects discovered)
+- 2026-03-08: Implemented full solution scaffolding — 15 projects, root build configs, all build and test verification passed.
+- 2026-03-08: Senior developer review fixes applied — added smoke tests to all 6 test projects, corrected Story 1.1 verification wording, and documented that AppHost/ServiceDefaults were later expanded by Story 1.2.
 
 ## Dev Agent Record
 
 ### Senior Developer Review (AI)
 
-- **Review Outcome**: Approved with minor changes.
-- **Issues Fixed**: 
-  - Centralized testing dependencies (`Shouldly`, `NSubstitute`, `xunit`, `coverlet`, etc.) in `tests/Directory.Build.props` to ensure AC 8 is strictly followed across all test projects.
-  - Added missing dependencies to `samples/Hexalith.Tenants.Sample.Tests`.
-  - Added a placeholder method to `Extensions.cs` to prevent empty class analyzer warnings.
-- **Story Status**: Updated to `done`.
-- **Sprint Status**: Synced to `done`.
+- **Review Outcome**: Approved after fixes.
+- **Reviewer Model**: GPT-5.4.
+- **Issues Fixed**:
+  - Added one smoke test to each of the 6 test projects so `dotnet test` executes real tests instead of emitting `No test is available` warnings.
+  - Corrected Story 1.1 verification language to reflect 6 discovered test projects with smoke tests and zero failures.
+  - Documented that `src/Hexalith.Tenants.AppHost/Program.cs` and `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs` were later expanded by Story 1.2 and no longer match the original minimal stub wording.
+  - Reconciled the Story 1.1 planning text with the implemented solution by correcting the epic-level acceptance criterion to 6 test projects.
+- **Story Status**: Confirmed as `done` after review fixes.
+- **Sprint Status**: Confirmed as `done`.
 
 ### Agent Model Used
 
@@ -285,9 +288,10 @@ Claude Opus 4.6 (claude-opus-4-6)
 - Task 1: Created global.json (SDK 10.0.103), Directory.Build.props (mirroring EventStore with Tenants URLs/metadata), Directory.Packages.props (exact copy of EventStore's centralized versions), .editorconfig (exact copy of EventStore conventions).
 - Task 2: Created Hexalith.Tenants.slnx with 15 projects in /src/, /tests/, /samples/ folders. All 8 src .csproj files created with correct dependency chains including cross-submodule ProjectReferences to EventStore.Contracts and EventStore.Server.
 - Task 3: Created tests/Directory.Build.props importing root props. All 5 test .csproj files with correct project references, xUnit, coverlet, and global `<Using Include="Xunit" />`.
+- Added one smoke test class per test project to prove test discovery and eliminate `No test is available` warnings during solution-level test runs.
 - Task 4: Created Sample and Sample.Tests under samples/. Sample.Tests explicitly sets IsTestProject=true, IsPackable=false since it doesn't inherit tests/Directory.Build.props.
-- Task 5: Added minimal Program.cs stubs for CommandApi, AppHost, and Sample. Added Extensions.cs for ServiceDefaults with placeholder AddServiceDefaults() method. Library projects compile empty without placeholders.
-- Task 6: `dotnet restore` — all 17 projects restored (15 Tenants + 2 EventStore). `dotnet build --configuration Release` — zero errors, zero warnings. `dotnet test` — 6 test projects discovered, zero failures.
+- Task 5: Added minimal Program.cs stubs for CommandApi and Sample. Story 1.2 later expanded AppHost and ServiceDefaults beyond the original scaffolding placeholders while preserving Story 1.1 buildability goals.
+- Task 6: `dotnet restore` — all 17 projects restored (15 Tenants + 2 EventStore). `dotnet build --configuration Release` — zero errors, zero warnings. `dotnet test` — 6 test projects discovered, 6 smoke tests executed, zero failures, zero warnings.
 
 ### File List
 
@@ -309,10 +313,16 @@ Claude Opus 4.6 (claude-opus-4-6)
 - src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj (new)
 - tests/Directory.Build.props (new)
 - tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj (new)
+- tests/Hexalith.Tenants.Contracts.Tests/ScaffoldingSmokeTests.cs (new)
 - tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj (new)
+- tests/Hexalith.Tenants.Client.Tests/ScaffoldingSmokeTests.cs (new)
 - tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj (new)
+- tests/Hexalith.Tenants.Server.Tests/ScaffoldingSmokeTests.cs (new)
 - tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj (new)
+- tests/Hexalith.Tenants.Testing.Tests/ScaffoldingSmokeTests.cs (new)
 - tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj (new)
+- tests/Hexalith.Tenants.IntegrationTests/ScaffoldingSmokeTests.cs (new)
 - samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj (new)
 - samples/Hexalith.Tenants.Sample/Program.cs (new)
 - samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj (new)
+- samples/Hexalith.Tenants.Sample.Tests/ScaffoldingSmokeTests.cs (new)

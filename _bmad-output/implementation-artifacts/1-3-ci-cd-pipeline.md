@@ -1,6 +1,6 @@
 # Story 1.3: CI/CD Pipeline
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,43 +30,43 @@ so that every PR is validated automatically and tagged releases publish NuGet pa
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: Verify prerequisites (AC: all)
-  - [ ] 0.1: Verify EventStore CI/CD reference files exist — confirm `Hexalith.EventStore/.github/workflows/ci.yml` and `release.yml` are present and read their full content
-  - [ ] 0.2: Verify `.github/workflows/` directory exists or can be created in Hexalith.Tenants
-  - [ ] 0.3: Verify the solution builds — run `dotnet build Hexalith.Tenants.slnx --configuration Release` and confirm zero errors
+- [x] Task 0: Verify prerequisites (AC: all)
+  - [x] 0.1: Verify EventStore CI/CD reference files exist — confirm `Hexalith.EventStore/.github/workflows/ci.yml` and `release.yml` are present and read their full content
+  - [x] 0.2: Verify `.github/workflows/` directory exists or can be created in Hexalith.Tenants
+  - [x] 0.3: Verify the solution builds — run `dotnet build Hexalith.Tenants.slnx --configuration Release` and confirm zero errors
 
-- [ ] Task 1: Create CI workflow (AC: #1, #2, #5, #7, #8)
-  - [ ] 1.1: Create `.github/workflows/ci.yml` mirroring EventStore's CI workflow structure
-  - [ ] 1.2: Configure triggers: push to main, pull_request to main
-  - [ ] 1.3: Configure concurrency group `ci-${{ github.ref }}` with `cancel-in-progress: true`
-  - [ ] 1.4: Set permissions to `contents: read`
-  - [ ] 1.5: Job `build-and-test` on `ubuntu-latest` with `timeout-minutes: 15`
-  - [ ] 1.6: Steps: checkout (fetch-depth: 0 for MinVer), setup-dotnet (auto-detects global.json), NuGet cache, restore, build (Release, --no-restore)
-  - [ ] 1.7: Tier 1 Unit Tests — run each test project individually with `--no-build --configuration Release --logger "trx;LogFileName=test-results.trx"`: Contracts.Tests, Client.Tests, Testing.Tests, Sample.Tests (from samples/)
-  - [ ] 1.8: Install DAPR CLI v1.16.0 and `dapr init`
-  - [ ] 1.9: Tier 2 Integration Tests — run Server.Tests with `--no-build --configuration Release --logger "trx;LogFileName=integration-results.trx"`
-  - [ ] 1.10: Upload test results artifact on failure
-  - [ ] 1.11: Job `aspire-tests` — separate job with `needs: build-and-test`, `continue-on-error: true`, `timeout-minutes: 10`. Checkout, setup-dotnet, NuGet cache, full DAPR init (not slim — Aspire topology needs full runtime), run IntegrationTests, Test Summary step writing status to `$GITHUB_STEP_SUMMARY` (mirror EventStore), upload results on failure
+- [x] Task 1: Create CI workflow (AC: #1, #2, #5, #7, #8)
+  - [x] 1.1: Create `.github/workflows/ci.yml` mirroring EventStore's CI workflow structure
+  - [x] 1.2: Configure triggers: push to main, pull_request to main
+  - [x] 1.3: Configure concurrency group `ci-${{ github.ref }}` with `cancel-in-progress: true`
+  - [x] 1.4: Set permissions to `contents: read`
+  - [x] 1.5: Job `build-and-test` on `ubuntu-latest` with `timeout-minutes: 15`
+  - [x] 1.6: Steps: checkout (fetch-depth: 0 for MinVer), setup-dotnet (auto-detects global.json), NuGet cache, restore, build (Release, --no-restore)
+  - [x] 1.7: Tier 1 Unit Tests — run each test project individually with `--no-build --configuration Release --logger "trx;LogFileName=test-results.trx"`: Contracts.Tests, Client.Tests, Testing.Tests, Sample.Tests (from samples/)
+  - [x] 1.8: Install DAPR CLI v1.16.0 and `dapr init`
+  - [x] 1.9: Tier 2 Integration Tests — run Server.Tests with `--no-build --configuration Release --logger "trx;LogFileName=integration-results.trx"`
+  - [x] 1.10: Upload test results artifact on failure
+  - [x] 1.11: Job `aspire-tests` — separate job with `needs: build-and-test`, `continue-on-error: true`, `timeout-minutes: 10`. Checkout, setup-dotnet, NuGet cache, full DAPR init (not slim — Aspire topology needs full runtime), run IntegrationTests, Test Summary step writing status to `$GITHUB_STEP_SUMMARY` (mirror EventStore), upload results on failure
 
-- [ ] Task 2: Create Release workflow (AC: #3, #4, #6)
-  - [ ] 2.1: Create `.github/workflows/release.yml` mirroring EventStore's release workflow structure
-  - [ ] 2.2: Configure trigger: push tags `v*`
-  - [ ] 2.3: Set permissions to `contents: write` (for GitHub Release creation)
-  - [ ] 2.4: Single job `release` on `ubuntu-latest` with `timeout-minutes: 20`
-  - [ ] 2.5: Steps: checkout (fetch-depth: 0), setup-dotnet, NuGet cache, restore, build (Release)
-  - [ ] 2.6: Install DAPR CLI v1.16.0 with `dapr init --slim`
-  - [ ] 2.7: Run all Tier 1+2 tests (Contracts.Tests, Client.Tests, Testing.Tests, Sample.Tests, Server.Tests) with individual test result loggers
-  - [ ] 2.8: Pack NuGet: `dotnet pack --no-build --configuration Release --output ./nupkgs`
-  - [ ] 2.9: Validate packages — Python script checking 5 expected package IDs (Hexalith.Tenants.Contracts, Client, Server, Testing, Aspire), version consistency, nuspec metadata (readme, license)
-  - [ ] 2.10: Validate version matches tag — extract tag version, compare to package version
-  - [ ] 2.11: Publish to NuGet.org using `NUGET_API_KEY` secret
-  - [ ] 2.12: Create GitHub Release with `softprops/action-gh-release`, attach `.nupkg` files, generate release notes
+- [x] Task 2: Create Release workflow (AC: #3, #4, #6)
+  - [x] 2.1: Create `.github/workflows/release.yml` mirroring EventStore's release workflow structure
+  - [x] 2.2: Configure trigger: push tags `v*`
+  - [x] 2.3: Set permissions to `contents: write` (for GitHub Release creation)
+  - [x] 2.4: Single job `release` on `ubuntu-latest` with `timeout-minutes: 20`
+  - [x] 2.5: Steps: checkout (fetch-depth: 0), setup-dotnet, NuGet cache, restore, build (Release)
+  - [x] 2.6: Install DAPR CLI v1.16.0 with `dapr init --slim`
+  - [x] 2.7: Run all Tier 1+2 tests (Contracts.Tests, Client.Tests, Testing.Tests, Sample.Tests, Server.Tests) with individual test result loggers
+  - [x] 2.8: Pack NuGet: `dotnet pack --no-build --configuration Release --output ./nupkgs`
+  - [x] 2.9: Validate packages — Python script checking 5 expected package IDs (Hexalith.Tenants.Contracts, Client, Server, Testing, Aspire), version consistency, nuspec metadata (readme, license)
+  - [x] 2.10: Validate version matches tag — extract tag version, compare to package version
+  - [x] 2.11: Publish to NuGet.org using `NUGET_API_KEY` secret
+  - [x] 2.12: Create GitHub Release with `softprops/action-gh-release`, attach `.nupkg` files, generate release notes
 
-- [ ] Task 3: Verification (AC: all)
-  - [ ] 3.1: Validate YAML syntax of both workflow files (well-formed YAML)
-  - [ ] 3.2: Verify all action references use pinned commit SHAs (not version tags)
-  - [ ] 3.3: Verify all Tenants-specific project names/paths are correct (not EventStore names)
-  - [ ] 3.4: Verify the solution still builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 3: Verification (AC: all)
+  - [x] 3.1: Validate YAML syntax of both workflow files (well-formed YAML)
+  - [x] 3.2: Verify all action references use pinned commit SHAs (not version tags)
+  - [x] 3.3: Verify all Tenants-specific project names/paths are correct (not EventStore names)
+  - [x] 3.4: Verify the solution still builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 ## Dev Notes
 
@@ -316,14 +316,32 @@ c04fc8b Initial commit
 - [Source: _bmad-output/implementation-artifacts/1-2-dapr-component-configuration-and-servicedefaults.md] — Previous story learnings: DAPR component location, ServiceDefaults compilation
 - [Source: Hexalith.EventStore/CLAUDE.md#CI/CD] — EventStore's CI/CD documentation summary
 
+## Change Log
+
+- **2026-03-08**: Created CI and Release GitHub Actions workflows mirroring EventStore's structure. Adapted all project names/paths from EventStore to Tenants. Added `submodules: recursive` to all checkout steps (required for EventStore submodule ProjectReference). Omitted discussion template YAML validation step from CI (EventStore-specific, Tenants has no discussion templates). Omitted `docs-validation.yml` workflow (EventStore-specific).
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6
 
 ### Debug Log References
 
+- No issues encountered during implementation
+
 ### Completion Notes List
 
+- Created `.github/workflows/ci.yml` — CI workflow with build-and-test job (Tier 1+2) and aspire-tests job (Tier 3, continue-on-error)
+- Created `.github/workflows/release.yml` — Release workflow with full test suite, NuGet pack, Python package validation (5 expected IDs), version-tag matching, NuGet.org publish, and GitHub Release creation
+- All action references use pinned commit SHAs matching EventStore exactly
+- Added `submodules: recursive` to all checkout steps (divergence from EventStore, required for Tenants' submodule dependency)
+- Sample.Tests correctly referenced from `samples/` path (not `tests/`)
+- DAPR init modes: full in CI (Tier 2), slim in Release — matches EventStore pattern
+- Verified: YAML syntax valid, no EventStore references in workflow files, solution builds with 0 warnings/0 errors
+- No unit tests created (per Dev Notes: workflow YAML files cannot be functionally tested locally)
+
 ### File List
+
+- `.github/workflows/ci.yml` — NEW: CI workflow (build + Tier 1+2 tests + optional Tier 3 Aspire tests)
+- `.github/workflows/release.yml` — NEW: Release workflow (test + pack + validate + NuGet push + GitHub Release)
