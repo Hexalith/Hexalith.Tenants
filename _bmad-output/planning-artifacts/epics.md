@@ -322,7 +322,7 @@ So that I can begin implementing domain logic on a proven, consistent project st
 
 **Given** the solution structure exists
 **When** `dotnet test` is executed
-**Then** the test runner discovers all 7 test projects and reports zero failures (no tests yet, infrastructure verified)
+**Then** the test runner discovers all 6 test projects (5 under `tests/` + `samples/Hexalith.Tenants.Sample.Tests`) and reports zero failures
 
 **Given** the solution is built
 **When** a developer inspects `global.json`
