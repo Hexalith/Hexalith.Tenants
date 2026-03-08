@@ -1,0 +1,23 @@
+# DAPR State Store Component -- Local Development
+# =============================================================
+# Redis-backed state store for actor state and command status tracking.
+# actorStateStore: "true" enables DAPR actor state management.
+#
+# Component Scoping:
+#   Only commandapi can access this state store.
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "{env:REDIS_HOST|localhost:6379}"
+    - name: redisPassword
+      value: "{env:REDIS_PASSWORD}"
+    - name: actorStateStore
+      value: "true"
+scopes:
+  - commandapi

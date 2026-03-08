@@ -1,0 +1,19 @@
+# WARNING: Local development only.
+# Production MUST use deny-by-default with mTLS.
+# See deploy/dapr/ for production templates.
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: accesscontrol
+spec:
+  accessControl:
+    defaultAction: allow
+    trustDomain: "public"
+    policies:
+      - appId: commandapi
+        defaultAction: deny
+        trustDomain: "public"
+        operations:
+          - name: /**
+            httpVerb: ['POST']
+            action: allow
