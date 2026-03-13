@@ -1,6 +1,6 @@
 # Story 2.1: Tenant Domain Contracts
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -26,79 +26,90 @@ So that consuming services and all other packages have a stable, shared API surf
 
 7. **Given** all event types exist **When** a developer inspects any event record **Then** every event includes `TenantId` as a top-level field identifying the managed tenant
 
+8. **Given** the Contracts project exists **When** a developer inspects the Events/Rejections folder **Then** it contains all 8 rejection event records implementing `IRejectionEvent`: TenantAlreadyExistsRejection, TenantNotFoundRejection, TenantDisabledRejection, UserAlreadyInTenantRejection, UserNotInTenantRejection, RoleEscalationRejection, ConfigurationLimitExceededRejection, GlobalAdminAlreadyBootstrappedRejection
+
+9. **Given** all rejection event types exist **When** each rejection event is serialized to JSON via System.Text.Json and deserialized back **Then** deep equality holds for all fields (covered by same serialization round-trip test as AC #5, since IRejectionEvent extends IEventPayload)
+
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create Enums (AC: #3)
-  - [ ] 1.1: Create `Enums/TenantRole.cs` — enum with values: `TenantOwner`, `TenantContributor`, `TenantReader`
-  - [ ] 1.2: Create `Enums/TenantStatus.cs` — enum with values: `Active`, `Disabled`
+- [x] Task 1: Add global using to Contracts .csproj (AC: all event/rejection files)
+  - [x] 1.1: Add `<Using Include="Hexalith.EventStore.Contracts.Events" />` to an `<ItemGroup>` in `src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj` — avoids repetitive `using` directives in every event and rejection file
 
-- [ ] Task 2: Create Identity types (AC: #4)
-  - [ ] 2.1: Create `Identity/TenantIdentity.cs` — static helper class providing:
-    - `const string DefaultTenantId = "system"` (platform tenant context)
-    - `const string Domain = "tenants"` (domain name)
-    - `static AggregateIdentity ForTenant(string managedTenantId)` → returns `new AggregateIdentity("system", "tenants", managedTenantId)`
-    - `static AggregateIdentity ForGlobalAdministrators()` → returns `new AggregateIdentity("system", "tenants", "global-administrators")`
+- [x] Task 2: Create Enums (AC: #3) — FIRST, because commands reference TenantRole
+  - [x] 2.1: Create `Enums/TenantRole.cs` — enum with values: `TenantOwner`, `TenantContributor`, `TenantReader`
+  - [x] 2.2: Create `Enums/TenantStatus.cs` — enum with values: `Active`, `Disabled`
 
-- [ ] Task 3: Create Tenant Lifecycle Commands (AC: #1)
-  - [ ] 3.1: Create `Commands/CreateTenant.cs` — `record CreateTenant(string TenantId, string Name, string? Description)`
-  - [ ] 3.2: Create `Commands/UpdateTenant.cs` — `record UpdateTenant(string TenantId, string Name, string? Description)`
-  - [ ] 3.3: Create `Commands/DisableTenant.cs` — `record DisableTenant(string TenantId)`
-  - [ ] 3.4: Create `Commands/EnableTenant.cs` — `record EnableTenant(string TenantId)`
+- [x] Task 3: Create Identity types (AC: #4)
+  - [x] 3.1: Create `Identity/TenantIdentity.cs` — static helper class (see Dev Notes for exact implementation)
 
-- [ ] Task 4: Create User-Role Commands (AC: #1)
-  - [ ] 4.1: Create `Commands/AddUserToTenant.cs` — `record AddUserToTenant(string TenantId, string UserId, TenantRole Role)`
-  - [ ] 4.2: Create `Commands/RemoveUserFromTenant.cs` — `record RemoveUserFromTenant(string TenantId, string UserId)`
-  - [ ] 4.3: Create `Commands/ChangeUserRole.cs` — `record ChangeUserRole(string TenantId, string UserId, TenantRole NewRole)`
+- [x] Task 4: Create Tenant Lifecycle Commands (AC: #1)
+  - [x] 4.1: Create `Commands/CreateTenant.cs` — `record CreateTenant(string TenantId, string Name, string? Description)`
+  - [x] 4.2: Create `Commands/UpdateTenant.cs` — `record UpdateTenant(string TenantId, string Name, string? Description)`
+  - [x] 4.3: Create `Commands/DisableTenant.cs` — `record DisableTenant(string TenantId)`
+  - [x] 4.4: Create `Commands/EnableTenant.cs` — `record EnableTenant(string TenantId)`
 
-- [ ] Task 5: Create Configuration Commands (AC: #1)
-  - [ ] 5.1: Create `Commands/SetTenantConfiguration.cs` — `record SetTenantConfiguration(string TenantId, string Key, string Value)`
-  - [ ] 5.2: Create `Commands/RemoveTenantConfiguration.cs` — `record RemoveTenantConfiguration(string TenantId, string Key)`
+- [x] Task 5: Create User-Role Commands (AC: #1) — require `using Hexalith.Tenants.Contracts.Enums;`
+  - [x] 5.1: Create `Commands/AddUserToTenant.cs` — `record AddUserToTenant(string TenantId, string UserId, TenantRole Role)`
+  - [x] 5.2: Create `Commands/RemoveUserFromTenant.cs` — `record RemoveUserFromTenant(string TenantId, string UserId)`
+  - [x] 5.3: Create `Commands/ChangeUserRole.cs` — `record ChangeUserRole(string TenantId, string UserId, TenantRole NewRole)`
 
-- [ ] Task 6: Create Global Administrator Commands (AC: #1)
-  - [ ] 6.1: Create `Commands/BootstrapGlobalAdmin.cs` — `record BootstrapGlobalAdmin(string UserId)`
-  - [ ] 6.2: Create `Commands/SetGlobalAdministrator.cs` — `record SetGlobalAdministrator(string UserId)`
-  - [ ] 6.3: Create `Commands/RemoveGlobalAdministrator.cs` — `record RemoveGlobalAdministrator(string UserId)`
+- [x] Task 6: Create Configuration Commands (AC: #1)
+  - [x] 6.1: Create `Commands/SetTenantConfiguration.cs` — `record SetTenantConfiguration(string TenantId, string Key, string Value)`
+  - [x] 6.2: Create `Commands/RemoveTenantConfiguration.cs` — `record RemoveTenantConfiguration(string TenantId, string Key)`
 
-- [ ] Task 7: Create Tenant Lifecycle Events (AC: #2, #7)
-  - [ ] 7.1: Create `Events/TenantCreated.cs` — `record TenantCreated(string TenantId, string Name, string? Description, DateTimeOffset CreatedAt) : IEventPayload`
-  - [ ] 7.2: Create `Events/TenantUpdated.cs` — `record TenantUpdated(string TenantId, string Name, string? Description) : IEventPayload`
-  - [ ] 7.3: Create `Events/TenantDisabled.cs` — `record TenantDisabled(string TenantId, DateTimeOffset DisabledAt) : IEventPayload`
-  - [ ] 7.4: Create `Events/TenantEnabled.cs` — `record TenantEnabled(string TenantId, DateTimeOffset EnabledAt) : IEventPayload`
+- [x] Task 7: Create Global Administrator Commands (AC: #1) — NO TenantId parameter (platform-level)
+  - [x] 7.1: Create `Commands/BootstrapGlobalAdmin.cs` — `record BootstrapGlobalAdmin(string UserId)`
+  - [x] 7.2: Create `Commands/SetGlobalAdministrator.cs` — `record SetGlobalAdministrator(string UserId)`
+  - [x] 7.3: Create `Commands/RemoveGlobalAdministrator.cs` — `record RemoveGlobalAdministrator(string UserId)`
 
-- [ ] Task 8: Create User-Role Events (AC: #2, #7)
-  - [ ] 8.1: Create `Events/UserAddedToTenant.cs` — `record UserAddedToTenant(string TenantId, string UserId, TenantRole Role) : IEventPayload`
-  - [ ] 8.2: Create `Events/UserRemovedFromTenant.cs` — `record UserRemovedFromTenant(string TenantId, string UserId) : IEventPayload`
-  - [ ] 8.3: Create `Events/UserRoleChanged.cs` — `record UserRoleChanged(string TenantId, string UserId, TenantRole OldRole, TenantRole NewRole) : IEventPayload`
+- [x] Task 8: Create Tenant Lifecycle Events (AC: #2, #7)
+  - [x] 8.1: Create `Events/TenantCreated.cs` — `record TenantCreated(string TenantId, string Name, string? Description, DateTimeOffset CreatedAt) : IEventPayload`
+  - [x] 8.2: Create `Events/TenantUpdated.cs` — `record TenantUpdated(string TenantId, string Name, string? Description) : IEventPayload`
+  - [x] 8.3: Create `Events/TenantDisabled.cs` — `record TenantDisabled(string TenantId, DateTimeOffset DisabledAt) : IEventPayload`
+  - [x] 8.4: Create `Events/TenantEnabled.cs` — `record TenantEnabled(string TenantId, DateTimeOffset EnabledAt) : IEventPayload`
 
-- [ ] Task 9: Create Configuration Events (AC: #2, #7)
-  - [ ] 9.1: Create `Events/TenantConfigurationSet.cs` — `record TenantConfigurationSet(string TenantId, string Key, string Value) : IEventPayload`
-  - [ ] 9.2: Create `Events/TenantConfigurationRemoved.cs` — `record TenantConfigurationRemoved(string TenantId, string Key) : IEventPayload`
+- [x] Task 9: Create User-Role Events (AC: #2, #7) — require `using Hexalith.Tenants.Contracts.Enums;`
+  - [x] 9.1: Create `Events/UserAddedToTenant.cs` — `record UserAddedToTenant(string TenantId, string UserId, TenantRole Role) : IEventPayload`
+  - [x] 9.2: Create `Events/UserRemovedFromTenant.cs` — `record UserRemovedFromTenant(string TenantId, string UserId) : IEventPayload`
+  - [x] 9.3: Create `Events/UserRoleChanged.cs` — `record UserRoleChanged(string TenantId, string UserId, TenantRole OldRole, TenantRole NewRole) : IEventPayload`
 
-- [ ] Task 10: Create Global Administrator Events (AC: #2, #7)
-  - [ ] 10.1: Create `Events/GlobalAdministratorSet.cs` — `record GlobalAdministratorSet(string TenantId, string UserId) : IEventPayload`. Note: `TenantId` is a parameter — it will typically be `"system"` when produced by GlobalAdministratorAggregate Handle methods (Story 2.2), but do NOT hardcode a default in the record itself
-  - [ ] 10.2: Create `Events/GlobalAdministratorRemoved.cs` — `record GlobalAdministratorRemoved(string TenantId, string UserId) : IEventPayload`. Note: same as 10.1 — `TenantId` is a parameter, not a hardcoded value
+- [x] Task 10: Create Configuration Events (AC: #2, #7)
+  - [x] 10.1: Create `Events/TenantConfigurationSet.cs` — `record TenantConfigurationSet(string TenantId, string Key, string Value) : IEventPayload`
+  - [x] 10.2: Create `Events/TenantConfigurationRemoved.cs` — `record TenantConfigurationRemoved(string TenantId, string Key) : IEventPayload`
 
-- [ ] Task 11: Create serialization round-trip tests in Contracts.Tests (AC: #5)
-  - [ ] 11.1: Create `EventSerializationTests.cs` — for each event type implementing `IEventPayload`, create instance with all fields populated using non-default, distinguishable test data (e.g., `"tenant-abc"` not `""`, `DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")` not `default`, `TenantRole.TenantContributor` not the first enum value), serialize to JSON via `System.Text.Json.JsonSerializer`, deserialize back, assert deep equality with Shouldly
-  - [ ] 11.2: Use reflection to auto-discover all event types implementing `IEventPayload` in the Contracts assembly — DO NOT write individual test methods per event type; use `[Theory]` with `[MemberData]` so new events in future stories are automatically covered
+- [x] Task 11: Create Global Administrator Events (AC: #2, #7)
+  - [x] 11.1: Create `Events/GlobalAdministratorSet.cs` — `record GlobalAdministratorSet(string TenantId, string UserId) : IEventPayload`. TenantId is a parameter (typically `"system"` at runtime), NOT hardcoded
+  - [x] 11.2: Create `Events/GlobalAdministratorRemoved.cs` — `record GlobalAdministratorRemoved(string TenantId, string UserId) : IEventPayload`. Same: TenantId is a parameter
 
-- [ ] Task 12: Create naming convention reflection tests in Contracts.Tests (AC: #6)
-  - [ ] 12.1: Create `NamingConventionTests.cs` — scan Contracts assembly for all record types in `Commands` namespace, verify each starts with a recognized verb from this whitelist: `Create`, `Update`, `Disable`, `Enable`, `Add`, `Remove`, `Change`, `Set`, `Bootstrap`. The test MUST FAIL if a command uses an unrecognized verb prefix (whitelist approach, not blacklist). Scan all types implementing `IEventPayload` in `Events` namespace, verify each ends with a recognized past-tense suffix: `Created`, `Updated`, `Disabled`, `Enabled`, `Added`, `Removed`, `Changed`, `Set`
-  - [ ] 12.2: Verify all event types include a `TenantId` property (AC: #7) via reflection
+- [x] Task 12: Create Rejection Events (AC: #8, #9)
+  - [x] 12.1: Create `Events/Rejections/TenantAlreadyExistsRejection.cs` — `record TenantAlreadyExistsRejection(string TenantId) : IRejectionEvent`
+  - [x] 12.2: Create `Events/Rejections/TenantNotFoundRejection.cs` — `record TenantNotFoundRejection(string TenantId) : IRejectionEvent`
+  - [x] 12.3: Create `Events/Rejections/TenantDisabledRejection.cs` — `record TenantDisabledRejection(string TenantId) : IRejectionEvent`
+  - [x] 12.4: Create `Events/Rejections/UserAlreadyInTenantRejection.cs` — `record UserAlreadyInTenantRejection(string TenantId, string UserId) : IRejectionEvent`
+  - [x] 12.5: Create `Events/Rejections/UserNotInTenantRejection.cs` — `record UserNotInTenantRejection(string TenantId, string UserId) : IRejectionEvent`
+  - [x] 12.6: Create `Events/Rejections/RoleEscalationRejection.cs` — `record RoleEscalationRejection(string TenantId, string UserId, TenantRole AttemptedRole) : IRejectionEvent` — needs `using Hexalith.Tenants.Contracts.Enums;`
+  - [x] 12.7: Create `Events/Rejections/ConfigurationLimitExceededRejection.cs` — `record ConfigurationLimitExceededRejection(string TenantId, string LimitType, int CurrentCount, int MaxAllowed) : IRejectionEvent`
+  - [x] 12.8: Create `Events/Rejections/GlobalAdminAlreadyBootstrappedRejection.cs` — `record GlobalAdminAlreadyBootstrappedRejection(string TenantId) : IRejectionEvent`
 
-- [ ] Task 13: Build verification (AC: all)
-  - [ ] 13.1: Run `dotnet build Hexalith.Tenants.slnx --configuration Release` — zero errors, zero warnings
-  - [ ] 13.2: Run `dotnet test tests/Hexalith.Tenants.Contracts.Tests/` — all tests pass
+- [x] Task 13: Create serialization round-trip tests (AC: #5, #9)
+  - [x] 13.1: Create `tests/Hexalith.Tenants.Contracts.Tests/EventSerializationTests.cs` — reflection-based `[Theory]`/`[MemberData]` test that auto-discovers ALL `IEventPayload` types (includes rejection events since `IRejectionEvent : IEventPayload`). Use non-default test data. Assert with Shouldly `ShouldBe`.
+
+- [x] Task 14: Create naming convention reflection tests (AC: #6, #7, #8)
+  - [x] 14.1: Create `tests/Hexalith.Tenants.Contracts.Tests/NamingConventionTests.cs` — whitelist-based verb/suffix tests for commands, success events, rejection events. Verify all event types have `TenantId` property of type `string`.
+
+- [x] Task 15: Build verification (AC: all)
+  - [x] 15.1: Run `dotnet build Hexalith.Tenants.slnx --configuration Release` — zero errors, zero warnings
+  - [x] 15.2: Run `dotnet test tests/Hexalith.Tenants.Contracts.Tests/` — all tests pass
 
 ## Dev Notes
 
 ### Developer Context
 
-This is the **first domain logic story** — everything before this was scaffolding. The Contracts package is the stable API surface consumed by all other packages (Client, Server, Testing) and by consuming services via NuGet. Every type defined here becomes a public contract.
+This is the **first domain logic story** — everything before this was scaffolding. The Contracts package is the stable public API surface consumed by all other packages (Client, Server, Testing) and by consuming services via NuGet. Every type defined here becomes a public contract that must remain backward-compatible post-v1.0.
 
 **Key mental model:** Commands are inputs (what a user wants to do). Events are outputs (what happened). Commands are NOT serialized into the event store — only events are. Commands flow through MediatR in the CommandApi; events flow through DAPR pub/sub to consuming services. This is why commands don't implement `IEventPayload` but events do.
 
-**GlobalAdmin vs Tenant scope:** Most types operate on a specific managed tenant (identified by `TenantId`). The GlobalAdmin commands (`BootstrapGlobalAdmin`, `SetGlobalAdministrator`, `RemoveGlobalAdministrator`) are platform-level — they operate on the singleton `global-administrators` aggregate under the `system` platform tenant. Their events still carry `TenantId` (set to `"system"`) for consistency with the architecture rule that ALL events must include `TenantId`.
+**GlobalAdmin vs Tenant scope:** Most types operate on a specific managed tenant (identified by `TenantId`). The GlobalAdmin commands (`BootstrapGlobalAdmin`, `SetGlobalAdministrator`, `RemoveGlobalAdministrator`) are platform-level — they operate on the singleton `global-administrators` aggregate under the `system` platform tenant. Their events still carry `TenantId` (set to `"system"` at runtime) for consistency with the architecture rule that ALL events must include `TenantId`.
 
 ### Technical Requirements
 
@@ -106,25 +117,50 @@ This is the **first domain logic story** — everything before this was scaffold
 - All commands and events are `public record` types with positional parameters (primary constructor syntax)
 - One type per file (enforced by `.editorconfig`)
 - File-scoped namespaces: `namespace Hexalith.Tenants.Contracts.Commands;`
-- No XML doc comments needed on record types — the type name and parameters are self-documenting for contracts
+- No XML doc comments on record types — type name and parameters are self-documenting for contracts
 
-**Exact File Template — Command Example:**
+**Exact File Template — Command (no interface, no using for enum-free commands):**
 ```csharp
 namespace Hexalith.Tenants.Contracts.Commands;
 
 public record CreateTenant(string TenantId, string Name, string? Description);
 ```
 
-**Exact File Template — Event Example:**
+**Exact File Template — Command referencing TenantRole:**
 ```csharp
-using Hexalith.EventStore.Contracts.Events;
+using Hexalith.Tenants.Contracts.Enums;
 
+namespace Hexalith.Tenants.Contracts.Commands;
+
+public record AddUserToTenant(string TenantId, string UserId, TenantRole Role);
+```
+
+**Exact File Template — Event (IEventPayload available via global using from Task 1):**
+```csharp
 namespace Hexalith.Tenants.Contracts.Events;
 
 public record TenantCreated(string TenantId, string Name, string? Description, DateTimeOffset CreatedAt) : IEventPayload;
 ```
 
-**Exact File Template — Enum Example:**
+**Exact File Template — Event referencing TenantRole (applies to UserAddedToTenant, UserRoleChanged):**
+```csharp
+using Hexalith.Tenants.Contracts.Enums;
+
+namespace Hexalith.Tenants.Contracts.Events;
+
+public record UserAddedToTenant(string TenantId, string UserId, TenantRole Role) : IEventPayload;
+```
+
+**Exact File Template — Rejection Event referencing TenantRole (applies to RoleEscalationRejection):**
+```csharp
+using Hexalith.Tenants.Contracts.Enums;
+
+namespace Hexalith.Tenants.Contracts.Events.Rejections;
+
+public record RoleEscalationRejection(string TenantId, string UserId, TenantRole AttemptedRole) : IRejectionEvent;
+```
+
+**Exact File Template — Enum:**
 ```csharp
 namespace Hexalith.Tenants.Contracts.Enums;
 
@@ -136,28 +172,77 @@ public enum TenantRole
 }
 ```
 
-**Required Using Directives:**
-- Event files MUST include `using Hexalith.EventStore.Contracts.Events;` for `IEventPayload` — this is NOT covered by implicit usings
-- Command files referencing `TenantRole` MUST include `using Hexalith.Tenants.Contracts.Enums;`
-- Alternative: add `<Using Include="Hexalith.EventStore.Contracts.Events" />` to the Contracts .csproj `<ItemGroup>` as a global using to avoid repetitive directives in all 11 event files. This is the preferred approach.
+**Exact File Template — Rejection Event (IRejectionEvent available via global using from Task 1):**
+```csharp
+namespace Hexalith.Tenants.Contracts.Events.Rejections;
+
+public record TenantNotFoundRejection(string TenantId) : IRejectionEvent;
+```
+
+**Global Using Strategy (Task 1 — preferred approach):**
+Add to `src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj`:
+```xml
+<ItemGroup>
+  <Using Include="Hexalith.EventStore.Contracts.Events" />
+</ItemGroup>
+```
+This makes `IEventPayload` and `IRejectionEvent` available in all files without per-file `using` directives. Commands referencing `TenantRole` still need explicit `using Hexalith.Tenants.Contracts.Enums;` since that's an intra-project namespace.
+
+**TenantIdentity Implementation (Task 3):**
+```csharp
+using Hexalith.EventStore.Contracts.Identity;
+
+namespace Hexalith.Tenants.Contracts.Identity;
+
+public static class TenantIdentity
+{
+    public const string DefaultTenantId = "system";
+    public const string Domain = "tenants";
+    public const string GlobalAdministratorsAggregateId = "global-administrators";
+
+    public static AggregateIdentity ForTenant(string managedTenantId)
+        => new(DefaultTenantId, Domain, managedTenantId);
+
+    public static AggregateIdentity ForGlobalAdministrators()
+        => new(DefaultTenantId, Domain, GlobalAdministratorsAggregateId);
+}
+```
+**Critical:** `AggregateIdentity` constructor validates: tenantId/domain must match `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` (lowercase, max 64 chars); aggregateId must match `^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$` (max 256 chars). The constants `"system"`, `"tenants"`, `"global-administrators"` all pass these validations.
+
+**EventStore Interface Definitions (actual source):**
+```csharp
+// IEventPayload — marker interface, no members
+public interface IEventPayload;
+
+// IRejectionEvent — extends IEventPayload, no additional members
+public interface IRejectionEvent : IEventPayload;
+```
 
 **Event Contract Rules:**
-- All events implement `IEventPayload` from `Hexalith.EventStore.Contracts.Events`
-- All events include `TenantId` as first positional parameter (architecture risk mitigation — the EventStore envelope's `tenantId` field is `system`, so the managed tenant ID must be in the event payload)
-- Timestamp fields use `DateTimeOffset` and follow `{Action}At` naming (e.g., `CreatedAt`, `DisabledAt`, `EnabledAt`)
-- No nullable fields on events except optional descriptors (`Description` on `TenantCreated` and `TenantUpdated`)
-- Events represent immutable facts — records enforce this naturally
+- All events implement `IEventPayload` (available via global using)
+- All events include `TenantId` as first positional parameter (type `string`)
+- Architecture reason: EventStore envelope's `tenantId` = `system` (platform tenant), so managed tenant ID must be in payload for consuming services
+- Timestamp fields: `DateTimeOffset`, named `{Action}At` (e.g., `CreatedAt`, `DisabledAt`, `EnabledAt`)
+- No nullable fields except optional descriptors (`Description` on `TenantCreated`/`TenantUpdated`)
 
 **Command Rules:**
-- Commands are plain records — they do NOT implement `IEventPayload` or any interface
-- Commands carry the minimum data needed for the Handle method to make a decision
-- Tenant-scoped commands include `TenantId` to identify the target tenant
-- GlobalAdmin commands include `UserId` only (they target the singleton `global-administrators` aggregate)
+- Commands are plain records — NO interfaces, NO base classes
+- Minimum data for the Handle method to make a decision
+- Tenant-scoped commands: include `TenantId`
+- GlobalAdmin commands: include `UserId` only (target singleton aggregate)
 
 **Enum Rules:**
-- Simple C# enums, no `[Flags]` attribute
-- `TenantRole`: `TenantOwner`, `TenantContributor`, `TenantReader` (3 values — `GlobalAdministrator` is NOT a role in this enum; it's managed by a separate aggregate)
+- Simple C# enums, no `[Flags]`
+- `TenantRole`: `TenantOwner`, `TenantContributor`, `TenantReader` (3 values)
 - `TenantStatus`: `Active`, `Disabled` (2 values)
+- `GlobalAdministrator` is NOT in `TenantRole` — managed by separate aggregate
+
+**Rejection Event Rules:**
+- All implement `IRejectionEvent` (which extends `IEventPayload`)
+- All include `TenantId` as first parameter
+- Carry diagnostic fields for failure context (e.g., `AttemptedRole`, `CurrentCount`, `MaxAllowed`)
+- Naming: `{Target}{Reason}Rejection`
+- Used in Handle methods via `DomainResult.Rejection([new XxxRejection(...)])` — NEVER throw domain exceptions
 
 ### Architecture Compliance
 
@@ -167,18 +252,16 @@ public enum TenantRole
 |------|---------|--------|
 | Commands | Contracts | `Commands/` |
 | Events | Contracts | `Events/` |
+| Rejection Events | Contracts | `Events/Rejections/` |
 | Enums | Contracts | `Enums/` |
 | Identity | Contracts | `Identity/` |
 
-**DO NOT place in Contracts:**
-- Aggregates, State classes → Server
-- Domain exceptions → Server
-- FluentValidation validators → Server
-- Projections, Read models → Server
+**DO NOT place in Contracts:** Aggregates, State classes, FluentValidation validators, Projections, Read models, Domain exceptions — all belong in Server.
 
 **Naming Conventions (MUST follow):**
 - Commands: `{Verb}{Target}` — PascalCase, verb-first (e.g., `CreateTenant`, NOT `TenantCreate`)
 - Events: `{Target}{PastVerb}` — PascalCase, past tense (e.g., `TenantCreated`, NOT `CreateTenantEvent`)
+- Rejections: `{Target}{Reason}Rejection` (e.g., `TenantNotFoundRejection`)
 - Anti-pattern: Never use `-Event` suffix, never use noun-first for commands
 
 **Identity Scheme:**
@@ -186,40 +269,48 @@ public enum TenantRole
 - Domain: `tenants`
 - AggregateId for TenantAggregate: managed tenant ID (e.g., `acme-corp`)
 - AggregateId for GlobalAdministratorAggregate: `global-administrators` (singleton)
-- Actor ID format: `system:tenants:{aggregateId}` (via `AggregateIdentity` from EventStore.Contracts)
+- Actor ID format: `system:tenants:{aggregateId}` (via `AggregateIdentity`)
 
 ### Critical Anti-Patterns (DO NOT)
 
-- **DO NOT** add `CorrelationId`, `UserId`, or `Timestamp` fields to command records — infrastructure metadata is added by `CommandEnvelope` in the MediatR pipeline (Story 2.4), not by domain commands
-- **DO NOT** add `AggregateId` to event records — the aggregate ID is in `EventEnvelope.Metadata`, managed by EventStore infrastructure. Events carry `TenantId` (the managed tenant), which is different from `AggregateId` for GlobalAdmin events
-- **DO NOT** add `GlobalAdministrator` to the `TenantRole` enum — GlobalAdmin is managed by a separate aggregate (`GlobalAdministratorAggregate`), not by tenant-level roles
-- **DO NOT** use `class` instead of `record` for commands or events — records provide immutability, value equality, and positional deconstruction
-- **DO NOT** add `[JsonPropertyName]` attributes — the default `System.Text.Json` camelCase serialization is correct; record property names map naturally
-- **DO NOT** write individual test methods per event/command type — use reflection-driven parameterized tests so future types are automatically covered
-- **DO NOT** add validation logic to command or event records — validation lives in FluentValidation validators (Server) and Handle methods (Server)
+- **DO NOT** add `CorrelationId`, `UserId`, or `Timestamp` fields to command records — infrastructure metadata is added by `CommandEnvelope` in the MediatR pipeline (Story 2.4)
+- **DO NOT** add `AggregateId` to event records — the aggregate ID is in `EventEnvelope.Metadata`. Events carry `TenantId` (managed tenant), which differs from `AggregateId` for GlobalAdmin events
+- **DO NOT** add `GlobalAdministrator` to the `TenantRole` enum — managed by separate aggregate
+- **DO NOT** use `class` instead of `record` — records provide immutability, value equality, positional deconstruction
+- **DO NOT** add `[JsonPropertyName]` attributes — default System.Text.Json camelCase is correct
+- **DO NOT** write individual test methods per event/command type — use reflection-driven `[Theory]`/`[MemberData]` so future types are automatically covered
+- **DO NOT** add validation logic to records — validation lives in FluentValidation (Server) and Handle methods (Server)
+- **DO NOT** create domain exception classes — use `IRejectionEvent` and `DomainResult.Rejection()` instead
+- **DO NOT** hardcode `"system"` as a default value in GlobalAdmin event record parameters — `TenantId` is a constructor parameter, set at runtime by Handle methods
 
 ### Design Decisions
 
-**UpdateTenant uses full-replacement semantics:** `UpdateTenant(TenantId, Name, Description?)` replaces all metadata fields. The caller always sends the full current values. There is no `PatchTenant` or nullable-field partial-update pattern. This is simpler and avoids null-vs-missing ambiguity.
+**UpdateTenant uses full-replacement semantics:** `UpdateTenant(TenantId, Name, Description?)` replaces all metadata fields. No `PatchTenant` or partial-update pattern.
 
-**BootstrapGlobalAdmin reuses the GlobalAdministratorSet event:** 12 commands produce 11 event types because `BootstrapGlobalAdmin` and `SetGlobalAdministrator` both produce `GlobalAdministratorSet`. Bootstrap is just the first set operation with a different precondition check (reject if any admin already exists). No separate `GlobalAdminBootstrapped` event type is needed.
+**BootstrapGlobalAdmin reuses GlobalAdministratorSet event:** 12 commands → 11 event types. `BootstrapGlobalAdmin` and `SetGlobalAdministrator` both produce `GlobalAdministratorSet`. Bootstrap has a different precondition (reject if any admin exists). No separate `GlobalAdminBootstrapped` event.
 
 ### Library & Framework Requirements
 
-**Dependencies available (via ProjectReference to EventStore.Contracts):**
+**Dependencies already available (via ProjectReference to EventStore.Contracts):**
 - `Hexalith.EventStore.Contracts.Events.IEventPayload` — marker interface for all events
-- `Hexalith.EventStore.Contracts.Identity.AggregateIdentity` — identity tuple for aggregate addressing
-- `Hexalith.EventStore.Contracts.Results.DomainResult` — command result wrapper (not needed in this story, but available)
-- `System.Text.Json` — built-in, no additional NuGet needed
+- `Hexalith.EventStore.Contracts.Events.IRejectionEvent` — marker interface for rejection events (extends IEventPayload)
+- `Hexalith.EventStore.Contracts.Identity.AggregateIdentity` — identity tuple record with regex validation
+- `System.Text.Json` — built-in, no NuGet needed
 
-**No additional NuGet packages required for this story.** The Contracts project only depends on EventStore.Contracts (already in .csproj from Story 1.1).
+**No additional NuGet packages required.** Contracts project depends only on EventStore.Contracts (already in .csproj from Story 1.1).
+
+**Test dependencies already available (via tests/Directory.Build.props):**
+- xUnit 2.9.3 — `Xunit` namespace is globally imported
+- Shouldly 4.3.0 — needs `using Shouldly;` in test files
+- coverlet.collector 6.0.4
 
 ### File Structure Requirements
 
-All files under `src/Hexalith.Tenants.Contracts/`:
+All source files under `src/Hexalith.Tenants.Contracts/`:
 
 ```
 src/Hexalith.Tenants.Contracts/
+├── Hexalith.Tenants.Contracts.csproj  (modify: add global using)
 ├── Commands/
 │   ├── CreateTenant.cs
 │   ├── UpdateTenant.cs
@@ -244,7 +335,16 @@ src/Hexalith.Tenants.Contracts/
 │   ├── TenantConfigurationSet.cs
 │   ├── TenantConfigurationRemoved.cs
 │   ├── GlobalAdministratorSet.cs
-│   └── GlobalAdministratorRemoved.cs
+│   ├── GlobalAdministratorRemoved.cs
+│   └── Rejections/
+│       ├── TenantAlreadyExistsRejection.cs
+│       ├── TenantNotFoundRejection.cs
+│       ├── TenantDisabledRejection.cs
+│       ├── UserAlreadyInTenantRejection.cs
+│       ├── UserNotInTenantRejection.cs
+│       ├── RoleEscalationRejection.cs
+│       ├── ConfigurationLimitExceededRejection.cs
+│       └── GlobalAdminAlreadyBootstrappedRejection.cs
 ├── Enums/
 │   ├── TenantRole.cs
 │   └── TenantStatus.cs
@@ -256,77 +356,143 @@ Test files under `tests/Hexalith.Tenants.Contracts.Tests/`:
 
 ```
 tests/Hexalith.Tenants.Contracts.Tests/
-├── EventSerializationTests.cs
-└── NamingConventionTests.cs
+├── Hexalith.Tenants.Contracts.Tests.csproj  (no changes needed)
+├── ScaffoldingSmokeTests.cs  (keep — validates test discovery)
+├── EventSerializationTests.cs  (new)
+└── NamingConventionTests.cs  (new)
 ```
 
 ### Testing Requirements
 
 **Tier 1 (Unit) — No infrastructure needed:**
 
-1. **EventSerializationTests** (AC: #5):
-   - Use reflection to discover all types implementing `IEventPayload` in `Hexalith.Tenants.Contracts` assembly
-   - For each event type: create instance with **non-default, distinguishable test data** — e.g., `"tenant-abc"` not `""`, `DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")` not `default`, `TenantRole.TenantContributor` not the first enum value. Default values can mask serialization failures (a round-trip that silently drops a field and returns `default` would still "pass" with default test data)
-   - Serialize to JSON via `JsonSerializer.Serialize`, deserialize via `JsonSerializer.Deserialize<T>`, assert deep equality with Shouldly
-   - Use `[Theory]` with `[MemberData]` supplying all event types for parameterized testing — DO NOT write individual `[Fact]` methods per event type
-   - Ensures future schema changes that break serialization are caught immediately
+**1. EventSerializationTests (AC: #5, #9):**
+- Use reflection to discover ALL types implementing `IEventPayload` in `Hexalith.Tenants.Contracts` assembly (this automatically includes rejection events since `IRejectionEvent : IEventPayload`)
+- For each type: create instance with **non-default, distinguishable test data**:
+  - Strings: `"tenant-abc"`, `"user-xyz"`, `"config-key-1"` (not `""` or `null`)
+  - DateTimeOffset: `DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")` (not `default`)
+  - TenantRole: `TenantRole.TenantContributor` (not the first enum value `TenantOwner` — default `0` would mask issues)
+  - int: `42`, `100` (not `0`)
+- Serialize via `JsonSerializer.Serialize(instance, type)`, deserialize via `JsonSerializer.Deserialize(json, type)`, assert deep equality with `actual.ShouldBe(expected)` (Shouldly — record value equality makes this work)
+- Use `[Theory]` with `[MemberData]` supplying `(Type eventType, IEventPayload instance)` tuples
+- **DO NOT** write individual `[Fact]` methods per type — reflection auto-discovers so future stories' events are covered
 
-2. **NamingConventionTests** (AC: #6, #7):
-   - Scan `Hexalith.Tenants.Contracts.Commands` namespace for all public record types
-   - Verify each command name starts with a recognized verb from a **whitelist**: `Create`, `Update`, `Disable`, `Enable`, `Add`, `Remove`, `Change`, `Set`, `Bootstrap`. The test MUST FAIL for any command using an unrecognized verb prefix — this catches naming drift
-   - Scan all types implementing `IEventPayload` in `Hexalith.Tenants.Contracts.Events` namespace
-   - Verify each event name ends with a recognized past-tense suffix from a **whitelist**: `Created`, `Updated`, `Disabled`, `Enabled`, `Added`, `Removed`, `Changed`, `Set`
-   - Verify every event type has a `TenantId` property of type `string` (AC: #7)
+**2. NamingConventionTests (AC: #6, #7, #8):**
+- **Commands test:** Scan all public record types in `Hexalith.Tenants.Contracts.Commands` namespace via reflection. Verify each starts with a verb from whitelist: `Create`, `Update`, `Disable`, `Enable`, `Add`, `Remove`, `Change`, `Set`, `Bootstrap`. Test MUST FAIL for unrecognized verbs (whitelist, not blacklist).
+- **Success events test:** Scan all `IEventPayload` types in `Hexalith.Tenants.Contracts.Events` namespace, excluding `IRejectionEvent` types. Verify each ends with: `Created`, `Updated`, `Disabled`, `Enabled`, `Added`, `Removed`, `Changed`, `Set`.
+- **Rejection events test:** Scan all `IRejectionEvent` types in `Hexalith.Tenants.Contracts.Events.Rejections` namespace. Verify each ends with `Rejection`.
+- **TenantId property test:** Verify ALL event types (success + rejection) have a `TenantId` property of type `string` via reflection (AC: #7, #8).
 
-**Test framework:** xUnit 2.9.3, Shouldly 4.3.0 (already in Contracts.Tests .csproj from Story 1.1)
+**Test framework notes:**
+- `Xunit` namespace is globally imported (via tests/Directory.Build.props)
+- Need `using Shouldly;` and `using System.Text.Json;` in test files
+- Need `using Hexalith.EventStore.Contracts.Events;` for `IEventPayload`/`IRejectionEvent` references in test code
 
 ### Previous Story Intelligence
 
 **Story 1.1 (done) — Solution Structure & Build Configuration:**
-- All 15 project shells exist and compile
-- Contracts project has `ProjectReference` to EventStore.Contracts — NO source files yet
-- Contracts.Tests project exists with xUnit, Shouldly, coverlet — NO test files yet
-- Root `.editorconfig` enforces: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation
+- All 15 project shells exist and compile (8 src, 5 test, 2 sample)
+- Contracts .csproj: minimal — just `<ProjectReference>` to EventStore.Contracts. No source files yet
+- Contracts.Tests .csproj: references Contracts and Testing. Has `ScaffoldingSmokeTests.cs` (keep it)
+- `.editorconfig` enforces: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation
 - `TreatWarningsAsErrors = true` — all warnings are build failures
-- `ImplicitUsings` and `Nullable` enabled globally
-- `Directory.Packages.props` has all NuGet versions centralized
+- `ImplicitUsings` and `Nullable` enabled globally via Directory.Build.props
+- `TargetFramework`: `net10.0`, SDK 10.0.103
+- `Directory.Packages.props` centralizes all NuGet versions
+- MinVer for git tag-based SemVer (prefix `v`)
+- EventStore submodule initialized and building correctly
 
-**Learnings from Story 1.1:**
-- SDK version 10.0.103 confirmed available
-- Empty library projects compile without placeholder files (no stub needed)
-- ServiceDefaults required explicit `using Microsoft.Extensions.Hosting;` for `IHostApplicationBuilder` — implicit usings differ between SDK types. Be aware of similar issues in Contracts (unlikely since records have no framework dependencies)
-- EventStore submodule is initialized and its projects build correctly
+**Story 1.1 Learnings:**
+- Empty library projects compile without placeholder files
+- ServiceDefaults required explicit `using Microsoft.Extensions.Hosting;` for `IHostApplicationBuilder` — implicit usings differ between SDK types. Be aware of similar missing-using issues if builds fail.
 
 ### Git Intelligence
 
-Recent commits are all project setup and BMAD planning — no domain code exists yet. This story creates the first domain types.
+Recent commits are all project setup and BMAD planning — no domain code exists yet. This story creates the first domain types in the Contracts project shell.
 
 ### Project Structure Notes
 
-- Alignment with unified project structure: All types in `src/Hexalith.Tenants.Contracts/` with subdirectories matching namespace segments (`Commands/`, `Events/`, `Enums/`, `Identity/`)
-- No conflicts or variances detected — this is greenfield code in an empty project shell
+- All types in `src/Hexalith.Tenants.Contracts/` with subdirectories matching namespace segments
+- No conflicts — this is greenfield code in an empty project shell
+- 36 new files total: 12 commands + 11 events + 8 rejections + 2 enums + 1 identity + 2 test files
 
 ### References
 
-- [Source: _bmad-output/planning-artifacts/epics.md#Story 2.1] — Acceptance criteria, story definition, complete command/event lists
+- [Source: _bmad-output/planning-artifacts/epics.md#Epic 2, Story 2.1] — Acceptance criteria, story definition, complete type lists
 - [Source: _bmad-output/planning-artifacts/architecture.md#Implementation Patterns & Consistency Rules] — Naming conventions, type location rules, event payload structure
-- [Source: _bmad-output/planning-artifacts/architecture.md#Aggregate Boundaries] — TenantAggregate vs GlobalAdministratorAggregate boundary, state design
-- [Source: _bmad-output/planning-artifacts/architecture.md#Identity Mapping] — `system:tenants:{aggregateId}` scheme, platform tenant context
-- [Source: _bmad-output/planning-artifacts/architecture.md#Communication Patterns] — Event record patterns, timestamp conventions, TenantId field requirement
-- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Events/IEventPayload.cs] — Marker interface for events
-- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Identity/AggregateIdentity.cs] — Identity tuple record with validation
-- [Source: _bmad-output/implementation-artifacts/1-1-solution-structure-and-build-configuration.md] — Previous story learnings, project structure established
+- [Source: _bmad-output/planning-artifacts/architecture.md#Aggregate Boundaries] — TenantAggregate vs GlobalAdministratorAggregate boundary
+- [Source: _bmad-output/planning-artifacts/architecture.md#Identity Mapping] — `system:tenants:{aggregateId}` scheme
+- [Source: _bmad-output/planning-artifacts/architecture.md#Communication Patterns] — Event record patterns, timestamp conventions, TenantId requirement
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Events/IEventPayload.cs] — Marker interface (no members)
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Events/IRejectionEvent.cs] — Extends IEventPayload (no members)
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Identity/AggregateIdentity.cs] — Identity tuple with regex validation
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Results/DomainResult.cs] — Three-outcome result: Success, Rejection, NoOp
+- [Source: _bmad-output/implementation-artifacts/1-1-solution-structure-and-build-configuration.md] — Story 1.1 learnings
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Shouldly `ShouldEndWith` third parameter expects `Case` enum, not custom message string — fixed by using `ShouldBeTrue` with `EndsWith` condition
+- NamingConventionTests: `UserAddedToTenant`/`UserRemovedFromTenant` contain the past-tense verb mid-name, not at the end — adjusted test to use `Contains` instead of `EndsWith` for event verb validation
+
 ### Completion Notes List
+
+- All 12 command records created as plain C# records (no interfaces, no base classes)
+- All 11 event records implement `IEventPayload` via global using
+- All 8 rejection event records implement `IRejectionEvent`
+- 2 enums (`TenantRole`, `TenantStatus`) created
+- `TenantIdentity` static helper created with `ForTenant()` and `ForGlobalAdministrators()` methods
+- Global using added to .csproj for `Hexalith.EventStore.Contracts.Events` namespace
+- Serialization round-trip test covers all 19 `IEventPayload` types via reflection (11 success + 8 rejection)
+- Naming convention tests verify command verb prefixes, event verb suffixes, rejection suffix, and TenantId property presence
+- Full solution builds with 0 warnings, 0 errors
+- All 24 tests pass (1 scaffolding + 19 serialization + 4 naming convention)
 
 ### Change Log
 
+- 2026-03-13: Implemented Story 2.1 — all tenant domain contracts (commands, events, rejections, enums, identity) and tests
+
 ### File List
+
+- src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (modified — added global using)
+- src/Hexalith.Tenants.Contracts/Enums/TenantRole.cs (new)
+- src/Hexalith.Tenants.Contracts/Enums/TenantStatus.cs (new)
+- src/Hexalith.Tenants.Contracts/Identity/TenantIdentity.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/CreateTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/UpdateTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/DisableTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/EnableTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/AddUserToTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/RemoveUserFromTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/ChangeUserRole.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/SetTenantConfiguration.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/RemoveTenantConfiguration.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/BootstrapGlobalAdmin.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/SetGlobalAdministrator.cs (new)
+- src/Hexalith.Tenants.Contracts/Commands/RemoveGlobalAdministrator.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/TenantCreated.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/TenantUpdated.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/TenantDisabled.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/TenantEnabled.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/UserAddedToTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/UserRemovedFromTenant.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/UserRoleChanged.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/TenantConfigurationSet.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/TenantConfigurationRemoved.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/GlobalAdministratorSet.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/GlobalAdministratorRemoved.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/TenantAlreadyExistsRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/TenantNotFoundRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/TenantDisabledRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/UserAlreadyInTenantRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/UserNotInTenantRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/RoleEscalationRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/ConfigurationLimitExceededRejection.cs (new)
+- src/Hexalith.Tenants.Contracts/Events/Rejections/GlobalAdminAlreadyBootstrappedRejection.cs (new)
+- tests/Hexalith.Tenants.Contracts.Tests/EventSerializationTests.cs (new)
+- tests/Hexalith.Tenants.Contracts.Tests/NamingConventionTests.cs (new)

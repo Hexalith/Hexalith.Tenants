@@ -1,6 +1,6 @@
 # Story 1.2: DAPR Component Configuration & ServiceDefaults
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 <!-- ADR: Component location follows EventStore implementation pattern (AppHost/DaprComponents/), not architecture prose (dapr/components/). See Dev Notes for rationale. -->
@@ -357,6 +357,7 @@ c04fc8b Initial commit
 
 - 2026-03-08: Story context created — comprehensive developer guide with DAPR component patterns, ServiceDefaults implementation, Aspire extension, and AppHost wiring. Scope expanded from original epics to include access control, resiliency, and full Aspire integration based on EventStore reference analysis. Architecture deviation documented: `actors.yaml` removed (not used in EventStore), component location corrected to `AppHost/DaprComponents/`.
 - 2026-03-08: Story implementation complete — all 6 tasks (0-5) done. ServiceDefaults with full OpenTelemetry/health checks, 4 DAPR component YAML files, Aspire extension with AddHexalithTenants(), and AppHost Program.cs with DAPR topology wiring. Release build zero errors, 6 test projects zero failures.
+- 2026-03-13: Code review complete — 0 HIGH, 0 MEDIUM, 2 LOW issues found and fixed. (1) Added missing `namespace: "default"` to accesscontrol.yaml commandapi policy for production compatibility. (2) Added inline comments to resiliency.yaml mirroring EventStore's documentation pattern. All 9 ACs verified. Build re-confirmed zero errors.
 
 ## Dev Agent Record
 

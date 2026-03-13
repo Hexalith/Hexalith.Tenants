@@ -340,9 +340,9 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Note: FR25-30 in the PRD do not specify the consistency model for queries. This should be clarified in the PRD to prevent test assertions that assume immediate consistency
 
 **Error Handling:**
-- Decision: Domain exceptions with actionable messages (FR49-53)
-- Rationale: EventStore provides GlobalExceptionHandler, ValidationExceptionHandler, ConcurrencyConflictExceptionHandler. Tenant-specific domain exceptions extend this pattern
-- Provided by EventStore: Exception handler infrastructure
+- Decision: Rejection events via `DomainResult.Rejection()` for business rule violations (FR49-53). Handle methods return `DomainResult.Rejection([new XxxRejection(...)])` instead of throwing domain exceptions. This aligns with EventStore's three-outcome model (Success/Rejection/NoOp), enables idempotency caching of rejections, and provides an audit trail of failed command attempts. Domain exception classes are NOT used — rejection events replace them entirely.
+- Rationale: EventStore's `EventStoreAggregate.DispatchCommandAsync()` does not catch exceptions from Handle methods. Thrown exceptions bypass the idempotency record, meaning duplicate commands re-execute domain logic and re-throw. Rejection events are persisted in the idempotency store, giving consistent behavior for duplicate commands.
+- Provided by EventStore: `IRejectionEvent` marker interface, `DomainResult.Rejection()` factory method, GlobalExceptionHandler for infrastructure failures only
 
 ### Infrastructure & Deployment
 
@@ -434,10 +434,11 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 - Examples: `TenantCreated`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `TenantConfigurationSet`, `TenantConfigurationRemoved`, `TenantDisabled`, `TenantEnabled`, `TenantUpdated`, `GlobalAdministratorSet`, `GlobalAdministratorRemoved`
 - Anti-pattern: `TenantUserAdded`, `CreateTenantEvent` (verb-first or -Event suffix)
 
-**Exception Naming Convention:**
-- Pattern: `{Target}{Reason}Exception`
-- Examples: `TenantNotFoundException`, `UserAlreadyInTenantException`, `RoleEscalationException`, `TenantDisabledException`, `ConfigurationLimitExceededException`, `GlobalAdministratorAlreadyBootstrappedException`
-- Anti-pattern: `InvalidOperationException` with generic message (must use domain-specific exceptions)
+**Rejection Event Naming Convention:**
+- Pattern: `{Target}{Reason}Rejection`
+- Examples: `TenantNotFoundRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `GlobalAdminAlreadyBootstrappedRejection`
+- All implement `IRejectionEvent` (extends `IEventPayload`) from EventStore.Contracts
+- Anti-pattern: Domain exception classes for business rule violations (use rejection events instead); `InvalidOperationException` with generic message
 
 **API Endpoint Naming:**
 - Command endpoint: `POST /api/commands` (EventStore standard — single command endpoint)
@@ -465,7 +466,7 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 | State classes (`TenantState`) | Server | Aggregate state, not exposed |
 | Projections (`TenantProjection`) | Server | Read model logic, auto-discovered |
 | Read model classes (`TenantReadModel`) | Server | Projection output, not exposed |
-| Domain exceptions | Server | Domain-specific error types |
+| Rejection events (`*Rejection`) | Contracts | Business rule violation events (IRejectionEvent) |
 | FluentValidation validators | Server | Command validation |
 | Controllers | CommandApi | REST endpoints |
 | API models (DTOs) | CommandApi | Request/response shapes if different from commands |
@@ -475,7 +476,7 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 
 **File Organization Within Projects:**
 - One type per file (enforced by .editorconfig)
-- Folder structure mirrors namespace: `Aggregates/`, `Events/`, `Commands/`, `Projections/`, `Validators/`, `Exceptions/`
+- Folder structure mirrors namespace: `Aggregates/`, `Events/`, `Events/Rejections/`, `Commands/`, `Projections/`, `Validators/`
 - No nested folders deeper than 2 levels within a project
 
 ### Format Patterns
@@ -491,21 +492,22 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 - `202 Accepted` — Command accepted for async processing (if applicable)
 - `400 Bad Request` — FluentValidation failure
 - `403 Forbidden` — Authorization failure (insufficient role)
-- `404 Not Found` — Tenant/user not found (TenantNotFoundException)
-- `409 Conflict` — Concurrency conflict or duplicate operation (UserAlreadyInTenantException)
-- `500 Internal Server Error` — Unexpected errors only
+- `404 Not Found` — Tenant/user not found (mapped from `TenantNotFoundRejection`)
+- `409 Conflict` — Concurrency conflict or duplicate operation (mapped from `UserAlreadyInTenantRejection`, `TenantAlreadyExistsRejection`)
+- `422 Unprocessable Entity` — Domain rejection (mapped from other `IRejectionEvent` types)
+- `500 Internal Server Error` — Unexpected infrastructure errors only
 
 **Error Response Structure:**
 ```json
 {
-  "type": "TenantNotFoundException",
+  "type": "TenantNotFoundRejection",
   "title": "Tenant 'acme-test' does not exist.",
   "detail": "Ensure CreateTenant has been processed before adding users.",
-  "status": 404,
+  "status": 422,
   "correlationId": "abc-123"
 }
 ```
-Follows RFC 7807 Problem Details format, matching EventStore's error handling infrastructure.
+Follows RFC 7807 Problem Details format. Rejection events are mapped to HTTP status codes by a `RejectionToHttpStatusMapper` middleware in CommandApi. The `type` field uses the rejection event type name for programmatic error handling by consumers.
 
 ### Communication Patterns
 
@@ -521,24 +523,38 @@ Follows RFC 7807 Problem Details format, matching EventStore's error handling in
 
 ### Process Patterns
 
-**Handle Method Implementation Pattern:**
+**Handle Method Implementation Pattern (Three-Outcome Model):**
 ```csharp
+// Success: state change occurs
 public static DomainResult Handle(CreateTenant command, TenantState? state)
-{
-    // 1. Validate preconditions against current state
-    if (state is not null)
-        throw new TenantAlreadyExistsException(command.TenantId);
+    => state?.TenantId is not null
+        ? DomainResult.Rejection([new TenantAlreadyExistsRejection(command.TenantId)])
+        : DomainResult.Success([new TenantCreated(command.TenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
 
-    // 2. Build event(s)
-    var @event = new TenantCreated(command.TenantId, command.Name, command.Description, DateTimeOffset.UtcNow);
+// Rejection: business rule violation, no state change
+public static DomainResult Handle(AddUserToTenant command, TenantState? state)
+    => state switch
+    {
+        null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+        { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+        _ when state.Members.ContainsKey(command.UserId)
+            => DomainResult.Rejection([new UserAlreadyInTenantRejection(command.TenantId, command.UserId)]),
+        _ => DomainResult.Success([new UserAddedToTenant(command.TenantId, command.UserId, command.Role)])
+    };
 
-    // 3. Return success with events
-    return DomainResult.Success(@event);
-}
+// NoOp: command acknowledged but no state change needed (idempotent)
+public static DomainResult Handle(DisableTenant command, TenantState? state)
+    => state switch
+    {
+        null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+        { Status: TenantStatus.Disabled } => DomainResult.NoOp(),
+        _ => DomainResult.Success([new TenantDisabled(command.TenantId, DateTimeOffset.UtcNow)])
+    };
 ```
-- Always static, always pure (no side effects, no I/O)
-- Validate preconditions first, throw domain exceptions on failure
-- Return `DomainResult.Success(events)` — never return null or empty events for successful commands
+- Always static, always pure (no side effects, no I/O, no thrown exceptions)
+- Three outcomes: `DomainResult.Success(events)` for state changes, `DomainResult.Rejection([rejections])` for business rule violations, `DomainResult.NoOp()` for idempotent no-change
+- Rejection events implement `IRejectionEvent` and are persisted in the idempotency store
+- NEVER throw domain exceptions from Handle methods — use `DomainResult.Rejection()` instead
 
 **Apply Method Implementation Pattern:**
 ```csharp
@@ -581,15 +597,15 @@ public void Apply(TenantCreated @event)
 
 **All AI Agents MUST:**
 1. Place types in the correct project per the Type Location Rules table
-2. Follow command/event/exception naming conventions exactly
-3. Implement Handle methods as `public static` pure functions — no instance state, no I/O
-4. Include `TenantId` as a top-level field in all event payloads
-5. Use domain-specific exceptions, never generic `InvalidOperationException`
-6. Follow RFC 7807 Problem Details for API error responses
+2. Follow command/event/rejection naming conventions exactly
+3. Implement Handle methods as `public static` pure functions — no instance state, no I/O, no thrown exceptions
+4. Include `TenantId` as a top-level field in all event payloads (success events AND rejection events)
+5. Use `DomainResult.Rejection([new XxxRejection(...)])` for business rule violations — NEVER throw domain exceptions from Handle methods
+6. Follow RFC 7807 Problem Details for API error responses (rejection events mapped to HTTP status codes)
 7. Use structured logging with semantic parameters, never string interpolation in log templates
 
 **Pattern Verification:**
-- Tier 1 tests verify naming conventions via reflection (all commands in Contracts, all events in Contracts)
+- Tier 1 tests verify naming conventions via reflection (all commands in Contracts, all events in Contracts, all rejection events end with `Rejection`)
 - Tier 1 conformance tests verify InMemoryTenantService produces identical events as TenantAggregate for every command
 - Tier 1 serialization round-trip tests verify all event types survive JSON serialize/deserialize
 - Tier 2 cross-tenant isolation tests verify both authorization layers reject cross-tenant access
@@ -646,7 +662,16 @@ Hexalith.Tenants/
 │   │   │   ├── TenantConfigurationSet.cs  # FR22
 │   │   │   ├── TenantConfigurationRemoved.cs # FR22
 │   │   │   ├── GlobalAdministratorSet.cs  # FR16
-│   │   │   └── GlobalAdministratorRemoved.cs # FR16
+│   │   │   ├── GlobalAdministratorRemoved.cs # FR16
+│   │   │   └── Rejections/
+│   │   │       ├── TenantAlreadyExistsRejection.cs  # FR50, FR52
+│   │   │       ├── TenantNotFoundRejection.cs        # FR50
+│   │   │       ├── TenantDisabledRejection.cs        # FR51
+│   │   │       ├── UserAlreadyInTenantRejection.cs   # FR9, FR52
+│   │   │       ├── UserNotInTenantRejection.cs
+│   │   │       ├── RoleEscalationRejection.cs        # FR10
+│   │   │       ├── ConfigurationLimitExceededRejection.cs # FR24
+│   │   │       └── GlobalAdminAlreadyBootstrappedRejection.cs # FR18
 │   │   ├── Identity/
 │   │   │   └── TenantIdentity.cs          # Identity scheme helpers
 │   │   └── Enums/
@@ -672,14 +697,6 @@ Hexalith.Tenants/
 │   │   │   ├── GlobalAdministratorReadModel.cs
 │   │   │   ├── TenantIndexProjection.cs   # Cross-tenant index (FR25, FR28-30)
 │   │   │   └── TenantIndexReadModel.cs
-│   │   ├── Exceptions/
-│   │   │   ├── TenantNotFoundException.cs # FR50
-│   │   │   ├── TenantDisabledException.cs # FR51
-│   │   │   ├── UserAlreadyInTenantException.cs # FR9, FR52
-│   │   │   ├── UserNotInTenantException.cs
-│   │   │   ├── RoleEscalationException.cs # FR10
-│   │   │   ├── ConfigurationLimitExceededException.cs # FR24
-│   │   │   └── GlobalAdministratorAlreadyBootstrappedException.cs # FR18
 │   │   └── Validators/
 │   │       ├── CreateTenantValidator.cs
 │   │       ├── AddUserToTenantValidator.cs
@@ -865,7 +882,7 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 - Failure threshold: Actor rehydration must complete in under 30 seconds on CI runner hardware
 
 **Bootstrap Multi-Instance Behavior (Party Mode Validation Finding):**
-- `TenantBootstrapHostedService` runs on every instance startup and sends `BootstrapGlobalAdmin` through MediatR. On multi-instance deployments, N-1 instances will receive `GlobalAdministratorAlreadyBootstrappedException`. This is expected behavior, not an error
+- `TenantBootstrapHostedService` runs on every instance startup and sends `BootstrapGlobalAdmin` through MediatR. On multi-instance deployments, N-1 instances will receive `DomainResult.Rejection([new GlobalAdminAlreadyBootstrappedRejection("system")])`. This is expected behavior, not an error
 - Decision: Log bootstrap rejection at `Information` level (not `Warning` or `Error`) with message "Global administrator already bootstrapped, skipping"
 - Affects: TenantBootstrapHostedService implementation and logging configuration
 

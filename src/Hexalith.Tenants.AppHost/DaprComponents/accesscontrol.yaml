@@ -13,6 +13,7 @@ spec:
       - appId: commandapi
         defaultAction: deny
         trustDomain: "public"
+        namespace: "default"
         operations:
           - name: /**
             httpVerb: ['POST']

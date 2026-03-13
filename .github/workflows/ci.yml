@@ -41,10 +41,10 @@ jobs:
 
       - name: Unit Tests (Tier 1)
         run: |
-          dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
-          dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
-          dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
-          dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+          dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+          dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
 
       - name: Install DAPR CLI
         run: |
@@ -57,6 +57,7 @@ jobs:
           tests/Hexalith.Tenants.Server.Tests/
           --no-build --configuration Release
           --logger "trx;LogFileName=integration-results.trx"
+          --collect:"XPlat Code Coverage"
 
       - name: Upload test results
         if: failure()
@@ -93,7 +94,12 @@ jobs:
           dapr init # Full init (not --slim) for Aspire topology
 
       - name: Aspire Contract Tests (Tier 3)
-        run: dotnet test tests/Hexalith.Tenants.IntegrationTests/ --configuration Release
+        run: >
+          dotnet test
+          tests/Hexalith.Tenants.IntegrationTests/
+          --no-build --configuration Release
+          --logger "trx;LogFileName=aspire-results.trx"
+          --collect:"XPlat Code Coverage"
 
       - name: Test Summary
         if: always()
@@ -106,4 +112,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: aspire-test-results
-          path: "**/TestResults/**"
+          path: |
+            **/aspire-results.trx
+            **/coverage.cobertura.xml

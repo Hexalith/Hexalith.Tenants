@@ -9,10 +9,12 @@ spec:
         policy: constant
         duration: 1s
         maxRetries: 3
+      # Pub/sub outbound: publisher -> sidecar -> broker
       pubsubRetryOutbound:
         policy: exponential
         maxInterval: 10s
         maxRetries: 3
+      # Pub/sub inbound: broker -> sidecar -> subscriber app
       pubsubRetryInbound:
         policy: exponential
         maxInterval: 30s
@@ -20,7 +22,9 @@ spec:
     timeouts:
       daprSidecar:
         general: 5s
+      # Pub/sub outbound: prevent hung sidecar->broker calls
       pubsubTimeout: 10s
+      # Pub/sub inbound: allow more time for subscriber processing
       subscriberTimeout: 30s
     circuitBreakers:
       defaultBreaker:
@@ -28,6 +32,7 @@ spec:
         interval: 10s
         timeout: 30s
         trip: consecutiveFailures > 3
+      # Pub/sub circuit breaker for prolonged broker outages
       pubsubBreaker:
         maxRequests: 1
         interval: 10s
@@ -39,6 +44,8 @@ spec:
         retry: defaultRetry
         timeout: daprSidecar
         circuitBreaker: defaultBreaker
+    # These policies AUGMENT built-in pub/sub component retries.
+    # Effective retry count = component built-in retries x resiliency retries.
     components:
       pubsub:
         outbound:
@@ -48,6 +55,8 @@ spec:
         inbound:
           retry: pubsubRetryInbound
           timeout: subscriberTimeout
+      # State store resiliency: retry and circuit breaker for state persistence.
+      # Without this target, transient Redis failures would fail without retry.
       statestore:
         retry: defaultRetry
         timeout: daprSidecar

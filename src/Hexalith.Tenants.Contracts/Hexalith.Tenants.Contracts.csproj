@@ -4,4 +4,8 @@
     <ProjectReference Include="..\..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Hexalith.EventStore.Contracts.Events" />
+  </ItemGroup>
+
 </Project>
