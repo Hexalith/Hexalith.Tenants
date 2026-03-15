@@ -62,17 +62,18 @@ So that I can control who has access to my tenant and what they can do.
   - [ ] 1.3: Add `Handle(ChangeUserRole, TenantState?)` with null/disabled/escalation/not-member/same-role checks
   - [ ] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create FluentValidation validators (AC: #8)
+- [ ] Task 2: Create FluentValidation validators (AC: #8) — **CONDITIONAL on Task 0: skip if validators don't fire in pipeline**
   - [ ] 2.1: Add `FluentValidation` package reference to `Hexalith.Tenants.Server.csproj`
   - [ ] 2.2: Create `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs`
   - [ ] 2.3: Create `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs`
-  - [ ] 2.4: Register validators in `Program.cs`: add `AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly)` — `AddValidatorsFromAssembly` is from `FluentValidation.DependencyInjectionExtensions`, which is transitively available via `EventStore.CommandApi` reference in CommandApi project
+  - [ ] 2.4: Register validators in `Program.cs`: add `AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly)` — `AddValidatorsFromAssembly` is from `FluentValidation.DependencyInjectionExtensions`, transitively available via `EventStore.CommandApi` reference
   - [ ] 2.5: Verify solution builds
+  - [ ] 2.6: _(If Task 0 says validators don't fire)_ Skip Task 2 entirely, add `string.IsNullOrEmpty` guards to Handle methods instead, document pipeline gap as follow-up item
 
 - [ ] Task 3: Create unit tests (AC: #8, #9)
-  - [ ] 3.1: Add user-role Handle method tests to `TenantAggregateTests.cs` (15 test cases, use `[Theory]`/`[InlineData]` for AddUserToTenant across all 3 valid roles)
-  - [ ] 3.2: Create `tests/Hexalith.Tenants.Server.Tests/Validators/AddUserToTenantValidatorTests.cs` (3 tests: empty TenantId, empty UserId, invalid enum)
-  - [ ] 3.3: Create `tests/Hexalith.Tenants.Server.Tests/Validators/ChangeUserRoleValidatorTests.cs` (3 tests: empty TenantId, empty UserId, invalid enum)
+  - [ ] 3.1: Add user-role Handle method tests to `TenantAggregateTests.cs` (16 test cases, use `[Theory]`/`[InlineData]` for AddUserToTenant across all 3 valid roles)
+  - [ ] 3.2: _(Conditional on Task 2)_ Create `tests/Hexalith.Tenants.Server.Tests/Validators/AddUserToTenantValidatorTests.cs` (3 tests: empty TenantId, empty UserId, invalid enum)
+  - [ ] 3.3: _(Conditional on Task 2)_ Create `tests/Hexalith.Tenants.Server.Tests/Validators/ChangeUserRoleValidatorTests.cs` (3 tests: empty TenantId, empty UserId, invalid enum)
   - [ ] 3.4: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Server.Tests/`
   - [ ] 3.5: Verify no contract regressions: `dotnet test tests/Hexalith.Tenants.Contracts.Tests/`
 
@@ -92,16 +93,18 @@ This story adds the **user-role management Handle methods** to the existing `Ten
 - **State** (from Story 2.3): `TenantState` already has all 3 Apply methods for user-role events (`Apply(UserAddedToTenant)`, `Apply(UserRemovedFromTenant)`, `Apply(UserRoleChanged)`)
 - **Enum** (from Story 2.1): `TenantRole` with values `TenantOwner`, `TenantContributor`, `TenantReader`
 
-### Security Note: TenantRole Enum Default Value
+### Security Note: TenantRole Enum Default Value (Out of Scope — Tracked Separately)
 
-**`TenantRole.TenantOwner = 0`** — the highest-privilege role is the default enum value. If a malformed JSON payload omits the `Role` field, `System.Text.Json` deserializes it as `(TenantRole)0 = TenantOwner`. `Enum.IsDefined()` returns `true` for this value, so the Handle method would accept it.
+**`TenantRole.TenantOwner = 0`** — the highest-privilege role is the default enum value. If a malformed JSON payload omits the `Role` field, `System.Text.Json` deserializes it as `(TenantRole)0 = TenantOwner`. `Enum.IsDefined()` returns `true`, so the Handle method would accept it.
 
-**Mitigations (choose one during implementation):**
-1. **(Recommended)** Reorder the enum: `TenantReader = 0, TenantContributor = 1, TenantOwner = 2` — least-privilege default. **WARNING:** This is a breaking change to Story 2.1 contracts. Evaluate if any events have already been serialized with the current enum values. If yes, add explicit numeric values instead: `TenantOwner = 2, TenantContributor = 1, TenantReader = 0`
-2. FluentValidation validator's `NotEmpty()` rejects the default `0` value — but only if validators fire in the pipeline (see Task 0). **Note:** `NotEmpty()` on an enum rejects the default value `0`, so `TenantOwner = 0` would be rejected. This may be unintentional. Use `.IsInEnum().NotEqual(default(TenantRole))` if the intent is to require explicit role specification, or reorder the enum
-3. Accept the risk and document that omitting `Role` defaults to `TenantOwner` — acceptable if API consumers are trusted internal services
+**DO NOT modify the TenantRole enum in this story** — the enum is defined in Contracts (Story 2.1) and may have serialized events using current ordinal values. Reordering would silently corrupt existing data (owners become readers).
 
-**This story ONLY adds:** 3 Handle methods + 2 validators + tests (15 Handle + 6 validator). No new contracts, no new state mutations, no new projects.
+**Recommended follow-up (file as separate tech-debt item):**
+- Add explicit numeric values to prevent future drift: `TenantOwner = 0, TenantContributor = 1, TenantReader = 2`
+- Enforce `[JsonRequired]` or `JsonSerializerOptions.RespectRequiredMembers = true` at the CommandApi level to reject payloads that omit `Role`
+- This is a CommandApi/serialization concern, not an aggregate concern
+
+**This story ONLY adds:** 3 Handle methods + conditionally 2 validators + tests (16 Handle + conditionally 6 validator). No new contracts, no new state mutations, no new projects.
 
 ### Technical Requirements
 
@@ -164,25 +167,12 @@ public static DomainResult Handle(ChangeUserRole command, TenantState? state)
 - **ChangeUserRole same-role:** Returns `NoOp()` when `state.Users[command.UserId] == command.NewRole` — consistent with idempotent patterns (DisableTenant, EnableTenant). **Note for Story 3.2:** This NoOp silently swallows same-role changes (no event produced). Story 3.2's role enforcement must not re-implement this check
 - **ChangeUserRole OldRole:** Reads `state.Users[command.UserId]` to populate `UserRoleChanged.OldRole` — this is safe because the `ContainsKey` check precedes it
 
-### Empty-String and Null Defense
+### Empty-String and Null Defense (Task 0 Gated)
 
-The Handle methods rely on `state.Users.ContainsKey(command.UserId)` which accepts empty strings and can throw on `null`. Two attack vectors exist:
+Handle methods use `state.Users.ContainsKey(command.UserId)` — accepts empty strings, throws on `null`. Resolution depends on Task 0:
 
-1. **Empty-string UserId:** `AddUserToTenant("acme", "", TenantReader)` would add a phantom user with key `""` to the tenant. FluentValidation's `NotEmpty()` blocks this *if validators fire* (see Task 0).
-2. **Null UserId via deserialization:** `System.Text.Json` can deserialize `null` into non-nullable `string` if `RespectNullableAnnotations` is not enabled (.NET 10 default depends on configuration). `Dictionary.ContainsKey(null!)` throws `ArgumentNullException` — an unhandled crash, not a clean rejection.
-
-**Resolution strategy (decide during Task 0 investigation):**
-- **If validators fire in pipeline:** FluentValidation's `NotEmpty()` blocks both empty and null before reaching Handle. Handle methods are safe as written.
-- **If validators do NOT fire:** Add explicit guards at the top of each Handle method: `if (string.IsNullOrEmpty(command.UserId)) return DomainResult.Rejection([...])` or rely on `ArgumentNullException.ThrowIfNull(command)` only catching null command objects (it does NOT check individual properties).
-
-### ChangeUserRole NoOp — Consuming Service Implications
-
-When `ChangeUserRole` receives the same role the user already has, the Handle method returns `DomainResult.NoOp()`. This means:
-- The command succeeds (200 OK response from API)
-- No `UserRoleChanged` event is produced
-- No state change occurs
-
-Consuming services that depend on receiving a `UserRoleChanged` event as confirmation of a role change will not receive one. They should check the command response status directly, not wait for an event.
+- **If validators fire:** `NotEmpty()` blocks empty/null before Handle. Handle methods are safe as written.
+- **If validators do NOT fire:** Add `string.IsNullOrEmpty` guards before the switch expression in each Handle method. Note: this requires choosing a rejection type for invalid input — either reuse `TenantNotFoundRejection` or create a generic validation rejection (out of scope for this story; prefer Handle-only defense with existing rejection types).
 
 ### Architecture Compliance
 
@@ -334,6 +324,7 @@ public async Task AddUserToTenant_on_active_tenant_produces_UserAddedToTenant(Te
 | 13 | Active tenant, user-1 not member | ChangeUserRole("acme", "user-2", TenantContributor) | Rejection: UserNotInTenantRejection | #5 |
 | 14 | Active tenant, user-1 is TenantReader | ChangeUserRole("acme", "user-1", TenantReader) | NoOp (same role) | #5 |
 | 15 | Active tenant, undefined role (TenantRole)99 | ChangeUserRole("acme", "user-1", (TenantRole)99) | Rejection: RoleEscalationRejection | #6 |
+| 16 | Disabled tenant, user-1 is member | AddUserToTenant("acme", "user-1", TenantOwner) | Rejection: TenantDisabledRejection (NOT UserAlreadyInTenant — verifies switch arm ordering) | #1, #2 |
 
 **How to build state for tests (reuse existing patterns):**
 
