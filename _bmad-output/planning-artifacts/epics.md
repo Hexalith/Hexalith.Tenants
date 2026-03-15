@@ -1,14 +1,14 @@
 ---
 stepsCompleted:
-  - step-01-validate-prerequisites
-  - step-02-design-epics
-  - step-03-create-stories
-  - step-04-final-validation
+    - step-01-validate-prerequisites
+    - step-02-design-epics
+    - step-03-create-stories
+    - step-04-final-validation
 status: complete
-completedAt: '2026-03-07'
+completedAt: "2026-03-07"
 inputDocuments:
-  - prd.md
-  - architecture.md
+    - prd.md
+    - architecture.md
 ---
 
 # Hexalith.Tenants - Epic Breakdown
@@ -262,40 +262,48 @@ FR65: Epic 8 - Compensating command patterns documentation
 ## Epic List
 
 ### Epic 1: Project Foundation & Solution Scaffolding
+
 A developer can clone the repo, build the solution, and run tests with the full project infrastructure in place -- including DAPR component configuration and ServiceDefaults skeleton.
 **FRs covered:** FR43, FR58
 **Additional:** Architecture starter template, CI/CD pipeline, DAPR component YAML, ServiceDefaults skeleton
 
 ### Epic 2: Core Tenant Management & Global Administration
+
 A global administrator can bootstrap the system, create tenants, and manage their lifecycle (create, update, disable, enable). Tenant events are published via DAPR pub/sub.
 **FRs covered:** FR1-FR5, FR13-FR18, FR35-FR36, FR49-FR53
 **NFRs addressed:** NFR5, NFR7-NFR8, NFR14-NFR16, NFR19-NFR21
 
 ### Epic 3: Tenant Membership, Roles & Configuration
+
 A tenant owner can manage who has access to their tenant (add, remove, change roles) and configure tenant-specific settings -- with full invariant enforcement and event production.
 **FRs covered:** FR6-FR12, FR19-FR24, FR31-FR34
 **NFRs addressed:** NFR6, NFR10
 
 ### Epic 4: Event-Driven Integration & Consuming Service Support
+
 A consuming service can subscribe to tenant events, build local projections, and reactively enforce access -- proven by a sample consuming service and client DI registration.
 **FRs covered:** FR37-FR42, FR44-FR45, FR62
 
 ### Epic 5: Tenant Discovery & Query
+
 Developers and administrators can query tenants, list users, look up memberships, and run audit reports through read model projections and query endpoints.
 **FRs covered:** FR25-FR30
 **NFRs addressed:** NFR2
 
 ### Epic 6: Testing Package
+
 A developer can write tenant integration tests using in-memory fakes with production-parity domain logic, with no external infrastructure needed.
 **FRs covered:** FR46-FR47
 **NFRs addressed:** NFR4
 
 ### Epic 7: Deployment & Observability
+
 A platform engineer can deploy the tenant service with .NET Aspire, monitor it with OpenTelemetry metrics, and operate it at scale with stateless horizontal scaling.
 **FRs covered:** FR48, FR54-FR57
 **NFRs addressed:** NFR1, NFR3, NFR11-NFR13, NFR17, NFR22-NFR23
 
 ### Epic 8: Documentation & Adoption
+
 A developer can follow the quickstart to their first tenant command in < 30 minutes, reference event contracts, understand timing behavior, and see the "aha moment" demo.
 **FRs covered:** FR59-FR61, FR63-FR65
 **NFRs addressed:** NFR24
