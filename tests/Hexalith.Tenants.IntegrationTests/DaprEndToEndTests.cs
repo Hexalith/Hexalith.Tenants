@@ -74,7 +74,7 @@ public class DaprEndToEndTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Accepted.ShouldBeTrue("DisableTenant should be accepted");
+        result.Accepted.ShouldBeTrue($"DisableTenant should be accepted but got error: {result.ErrorMessage}");
         result.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
 
         string expectedTopic = disableCmd.AggregateIdentity.PubSubTopic;

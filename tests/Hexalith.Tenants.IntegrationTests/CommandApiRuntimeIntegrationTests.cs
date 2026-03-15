@@ -40,6 +40,7 @@ public class CommandApiRuntimeIntegrationTests
 
         var request = new DomainServiceRequest(
             new CommandEnvelope(
+                Guid.NewGuid().ToString(),
                 "system",
                 "tenants",
                 "acme",
@@ -87,12 +88,12 @@ public class CommandApiRuntimeIntegrationTests
 
         var payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
         var request = new SubmitCommandRequest(
+            Guid.NewGuid().ToString(),
             "system",
             "tenants",
             "global-administrators",
             nameof(BootstrapGlobalAdmin),
-            payload,
-            null);
+            payload);
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 

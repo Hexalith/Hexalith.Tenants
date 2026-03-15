@@ -19,7 +19,7 @@ internal sealed class DomainServiceRequestHandler(
                 DomainResult result = await processor.ProcessAsync(request.Command, request.CurrentState).ConfigureAwait(false);
                 return DomainServiceWireResult.FromDomainResult(result);
             }
-            catch (InvalidOperationException ex) when (IsNoHandleMatch(ex))
+            catch (InvalidOperationException ex) when (IsProcessorMismatch(ex))
             {
                 logger.LogDebug(
                     "Skipping processor {ProcessorType} for command type {CommandType}",
@@ -31,6 +31,7 @@ internal sealed class DomainServiceRequestHandler(
         throw new InvalidOperationException($"No domain processor found for command type '{request.Command.CommandType}'.");
     }
 
-    private static bool IsNoHandleMatch(InvalidOperationException ex)
-        => ex.Message.Contains("No Handle method found for command type", StringComparison.Ordinal);
+    private static bool IsProcessorMismatch(InvalidOperationException ex)
+        => ex.Message.Contains("No Handle method found for command type", StringComparison.Ordinal)
+        || ex.Message.Contains("Unable to rehydrate aggregate state", StringComparison.Ordinal);
 }

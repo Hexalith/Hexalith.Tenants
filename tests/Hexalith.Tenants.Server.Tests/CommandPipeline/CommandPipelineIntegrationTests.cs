@@ -140,6 +140,7 @@ public class CommandPipelineIntegrationTests
     private static CommandEnvelope CreateGlobalAdminCommand<T>(T command)
         where T : notnull
         => new(
+            Guid.NewGuid().ToString(),
             "system",
             "tenants",
             "global-administrators",
@@ -153,6 +154,7 @@ public class CommandPipelineIntegrationTests
     private static CommandEnvelope CreateTenantCommand<T>(T command)
         where T : notnull
         => new(
+            Guid.NewGuid().ToString(),
             "system",
             "tenants",
             ((dynamic)command).TenantId,

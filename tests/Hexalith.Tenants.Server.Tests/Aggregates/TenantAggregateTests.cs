@@ -18,6 +18,7 @@ public class TenantAggregateTests
     private static CommandEnvelope CreateCommand<T>(T command)
         where T : notnull
         => new(
+            Guid.NewGuid().ToString(),
             "system",
             "tenants",
             ((dynamic)command).TenantId,
@@ -279,5 +280,279 @@ public class TenantAggregateTests
 
         state.Users.ContainsKey("user-1").ShouldBeFalse();
         state.Configuration.ContainsKey("billing.plan").ShouldBeFalse();
+    }
+
+    // ===== Story 3.1: User-Role Management Handle Method Tests =====
+
+    // Test 13: AddUserToTenant on active tenant → Success for all 3 roles (AC #1)
+    [Theory]
+    [InlineData(TenantRole.TenantOwner)]
+    [InlineData(TenantRole.TenantContributor)]
+    [InlineData(TenantRole.TenantReader)]
+    public async Task AddUserToTenant_on_active_tenant_produces_UserAddedToTenant(TenantRole role)
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", role));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        IEventPayload evt = result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        ((UserAddedToTenant)evt).TenantId.ShouldBe("acme");
+        ((UserAddedToTenant)evt).UserId.ShouldBe("user-1");
+        ((UserAddedToTenant)evt).Role.ShouldBe(role);
+    }
+
+    // Test 14: AddUserToTenant on null state → TenantNotFoundRejection (AC #1)
+    [Fact]
+    public async Task AddUserToTenant_on_null_state_produces_TenantNotFoundRejection()
+    {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    // Test 15: AddUserToTenant on disabled tenant → TenantDisabledRejection (AC #1)
+    [Fact]
+    public async Task AddUserToTenant_on_disabled_tenant_produces_TenantDisabledRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
+    // Test 16: AddUserToTenant when user already member → UserAlreadyInTenantRejection (AC #2)
+    [Fact]
+    public async Task AddUserToTenant_when_user_already_member_produces_UserAlreadyInTenantRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantOwner));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>();
+    }
+
+    // Test 17: AddUserToTenant with undefined role → RoleEscalationRejection (AC #6)
+    [Fact]
+    public async Task AddUserToTenant_with_undefined_role_produces_RoleEscalationRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", (TenantRole)99));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+    }
+
+    // Test 18: RemoveUserFromTenant when user is member → Success (AC #3)
+    [Fact]
+    public async Task RemoveUserFromTenant_when_user_is_member_produces_UserRemovedFromTenant()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-1"));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        IEventPayload evt = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        ((UserRemovedFromTenant)evt).TenantId.ShouldBe("acme");
+        ((UserRemovedFromTenant)evt).UserId.ShouldBe("user-1");
+    }
+
+    // Test 19: RemoveUserFromTenant on null state → TenantNotFoundRejection (AC #3)
+    [Fact]
+    public async Task RemoveUserFromTenant_on_null_state_produces_TenantNotFoundRejection()
+    {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-1"));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    // Test 20: RemoveUserFromTenant on disabled tenant → TenantDisabledRejection (AC #3)
+    [Fact]
+    public async Task RemoveUserFromTenant_on_disabled_tenant_produces_TenantDisabledRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-1"));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
+    // Test 21: RemoveUserFromTenant when user not member → UserNotInTenantRejection (AC #4)
+    [Fact]
+    public async Task RemoveUserFromTenant_when_user_not_member_produces_UserNotInTenantRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-2"));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+    }
+
+    // Test 22: ChangeUserRole with valid new role → Success (AC #5)
+    [Fact]
+    public async Task ChangeUserRole_with_valid_new_role_produces_UserRoleChanged()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantContributor));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        var roleEvt = (UserRoleChanged)result.Events[0];
+        roleEvt.TenantId.ShouldBe("acme");
+        roleEvt.UserId.ShouldBe("user-1");
+        roleEvt.OldRole.ShouldBe(TenantRole.TenantReader);
+        roleEvt.NewRole.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    // Test 23: ChangeUserRole on null state → TenantNotFoundRejection (AC #5)
+    [Fact]
+    public async Task ChangeUserRole_on_null_state_produces_TenantNotFoundRejection()
+    {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantContributor));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    // Test 24: ChangeUserRole on disabled tenant → TenantDisabledRejection (AC #5)
+    [Fact]
+    public async Task ChangeUserRole_on_disabled_tenant_produces_TenantDisabledRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantContributor));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
+    // Test 25: ChangeUserRole when user not member → UserNotInTenantRejection (AC #5)
+    [Fact]
+    public async Task ChangeUserRole_when_user_not_member_produces_UserNotInTenantRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-2", TenantRole.TenantContributor));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+    }
+
+    // Test 26: ChangeUserRole with same role → NoOp (AC #5)
+    [Fact]
+    public async Task ChangeUserRole_with_same_role_produces_NoOp()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantReader));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsNoOp.ShouldBeTrue();
+        result.Events.Count.ShouldBe(0);
+    }
+
+    // Test 27: ChangeUserRole with undefined role → RoleEscalationRejection (AC #6)
+    [Fact]
+    public async Task ChangeUserRole_with_undefined_role_produces_RoleEscalationRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", (TenantRole)99));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+    }
+
+    // Test 28: AddUserToTenant on disabled tenant with existing member → TenantDisabledRejection (verifies switch arm ordering) (AC #1, #2)
+    [Fact]
+    public async Task AddUserToTenant_on_disabled_tenant_with_existing_member_produces_TenantDisabledRejection()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantOwner));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 }

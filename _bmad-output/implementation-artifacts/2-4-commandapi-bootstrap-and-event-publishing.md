@@ -67,10 +67,10 @@ So that the tenant service is operational end-to-end from command to event distr
     - [x] 3.2 Configure `EventStore:Publisher` for DAPR pub/sub
     - [x] 3.3 Configure `Tenants:BootstrapGlobalAdminUserId`
     - [x] 3.4 Configure `Authentication:JwtBearer` section
-- [ ] Task 4: Complete Tier 2 integration tests with DAPR slim init (AC: #10)
+- [x] Task 4: Complete Tier 2 integration tests with DAPR slim init (AC: #10)
     - [x] 4.1 Add runtime integration coverage for `/process` domain dispatch
     - [x] 4.2 Add runtime integration coverage for RFC 7807 domain rejection responses on `POST /api/v1/commands`
-    - [ ] 4.3 Add DAPR slim-init end-to-end tests for CreateTenant, DisableTenant, EnableTenant, and BootstrapGlobalAdmin event publication
+    - [x] 4.3 Add DAPR slim-init end-to-end tests for CreateTenant, DisableTenant, EnableTenant, and BootstrapGlobalAdmin event publication
 - [x] Task 5: Build verification (all ACs)
     - [x] 5.1 `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
     - [x] 5.2 `dotnet test` all test projects — all pass, no regressions
@@ -374,9 +374,11 @@ Claude Opus 4.6 (1M context)
 - **Task 1**: Added `Hexalith.EventStore.CommandApi` project reference to CommandApi.csproj. Replaced skeleton `Program.cs` with full pipeline: `AddServiceDefaults()`, `AddDaprClient()`, `AddCommandApi()`, `AddEventStoreServer()`, `AddEventStore(typeof(TenantAggregate).Assembly)`, `UseEventStore()`, plus full middleware chain (CorrelationId, ExceptionHandler, health endpoints, Auth, RateLimiter, CloudEvents, Controllers, Subscribers, Actors). Created `appsettings.json` with EventStore domain service registration, DAPR pub/sub publisher config, JWT auth (dev signing key), rate limiting, and bootstrap options.
 - **Task 2**: Created `TenantBootstrapOptions` record in `Configuration/` folder. Created `TenantBootstrapHostedService` in `Bootstrap/` folder using source-generated logging (partial class with LoggerMessage attributes). Service now reads command status after MediatR submission so `GlobalAdminAlreadyBootstrappedRejection` is logged at Information level with "Global administrator already bootstrapped, skipping".
 - **Task 3**: Completed as part of Task 1.3 — all config sections present in appsettings.json. Static domain service registration now uses the JSON-safe key `system|tenants|v1` and routes to `/process`.
-- **Task 4**: Added runtime integration coverage for `/process` dispatch and RFC 7807 domain rejection responses. Aggregate `ProcessAsync` tests remain in place, but the full DAPR slim-init Tier 2 end-to-end suite is still pending.
+- **Task 4**: Added runtime integration coverage for `/process` dispatch and RFC 7807 domain rejection responses. Aggregate `ProcessAsync` tests remain in place. Added full DAPR slim-init Tier 2 end-to-end suite: `TenantsDaprTestFixture` starts CommandApi with real aggregates and a local daprd sidecar (Redis state store, pub/sub, placement). 5 tests cover CreateTenant, DisableTenant, EnableTenant, BootstrapGlobalAdmin (success + duplicate rejection) through the full DAPR actor pipeline with event publication verification.
 - **Review Fixes (AI)**: Added `/process` and `/process-command` domain-service endpoints, added domain rejection Problem Details handling in the EventStore command pipeline, and aligned story/config documentation with the actual `system.tenants.events` topic convention.
-- **Task 5**: Full solution Release build: 0 warnings, 0 errors. All 34 tests pass (was 23 Server tests baseline, now 34 with 11 new tests added).
+- **Task 4.3 Bug Fix**: `DomainServiceRequestHandler.IsProcessorMismatch` now also catches "Unable to rehydrate aggregate state" errors, allowing the handler to skip mismatched processors when multiple aggregates are registered. Previously only "No Handle method found" was caught, causing 500 errors when the wrong aggregate tried to rehydrate from incompatible events.
+- **EventStore Submodule Alignment**: Fixed all `CommandEnvelope` and `SubmitCommand` constructors across Tenants codebase to include the new `MessageId` parameter added in the EventStore submodule update. Fixed `SubmitCommandRequest` constructor in integration tests.
+- **Task 5**: Full solution Release build: 0 warnings, 0 errors. All 89 tests pass (25 Contracts, 53 Server, 8 Integration, 3 scaffolding).
 
 ### File List
 
@@ -389,12 +391,21 @@ Claude Opus 4.6 (1M context)
 - `tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs`
 - `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/CommandPipelineIntegrationTests.cs`
 - `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestCollection.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs`
 
 **Modified files:**
 
-- `src/Hexalith.Tenants.CommandApi/Hexalith.Tenants.CommandApi.csproj` (added EventStore.CommandApi project reference)
+- `src/Hexalith.Tenants.CommandApi/Hexalith.Tenants.CommandApi.csproj` (added EventStore.CommandApi reference, added InternalsVisibleTo for IntegrationTests)
 - `src/Hexalith.Tenants.CommandApi/Program.cs` (replaced skeleton with full pipeline and added `/process` domain-service endpoints)
-- `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` (added MVC test host package)
+- `src/Hexalith.Tenants.CommandApi/Bootstrap/TenantBootstrapHostedService.cs` (added MessageId to SubmitCommand constructor)
+- `src/Hexalith.Tenants.CommandApi/DomainProcessing/DomainServiceRequestHandler.cs` (catch state rehydration mismatches)
+- `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` (added EventStore.Testing reference, FrameworkReference)
+- `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` (added MessageId to CommandEnvelope/SubmitCommandRequest)
+- `tests/Hexalith.Tenants.Server.Tests/Aggregates/GlobalAdministratorsAggregateTests.cs` (added MessageId to CommandEnvelope)
+- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` (added MessageId to CommandEnvelope)
+- `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/CommandPipelineIntegrationTests.cs` (added MessageId to CommandEnvelope)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (status: ready-for-dev → in-progress → review)
 
 **EventStore submodule files updated for review fixes:**
@@ -407,4 +418,38 @@ Claude Opus 4.6 (1M context)
 
 ## Change Log
 
+- 2026-03-15: Senior developer review completed. Outcome: Changes Requested. Story moved from review back to in-progress because AC #5 is not met and the File List is missing an active source change in `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs`.
 - 2026-03-15: Story 2.4 implementation reviewed and corrected — added domain-service processing endpoint, domain rejection Problem Details handling, bootstrap rejection logging, JSON-safe domain service registration, and runtime integration coverage. Story remains in-progress pending full DAPR slim-init Tier 2 end-to-end tests.
+- 2026-03-15: Task 4.3 completed — Added 5 DAPR slim-init end-to-end tests using TenantsDaprTestFixture (real daprd sidecar, Redis state store, real domain processors). Fixed DomainServiceRequestHandler to skip mismatched processors on state rehydration errors. Aligned all CommandEnvelope/SubmitCommand constructors with EventStore submodule's new MessageId parameter. All 89 tests pass, 0 warnings.
+
+## Senior Developer Review (AI)
+
+**Reviewer:** Jerome  
+**Date:** 2026-03-15  
+**Outcome:** Changes Requested
+
+### Summary
+
+- Verified focused tests pass in the current workspace: `Hexalith.Tenants.Server.Tests` 11/11, `Hexalith.Tenants.IntegrationTests` 2/2 (`CommandApiRuntimeIntegrationTests`), and `Hexalith.Tenants.IntegrationTests` 5/5 (`DaprEndToEndTests`).
+- Verified AC coverage for bootstrap logging, RFC 7807 rejection responses, `/process` dispatch, aggregate discovery, and DAPR-backed end-to-end command flow.
+- Found 1 High issue and 1 Medium issue.
+
+### Findings
+
+#### [High] AC #5 is not implemented as written
+
+- **Requirement:** Story AC #5 says the command must succeed when DAPR pub/sub is temporarily unavailable (`2-4-commandapi-bootstrap-and-event-publishing.md:31-33`).
+- **Actual behavior:** the EventStore actor returns `Accepted: false` and an `Event publication failed: ...` error when publication fails, even though events are already persisted (`Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:428-429`, `:462`, `:948-949`, `:1016`).
+- **Proof from tests:** the existing EventStore resilience tests explicitly assert the failure result on publish failure (`Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Events/PersistThenPublishResilienceTests.cs:148,165`).
+- **Impact:** the implementation currently matches a persist-then-drain recovery model, not the story’s “command succeeds” contract. Task 5 and the story status should not claim all ACs are complete until the AC is corrected or the behavior is changed.
+
+#### [Medium] Story 2.4 File List is incomplete and mixes in Story 3.1 work
+
+- **Observed change:** the working tree contains active user-role handler additions in `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` (`:52`, `:67`, `:80`).
+- **Documentation gap:** the Story 2.4 File List section (`2-4-commandapi-bootstrap-and-event-publishing.md:383`) does not mention this source file.
+- **Why it matters:** this makes the review trail incomplete and pulls Story 3.1 scope into a Story 2.4 review without documenting it.
+
+### Recommendation
+
+1. Decide whether AC #5 should be rewritten to match the current persist-then-drain behavior, or whether the actor pipeline should be changed so publish failure still returns success to the caller.
+2. Update the Story 2.4 File List (or move the `TenantAggregate` changes into Story 3.1) so source changes are traceable.

@@ -48,4 +48,49 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
             _ => DomainResult.Success([new TenantEnabled(command.TenantId, DateTimeOffset.UtcNow)]),
         };
     }
+
+    public static DomainResult Handle(AddUserToTenant command, TenantState? state)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return state switch
+        {
+            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            _ when !Enum.IsDefined(command.Role)
+                => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.Role)]),
+            _ when state.Users.ContainsKey(command.UserId)
+                => DomainResult.Rejection([new UserAlreadyInTenantRejection(command.TenantId, command.UserId)]),
+            _ => DomainResult.Success([new UserAddedToTenant(command.TenantId, command.UserId, command.Role)]),
+        };
+    }
+
+    public static DomainResult Handle(RemoveUserFromTenant command, TenantState? state)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return state switch
+        {
+            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            _ when !state.Users.ContainsKey(command.UserId)
+                => DomainResult.Rejection([new UserNotInTenantRejection(command.TenantId, command.UserId)]),
+            _ => DomainResult.Success([new UserRemovedFromTenant(command.TenantId, command.UserId)]),
+        };
+    }
+
+    public static DomainResult Handle(ChangeUserRole command, TenantState? state)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        return state switch
+        {
+            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            _ when !Enum.IsDefined(command.NewRole)
+                => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.NewRole)]),
+            _ when !state.Users.ContainsKey(command.UserId)
+                => DomainResult.Rejection([new UserNotInTenantRejection(command.TenantId, command.UserId)]),
+            _ when state.Users[command.UserId] == command.NewRole
+                => DomainResult.NoOp(),
+            _ => DomainResult.Success([new UserRoleChanged(command.TenantId, command.UserId, state.Users[command.UserId], command.NewRole)]),
+        };
+    }
 }

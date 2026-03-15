@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -219,8 +220,22 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime
         _testHost.MapPost("/process", async (
             DomainServiceRequest request,
             DomainServiceRequestHandler handler,
+            ILogger<TenantsDaprTestFixture> logger,
             CancellationToken cancellationToken) =>
-            Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
+        {
+            try
+            {
+                DomainServiceWireResult result = await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false);
+                return Microsoft.AspNetCore.Http.Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Domain processing failed for command type {CommandType}", request.Command.CommandType);
+                return Microsoft.AspNetCore.Http.Results.Problem(
+                    detail: ex.ToString(),
+                    statusCode: 500);
+            }
+        });
         _testHost.MapGet("/healthz", () => Microsoft.AspNetCore.Http.Results.Ok("healthy"));
 
         await _testHost.StartAsync().ConfigureAwait(false);

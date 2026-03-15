@@ -40,6 +40,7 @@ public partial class TenantBootstrapHostedService(
                 byte[] payload = JsonSerializer.SerializeToUtf8Bytes(command);
 
                 var submitCommand = new SubmitCommand(
+                    MessageId: Guid.NewGuid().ToString(),
                     Tenant: "system",
                     Domain: "tenants",
                     AggregateId: "global-administrators",

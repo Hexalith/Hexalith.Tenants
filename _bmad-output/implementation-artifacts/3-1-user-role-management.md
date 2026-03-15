@@ -1,6 +1,6 @@
 # Story 3.1: User-Role Management
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -50,36 +50,36 @@ So that I can control who has access to my tenant and what they can do.
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: Investigate FluentValidation pipeline integration (BLOCKING — do before Task 2)
-  - [ ] 0.1: Read `Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs` — determine what `TRequest` it validates (is it `SubmitCommand` envelope or the inner domain command?)
-  - [ ] 0.2: Search for any `CommandPayloadValidationBehavior` or inner-command validation in EventStore.CommandApi or EventStore.Server
+- [x] Task 0: Investigate FluentValidation pipeline integration (BLOCKING — do before Task 2)
+  - [x] 0.1: Read `Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs` — determine what `TRequest` it validates (is it `SubmitCommand` envelope or the inner domain command?)
+  - [x] 0.2: Search for any `CommandPayloadValidationBehavior` or inner-command validation in EventStore.CommandApi or EventStore.Server
   - [ ] 0.3: If validators fire for domain commands → proceed with Task 2 as written
-  - [ ] 0.4: If validators do NOT fire for domain commands → document the gap, skip Task 2 (validators would be dead code), and ensure Handle methods provide full domain validation (already do). Open a follow-up item for adding pipeline-level domain command validation
+  - [x] 0.4: If validators do NOT fire for domain commands → document the gap, skip Task 2 (validators would be dead code), and ensure Handle methods provide full domain validation (already do). Open a follow-up item for adding pipeline-level domain command validation
 
-- [ ] Task 1: Add user-role Handle methods to TenantAggregate (AC: #1-#6)
-  - [ ] 1.1: Add `Handle(AddUserToTenant, TenantState?)` with null/disabled/escalation/duplicate checks
-  - [ ] 1.2: Add `Handle(RemoveUserFromTenant, TenantState?)` with null/disabled/not-member checks
-  - [ ] 1.3: Add `Handle(ChangeUserRole, TenantState?)` with null/disabled/escalation/not-member/same-role checks
-  - [ ] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Add user-role Handle methods to TenantAggregate (AC: #1-#6)
+  - [x] 1.1: Add `Handle(AddUserToTenant, TenantState?)` with null/disabled/escalation/duplicate checks
+  - [x] 1.2: Add `Handle(RemoveUserFromTenant, TenantState?)` with null/disabled/not-member checks
+  - [x] 1.3: Add `Handle(ChangeUserRole, TenantState?)` with null/disabled/escalation/not-member/same-role checks
+  - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create FluentValidation validators (AC: #8) — **CONDITIONAL on Task 0: skip if validators don't fire in pipeline**
-  - [ ] 2.1: Add `FluentValidation` package reference to `Hexalith.Tenants.Server.csproj`
-  - [ ] 2.2: Create `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs`
-  - [ ] 2.3: Create `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs`
-  - [ ] 2.4: Register validators in `Program.cs`: add `AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly)` — `AddValidatorsFromAssembly` is from `FluentValidation.DependencyInjectionExtensions`, transitively available via `EventStore.CommandApi` reference
-  - [ ] 2.5: Verify solution builds
-  - [ ] 2.6: _(If Task 0 says validators don't fire)_ Skip Task 2 entirely, add `string.IsNullOrEmpty` guards to Handle methods instead, document pipeline gap as follow-up item
+- [x] Task 2: Create FluentValidation validators (AC: #8) — **SKIPPED per Task 0: validators don't fire for domain commands in MediatR pipeline**
+  - [ ] 2.1: ~~Add `FluentValidation` package reference to `Hexalith.Tenants.Server.csproj`~~ SKIPPED
+  - [ ] 2.2: ~~Create `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs`~~ SKIPPED
+  - [ ] 2.3: ~~Create `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs`~~ SKIPPED
+  - [ ] 2.4: ~~Register validators in `Program.cs`~~ SKIPPED
+  - [ ] 2.5: ~~Verify solution builds~~ SKIPPED
+  - [x] 2.6: _(Task 0 confirmed validators don't fire)_ Task 2 skipped entirely. Handle methods provide full domain validation. Pipeline-level domain command validation documented as follow-up item
 
-- [ ] Task 3: Create unit tests (AC: #8, #9)
-  - [ ] 3.1: Add user-role Handle method tests to `TenantAggregateTests.cs` (16 test cases, use `[Theory]`/`[InlineData]` for AddUserToTenant across all 3 valid roles)
-  - [ ] 3.2: _(Conditional on Task 2)_ Create `tests/Hexalith.Tenants.Server.Tests/Validators/AddUserToTenantValidatorTests.cs` (3 tests: empty TenantId, empty UserId, invalid enum)
-  - [ ] 3.3: _(Conditional on Task 2)_ Create `tests/Hexalith.Tenants.Server.Tests/Validators/ChangeUserRoleValidatorTests.cs` (3 tests: empty TenantId, empty UserId, invalid enum)
-  - [ ] 3.4: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Server.Tests/`
-  - [ ] 3.5: Verify no contract regressions: `dotnet test tests/Hexalith.Tenants.Contracts.Tests/`
+- [x] Task 3: Create unit tests (AC: #8, #9)
+  - [x] 3.1: Add user-role Handle method tests to `TenantAggregateTests.cs` (16 test cases, use `[Theory]`/`[InlineData]` for AddUserToTenant across all 3 valid roles)
+  - [x] 3.2: _(Conditional on Task 2)_ SKIPPED — Task 2 skipped per Task 0 findings
+  - [x] 3.3: _(Conditional on Task 2)_ SKIPPED — Task 2 skipped per Task 0 findings
+  - [x] 3.4: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Server.Tests/` — 53/53 passed
+  - [x] 3.5: Verify no contract regressions: `dotnet test tests/Hexalith.Tenants.Contracts.Tests/` — 25/25 passed
 
-- [ ] Task 4: Build verification (all ACs)
-  - [ ] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 4.2: `dotnet test` all test projects — all pass, no regressions
+- [x] Task 4: Build verification (all ACs)
+  - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+  - [x] 4.2: `dotnet test` all test projects — 81 total tests, all pass, no regressions
 
 ## Dev Notes
 
@@ -472,14 +472,31 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - [Source: _bmad-output/planning-artifacts/prd.md#FR12] — Optimistic concurrency (AC #7) — infrastructure-guaranteed by EventStore actor model, no domain code needed
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs] — Task 0: verify domain command validator integration
 
+## Change Log
+
+- 2026-03-15: Task 0 — Investigated FluentValidation pipeline integration. Confirmed domain command validators do NOT fire (MediatR validates SubmitCommand envelope only). Task 2 skipped; Handle methods provide full domain validation. Pipeline-level domain command validation documented as follow-up.
+- 2026-03-15: Task 1 — Added 3 Handle methods (AddUserToTenant, RemoveUserFromTenant, ChangeUserRole) to TenantAggregate with null/disabled/escalation/duplicate/not-member checks.
+- 2026-03-15: Task 3 — Added 16 unit tests covering all 3 Handle methods (success, rejection, NoOp paths). [Theory] with [InlineData] for all 3 TenantRole values. Switch arm ordering verified (disabled takes precedence over duplicate member).
+- 2026-03-15: Task 4 — Full solution build (0 warnings, 0 errors) and all 81 tests pass across 5 test projects with no regressions.
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Task 0: ValidationBehavior<TRequest> validates SubmitCommand (MediatR envelope). Domain commands deserialized in EventStoreAggregate.DispatchCommandAsync via reflection — never pass through FluentValidation. ValidateModelFilter is ASP.NET action filter for HTTP request objects, not domain commands.
+
 ### Completion Notes List
 
+- Task 0: FluentValidation pipeline investigation complete. Validators for domain commands (AddUserToTenant, ChangeUserRole) would be dead code — MediatR pipeline only validates SubmitCommand/SubmitCommandRequest envelopes. Task 2 skipped entirely. Follow-up item: add pipeline-level domain command validation to EventStore.CommandApi.
+- Task 1: Added 3 Handle methods to TenantAggregate following established patterns (static, pure, DomainResult return). All methods include null state, disabled tenant, and domain-specific guards. ChangeUserRole returns NoOp for same-role (consistent with DisableTenant/EnableTenant idempotent patterns).
+- Task 3: Added 16 test methods (including 1 [Theory] with 3 [InlineData]) to TenantAggregateTests.cs. Tests use established ProcessAsync(CommandEnvelope, state) pattern with CreateCommand<T> helper. All 53 Server.Tests pass, 25 Contracts.Tests pass (no regressions).
+- Task 4: Full Release build with 0 warnings/errors. All 81 tests across 5 test projects pass.
+
 ### File List
+
+- `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — MODIFIED: Added 3 Handle methods (AddUserToTenant, RemoveUserFromTenant, ChangeUserRole)
+- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — MODIFIED: Added 16 unit test methods for user-role Handle methods

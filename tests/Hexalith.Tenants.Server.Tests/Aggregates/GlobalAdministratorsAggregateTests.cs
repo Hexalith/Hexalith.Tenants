@@ -17,6 +17,7 @@ public class GlobalAdministratorsAggregateTests
     private static CommandEnvelope CreateCommand<T>(T command)
         where T : notnull
         => new(
+            Guid.NewGuid().ToString(),
             "system",
             "tenants",
             "global-administrators",
