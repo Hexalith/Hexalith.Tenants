@@ -51,15 +51,15 @@ development_status:
 
   # Epic 2: Core Tenant Management & Global Administration
   epic-2: in-progress
-  2-1-tenant-domain-contracts: review
-  2-2-global-administrator-aggregate: backlog
-  2-3-tenant-aggregate-lifecycle: backlog
-  2-4-commandapi-bootstrap-and-event-publishing: backlog
+  2-1-tenant-domain-contracts: done
+  2-2-global-administrator-aggregate: done
+  2-3-tenant-aggregate-lifecycle: done
+  2-4-commandapi-bootstrap-and-event-publishing: in-progress
   epic-2-retrospective: optional
 
   # Epic 3: Tenant Membership, Roles & Configuration
-  epic-3: backlog
-  3-1-user-role-management: backlog
+  epic-3: in-progress
+  3-1-user-role-management: ready-for-dev
   3-2-role-behavior-enforcement: backlog
   3-3-tenant-configuration-management: backlog
   epic-3-retrospective: optional

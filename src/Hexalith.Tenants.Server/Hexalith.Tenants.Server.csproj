@@ -12,4 +12,9 @@
     <PackageReference Include="MediatR" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Hexalith.EventStore.Contracts.Events" />
+    <Using Include="Hexalith.EventStore.Contracts.Results" />
+  </ItemGroup>
+
 </Project>

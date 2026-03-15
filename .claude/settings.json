@@ -3,5 +3,8 @@
     "additionalDirectories": [
       "d:\\Hexalith.Tenants\\_bmad-output\\planning-artifacts\\research"
     ]
+  },
+  "enabledPlugins": {
+    "hookify@claude-plugins-official": true
   }
 }

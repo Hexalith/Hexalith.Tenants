@@ -30,7 +30,9 @@ public class NamingConventionTests
         "Disabled",
         "Enabled",
         "Added",
+        "AddedToTenant",
         "Removed",
+        "RemovedFromTenant",
         "Changed",
         "Set",
     ];
@@ -70,8 +72,8 @@ public class NamingConventionTests
 
         foreach (Type eventType in successEventTypes)
         {
-            bool containsVerb = EventSuffixes.Any(suffix => eventType.Name.Contains(suffix, StringComparison.Ordinal));
-            containsVerb.ShouldBeTrue($"Event '{eventType.Name}' does not contain an allowed past-tense verb: {string.Join(", ", EventSuffixes)}");
+            bool endsWithVerb = EventSuffixes.Any(suffix => eventType.Name.EndsWith(suffix, StringComparison.Ordinal));
+            endsWithVerb.ShouldBeTrue($"Event '{eventType.Name}' does not end with an allowed past-tense verb suffix: {string.Join(", ", EventSuffixes)}");
         }
     }
 

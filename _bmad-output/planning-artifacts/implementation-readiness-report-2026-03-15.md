@@ -16,6 +16,9 @@ notes:
   - "No UX document found - expected for backend/library project"
   - "No duplicate documents detected"
   - "All documents are whole files (no sharded versions)"
+  - "Previous readiness report from 2026-03-07 exists"
+  - "Sprint change proposals: 2026-03-13, 2026-03-15 (x4)"
+  - "Implementation artifacts exist for stories 1-1 through 2-2"
 ---
 
 # Implementation Readiness Assessment Report
@@ -32,53 +35,54 @@ notes:
 | PRD | prd.md | 57,935 bytes | 2026-03-13 |
 | PRD Validation | prd-validation-report.md | 25,410 bytes | 2026-03-07 |
 | Architecture | architecture.md | 74,896 bytes | 2026-03-15 |
-| Epics & Stories | epics.md | 71,495 bytes | 2026-03-15 |
+| Epics & Stories | epics.md | 71,523 bytes | 2026-03-15 |
 | UX Design | *Not found* | — | — |
 
 ### Issues
 - **No duplicates** found across any document type
-- **UX Design document missing** — acceptable for backend/library project
+- **UX Design document missing** — acceptable for backend/library project (no UI in MVP)
 
 ### Supporting Documents
 - Product Brief: product-brief-Hexalith.Tenants-2026-03-06.md
-- Research: technical-hexalith-eventstore-tenant-implementation-research-2026-03-15.md
-- Sprint Change Proposals: 2026-03-13, 2026-03-15
+- Research folder: planning-artifacts/research/
+- Sprint Change Proposals: 2026-03-13, 2026-03-15 (x4 including CQRS hard rule)
+- Implementation Artifacts: stories 1-1 through 2-2 + sprint-status.yaml
 
 ## Step 2: PRD Analysis
 
 ### Functional Requirements (65 total)
 
 **Tenant Lifecycle Management (FR1-FR5)**
-- FR1: Global administrator can create a tenant with unique identifier and name
-- FR2: Developer can update a tenant's metadata (name, description)
-- FR3: Global administrator can disable a tenant, preventing all commands
-- FR4: Global administrator can re-enable a previously disabled tenant
-- FR5: System produces domain event for every tenant lifecycle change
+- FR1: A global administrator can create a new tenant with a unique identifier and name
+- FR2: A developer can update a tenant's metadata (name, description)
+- FR3: A global administrator can disable a tenant, preventing all commands against that tenant
+- FR4: A global administrator can re-enable a previously disabled tenant
+- FR5: The system produces a domain event for every tenant lifecycle change (created, updated, disabled, enabled)
 
 **User-Role Management (FR6-FR12)**
-- FR6: Tenant owner can add a user with specified role (TenantOwner, TenantContributor, TenantReader)
-- FR7: Tenant owner can remove a user from a tenant
-- FR8: Tenant owner can change a user's role within a tenant
-- FR9: System rejects adding a user already in the tenant
-- FR10: System rejects role changes violating escalation boundaries
-- FR11: System produces domain event for every user-role change
-- FR12: System enforces optimistic concurrency on aggregate modifications
+- FR6: A tenant owner can add a user to a tenant with a specified role (TenantOwner, TenantContributor, TenantReader)
+- FR7: A tenant owner can remove a user from a tenant
+- FR8: A tenant owner can change a user's role within a tenant
+- FR9: The system rejects adding a user already a member of the tenant
+- FR10: The system rejects role changes violating escalation boundaries
+- FR11: The system produces a domain event for every user-role change
+- FR12: The system enforces optimistic concurrency on aggregate modifications
 
 **Global Administration (FR13-FR18)**
-- FR13: Global administrator can designate another user as global administrator
-- FR14: Global administrator can remove global admin status (cannot remove last)
-- FR15: Global administrator can perform any tenant operation across all tenants
+- FR13: An existing global administrator can designate a user as global administrator
+- FR14: An existing global administrator can remove global admin status (cannot remove last)
+- FR15: A global administrator can perform any tenant operation across all tenants
 - FR16: All global administrator actions produce auditable domain events
-- FR17: System provides bootstrap mechanism for initial global administrator
-- FR18: Bootstrap only executes when zero global admins exist
+- FR17: The system provides a bootstrap mechanism for initial global administrator
+- FR18: The bootstrap mechanism only executes when zero global administrators exist
 
 **Tenant Configuration (FR19-FR24)**
-- FR19: Tenant owner can set key-value configuration entry
-- FR20: Tenant owner can remove a configuration entry
+- FR19: A tenant owner can set a key-value configuration entry for a tenant
+- FR20: A tenant owner can remove a configuration entry from a tenant
 - FR21: Configuration keys support dot-delimited namespace conventions
-- FR22: System produces domain event for every configuration change
-- FR23: System enforces configuration limits (100 keys, 1KB/value, 256 chars/key)
-- FR24: System rejects operations exceeding limits with specific errors
+- FR22: The system produces a domain event for every configuration change
+- FR23: The system enforces configuration limits (100 keys, 1KB/value, 256 chars/key)
+- FR24: The system rejects operations exceeding limits with specific errors
 
 **Tenant Discovery & Query (FR25-FR30)**
 - FR25: Paginated list of all tenants with IDs, names, statuses
@@ -175,12 +179,16 @@ notes:
 
 ### Additional Requirements & Constraints
 
-- **Tenant deletion explicitly out of scope** — tenants can be disabled but never deleted (event history immutable)
+- **Tenant deletion explicitly out of scope** — disabled is the terminal state
 - **gRPC explicitly out of scope** — REST only
 - **Event contract stability** is a v1.0 release milestone, not MVP
-- **Bootstrap mechanism** required for first deployment (no authorized actors exist without it)
+- **Bootstrap mechanism** required for first deployment
 - **Aggregate pattern**: Handle(Command, State?) -> DomainResult with Apply(Event) — pure functions
 - **DAPR abstraction** for all infrastructure
+- **5 NuGet packages**: Contracts, Client, Server, Testing, Aspire
+- **.NET 10+** with nullable references and implicit usings
+- **Test framework**: xUnit, Shouldly, NSubstitute, coverlet.collector
+- **Code style**: EventStore's .editorconfig (file-scoped namespaces, Allman braces, etc.)
 
 ### PRD Completeness Assessment
 
@@ -191,13 +199,14 @@ The PRD is comprehensive and well-structured:
 - Clear MVP vs Post-MVP scoping with explicit out-of-scope items
 - Risk mitigation strategies are thorough across technical, market, and resource dimensions
 - Package architecture and project structure are fully defined
+- Solution structure clearly documented with src/, tests/, and samples/ layout
 
 ## Step 3: Epic Coverage Validation
 
 ### Coverage Matrix
 
 | FR | Description | Epic | Story | Status |
-| --- | --- | --- | --- | --- |
+|---|---|---|---|---|
 | FR1 | Create tenant with unique ID and name | Epic 2 | 2.3 | Covered |
 | FR2 | Update tenant metadata | Epic 2 | 2.3 | Covered |
 | FR3 | Disable tenant | Epic 2 | 2.3 | Covered |
@@ -273,7 +282,7 @@ No missing FR coverage detected. All 65 FRs are mapped to specific epics and sto
 - Total PRD FRs: 65
 - FRs covered in epics: 65
 - Coverage percentage: **100%**
-- No FRs in epics that are absent from PRD
+- No FRs in epics absent from PRD
 - Additional architectural requirements from Architecture document also captured in epics under "Additional Requirements" section
 
 ## Step 4: UX Alignment Assessment
@@ -308,26 +317,28 @@ None. No UX document is required for the current MVP scope.
 
 | Epic | User Value | Independent | No Forward Deps | FR Traceability | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| Epic 1 | Borderline | Yes | Yes | FR43, FR58 | Minor concern |
-| Epic 2 | Yes | Yes (needs E1) | Yes | FR1-5, FR13-18, FR35-36, FR49-53 | Pass |
-| Epic 3 | Yes | Yes (needs E1+E2) | Yes | FR6-12, FR19-24, FR31-34 | Pass |
-| Epic 4 | Yes | Yes (needs E1+E2) | Yes | FR37-42, FR44-45, FR62 | Pass |
-| Epic 5 | Yes | Yes (needs E1+E2) | Yes | FR25-30 | Pass |
-| Epic 6 | Yes | Yes (needs E1+E2+E3) | Yes | FR46-47 | Pass |
-| Epic 7 | Yes | Yes (needs E1+E2) | Yes | FR48, FR54-57 | Pass |
-| Epic 8 | Yes | Yes (content-only) | Yes | FR59-61, FR63-65 | Pass |
+| Epic 1: Project Foundation | Borderline | Yes | Yes | FR43, FR58 | Minor concern |
+| Epic 2: Core Tenant Mgmt | Yes | Yes (needs E1) | Yes | FR1-5, FR13-18, FR35-36, FR49-53 | Pass |
+| Epic 3: Membership & Config | Yes | Yes (needs E1+E2) | Yes | FR6-12, FR19-24, FR31-34 | Pass |
+| Epic 4: Event Integration | Yes | Yes (needs E1+E2) | Yes | FR37-42, FR44-45, FR62 | Pass |
+| Epic 5: Discovery & Query | Yes | Yes (needs E1+E2) | Yes | FR25-30 | Pass |
+| Epic 6: Testing Package | Yes | Yes (needs E1+E2+E3) | Yes | FR46-47 | Pass |
+| Epic 7: Deploy & Observe | Yes | Yes (needs E1+E2) | Yes | FR48, FR54-57 | Pass |
+| Epic 8: Docs & Adoption | Yes | Yes (content-only) | Yes | FR59-61, FR63-65 | Pass |
 
 #### Story Quality Assessment
 
 **Story Sizing:** All stories are appropriately sized — each delivers a coherent, independently testable unit of work. No epic-sized stories detected.
 
 **Acceptance Criteria Quality:**
+
 - All stories use proper Given/When/Then BDD format
 - All stories include error/rejection scenarios
 - All stories include specific, testable, measurable criteria
 - Stories 2.2, 2.3, 2.4, 3.1, 3.3 include implementation blueprints (research-validated 2026-03-15) — excellent for AI-assisted development
 
 **Dependency Chain (within epics):**
+
 - Epic 1: 1.1 -> 1.2 -> 1.3 (sequential, valid — each builds on prior)
 - Epic 2: 2.1 -> 2.2, 2.3 (parallel possible) -> 2.4 (integrates)
 - Epic 3: 3.1, 3.3 (parallel possible), 3.2 (depends on 3.1)

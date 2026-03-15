@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
+    <ProjectReference
+      Include="..\..\src\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
 </Project>

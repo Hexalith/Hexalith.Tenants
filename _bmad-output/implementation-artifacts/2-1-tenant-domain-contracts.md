@@ -1,6 +1,6 @@
 # Story 2.1: Tenant Domain Contracts
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -100,6 +100,10 @@ So that consuming services and all other packages have a stable, shared API surf
 - [x] Task 15: Build verification (AC: all)
   - [x] 15.1: Run `dotnet build Hexalith.Tenants.slnx --configuration Release` — zero errors, zero warnings
   - [x] 15.2: Run `dotnet test tests/Hexalith.Tenants.Contracts.Tests/` — all tests pass
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][LOW] NamingConventionTests event suffix check uses `Contains` instead of `EndsWith`, weakening naming enforcement. Fixed: expanded suffix list with `AddedToTenant`/`RemovedFromTenant` and switched to `EndsWith`. [tests/Hexalith.Tenants.Contracts.Tests/NamingConventionTests.cs:73]
 
 ## Dev Notes
 
@@ -431,6 +435,19 @@ Recent commits are all project setup and BMAD planning — no domain code exists
 
 ## Dev Agent Record
 
+### Senior Developer Review (AI)
+
+- **Review Outcome**: Approved.
+- **Reviewer Model**: Claude Opus 4.6 (1M context).
+- **Date**: 2026-03-15
+- **Issues Found**: 0 HIGH, 0 MEDIUM, 1 LOW
+- **Action Items Created**: 1 (naming convention test strengthening)
+- **AC Verification**: All 9 ACs verified as IMPLEMENTED
+- **Build**: 0 warnings, 0 errors
+- **Tests**: 24/24 pass (1 scaffolding + 19 serialization + 4 naming convention)
+- **Git vs Story**: 0 discrepancies — all files committed to HEAD
+- **Story Status**: Confirmed as `done` after review.
+
 ### Agent Model Used
 
 Claude Opus 4.6 (1M context)
@@ -456,6 +473,7 @@ Claude Opus 4.6 (1M context)
 ### Change Log
 
 - 2026-03-13: Implemented Story 2.1 — all tenant domain contracts (commands, events, rejections, enums, identity) and tests
+- 2026-03-15: Code review complete — 0 HIGH, 0 MEDIUM, 1 LOW issue found. All 9 ACs verified implemented. 24/24 tests pass. 1 action item created for naming convention test strengthening. Status → done.
 
 ### File List
 
