@@ -450,7 +450,7 @@ So that the system has authorized actors who can create and manage tenants.
 
 **Given** a global administrator already exists
 **When** a BootstrapGlobalAdmin command is processed
-**Then** the command is rejected with GlobalAdministratorAlreadyBootstrappedException
+**Then** the command is rejected with GlobalAdminAlreadyBootstrappedRejection
 
 **Given** an existing global administrator
 **When** a SetGlobalAdministrator command is processed with a new user ID
@@ -472,6 +472,33 @@ So that the system has authorized actors who can create and manage tenants.
 **When** Apply methods are called with each event type
 **Then** state is correctly mutated (administrators set added/removed)
 
+**Implementation Blueprint (Research-Validated 2026-03-15):**
+
+State class — `Server/Aggregates/GlobalAdministratorsState.cs`:
+
+```csharp
+public sealed class GlobalAdministratorsState
+{
+    public HashSet<string> Administrators { get; private set; } = new();
+    public bool Bootstrapped { get; private set; }
+
+    public void Apply(GlobalAdministratorSet e) { Administrators.Add(e.UserId); Bootstrapped = true; }
+    public void Apply(GlobalAdministratorRemoved e) { Administrators.Remove(e.UserId); }
+}
+```
+
+Aggregate class — `Server/Aggregates/GlobalAdministratorsAggregate.cs`:
+
+- Extends `EventStoreAggregate<GlobalAdministratorsState>` (reflection-based Handle/Apply discovery)
+- 3 Handle methods: `Handle(BootstrapGlobalAdmin, state?)`, `Handle(SetGlobalAdministrator, state?)`, `Handle(RemoveGlobalAdministrator, state?)`
+- All `public static` pure functions returning `DomainResult`
+- BootstrapGlobalAdmin rejects if `state?.Bootstrapped == true` → reuses `GlobalAdministratorSet` event (same as SetGlobalAdministrator)
+- SetGlobalAdministrator is idempotent: if user already in set → `DomainResult.NoOp()`
+- RemoveGlobalAdministrator: if user not in set → `DomainResult.NoOp()`; if last admin → rejection
+- Last-admin protection: `state.Administrators.Count == 1 && state.Administrators.Contains(cmd.UserId)` → reject
+
+Testing pattern — uses `aggregate.ProcessAsync(commandEnvelope, state)` with `CommandEnvelope` construction helper (see Architecture §D10 Testing Blueprint). All tests are Tier 1 unit — no DAPR, no actors, no mocking.
+
 ### Story 2.3: Tenant Aggregate Lifecycle
 
 As a global administrator,
@@ -486,7 +513,7 @@ So that I can manage the tenant lifecycle for all consuming services.
 
 **Given** a tenant already exists with the specified ID
 **When** a CreateTenant command is processed with the same ID
-**Then** the command is rejected with TenantAlreadyExistsException
+**Then** the command is rejected with TenantAlreadyExistsRejection
 
 **Given** an active tenant exists
 **When** an UpdateTenant command is processed with new name and description
@@ -498,7 +525,7 @@ So that I can manage the tenant lifecycle for all consuming services.
 
 **Given** a disabled tenant exists
 **When** any command targeting that tenant is processed (except EnableTenant)
-**Then** the command is rejected with TenantDisabledException indicating the tenant's disabled status
+**Then** the command is rejected with TenantDisabledRejection indicating the tenant's disabled status
 
 **Given** a disabled tenant exists
 **When** an EnableTenant command is processed
@@ -510,11 +537,51 @@ So that I can manage the tenant lifecycle for all consuming services.
 
 **Given** commands targeting a non-existent tenant (Update, Disable, Enable)
 **When** processed against null state
-**Then** the command is rejected with TenantNotFoundException identifying the missing tenant
+**Then** the command is rejected with TenantNotFoundRejection identifying the missing tenant
 
 **Given** the TenantAggregate Handle methods
 **When** tested as static pure functions with no infrastructure
 **Then** all Handle and Apply methods for lifecycle commands execute correctly as Tier 1 unit tests with 100% branch coverage on validation logic
+
+**Implementation Blueprint (Research-Validated 2026-03-15):**
+
+State class — `Server/Aggregates/TenantState.cs`:
+
+```csharp
+public sealed class TenantState
+{
+    public string TenantId { get; private set; } = string.Empty;
+    public string Name { get; private set; } = string.Empty;
+    public string? Description { get; private set; }
+    public TenantStatus Status { get; private set; }
+    public Dictionary<string, TenantRole> Users { get; private set; } = new();
+    public Dictionary<string, string> Configuration { get; private set; } = new();
+    public DateTimeOffset CreatedAt { get; private set; }
+
+    public void Apply(TenantCreated e) { TenantId = e.TenantId; Name = e.Name; Description = e.Description; Status = TenantStatus.Active; CreatedAt = e.CreatedAt; }
+    public void Apply(TenantUpdated e) { Name = e.Name; Description = e.Description; }
+    public void Apply(TenantEnabled e) { Status = TenantStatus.Active; }
+    public void Apply(TenantDisabled e) { Status = TenantStatus.Disabled; }
+    public void Apply(UserAddedToTenant e) { Users[e.UserId] = e.Role; }
+    public void Apply(UserRemovedFromTenant e) { Users.Remove(e.UserId); }
+    public void Apply(UserRoleChanged e) { Users[e.UserId] = e.NewRole; }
+    public void Apply(TenantConfigurationSet e) { Configuration[e.Key] = e.Value; }
+    public void Apply(TenantConfigurationRemoved e) { Configuration.Remove(e.Key); }
+}
+```
+
+Aggregate class — `Server/Aggregates/TenantAggregate.cs`:
+
+- Extends `EventStoreAggregate<TenantState>` (reflection-based Handle/Apply discovery)
+- 4 lifecycle Handle methods in this story: `Handle(CreateTenant, state?)`, `Handle(UpdateTenant, state?)`, `Handle(DisableTenant, state?)`, `Handle(EnableTenant, state?)`
+- All `public static` pure functions returning `DomainResult`
+- CreateTenant: `state is not null` → `TenantAlreadyExistsRejection`; else → `TenantCreated`
+- UpdateTenant: `state is null` → `TenantNotFoundRejection`; else → `TenantUpdated` (full-replacement semantics)
+- DisableTenant: `state is null` → `TenantNotFoundRejection`; `state.Status == Disabled` → `NoOp()`; else → `TenantDisabled`
+- EnableTenant: `state is null` → `TenantNotFoundRejection`; `state.Status == Active` → `NoOp()`; else → `TenantEnabled`
+- Note: TenantState includes Users/Configuration Apply methods for completeness — those Handle methods are implemented in Epic 3 (Stories 3.1, 3.3) but the state class is created here with all Apply methods
+
+Testing pattern — same as Story 2.2: `aggregate.ProcessAsync(commandEnvelope, state)` with `CommandEnvelope` helper (see Architecture §D10 Testing Blueprint). All tests Tier 1.
 
 ### Story 2.4: CommandApi, Bootstrap & Event Publishing
 
@@ -552,9 +619,41 @@ So that the tenant service is operational end-to-end from command to event distr
 **When** a request arrives without valid JWT credentials
 **Then** the request is rejected with 401 Unauthorized
 
+**Given** the CommandApi registers domain services via `AddEventStore()`
+**When** the application starts
+**Then** `TenantAggregate` and `GlobalAdministratorsAggregate` are auto-discovered via assembly scanning and registered as domain processors
+
+**Given** the AggregateActor invokes domain processing via DAPR service-to-service call
+**When** a command reaches Step 4 of the actor pipeline
+**Then** CommandApi's `/process` endpoint receives the `DomainServiceRequest`, dispatches to `IDomainProcessor.ProcessAsync()`, and returns `DomainServiceWireResult` with events or rejections
+
 **Given** the full command pipeline is operational
 **When** Tier 2 integration tests run with DAPR slim init
 **Then** CreateTenant, DisableTenant, EnableTenant, and BootstrapGlobalAdmin commands succeed end-to-end with events published
+
+**Implementation Blueprint (Research-Validated 2026-03-15):**
+
+CommandApi `Program.cs` — DI registration and middleware:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
+builder.Services.AddEventStore();  // Auto-discovers TenantAggregate, GlobalAdministratorsAggregate
+var app = builder.Build();
+app.UseEventStore();               // Resolves 5-layer cascade configuration
+app.Run();
+```
+
+Key wiring details:
+
+- `AddEventStore()` triggers `AssemblyScanner` which discovers all `EventStoreAggregate<T>` subclasses and `EventStoreProjection<T>` subclasses in referenced assemblies
+- `UseEventStore()` resolves the 5-layer cascade configuration: conventions → global options → self-config → appsettings → explicit overrides
+- The `/process` endpoint is registered automatically by `UseEventStore()` — it maps to `IDomainProcessor.ProcessAsync()` which dispatches to the discovered aggregate's Handle method via reflection
+- `IDomainServiceResolver` maps aggregate types to the CommandApi's DAPR AppId for service-to-service invocation
+- `TenantBootstrapHostedService`: reads `Tenants:BootstrapGlobalAdminUserId` from configuration, sends `BootstrapGlobalAdmin` through MediatR on startup. Logs rejection at Information level (idempotent on multi-instance)
+- `RejectionToHttpStatusMapper` middleware maps `IRejectionEvent` types to HTTP status codes per architecture §Format Patterns
+
+DAPR version alignment: `Directory.Packages.props` must be updated from DAPR 1.16.1 to 1.17.3 to match EventStore submodule before this story begins.
 
 ## Epic 3: Tenant Membership, Roles & Configuration
 
@@ -574,7 +673,7 @@ So that I can control who has access to my tenant and what they can do.
 
 **Given** a user is already a member of the tenant
 **When** an AddUserToTenant command is processed for the same user
-**Then** the command is rejected with UserAlreadyInTenantException including the existing role information
+**Then** the command is rejected with UserAlreadyInTenantRejection including the existing role information
 
 **Given** a user is a member of the tenant
 **When** a RemoveUserFromTenant command is processed
@@ -582,7 +681,7 @@ So that I can control who has access to my tenant and what they can do.
 
 **Given** a user is not a member of the tenant
 **When** a RemoveUserFromTenant command is processed for that user
-**Then** the command is rejected with UserNotInTenantException
+**Then** the command is rejected with UserNotInTenantRejection
 
 **Given** a user is a member of the tenant with one role
 **When** a ChangeUserRole command is processed with a new valid role
@@ -590,7 +689,7 @@ So that I can control who has access to my tenant and what they can do.
 
 **Given** a TenantOwner attempts to assign GlobalAdministrator role
 **When** the ChangeUserRole or AddUserToTenant command is processed
-**Then** the command is rejected with RoleEscalationException
+**Then** the command is rejected with RoleEscalationRejection
 
 **Given** two concurrent AddUserToTenant commands for the same user
 **When** both are processed against the same aggregate version
@@ -658,15 +757,15 @@ So that consuming services can react to per-tenant settings like billing plans o
 
 **Given** a tenant already has 100 configuration keys
 **When** a SetTenantConfiguration command attempts to add a 101st key
-**Then** the command is rejected with ConfigurationLimitExceededException identifying the key count limit (100) and current usage
+**Then** the command is rejected with ConfigurationLimitExceededRejection identifying the key count limit (100) and current usage
 
 **Given** a SetTenantConfiguration command with a value exceeding 1KB
 **When** the command is processed
-**Then** the command is rejected with ConfigurationLimitExceededException identifying the value size limit (1KB)
+**Then** the command is rejected with ConfigurationLimitExceededRejection identifying the value size limit (1KB)
 
 **Given** a SetTenantConfiguration command with a key exceeding 256 characters
 **When** the command is processed
-**Then** the command is rejected with ConfigurationLimitExceededException identifying the key length limit (256)
+**Then** the command is rejected with ConfigurationLimitExceededRejection identifying the key length limit (256)
 
 **Given** a SetTenantConfiguration command is submitted
 **When** FluentValidation runs in the MediatR pipeline
@@ -890,7 +989,7 @@ So that I can write tenant integration tests in under 10 lines without external 
 
 **Given** the InMemoryTenantService
 **When** a command violates domain invariants (e.g., duplicate user, disabled tenant, role escalation)
-**Then** the same domain exceptions are thrown as in production (UserAlreadyInTenantException, TenantDisabledException, RoleEscalationException, etc.)
+**Then** the same rejection events are returned as in production via DomainResult.Rejection() (UserAlreadyInTenantRejection, TenantDisabledRejection, RoleEscalationRejection, etc.)
 
 **Given** TenantTestHelpers exist in the Testing package
 **When** a developer writes a tenant integration test

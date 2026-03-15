@@ -255,8 +255,10 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 **Deferred Decisions (Post-MVP):**
 - Bulk provisioning execution path
 - Real-time feature flag service boundary
-- EventStore authorization plugin integration
 - QueryApi separation (if scaling demands independent query scaling)
+
+**Resolved (2026-03-15 — EventStore Upgrade Alignment):**
+- ~~EventStore authorization plugin integration~~ → Resolved: EventStore now provides `IRbacValidator`/`ITenantValidator` interfaces. Tenants uses claims-based validators; consuming services implement these interfaces using Tenants projections
 
 ### Data Architecture
 
@@ -285,6 +287,20 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
   4. On `409 Conflict` → retry from step 1
   This is critical for test environments with bulk tenant seeding and for production resilience
 
+**Query Pipeline (EventStore Infrastructure — Available for Epic 5):**
+- EventStore now provides a built-in query pipeline: `IQueryContract` (typed query contracts with `QueryType`, `Domain`, `ProjectionType`), `IQueryResponse<T>` (typed response wrapper), `SubmitQuery`/`QueryRouter` (MediatR-based dispatch), and `QueriesController` (REST endpoint scaffolding)
+- Additionally provides `CachingProjectionActor` for projection state with ETag caching, `ETagActor` for ETag management, and `SelfRoutingETag` for query response caching
+- Epic 5 stories should leverage this infrastructure rather than building custom query routing. Query contracts for Tenants (e.g., `GetTenantQuery`, `ListTenantsQuery`) should implement `IQueryContract`
+
+**D4 Revision (2026-03-15 — EventStore Upgrade Alignment):**
+- Decision: All three projections (TenantProjection, GlobalAdministratorProjection, TenantIndexProjection) use EventStore's `CachingProjectionActor` with built-in ETag management via `ETagActor`
+- Cross-tenant index projection uses `CachingProjectionActor`'s state management with ETag-based retry pattern (replacing manual DAPR state store read-modify-write)
+- `IProjectionChangeNotifier` triggers automatic ETag invalidation on projection state changes
+- SignalR real-time notifications available via `IProjectionChangedBroadcaster` (optional)
+- **Caveat (Party Mode Finding):** Cross-tenant index `CachingProjectionActor` adoption is conditional on verifying the actor supports fan-in event processing (events from ALL tenant aggregates funneling into one projection actor). This is architecturally distinct from per-aggregate projections. Fallback: manual DAPR state store with ETag retry pattern (original D4 design). Verification happens during Epic 5 Story 5.2 implementation
+- Rationale: Unified infrastructure, less custom code, automatic ETag caching, consistent with EventStore ecosystem patterns
+- Testing: `FakeProjectionActor` and `FakeETagActor` from EventStore.Testing for Tier 1 tests
+
 **Snapshot Strategy:**
 - Decision: 50-event interval for tenant domain, default 100 for GlobalAdministratorAggregate
 - Rationale: Tenant aggregates grow with user/config additions (~1000 events at max capacity). 50-event snapshots ensure startup replays max 50 events from last snapshot, meeting NFR13. GlobalAdministratorAggregate is a singleton with very low event volume — default 100 is more appropriate
@@ -308,6 +324,14 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Rationale: API-level authorization gates access to the service. Domain-level authorization enforces business rules (who can add users, change roles, manage config)
 - Provided by EventStore: Layer 1 (AuthorizationBehavior in MediatR pipeline). Domain-specific: Layer 2
 
+**D8 Revision (2026-03-15 — EventStore Upgrade Alignment): Authorization Model Clarification**
+- Decision: Hybrid three-layer authorization (clarified, not fundamentally changed)
+  - Layer 1: EventStore's `AuthorizationBehavior` in MediatR pipeline with `ClaimsTenantValidator` and `ClaimsRbacValidator` — validates JWT claims (`eventstore:tenant` = `system`)
+  - Layer 2: Domain RBAC in aggregate Handle methods — checks `state.Members[userId]` for TenantOwner/Contributor/Reader permissions. This IS domain logic, not infrastructure auth
+  - Layer 3 (guidance for consuming services): Consuming services implement `IRbacValidator` using Tenants projections (via event subscription) for their own domain authorization
+- EventStore's `ITenantValidator`/`IRbacValidator` interfaces acknowledged as extension points for consuming services, NOT for Tenants' own authorization (avoids circular dependency)
+- Rationale: Tenants is the source of truth for membership/roles — it cannot query itself for authorization. Handle method RBAC is appropriate domain logic. Consuming services use the EventStore authorization interfaces with Tenants-projected state
+
 **Bootstrap Mechanism (FR17-18):**
 - Decision: Startup configuration via appsettings.json, executed through the full MediatR pipeline
 - Rationale: CommandApi reads `Tenants:BootstrapGlobalAdminUserId` on startup and sends `BootstrapGlobalAdmin` command through MediatR (validation, authorization). GlobalAdministratorAggregate rejects if any GlobalAdministratorSet event exists. Zero-touch after first boot. Must go through full pipeline — aggregate rejection is the safety net, not a shortcut
@@ -326,6 +350,15 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Party Mode Finding: Winston (Architect) identified that the operational cost of two DAPR-sidecared deployables outweighs CQRS purity at this scale
 - Shared startup logic extracted into ServiceDefaults to avoid drift if separation happens later
 - Affects: CommandApi project structure
+
+**D7 Revision (2026-03-15 — EventStore Upgrade Alignment): Dual-Layer Query Architecture**
+- Decision: Dual-layer query architecture
+  - Internal: Projections implement `IQueryContract` (typed `QueryType`, `Domain`, `ProjectionType`). Queries dispatched via `SubmitQuery`/`QueryRouter` through MediatR pipeline. `CachingProjectionActor` serves cached results with ETag support
+  - External: Thin REST controllers (`GET /api/tenants/*`) translate REST requests into `SubmitQuery` dispatches via MediatR, preserving clean REST API semantics
+- Query contracts: `GetTenantQuery`, `ListTenantsQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery` — all implement `IQueryContract`
+- Authorization reused: queries flow through same `AuthorizationBehavior` pipeline as commands
+- **Testing (Party Mode Finding):** Query contracts should have a reflection-based naming convention test in Contracts.Tests, verifying all `IQueryContract` implementations follow naming conventions — consistent with existing command/event naming tests
+- Rationale: Clean REST API externally for developer experience, EventStore query infrastructure internally for ETag caching, authorization reuse, ecosystem consistency
 
 **Event Publishing:**
 - Decision: DAPR pub/sub, CloudEvents 1.0, topic `system.tenants.events`
@@ -804,27 +837,132 @@ Hexalith.Tenants/
 
 ### Data Flow
 
+**D9 Revision (2026-03-15 — Research-Validated Command Processing Pipeline):**
+
+The command pipeline spans REST → MediatR → DAPR Actors → domain service invocation → event persistence. Critical architectural insight: **CommandApi is both the REST gateway AND the domain service host.** The AggregateActor (in EventStore.Server) delegates domain processing back to CommandApi via DAPR service-to-service invocation.
+
 ```
-Command Flow:
-  Client → CommandApi (REST) → MediatR Pipeline → DAPR Actor → Aggregate.Handle()
-    → DomainResult(events) → EventPersister (DAPR state store) → EventPublisher (DAPR pub/sub)
-
-Query Flow:
-  Client → CommandApi (REST) → TenantsQueryController → DAPR State Store → ReadModel
-
-Projection Flow:
-  DAPR pub/sub → Subscription Endpoint → Projection.Apply() → DAPR State Store
-
-Consuming Service Flow:
-  DAPR pub/sub → Service Subscription → Local Projection → Service-specific behavior
+HTTP POST /api/v1/commands (JWT-authenticated)
+  │
+  └─ CommandsController.Submit()
+     ├─ Extract JWT `sub` claim as userId
+     ├─ Sanitize extension metadata (SEC-4)
+     ├─ Create SubmitCommand (MediatR request)
+     │
+     └─ MediatR pipeline (FluentValidation → AuthorizationBehavior)
+        └─ SubmitCommandHandler.Handle()
+           ├─ [Advisory] Write "Received" status to state store
+           ├─ [Advisory] Archive original command for replay
+           │
+           └─ CommandRouter.RouteCommandAsync()
+              ├─ Derive AggregateIdentity(TenantId, Domain, AggregateId)
+              ├─ Construct ActorId = "{tenant}:{domain}:{aggregateId}"
+              └─ Create ActorProxy<AggregateActor>(actorId)
+                 │
+                 └─ Returns HTTP 202 Accepted + CorrelationId
 ```
+
+**AggregateActor 5-Step Checkpointed Pipeline:**
+
+| Step | Operation | Recovery |
+| ---- | --------- | -------- |
+| 1 | **Idempotency check** — cached result by CausationId; resume for in-flight pipelines | Skip to cached result |
+| 2 | **Tenant validation** — validates TenantId matches actor ID (SEC-2). BEFORE state access | Reject with TenantMismatchException |
+| 3 | **State rehydration** — load snapshot + tail-only event replay → current state | Dead-letter on failure |
+| 4 | **Domain service invocation** — DAPR service-to-service call to CommandApi `/process` endpoint | Dead-letter on failure |
+| 5 | **Event persistence + publication** — persist events atomically, snapshot if threshold met, publish via DAPR pub/sub | Drain reminder for failed publications |
+
+```
+Domain Service Invocation (Step 4 Detail):
+  AggregateActor
+    └─ DaprDomainServiceInvoker.InvokeAsync()
+       ├─ Resolve service registration (AppId, MethodName) via IDomainServiceResolver
+       └─ daprClient.InvokeMethodAsync<DomainServiceRequest, DomainServiceWireResult>()
+          │
+          ├─ DomainServiceRequest = { CommandEnvelope, CurrentState }
+          └─ DomainServiceWireResult → DomainResult (events or rejections)
+
+CommandApi /process endpoint:
+  DomainServiceRequest received
+    └─ IDomainProcessor.ProcessAsync()
+       └─ Reflection-based dispatch to Aggregate.Handle(Command, State?)
+          └─ Returns DomainResult (Success/Rejection/NoOp)
+```
+
+Terminal states: Completed (success), Rejected (domain rejection), PublishFailed (events persisted, pub/sub failed — drain recovery active).
+
+**Query Flow:**
+```
+Client → CommandApi (REST) → MediatR → QueryRouter → CachingProjectionActor → ReadModel
+(ETag pre-check at controller level: If-None-Match → 304 Not Modified)
+```
+
+**Projection Flow:**
+```
+DAPR pub/sub → Subscription Endpoint → Projection.Apply() → DAPR State Store
+  → DaprProjectionChangeNotifier → ETagActor.RegenerateAsync() (invalidates cached queries)
+```
+
+**Consuming Service Flow:**
+```
+DAPR pub/sub → Service Subscription → Local Projection → Service-specific behavior
+```
+
+### Aggregate Testing Blueprint (D10 — Research-Validated 2026-03-15)
+
+Event-sourced aggregates are testable as pure functions with zero infrastructure. The EventStore framework exposes `ProcessAsync` on the aggregate base class for test invocation:
+
+```csharp
+// CommandEnvelope construction helper for tests
+private static CommandEnvelope CreateCommand<T>(T command) where T : notnull
+    => new(
+        "system",                          // TenantId (platform tenant)
+        "tenants",                         // Domain
+        command is BootstrapGlobalAdmin or SetGlobalAdministrator or RemoveGlobalAdministrator
+            ? "global-administrators"      // Singleton aggregate
+            : ((dynamic)command).TenantId, // Per-tenant aggregate
+        typeof(T).Name,                    // CommandType
+        JsonSerializer.SerializeToUtf8Bytes(command),
+        Guid.NewGuid().ToString(),         // CorrelationId
+        null,                              // CausationId
+        "test-user",                       // UserId
+        null);                             // Extensions
+
+// Given/When/Then test pattern
+[Fact]
+public async Task CreateTenant_WhenTenantDoesNotExist_ProducesTenantCreated()
+{
+    // Given: no prior state
+    var aggregate = new TenantAggregate();
+    var command = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test"));
+
+    // When: command processed
+    DomainResult result = await aggregate.ProcessAsync(command, currentState: null);
+
+    // Then: success with TenantCreated event
+    result.IsSuccess.ShouldBeTrue();
+    result.Events[0].ShouldBeOfType<TenantCreated>();
+}
+```
+
+**Test categories for aggregate stories (2.2, 2.3):**
+
+| Category | What to test | Infrastructure |
+| -------- | ------------ | -------------- |
+| Handle success paths | Command + null/existing state → correct events | None |
+| Handle rejection paths | Command + invalid state → correct rejection events | None |
+| Handle NoOp paths | Command + already-in-desired-state → DomainResult.NoOp() | None |
+| Apply methods | Event sequence → correct state properties | None |
+| State replay | Full event history → correct final state | None |
+
+All tests are Tier 1 (unit) — no DAPR, no actors, no mocking.
 
 ## Architecture Validation Results
 
 ### Coherence Validation ✅
 
 **Decision Compatibility:**
-All technology choices work together without conflicts. .NET 10 + DAPR SDK 1.17.0 + .NET Aspire 13.1.x are compatible. System.Text.Json used throughout (no serializer conflicts). MediatR + FluentValidation pipeline follows EventStore pattern. JWT auth + domain RBAC are two clear, non-overlapping layers. Single deployable (CommandApi) with route groups has no contradictions with CQRS decisions.
+All technology choices work together without conflicts. .NET 10 + DAPR SDK 1.17.3 + .NET Aspire 13.1.x are compatible. System.Text.Json used throughout (no serializer conflicts). MediatR + FluentValidation pipeline follows EventStore pattern. JWT auth + domain RBAC are two clear, non-overlapping layers. Single deployable (CommandApi) with route groups has no contradictions with CQRS decisions.
 
 **Pattern Consistency:**
 All implementation patterns support the architectural decisions. Naming conventions (PascalCase commands/events) align with EventStore's reflection-based discovery. Handle/Apply pure function pattern is enforced by EventStore's aggregate base class. RFC 7807 error responses match EventStore's error handler infrastructure. Structured logging follows OpenTelemetry semantic conventions.
@@ -846,7 +984,7 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 | FR31-34 (Role Behavior) | ✅ | Handle methods enforce role semantics |
 | FR35-42 (Event-Driven Integration) | ✅ | DAPR pub/sub, CloudEvents 1.0, idempotency docs |
 | FR43-49 (Developer Experience) | ✅ | 5 NuGet packages, DI registration, testing fakes, error messages |
-| FR50-53 (Command Validation) | ✅ | Domain-specific exceptions for each scenario |
+| FR50-53 (Command Validation) | ✅ | Domain-specific rejection events for each scenario |
 | FR54-58 (Observability & Operations) | ✅ | OpenTelemetry, stateless service architecture |
 | FR59-65 (Documentation & Adoption) | ✅ | docs/ folder with quickstart, event reference, timing guide, compensating commands |
 
@@ -937,13 +1075,13 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 - [x] Cross-cutting concerns mapped (6 concerns + 5 Party Mode findings)
 
 **✅ Architectural Decisions**
-- [x] Critical decisions documented with versions (.NET 10.0.103, DAPR 1.17.0, Aspire 13.1.x)
+- [x] Critical decisions documented with versions (.NET 10.0.103, DAPR 1.17.3, Aspire 13.1.x)
 - [x] Technology stack fully specified (all EventStore dependencies confirmed)
 - [x] Integration patterns defined (DAPR pub/sub, actor model, projections)
 - [x] Performance considerations addressed (snapshots, stateless scaling)
 
 **✅ Implementation Patterns**
-- [x] Naming conventions established (commands, events, exceptions, API endpoints)
+- [x] Naming conventions established (commands, events, rejection events, query contracts, API endpoints)
 - [x] Structure patterns defined (type location rules table)
 - [x] Communication patterns specified (event payload structure, versioning)
 - [x] Process patterns documented (Handle/Apply, validation, error handling, logging)
@@ -977,8 +1115,8 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 **Areas for Future Enhancement:**
 - QueryApi separation when scaling demands independent query scaling
 - Bulk provisioning execution path (Phase 2)
-- EventStore authorization plugin integration for synchronous enforcement
 - Real-time feature flag service boundary documentation
+- Cross-tenant index `CachingProjectionActor` fan-in verification (Epic 5, Story 5.2)
 
 ### Implementation Handoff
 
