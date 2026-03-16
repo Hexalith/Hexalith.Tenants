@@ -1,3 +1,5 @@
+using FluentValidation;
+
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
@@ -7,6 +9,7 @@ using Hexalith.EventStore.Server.Configuration;
 using Hexalith.Tenants.CommandApi.Bootstrap;
 using Hexalith.Tenants.CommandApi.Configuration;
 using Hexalith.Tenants.CommandApi.DomainProcessing;
+using Hexalith.Tenants.CommandApi.Validation;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
 
@@ -17,6 +20,8 @@ builder.Services.AddDaprClient();
 builder.Services.AddCommandApi();
 builder.Services.AddEventStoreServer(builder.Configuration);
 builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
+builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
+builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
 builder.Services.AddScoped<DomainServiceRequestHandler>();
 builder.Services.Configure<TenantBootstrapOptions>(

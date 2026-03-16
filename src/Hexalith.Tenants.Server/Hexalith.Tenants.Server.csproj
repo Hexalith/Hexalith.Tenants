@@ -2,13 +2,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
-    <ProjectReference Include="..\..\Hexalith.EventStore\src\Hexalith.EventStore.Server\Hexalith.EventStore.Server.csproj" />
+    <ProjectReference
+      Include="..\..\Hexalith.EventStore\src\Hexalith.EventStore.Server\Hexalith.EventStore.Server.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Dapr.Client" />
     <PackageReference Include="Dapr.Actors" />
     <PackageReference Include="Dapr.Actors.AspNetCore" />
+    <PackageReference Include="FluentValidation" />
     <PackageReference Include="MediatR" />
   </ItemGroup>
 

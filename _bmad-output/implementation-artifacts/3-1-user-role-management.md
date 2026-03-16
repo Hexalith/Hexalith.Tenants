@@ -1,6 +1,6 @@
 # Story 3.1: User-Role Management
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -51,35 +51,35 @@ So that I can control who has access to my tenant and what they can do.
 ## Tasks / Subtasks
 
 - [x] Task 0: Investigate FluentValidation pipeline integration (BLOCKING — do before Task 2)
-  - [x] 0.1: Read `Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs` — determine what `TRequest` it validates (is it `SubmitCommand` envelope or the inner domain command?)
-  - [x] 0.2: Search for any `CommandPayloadValidationBehavior` or inner-command validation in EventStore.CommandApi or EventStore.Server
-  - [ ] 0.3: If validators fire for domain commands → proceed with Task 2 as written
-  - [x] 0.4: If validators do NOT fire for domain commands → document the gap, skip Task 2 (validators would be dead code), and ensure Handle methods provide full domain validation (already do). Open a follow-up item for adding pipeline-level domain command validation
+    - [x] 0.1: Read `Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs` — determine what `TRequest` it validates (is it `SubmitCommand` envelope or the inner domain command?)
+    - [x] 0.2: Search for any `CommandPayloadValidationBehavior` or inner-command validation in EventStore.CommandApi or EventStore.Server
+    - [ ] 0.3: If validators fire for domain commands → proceed with Task 2 as written
+    - [x] 0.4: If validators do NOT fire for domain commands → document the gap, skip Task 2 (validators would be dead code), and ensure Handle methods provide full domain validation (already do). Open a follow-up item for adding pipeline-level domain command validation
 
 - [x] Task 1: Add user-role Handle methods to TenantAggregate (AC: #1-#6)
-  - [x] 1.1: Add `Handle(AddUserToTenant, TenantState?)` with null/disabled/escalation/duplicate checks
-  - [x] 1.2: Add `Handle(RemoveUserFromTenant, TenantState?)` with null/disabled/not-member checks
-  - [x] 1.3: Add `Handle(ChangeUserRole, TenantState?)` with null/disabled/escalation/not-member/same-role checks
-  - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 1.1: Add `Handle(AddUserToTenant, TenantState?)` with null/disabled/escalation/duplicate checks
+    - [x] 1.2: Add `Handle(RemoveUserFromTenant, TenantState?)` with null/disabled/not-member checks
+    - [x] 1.3: Add `Handle(ChangeUserRole, TenantState?)` with null/disabled/escalation/not-member/same-role checks
+    - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [x] Task 2: Create FluentValidation validators (AC: #8) — **SKIPPED per Task 0: validators don't fire for domain commands in MediatR pipeline**
-  - [ ] 2.1: ~~Add `FluentValidation` package reference to `Hexalith.Tenants.Server.csproj`~~ SKIPPED
-  - [ ] 2.2: ~~Create `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs`~~ SKIPPED
-  - [ ] 2.3: ~~Create `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs`~~ SKIPPED
-  - [ ] 2.4: ~~Register validators in `Program.cs`~~ SKIPPED
-  - [ ] 2.5: ~~Verify solution builds~~ SKIPPED
-  - [x] 2.6: _(Task 0 confirmed validators don't fire)_ Task 2 skipped entirely. Handle methods provide full domain validation. Pipeline-level domain command validation documented as follow-up item
+- [x] Task 2: Create FluentValidation validators (AC: #8)
+    - [x] 2.1: Add `FluentValidation` package reference to `Hexalith.Tenants.Server.csproj`
+    - [x] 2.2: Create `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs`
+    - [x] 2.3: Create `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs`
+    - [x] 2.4: Register validators in `Program.cs` and add a tenant-specific `SubmitCommand` payload validator in CommandApi so inner command validation runs in the existing MediatR pipeline
+    - [x] 2.5: Verify solution builds
+    - [x] 2.6: Use the typed validators from the `SubmitCommand` MediatR validation path so `AddUserToTenant` and `ChangeUserRole` payloads are validated before domain dispatch
 
 - [x] Task 3: Create unit tests (AC: #8, #9)
-  - [x] 3.1: Add user-role Handle method tests to `TenantAggregateTests.cs` (16 test cases, use `[Theory]`/`[InlineData]` for AddUserToTenant across all 3 valid roles)
-  - [x] 3.2: _(Conditional on Task 2)_ SKIPPED — Task 2 skipped per Task 0 findings
-  - [x] 3.3: _(Conditional on Task 2)_ SKIPPED — Task 2 skipped per Task 0 findings
-  - [x] 3.4: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Server.Tests/` — 53/53 passed
-  - [x] 3.5: Verify no contract regressions: `dotnet test tests/Hexalith.Tenants.Contracts.Tests/` — 25/25 passed
+    - [x] 3.1: Add user-role Handle method tests to `TenantAggregateTests.cs` (16 test cases, use `[Theory]`/`[InlineData]` for AddUserToTenant across all 3 valid roles)
+    - [x] 3.2: Add validator tests for `AddUserToTenantValidator`
+    - [x] 3.3: Add validator tests for `ChangeUserRoleValidator` and the tenant-specific `SubmitCommand` payload validator
+    - [x] 3.4: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — 62/62 passed
+    - [x] 3.5: Verify no contract regressions: `dotnet test tests/Hexalith.Tenants.Contracts.Tests/` — 25/25 passed
 
 - [x] Task 4: Build verification (all ACs)
-  - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [x] 4.2: `dotnet test` all test projects — 81 total tests, all pass, no regressions
+    - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 4.2: Focused regression tests passed after fixes — Server.Tests 62/62, Contracts.Tests 25/25
 
 ## Dev Notes
 
@@ -89,7 +89,7 @@ This story adds the **user-role management Handle methods** to the existing `Ten
 
 - **Commands** (from Story 2.1): `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole` — already in `Contracts/Commands/`
 - **Events** (from Story 2.1): `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged` — already in `Contracts/Events/`
-- **Rejections** (from Story 2.1): `UserAlreadyInTenantRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection` — already in `Contracts/Events/Rejections/`
+- **Rejections** (from Story 2.1): `UserAlreadyInTenantRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection` — already in `Contracts/Events/Rejections/` (`UserAlreadyInTenantRejection` now includes `ExistingRole`)
 - **State** (from Story 2.3): `TenantState` already has all 3 Apply methods for user-role events (`Apply(UserAddedToTenant)`, `Apply(UserRemovedFromTenant)`, `Apply(UserRoleChanged)`)
 - **Enum** (from Story 2.1): `TenantRole` with values `TenantOwner`, `TenantContributor`, `TenantReader`
 
@@ -100,11 +100,12 @@ This story adds the **user-role management Handle methods** to the existing `Ten
 **DO NOT modify the TenantRole enum in this story** — the enum is defined in Contracts (Story 2.1) and may have serialized events using current ordinal values. Reordering would silently corrupt existing data (owners become readers).
 
 **Recommended follow-up (file as separate tech-debt item):**
+
 - Add explicit numeric values to prevent future drift: `TenantOwner = 0, TenantContributor = 1, TenantReader = 2`
 - Enforce `[JsonRequired]` or `JsonSerializerOptions.RespectRequiredMembers = true` at the CommandApi level to reject payloads that omit `Role`
 - This is a CommandApi/serialization concern, not an aggregate concern
 
-**This story ONLY adds:** 3 Handle methods + conditionally 2 validators + tests (16 Handle + conditionally 6 validator). No new contracts, no new state mutations, no new projects.
+**This story adds:** 3 Handle methods, 2 typed validators, a tenant-specific `SubmitCommand` payload validator in CommandApi, the `ExistingRole` field on `UserAlreadyInTenantRejection`, and focused tests. No new projects.
 
 ### Technical Requirements
 
@@ -178,11 +179,11 @@ Handle methods use `state.Users.ContainsKey(command.UserId)` — accepts empty s
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| Handle methods | Server | `Aggregates/` | `TenantAggregate.cs` (MODIFY) |
-| AddUserToTenantValidator | Server | `Validators/` | `AddUserToTenantValidator.cs` (CREATE) |
-| ChangeUserRoleValidator | Server | `Validators/` | `ChangeUserRoleValidator.cs` (CREATE) |
+| Type                     | Project | Folder        | File                                   |
+| ------------------------ | ------- | ------------- | -------------------------------------- |
+| Handle methods           | Server  | `Aggregates/` | `TenantAggregate.cs` (MODIFY)          |
+| AddUserToTenantValidator | Server  | `Validators/` | `AddUserToTenantValidator.cs` (CREATE) |
+| ChangeUserRoleValidator  | Server  | `Validators/` | `ChangeUserRoleValidator.cs` (CREATE)  |
 
 **DO NOT:**
 
@@ -307,24 +308,24 @@ public async Task AddUserToTenant_on_active_tenant_produces_UserAddedToTenant(Te
 
 **Test cases:**
 
-| # | Given | When | Then | AC |
-|---|-------|------|------|----|
-| 1 | Active tenant, no members | AddUserToTenant("acme", "user-1", {all 3 roles via Theory}) | Success: UserAddedToTenant | #1 |
-| 2 | Null state | AddUserToTenant("acme", "user-1", TenantReader) | Rejection: TenantNotFoundRejection | #1 |
-| 3 | Disabled tenant | AddUserToTenant("acme", "user-1", TenantReader) | Rejection: TenantDisabledRejection | #1 |
-| 4 | Active tenant, user-1 already member | AddUserToTenant("acme", "user-1", TenantOwner) | Rejection: UserAlreadyInTenantRejection | #2 |
-| 5 | Active tenant, undefined role (TenantRole)99 | AddUserToTenant("acme", "user-1", (TenantRole)99) | Rejection: RoleEscalationRejection | #6 |
-| 6 | Active tenant, user-1 is member | RemoveUserFromTenant("acme", "user-1") | Success: UserRemovedFromTenant | #3 |
-| 7 | Null state | RemoveUserFromTenant("acme", "user-1") | Rejection: TenantNotFoundRejection | #3 |
-| 8 | Disabled tenant | RemoveUserFromTenant("acme", "user-1") | Rejection: TenantDisabledRejection | #3 |
-| 9 | Active tenant, user-1 not member | RemoveUserFromTenant("acme", "user-2") | Rejection: UserNotInTenantRejection | #4 |
-| 10 | Active tenant, user-1 is TenantReader | ChangeUserRole("acme", "user-1", TenantContributor) | Success: UserRoleChanged(OldRole=Reader, NewRole=Contributor) | #5 |
-| 11 | Null state | ChangeUserRole("acme", "user-1", TenantContributor) | Rejection: TenantNotFoundRejection | #5 |
-| 12 | Disabled tenant | ChangeUserRole("acme", "user-1", TenantContributor) | Rejection: TenantDisabledRejection | #5 |
-| 13 | Active tenant, user-1 not member | ChangeUserRole("acme", "user-2", TenantContributor) | Rejection: UserNotInTenantRejection | #5 |
-| 14 | Active tenant, user-1 is TenantReader | ChangeUserRole("acme", "user-1", TenantReader) | NoOp (same role) | #5 |
-| 15 | Active tenant, undefined role (TenantRole)99 | ChangeUserRole("acme", "user-1", (TenantRole)99) | Rejection: RoleEscalationRejection | #6 |
-| 16 | Disabled tenant, user-1 is member | AddUserToTenant("acme", "user-1", TenantOwner) | Rejection: TenantDisabledRejection (NOT UserAlreadyInTenant — verifies switch arm ordering) | #1, #2 |
+| #   | Given                                        | When                                                        | Then                                                                                        | AC     |
+| --- | -------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------ |
+| 1   | Active tenant, no members                    | AddUserToTenant("acme", "user-1", {all 3 roles via Theory}) | Success: UserAddedToTenant                                                                  | #1     |
+| 2   | Null state                                   | AddUserToTenant("acme", "user-1", TenantReader)             | Rejection: TenantNotFoundRejection                                                          | #1     |
+| 3   | Disabled tenant                              | AddUserToTenant("acme", "user-1", TenantReader)             | Rejection: TenantDisabledRejection                                                          | #1     |
+| 4   | Active tenant, user-1 already member         | AddUserToTenant("acme", "user-1", TenantOwner)              | Rejection: UserAlreadyInTenantRejection                                                     | #2     |
+| 5   | Active tenant, undefined role (TenantRole)99 | AddUserToTenant("acme", "user-1", (TenantRole)99)           | Rejection: RoleEscalationRejection                                                          | #6     |
+| 6   | Active tenant, user-1 is member              | RemoveUserFromTenant("acme", "user-1")                      | Success: UserRemovedFromTenant                                                              | #3     |
+| 7   | Null state                                   | RemoveUserFromTenant("acme", "user-1")                      | Rejection: TenantNotFoundRejection                                                          | #3     |
+| 8   | Disabled tenant                              | RemoveUserFromTenant("acme", "user-1")                      | Rejection: TenantDisabledRejection                                                          | #3     |
+| 9   | Active tenant, user-1 not member             | RemoveUserFromTenant("acme", "user-2")                      | Rejection: UserNotInTenantRejection                                                         | #4     |
+| 10  | Active tenant, user-1 is TenantReader        | ChangeUserRole("acme", "user-1", TenantContributor)         | Success: UserRoleChanged(OldRole=Reader, NewRole=Contributor)                               | #5     |
+| 11  | Null state                                   | ChangeUserRole("acme", "user-1", TenantContributor)         | Rejection: TenantNotFoundRejection                                                          | #5     |
+| 12  | Disabled tenant                              | ChangeUserRole("acme", "user-1", TenantContributor)         | Rejection: TenantDisabledRejection                                                          | #5     |
+| 13  | Active tenant, user-1 not member             | ChangeUserRole("acme", "user-2", TenantContributor)         | Rejection: UserNotInTenantRejection                                                         | #5     |
+| 14  | Active tenant, user-1 is TenantReader        | ChangeUserRole("acme", "user-1", TenantReader)              | NoOp (same role)                                                                            | #5     |
+| 15  | Active tenant, undefined role (TenantRole)99 | ChangeUserRole("acme", "user-1", (TenantRole)99)            | Rejection: RoleEscalationRejection                                                          | #6     |
+| 16  | Disabled tenant, user-1 is member            | AddUserToTenant("acme", "user-1", TenantOwner)              | Rejection: TenantDisabledRejection (NOT UserAlreadyInTenant — verifies switch arm ordering) | #1, #2 |
 
 **How to build state for tests (reuse existing patterns):**
 
@@ -405,6 +406,7 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 ### Previous Story Intelligence
 
 **Story 2.3 (done) — TenantAggregate lifecycle:**
+
 - TenantAggregate has 4 Handle methods: CreateTenant, UpdateTenant, DisableTenant, EnableTenant
 - TenantState has ALL 9 Apply methods already — user-role Apply methods are ready
 - `ArgumentNullException.ThrowIfNull()` required on ALL method parameters (CA1062 + TreatWarningsAsErrors)
@@ -412,17 +414,20 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - Test file `TenantAggregateTests.cs` has 12 existing tests + `CreateCommand<T>` helper
 
 **Story 2.4 (review) — CommandApi bootstrap:**
+
 - Program.cs is fully wired: `AddCommandApi()`, `AddEventStoreServer()`, `AddEventStore(typeof(TenantAggregate).Assembly)`
 - `AddCommandApi()` sets up MediatR pipeline with ValidationBehavior but only registers EventStore's own validators
 - Validator registration for Tenants assembly NOT yet done — must add `AddValidatorsFromAssembly()` in this story
 
 **Story 2.1 (done) — Contracts:**
+
 - All 3 user-role commands exist: `AddUserToTenant(TenantId, UserId, Role)`, `RemoveUserFromTenant(TenantId, UserId)`, `ChangeUserRole(TenantId, UserId, NewRole)`
 - All 3 user-role events exist: `UserAddedToTenant(TenantId, UserId, Role)`, `UserRemovedFromTenant(TenantId, UserId)`, `UserRoleChanged(TenantId, UserId, OldRole, NewRole)`
 - All user-role rejections exist: `UserAlreadyInTenantRejection(TenantId, UserId)`, `UserNotInTenantRejection(TenantId, UserId)`, `RoleEscalationRejection(TenantId, UserId, AttemptedRole)`
 - Naming convention and serialization tests already cover these types
 
 **Key learnings applied:**
+
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on all reference type parameters
 - `TreatWarningsAsErrors = true` → all warnings are build failures
 - `.editorconfig` → file-scoped namespaces, Allman braces, 4-space indent
@@ -474,29 +479,88 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 
 ## Change Log
 
-- 2026-03-15: Task 0 — Investigated FluentValidation pipeline integration. Confirmed domain command validators do NOT fire (MediatR validates SubmitCommand envelope only). Task 2 skipped; Handle methods provide full domain validation. Pipeline-level domain command validation documented as follow-up.
+- 2026-03-15: Task 0 — Investigated FluentValidation pipeline integration. Confirmed typed domain-command validators do not execute automatically unless the inner payload is validated from the `SubmitCommand` pipeline path.
 - 2026-03-15: Task 1 — Added 3 Handle methods (AddUserToTenant, RemoveUserFromTenant, ChangeUserRole) to TenantAggregate with null/disabled/escalation/duplicate/not-member checks.
 - 2026-03-15: Task 3 — Added 16 unit tests covering all 3 Handle methods (success, rejection, NoOp paths). [Theory] with [InlineData] for all 3 TenantRole values. Switch arm ordering verified (disabled takes precedence over duplicate member).
 - 2026-03-15: Task 4 — Full solution build (0 warnings, 0 errors) and all 81 tests pass across 5 test projects with no regressions.
+- 2026-03-16: Senior developer review completed. Story moved back to in-progress after finding an unmet validation acceptance criterion and a duplicate-user rejection contract gap.
+- 2026-03-16: Fix follow-up — Added typed validators plus a tenant-specific `SubmitCommand` payload validator, registered validators in CommandApi, extended `UserAlreadyInTenantRejection` with `ExistingRole`, and added focused regression tests. Story returned to done.
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-Claude Opus 4.6 (1M context)
+GPT-5.4
 
 ### Debug Log References
 
-- Task 0: ValidationBehavior<TRequest> validates SubmitCommand (MediatR envelope). Domain commands deserialized in EventStoreAggregate.DispatchCommandAsync via reflection — never pass through FluentValidation. ValidateModelFilter is ASP.NET action filter for HTTP request objects, not domain commands.
+- Task 0: ValidationBehavior<TRequest> validates `SubmitCommand` (MediatR envelope). Inner tenant commands require an additional validator that deserializes `SubmitCommand.Payload` and delegates to typed validators before domain dispatch.
 
 ### Completion Notes List
 
-- Task 0: FluentValidation pipeline investigation complete. Validators for domain commands (AddUserToTenant, ChangeUserRole) would be dead code — MediatR pipeline only validates SubmitCommand/SubmitCommandRequest envelopes. Task 2 skipped entirely. Follow-up item: add pipeline-level domain command validation to EventStore.CommandApi.
+- Task 0: FluentValidation pipeline investigation complete. Direct typed validators do not run automatically on deserialized domain commands, so the fix adds a tenant-specific `SubmitCommand` validator that invokes typed validators from the actual MediatR pipeline.
 - Task 1: Added 3 Handle methods to TenantAggregate following established patterns (static, pure, DomainResult return). All methods include null state, disabled tenant, and domain-specific guards. ChangeUserRole returns NoOp for same-role (consistent with DisableTenant/EnableTenant idempotent patterns).
-- Task 3: Added 16 test methods (including 1 [Theory] with 3 [InlineData]) to TenantAggregateTests.cs. Tests use established ProcessAsync(CommandEnvelope, state) pattern with CreateCommand<T> helper. All 53 Server.Tests pass, 25 Contracts.Tests pass (no regressions).
-- Task 4: Full Release build with 0 warnings/errors. All 81 tests across 5 test projects pass.
+- Task 2: Added `AddUserToTenantValidator`, `ChangeUserRoleValidator`, and `TenantSubmitCommandValidator`. Registered both Tenants assemblies for FluentValidation discovery in CommandApi.
+- Task 3: Added aggregate assertions for `ExistingRole`, 2 typed validator test files, and `TenantSubmitCommandValidatorTests`. Server.Tests now pass 62/62 and Contracts.Tests pass 25/25.
+- Task 4: Full Release build with 0 warnings/errors after fixes.
 
 ### File List
 
+- `src/Hexalith.Tenants.Contracts/Events/Rejections/UserAlreadyInTenantRejection.cs` — MODIFIED: Added `ExistingRole` to the duplicate-user rejection payload
 - `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — MODIFIED: Added 3 Handle methods (AddUserToTenant, RemoveUserFromTenant, ChangeUserRole)
-- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — MODIFIED: Added 16 unit test methods for user-role Handle methods
+- `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` — MODIFIED: Added `FluentValidation` package reference
+- `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs` — NEW: Typed validator for AddUserToTenant payloads
+- `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs` — NEW: Typed validator for ChangeUserRole payloads
+- `src/Hexalith.Tenants.CommandApi/Program.cs` — MODIFIED: Registered Tenants validators with FluentValidation discovery
+- `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — NEW: MediatR-pipeline validator that deserializes tenant command payloads and delegates to typed validators
+- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — MODIFIED: Added `ExistingRole` assertion for duplicate-user rejection
+- `tests/Hexalith.Tenants.Server.Tests/Validators/AddUserToTenantValidatorTests.cs` — NEW: Validator tests for AddUserToTenant
+- `tests/Hexalith.Tenants.Server.Tests/Validators/ChangeUserRoleValidatorTests.cs` — NEW: Validator tests for ChangeUserRole
+- `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/TenantSubmitCommandValidatorTests.cs` — NEW: Pipeline-level payload validation tests for tenant commands
+
+## Senior Developer Review (AI)
+
+**Reviewer:** Jerome
+**Date:** 2026-03-16
+**Outcome:** Approved after fixes
+
+### Summary
+
+- Git working tree review: `git status --porcelain`, `git diff --name-only`, and `git diff --cached --name-only` were all empty. No uncommitted or staged file discrepancies were present during review.
+- Validation context reviewed: `Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs`
+- Verification run:
+    - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore` → 53/53 passed
+    - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --no-restore` → 25/25 passed
+
+### Resolution
+
+- Added `AddUserToTenantValidator` and `ChangeUserRoleValidator` in `Hexalith.Tenants.Server`.
+- Added `TenantSubmitCommandValidator` in `Hexalith.Tenants.CommandApi` so tenant payload validation now runs on `SubmitCommand` inside the existing MediatR pipeline.
+- Registered validator discovery for both the CommandApi and Server assemblies in `Program.cs`.
+- Extended `UserAlreadyInTenantRejection` with `ExistingRole` and updated `TenantAggregate` plus aggregate tests accordingly.
+- Verification after fixes:
+    - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` → 62/62 passed
+    - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj` → 25/25 passed
+    - `dotnet build Hexalith.Tenants.slnx --configuration Release` → succeeded
+
+### Findings
+
+1. **[CRITICAL] AC #8 is not implemented, and Tasks 0.4 / 2.6 overstate completion**
+   Story AC #8 requires FluentValidation in the MediatR pipeline for non-empty `TenantId`, non-empty `UserId`, and valid enum values (`_bmad-output/implementation-artifacts/3-1-user-role-management.md:43-45`). The story then claims validators were skipped because they would be dead code and that the Handle methods now provide full validation (`...md:57`, `...md:71`). However:
+    - `ValidationBehavior<TRequest, TResponse>` validates the outer MediatR request type, not the deserialized inner tenant command (`Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs:14-25`, `:36-43`).
+    - `src/Hexalith.Tenants.CommandApi/Program.cs:15-23` does not register any tenant-command validators.
+    - `src/Hexalith.Tenants.Server/` contains no `Validators/` folder, and `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` has no `FluentValidation` package reference.
+    - The Handle methods only validate enum values and membership state; they do **not** reject empty identifiers before producing events or probing the dictionary (`src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:52-90`).
+
+    **Impact:** malformed commands can still pass aggregate validation. For example, empty-string identifiers are currently accepted on the success paths, and a null `UserId` can reach `state.Users.ContainsKey(command.UserId)` and fail with an exception instead of a controlled rejection. This leaves AC #8 unmet and means the completed-task narrative is inaccurate.
+
+2. **[HIGH] AC #2 is only partially implemented — duplicate-user rejection omits the existing role**
+   The story requires `UserAlreadyInTenantRejection` to include the existing role information (`_bmad-output/implementation-artifacts/3-1-user-role-management.md:19-21`). The emitted rejection currently contains only `TenantId` and `UserId`:
+    - Contract: `src/Hexalith.Tenants.Contracts/Events/Rejections/UserAlreadyInTenantRejection.cs:3`
+    - Emission site: `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:61-62`
+
+    **Impact:** callers cannot learn the user's current role from the rejection payload, so the acceptance criterion is not fully satisfied.
+
+### Recommendation
+
+Return this story to development. Fix the validation gap first, then decide whether AC #2 should be implemented by extending `UserAlreadyInTenantRejection` with the existing role or by revising the acceptance criterion/story if the contract must stay unchanged.

@@ -59,7 +59,7 @@ development_status:
 
   # Epic 3: Tenant Membership, Roles & Configuration
   epic-3: in-progress
-  3-1-user-role-management: review
+  3-1-user-role-management: done
   3-2-role-behavior-enforcement: ready-for-dev
   3-3-tenant-configuration-management: backlog
   epic-3-retrospective: optional

@@ -351,7 +351,10 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>();
+        UserAlreadyInTenantRejection rejection = result.Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.UserId.ShouldBe("user-1");
+        rejection.ExistingRole.ShouldBe(TenantRole.TenantReader);
     }
 
     // Test 17: AddUserToTenant with undefined role → RoleEscalationRejection (AC #6)
