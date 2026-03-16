@@ -58,7 +58,7 @@ So that consuming services can react to per-tenant settings like billing plans o
   - [ ] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [ ] Task 3: Create unit tests (AC: #8)
-  - [ ] 3.1: Add configuration Handle method tests to `TenantAggregateTests.cs` (~18 test cases — see test matrix below)
+  - [ ] 3.1: Add configuration Handle method tests to `TenantAggregateTests.cs` (~22 test cases — see test matrix below)
   - [ ] 3.2: Add validator tests `SetTenantConfigurationValidatorTests.cs` in `tests/Hexalith.Tenants.Server.Tests/Validators/`
   - [ ] 3.3: Update `TenantSubmitCommandValidatorTests.cs` with SetTenantConfiguration pipeline validation test
   - [ ] 3.4: Verify existing tests still pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
@@ -93,9 +93,12 @@ Per epics: "A TenantOwner has TenantContributor capabilities plus user-role mana
 Define as `internal const` in TenantAggregate so both Handle methods and the validator (same Server project) can reference them:
 
 ```csharp
-internal const int MaxConfigurationKeys = 100;    // FR23
-internal const int MaxKeyLength = 256;             // FR23
-internal const int MaxValueLength = 1024;          // FR23 — 1KB interpreted as 1024 characters
+// FR23: Configuration limits — 1KB value limit interpreted as 1024 characters (not bytes).
+// Using string.Length for simplicity. For Latin text chars ≈ bytes; for multi-byte this is more lenient.
+// See "1KB interpretation" note below. Do NOT change to Encoding.UTF8.GetByteCount without updating tests and validator.
+internal const int MaxConfigurationKeys = 100;    // FR23: max keys per tenant
+internal const int MaxKeyLength = 256;             // FR23: max characters per key
+internal const int MaxValueLength = 1024;          // FR23: max characters per value (~1KB)
 ```
 
 **1KB interpretation:** FR23 says "maximum 1KB per value". Using character count (`string.Length`) instead of byte count (`Encoding.UTF8.GetByteCount`) for simplicity. For Latin text, characters ≈ bytes. For multi-byte characters this is more lenient. Acceptable for administrative settings.
@@ -107,6 +110,10 @@ public static DomainResult Handle(SetTenantConfiguration command, TenantState? s
 {
     ArgumentNullException.ThrowIfNull(command);
     ArgumentNullException.ThrowIfNull(envelope);
+    // Null-guard individual string properties — the record allows null despite string type.
+    // FluentValidation catches empty Key/TenantId, but null Value has no pipeline guard.
+    ArgumentNullException.ThrowIfNull(command.Key);
+    ArgumentNullException.ThrowIfNull(command.Value);
     return state switch
     {
         null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
@@ -143,6 +150,7 @@ public static DomainResult Handle(RemoveTenantConfiguration command, TenantState
 {
     ArgumentNullException.ThrowIfNull(command);
     ArgumentNullException.ThrowIfNull(envelope);
+    ArgumentNullException.ThrowIfNull(command.Key);
     return state switch
     {
         null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
@@ -198,7 +206,7 @@ Limit checks come after RBAC: an unauthorized user should get a permissions erro
 **Modified files:**
 - `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — Add 2 Handle methods + 3 limit constants
 - `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — Add SetTenantConfiguration case
-- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Add ~18 configuration tests
+- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Add ~22 configuration tests
 
 **No new contract types needed.** All contracts already exist from Story 2.1:
 - Commands: `SetTenantConfiguration(TenantId, Key, Value)`, `RemoveTenantConfiguration(TenantId, Key)`
@@ -257,7 +265,7 @@ src/Hexalith.Tenants.CommandApi/
 
 tests/Hexalith.Tenants.Server.Tests/
 ├── Aggregates/
-│   └── TenantAggregateTests.cs                  (MODIFY: add ~18 configuration tests)
+│   └── TenantAggregateTests.cs                  (MODIFY: add ~22 configuration tests)
 └── Validators/
     └── SetTenantConfigurationValidatorTests.cs  (CREATE)
 ```
@@ -363,6 +371,14 @@ private static TenantState CreateStateWithRolesAndConfig()
 | C17 | RemoveTenantConfiguration | reader-user | Active | Rejection: InsufficientPermissionsRejection | #2 |
 | C18 | RemoveTenantConfiguration("acme", "nonexistent") | owner-user | Active, key absent | NoOp (key already absent) | #2 |
 | C19 | RemoveTenantConfiguration | global-admin (isGlobalAdmin=true) | Active, key exists | Success: TenantConfigurationRemoved | #2 |
+
+**Test matrix — Switch arm ordering & boundary verification:**
+
+| # | Command | Actor | State | Expected | AC |
+|---|---------|-------|-------|----------|-----|
+| C20 | SetTenantConfiguration | reader-user | Disabled tenant | Rejection: TenantDisabledRejection (NOT InsufficientPermissionsRejection — verifies disabled guard precedes RBAC) | #1 |
+| C21 | SetTenantConfiguration (key exactly 256 chars) | owner-user | Active | Success: TenantConfigurationSet (boundary: `>` not `>=`) | #6 |
+| C22 | SetTenantConfiguration (value exactly 1024 chars) | owner-user | Active | Success: TenantConfigurationSet (boundary: `>` not `>=`) | #5 |
 
 **Assertion patterns:**
 ```csharp
@@ -486,6 +502,7 @@ Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is imp
 - **DO NOT** use byte count for value length — use `string.Length` (character count, see "1KB interpretation" above)
 - **DO NOT** add `[JsonPropertyName]` attributes — System.Text.Json camelCase is the default
 - **DO NOT** add `.NotEmpty()` validation on Value — empty string is a valid configuration value
+- **DO NOT** skip `ArgumentNullException.ThrowIfNull` on `command.Key` and `command.Value` — C# records allow null strings at runtime even with non-nullable type annotations; `command.Value.Length` will throw NRE without this guard
 - **DO NOT** skip RBAC for configuration commands — TenantOwner is required even though these are "lower risk" than user management
 - **DO NOT** implement 2-param Handle methods — configuration commands MUST use 3-param for RBAC enforcement (depends on Story 3.2)
 - **DO NOT** add "test-user" as GlobalAdmin in tests — add as TenantOwner to test actual per-tenant role flow
@@ -519,6 +536,19 @@ Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is imp
 - [Source: src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs] — Validator pattern to follow
 - [Source: _bmad-output/implementation-artifacts/3-2-role-behavior-enforcement.md] — RBAC pattern, 3-param Handle, InsufficientPermissionsRejection, permission matrix
 - [Source: _bmad-output/implementation-artifacts/3-1-user-role-management.md] — Validator creation, CA1062, TenantSubmitCommandValidator pattern
+
+### Party Mode Review Findings (2026-03-16)
+
+**Reviewers:** Winston (Architect), Amelia (Dev), Murat (Test Architect), Bob (Scrum Master)
+
+**Applied fixes:**
+1. **[MEDIUM] Null guard for string properties** — Added `ArgumentNullException.ThrowIfNull(command.Key)` and `ArgumentNullException.ThrowIfNull(command.Value)` to SetTenantConfiguration Handle method, and `ArgumentNullException.ThrowIfNull(command.Key)` to RemoveTenantConfiguration. C# records allow null strings at runtime despite non-nullable annotations; `command.Value.Length` would throw NRE without this.
+2. **[LOW] Switch-arm ordering verification test (C20)** — Added test: SetTenantConfiguration on disabled tenant by reader-user must produce TenantDisabledRejection (not InsufficientPermissionsRejection), confirming disabled guard precedes RBAC.
+3. **[LOW] Boundary tests (C21, C22)** — Added tests: key exactly 256 chars and value exactly 1024 chars must succeed, confirming limit checks use `>` not `>=`.
+4. **[INFO] FR23 interpretation comment** — Added code comment on limit constants documenting the character-vs-byte decision and warning against changing to byte count without updating tests and validator.
+5. **[INFO] Story 3.2 sequencing** — Dependency on Story 3.2 already documented as blocker. Sequencing confirmed: 3.2 must land first.
+
+**Test count updated:** 19 → 22 test cases (added C20, C21, C22).
 
 ## Dev Agent Record
 
