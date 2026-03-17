@@ -14,7 +14,8 @@ public class TenantSubmitCommandValidatorTests
 {
     private readonly TenantSubmitCommandValidator _validator = new(
         new AddUserToTenantValidator(),
-        new ChangeUserRoleValidator());
+        new ChangeUserRoleValidator(),
+        new SetTenantConfigurationValidator());
 
     [Fact]
     public void AddUserToTenant_payload_with_empty_user_id_fails_validation()
@@ -36,6 +37,17 @@ public class TenantSubmitCommandValidatorTests
 
         result.IsValid.ShouldBeFalse();
         result.Errors.ShouldContain(e => e.PropertyName == "Payload.NewRole");
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_empty_key_fails_validation()
+    {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", string.Empty, "value"));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Key");
     }
 
     [Fact]

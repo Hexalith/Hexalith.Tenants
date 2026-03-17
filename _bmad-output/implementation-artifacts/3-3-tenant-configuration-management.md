@@ -1,6 +1,6 @@
 # Story 3.3: Tenant Configuration Management
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -46,26 +46,26 @@ So that consuming services can react to per-tenant settings like billing plans o
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add configuration Handle methods to TenantAggregate (AC: #1-#6)
-  - [ ] 1.1: Add configuration limit constants to TenantAggregate: `MaxConfigurationKeys = 100`, `MaxKeyLength = 256`, `MaxValueLength = 1024`
-  - [ ] 1.2: Add `Handle(SetTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-length/value-length/key-count/same-value checks
-  - [ ] 1.3: Add `Handle(RemoveTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-not-found checks
-  - [ ] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Add configuration Handle methods to TenantAggregate (AC: #1-#6)
+  - [x] 1.1: Add configuration limit constants to TenantAggregate: `MaxConfigurationKeys = 100`, `MaxKeyLength = 256`, `MaxValueLength = 1024`
+  - [x] 1.2: Add `Handle(SetTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-length/value-length/key-count/same-value checks
+  - [x] 1.3: Add `Handle(RemoveTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-not-found checks
+  - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create SetTenantConfigurationValidator (AC: #7)
-  - [ ] 2.1: Create `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs` with rules: TenantId NotEmpty, Key NotEmpty + MaximumLength(256), Value MaximumLength(1024)
-  - [ ] 2.2: Update `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` to add `SetTenantConfiguration` case in the switch — inject `IValidator<SetTenantConfiguration>` in constructor
-  - [ ] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 2: Create SetTenantConfigurationValidator (AC: #7)
+  - [x] 2.1: Create `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs` with rules: TenantId NotEmpty, Key NotEmpty + MaximumLength(256), Value MaximumLength(1024)
+  - [x] 2.2: Update `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` to add `SetTenantConfiguration` case in the switch — inject `IValidator<SetTenantConfiguration>` in constructor
+  - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 3: Create unit tests (AC: #8)
-  - [ ] 3.1: Add configuration Handle method tests to `TenantAggregateTests.cs` (~22 test cases — see test matrix below)
-  - [ ] 3.2: Add validator tests `SetTenantConfigurationValidatorTests.cs` in `tests/Hexalith.Tenants.Server.Tests/Validators/`
-  - [ ] 3.3: Update `TenantSubmitCommandValidatorTests.cs` with SetTenantConfiguration pipeline validation test
-  - [ ] 3.4: Verify existing tests still pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [x] Task 3: Create unit tests (AC: #8)
+  - [x] 3.1: Add configuration Handle method tests to `TenantAggregateTests.cs` (~22 test cases — see test matrix below)
+  - [x] 3.2: Add validator tests `SetTenantConfigurationValidatorTests.cs` in `tests/Hexalith.Tenants.Server.Tests/Validators/`
+  - [x] 3.3: Update `TenantSubmitCommandValidatorTests.cs` with SetTenantConfiguration pipeline validation test
+  - [x] 3.4: Verify existing tests still pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
-- [ ] Task 4: Build verification (all ACs)
-  - [ ] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 4.2: `dotnet test` all test projects — all pass, no regressions
+- [x] Task 4: Build verification (all ACs)
+  - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+  - [x] 4.2: `dotnet test` all test projects — all pass, no regressions
 
 ## Dev Notes
 
@@ -463,14 +463,14 @@ public class SetTenantConfigurationValidatorTests
 
 ### Previous Story Intelligence
 
-**Story 3.2 (ready-for-dev) — Role Behavior Enforcement (DEPENDENCY):**
+**Story 3.2 (review — implemented, pending code review) — Role Behavior Enforcement (DEPENDENCY):**
 - Establishes 3-param Handle method pattern with CommandEnvelope for RBAC
 - Creates `InsufficientPermissionsRejection(TenantId, ActorUserId, ActorRole?, CommandName)` contract
 - Adds `IsAuthorized()`, `MeetsMinimumRole()`, `IsGlobalAdmin()` private static helpers to TenantAggregate
 - Converts 4 Handle methods from 2-param to 3-param — this story adds 2 more following the same pattern
 - Permission matrix note: "Story 3.3 commands (SetTenantConfiguration, RemoveTenantConfiguration) will also need TenantOwner RBAC — the pattern established here applies directly"
 - GlobalAdmin bypass via `CommandEnvelope.Extensions["actor:globalAdmin"]` = `"true"` (server-populated, SEC-4)
-- Empty tenant bootstrap: `state.Users.Count > 0` check for AddUserToTenant only — NOT applicable to configuration commands (config changes always require RBAC)
+- Empty tenant bootstrap: `state.HasMembershipHistory` check for AddUserToTenant only — NOT applicable to configuration commands (config changes always require RBAC)
 
 **Story 3.1 (done) — User-Role Management:**
 - Added FluentValidation to Server .csproj, created validator pattern in `Server/Validators/`
@@ -495,11 +495,12 @@ public class SetTenantConfigurationValidatorTests
 ### Git Intelligence
 
 Recent commits show:
-- `fc66d2a feat: Implement user-role management in TenantAggregate` — Story 3.1 implementation
-- `f7a03c5 feat: Update Story 2.4 status to review and refine acceptance criteria`
-- EventStore submodule updates are routine (`chore: Update Hexalith.EventStore submodule`)
+- `79584b5 feat: Add InsufficientPermissionsRejection event for handling permission rejections` — Story 3.2 contract
+- `4216ccd feat: Implement RBAC for tenant management commands` — Story 3.2 implementation
+- `1d1ef0b chore: Update Hexalith.EventStore submodule to latest commit` — 3-param Handle support
+- `f9f9279 feat: Enhance tenant configuration management with null guards and additional boundary tests` — Story 3.3 spec refinement
 
-Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is implemented first, its commit will show the 3-param Handle pattern and RBAC helpers. This story extends that work.
+Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC helpers (`IsAuthorized`, `MeetsMinimumRole`, `IsGlobalAdmin`), `HasMembershipHistory` for empty-tenant bootstrap, and `InsufficientPermissionsRejection` are all in the codebase. This story extends that work directly.
 
 ### Critical Anti-Patterns (DO NOT)
 
@@ -602,10 +603,31 @@ Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is imp
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+None — clean implementation with no blocking issues.
+
 ### Completion Notes List
 
+- Task 1: Added 3 `internal const` limit constants (MaxConfigurationKeys=100, MaxKeyLength=256, MaxValueLength=1024) and 2 Handle methods (SetTenantConfiguration, RemoveTenantConfiguration) to TenantAggregate following the established 3-param RBAC pattern from Story 3.2. Switch arm ordering: null → disabled → RBAC → limits → NoOp → success.
+- Task 2: Created SetTenantConfigurationValidator with TenantId NotEmpty, Key NotEmpty + MaximumLength(256), Value MaximumLength(1024). Value is NOT NotEmpty — empty string is a valid config value. Updated TenantSubmitCommandValidator to inject and route SetTenantConfiguration payloads.
+- Task 3: Added 22 aggregate test cases (C1-C22) covering success, overwrite, dot-delimited keys, null state, disabled tenant, RBAC (reader, contributor, global admin), key length limits, value length limits, key count limits, overwrite at capacity, same-value NoOp, removal, removal NoOp, switch arm ordering, and boundary tests. Added 5 validator tests and 1 pipeline test.
+- Task 4: Final build verification — 0 warnings, 0 errors. All 151 tests pass with no regressions.
+
+### Change Log
+
+- 2026-03-17: Implemented Story 3.3 — Tenant Configuration Management (all 4 tasks, all 8 ACs satisfied)
+
 ### File List
+
+**New files:**
+- `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Validators/SetTenantConfigurationValidatorTests.cs`
+
+**Modified files:**
+- `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — Added 2 Handle methods + 3 limit constants
+- `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — Added SetTenantConfiguration case + validator injection
+- `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Added 22 configuration test cases + 2 helper methods
+- `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/TenantSubmitCommandValidatorTests.cs` — Added SetTenantConfiguration pipeline test + updated constructor

@@ -9,6 +9,13 @@ namespace Hexalith.Tenants.Server.Aggregates;
 
 public class TenantAggregate : EventStoreAggregate<TenantState>
 {
+    // FR23: Configuration limits — 1KB value limit interpreted as 1024 characters (not bytes).
+    // Using string.Length for simplicity. For Latin text chars ≈ bytes; for multi-byte this is more lenient.
+    // Do NOT change to Encoding.UTF8.GetByteCount without updating tests and validator.
+    internal const int MaxConfigurationKeys = 100;
+    internal const int MaxKeyLength = 256;
+    internal const int MaxValueLength = 1024;
+
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
 
     public static DomainResult Handle(CreateTenant command, TenantState? state)
@@ -101,6 +108,67 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
             _ when !state.Users.ContainsKey(command.UserId)
                 => DomainResult.Rejection([new UserNotInTenantRejection(command.TenantId, command.UserId)]),
             _ => DomainResult.Success([new UserRemovedFromTenant(command.TenantId, command.UserId)]),
+        };
+    }
+
+    public static DomainResult Handle(SetTenantConfiguration command, TenantState? state, CommandEnvelope envelope)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(envelope);
+        ArgumentNullException.ThrowIfNull(command.Key);
+        ArgumentNullException.ThrowIfNull(command.Value);
+        return state switch
+        {
+            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            // RBAC: TenantOwner only (skip if GlobalAdmin)
+            _ when !IsGlobalAdmin(envelope)
+                && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
+                => DomainResult.Rejection([new InsufficientPermissionsRejection(
+                    command.TenantId, envelope.UserId,
+                    state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
+                    nameof(SetTenantConfiguration))]),
+            // Limit: key length (FR23)
+            _ when command.Key.Length > MaxKeyLength
+                => DomainResult.Rejection([new ConfigurationLimitExceededRejection(
+                    command.TenantId, "KeyLength", command.Key.Length, MaxKeyLength)]),
+            // Limit: value length (FR23)
+            _ when command.Value.Length > MaxValueLength
+                => DomainResult.Rejection([new ConfigurationLimitExceededRejection(
+                    command.TenantId, "ValueSize", command.Value.Length, MaxValueLength)]),
+            // Limit: key count — only when adding a NEW key (FR23)
+            _ when !state.Configuration.ContainsKey(command.Key)
+                && state.Configuration.Count >= MaxConfigurationKeys
+                => DomainResult.Rejection([new ConfigurationLimitExceededRejection(
+                    command.TenantId, "KeyCount", state.Configuration.Count, MaxConfigurationKeys)]),
+            // Idempotent: same key, same value → NoOp
+            _ when state.Configuration.TryGetValue(command.Key, out string? existing)
+                && existing == command.Value
+                => DomainResult.NoOp(),
+            _ => DomainResult.Success([new TenantConfigurationSet(command.TenantId, command.Key, command.Value)]),
+        };
+    }
+
+    public static DomainResult Handle(RemoveTenantConfiguration command, TenantState? state, CommandEnvelope envelope)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(envelope);
+        ArgumentNullException.ThrowIfNull(command.Key);
+        return state switch
+        {
+            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
+            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            // RBAC: TenantOwner only (skip if GlobalAdmin)
+            _ when !IsGlobalAdmin(envelope)
+                && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
+                => DomainResult.Rejection([new InsufficientPermissionsRejection(
+                    command.TenantId, envelope.UserId,
+                    state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
+                    nameof(RemoveTenantConfiguration))]),
+            // Idempotent: key not present → NoOp (desired state already achieved)
+            _ when !state.Configuration.ContainsKey(command.Key)
+                => DomainResult.NoOp(),
+            _ => DomainResult.Success([new TenantConfigurationRemoved(command.TenantId, command.Key)]),
         };
     }
 
