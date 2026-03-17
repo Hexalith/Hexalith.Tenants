@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 
 using Hexalith.EventStore.Contracts.Commands;
@@ -15,7 +16,10 @@ namespace Hexalith.Tenants.Server.Tests.Aggregates;
 
 public class TenantAggregateTests
 {
-    private static CommandEnvelope CreateCommand<T>(T command)
+    private static CommandEnvelope CreateCommand<T>(
+        T command,
+        string actorUserId = "test-user",
+        bool isGlobalAdmin = false)
         where T : notnull
         => new(
             Guid.NewGuid().ToString(),
@@ -26,8 +30,22 @@ public class TenantAggregateTests
             JsonSerializer.SerializeToUtf8Bytes(command),
             Guid.NewGuid().ToString(),
             null,
-            "test-user",
-            null);
+            actorUserId,
+            isGlobalAdmin
+                ? new Dictionary<string, string> { ["actor:globalAdmin"] = "true" }
+                : null);
+
+    private static TenantState CreateStateWithRoles()
+    {
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "contributor-user", TenantRole.TenantContributor));
+        state.Apply(new UserAddedToTenant("acme", "reader-user", TenantRole.TenantReader));
+        return state;
+    }
+
+    // ===== Story 2.3: Tenant Lifecycle Handle Method Tests =====
 
     // Test 1: CreateTenant with no prior state → Success (AC #1)
     [Fact]
@@ -72,6 +90,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantContributor));
 
         CommandEnvelope cmd = CreateCommand(new UpdateTenant("acme", "New Name", "New Desc"));
 
@@ -236,6 +255,9 @@ public class TenantAggregateTests
         state.Status.ShouldBe(TenantStatus.Active);
         state.CreatedAt.ShouldNotBe(default);
 
+        // Add test-user as Contributor so UpdateTenant RBAC passes
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantContributor));
+
         // Step 2: Update tenant
         CommandEnvelope updateCmd = CreateCommand(new UpdateTenant("acme", "Updated Name", "Updated Desc"));
         DomainResult updateResult = await aggregate.ProcessAsync(updateCmd, currentState: state);
@@ -285,6 +307,7 @@ public class TenantAggregateTests
     // ===== Story 3.1: User-Role Management Handle Method Tests =====
 
     // Test 13: AddUserToTenant on active tenant → Success for all 3 roles (AC #1)
+    // Note: Empty Users dict → bootstrap exception applies, RBAC is skipped
     [Theory]
     [InlineData(TenantRole.TenantOwner)]
     [InlineData(TenantRole.TenantContributor)]
@@ -344,6 +367,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
 
         CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantOwner));
@@ -358,6 +382,7 @@ public class TenantAggregateTests
     }
 
     // Test 17: AddUserToTenant with undefined role → RoleEscalationRejection (AC #6)
+    // Note: Empty Users dict → bootstrap exception applies, RBAC is skipped → undefined role check fires
     [Fact]
     public async Task AddUserToTenant_with_undefined_role_produces_RoleEscalationRejection()
     {
@@ -380,6 +405,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
 
         CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-1"));
@@ -430,6 +456,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
 
         CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-2"));
 
@@ -446,6 +473,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
 
         CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantContributor));
@@ -498,6 +526,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
 
         CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-2", TenantRole.TenantContributor));
 
@@ -514,6 +543,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
 
         CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantReader));
@@ -531,6 +561,7 @@ public class TenantAggregateTests
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "test-user", TenantRole.TenantOwner));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
 
         CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", (TenantRole)99));
@@ -557,5 +588,428 @@ public class TenantAggregateTests
 
         result.IsRejection.ShouldBeTrue();
         result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
+    // ===== Story 3.2: Role Behavior Enforcement (RBAC) Tests =====
+
+    // R1: AddUserToTenant by Reader → InsufficientPermissionsRejection (AC #1)
+    [Fact]
+    public async Task RBAC_AddUserToTenant_by_reader_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "reader-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("reader-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+        rejection.CommandName.ShouldBe(nameof(AddUserToTenant));
+    }
+
+    // R2: AddUserToTenant by Contributor → InsufficientPermissionsRejection (AC #2)
+    [Fact]
+    public async Task RBAC_AddUserToTenant_by_contributor_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "contributor-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorRole.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    // R3: AddUserToTenant by Owner → Success (AC #3)
+    [Fact]
+    public async Task RBAC_AddUserToTenant_by_owner_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+    }
+
+    // R4: AddUserToTenant by GlobalAdmin (not in Users) → Success (AC #6)
+    [Fact]
+    public async Task RBAC_AddUserToTenant_by_globalAdmin_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "global-admin",
+            isGlobalAdmin: true);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+    }
+
+    // R5: AddUserToTenant by non-member → InsufficientPermissionsRejection (AC #5)
+    [Fact]
+    public async Task RBAC_AddUserToTenant_by_nonMember_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+    }
+
+    // R6: RemoveUserFromTenant by Reader → InsufficientPermissionsRejection (AC #1)
+    [Fact]
+    public async Task RBAC_RemoveUserFromTenant_by_reader_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "contributor-user"),
+            actorUserId: "reader-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+    }
+
+    // R7: RemoveUserFromTenant by Contributor → InsufficientPermissionsRejection (AC #2)
+    [Fact]
+    public async Task RBAC_RemoveUserFromTenant_by_contributor_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "reader-user"),
+            actorUserId: "contributor-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+    }
+
+    // R8: RemoveUserFromTenant by Owner → Success (AC #3)
+    [Fact]
+    public async Task RBAC_RemoveUserFromTenant_by_owner_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "reader-user"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+    }
+
+    // R9: RemoveUserFromTenant by GlobalAdmin → Success (AC #6)
+    [Fact]
+    public async Task RBAC_RemoveUserFromTenant_by_globalAdmin_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "reader-user"),
+            actorUserId: "global-admin",
+            isGlobalAdmin: true);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+    }
+
+    // R10: ChangeUserRole by Reader → InsufficientPermissionsRejection (AC #1)
+    [Fact]
+    public async Task RBAC_ChangeUserRole_by_reader_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "contributor-user", TenantRole.TenantOwner),
+            actorUserId: "reader-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+    }
+
+    // R11: ChangeUserRole by Contributor → InsufficientPermissionsRejection (AC #2)
+    [Fact]
+    public async Task RBAC_ChangeUserRole_by_contributor_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "reader-user", TenantRole.TenantOwner),
+            actorUserId: "contributor-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+    }
+
+    // R12: ChangeUserRole by Owner → Success (AC #3)
+    [Fact]
+    public async Task RBAC_ChangeUserRole_by_owner_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRoleChanged evt = result.Events[0].ShouldBeOfType<UserRoleChanged>();
+        evt.OldRole.ShouldBe(TenantRole.TenantReader);
+        evt.NewRole.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    // R13: ChangeUserRole by GlobalAdmin → Success (AC #6)
+    [Fact]
+    public async Task RBAC_ChangeUserRole_by_globalAdmin_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor),
+            actorUserId: "global-admin",
+            isGlobalAdmin: true);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserRoleChanged>();
+    }
+
+    // R14: UpdateTenant by Reader → InsufficientPermissionsRejection (AC #1)
+    [Fact]
+    public async Task RBAC_UpdateTenant_by_reader_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("acme", "New Name", "New Desc"),
+            actorUserId: "reader-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.CommandName.ShouldBe(nameof(UpdateTenant));
+    }
+
+    // R15: UpdateTenant by Contributor → Success (AC #4)
+    [Fact]
+    public async Task RBAC_UpdateTenant_by_contributor_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("acme", "New Name", "New Desc"),
+            actorUserId: "contributor-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantUpdated>();
+    }
+
+    // R16: UpdateTenant by Owner → Success (AC #3)
+    [Fact]
+    public async Task RBAC_UpdateTenant_by_owner_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("acme", "New Name", "New Desc"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantUpdated>();
+    }
+
+    // R17: UpdateTenant by GlobalAdmin → Success (AC #6)
+    [Fact]
+    public async Task RBAC_UpdateTenant_by_globalAdmin_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("acme", "New Name", "New Desc"),
+            actorUserId: "global-admin",
+            isGlobalAdmin: true);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<TenantUpdated>();
+    }
+
+    // R18: Owner self-removal → Success (AC #3)
+    [Fact]
+    public async Task RBAC_owner_self_removal_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "owner-user"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+    }
+
+    // R19: Owner self-demotion → Success (AC #3)
+    [Fact]
+    public async Task RBAC_owner_self_demotion_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "owner-user", TenantRole.TenantReader),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRoleChanged evt = result.Events[0].ShouldBeOfType<UserRoleChanged>();
+        evt.OldRole.ShouldBe(TenantRole.TenantOwner);
+        evt.NewRole.ShouldBe(TenantRole.TenantReader);
+    }
+
+    // R20: AddUserToTenant on empty tenant (bootstrap) by non-member → Success (AC #5 exception)
+    [Fact]
+    public async Task RBAC_AddUserToTenant_on_empty_tenant_bootstrap_succeeds()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        // Users dict is empty — first user bootstrap
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "first-owner", TenantRole.TenantOwner),
+            actorUserId: "any-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+    }
+
+    // R20b: After bootstrap, non-owner is rejected
+    [Fact]
+    public async Task RBAC_after_bootstrap_non_owner_AddUser_is_rejected()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        // Bootstrap: first user becomes Reader (not Owner)
+        state.Apply(new UserAddedToTenant("acme", "first-user", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "second-user", TenantRole.TenantReader),
+            actorUserId: "first-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+    }
+
+    [Fact]
+    public async Task RBAC_previously_populated_tenant_cannot_reopen_bootstrap_after_becoming_empty()
+    {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "first-owner", TenantRole.TenantOwner));
+        state.Apply(new UserRemovedFromTenant("acme", "first-owner"));
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "second-user", TenantRole.TenantOwner),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+    }
+
+    // Task 3.7: TenantRole enum ordinal regression test
+    [Fact]
+    public void TenantRole_ordinal_values_maintain_privilege_hierarchy()
+    {
+        ((int)TenantRole.TenantOwner).ShouldBeLessThan((int)TenantRole.TenantContributor);
+        ((int)TenantRole.TenantContributor).ShouldBeLessThan((int)TenantRole.TenantReader);
+        Enum.GetValues<TenantRole>().Length.ShouldBe(3);
+    }
+
+    // Task 3.10: 3-param Handle method discovery guard
+    [Fact]
+    public void TenantAggregate_exposes_three_param_Handle_methods()
+    {
+        MethodInfo[] handleMethods = typeof(TenantAggregate)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name == "Handle" && m.GetParameters().Length == 3)
+            .ToArray();
+
+        handleMethods.Length.ShouldBeGreaterThanOrEqualTo(1,
+            "TenantAggregate must have at least one 3-param Handle(Command, State?, CommandEnvelope) method for RBAC enforcement");
     }
 }

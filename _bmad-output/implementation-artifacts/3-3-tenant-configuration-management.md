@@ -79,6 +79,12 @@ So that consuming services can react to per-tenant settings like billing plans o
 
 This story adds 2 new 3-param Handle methods for SetTenantConfiguration and RemoveTenantConfiguration following the exact same RBAC pattern.
 
+**IMPORTANT:** The RBAC helper method names used in this story (`IsAuthorized`, `MeetsMinimumRole`, `IsGlobalAdmin`) are from Story 3.2's specification, not from implemented code. If Story 3.2 uses different method names or signatures, adapt the Handle method implementations accordingly. The pattern (TenantOwner minimum role, GlobalAdmin bypass) is what matters, not the exact identifier.
+
+### Scope: Domain Logic Only
+
+This story implements the domain Handle methods and validation for configuration management. End-to-end configuration management (client SDK, query endpoints, read model projections) requires Epic 4 (client DI registration) and Epic 5 (projections + query endpoints). Developers cannot read configuration back until Story 5.1 implements the TenantProjection.
+
 ### Permission Matrix (extends Story 3.2)
 
 | Command | Minimum Role | Handle Params |
@@ -170,33 +176,39 @@ public static DomainResult Handle(RemoveTenantConfiguration command, TenantState
 }
 ```
 
-### Design Decisions
+### Design Decisions (Implementation)
 
 **RemoveTenantConfiguration for non-existent key → NoOp (not rejection):**
-The contracts don't include a `ConfigurationKeyNotFoundRejection`. Using NoOp follows the idempotent pattern: the desired state (key absent) is already achieved. This differs from `RemoveUserFromTenant` (which rejects) because user removal is typically a deliberate action where the caller should know the user exists, while config key removal may be defensive cleanup. No new contract type needed.
+No `ConfigurationKeyNotFoundRejection` exists in contracts. NoOp follows the idempotent pattern: desired state (key absent) is already achieved. Differs from `RemoveUserFromTenant` (rejection) because config removal may be defensive cleanup.
 
 **SetTenantConfiguration same-value → NoOp:**
-Consistent with `ChangeUserRole` same-role → NoOp pattern. Prevents unnecessary events in the stream for idempotent operations.
+Consistent with `ChangeUserRole` same-role → NoOp. Prevents unnecessary events for idempotent operations.
 
-**SetTenantConfiguration updating existing key → Success (not NoOp):**
-Setting an existing key to a NEW value produces a `TenantConfigurationSet` event. The key count limit check skips existing keys (`!state.Configuration.ContainsKey(command.Key)`) — overwriting doesn't consume a new slot.
+**SetTenantConfiguration updating existing key → Success:**
+New value on existing key produces `TenantConfigurationSet`. Key count limit skips existing keys (`!ContainsKey`) — overwriting doesn't consume a new slot.
 
-**Dot-delimited keys (FR21) — no special handling needed:**
-Keys are stored as plain strings. Dot-delimited naming (e.g., `billing.plan`, `parties.maxContacts`) is a convention, not enforced by the domain. The aggregate treats keys as opaque strings. Namespace collision prevention is a consuming-service responsibility.
+**Dot-delimited keys (FR21) — no enforcement:**
+Keys are opaque strings. Dot-delimited naming is a convention, not a domain invariant.
+
+**Empty string values are allowed (confirmed decision):**
+`Set("key", "")` is valid — stores key with empty value. Not rejected. Forces consuming services to distinguish empty-value from absent-key. The simpler alternative (reject empty, force `Remove`) was considered and rejected — empty values support "use default" semantics in some config patterns.
+
+**Whitespace-only keys are accepted:**
+`.NotEmpty()` rejects null and `""` but not whitespace-only strings. By design — keys are opaque. Follow-up if needed: add `.Must(key => !string.IsNullOrWhiteSpace(key))`.
+
+### Consuming Service Guidance (NOT implementation — for documentation/downstream reference)
+
+**Case-sensitive keys:** `Dictionary<string, string>` uses ordinal comparer. `billing.Plan` ≠ `billing.plan`. Consuming services should establish naming conventions (e.g., all lowercase dot-delimited).
+
+**Empty value vs removed key:** `TenantConfigurationSet` with `Value=""` = key exists, value cleared. `TenantConfigurationRemoved` = key absent. `ContainsKey` returns `true` for empty-value keys. Consuming services must handle both.
+
+**No batch/transactional config:** Individual commands only. Partial failure possible (key 101 rejected, keys 1-100 remain). Consuming services doing bulk sets should pre-check count via query projection or implement saga patterns.
+
+**Values are opaque strings:** The aggregate does NOT sanitize values. Consuming services MUST validate/sanitize before parsing or rendering (JSON payloads, script content, SQL fragments).
 
 ### Switch Arm Ordering (CRITICAL)
 
-Guard arm ordering in SetTenantConfiguration matches the established pattern:
-1. **Null state** → TenantNotFoundRejection
-2. **Disabled tenant** → TenantDisabledRejection
-3. **RBAC** → InsufficientPermissionsRejection
-4. **Key length limit** → ConfigurationLimitExceededRejection
-5. **Value length limit** → ConfigurationLimitExceededRejection
-6. **Key count limit (new key only)** → ConfigurationLimitExceededRejection
-7. **Same value** → NoOp
-8. **Default** → Success
-
-Limit checks come after RBAC: an unauthorized user should get a permissions error, not a limit error. This is consistent with Story 3.2's pattern where RBAC precedes domain logic.
+Switch arm ordering follows the established pattern: null → disabled → RBAC → domain limits → NoOp → success (see code above). Limit checks come after RBAC so an unauthorized user gets a permissions error, not a limit error — consistent with Story 3.2.
 
 ### Technical Requirements
 
@@ -495,7 +507,7 @@ Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is imp
 - **DO NOT** modify TenantState — both Apply methods already exist from Story 2.3
 - **DO NOT** create a RemoveTenantConfigurationValidator — architecture says simple commands rely on domain validation
 - **DO NOT** enforce dot-delimited key format — FR21 is a naming convention, not a domain invariant
-- **DO NOT** throw exceptions from Handle methods — use `DomainResult.Rejection()` and `DomainResult.NoOp()`
+- **DO NOT** throw domain exceptions from Handle methods — use `DomainResult.Rejection()` and `DomainResult.NoOp()`. Note: `ArgumentNullException.ThrowIfNull` on `command`, `envelope`, `command.Key`, `command.Value` is a defensive guard against programming errors (null reference), NOT a domain exception — it does not conflict with this rule
 - **DO NOT** make Handle methods async — no async work needed
 - **DO NOT** add instance state to TenantAggregate — Handle methods MUST remain static
 - **DO NOT** use `state.Members` — the property is `state.Users`
@@ -506,6 +518,7 @@ Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is imp
 - **DO NOT** skip RBAC for configuration commands — TenantOwner is required even though these are "lower risk" than user management
 - **DO NOT** implement 2-param Handle methods — configuration commands MUST use 3-param for RBAC enforcement (depends on Story 3.2)
 - **DO NOT** add "test-user" as GlobalAdmin in tests — add as TenantOwner to test actual per-tenant role flow
+- **DO NOT** assume configuration values are sanitized — the tenant aggregate stores opaque strings. Consuming services MUST validate and sanitize config values before parsing or rendering them (e.g., JSON payloads, script content, SQL fragments)
 
 ### Project Structure Notes
 
@@ -549,6 +562,41 @@ Story 3.2 has NOT been committed yet (it's `ready-for-dev`). If Story 3.2 is imp
 5. **[INFO] Story 3.2 sequencing** — Dependency on Story 3.2 already documented as blocker. Sequencing confirmed: 3.2 must land first.
 
 **Test count updated:** 19 → 22 test cases (added C20, C21, C22).
+
+### Advanced Elicitation Review (2026-03-16)
+
+**Methods applied:** Pre-mortem Analysis, Red Team vs Blue Team, First Principles Analysis, Self-Consistency Validation, Failure Mode Analysis
+
+**Applied findings:**
+1. **[LOW] No batch config support** — Added design decision documenting partial failure risk for multi-key provisioning patterns and saga guidance.
+2. **[LOW] Empty value vs removed key semantics** — Added design decision clarifying the distinct semantics for consuming service developers.
+3. **[LOW] RBAC helper name flexibility** — Added note to dependency section: adapt if Story 3.2 uses different method names than spec.
+4. **[LOW] Case-sensitive keys** — Added design decision documenting default ordinal comparer behavior and naming convention guidance.
+5. **[LOW] Value sanitization** — Added anti-pattern: consuming services must validate/sanitize config values (opaque strings).
+6. **[MEDIUM] Whitespace-only keys accepted** — Added design decision documenting that `.NotEmpty()` does not reject whitespace; accepted for MVP with follow-up path.
+
+**Validated assumptions (no changes needed):**
+- 1KB = 1024 characters interpretation: pragmatic for administrative settings, easy to change later
+- NoOp for non-existent key removal: correct idempotent pattern, justified domain asymmetry vs user removal
+- Story 3.2 hard dependency: cannot ship config without RBAC (FR33 violation)
+- Self-consistency check: story is strictly more complete than naive independent implementation
+
+### Advanced Elicitation Round 2 (2026-03-16)
+
+**Methods applied:** Occam's Razor, Cross-Functional War Room, Mentor and Apprentice, Reverse Engineering, Comparative Analysis Matrix
+
+**Applied findings:**
+1. **[LOW] Simplified switch arm ordering** — Replaced 8-line numbered list with single sentence referencing code (Occam's Razor)
+2. **[DECISION] Empty values confirmed allowed** — Jerome chose Option A: allow empty string values. Documented as confirmed decision (War Room)
+3. **[LOW] ThrowIfNull clarification** — Clarified that ArgumentNullException.ThrowIfNull is a defensive guard, not a domain exception — no conflict with "no exceptions" anti-pattern (Mentor/Apprentice)
+4. **[LOW] Scope note added** — End-to-end config requires Epics 4+5; this story is domain logic only (Reverse Engineering)
+5. **[MEDIUM] Restructured Design Decisions** — Split into "Implementation" (dev agent needs) and "Consuming Service Guidance" (downstream reference). Improves dev agent parsability (Comparative Analysis)
+
+**Validated (no changes):**
+- 100-key limit is a storage/performance guard, not arbitrary — justified by architecture's 25KB max state size
+- Configuration in TenantAggregate (not separate aggregate) is correct — shares disabled-tenant invariant
+- Compile-time limit constants are correct for MVP — dynamic limits are Phase 2
+- DAPR actor serialization prevents race conditions on key count
 
 ## Dev Agent Record
 

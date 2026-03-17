@@ -1,6 +1,6 @@
 # Story 3.2: Role Behavior Enforcement
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -42,48 +42,48 @@ So that tenant security boundaries are guaranteed by the aggregate regardless of
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: Extend EventStore Handle method discovery to support CommandEnvelope parameter (BLOCKING)
-  - [ ] 0.1: Modify `EventStoreAggregate<TState>.DiscoverHandleMethods()` to accept 2-param `Handle(Command, State?)` OR 3-param `Handle(Command, State?, CommandEnvelope)` methods
-  - [ ] 0.2: Modify `EventStoreAggregate<TState>.DispatchCommandAsync()` to pass `CommandEnvelope` as 3rd argument when the discovered Handle method has 3 parameters
-  - [ ] 0.3: Add unit test in `Hexalith.EventStore.Client.Tests` verifying 3-param Handle methods are discovered and invoked correctly (backward-compatible: existing 2-param tests still pass)
-  - [ ] 0.4: Check if `DomainProcessorBase<TState>` (at `Hexalith.EventStore/src/Hexalith.EventStore.Client/Handlers/DomainProcessorBase.cs`) also needs 3-param support — it has its own `HandleAsync(CommandEnvelope, TState?)` dispatch. If `InMemoryTenantService` extends this instead of `EventStoreAggregate`, 3-param Handle methods won't be discovered. Apply the same extension if needed
-  - [ ] 0.5: Verify no existing EventStore tests directly construct `HandleMethodInfo` (it's `private sealed`, so unlikely — but verify before adding `HasEnvelope` field)
-  - [ ] 0.6: Verify EventStore solution builds: `dotnet build Hexalith.EventStore.slnx --configuration Release`
-  - [ ] 0.7: Commit EventStore submodule changes, then in the parent repo run `git add Hexalith.EventStore` to update the submodule pointer. Verify with `git submodule status` — the pointer must reference your new commit
+- [x] Task 0: Extend EventStore Handle method discovery to support CommandEnvelope parameter (BLOCKING)
+  - [x] 0.1: Modify `EventStoreAggregate<TState>.DiscoverHandleMethods()` to accept 2-param `Handle(Command, State?)` OR 3-param `Handle(Command, State?, CommandEnvelope)` methods
+  - [x] 0.2: Modify `EventStoreAggregate<TState>.DispatchCommandAsync()` to pass `CommandEnvelope` as 3rd argument when the discovered Handle method has 3 parameters
+  - [x] 0.3: Add unit test in `Hexalith.EventStore.Client.Tests` verifying 3-param Handle methods are discovered and invoked correctly (backward-compatible: existing 2-param tests still pass)
+  - [x] 0.4: Check if `DomainProcessorBase<TState>` (at `Hexalith.EventStore/src/Hexalith.EventStore.Client/Handlers/DomainProcessorBase.cs`) also needs 3-param support — it has its own `HandleAsync(CommandEnvelope, TState?)` dispatch. If `InMemoryTenantService` extends this instead of `EventStoreAggregate`, 3-param Handle methods won't be discovered. Apply the same extension if needed
+  - [x] 0.5: Verify no existing EventStore tests directly construct `HandleMethodInfo` (it's `private sealed`, so unlikely — but verify before adding `HasEnvelope` field)
+  - [x] 0.6: Verify EventStore solution builds: `dotnet build Hexalith.EventStore.slnx --configuration Release`
+  - [x] 0.7: Commit EventStore submodule changes, then in the parent repo run `git add Hexalith.EventStore` to update the submodule pointer. Verify with `git submodule status` — the pointer must reference your new commit
 
-- [ ] Task 1: Create InsufficientPermissionsRejection contract type (AC: #1-#5)
-  - [ ] 1.1: Create `src/Hexalith.Tenants.Contracts/Events/Rejections/InsufficientPermissionsRejection.cs`
-  - [ ] 1.2: Verify naming convention test in Contracts.Tests auto-discovers the new rejection
-  - [ ] 1.3: Verify serialization round-trip test auto-discovers the new rejection
-  - [ ] 1.4: Build verification: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Create InsufficientPermissionsRejection contract type (AC: #1-#5)
+  - [x] 1.1: Create `src/Hexalith.Tenants.Contracts/Events/Rejections/InsufficientPermissionsRejection.cs`
+  - [x] 1.2: Verify naming convention test in Contracts.Tests auto-discovers the new rejection
+  - [x] 1.3: Verify serialization round-trip test auto-discovers the new rejection
+  - [x] 1.4: Build verification: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Add RBAC checks to existing Handle methods in TenantAggregate (AC: #1-#6)
-  - [ ] 2.1: Convert `Handle(AddUserToTenant, TenantState?)` to 3-param `Handle(AddUserToTenant, TenantState?, CommandEnvelope)` — add Owner-only RBAC check after disabled guard
-  - [ ] 2.2: Convert `Handle(RemoveUserFromTenant, TenantState?)` to 3-param — add Owner-only RBAC check
-  - [ ] 2.3: Convert `Handle(ChangeUserRole, TenantState?)` to 3-param — add Owner-only RBAC check
-  - [ ] 2.4: Convert `Handle(UpdateTenant, TenantState?)` to 3-param — add Contributor-or-higher RBAC check
-  - [ ] 2.5: Add private static helpers: `IsAuthorized(TenantState, string actorUserId, TenantRole minimumRole)`, `MeetsMinimumRole(TenantRole actorRole, TenantRole minimumRole)` (explicit switch, NOT integer comparison), `IsGlobalAdmin(CommandEnvelope envelope)`
-  - [ ] 2.6: Leave `Handle(CreateTenant, ...)`, `Handle(DisableTenant, ...)`, `Handle(EnableTenant, ...)` as 2-param (RBAC for these is a Layer 1 concern — GlobalAdmin only, enforced by JWT AuthorizationBehavior)
-  - [ ] 2.7: Verify SEC-4 extension sanitization: check that `CommandsController.Submit()` strips client-provided extensions before creating the CommandEnvelope. If not implemented yet, add `// SECURITY: actor:globalAdmin extension MUST be server-populated only (SEC-4). Verify CommandsController strips client extensions.` comment near `IsGlobalAdmin` method
-  - [ ] 2.8: Build verification: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 2: Add RBAC checks to existing Handle methods in TenantAggregate (AC: #1-#6)
+  - [x] 2.1: Convert `Handle(AddUserToTenant, TenantState?)` to 3-param `Handle(AddUserToTenant, TenantState?, CommandEnvelope)` — add Owner-only RBAC check after disabled guard
+  - [x] 2.2: Convert `Handle(RemoveUserFromTenant, TenantState?)` to 3-param — add Owner-only RBAC check
+  - [x] 2.3: Convert `Handle(ChangeUserRole, TenantState?)` to 3-param — add Owner-only RBAC check
+  - [x] 2.4: Convert `Handle(UpdateTenant, TenantState?)` to 3-param — add Contributor-or-higher RBAC check
+  - [x] 2.5: Add private static helpers: `IsAuthorized(TenantState, string actorUserId, TenantRole minimumRole)`, `MeetsMinimumRole(TenantRole actorRole, TenantRole minimumRole)` (explicit switch, NOT integer comparison), `IsGlobalAdmin(CommandEnvelope envelope)`
+  - [x] 2.6: Leave `Handle(CreateTenant, ...)`, `Handle(DisableTenant, ...)`, `Handle(EnableTenant, ...)` as 2-param (RBAC for these is a Layer 1 concern — GlobalAdmin only, enforced by JWT AuthorizationBehavior)
+  - [x] 2.7: Verify SEC-4 extension sanitization: check that `CommandsController.Submit()` strips client-provided extensions before creating the CommandEnvelope. If not implemented yet, add `// SECURITY: actor:globalAdmin extension MUST be server-populated only (SEC-4). Verify CommandsController strips client extensions.` comment near `IsGlobalAdmin` method
+  - [x] 2.8: Build verification: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 3: Create RBAC unit tests (AC: #7)
-  - [ ] 3.1: Update `CreateCommand<T>` helper in TenantAggregateTests.cs to accept `actorUserId` and `isGlobalAdmin` parameters
-  - [ ] 3.2: Add RBAC test methods for AddUserToTenant (Reader→rejected, Contributor→rejected, Owner→success, GlobalAdmin→success, actor-not-member→rejected)
-  - [ ] 3.3: Add RBAC test methods for RemoveUserFromTenant (Reader→rejected, Contributor→rejected, Owner→success, GlobalAdmin→success)
-  - [ ] 3.4: Add RBAC test methods for ChangeUserRole (Reader→rejected, Contributor→rejected, Owner→success, GlobalAdmin→success)
-  - [ ] 3.5: Add RBAC test methods for UpdateTenant (Reader→rejected, Contributor→success, Owner→success, GlobalAdmin→success)
-  - [ ] 3.6: Verify existing non-RBAC tests still pass (they use "test-user" which is not in state.Users — need to either add test-user to state OR use GlobalAdmin bypass)
-  - [ ] 3.7: Add enum ordinal regression test: assert `TenantOwner < TenantContributor < TenantReader` AND `Enum.GetValues<TenantRole>().Length == 3` to guard against enum reordering or unexpected new values
-  - [ ] 3.8: Add empty-tenant bootstrap test: AddUserToTenant on active tenant with empty Users dict by a non-member, non-GlobalAdmin actor → should SUCCEED (first user bootstrap). Then verify a subsequent AddUserToTenant by the now-Reader user is rejected (RBAC now active)
-  - [ ] 3.9: Add self-removal test (owner-user removes themselves) and self-demotion test (owner-user changes own role to Reader) — both should succeed (allowed for MVP)
-  - [ ] 3.10: Add 3-param discovery guard test: use reflection to assert TenantAggregate exposes at least one Handle method with 3 parameters (Command, State?, CommandEnvelope). If EventStore 3-param extension is accidentally reverted, this test fails immediately
-  - [ ] 3.11: Investigate conformance test impact — if `InMemoryTenantService` in `Testing` uses its own dispatch mechanism, it may also need RBAC-aware dispatch. Check `Testing.Tests` conformance test. If impacted, document as follow-up (Story 3.2 scope is TenantAggregate only)
-  - [ ] 3.12: Run all tests: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [x] Task 3: Create RBAC unit tests (AC: #7)
+  - [x] 3.1: Update `CreateCommand<T>` helper in TenantAggregateTests.cs to accept `actorUserId` and `isGlobalAdmin` parameters
+  - [x] 3.2: Add RBAC test methods for AddUserToTenant (Reader→rejected, Contributor→rejected, Owner→success, GlobalAdmin→success, actor-not-member→rejected)
+  - [x] 3.3: Add RBAC test methods for RemoveUserFromTenant (Reader→rejected, Contributor→rejected, Owner→success, GlobalAdmin→success)
+  - [x] 3.4: Add RBAC test methods for ChangeUserRole (Reader→rejected, Contributor→rejected, Owner→success, GlobalAdmin→success)
+  - [x] 3.5: Add RBAC test methods for UpdateTenant (Reader→rejected, Contributor→success, Owner→success, GlobalAdmin→success)
+  - [x] 3.6: Verify existing non-RBAC tests still pass (they use "test-user" which is not in state.Users — need to either add test-user to state OR use GlobalAdmin bypass)
+  - [x] 3.7: Add enum ordinal regression test: assert `TenantOwner < TenantContributor < TenantReader` AND `Enum.GetValues<TenantRole>().Length == 3` to guard against enum reordering or unexpected new values
+  - [x] 3.8: Add empty-tenant bootstrap test: AddUserToTenant on active tenant with empty Users dict by a non-member, non-GlobalAdmin actor → should SUCCEED (first user bootstrap). Then verify a subsequent AddUserToTenant by the now-Reader user is rejected (RBAC now active)
+  - [x] 3.9: Add self-removal test (owner-user removes themselves) and self-demotion test (owner-user changes own role to Reader) — both should succeed (allowed for MVP)
+  - [x] 3.10: Add 3-param discovery guard test: use reflection to assert TenantAggregate exposes at least one Handle method with 3 parameters (Command, State?, CommandEnvelope). If EventStore 3-param extension is accidentally reverted, this test fails immediately
+  - [x] 3.11: Investigate conformance test impact — if `InMemoryTenantService` in `Testing` uses its own dispatch mechanism, it may also need RBAC-aware dispatch. Check `Testing.Tests` conformance test. If impacted, document as follow-up (Story 3.2 scope is TenantAggregate only)
+  - [x] 3.12: Run all tests: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
-- [ ] Task 4: Build verification (all ACs)
-  - [ ] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 4.2: `dotnet test` all test projects — all pass, no regressions
+- [x] Task 4: Build verification (all ACs)
+  - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+  - [x] 4.2: `dotnet test` all test projects — all pass, no regressions
 
 ## Dev Notes
 
@@ -596,10 +596,42 @@ Last functional commit: `fc66d2a feat: Implement user-role management in TenantA
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Task 0.4: DomainProcessorBase delegates to abstract HandleAsync(CommandEnvelope, TState?) — not reflection-based, no changes needed
+- Task 0.5: HandleMethodInfo is private sealed, no external construction possible
+- Task 1.2-1.3: Serialization test needed Nullable<TenantRole> support added to EventSerializationTests.cs GetTestValue helper
+- Task 2.7: SEC-4 extension sanitization is already implemented in CommandsController.Submit() via ExtensionMetadataSanitizer. The sanitizer validates extensions but allows client-provided ones through after sanitization. The `actor:globalAdmin` extension must be server-populated by an AuthorizationBehavior (not yet wired). Comment documenting this is in IsGlobalAdmin method
+- Task 3.6: 9 existing tests were fixed by adding test-user as TenantOwner (or Contributor for UpdateTenant) to state. Null-state and disabled-tenant tests were unaffected (guards fire before RBAC)
+- Task 3.11: InMemoryTenantService does not exist yet (Epic 6). No conformance test impact
+
 ### Completion Notes List
 
+- Extended EventStore framework with backward-compatible 3-param Handle method support (HandleMethodInfo.HasEnvelope)
+- Created InsufficientPermissionsRejection with nullable ActorRole and CommandName fields
+- Added RBAC enforcement to 4 Handle methods: AddUserToTenant (Owner), RemoveUserFromTenant (Owner), ChangeUserRole (Owner), UpdateTenant (Contributor)
+- Left CreateTenant/DisableTenant/EnableTenant as 2-param (Layer 1 GlobalAdmin JWT concern)
+- Implemented empty-tenant bootstrap exception: first AddUserToTenant succeeds when Users is empty
+- GlobalAdmin bypass via CommandEnvelope.Extensions["actor:globalAdmin"] = "true"
+- Explicit MeetsMinimumRole switch (not integer comparison) with default deny
+- 23 new RBAC tests + 9 existing tests fixed = 54 total TenantAggregateTests (was 31)
+- 122 total tests across all projects, all passing, 0 warnings, 0 regressions
+
 ### File List
+
+**EventStore submodule (committed as 5c9dc56):**
+- Hexalith.EventStore/src/Hexalith.EventStore.Client/Aggregates/EventStoreAggregate.cs (MODIFIED: 3-param Handle support)
+- Hexalith.EventStore/tests/Hexalith.EventStore.Client.Tests/Aggregates/EventStoreAggregateTests.cs (MODIFIED: 2 new 3-param tests)
+
+**Tenants repo:**
+- src/Hexalith.Tenants.Contracts/Events/Rejections/InsufficientPermissionsRejection.cs (CREATED)
+- src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs (MODIFIED: 4 Handle methods → 3-param with RBAC + 3 helper methods)
+- tests/Hexalith.Tenants.Contracts.Tests/EventSerializationTests.cs (MODIFIED: Nullable<TenantRole> support)
+- tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs (MODIFIED: updated helper, fixed 9 tests, added 23 RBAC tests)
+- Hexalith.EventStore (submodule pointer updated)
+
+### Change Log
+
+- 2026-03-16: Story 3.2 implementation — Role Behavior Enforcement with domain-level RBAC in TenantAggregate Handle methods

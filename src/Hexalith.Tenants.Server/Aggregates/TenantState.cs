@@ -10,6 +10,7 @@ public sealed class TenantState
     public string? Description { get; private set; }
     public TenantStatus Status { get; private set; }
     public Dictionary<string, TenantRole> Users { get; private set; } = new();
+    public bool HasMembershipHistory { get; private set; }
     public Dictionary<string, string> Configuration { get; private set; } = new();
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -46,6 +47,7 @@ public sealed class TenantState
     {
         ArgumentNullException.ThrowIfNull(e);
         Users[e.UserId] = e.Role;
+        HasMembershipHistory = true;
     }
 
     public void Apply(UserRemovedFromTenant e)

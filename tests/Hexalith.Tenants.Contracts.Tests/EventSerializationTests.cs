@@ -92,6 +92,11 @@ public class EventSerializationTests
             };
         }
 
+        if (Nullable.GetUnderlyingType(paramType) == typeof(TenantRole))
+        {
+            return TenantRole.TenantReader;
+        }
+
         if (Nullable.GetUnderlyingType(paramType) == typeof(string))
         {
             return "nullable-test-value";
