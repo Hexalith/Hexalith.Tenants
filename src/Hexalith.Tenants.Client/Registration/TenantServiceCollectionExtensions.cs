@@ -1,4 +1,9 @@
+using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Configuration;
+using Hexalith.Tenants.Client.Handlers;
+using Hexalith.Tenants.Client.Projections;
+using Hexalith.Tenants.Client.Subscription;
+using Hexalith.Tenants.Contracts.Events;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +16,8 @@ namespace Hexalith.Tenants.Client.Registration;
 /// </summary>
 public static class TenantServiceCollectionExtensions
 {
+    private sealed class TenantEventInfrastructureMarker;
+
     /// <summary>
     /// Registers tenant client services in the dependency injection container with configuration bound from appsettings.
     /// </summary>
@@ -21,6 +28,7 @@ public static class TenantServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         EnsureCoreRegistrations(services);
+        EnsureEventHandlerRegistrations(services);
 
         // Opportunistic configuration binding
         IConfiguration? configuration = TryGetConfiguration(services);
@@ -46,6 +54,7 @@ public static class TenantServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         EnsureCoreRegistrations(services);
+        EnsureEventHandlerRegistrations(services);
 
         // Idempotency: skip duplicate options configuration (same sentinel as parameterless overload)
         if (!HasTenantOptionsConfiguration(services))
@@ -54,6 +63,14 @@ public static class TenantServiceCollectionExtensions
         }
 
         return services;
+    }
+
+    private static IReadOnlyDictionary<string, Type> BuildEventTypeRegistry()
+    {
+        return typeof(TenantCreated).Assembly
+            .GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
+            .ToDictionary(t => t.FullName!, t => t);
     }
 
     private static void EnsureCoreRegistrations(IServiceCollection services)
@@ -68,10 +85,49 @@ public static class TenantServiceCollectionExtensions
         _ = services.AddOptions<HexalithTenantsOptions>();
     }
 
+    private static void EnsureEventHandlerRegistrations(IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        if (services.Any(s => s.ServiceType == typeof(TenantEventInfrastructureMarker)))
+        {
+            return;
+        }
+
+        if (!services.Any(s => s.ServiceType == typeof(ITenantProjectionStore)))
+        {
+            services.AddSingleton<ITenantProjectionStore, InMemoryTenantProjectionStore>();
+        }
+
+        services.AddSingleton<TenantProjectionEventHandler>();
+        RegisterEventHandler<TenantCreated, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<TenantUpdated, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<TenantDisabled, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<TenantEnabled, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<UserAddedToTenant, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<UserRemovedFromTenant, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<UserRoleChanged, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<TenantConfigurationSet, TenantProjectionEventHandler>(services);
+        RegisterEventHandler<TenantConfigurationRemoved, TenantProjectionEventHandler>(services);
+
+        IReadOnlyDictionary<string, Type> registry = BuildEventTypeRegistry();
+        services.AddSingleton(registry);
+
+        services.AddSingleton<TenantEventProcessor>();
+        services.AddSingleton<TenantEventInfrastructureMarker>();
+    }
+
     private static bool HasTenantOptionsConfiguration(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
         return services.Any(s => s.ServiceType == typeof(IConfigureOptions<HexalithTenantsOptions>));
+    }
+
+    private static void RegisterEventHandler<TEvent, THandler>(IServiceCollection services)
+        where TEvent : IEventPayload
+        where THandler : class, ITenantEventHandler<TEvent>
+    {
+        services.AddSingleton<ITenantEventHandler<TEvent>>(sp => sp.GetRequiredService<THandler>());
     }
 
     private static IConfiguration? TryGetConfiguration(IServiceCollection services)

@@ -1,6 +1,6 @@
 # Story 4.1: Client DI Registration
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,35 +32,35 @@ So that my service is wired up for tenant event handling with minimal configurat
 ## Tasks / Subtasks
 
 - [x] Task 1: Create `HexalithTenantsOptions.cs` (AC: #1) — BUILD FIRST: extension method depends on this
-  - [x] 1.1: Create `src/Hexalith.Tenants.Client/Configuration/HexalithTenantsOptions.cs` — options class for consuming service configuration
-  - [x] 1.2: Properties: `PubSubName` (string, default `"pubsub"`), `TopicName` (string, default `"system.tenants.events"`), `CommandApiAppId` (string, default `"commandapi"`)
-  - [x] 1.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 1.1: Create `src/Hexalith.Tenants.Client/Configuration/HexalithTenantsOptions.cs` — options class for consuming service configuration
+    - [x] 1.2: Properties: `PubSubName` (string, default `"pubsub"`), `TopicName` (string, default `"system.tenants.events"`), `CommandApiAppId` (string, default `"commandapi"`)
+    - [x] 1.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create `TenantServiceCollectionExtensions.cs` (AC: #1, #2, #3) — depends on Task 1
-  - [x] 2.1: Create `src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs` with `AddHexalithTenants(this IServiceCollection)` extension method
-  - [x] 2.2: Register DaprClient via `AddDaprClient()` with idempotency guard (skip if already registered)
-  - [x] 2.3: Bind `HexalithTenantsOptions` from configuration section `"Tenants"` using `IConfiguration` opportunistic resolution
-  - [x] 2.4: Add `AddHexalithTenants(this IServiceCollection, Action<HexalithTenantsOptions>)` overload
-  - [x] 2.5: Return `IServiceCollection` for fluent chaining (both overloads)
-  - [x] 2.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 2.1: Create `src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs` with `AddHexalithTenants(this IServiceCollection)` extension method
+    - [x] 2.2: Register DaprClient via `AddDaprClient()` with idempotency guard (skip if already registered)
+    - [x] 2.3: Bind `HexalithTenantsOptions` from configuration section `"Tenants"` using `IConfiguration` opportunistic resolution
+    - [x] 2.4: Add `AddHexalithTenants(this IServiceCollection, Action<HexalithTenantsOptions>)` overload
+    - [x] 2.5: Return `IServiceCollection` for fluent chaining (both overloads)
+    - [x] 2.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 3: Create unit tests (AC: #4)
-  - [x] 3.0: `Microsoft.Extensions.Configuration.Memory` NOT needed — `AddInMemoryCollection()` available transitively from `Microsoft.Extensions.Configuration` in .NET 10
-  - [x] 3.1: Create `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs`
-  - [x] 3.2: Test: `AddHexalithTenants_RegistersDaprClient` — verifies DaprClient descriptor exists (DO NOT resolve — see Dev Notes)
-  - [x] 3.3: Test: `AddHexalithTenants_BindsTenantsOptions` — verifies `HexalithTenantsOptions` is bound from config
-  - [x] 3.4: Test: `AddHexalithTenants_IsIdempotent` — calling twice does not duplicate registrations
-  - [x] 3.5: Test: `AddHexalithTenants_ReturnsSameServiceCollection` — fluent chaining works
-  - [x] 3.6: Test: `AddHexalithTenants_DefaultOptionsValues` — verify default PubSubName, TopicName, CommandApiAppId
-  - [x] 3.7: Test: `AddHexalithTenants_ThrowsOnNullServices` — null guard for parameterless overload
-  - [x] 3.8: Test: `AddHexalithTenants_WithAction_ThrowsOnNullServices` — null guard for action overload
-  - [x] 3.9: Test: `AddHexalithTenants_WithAction_ThrowsOnNullAction` — null guard for action parameter
-  - [x] 3.10: Test: `AddHexalithTenants_ConfigExistsButNoTenantsSection` — options resolve with defaults when config section is absent
-  - [x] 3.11: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+    - [x] 3.0: `Microsoft.Extensions.Configuration.Memory` NOT needed — `AddInMemoryCollection()` available transitively from `Microsoft.Extensions.Configuration` in .NET 10
+    - [x] 3.1: Create `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs`
+    - [x] 3.2: Test: `AddHexalithTenants_RegistersDaprClient` — verifies DaprClient descriptor exists (DO NOT resolve — see Dev Notes)
+    - [x] 3.3: Test: `AddHexalithTenants_BindsTenantsOptions` — verifies `HexalithTenantsOptions` is bound from config
+    - [x] 3.4: Test: `AddHexalithTenants_IsIdempotent` — calling twice does not duplicate registrations
+    - [x] 3.5: Test: `AddHexalithTenants_ReturnsSameServiceCollection` — fluent chaining works
+    - [x] 3.6: Test: `AddHexalithTenants_DefaultOptionsValues` — verify default PubSubName, TopicName, CommandApiAppId
+    - [x] 3.7: Test: `AddHexalithTenants_ThrowsOnNullServices` — null guard for parameterless overload
+    - [x] 3.8: Test: `AddHexalithTenants_WithAction_ThrowsOnNullServices` — null guard for action overload
+    - [x] 3.9: Test: `AddHexalithTenants_WithAction_ThrowsOnNullAction` — null guard for action parameter
+    - [x] 3.10: Test: `AddHexalithTenants_ConfigExistsButNoTenantsSection` — options resolve with defaults when config section is absent
+    - [x] 3.11: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
 - [x] Task 4: Build verification (all ACs)
-  - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [x] 4.2: `dotnet test Hexalith.Tenants.slnx` — all Tier 1+2 pass (172/172), no regressions. 2 pre-existing Tier 3 integration test failures (DaprEndToEndTests — requires running DAPR sidecar)
+    - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 4.2: `dotnet test Hexalith.Tenants.slnx` — all Tier 1+2 pass (172/172), no regressions. 2 pre-existing Tier 3 integration test failures (DaprEndToEndTests — requires running DAPR sidecar)
 
 ## Dev Notes
 
@@ -71,6 +71,7 @@ This story creates the Client DI extension method — the single-call entry poin
 ### Current State: Client Project is Empty Shell
 
 The `Hexalith.Tenants.Client` project exists with a `.csproj` file and dependencies already configured, but **has zero source .cs files**. The csproj already references:
+
 - `Hexalith.Tenants.Contracts` (project reference)
 - `Dapr.Client` (NuGet — version managed by `Directory.Packages.props`, currently 1.17.3)
 - `Microsoft.Extensions.Configuration.Binder` (NuGet)
@@ -80,9 +81,10 @@ All dependencies are ready. No new NuGet packages or project references are need
 
 ### Architecture: Thin DI Layer
 
-Architecture specifies: "Client → References Contracts only (thin DI layer)". This describes the *project reference* layer — Client has no project reference to Server, CommandApi, or any other Hexalith project except Contracts. NuGet infrastructure packages (`Dapr.Client`, `Microsoft.Extensions.Configuration.Binder`, `Microsoft.Extensions.Hosting.Abstractions`) are already in the csproj from Story 1.1 and are not "references" in the architecture sense. The Client package is a NuGet package consumed by external services. It must be minimal — only DI extension methods and configuration options.
+Architecture specifies: "Client → References Contracts only (thin DI layer)". This describes the _project reference_ layer — Client has no project reference to Server, CommandApi, or any other Hexalith project except Contracts. NuGet infrastructure packages (`Dapr.Client`, `Microsoft.Extensions.Configuration.Binder`, `Microsoft.Extensions.Hosting.Abstractions`) are already in the csproj from Story 1.1 and are not "references" in the architecture sense. The Client package is a NuGet package consumed by external services. It must be minimal — only DI extension methods and configuration options.
 
 Architecture directory structure prescribes exactly:
+
 ```
 src/Hexalith.Tenants.Client/
 ├── Hexalith.Tenants.Client.csproj
@@ -94,7 +96,7 @@ This story adds the `Registration/` folder and `TenantServiceCollectionExtension
 
 ### Extension Method Pattern — Follow EventStore Convention
 
-Follow the *logical pattern* from `EventStoreServiceCollectionExtensions.cs` (`Hexalith.EventStore/src/Hexalith.EventStore.Client/Registration/`):
+Follow the _logical pattern_ from `EventStoreServiceCollectionExtensions.cs` (`Hexalith.EventStore/src/Hexalith.EventStore.Client/Registration/`):
 
 1. Static class with `this IServiceCollection` extension methods
 2. `ArgumentNullException.ThrowIfNull(services)` guard
@@ -190,6 +192,7 @@ public class HexalithTenantsOptions
 ```
 
 **Design rationale:**
+
 - `PubSubName`: DAPR pub/sub component name. Default `"pubsub"` matches the DAPR component defined in the Aspire topology (`AddDaprPubSub("pubsub")`).
 - `TopicName`: The event topic. Architecture specifies `"system.tenants.events"` as the single topic for all tenant events.
 - `CommandApiAppId`: The DAPR app ID of the tenant CommandApi service. Default `"commandapi"` matches the Aspire AppHost configuration.
@@ -197,6 +200,7 @@ public class HexalithTenantsOptions
 ### DaprClient Registration
 
 The `AddDaprClient()` method is from the `Dapr.Client` NuGet package (version 1.17.3, managed by `Directory.Packages.props`). It registers:
+
 - `DaprClient` as a singleton
 - `DaprClientBuilder` for configuration
 
@@ -245,13 +249,14 @@ This overload follows the EventStore pattern (`AddEventStore(Action<EventStoreOp
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| TenantServiceCollectionExtensions | Client | Registration/ | TenantServiceCollectionExtensions.cs (CREATE) |
-| HexalithTenantsOptions | Client | Configuration/ | HexalithTenantsOptions.cs (CREATE) |
-| DI tests | Client.Tests | Registration/ | TenantServiceCollectionExtensionsTests.cs (CREATE) |
+| Type                              | Project      | Folder         | File                                               |
+| --------------------------------- | ------------ | -------------- | -------------------------------------------------- |
+| TenantServiceCollectionExtensions | Client       | Registration/  | TenantServiceCollectionExtensions.cs (CREATE)      |
+| HexalithTenantsOptions            | Client       | Configuration/ | HexalithTenantsOptions.cs (CREATE)                 |
+| DI tests                          | Client.Tests | Registration/  | TenantServiceCollectionExtensionsTests.cs (CREATE) |
 
 **DO NOT:**
+
 - Create any types outside the Client project — this story is Client-only
 - Reference the Server project from Client — Client is a thin DI layer referencing Contracts only
 - Add new NuGet packages — all dependencies already in Client.csproj
@@ -270,6 +275,7 @@ This overload follows the EventStore pattern (`AddEventStore(Action<EventStoreOp
 **Source (Client) — No new NuGet packages required.**
 
 All dependencies already available in Client.csproj:
+
 - `Dapr.Client` 1.17.3 — `AddDaprClient()` extension method (also transitively provides `Microsoft.Extensions.DependencyInjection` — do NOT add it explicitly)
 - `Microsoft.Extensions.Configuration.Binder` — `Configure<T>(IConfigurationSection)` binding
 - `Microsoft.Extensions.Hosting.Abstractions` — `IHostApplicationBuilder` (available but not used as extension target)
@@ -282,6 +288,7 @@ All dependencies already available in Client.csproj:
 - **`Microsoft.Extensions.Configuration.Memory`** — MUST ADD. Required for `AddInMemoryCollection()` in test helper `CreateServiceCollectionWithConfig()`. Not transitively available: Client brings `Configuration.Binder` (which brings `Configuration` for `ConfigurationBuilder`), but NOT `Configuration.Memory`.
 
 **Required changes:**
+
 1. Add to `Directory.Packages.props`: `<PackageVersion Include="Microsoft.Extensions.Configuration.Memory" Version="10.0.3" />`
 2. Add to `tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj`: `<PackageReference Include="Microsoft.Extensions.Configuration.Memory" />`
 
@@ -308,6 +315,7 @@ tests/Hexalith.Tenants.Client.Tests/
 **Tier 1 (Unit) — No infrastructure needed.**
 
 **Required test file imports:**
+
 ```csharp
 using Dapr.Client;
 
@@ -322,6 +330,7 @@ using Shouldly;
 ```
 
 **Test setup pattern:**
+
 ```csharp
 private static IServiceCollection CreateServiceCollectionWithConfig(
     Dictionary<string, string?>? configValues = null)
@@ -341,24 +350,25 @@ private static IServiceCollection CreateServiceCollectionWithConfig(
 
 **Test matrix:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| D1 | AddHexalithTenants registers DaprClient | ServiceCollection + IConfiguration | ServiceDescriptor for `DaprClient` exists (DO NOT resolve — gRPC needs DAPR sidecar) | #1, #3 |
-| D2 | AddHexalithTenants binds options from config | ServiceCollection + IConfiguration with `Tenants:PubSubName=mypubsub` | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "mypubsub"` | #1, #3 |
-| D3 | AddHexalithTenants is idempotent | Call twice on same ServiceCollection | No duplicate registrations for `HexalithTenantsOptions` | #3 |
-| D4 | AddHexalithTenants returns same collection | Any ServiceCollection | Return value is same reference as input | #2 |
-| D5 | Default options have correct values | No config section | PubSubName="pubsub", TopicName="system.tenants.events", CommandApiAppId="commandapi" | #3 |
-| D6 | AddHexalithTenants with configure action | Call overload with `o => o.PubSubName = "custom"` | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "custom"` | #1, #2 |
-| D7 | AddHexalithTenants skips DaprClient if already registered | Pre-register DaprClient, then call AddHexalithTenants | No duplicate DaprClient descriptors (check descriptor count) | #3 |
-| D8 | AddHexalithTenants works without IConfiguration | Empty ServiceCollection (no IConfiguration) | Options registered with defaults, no exception | #1 |
-| D9 | AddHexalithTenants throws on null services | `null` ServiceCollection | `ArgumentNullException` | #1 |
-| D10 | AddHexalithTenants with action throws on null services | `null` ServiceCollection | `ArgumentNullException` | #1 |
-| D11 | AddHexalithTenants with action throws on null action | Valid ServiceCollection, `null` action | `ArgumentNullException` | #1 |
-| D12 | AddHexalithTenants with config but no Tenants section | IConfiguration with unrelated keys only | Options resolve with all defaults (PubSubName="pubsub", etc.) | #3 |
+| #   | Test                                                      | Setup                                                                 | Expected                                                                             | AC     |
+| --- | --------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------ |
+| D1  | AddHexalithTenants registers DaprClient                   | ServiceCollection + IConfiguration                                    | ServiceDescriptor for `DaprClient` exists (DO NOT resolve — gRPC needs DAPR sidecar) | #1, #3 |
+| D2  | AddHexalithTenants binds options from config              | ServiceCollection + IConfiguration with `Tenants:PubSubName=mypubsub` | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "mypubsub"`                    | #1, #3 |
+| D3  | AddHexalithTenants is idempotent                          | Call twice on same ServiceCollection                                  | No duplicate registrations for `HexalithTenantsOptions`                              | #3     |
+| D4  | AddHexalithTenants returns same collection                | Any ServiceCollection                                                 | Return value is same reference as input                                              | #2     |
+| D5  | Default options have correct values                       | No config section                                                     | PubSubName="pubsub", TopicName="system.tenants.events", CommandApiAppId="commandapi" | #3     |
+| D6  | AddHexalithTenants with configure action                  | Call overload with `o => o.PubSubName = "custom"`                     | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "custom"`                      | #1, #2 |
+| D7  | AddHexalithTenants skips DaprClient if already registered | Pre-register DaprClient, then call AddHexalithTenants                 | No duplicate DaprClient descriptors (check descriptor count)                         | #3     |
+| D8  | AddHexalithTenants works without IConfiguration           | Empty ServiceCollection (no IConfiguration)                           | Options registered with defaults, no exception                                       | #1     |
+| D9  | AddHexalithTenants throws on null services                | `null` ServiceCollection                                              | `ArgumentNullException`                                                              | #1     |
+| D10 | AddHexalithTenants with action throws on null services    | `null` ServiceCollection                                              | `ArgumentNullException`                                                              | #1     |
+| D11 | AddHexalithTenants with action throws on null action      | Valid ServiceCollection, `null` action                                | `ArgumentNullException`                                                              | #1     |
+| D12 | AddHexalithTenants with config but no Tenants section     | IConfiguration with unrelated keys only                               | Options resolve with all defaults (PubSubName="pubsub", etc.)                        | #3     |
 
 **Note:** `tests/Hexalith.Tenants.Client.Tests/ScaffoldingSmokeTests.cs` already exists with a placeholder test. New test files should coexist with it. Do not modify or delete it.
 
 **Key assertion patterns (non-obvious tests only — straightforward tests like D2-D6 follow standard Shouldly conventions):**
+
 ```csharp
 // D1: DaprClient registered — DESCRIPTOR check only, DO NOT call BuildServiceProvider().GetService<DaprClient>()
 // DaprClient resolution requires gRPC + DAPR sidecar — not available in Tier 1 tests.
@@ -398,16 +408,19 @@ Should.Throw<ArgumentNullException>(() =>
 ### Previous Story Intelligence
 
 **Story 3.3 (review) — Tenant Configuration Management:**
+
 - Established `ArgumentNullException.ThrowIfNull()` on all reference type parameters
 - CA1062 compliance is mandatory — all public method parameters must be null-checked
 - `TreatWarningsAsErrors = true` means any CA warnings are build failures
 
 **Story 2.4 (done) — CommandApi Bootstrap & Event Publishing:**
+
 - Established the CommandApi `Program.cs` DI composition root pattern
 - Shows how `AddDaprClient()`, `AddEventStore()`, `AddEventStoreServer()` are composed
 - The Client DI method should be composable with these — consuming services may also use EventStore
 
 **Story 1.1 (done) — Solution Structure:**
+
 - Established `Directory.Build.props` (TreatWarningsAsErrors, net10.0, MinVer)
 - Established `Directory.Packages.props` (centralized NuGet management)
 - Client.csproj was created as part of this story with all dependencies pre-configured
@@ -415,6 +428,7 @@ Should.Throw<ArgumentNullException>(() =>
 ### Git Intelligence
 
 Recent commits show:
+
 - `fd1b5d9 feat: Finalize CommandApi Bootstrap & Event Publishing` — Story 2.4 complete
 - `9753e09 feat: Implement tenant configuration management` — Story 3.3 implementation
 - `79584b5 feat: Add InsufficientPermissionsRejection` — Story 3.2 contracts
@@ -425,10 +439,12 @@ All Epic 2 and 3 stories are done or in review. Epic 4 is the next phase, shifti
 ### Cross-Story Dependencies
 
 **This story depends on:**
+
 - Epic 1 (done): Solution structure, Client.csproj, build configuration
 - Story 2.1 (done): Contract types (commands, events) in Contracts project
 
 **Stories that depend on this:**
+
 - Story 4.2: Event Subscription & Local Projection Pattern — uses `AddHexalithTenants()` as foundation, adds event handler registration
 - Story 4.3: Sample Consuming Service — calls `AddHexalithTenants()` in sample DI setup
 - Epic 5: Query endpoints — consuming services reference Client package
@@ -480,17 +496,19 @@ Claude Opus 4.6 (1M context)
 
 - `AddDaprClient()` extension method is in `Dapr.AspNetCore` package, not `Dapr.Client`. Story spec incorrectly stated no new packages needed. Resolved by replacing `Dapr.Client` with `Dapr.AspNetCore` in Client.csproj (user approved option 1).
 - `Microsoft.Extensions.Configuration.Memory` package does not exist in .NET 10 — `AddInMemoryCollection()` is available transitively from `Microsoft.Extensions.Configuration`. No package addition needed for tests.
+- Code review surfaced an order-dependent DI issue: an early `IConfigureOptions<HexalithTenantsOptions>` sentinel could suppress required `DaprClient` registration and block later configuration binding. Resolved by always ensuring core registrations and only deduplicating the options configuration step.
 
 ### Completion Notes List
 
 - Created `HexalithTenantsOptions` with defaults: PubSubName="pubsub", TopicName="system.tenants.events", CommandApiAppId="commandapi"
 - Created `TenantServiceCollectionExtensions` with two overloads: parameterless (config binding) and `Action<T>` (explicit config)
-- Both overloads have idempotency guards using `IConfigureOptions<HexalithTenantsOptions>` sentinel
-- DaprClient registration via `AddDaprClient()` with type-safe idempotency check
+- Refined registration flow after review: core registrations (`DaprClient` + options infrastructure) are always ensured, while `IConfigureOptions<HexalithTenantsOptions>` is used only to deduplicate the options configuration step
+- DaprClient registration via `AddDaprClient()` remains type-safe and is no longer skipped when options were configured earlier
 - Opportunistic `IConfiguration` binding via `TryGetConfiguration` helper (follows EventStore pattern)
-- 12 unit tests covering all ACs: DaprClient registration, options binding, idempotency, fluent chaining, defaults, null guards, missing config section, action overload
+- Added regression coverage for service lifetimes and order-dependent registration/configuration scenarios
+- 16 unit tests covering the DI contract: DaprClient registration, lifetimes, options binding, idempotency, fluent chaining, defaults, null guards, missing config section, action overload, preconfigured options, and late configuration binding
 - Changed `Dapr.Client` → `Dapr.AspNetCore` in Client.csproj (required for `AddDaprClient()` extension)
-- Build: 0 warnings, 0 errors. Tests: 172/172 Tier 1+2 pass, 2 pre-existing Tier 3 failures (DAPR sidecar required)
+- Validation rerun: `dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --no-restore` → 16/16 tests passed
 
 ### File List
 
@@ -502,3 +520,4 @@ Claude Opus 4.6 (1M context)
 ### Change Log
 
 - 2026-03-17: Story 4.1 implemented — Client DI registration with HexalithTenantsOptions, TenantServiceCollectionExtensions, and 12 unit tests
+- 2026-03-17: Review follow-up — fixed order-dependent DI registration behavior, added lifetime/regression tests, and revalidated `Hexalith.Tenants.Client.Tests` (16/16 passing)

@@ -1,7 +1,11 @@
 using Dapr.Client;
 
 using Hexalith.Tenants.Client.Configuration;
+using Hexalith.Tenants.Client.Handlers;
+using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Client.Registration;
+using Hexalith.Tenants.Client.Subscription;
+using Hexalith.Tenants.Contracts.Events;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,6 +88,8 @@ public class TenantServiceCollectionExtensionsTests
         // Assert — Configure<T>() registers IConfigureOptions<T>, check count
         services.Count(s => s.ServiceType == typeof(IConfigureOptions<HexalithTenantsOptions>)).ShouldBe(1);
         services.Count(s => s.ServiceType == typeof(DaprClient)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(TenantEventProcessor)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
     }
 
     [Fact]
@@ -246,6 +252,83 @@ public class TenantServiceCollectionExtensionsTests
         using ServiceProvider provider = services.BuildServiceProvider();
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("pubsub");
+    }
+
+    [Fact]
+    public void AddHexalithTenants_RegistersITenantProjectionStore()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        services.AddHexalithTenants();
+
+        // Assert
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantProjectionStore));
+    }
+
+    [Fact]
+    public void AddHexalithTenants_RegistersTenantEventProcessor()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        services.AddHexalithTenants();
+
+        // Assert
+        services.ShouldContain(s => s.ServiceType == typeof(TenantEventProcessor));
+    }
+
+    [Fact]
+    public void AddHexalithTenants_RegistersTenantProjectionEventHandler()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        services.AddHexalithTenants();
+
+        // Assert
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantUpdated>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantDisabled>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantEnabled>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<UserRemovedFromTenant>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<UserRoleChanged>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantConfigurationSet>));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantConfigurationRemoved>));
+    }
+
+    [Fact]
+    public void AddHexalithTenants_InMemoryTenantProjectionStoreIsDefaultImplementation()
+    {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        services.AddHexalithTenants();
+
+        // Assert
+        ServiceDescriptor descriptor = GetRequiredDescriptor(services, typeof(ITenantProjectionStore));
+        descriptor.ImplementationType.ShouldBe(typeof(InMemoryTenantProjectionStore));
+    }
+
+    [Fact]
+    public void AddHexalithTenants_CustomProjectionStorePreventsDuplicateRegistration()
+    {
+        // Arrange — register custom store before AddHexalithTenants
+        IServiceCollection services = new ServiceCollection();
+        services.AddSingleton<ITenantProjectionStore, InMemoryTenantProjectionStore>();
+
+        // Act
+        services.AddHexalithTenants();
+
+        // Assert — only one registration
+        services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
+        services.ShouldContain(s => s.ServiceType == typeof(TenantEventProcessor));
+        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
     }
 
     private static IServiceCollection CreateServiceCollectionWithConfig(
