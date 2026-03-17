@@ -102,6 +102,8 @@ public class CommandApiRuntimeIntegrationTests
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         details.ShouldNotBeNull();
         details.Title.ShouldBe("Conflict");
+        details.Status.ShouldBe(409);
+        details.Detail.ShouldNotBeNullOrWhiteSpace();
         details.Type.ShouldBe("Hexalith.Tenants.Contracts.Events.Rejections.GlobalAdminAlreadyBootstrappedRejection");
         details.Extensions.ShouldContainKey("correlationId");
     }

@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 
-using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Pipeline.Commands;
-using Hexalith.EventStore.Server.Commands;
 using Hexalith.Tenants.CommandApi.Bootstrap;
 using Hexalith.Tenants.CommandApi.Configuration;
 using Hexalith.Tenants.Contracts.Events.Rejections;
@@ -29,13 +27,9 @@ public class TenantBootstrapHostedServiceTests
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
             .Returns(new SubmitCommandResult("test-correlation"));
-        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
-        _ = statusStore.ReadStatusAsync("system", "test-correlation", Arg.Any<CancellationToken>())
-            .Returns((CommandStatusRecord?)null);
 
         ServiceCollection services = new();
         _ = services.AddSingleton(mediator);
-        _ = services.AddSingleton(statusStore);
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
@@ -71,10 +65,8 @@ public class TenantBootstrapHostedServiceTests
     {
         // Arrange
         IMediator mediator = Substitute.For<IMediator>();
-        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
         ServiceCollection services = new();
         _ = services.AddSingleton(mediator);
-        _ = services.AddSingleton(statusStore);
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
@@ -104,11 +96,9 @@ public class TenantBootstrapHostedServiceTests
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
             .Returns<SubmitCommandResult>(_ => throw new InvalidOperationException("DAPR sidecar not ready"));
-        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
 
         ServiceCollection services = new();
         _ = services.AddSingleton(mediator);
-        _ = services.AddSingleton(statusStore);
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
@@ -130,25 +120,17 @@ public class TenantBootstrapHostedServiceTests
     [Fact]
     public async Task StartAsync_when_bootstrap_already_completed_logs_skip_message()
     {
-        // Arrange
+        // Arrange — mediator throws DomainCommandRejectedException (real pipeline behavior)
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new SubmitCommandResult("rejected-correlation"));
-
-        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
-        _ = statusStore.ReadStatusAsync("system", "rejected-correlation", Arg.Any<CancellationToken>())
-            .Returns(new CommandStatusRecord(
-                CommandStatus.Rejected,
-                DateTimeOffset.UtcNow,
-                "global-administrators",
-                1,
-                typeof(GlobalAdminAlreadyBootstrappedRejection).FullName,
-                null,
-                null));
+            .Returns<SubmitCommandResult>(_ => throw new DomainCommandRejectedException(
+                "rejected-correlation",
+                "system",
+                typeof(GlobalAdminAlreadyBootstrappedRejection).FullName!,
+                "Global administrator already bootstrapped"));
 
         ServiceCollection services = new();
         _ = services.AddSingleton(mediator);
-        _ = services.AddSingleton(statusStore);
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
@@ -165,6 +147,34 @@ public class TenantBootstrapHostedServiceTests
 
         // Assert
         logger.Messages.ShouldContain(message => message.Contains("Global administrator already bootstrapped, skipping", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task StartAsync_when_cancelled_propagates_OperationCanceledException()
+    {
+        // Arrange
+        IMediator mediator = Substitute.For<IMediator>();
+        _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns<SubmitCommandResult>(_ => throw new OperationCanceledException("Shutdown"));
+
+        ServiceCollection services = new();
+        _ = services.AddSingleton(mediator);
+        ServiceProvider provider = services.BuildServiceProvider();
+
+        IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
+            BootstrapGlobalAdminUserId = "admin-user-1",
+        });
+
+        var service = new TenantBootstrapHostedService(
+            scopeFactory,
+            options,
+            NullLogger<TenantBootstrapHostedService>.Instance);
+
+        // Act & Assert — should propagate directly, not be swallowed
+        _ = await Should.ThrowAsync<OperationCanceledException>(
+            () => service.StartAsync(CancellationToken.None));
     }
 
     private sealed class TestLogger<T> : ILogger<T>

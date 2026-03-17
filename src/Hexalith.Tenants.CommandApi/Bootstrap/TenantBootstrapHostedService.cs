@@ -1,7 +1,5 @@
 using System.Text.Json;
 
-using Hexalith.EventStore.Contracts.Commands;
-using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Pipeline.Commands;
 using Hexalith.Tenants.CommandApi.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
@@ -34,7 +32,6 @@ public partial class TenantBootstrapHostedService(
             await using (scope.ConfigureAwait(false))
             {
                 IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-                ICommandStatusStore statusStore = scope.ServiceProvider.GetRequiredService<ICommandStatusStore>();
 
                 var command = new BootstrapGlobalAdmin(userId);
                 byte[] payload = JsonSerializer.SerializeToUtf8Bytes(command);
@@ -49,17 +46,7 @@ public partial class TenantBootstrapHostedService(
                     CorrelationId: Guid.NewGuid().ToString(),
                     UserId: userId);
 
-                SubmitCommandResult result = await mediator.Send(submitCommand, cancellationToken).ConfigureAwait(false);
-                CommandStatusRecord? status = await statusStore
-                    .ReadStatusAsync("system", result.CorrelationId, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (status is { Status: CommandStatus.Rejected, RejectionEventType: not null }
-                    && status.RejectionEventType.EndsWith(nameof(GlobalAdminAlreadyBootstrappedRejection), StringComparison.Ordinal))
-                {
-                    Log.BootstrapAlreadyCompleted(logger);
-                    return;
-                }
+                _ = await mediator.Send(submitCommand, cancellationToken).ConfigureAwait(false);
             }
 
             Log.BootstrapCommandSent(logger, userId);
@@ -67,6 +54,11 @@ public partial class TenantBootstrapHostedService(
         catch (OperationCanceledException)
         {
             throw;
+        }
+        catch (DomainCommandRejectedException ex)
+            when (ex.RejectionType.EndsWith(nameof(GlobalAdminAlreadyBootstrappedRejection), StringComparison.Ordinal))
+        {
+            Log.BootstrapAlreadyCompleted(logger);
         }
         catch (Exception ex)
         {

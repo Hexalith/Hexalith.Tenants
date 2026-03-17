@@ -32,6 +32,5 @@ internal sealed class DomainServiceRequestHandler(
     }
 
     private static bool IsProcessorMismatch(InvalidOperationException ex)
-        => ex.Message.Contains("No Handle method found for command type", StringComparison.Ordinal)
-        || ex.Message.Contains("Unable to rehydrate aggregate state", StringComparison.Ordinal);
+        => ex.Message.Contains("No Handle method found for command type", StringComparison.Ordinal);
 }

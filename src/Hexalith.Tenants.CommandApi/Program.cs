@@ -42,11 +42,6 @@ app.MapPost("/process", async (
     DomainServiceRequestHandler handler,
     CancellationToken cancellationToken) =>
     Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
-app.MapPost("/process-command", async (
-    DomainServiceRequest request,
-    DomainServiceRequestHandler handler,
-    CancellationToken cancellationToken) =>
-    Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
 app.MapSubscribeHandler();
 app.MapActorsHandlers();
 app.UseEventStore();
