@@ -259,6 +259,35 @@ protected override void OnConfiguring(EventStoreDomainOptions options)
 
 This override is only needed if the convention-derived name is wrong. Check first, override only if necessary.
 
+### Design Decisions & Assumptions
+
+**D1: Read model is a separate class from aggregate state (not shared).**
+`TenantReadModel` mirrors `TenantState` structurally but is intentionally a separate class. Read models are query-optimized; state classes are invariant-optimized. At MVP they're identical, but they WILL diverge (e.g., adding denormalized fields, computed properties, or `UpdatedAt` tracking for query consumers). DO NOT create a shared base class, extract a common interface, or reuse `TenantState` directly.
+
+**D2: `private set` is correct (not `init`).**
+Apply methods mutate the read model post-construction (`EventStoreProjection<T>.Project()` calls `new TReadModel()` then invokes Apply in a loop). `init` setters would fail because mutation happens after construction. `private set` is the established pattern matching `TenantState`.
+
+**D3: `Dictionary<string, TenantRole>` is the right MVP data structure for Members.**
+Query endpoints (Story 5.3) will need to list members, which requires iterating the dictionary. At MVP scale (500 members max), `.Select()` transform at query time is negligible. If Story 5.3 needs a `List<TenantMemberReadModel>` for pagination, that's a read model divergence point — but premature to optimize now.
+
+**D4: No `UpdatedAt` / `LastEventTimestamp` on read models.**
+Current event contracts lack timestamps on most events (only `TenantCreated.CreatedAt`, `TenantDisabled.DisabledAt`, `TenantEnabled.EnabledAt`). Adding a projection-time `UpdatedAt` (using `DateTimeOffset.UtcNow` in each Apply) would make projections non-deterministic (different replay = different timestamp). If Story 5.3 query consumers need "last modified", it should be addressed there. Out of scope for 5.1.
+
+**D5 (CRITICAL AWARENESS — Story 5.3): Rejection events exist in the event stream.**
+`EventPersister` stores ALL `domainResult.Events` (including rejection events like `TenantDisabledRejection`) in the same event stream as successful domain events. The typed `EventStoreProjection<T>.Project(IEnumerable)` method **silently skips** unknown event types (no Apply method → continue). The JSON `ProjectFromJson(JsonElement)` method **throws** `InvalidOperationException` on unknown event types. When Story 5.3 builds the `CachingProjectionActor` query execution path, it MUST either: (a) use the typed `Project()` method, (b) filter rejection events before calling `ProjectFromJson()`, or (c) add no-op Apply methods for rejection events on the read models. This is NOT a Story 5.1 concern — the projection definitions are safe. Document this for Story 5.3 handoff.
+
+**D6: `sealed` on read models is safe for Story 6.2.**
+Story 6.2's `InMemoryTenantProjection` inherits `EventStoreProjection<TenantReadModel>` — it reuses the read model class, not subclasses it. `sealed` on `TenantReadModel` and `GlobalAdministratorReadModel` is correct.
+
+**D7: Replay-from-scratch is the projection contract.**
+`EventStoreProjection<T>.Project()` always starts from `new TReadModel()`. The read model MUST be fully reconstructable from a complete event replay at any time. DO NOT add constructor dependencies, initialization logic, or required setup steps to the read model. Default property values must represent a valid empty state.
+
+**D8: Projections are intentionally non-defensive — they trust the event stream.**
+Apply methods do not validate preconditions (e.g., `Apply(UserRoleChanged)` doesn't check if the user is in `Members` first). In a correct event stream, `UserAddedToTenant` always precedes `UserRoleChanged`. If a corrupted stream is replayed with missing events, the read model will silently add a phantom member via `Members[e.UserId] = e.NewRole`. This is by design — the projection trusts the event stream, matching the aggregate's own Apply pattern. Data quality issues should surface through monitoring, not defensive projection code.
+
+**D9: Mutable collection exposure is acceptable at MVP.**
+`Dictionary<string, TenantRole> Members` exposes a mutable reference via the public getter. Callers could mutate the collection. For Story 5.1 this is acceptable — read models are created per-projection-call and short-lived. `CachingProjectionActor` caches the serialized `JsonElement`, not the read model object. If Story 5.3 exposes read models directly (not via JSON serialization), consider changing to `IReadOnlyDictionary<string, TenantRole>` backed by a private field. Same applies to `Configuration` and `Administrators`.
+
 ### Architecture Compliance
 
 **Type Location Rules (MUST follow):**
@@ -348,7 +377,7 @@ tests/Hexalith.Tenants.Server.Tests/
 | # | Test | Setup | Expected | AC |
 |---|------|-------|----------|-----|
 | P11 | Project returns TenantReadModel from events | Create TenantProjection, call Project() with TenantCreated + UserAddedToTenant events | Returned TenantReadModel has correct state | #1, #2, #6 |
-| P12 | Project handles all 9 event types | Call Project() with all 9 tenant event types | No exceptions, all state mutations applied | #1-4, #6 |
+| P12 | Project handles all 9 event types with correct final state | Call Project() with a deterministic sequence of all 9 event types | Assert every property on final TenantReadModel: TenantId, Name (updated), Description (updated), Status (re-enabled after disable), Members (added + role changed - removed = net result), Configuration (set + removed = net result), CreatedAt | #1-4, #6 |
 | P13 | Project with empty event list returns default model | Call Project() with empty list | TenantReadModel with defaults (empty strings, empty dicts) | #6 |
 | P19 | Project skips null events gracefully | Call Project() with list containing null entries interspersed with valid events | No exception thrown, valid events still applied correctly | #6 |
 | P20 | TenantProjection discovers all 9 Apply methods (canary) | Use reflection to count Apply methods on TenantReadModel matching EventStoreProjection discovery rules (public, void, single parameter) | Exactly 9 Apply methods discovered — fails if a new event is added to Contracts but not handled | #1-4, #6 |
@@ -392,6 +421,37 @@ TenantReadModel result = projection.Project(events);
 result.TenantId.ShouldBe("acme");
 result.Members.ShouldContainKey("user1");
 result.Members["user1"].ShouldBe(TenantRole.TenantOwner);
+```
+
+**Full 9-event lifecycle test (P12) — assert every property on final state:**
+
+```csharp
+// P12: All 9 event types with deterministic final state assertion
+var projection = new TenantProjection();
+var events = new object[]
+{
+    new TenantCreated("acme", "Acme Corp", "Original", DateTimeOffset.Parse("2026-01-01T00:00:00Z")),
+    new TenantUpdated("acme", "Acme Updated", "New desc"),
+    new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner),
+    new UserAddedToTenant("acme", "user2", TenantRole.TenantReader),
+    new UserRoleChanged("acme", "user2", TenantRole.TenantReader, TenantRole.TenantContributor),
+    new UserRemovedFromTenant("acme", "user1"),
+    new TenantConfigurationSet("acme", "theme", "dark"),
+    new TenantConfigurationRemoved("acme", "theme"),
+    new TenantDisabled("acme", DateTimeOffset.UtcNow),
+    // Note: only 9 event types, TenantEnabled not in this sequence to verify Disabled final state
+};
+TenantReadModel result = projection.Project(events);
+result.TenantId.ShouldBe("acme");
+result.Name.ShouldBe("Acme Updated");
+result.Description.ShouldBe("New desc");
+result.Status.ShouldBe(TenantStatus.Disabled);
+result.CreatedAt.ShouldBe(DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+result.Members.Count.ShouldBe(1);
+result.Members.ShouldContainKey("user2");
+result.Members["user2"].ShouldBe(TenantRole.TenantContributor);
+result.Members.ShouldNotContainKey("user1");
+result.Configuration.ShouldBeEmpty(); // set then removed
 ```
 
 **Null event in projection test (P19):**
