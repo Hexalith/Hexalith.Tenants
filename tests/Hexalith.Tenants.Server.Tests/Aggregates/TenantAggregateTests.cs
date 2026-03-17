@@ -991,6 +991,64 @@ public class TenantAggregateTests
         rejection.ActorRole.ShouldBeNull();
     }
 
+    // R21: RemoveUserFromTenant by non-member → InsufficientPermissionsRejection (AC #5)
+    [Fact]
+    public async Task RBAC_RemoveUserFromTenant_by_nonMember_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "reader-user"),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+    }
+
+    // R22: ChangeUserRole by non-member → InsufficientPermissionsRejection (AC #5)
+    [Fact]
+    public async Task RBAC_ChangeUserRole_by_nonMember_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+    }
+
+    // R23: UpdateTenant by non-member → InsufficientPermissionsRejection (AC #5)
+    [Fact]
+    public async Task RBAC_UpdateTenant_by_nonMember_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("acme", "New Name", "New Desc"),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+        rejection.CommandName.ShouldBe(nameof(UpdateTenant));
+    }
+
     // ===== Story 3.3: Tenant Configuration Management Tests =====
 
     private static TenantState CreateStateWithRolesAndConfig()

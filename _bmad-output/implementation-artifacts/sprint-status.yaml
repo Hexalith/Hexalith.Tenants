@@ -1,5 +1,5 @@
 # generated: 2026-03-07
-# last_updated: 2026-03-17T12:00:00Z
+# last_updated: 2026-03-17
 # project: Hexalith.Tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -60,13 +60,13 @@ development_status:
   # Epic 3: Tenant Membership, Roles & Configuration
   epic-3: in-progress
   3-1-user-role-management: done
-  3-2-role-behavior-enforcement: review
+  3-2-role-behavior-enforcement: done
   3-3-tenant-configuration-management: review
   epic-3-retrospective: optional
 
   # Epic 4: Event-Driven Integration & Consuming Service Support
-  epic-4: backlog
-  4-1-client-di-registration: backlog
+  epic-4: in-progress
+  4-1-client-di-registration: ready-for-dev
   4-2-event-subscription-and-local-projection-pattern: backlog
   4-3-sample-consuming-service-and-idempotent-processing-guide: backlog
   epic-4-retrospective: optional

@@ -84,8 +84,8 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
                     nameof(AddUserToTenant))]),
             _ when !Enum.IsDefined(command.Role)
                 => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.Role)]),
-            _ when state.Users.ContainsKey(command.UserId)
-                => DomainResult.Rejection([new UserAlreadyInTenantRejection(command.TenantId, command.UserId, state.Users[command.UserId])]),
+            _ when state.Users.TryGetValue(command.UserId, out TenantRole existingRole)
+                => DomainResult.Rejection([new UserAlreadyInTenantRejection(command.TenantId, command.UserId, existingRole)]),
             _ => DomainResult.Success([new UserAddedToTenant(command.TenantId, command.UserId, command.Role)]),
         };
     }
