@@ -10,7 +10,14 @@ public class SetTenantConfigurationValidator : AbstractValidator<SetTenantConfig
     public SetTenantConfigurationValidator()
     {
         RuleFor(x => x.TenantId).NotEmpty();
-        RuleFor(x => x.Key).NotEmpty().MaximumLength(TenantAggregate.MaxKeyLength);
-        RuleFor(x => x.Value).MaximumLength(TenantAggregate.MaxValueLength);
+        RuleFor(x => x.Key)
+            .Cascade(CascadeMode.Stop)
+            .NotNull()
+            .MinimumLength(1)
+            .MaximumLength(TenantAggregate.MaxKeyLength);
+        RuleFor(x => x.Value)
+            .Cascade(CascadeMode.Stop)
+            .NotNull()
+            .MaximumLength(TenantAggregate.MaxValueLength);
     }
 }

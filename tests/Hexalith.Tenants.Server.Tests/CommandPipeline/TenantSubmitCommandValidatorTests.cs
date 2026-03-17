@@ -15,7 +15,8 @@ public class TenantSubmitCommandValidatorTests
     private readonly TenantSubmitCommandValidator _validator = new(
         new AddUserToTenantValidator(),
         new ChangeUserRoleValidator(),
-        new SetTenantConfigurationValidator());
+        new SetTenantConfigurationValidator(),
+        new RemoveTenantConfigurationValidator());
 
     [Fact]
     public void AddUserToTenant_payload_with_empty_user_id_fails_validation()
@@ -43,6 +44,49 @@ public class TenantSubmitCommandValidatorTests
     public void SetTenantConfiguration_payload_with_empty_key_fails_validation()
     {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", string.Empty, "value"));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Key");
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_whitespace_key_passes_validation()
+    {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "   ", "value"));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_null_value_fails_validation()
+    {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "key", null!));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Value");
+    }
+
+    [Fact]
+    public void RemoveTenantConfiguration_payload_with_null_key_fails_validation()
+    {
+        SubmitCommand command = CreateCommand(new RemoveTenantConfiguration("acme", null!));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Key");
+    }
+
+    [Fact]
+    public void RemoveTenantConfiguration_payload_with_empty_key_fails_validation()
+    {
+        SubmitCommand command = CreateCommand(new RemoveTenantConfiguration("acme", string.Empty));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
 

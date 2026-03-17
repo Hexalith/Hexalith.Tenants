@@ -13,7 +13,8 @@ public class TenantSubmitCommandValidator : AbstractValidator<SubmitCommand>
     public TenantSubmitCommandValidator(
         IValidator<AddUserToTenant> addUserToTenantValidator,
         IValidator<ChangeUserRole> changeUserRoleValidator,
-        IValidator<SetTenantConfiguration> setTenantConfigurationValidator)
+        IValidator<SetTenantConfiguration> setTenantConfigurationValidator,
+        IValidator<RemoveTenantConfiguration> removeTenantConfigurationValidator)
     {
         RuleFor(x => x).Custom((command, context) =>
         {
@@ -27,6 +28,9 @@ public class TenantSubmitCommandValidator : AbstractValidator<SubmitCommand>
                     break;
                 case nameof(SetTenantConfiguration):
                     ValidatePayload(command, context, setTenantConfigurationValidator);
+                    break;
+                case nameof(RemoveTenantConfiguration):
+                    ValidatePayload(command, context, removeTenantConfigurationValidator);
                     break;
             }
         });

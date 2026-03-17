@@ -1,6 +1,6 @@
 # Story 3.3: Tenant Configuration Management
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,7 +38,7 @@ So that consuming services can react to per-tenant settings like billing plans o
 
 7. **Given** a SetTenantConfiguration command is submitted
    **When** FluentValidation runs in the MediatR pipeline
-   **Then** the command is validated for required fields (TenantId, Key non-empty) and structural constraints (key max 256 chars, value max 1024 chars)
+   **Then** the command is validated for required fields (TenantId non-empty, Key non-null/non-empty, Value non-null) and structural constraints (key max 256 chars, value max 1024 chars)
 
 8. **Given** the TenantAggregate Handle methods for configuration commands
    **When** tested as static pure functions
@@ -47,31 +47,32 @@ So that consuming services can react to per-tenant settings like billing plans o
 ## Tasks / Subtasks
 
 - [x] Task 1: Add configuration Handle methods to TenantAggregate (AC: #1-#6)
-  - [x] 1.1: Add configuration limit constants to TenantAggregate: `MaxConfigurationKeys = 100`, `MaxKeyLength = 256`, `MaxValueLength = 1024`
-  - [x] 1.2: Add `Handle(SetTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-length/value-length/key-count/same-value checks
-  - [x] 1.3: Add `Handle(RemoveTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-not-found checks
-  - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 1.1: Add configuration limit constants to TenantAggregate: `MaxConfigurationKeys = 100`, `MaxKeyLength = 256`, `MaxValueLength = 1024`
+    - [x] 1.2: Add `Handle(SetTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-length/value-length/key-count/same-value checks
+    - [x] 1.3: Add `Handle(RemoveTenantConfiguration, TenantState?, CommandEnvelope)` as 3-param with null/disabled/RBAC(TenantOwner)/key-not-found checks
+    - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create SetTenantConfigurationValidator (AC: #7)
-  - [x] 2.1: Create `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs` with rules: TenantId NotEmpty, Key NotEmpty + MaximumLength(256), Value MaximumLength(1024)
-  - [x] 2.2: Update `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` to add `SetTenantConfiguration` case in the switch — inject `IValidator<SetTenantConfiguration>` in constructor
-  - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 2.1: Create `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs` with rules: TenantId NotEmpty, Key NotNull + MinimumLength(1) + MaximumLength(256), Value NotNull + MaximumLength(1024)
+    - [x] 2.2: Update `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` to add `SetTenantConfiguration` case in the switch — inject `IValidator<SetTenantConfiguration>` in constructor
+    - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 3: Create unit tests (AC: #8)
-  - [x] 3.1: Add configuration Handle method tests to `TenantAggregateTests.cs` (~22 test cases — see test matrix below)
-  - [x] 3.2: Add validator tests `SetTenantConfigurationValidatorTests.cs` in `tests/Hexalith.Tenants.Server.Tests/Validators/`
-  - [x] 3.3: Update `TenantSubmitCommandValidatorTests.cs` with SetTenantConfiguration pipeline validation test
-  - [x] 3.4: Verify existing tests still pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+    - [x] 3.1: Add configuration Handle method tests to `TenantAggregateTests.cs` (~22 test cases — see test matrix below)
+    - [x] 3.2: Add validator tests `SetTenantConfigurationValidatorTests.cs` in `tests/Hexalith.Tenants.Server.Tests/Validators/`
+    - [x] 3.3: Update `TenantSubmitCommandValidatorTests.cs` with SetTenantConfiguration pipeline validation test
+    - [x] 3.4: Verify existing tests still pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
 - [x] Task 4: Build verification (all ACs)
-  - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [x] 4.2: `dotnet test` all test projects — all pass, no regressions
+    - [x] 4.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 4.2: `dotnet test` all test projects — all pass, no regressions
 
 ## Dev Notes
 
 ### Dependency: Story 3.2 (Role Behavior Enforcement)
 
 **Story 3.2 MUST be completed before implementing this story.** Story 3.2:
+
 - Extends EventStore to support 3-param Handle methods `Handle(Command, State?, CommandEnvelope)` — required for RBAC
 - Establishes RBAC helper methods in TenantAggregate: `IsAuthorized()`, `MeetsMinimumRole()`, `IsGlobalAdmin()`
 - Creates `InsufficientPermissionsRejection` contract type
@@ -87,10 +88,10 @@ This story implements the domain Handle methods and validation for configuration
 
 ### Permission Matrix (extends Story 3.2)
 
-| Command | Minimum Role | Handle Params |
-|---------|-------------|---------------|
-| SetTenantConfiguration | TenantOwner | 3-param |
-| RemoveTenantConfiguration | TenantOwner | 3-param |
+| Command                   | Minimum Role | Handle Params |
+| ------------------------- | ------------ | ------------- |
+| SetTenantConfiguration    | TenantOwner  | 3-param       |
+| RemoveTenantConfiguration | TenantOwner  | 3-param       |
 
 Per epics: "A TenantOwner has TenantContributor capabilities plus user-role management and tenant configuration management" (FR33). TenantContributor CANNOT manage configuration (FR31-33). GlobalAdmin bypasses all RBAC.
 
@@ -117,7 +118,7 @@ public static DomainResult Handle(SetTenantConfiguration command, TenantState? s
     ArgumentNullException.ThrowIfNull(command);
     ArgumentNullException.ThrowIfNull(envelope);
     // Null-guard individual string properties — the record allows null despite string type.
-    // FluentValidation catches empty Key/TenantId, but null Value has no pipeline guard.
+    // FluentValidation catches empty Key/TenantId and null Value before the aggregate.
     ArgumentNullException.ThrowIfNull(command.Key);
     ArgumentNullException.ThrowIfNull(command.Value);
     return state switch
@@ -194,7 +195,7 @@ Keys are opaque strings. Dot-delimited naming is a convention, not a domain inva
 `Set("key", "")` is valid — stores key with empty value. Not rejected. Forces consuming services to distinguish empty-value from absent-key. The simpler alternative (reject empty, force `Remove`) was considered and rejected — empty values support "use default" semantics in some config patterns.
 
 **Whitespace-only keys are accepted:**
-`.NotEmpty()` rejects null and `""` but not whitespace-only strings. By design — keys are opaque. Follow-up if needed: add `.Must(key => !string.IsNullOrWhiteSpace(key))`.
+The validator intentionally uses `.NotNull().MinimumLength(1)` instead of `.NotEmpty()` so `"   "` remains valid for now. Keys are opaque strings. Follow-up if needed: change to `.Must(key => !string.IsNullOrWhiteSpace(key))` when the domain decides whitespace-only keys should be rejected.
 
 ### Consuming Service Guidance (NOT implementation — for documentation/downstream reference)
 
@@ -213,14 +214,17 @@ Switch arm ordering follows the established pattern: null → disabled → RBAC 
 ### Technical Requirements
 
 **New files:**
+
 - `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs` — FluentValidation for structural constraints
 
 **Modified files:**
+
 - `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — Add 2 Handle methods + 3 limit constants
 - `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — Add SetTenantConfiguration case
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Add ~22 configuration tests
 
 **No new contract types needed.** All contracts already exist from Story 2.1:
+
 - Commands: `SetTenantConfiguration(TenantId, Key, Value)`, `RemoveTenantConfiguration(TenantId, Key)`
 - Events: `TenantConfigurationSet(TenantId, Key, Value) : IEventPayload`, `TenantConfigurationRemoved(TenantId, Key) : IEventPayload`
 - Rejections: `ConfigurationLimitExceededRejection(TenantId, LimitType, CurrentCount, MaxAllowed) : IRejectionEvent`
@@ -232,13 +236,14 @@ Switch arm ordering follows the established pattern: null → disabled → RBAC 
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| Handle methods + limit constants | Server | Aggregates/ | TenantAggregate.cs (MODIFY) |
-| SetTenantConfigurationValidator | Server | Validators/ | SetTenantConfigurationValidator.cs (CREATE) |
-| TenantSubmitCommandValidator | CommandApi | Validation/ | TenantSubmitCommandValidator.cs (MODIFY) |
+| Type                             | Project    | Folder      | File                                        |
+| -------------------------------- | ---------- | ----------- | ------------------------------------------- |
+| Handle methods + limit constants | Server     | Aggregates/ | TenantAggregate.cs (MODIFY)                 |
+| SetTenantConfigurationValidator  | Server     | Validators/ | SetTenantConfigurationValidator.cs (CREATE) |
+| TenantSubmitCommandValidator     | CommandApi | Validation/ | TenantSubmitCommandValidator.cs (MODIFY)    |
 
 **DO NOT:**
+
 - Create any new contract types — all commands, events, rejections already exist
 - Modify TenantState — both Apply methods already exist (from Story 2.3)
 - Create new projects or new solution references
@@ -255,6 +260,7 @@ Switch arm ordering follows the established pattern: null → disabled → RBAC 
 **No new NuGet packages required.**
 
 All dependencies already available:
+
 - `CommandEnvelope` — from `Hexalith.EventStore.Contracts.Commands` (already imported)
 - `DomainResult` — globally imported via Server .csproj
 - `IRejectionEvent` — globally imported via Server .csproj
@@ -264,7 +270,7 @@ All dependencies already available:
 
 ### File Structure Requirements
 
-```
+```text
 src/Hexalith.Tenants.Server/
 ├── Aggregates/
 │   └── TenantAggregate.cs                       (MODIFY: add 2 Handle methods + 3 constants)
@@ -298,13 +304,22 @@ public class SetTenantConfigurationValidator : AbstractValidator<SetTenantConfig
     public SetTenantConfigurationValidator()
     {
         RuleFor(x => x.TenantId).NotEmpty();
-        RuleFor(x => x.Key).NotEmpty().MaximumLength(TenantAggregate.MaxKeyLength);
-        RuleFor(x => x.Value).MaximumLength(TenantAggregate.MaxValueLength);
+        RuleFor(x => x.Key)
+            .Cascade(CascadeMode.Stop)
+            .NotNull()
+            .MinimumLength(1)
+            .MaximumLength(TenantAggregate.MaxKeyLength);
+        RuleFor(x => x.Value)
+            .Cascade(CascadeMode.Stop)
+            .NotNull()
+            .MaximumLength(TenantAggregate.MaxValueLength);
     }
 }
 ```
 
-**Note:** Value is NOT `.NotEmpty()` — an empty string is a valid configuration value (clearing a value while keeping the key). FR19 says "set a key-value configuration entry" — the value can be empty.
+**Note:** Key intentionally uses `.NotNull().MinimumLength(1)` rather than `.NotEmpty()` so whitespace-only keys remain valid during this MVP phase.
+
+**Note:** Value is `.NotNull()` but NOT `.NotEmpty()` — null is rejected to avoid exception paths, while an empty string remains a valid configuration value (clearing a value while keeping the key). FR19 says "set a key-value configuration entry" — the value can be empty.
 
 **Note:** Constants must be `internal` (not `private`) for the validator to reference `TenantAggregate.MaxKeyLength` and `TenantAggregate.MaxValueLength` since the validator is in the same assembly.
 
@@ -341,6 +356,7 @@ public TenantSubmitCommandValidator(
 **Tier 1 (Unit) — No infrastructure needed.**
 
 **Test state setup (reuse for RBAC configuration tests):**
+
 ```csharp
 // Reuse CreateStateWithRoles() from Story 3.2 if available, otherwise create:
 private static TenantState CreateStateWithRolesAndConfig()
@@ -357,42 +373,43 @@ private static TenantState CreateStateWithRolesAndConfig()
 
 **Test matrix — SetTenantConfiguration:**
 
-| # | Command | Actor | State | Expected | AC |
-|---|---------|-------|-------|----------|-----|
-| C1 | SetTenantConfiguration("acme", "theme.color", "blue") | owner-user | Active, has roles | Success: TenantConfigurationSet | #1 |
-| C2 | SetTenantConfiguration("acme", "billing.plan", "enterprise") | owner-user | Active, billing.plan="pro" | Success: TenantConfigurationSet (overwrite) | #1 |
-| C3 | SetTenantConfiguration("acme", "parties.maxContacts", "500") | owner-user | Active | Success (dot-delimited key) | #3 |
-| C4 | SetTenantConfiguration | null state | - | Rejection: TenantNotFoundRejection | #1 |
-| C5 | SetTenantConfiguration | owner-user | Disabled tenant | Rejection: TenantDisabledRejection | #1 |
-| C6 | SetTenantConfiguration | reader-user | Active | Rejection: InsufficientPermissionsRejection | #1 |
-| C7 | SetTenantConfiguration | contributor-user | Active | Rejection: InsufficientPermissionsRejection | #1 |
-| C8 | SetTenantConfiguration | global-admin (isGlobalAdmin=true) | Active | Success: TenantConfigurationSet | #1 |
-| C9 | SetTenantConfiguration (key 257 chars) | owner-user | Active | Rejection: ConfigurationLimitExceededRejection("KeyLength", 257, 256) | #6 |
-| C10 | SetTenantConfiguration (value 1025 chars) | owner-user | Active | Rejection: ConfigurationLimitExceededRejection("ValueSize", 1025, 1024) | #5 |
-| C11 | SetTenantConfiguration (101st key) | owner-user | Active, 100 keys | Rejection: ConfigurationLimitExceededRejection("KeyCount", 100, 100) | #4 |
-| C12 | SetTenantConfiguration (overwrite existing, 100 keys) | owner-user | Active, 100 keys incl. target key | Success: TenantConfigurationSet (no new slot) | #4 |
-| C13 | SetTenantConfiguration("acme", "billing.plan", "pro") | owner-user | Active, billing.plan="pro" | NoOp (same value) | #1 |
+| #   | Command                                                      | Actor                             | State                             | Expected                                                                | AC  |
+| --- | ------------------------------------------------------------ | --------------------------------- | --------------------------------- | ----------------------------------------------------------------------- | --- |
+| C1  | SetTenantConfiguration("acme", "theme.color", "blue")        | owner-user                        | Active, has roles                 | Success: TenantConfigurationSet                                         | #1  |
+| C2  | SetTenantConfiguration("acme", "billing.plan", "enterprise") | owner-user                        | Active, billing.plan="pro"        | Success: TenantConfigurationSet (overwrite)                             | #1  |
+| C3  | SetTenantConfiguration("acme", "parties.maxContacts", "500") | owner-user                        | Active                            | Success (dot-delimited key)                                             | #3  |
+| C4  | SetTenantConfiguration                                       | null state                        | -                                 | Rejection: TenantNotFoundRejection                                      | #1  |
+| C5  | SetTenantConfiguration                                       | owner-user                        | Disabled tenant                   | Rejection: TenantDisabledRejection                                      | #1  |
+| C6  | SetTenantConfiguration                                       | reader-user                       | Active                            | Rejection: InsufficientPermissionsRejection                             | #1  |
+| C7  | SetTenantConfiguration                                       | contributor-user                  | Active                            | Rejection: InsufficientPermissionsRejection                             | #1  |
+| C8  | SetTenantConfiguration                                       | global-admin (isGlobalAdmin=true) | Active                            | Success: TenantConfigurationSet                                         | #1  |
+| C9  | SetTenantConfiguration (key 257 chars)                       | owner-user                        | Active                            | Rejection: ConfigurationLimitExceededRejection("KeyLength", 257, 256)   | #6  |
+| C10 | SetTenantConfiguration (value 1025 chars)                    | owner-user                        | Active                            | Rejection: ConfigurationLimitExceededRejection("ValueSize", 1025, 1024) | #5  |
+| C11 | SetTenantConfiguration (101st key)                           | owner-user                        | Active, 100 keys                  | Rejection: ConfigurationLimitExceededRejection("KeyCount", 100, 100)    | #4  |
+| C12 | SetTenantConfiguration (overwrite existing, 100 keys)        | owner-user                        | Active, 100 keys incl. target key | Success: TenantConfigurationSet (no new slot)                           | #4  |
+| C13 | SetTenantConfiguration("acme", "billing.plan", "pro")        | owner-user                        | Active, billing.plan="pro"        | NoOp (same value)                                                       | #1  |
 
 **Test matrix — RemoveTenantConfiguration:**
 
-| # | Command | Actor | State | Expected | AC |
-|---|---------|-------|-------|----------|-----|
-| C14 | RemoveTenantConfiguration("acme", "billing.plan") | owner-user | Active, billing.plan exists | Success: TenantConfigurationRemoved | #2 |
-| C15 | RemoveTenantConfiguration | null state | - | Rejection: TenantNotFoundRejection | #2 |
-| C16 | RemoveTenantConfiguration | owner-user | Disabled tenant | Rejection: TenantDisabledRejection | #2 |
-| C17 | RemoveTenantConfiguration | reader-user | Active | Rejection: InsufficientPermissionsRejection | #2 |
-| C18 | RemoveTenantConfiguration("acme", "nonexistent") | owner-user | Active, key absent | NoOp (key already absent) | #2 |
-| C19 | RemoveTenantConfiguration | global-admin (isGlobalAdmin=true) | Active, key exists | Success: TenantConfigurationRemoved | #2 |
+| #   | Command                                           | Actor                             | State                       | Expected                                    | AC  |
+| --- | ------------------------------------------------- | --------------------------------- | --------------------------- | ------------------------------------------- | --- |
+| C14 | RemoveTenantConfiguration("acme", "billing.plan") | owner-user                        | Active, billing.plan exists | Success: TenantConfigurationRemoved         | #2  |
+| C15 | RemoveTenantConfiguration                         | null state                        | -                           | Rejection: TenantNotFoundRejection          | #2  |
+| C16 | RemoveTenantConfiguration                         | owner-user                        | Disabled tenant             | Rejection: TenantDisabledRejection          | #2  |
+| C17 | RemoveTenantConfiguration                         | reader-user                       | Active                      | Rejection: InsufficientPermissionsRejection | #2  |
+| C18 | RemoveTenantConfiguration("acme", "nonexistent")  | owner-user                        | Active, key absent          | NoOp (key already absent)                   | #2  |
+| C19 | RemoveTenantConfiguration                         | global-admin (isGlobalAdmin=true) | Active, key exists          | Success: TenantConfigurationRemoved         | #2  |
 
 **Test matrix — Switch arm ordering & boundary verification:**
 
-| # | Command | Actor | State | Expected | AC |
-|---|---------|-------|-------|----------|-----|
-| C20 | SetTenantConfiguration | reader-user | Disabled tenant | Rejection: TenantDisabledRejection (NOT InsufficientPermissionsRejection — verifies disabled guard precedes RBAC) | #1 |
-| C21 | SetTenantConfiguration (key exactly 256 chars) | owner-user | Active | Success: TenantConfigurationSet (boundary: `>` not `>=`) | #6 |
-| C22 | SetTenantConfiguration (value exactly 1024 chars) | owner-user | Active | Success: TenantConfigurationSet (boundary: `>` not `>=`) | #5 |
+| #   | Command                                           | Actor       | State           | Expected                                                                                                          | AC  |
+| --- | ------------------------------------------------- | ----------- | --------------- | ----------------------------------------------------------------------------------------------------------------- | --- |
+| C20 | SetTenantConfiguration                            | reader-user | Disabled tenant | Rejection: TenantDisabledRejection (NOT InsufficientPermissionsRejection — verifies disabled guard precedes RBAC) | #1  |
+| C21 | SetTenantConfiguration (key exactly 256 chars)    | owner-user  | Active          | Success: TenantConfigurationSet (boundary: `>` not `>=`)                                                          | #6  |
+| C22 | SetTenantConfiguration (value exactly 1024 chars) | owner-user  | Active          | Success: TenantConfigurationSet (boundary: `>` not `>=`)                                                          | #5  |
 
 **Assertion patterns:**
+
 ```csharp
 // SetTenantConfiguration success
 result.IsSuccess.ShouldBeTrue();
@@ -415,6 +432,7 @@ result.Events.Count.ShouldBe(0);
 ```
 
 **State setup for 100-key limit test:**
+
 ```csharp
 private static TenantState CreateStateWith100ConfigKeys()
 {
@@ -429,6 +447,7 @@ private static TenantState CreateStateWith100ConfigKeys()
 ```
 
 **Validator tests (SetTenantConfigurationValidatorTests.cs):**
+
 ```csharp
 public class SetTenantConfigurationValidatorTests
 {
@@ -445,9 +464,19 @@ public class SetTenantConfigurationValidatorTests
             .ShouldHaveValidationErrorFor(x => x.Key);
 
     [Fact]
+    public void Should_not_have_error_when_Key_is_whitespace_only()
+        => _validator.TestValidate(new SetTenantConfiguration("acme", "   ", "value"))
+            .ShouldNotHaveValidationErrorFor(x => x.Key);
+
+    [Fact]
     public void Should_have_error_when_Key_exceeds_max_length()
         => _validator.TestValidate(new SetTenantConfiguration("acme", new string('k', 257), "value"))
             .ShouldHaveValidationErrorFor(x => x.Key);
+
+    [Fact]
+    public void Should_have_error_when_Value_is_null()
+        => _validator.TestValidate(new SetTenantConfiguration("acme", "key", null!))
+            .ShouldHaveValidationErrorFor(x => x.Value);
 
     [Fact]
     public void Should_have_error_when_Value_exceeds_max_length()
@@ -464,6 +493,7 @@ public class SetTenantConfigurationValidatorTests
 ### Previous Story Intelligence
 
 **Story 3.2 (review — implemented, pending code review) — Role Behavior Enforcement (DEPENDENCY):**
+
 - Establishes 3-param Handle method pattern with CommandEnvelope for RBAC
 - Creates `InsufficientPermissionsRejection(TenantId, ActorUserId, ActorRole?, CommandName)` contract
 - Adds `IsAuthorized()`, `MeetsMinimumRole()`, `IsGlobalAdmin()` private static helpers to TenantAggregate
@@ -473,6 +503,7 @@ public class SetTenantConfigurationValidatorTests
 - Empty tenant bootstrap: `state.HasMembershipHistory` check for AddUserToTenant only — NOT applicable to configuration commands (config changes always require RBAC)
 
 **Story 3.1 (done) — User-Role Management:**
+
 - Added FluentValidation to Server .csproj, created validator pattern in `Server/Validators/`
 - Created `TenantSubmitCommandValidator` in CommandApi for pipeline-level validation
 - `UserAlreadyInTenantRejection` was extended with `ExistingRole` field during review
@@ -480,11 +511,13 @@ public class SetTenantConfigurationValidatorTests
 - Test pattern: `ProcessAsync(CommandEnvelope, state)`, NOT direct Handle method calls
 
 **Story 2.3 (done) — TenantAggregate lifecycle:**
+
 - TenantState has `Configuration` property (`Dictionary<string, string>`) and both Apply methods already implemented
 - Apply(TenantConfigurationSet): `Configuration[e.Key] = e.Value`
 - Apply(TenantConfigurationRemoved): `Configuration.Remove(e.Key)`
 
 **Key learnings applied:**
+
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on `command` AND `envelope`
 - `TreatWarningsAsErrors = true` → all warnings are build failures
 - `.editorconfig` → file-scoped namespaces, Allman braces, 4-space indent
@@ -495,6 +528,7 @@ public class SetTenantConfigurationValidatorTests
 ### Git Intelligence
 
 Recent commits show:
+
 - `79584b5 feat: Add InsufficientPermissionsRejection event for handling permission rejections` — Story 3.2 contract
 - `4216ccd feat: Implement RBAC for tenant management commands` — Story 3.2 implementation
 - `1d1ef0b chore: Update Hexalith.EventStore submodule to latest commit` — 3-param Handle support
@@ -515,6 +549,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 - **DO NOT** use byte count for value length — use `string.Length` (character count, see "1KB interpretation" above)
 - **DO NOT** add `[JsonPropertyName]` attributes — System.Text.Json camelCase is the default
 - **DO NOT** add `.NotEmpty()` validation on Value — empty string is a valid configuration value
+- **DO NOT** use `.NotEmpty()` on Key if whitespace-only keys must remain accepted — use `.NotNull().MinimumLength(1)` instead
 - **DO NOT** skip `ArgumentNullException.ThrowIfNull` on `command.Key` and `command.Value` — C# records allow null strings at runtime even with non-nullable type annotations; `command.Value.Length` will throw NRE without this guard
 - **DO NOT** skip RBAC for configuration commands — TenantOwner is required even though these are "lower risk" than user management
 - **DO NOT** implement 2-param Handle methods — configuration commands MUST use 3-param for RBAC enforcement (depends on Story 3.2)
@@ -556,6 +591,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 **Reviewers:** Winston (Architect), Amelia (Dev), Murat (Test Architect), Bob (Scrum Master)
 
 **Applied fixes:**
+
 1. **[MEDIUM] Null guard for string properties** — Added `ArgumentNullException.ThrowIfNull(command.Key)` and `ArgumentNullException.ThrowIfNull(command.Value)` to SetTenantConfiguration Handle method, and `ArgumentNullException.ThrowIfNull(command.Key)` to RemoveTenantConfiguration. C# records allow null strings at runtime despite non-nullable annotations; `command.Value.Length` would throw NRE without this.
 2. **[LOW] Switch-arm ordering verification test (C20)** — Added test: SetTenantConfiguration on disabled tenant by reader-user must produce TenantDisabledRejection (not InsufficientPermissionsRejection), confirming disabled guard precedes RBAC.
 3. **[LOW] Boundary tests (C21, C22)** — Added tests: key exactly 256 chars and value exactly 1024 chars must succeed, confirming limit checks use `>` not `>=`.
@@ -569,6 +605,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 **Methods applied:** Pre-mortem Analysis, Red Team vs Blue Team, First Principles Analysis, Self-Consistency Validation, Failure Mode Analysis
 
 **Applied findings:**
+
 1. **[LOW] No batch config support** — Added design decision documenting partial failure risk for multi-key provisioning patterns and saga guidance.
 2. **[LOW] Empty value vs removed key semantics** — Added design decision clarifying the distinct semantics for consuming service developers.
 3. **[LOW] RBAC helper name flexibility** — Added note to dependency section: adapt if Story 3.2 uses different method names than spec.
@@ -577,6 +614,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 6. **[MEDIUM] Whitespace-only keys accepted** — Added design decision documenting that `.NotEmpty()` does not reject whitespace; accepted for MVP with follow-up path.
 
 **Validated assumptions (no changes needed):**
+
 - 1KB = 1024 characters interpretation: pragmatic for administrative settings, easy to change later
 - NoOp for non-existent key removal: correct idempotent pattern, justified domain asymmetry vs user removal
 - Story 3.2 hard dependency: cannot ship config without RBAC (FR33 violation)
@@ -587,6 +625,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 **Methods applied:** Occam's Razor, Cross-Functional War Room, Mentor and Apprentice, Reverse Engineering, Comparative Analysis Matrix
 
 **Applied findings:**
+
 1. **[LOW] Simplified switch arm ordering** — Replaced 8-line numbered list with single sentence referencing code (Occam's Razor)
 2. **[DECISION] Empty values confirmed allowed** — Jerome chose Option A: allow empty string values. Documented as confirmed decision (War Room)
 3. **[LOW] ThrowIfNull clarification** — Clarified that ArgumentNullException.ThrowIfNull is a defensive guard, not a domain exception — no conflict with "no exceptions" anti-pattern (Mentor/Apprentice)
@@ -594,6 +633,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 5. **[MEDIUM] Restructured Design Decisions** — Split into "Implementation" (dev agent needs) and "Consuming Service Guidance" (downstream reference). Improves dev agent parsability (Comparative Analysis)
 
 **Validated (no changes):**
+
 - 100-key limit is a storage/performance guard, not arbitrary — justified by architecture's 25KB max state size
 - Configuration in TenantAggregate (not separate aggregate) is correct — shares disabled-tenant invariant
 - Compile-time limit constants are correct for MVP — dynamic limits are Phase 2
@@ -612,21 +652,24 @@ None — clean implementation with no blocking issues.
 ### Completion Notes List
 
 - Task 1: Added 3 `internal const` limit constants (MaxConfigurationKeys=100, MaxKeyLength=256, MaxValueLength=1024) and 2 Handle methods (SetTenantConfiguration, RemoveTenantConfiguration) to TenantAggregate following the established 3-param RBAC pattern from Story 3.2. Switch arm ordering: null → disabled → RBAC → limits → NoOp → success.
-- Task 2: Created SetTenantConfigurationValidator with TenantId NotEmpty, Key NotEmpty + MaximumLength(256), Value MaximumLength(1024). Value is NOT NotEmpty — empty string is a valid config value. Updated TenantSubmitCommandValidator to inject and route SetTenantConfiguration payloads.
+- Task 2: Created SetTenantConfigurationValidator with TenantId NotEmpty, Key NotNull + MinimumLength(1) + MaximumLength(256), Value NotNull + MaximumLength(1024). Empty string values remain valid, whitespace-only keys remain accepted by design, and null values now fail validation before reaching aggregate guards. Updated TenantSubmitCommandValidator to inject and route SetTenantConfiguration payloads.
 - Task 3: Added 22 aggregate test cases (C1-C22) covering success, overwrite, dot-delimited keys, null state, disabled tenant, RBAC (reader, contributor, global admin), key length limits, value length limits, key count limits, overwrite at capacity, same-value NoOp, removal, removal NoOp, switch arm ordering, and boundary tests. Added 5 validator tests and 1 pipeline test.
 - Task 4: Final build verification — 0 warnings, 0 errors. All 151 tests pass with no regressions.
 
 ### Change Log
 
 - 2026-03-17: Implemented Story 3.3 — Tenant Configuration Management (all 4 tasks, all 8 ACs satisfied)
+- 2026-03-17: Post-review fix — aligned validator semantics with whitespace-key intent and added null-value validation
 
 ### File List
 
 **New files:**
+
 - `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs`
 - `tests/Hexalith.Tenants.Server.Tests/Validators/SetTenantConfigurationValidatorTests.cs`
 
 **Modified files:**
+
 - `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — Added 2 Handle methods + 3 limit constants
 - `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — Added SetTenantConfiguration case + validator injection
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Added 22 configuration test cases + 2 helper methods

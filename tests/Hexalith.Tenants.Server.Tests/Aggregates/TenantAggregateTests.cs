@@ -1409,6 +1409,63 @@ public class TenantAggregateTests
         result.Events[0].ShouldBeOfType<TenantConfigurationRemoved>();
     }
 
+    // C23: RemoveTenantConfiguration contributor → InsufficientPermissionsRejection (RBAC coverage)
+    [Fact]
+    public async Task RemoveTenantConfiguration_contributor_produces_InsufficientPermissionsRejection()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveTenantConfiguration("acme", "billing.plan"),
+            actorUserId: "contributor-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("contributor-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantContributor);
+        rejection.CommandName.ShouldBe(nameof(RemoveTenantConfiguration));
+    }
+
+    // C24: SetTenantConfiguration non-member user → InsufficientPermissionsRejection with null role
+    [Fact]
+    public async Task SetTenantConfiguration_non_member_produces_InsufficientPermissionsRejection_with_null_role()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        CommandEnvelope cmd = CreateCommand(
+            new SetTenantConfiguration("acme", "key", "value"),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+        rejection.CommandName.ShouldBe(nameof(SetTenantConfiguration));
+    }
+
+    // C25: RemoveTenantConfiguration non-member user → InsufficientPermissionsRejection with null role
+    [Fact]
+    public async Task RemoveTenantConfiguration_non_member_produces_InsufficientPermissionsRejection_with_null_role()
+    {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveTenantConfiguration("acme", "billing.plan"),
+            actorUserId: "unknown-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("unknown-user");
+        rejection.ActorRole.ShouldBeNull();
+        rejection.CommandName.ShouldBe(nameof(RemoveTenantConfiguration));
+    }
+
     // C20: SetTenantConfiguration disabled tenant by reader → TenantDisabledRejection (switch arm ordering)
     [Fact]
     public async Task SetTenantConfiguration_disabled_tenant_by_reader_produces_TenantDisabledRejection_not_RBAC()
