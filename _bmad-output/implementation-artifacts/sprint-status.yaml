@@ -85,9 +85,9 @@ development_status:
   epic-6-retrospective: optional
 
   # Epic 7: Deployment & Observability
-  epic-7: backlog
-  7-1-aspire-hosting-and-apphost: backlog
-  7-2-opentelemetry-instrumentation-and-health-checks: backlog
+  epic-7: in-progress
+  7-1-aspire-hosting-and-apphost: done
+  7-2-opentelemetry-instrumentation-and-health-checks: ready-for-dev
   7-3-stateless-scaling-and-snapshot-configuration: backlog
   epic-7-retrospective: optional
 

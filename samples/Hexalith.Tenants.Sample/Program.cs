@@ -30,4 +30,7 @@ app.MapTenantEventSubscription();
 // 6. Map sample access-check endpoint
 app.MapAccessCheckEndpoints();
 
+// 7. Health endpoint for Aspire topology verification (Sample does not use ServiceDefaults)
+app.MapGet("/health", () => Results.Ok("healthy"));
+
 app.Run();

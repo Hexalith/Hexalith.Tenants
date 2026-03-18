@@ -25,4 +25,15 @@ if (!File.Exists(accessControlConfigPath))
 IResourceBuilder<ProjectResource> commandApi = builder.AddProject<Projects.Hexalith_Tenants_CommandApi>("commandapi");
 HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(commandApi, accessControlConfigPath);
 
+// Add Sample consuming service with DAPR sidecar for pub/sub event subscription.
+// The Sample is a subscriber only — it does NOT reference StateStore (only CommandApi needs actor state).
+_ = builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")
+    .WithDaprSidecar(sidecar => sidecar
+        .WithOptions(new DaprSidecarOptions
+        {
+            AppId = "sample",
+            Config = accessControlConfigPath,
+        })
+        .WithReference(tenantsResources.PubSub));
+
 builder.Build().Run();
