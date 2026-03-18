@@ -1,0 +1,187 @@
+diff --git a/_bmad-output/implementation-artifacts/6-1-in-memory-tenant-service-and-test-helpers.md b/_bmad-output/implementation-artifacts/6-1-in-memory-tenant-service-and-test-helpers.md
+index 55d8b77..883144c 100644
+--- a/_bmad-output/implementation-artifacts/6-1-in-memory-tenant-service-and-test-helpers.md
++++ b/_bmad-output/implementation-artifacts/6-1-in-memory-tenant-service-and-test-helpers.md
+@@ -1,6 +1,6 @@
+ # Story 6.1: In-Memory Tenant Service & Test Helpers
+ 
+-Status: ready-for-dev
++Status: review
+ 
+ <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
+ 
+@@ -38,10 +38,10 @@ So that I can write tenant integration tests in under 10 lines without external
+ 
+ ## Tasks / Subtasks
+ 
+-- [ ] Task 1: Create `InMemoryTenantService` in Testing project (AC: #1, #2, #3, #5, #6)
+-  - [ ] 1.1: Create `src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs`
+-  - [ ] 1.2: Implement per-aggregate state storage with `Dictionary<string, TenantState>` for tenant aggregates and a single `GlobalAdministratorsState?` for the global admin singleton
+-  - [ ] 1.3: Implement **tenant command** strongly-typed overloads — one per command type:
++- [x] Task 1: Create `InMemoryTenantService` in Testing project (AC: #1, #2, #3, #5, #6)
++  - [x] 1.1: Create `src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs`
++  - [x] 1.2: Implement per-aggregate state storage with `Dictionary<string, TenantState>` for tenant aggregates and a single `GlobalAdministratorsState?` for the global admin singleton
++  - [x] 1.3: Implement **tenant command** strongly-typed overloads — one per command type:
+     - `DomainResult ProcessCommand(CreateTenant command)` — no envelope needed (state-only Handle signature)
+     - `DomainResult ProcessCommand(DisableTenant command)` — no envelope needed
+     - `DomainResult ProcessCommand(EnableTenant command)` — no envelope needed
+@@ -51,51 +51,51 @@ So that I can write tenant integration tests in under 10 lines without external
+     - `DomainResult ProcessCommand(ChangeUserRole command, string userId, bool isGlobalAdmin = false)` — builds envelope internally
+     - `DomainResult ProcessCommand(SetTenantConfiguration command, string userId, bool isGlobalAdmin = false)` — builds envelope internally
+     - `DomainResult ProcessCommand(RemoveTenantConfiguration command, string userId, bool isGlobalAdmin = false)` — builds envelope internally
+-  - [ ] 1.4: Implement **global admin command** strongly-typed overloads:
++  - [x] 1.4: Implement **global admin command** strongly-typed overloads:
+     - `DomainResult ProcessCommand(BootstrapGlobalAdmin command)` — no envelope needed
+     - `DomainResult ProcessCommand(SetGlobalAdministrator command)` — no envelope needed
+     - `DomainResult ProcessCommand(RemoveGlobalAdministrator command)` — no envelope needed
+-  - [ ] 1.5: Implement low-level overload `DomainResult ProcessTenantCommand<T>(T command, CommandEnvelope envelope)` — used by Story 6.2 conformance tests that need to compare behavior with identical envelopes between InMemoryTenantService and TenantAggregate
+-  - [ ] 1.6: Apply resulting events to state — **ONLY when `result.IsSuccess` is true** (NoOp and Rejection results must NOT mutate state). Use a pattern matching switch for event dispatch to call the correct `Apply()` overload (see Dev Notes: Event Application Dispatch Pattern)
+-  - [ ] 1.7: Return `DomainResult` directly from Handle methods — no translation, no wrapping
+-  - [ ] 1.8: Expose read-only state inspection API for test assertions:
++  - [x] 1.5: Implement low-level overload `DomainResult ProcessTenantCommand<T>(T command, CommandEnvelope envelope)` — used by Story 6.2 conformance tests that need to compare behavior with identical envelopes between InMemoryTenantService and TenantAggregate
++  - [x] 1.6: Apply resulting events to state — **ONLY when `result.IsSuccess` is true** (NoOp and Rejection results must NOT mutate state). Use a pattern matching switch for event dispatch to call the correct `Apply()` overload (see Dev Notes: Event Application Dispatch Pattern)
++  - [x] 1.7: Return `DomainResult` directly from Handle methods — no translation, no wrapping
++  - [x] 1.8: Expose read-only state inspection API for test assertions:
+     - `TenantState? GetTenantState(string tenantId)` — returns current state for a tenant (or null if no commands processed for that tenant)
+     - `GlobalAdministratorsState? GetGlobalAdminState()` — returns current global admin state (or null if not bootstrapped)
+     - `IReadOnlyList<IEventPayload> EventHistory` — accumulated list of all successful events across all commands (append on `IsSuccess` only). Enables sequence assertions and is reused by Story 6.2 conformance tests.
+-  - [ ] 1.9: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+-
+-- [ ] Task 2: Create `TenantTestHelpers` in Testing project (AC: #4)
+-  - [ ] 2.1: Create `src/Hexalith.Tenants.Testing/Helpers/TenantTestHelpers.cs`
+-  - [ ] 2.2: Implement `CreateTenant()` — creates a tenant via InMemoryTenantService and returns the DomainResult with TenantCreated event (synchronous — Handle methods are sync, no Async suffix per anti-pattern)
+-  - [ ] 2.3: Implement `CreateTenantWithOwner()` — creates a tenant and adds an owner user, returns the combined DomainResults
+-  - [ ] 2.4: Implement `BootstrapGlobalAdmin()` — bootstraps a global administrator, returns DomainResult
+-  - [ ] 2.5: Implement `CreateCommandEnvelope<T>(T command, string aggregateId, string userId, bool isGlobalAdmin = false)` — builds a CommandEnvelope with explicit `aggregateId` parameter (DO NOT use `dynamic` to extract TenantId — require caller to pass it explicitly for type safety)
+-  - [ ] 2.6: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+-
+-- [ ] Task 3: Create unit tests for InMemoryTenantService (AC: #1-6)
+-  - [ ] 3.1: Create `tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs`
+-  - [ ] 3.2: Test: CreateTenant produces TenantCreated event
+-  - [ ] 3.3: Test: CreateTenant followed by AddUserToTenant produces correct events with maintained state
+-  - [ ] 3.4: Test: Duplicate tenant creation returns TenantAlreadyExistsRejection
+-  - [ ] 3.5: Test: AddUserToTenant on disabled tenant returns TenantDisabledRejection
+-  - [ ] 3.6: Test: Duplicate user add returns UserAlreadyInTenantRejection
+-  - [ ] 3.7: Test: Role escalation returns RoleEscalationRejection
+-  - [ ] 3.8: Test: Cross-tenant isolation — tenant A data never leaks into tenant B
+-  - [ ] 3.9: Test: BootstrapGlobalAdmin + SetGlobalAdministrator + RemoveGlobalAdministrator
+-  - [ ] 3.10: Test: Performance — 100 iterations of CreateTenant + AddUserToTenant, skip first 5 as warmup, assert p95 < 10ms per command (NFR4). Use `Stopwatch` per iteration, collect timings, sort, check 95th percentile. Mark with `[Trait("Category", "Performance")]` so CI can exclude if runners are too slow — the 10ms target is for local execution
+-  - [ ] 3.11: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
+-
+-- [ ] Task 4: Create unit tests for TenantTestHelpers (AC: #4)
+-  - [ ] 4.1: Create `tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantTestHelpersTests.cs`
+-  - [ ] 4.2: Test: CreateTenant returns success with TenantCreated event
+-  - [ ] 4.3: Test: CreateTenantWithOwner returns success with both TenantCreated and UserAddedToTenant events
+-  - [ ] 4.4: Test: BootstrapGlobalAdmin returns success with GlobalAdministratorSet event
+-  - [ ] 4.5: Test: CreateCommandEnvelope builds valid CommandEnvelope with correct fields
+-  - [ ] 4.6: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
+-
+-- [ ] Task 5: Full solution validation
+-  - [ ] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+-  - [ ] 5.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"` — all Tier 1 tests pass
++  - [x] 1.9: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
++
++- [x] Task 2: Create `TenantTestHelpers` in Testing project (AC: #4)
++  - [x] 2.1: Create `src/Hexalith.Tenants.Testing/Helpers/TenantTestHelpers.cs`
++  - [x] 2.2: Implement `CreateTenant()` — creates a tenant via InMemoryTenantService and returns the DomainResult with TenantCreated event (synchronous — Handle methods are sync, no Async suffix per anti-pattern)
++  - [x] 2.3: Implement `CreateTenantWithOwner()` — creates a tenant and adds an owner user, returns the combined DomainResults
++  - [x] 2.4: Implement `BootstrapGlobalAdmin()` — bootstraps a global administrator, returns DomainResult
++  - [x] 2.5: Implement `CreateCommandEnvelope<T>(T command, string aggregateId, string userId, bool isGlobalAdmin = false)` — builds a CommandEnvelope with explicit `aggregateId` parameter (DO NOT use `dynamic` to extract TenantId — require caller to pass it explicitly for type safety)
++  - [x] 2.6: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
++
++- [x] Task 3: Create unit tests for InMemoryTenantService (AC: #1-6)
++  - [x] 3.1: Create `tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs`
++  - [x] 3.2: Test: CreateTenant produces TenantCreated event
++  - [x] 3.3: Test: CreateTenant followed by AddUserToTenant produces correct events with maintained state
++  - [x] 3.4: Test: Duplicate tenant creation returns TenantAlreadyExistsRejection
++  - [x] 3.5: Test: AddUserToTenant on disabled tenant returns TenantDisabledRejection
++  - [x] 3.6: Test: Duplicate user add returns UserAlreadyInTenantRejection
++  - [x] 3.7: Test: Role escalation returns RoleEscalationRejection
++  - [x] 3.8: Test: Cross-tenant isolation — tenant A data never leaks into tenant B
++  - [x] 3.9: Test: BootstrapGlobalAdmin + SetGlobalAdministrator + RemoveGlobalAdministrator
++  - [x] 3.10: Test: Performance — 100 iterations of CreateTenant + AddUserToTenant, skip first 5 as warmup, assert p95 < 10ms per command (NFR4). Use `Stopwatch` per iteration, collect timings, sort, check 95th percentile. Mark with `[Trait("Category", "Performance")]` so CI can exclude if runners are too slow — the 10ms target is for local execution
++  - [x] 3.11: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
++
++- [x] Task 4: Create unit tests for TenantTestHelpers (AC: #4)
++  - [x] 4.1: Create `tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantTestHelpersTests.cs`
++  - [x] 4.2: Test: CreateTenant returns success with TenantCreated event
++  - [x] 4.3: Test: CreateTenantWithOwner returns success with both TenantCreated and UserAddedToTenant events
++  - [x] 4.4: Test: BootstrapGlobalAdmin returns success with GlobalAdministratorSet event
++  - [x] 4.5: Test: CreateCommandEnvelope builds valid CommandEnvelope with correct fields
++  - [x] 4.6: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
++
++- [x] Task 5: Full solution validation
++  - [x] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
++  - [x] 5.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"` — all Tier 1 tests pass
+ 
+ ## Dev Notes
+ 
+@@ -329,10 +329,40 @@ This story's correctness guarantee is fully validated by **Story 6.2's conforman
+ 
+ ### Agent Model Used
+ 
+-{{agent_model_name_version}}
++Claude Opus 4.6 (1M context)
+ 
+ ### Debug Log References
+ 
++- All builds: 0 warnings, 0 errors
++- Testing.Tests: 17/17 tests passed (10 InMemoryTenantService + 6 TenantTestHelpers + 1 scaffolding smoke)
++- Full solution Tier 1: 285 tests passed (17 Testing.Tests + 17 Sample.Tests + 48 Client.Tests + 203 Server.Tests)
++- Performance test p95 well under 10ms target (NFR4 satisfied)
++- 2 pre-existing IntegrationTests failures (Tier 3, DAPR infra-dependent) — unrelated to this story
++
+ ### Completion Notes List
+ 
++- InMemoryTenantService: 12 strongly-typed ProcessCommand overloads (9 tenant + 3 global admin) + 1 generic ProcessTenantCommand<T> for conformance testing
++- Two-tier API design: high-level (hides envelope) and low-level (explicit envelope for Story 6.2)
++- Event application uses pattern matching switch with default arm safety net
++- State isolation: Dictionary<string, TenantState> for per-tenant + GlobalAdministratorsState? singleton
++- EventHistory tracks all successful events for sequence assertions
++- TenantTestHelpers: CreateTenant, CreateTenantWithOwner, BootstrapGlobalAdmin, CreateCommandEnvelope<T>
++- CreateCommandEnvelope uses explicit aggregateId parameter (no dynamic cast) for type safety
++- Tests cover: success paths, all rejection types (TenantAlreadyExists, TenantDisabled, UserAlreadyInTenant, RoleEscalation), NoOp non-mutation, cross-tenant isolation, global admin lifecycle, performance p95<10ms
++- Added Server project reference to Testing.Tests.csproj for state inspection in tests
++- No existing files modified (only new files created + 1 csproj reference addition)
++
++### Change Log
++
++- 2026-03-18: Story 6.1 implemented — InMemoryTenantService, TenantTestHelpers, and comprehensive test suite (17 tests)
++
+ ### File List
++
++New files:
++- src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs
++- src/Hexalith.Tenants.Testing/Helpers/TenantTestHelpers.cs
++- tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs
++- tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantTestHelpersTests.cs
++
++Modified files:
++- tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj (added Server project reference)
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 9199860..81f1a98 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -80,8 +80,8 @@ development_status:
+ 
+   # Epic 6: Testing Package
+   epic-6: in-progress
+-  6-1-in-memory-tenant-service-and-test-helpers: ready-for-dev
+-  6-2-in-memory-projection-and-conformance-tests: backlog
++  6-1-in-memory-tenant-service-and-test-helpers: review
++  6-2-in-memory-projection-and-conformance-tests: ready-for-dev
+   epic-6-retrospective: optional
+ 
+   # Epic 7: Deployment & Observability
+diff --git a/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj b/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj
+index 08e3f54..c6794d6 100644
+--- a/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj
++++ b/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj
+@@ -3,6 +3,7 @@
+   <ItemGroup>
+     <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
+     <ProjectReference Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
++    <ProjectReference Include="..\..\src\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
+   </ItemGroup>
+ 
+ </Project>
