@@ -1,6 +1,6 @@
 # Story 4.3: Sample Consuming Service & Idempotent Processing Guide
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,40 +34,40 @@ So that I have a proven reference implementation to follow when integrating tena
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement sample consuming service Program.cs (AC: #1, #2, #3)
-  - [ ] 1.1: Update `samples/Hexalith.Tenants.Sample/Program.cs` with full DI setup: `AddHexalithTenants()`, `UseCloudEvents()`, `MapSubscribeHandler()`, `MapTenantEventSubscription()`
-  - [ ] 1.2: Add logging configuration to show event processing in console output
-  - [ ] 1.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Implement sample consuming service Program.cs (AC: #1, #2, #3)
+    - [x] 1.1: Update `samples/Hexalith.Tenants.Sample/Program.cs` with full DI setup: `AddHexalithTenants()`, `UseCloudEvents()`, `MapSubscribeHandler()`, `MapTenantEventSubscription()`
+    - [x] 1.2: Add logging configuration to show event processing in console output
+    - [x] 1.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create sample access-enforcement endpoint (AC: #1)
-  - [ ] 2.1: Create `samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs` — minimal API demonstrating projection-based access enforcement
-  - [ ] 2.2: Implement `GET /access/{tenantId}/{userId}` that queries `ITenantProjectionStore` and returns access status (role, membership, tenant status)
-  - [ ] 2.3: Verify solution builds
+- [x] Task 2: Create sample access-enforcement endpoint (AC: #1)
+    - [x] 2.1: Create `samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs` — minimal API demonstrating projection-based access enforcement
+    - [x] 2.2: Implement `GET /access/{tenantId}/{userId}` that queries `ITenantProjectionStore` and returns access status (role, membership, tenant status)
+    - [x] 2.3: Verify solution builds
 
-- [ ] Task 3: Create sample custom event handler (AC: #1, #2, #3)
-  - [ ] 3.1: Create `samples/Hexalith.Tenants.Sample/Handlers/SampleLoggingEventHandler.cs` — implements `ITenantEventHandler<T>` for key events, logs each event to demonstrate extensibility
-  - [ ] 3.2: Register handler in DI alongside built-in projection handler (demonstrating multiple handlers per event type)
-  - [ ] 3.3: Verify solution builds
+- [x] Task 3: Create sample custom event handler (AC: #1, #2, #3)
+    - [x] 3.1: Create `samples/Hexalith.Tenants.Sample/Handlers/SampleLoggingEventHandler.cs` — implements `ITenantEventHandler<T>` for key events, logs each event to demonstrate extensibility
+    - [x] 3.2: Register handler in DI alongside built-in projection handler (demonstrating multiple handlers per event type)
+    - [x] 3.3: Verify solution builds
 
-- [ ] Task 4: Update Sample.csproj if needed (AC: #1)
-  - [ ] 4.1: Verify `Hexalith.Tenants.Sample.csproj` has all required references (Client, Contracts already present)
-  - [ ] 4.2: Add `Dapr.AspNetCore` package reference if not already present (needed for `UseCloudEvents()` and `MapSubscribeHandler()`)
-  - [ ] 4.3: Verify solution builds
+- [x] Task 4: Update Sample.csproj if needed (AC: #1)
+    - [x] 4.1: Verify `Hexalith.Tenants.Sample.csproj` has all required references (Client, Contracts already present)
+    - [x] 4.2: Add `Dapr.AspNetCore` package reference if not already present (needed for `UseCloudEvents()` and `MapSubscribeHandler()`)
+    - [x] 4.3: Verify solution builds
 
-- [ ] Task 5: Create Tier 1 unit tests for the sample (AC: #4)
-  - [ ] 5.1: Create `samples/Hexalith.Tenants.Sample.Tests/Endpoints/AccessCheckEndpointsTests.cs` — test access check logic against in-memory projection
-  - [ ] 5.2: Create `samples/Hexalith.Tenants.Sample.Tests/Handlers/SampleLoggingEventHandlerTests.cs` — test logging handler receives events
-  - [ ] 5.3: Keep existing `ScaffoldingSmokeTests.cs` — do not modify or delete
-  - [ ] 5.4: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — no regressions
+- [x] Task 5: Create Tier 1 unit tests for the sample (AC: #4)
+    - [x] 5.1: Create `samples/Hexalith.Tenants.Sample.Tests/Endpoints/AccessCheckEndpointsTests.cs` — test access check logic against in-memory projection
+    - [x] 5.2: Create `samples/Hexalith.Tenants.Sample.Tests/Handlers/SampleLoggingEventHandlerTests.cs` — test logging handler receives events
+    - [x] 5.3: Keep existing `ScaffoldingSmokeTests.cs` — do not modify or delete
+    - [x] 5.4: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — no regressions
 
-- [ ] Task 6: Create idempotent event processing guide (AC: #5)
-  - [ ] 6.1: Create `docs/idempotent-event-processing.md`
-  - [ ] 6.2: Content must include: at-least-once delivery explanation (DAPR pub/sub), deduplication by event ID (MessageId/ULID), idempotent handler pattern with code sample referencing `TenantEventProcessor`
-  - [ ] 6.3: Include guidance on production deduplication (bounded LRU cache, external deduplication store) vs. MVP in-memory dictionary
+- [x] Task 6: Create idempotent event processing guide (AC: #5)
+    - [x] 6.1: Create `docs/idempotent-event-processing.md`
+    - [x] 6.2: Content must include: at-least-once delivery explanation (DAPR pub/sub), deduplication by event ID (MessageId/ULID), idempotent handler pattern with code sample referencing `TenantEventProcessor`
+    - [x] 6.3: Include guidance on production deduplication (bounded LRU cache, external deduplication store) vs. MVP in-memory dictionary
 
-- [ ] Task 7: Build verification (all ACs)
-  - [ ] 7.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 7.2: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [x] Task 7: Build verification (all ACs)
+    - [x] 7.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 7.2: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
 ## Dev Notes
 
@@ -76,6 +76,7 @@ So that I have a proven reference implementation to follow when integrating tena
 This story creates a reference implementation sample and idempotent processing documentation. Stories 4.1 and 4.2 built the Client infrastructure (DI, event handlers, projections, subscription endpoints). This story **uses** that infrastructure — it does NOT modify Client, Contracts, Server, or CommandApi source code.
 
 **This story does NOT:**
+
 - Modify any `src/` project source files — only `samples/` and `docs/`
 - Create server-side projections (Epic 5)
 - Add the sample to AppHost orchestration (that's Epic 7 — Aspire hosting)
@@ -84,6 +85,7 @@ This story creates a reference implementation sample and idempotent processing d
 ### Current State: Scaffold Only
 
 The sample project exists with:
+
 - `samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj` — Web SDK, references Client + Contracts
 - `samples/Hexalith.Tenants.Sample/Program.cs` — empty 3-line scaffold: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`
 - `samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj` — references Sample + Testing, has xUnit/Shouldly/NSubstitute
@@ -92,6 +94,7 @@ The sample project exists with:
 ### Previous Story Intelligence
 
 **Story 4.1 (done) — Client DI Registration:**
+
 - Created `AddHexalithTenants()` with two overloads (parameterless + `Action<HexalithTenantsOptions>`)
 - Registers DaprClient, HexalithTenantsOptions, is idempotent
 - Changed `Dapr.Client` → `Dapr.AspNetCore` in Client.csproj (needed for `AddDaprClient()`)
@@ -99,6 +102,7 @@ The sample project exists with:
 - **Debug fix:** Order-dependent DI issue resolved — core registrations always ensured first
 
 **Story 4.2 (review) — Event Subscription & Local Projection:**
+
 - Extended `AddHexalithTenants()` with event handler + projection + processor registrations
 - Created `ITenantEventHandler<TEvent>`, `TenantEventContext`, `TenantProjectionEventHandler`
 - Created `ITenantProjectionStore`, `InMemoryTenantProjectionStore`, `TenantLocalState`
@@ -115,16 +119,17 @@ The sample project exists with:
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| Sample Program.cs | Sample | root | Program.cs (MODIFY) |
-| AccessCheckEndpoints | Sample | Endpoints/ | AccessCheckEndpoints.cs (CREATE) |
-| SampleLoggingEventHandler | Sample | Handlers/ | SampleLoggingEventHandler.cs (CREATE) |
-| AccessCheckEndpointsTests | Sample.Tests | Endpoints/ | AccessCheckEndpointsTests.cs (CREATE) |
-| SampleLoggingEventHandlerTests | Sample.Tests | Handlers/ | SampleLoggingEventHandlerTests.cs (CREATE) |
-| Idempotent guide | docs | root | idempotent-event-processing.md (CREATE) |
+| Type                           | Project      | Folder     | File                                       |
+| ------------------------------ | ------------ | ---------- | ------------------------------------------ |
+| Sample Program.cs              | Sample       | root       | Program.cs (MODIFY)                        |
+| AccessCheckEndpoints           | Sample       | Endpoints/ | AccessCheckEndpoints.cs (CREATE)           |
+| SampleLoggingEventHandler      | Sample       | Handlers/  | SampleLoggingEventHandler.cs (CREATE)      |
+| AccessCheckEndpointsTests      | Sample.Tests | Endpoints/ | AccessCheckEndpointsTests.cs (CREATE)      |
+| SampleLoggingEventHandlerTests | Sample.Tests | Handlers/  | SampleLoggingEventHandlerTests.cs (CREATE) |
+| Idempotent guide               | docs         | root       | idempotent-event-processing.md (CREATE)    |
 
 **DO NOT:**
+
 - Modify any `src/` project source files — this story is samples + docs only
 - Add the sample to AppHost orchestration (Epic 7)
 - Create integration tests requiring DAPR sidecar — all tests must be Tier 1 (no infrastructure)
@@ -291,10 +296,12 @@ This registers the logging handler as an **additional** `ITenantEventHandler<T>`
 ### Sample.csproj Dependencies
 
 Current state already has:
+
 - `ProjectReference` to `Hexalith.Tenants.Client` and `Hexalith.Tenants.Contracts`
 - Web SDK (`Microsoft.NET.Sdk.Web`)
 
 May need:
+
 - `Dapr.AspNetCore` — for `UseCloudEvents()`, `MapSubscribeHandler()`. Check if available transitively through Client. If `UseCloudEvents()` / `MapSubscribeHandler()` do not compile without a direct reference, add `<PackageReference Include="Dapr.AspNetCore" />`.
 
 ### Idempotent Event Processing Guide Content (FR42)
@@ -306,25 +313,26 @@ Create `docs/idempotent-event-processing.md` with:
 2. **How Hexalith.Tenants.Client handles it** — `TenantEventProcessor` tracks processed `MessageId` values (ULID) in a `ConcurrentDictionary`. When a duplicate event arrives, it's silently skipped. The `MessageId` is a unique event identifier set by EventStore at persistence time.
 
 3. **Code example** — Show the deduplication flow from `TenantEventProcessor.ProcessAsync()`:
-   ```csharp
-   // 1. Check if already processed
-   if (!_processedMessageIds.TryAdd(envelope.MessageId, 0))
-   {
-       // Duplicate — skip
-       return false;
-   }
-   // 2. Proceed with normal processing...
-   ```
+
+    ```csharp
+    // 1. Check if already processed
+    if (!_processedMessageIds.TryAdd(envelope.MessageId, 0))
+    {
+        // Duplicate — skip
+        return false;
+    }
+    // 2. Proceed with normal processing...
+    ```
 
 4. **Making handlers idempotent** — Even with message-level deduplication, handlers should be designed for idempotent application:
-   - Setting a dictionary value (`state.Members[userId] = role`) is inherently idempotent
-   - Removing a key (`state.Members.Remove(userId)`) is inherently idempotent
-   - Avoid side effects that aren't idempotent (e.g., sending emails) without external deduplication
+    - Setting a dictionary value (`state.Members[userId] = role`) is inherently idempotent
+    - Removing a key (`state.Members.Remove(userId)`) is inherently idempotent
+    - Avoid side effects that aren't idempotent (e.g., sending emails) without external deduplication
 
 5. **Production considerations** — The in-memory `ConcurrentDictionary` grows unboundedly and resets on restart. For production:
-   - Use a bounded LRU cache (e.g., `MemoryCache` with time-based expiration)
-   - Use an external deduplication store (Redis, database) keyed by `MessageId`
-   - Combine with handler-level idempotency for defense-in-depth
+    - Use a bounded LRU cache (e.g., `MemoryCache` with time-based expiration)
+    - Use an external deduplication store (Redis, database) keyed by `MessageId`
+    - Combine with handler-level idempotency for defense-in-depth
 
 ### Testing Requirements
 
@@ -333,6 +341,7 @@ Create `docs/idempotent-event-processing.md` with:
 Test the sample's **logic**, not DAPR integration (that's Tier 3 in Epic 7).
 
 **AccessCheckEndpointsTests:**
+
 - Test access granted for member with role
 - Test access denied for non-member
 - Test access denied for disabled tenant
@@ -340,6 +349,7 @@ Test the sample's **logic**, not DAPR integration (that's Tier 3 in Epic 7).
 - Use `InMemoryTenantProjectionStore` directly (already available via Testing project reference)
 
 **SampleLoggingEventHandlerTests:**
+
 - Test each handler method can be called without throwing
 - Verify logging output using `ILogger<T>` mock or test logger
 - Focus on: handler receives correct event data in context
@@ -365,18 +375,20 @@ await store.SaveAsync(new TenantLocalState
 ### Library & Framework Requirements
 
 **Sample — Potentially needs `Dapr.AspNetCore` direct reference:**
+
 - `UseCloudEvents()` and `MapSubscribeHandler()` extension methods are in `Dapr.AspNetCore`
 - Client.csproj has `<PackageReference Include="Dapr.AspNetCore" />` — check if this flows transitively to the Sample project via ProjectReference. If these methods don't compile, add: `<PackageReference Include="Dapr.AspNetCore" />` to `Hexalith.Tenants.Sample.csproj`
 - Version is centrally managed in `Directory.Packages.props` — do NOT specify version in csproj
 
 **Sample.Tests — No new packages needed:**
+
 - xUnit, Shouldly, NSubstitute already in csproj
 - `Microsoft.NET.Test.Sdk` already present
 - References Sample + Testing projects
 
 ### File Structure Requirements
 
-```
+```text
 samples/Hexalith.Tenants.Sample/
 ├── Hexalith.Tenants.Sample.csproj          (EXISTS — may need Dapr.AspNetCore)
 ├── Program.cs                              (MODIFY — replace scaffold)
@@ -410,11 +422,13 @@ docs/
 ### Cross-Story Dependencies
 
 **This story depends on:**
+
 - Story 4.1 (done): `AddHexalithTenants()` DI registration
 - Story 4.2 (review): Event handlers, projections, `MapTenantEventSubscription()`, `TenantEventProcessor`
 - Story 1.1 (done): Solution structure, Sample.csproj scaffold
 
 **Stories that depend on this:**
+
 - Story 7.1: Aspire hosting — may add sample to AppHost orchestration
 - Story 8.1: Quickstart guide — references sample as the "getting started" path
 - Story 8.3: "Aha moment" demo — uses the sample service running
@@ -462,10 +476,38 @@ Recent commits show Stories 3.2, 3.3, 4.1 complete. Story 4.2 is in review statu
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Initial build failed with CA1062 (null validation on handler parameters) and CA2007 (ConfigureAwait) — fixed by adding `ArgumentNullException.ThrowIfNull()` guards and `.ConfigureAwait(false)`
+- AccessCheckEndpoints tests initially used `ShouldBeOfType<Ok<object>>()` but `Results.Ok(anonymousType)` returns `Ok<AnonymousType>` — fixed by using `IStatusCodeHttpResult`/`IValueHttpResult` interfaces
+- `Dapr.AspNetCore` confirmed to flow transitively from Client project reference — no direct package reference needed in Sample.csproj
+- Task 4.2 verified: `UseCloudEvents()` and `MapSubscribeHandler()` compile without direct Dapr.AspNetCore reference
+- Follow-up code review fixes added whitespace input validation for `/access/{tenantId}/{userId}`, processor-driven projection tests, and an explicit handler code sample in the idempotency guide
+
 ### Completion Notes List
 
+- Implemented complete sample consuming service (Program.cs ~12 lines of meaningful code, under FR45 20-line limit)
+- Created `AccessCheckEndpoints` with `CheckAccessAsync` static method — demonstrates projection-based access enforcement with proper testability
+- Created `SampleLoggingEventHandler` implementing `ITenantEventHandler<T>` for 3 event types — demonstrates extensibility with multiple handlers per event
+- Handler DI registration in Program.cs follows exact pattern from `TenantServiceCollectionExtensions.RegisterEventHandler<T,THandler>()`
+- 15 tests now cover endpoint logic, processor-driven projection updates, and handler logging. ScaffoldingSmokeTests preserved
+- Idempotent event processing guide covers: at-least-once delivery, TenantEventProcessor deduplication flow, handler idempotency patterns, production considerations (LRU cache, Redis, defense-in-depth)
+- No `src/` files modified — only `samples/` and `docs/` as required
+- Pre-existing integration test failures (DaprEndToEndTests) are unrelated — require DAPR sidecar infrastructure
+
+### Change Log
+
+- 2026-03-18: Story 4.3 implementation complete — sample consuming service, access-check endpoint, logging handler, 12 unit tests, idempotent processing guide
+- 2026-03-18: Follow-up review fixes — whitespace validation, processor-driven sample tests, documentation code sample, sprint status cleanup
+- 2026-03-18: Story status advanced to done after review and focused validation passed
+
 ### File List
+
+- samples/Hexalith.Tenants.Sample/Program.cs (MODIFIED — replaced scaffold with full consuming service setup)
+- samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs (CREATED — projection-based access enforcement endpoint)
+- samples/Hexalith.Tenants.Sample/Handlers/SampleLoggingEventHandler.cs (CREATED — extensibility demo logging handler)
+- samples/Hexalith.Tenants.Sample.Tests/Endpoints/AccessCheckEndpointsTests.cs (CREATED — 5 unit tests)
+- samples/Hexalith.Tenants.Sample.Tests/Handlers/SampleLoggingEventHandlerTests.cs (CREATED — 7 unit tests)
+- docs/idempotent-event-processing.md (CREATED — FR42 idempotent processing guidance)
