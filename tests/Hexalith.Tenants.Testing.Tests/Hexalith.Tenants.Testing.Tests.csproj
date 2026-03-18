@@ -4,6 +4,7 @@
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
     <ProjectReference
       Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
   </ItemGroup>
 
 </Project>

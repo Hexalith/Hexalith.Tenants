@@ -1,6 +1,6 @@
 # Story 6.2: In-Memory Projection & Conformance Tests
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,63 +38,63 @@ So that I can test query scenarios locally and trust that test behavior matches 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Update Testing.Tests csproj references (unblocks Tasks 3 and 4)
-  - [ ] 1.1: Add Server project reference to `Hexalith.Tenants.Testing.Tests.csproj` (if not already present from Story 6.1) — conformance tests need direct access to `TenantAggregate`, `GlobalAdministratorsAggregate`, `TenantState`, and `GlobalAdministratorsState`
-  - [ ] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Update Testing.Tests csproj references (unblocks Tasks 3 and 4)
+    - [x] 1.1: Add Server project reference to `Hexalith.Tenants.Testing.Tests.csproj` (if not already present from Story 6.1) — conformance tests need direct access to `TenantAggregate`, `GlobalAdministratorsAggregate`, `TenantState`, and `GlobalAdministratorsState`
+    - [x] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create `InMemoryTenantProjection` in Testing project (AC: #1, #2)
-  - [ ] 2.1: Create `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs`
-  - [ ] 2.2: Implement per-tenant read model storage with `Dictionary<string, TenantReadModel>` and singleton `GlobalAdministratorReadModel`
-  - [ ] 2.3: Implement `void Apply(IEventPayload eventPayload)` — dispatches to correct read model's `Apply()` overload via pattern matching switch (mirrors the dispatch pattern from `InMemoryTenantService`)
-  - [ ] 2.4: Implement query methods:
-    - `TenantReadModel? GetTenant(string tenantId)` — returns read model for tenant or null
-    - `IReadOnlyList<TenantReadModel> GetAllTenants()` — returns all projected tenants
-    - `GlobalAdministratorReadModel GetGlobalAdministrators()` — returns global admin read model (never null — initialize empty)
-  - [ ] 2.5: Implement `void ApplyEvents(IEnumerable<IEventPayload> events)` — convenience method that applies multiple events in sequence
-  - [ ] 2.6: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 2: Create `InMemoryTenantProjection` in Testing project (AC: #1, #2)
+    - [x] 2.1: Create `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs`
+    - [x] 2.2: Implement per-tenant read model storage with `Dictionary<string, TenantReadModel>` and singleton `GlobalAdministratorReadModel`
+    - [x] 2.3: Implement `void Apply(IEventPayload eventPayload)` — dispatches to correct read model's `Apply()` overload via pattern matching switch (mirrors the dispatch pattern from `InMemoryTenantService`)
+    - [x] 2.4: Implement query methods:
+        - `TenantReadModel? GetTenant(string tenantId)` — returns read model for tenant or null
+        - `IReadOnlyList<TenantReadModel> GetAllTenants()` — returns all projected tenants
+        - `GlobalAdministratorReadModel GetGlobalAdministrators()` — returns global admin read model (never null — initialize empty)
+    - [x] 2.5: Implement `void ApplyEvents(IEnumerable<IEventPayload> events)` — convenience method that applies multiple events in sequence
+    - [x] 2.6: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 3: Create InMemoryTenantProjection unit tests (AC: #1, #2)
-  - [ ] 3.1: Create `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs`
-  - [ ] 3.2: Test: Apply TenantCreated — projection stores tenant with correct fields
-  - [ ] 3.3: Test: Apply TenantUpdated — projection updates name and description
-  - [ ] 3.4: Test: Apply TenantDisabled/TenantEnabled — projection tracks status
-  - [ ] 3.5: Test: Apply UserAddedToTenant — projection adds member with role
-  - [ ] 3.6: Test: Apply UserRemovedFromTenant — projection removes member
-  - [ ] 3.7: Test: Apply UserRoleChanged — projection updates member role
-  - [ ] 3.8: Test: Apply TenantConfigurationSet/TenantConfigurationRemoved — projection manages config
-  - [ ] 3.9: Test: Apply GlobalAdministratorSet/GlobalAdministratorRemoved — projection tracks admins
-  - [ ] 3.10: Test: GetAllTenants returns all projected tenants
-  - [ ] 3.11: Test: Cross-tenant isolation — tenant A data never appears in tenant B query
-  - [ ] 3.12: Test: End-to-end — InMemoryTenantService command → events → InMemoryTenantProjection query
-  - [ ] 3.13: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
+- [x] Task 3: Create InMemoryTenantProjection unit tests (AC: #1, #2)
+    - [x] 3.1: Create `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs`
+    - [x] 3.2: Test: Apply TenantCreated — projection stores tenant with correct fields
+    - [x] 3.3: Test: Apply TenantUpdated — projection updates name and description
+    - [x] 3.4: Test: Apply TenantDisabled/TenantEnabled — projection tracks status
+    - [x] 3.5: Test: Apply UserAddedToTenant — projection adds member with role
+    - [x] 3.6: Test: Apply UserRemovedFromTenant — projection removes member
+    - [x] 3.7: Test: Apply UserRoleChanged — projection updates member role
+    - [x] 3.8: Test: Apply TenantConfigurationSet/TenantConfigurationRemoved — projection manages config
+    - [x] 3.9: Test: Apply GlobalAdministratorSet/GlobalAdministratorRemoved — projection tracks admins
+    - [x] 3.10: Test: GetAllTenants returns all projected tenants
+    - [x] 3.11: Test: Cross-tenant isolation — tenant A data never appears in tenant B query
+    - [x] 3.12: Test: End-to-end — InMemoryTenantService command → events → InMemoryTenantProjection query
+    - [x] 3.13: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
 
-- [ ] Task 4: Create conformance test suite in Testing.Tests (AC: #3, #4, #5, #6)
-  - [ ] 4.1: Create `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`
-  - [ ] 4.2: Implement reflection-based command type discovery — scan `Hexalith.Tenants.Contracts` assembly for all non-abstract classes in `Hexalith.Tenants.Contracts.Commands` namespace (the count assertion in 4.3 guards against non-command types being picked up)
-  - [ ] 4.3: Implement `AllCommandTypesDiscovered` test — asserts that the discovered command count matches the expected count (12 tenant + global admin commands), and lists all discovered types in test output for debugging
-  - [ ] 4.4: For **tenant commands** (9 commands with `TenantId` property): implement conformance test that for each command type:
-    - Creates a **fresh** `InMemoryTenantService` instance per test case (no shared state between tests)
-    - Creates a `TenantState` with appropriate preconditions (already-created tenant for most commands; null state for CreateTenant)
-    - Creates the same command instance
-    - Creates the same `CommandEnvelope` (for commands that require it)
-    - Calls `TenantAggregate.Handle(command, state[, envelope])` → capture `DomainResult`
-    - Calls `InMemoryTenantService.ProcessTenantCommand<T>(command, envelope)` → capture `DomainResult` (**ONLY** use the low-level `ProcessTenantCommand<T>` — never the high-level `ProcessCommand()` overloads in conformance tests)
-    - Asserts both results have identical event sequences: same count, same types, same field values (using record equality)
-    - For envelope-required commands, include at least one scenario where a non-admin caller with the correct role succeeds (validates RBAC path conformance, not just global-admin bypass)
-  - [ ] 4.5: For **global admin commands** (3 commands without `TenantId`): implement conformance test that for each command:
-    - Creates a **fresh** `InMemoryTenantService` instance per test case
-    - Creates a `GlobalAdministratorsState` with appropriate preconditions
-    - Calls `GlobalAdministratorsAggregate.Handle(command, state)` → capture `DomainResult`
-    - Calls `InMemoryTenantService.ProcessCommand(command)` → capture `DomainResult` (global admin commands don't use envelopes, so the high-level `ProcessCommand()` is correct here — this is NOT the same concern as tenant commands)
-    - Asserts identical event sequences
-  - [ ] 4.6: Implement rejection conformance — test at least one rejection scenario per command type and assert rejection events match between aggregate and InMemoryTenantService
-  - [ ] 4.7: Implement NoOp conformance — test at least one NoOp scenario (where applicable) and assert both return NoOp
-  - [ ] 4.8: Mark conformance tests with `[Trait("Category", "Conformance")]` for CI pipeline filtering
-  - [ ] 4.9: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
+- [x] Task 4: Create conformance test suite in Testing.Tests (AC: #3, #4, #5, #6)
+    - [x] 4.1: Create `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`
+    - [x] 4.2: Implement reflection-based command type discovery — scan `Hexalith.Tenants.Contracts` assembly for all non-abstract classes in `Hexalith.Tenants.Contracts.Commands` namespace (the count assertion in 4.3 guards against non-command types being picked up)
+    - [x] 4.3: Implement `AllCommandTypesDiscovered` test — asserts that the discovered command count matches the expected count (12 tenant + global admin commands), and lists all discovered types in test output for debugging
+    - [x] 4.4: For **tenant commands** (9 commands with `TenantId` property): implement conformance test that for each command type:
+        - Creates a **fresh** `InMemoryTenantService` instance per test case (no shared state between tests)
+        - Creates a `TenantState` with appropriate preconditions (already-created tenant for most commands; null state for CreateTenant)
+        - Creates the same command instance
+        - Creates the same `CommandEnvelope` (for commands that require it)
+        - Calls `TenantAggregate.Handle(command, state[, envelope])` → capture `DomainResult`
+        - Calls `InMemoryTenantService.ProcessTenantCommand<T>(command, envelope)` → capture `DomainResult` (**ONLY** use the low-level `ProcessTenantCommand<T>` — never the high-level `ProcessCommand()` overloads in conformance tests)
+        - Asserts both results have identical event sequences: same count, same types, same field values (using record equality)
+        - For envelope-required commands, include at least one scenario where a non-admin caller with the correct role succeeds (validates RBAC path conformance, not just global-admin bypass)
+    - [x] 4.5: For **global admin commands** (3 commands without `TenantId`): implement conformance test that for each command:
+        - Creates a **fresh** `InMemoryTenantService` instance per test case
+        - Creates a `GlobalAdministratorsState` with appropriate preconditions
+        - Calls `GlobalAdministratorsAggregate.Handle(command, state)` → capture `DomainResult`
+        - Calls `InMemoryTenantService.ProcessCommand(command)` → capture `DomainResult` (global admin commands don't use envelopes, so the high-level `ProcessCommand()` is correct here — this is NOT the same concern as tenant commands)
+        - Asserts identical event sequences
+    - [x] 4.6: Implement rejection conformance — test at least one rejection scenario per command type and assert rejection events match between aggregate and InMemoryTenantService
+    - [x] 4.7: Implement NoOp conformance — test at least one NoOp scenario (where applicable) and assert both return NoOp
+    - [x] 4.8: Mark conformance tests with `[Trait("Category", "Conformance")]` for CI pipeline filtering
+    - [x] 4.9: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
 
-- [ ] Task 5: Full solution validation
-  - [ ] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 5.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"` — all tests pass
+- [x] Task 5: Full solution validation
+    - [x] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 5.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"` — all tests pass
 
 ## Dev Notes
 
@@ -210,6 +210,7 @@ public void Apply(IEventPayload eventPayload)
 **Purpose:** Prove FR47 — `InMemoryTenantService` produces identical event sequences as `TenantAggregate` and `GlobalAdministratorsAggregate` for every command type. This is a **release blocker** per architecture mandate.
 
 **What the conformance test validates:** Since `InMemoryTenantService` internally delegates to `TenantAggregate.Handle()`, changes to Handle logic are automatically reflected in both paths. The conformance test's real value is validating the **wrapping and state management layer** of `InMemoryTenantService`:
+
 - State lookup correctness (right `Dictionary` key, right aggregate state for each command)
 - Envelope construction accuracy (correct `TenantId`, `AggregateId`, `Domain`, extensions)
 - Event application completeness (all events applied to state after success, none applied after rejection/NoOp)
@@ -234,12 +235,14 @@ var commandTypes = contractsAssembly
 ```
 
 **Expected 12 command types (as of this story):**
+
 - Tenant commands (9): `CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`
 - Global admin commands (3): `BootstrapGlobalAdmin`, `SetGlobalAdministrator`, `RemoveGlobalAdministrator`
 
 **Conformance test structure — use individual `[Fact]` methods per command type** (not `[Theory]` — each command has different state setup, envelope requirements, and assertion logic; separate methods provide clear stack traces and easier debugging):
 
 For each tenant command, the test method must:
+
 1. Create a **fresh** `InMemoryTenantService` instance
 2. Build equivalent state in both paths — feed the same prerequisite command sequence to both the service and a manually-constructed `TenantState` (e.g., for `AddUserToTenant`, both paths must start from a tenant that was created with identical commands)
 3. Create the command instance and `CommandEnvelope` (for commands requiring RBAC)
@@ -252,21 +255,23 @@ For each tenant command, the test method must:
 
 **Command categorization for test setup:**
 
-| Category | Commands | Handle Signature | State Precondition |
-|----------|----------|------------------|--------------------|
-| Create (null state) | `CreateTenant` | `(Command, TenantState?)` | `null` |
-| State-only (no envelope) | `DisableTenant`, `EnableTenant` | `(Command, TenantState?)` | Created tenant |
-| Envelope-required | `UpdateTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration` | `(Command, TenantState?, CommandEnvelope)` | Created tenant (with user for Remove/ChangeRole) |
-| Global admin (no envelope) | `BootstrapGlobalAdmin` | `(Command, GlobalAdministratorsState?)` | `null` |
-| Global admin (existing state) | `SetGlobalAdministrator`, `RemoveGlobalAdministrator` | `(Command, GlobalAdministratorsState?)` | Bootstrapped state (with 2+ admins for Remove) |
+| Category                      | Commands                                                                                                                           | Handle Signature                           | State Precondition                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| Create (null state)           | `CreateTenant`                                                                                                                     | `(Command, TenantState?)`                  | `null`                                           |
+| State-only (no envelope)      | `DisableTenant`, `EnableTenant`                                                                                                    | `(Command, TenantState?)`                  | Created tenant                                   |
+| Envelope-required             | `UpdateTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration` | `(Command, TenantState?, CommandEnvelope)` | Created tenant (with user for Remove/ChangeRole) |
+| Global admin (no envelope)    | `BootstrapGlobalAdmin`                                                                                                             | `(Command, GlobalAdministratorsState?)`    | `null`                                           |
+| Global admin (existing state) | `SetGlobalAdministrator`, `RemoveGlobalAdministrator`                                                                              | `(Command, GlobalAdministratorsState?)`    | Bootstrapped state (with 2+ admins for Remove)   |
 
 **Rejection conformance examples:**
+
 - `CreateTenant` on existing tenant → `TenantAlreadyExistsRejection`
 - `AddUserToTenant` on disabled tenant → `TenantDisabledRejection`
 - `RemoveUserFromTenant` for non-member → `UserNotInTenantRejection`
 - `BootstrapGlobalAdmin` when already bootstrapped → `GlobalAdminAlreadyBootstrappedRejection`
 
 **NoOp conformance examples:**
+
 - `DisableTenant` on already-disabled tenant → NoOp
 - `EnableTenant` on already-active tenant → NoOp
 - `SetTenantConfiguration` with same key+value → NoOp
@@ -393,6 +398,7 @@ Note: Story 6.1 also specified this change. If already applied, no additional ch
 ### Previous Story Intelligence (6.1)
 
 Story 6.1 established:
+
 - `InMemoryTenantService` with per-aggregate `Dictionary<string, TenantState>` state and singleton `GlobalAdministratorsState?`
 - Event application dispatch via pattern matching switch
 - `ProcessTenantCommand<T>(T command, CommandEnvelope envelope)` — the low-level API used by conformance tests
@@ -404,6 +410,7 @@ Story 6.1 established:
 ### Git Intelligence
 
 Recent commits show:
+
 - Query contracts added (cd7f3f8) — `GetTenantQuery`, `ListTenantsQuery`, `TenantDetail`, `TenantSummary`, `TenantMember` records in Contracts
 - Story 6.1 file created in last commit — InMemoryTenantService story ready for implementation
 - Projection files exist: `TenantReadModel.cs`, `GlobalAdministratorReadModel.cs`, `TenantProjection.cs`, `GlobalAdministratorProjection.cs`, `TenantIndexEntry.cs`, `TenantIndexProjection.cs`, `TenantIndexReadModel.cs`
@@ -412,6 +419,7 @@ Recent commits show:
 ### Dependency: Story 6.1 Must Be Complete First
 
 Story 6.2 depends on Story 6.1 deliverables:
+
 - `InMemoryTenantService` — conformance tests compare its output against aggregates
 - `ProcessTenantCommand<T>()` — the low-level API for envelope-controlled conformance testing
 - `EventHistory` — used for end-to-end projection tests (command → events → projection)
@@ -453,10 +461,28 @@ Story 6.1 is currently in `review` status. It must reach `done` before starting 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+None — implementation completed without issues.
+
 ### Completion Notes List
 
+- **Task 1**: Added Server project reference to Testing.Tests.csproj for direct aggregate/state access in conformance tests. Build verified: 0 warnings, 0 errors.
+- **Task 2**: Created `InMemoryTenantProjection` in Testing/Projections/ — lightweight in-memory read model container reusing `TenantReadModel` and `GlobalAdministratorReadModel` from Server. Implements `Apply(IEventPayload)` with pattern matching dispatch, `ApplyEvents(IEnumerable<IEventPayload>)` convenience method, and query methods (`GetTenant`, `GetAllTenants`, `GetGlobalAdministrators`). Silently skips `IRejectionEvent` instances. Build verified.
+- **Task 3**: Created 17 unit tests covering all event types, cross-tenant isolation, end-to-end pipeline (service → events → projection → query), rejection event skipping, null/empty edge cases. All 17 tests pass.
+- **Task 4**: Created 37 conformance tests: 1 discovery test (reflection-based, asserts 12 command types), 15 success conformance tests (9 tenant + 3 global admin commands, with non-admin RBAC variants for all 6 envelope-required commands), 11 rejection conformance tests (at least one per command type), 7 NoOp conformance tests, plus 3 global admin conformance tests. All tests use `[Trait("Category", "Conformance")]` for CI filtering. `AssertEventsEqual` helper handles `DateTimeOffset` field comparison for `TenantCreated`, `TenantDisabled`, `TenantEnabled` events. All 37 tests pass.
+- **Task 5**: Full solution build: 0 warnings, 0 errors. All 325 Tier 1 tests pass (71 Testing.Tests + 34 Contracts.Tests + 203 Server.Tests + 17 Sample.Tests). 2 pre-existing IntegrationTests failures (DAPR infrastructure not available locally — unrelated to this story).
+
+### Change Log
+
+- 2026-03-18: Story 6.2 implementation complete — InMemoryTenantProjection + 37 conformance tests + 17 projection unit tests
+
 ### File List
+
+- `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj` — MODIFIED (added Server project reference)
+- `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs` — NEW
+- `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs` — NEW
+- `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs` — NEW
+
