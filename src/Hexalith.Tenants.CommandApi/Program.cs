@@ -6,6 +6,7 @@ using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.CommandApi.Extensions;
 using Hexalith.EventStore.CommandApi.Middleware;
 using Hexalith.EventStore.Server.Configuration;
+using Hexalith.Tenants.CommandApi.Actors;
 using Hexalith.Tenants.CommandApi.Bootstrap;
 using Hexalith.Tenants.CommandApi.Configuration;
 using Hexalith.Tenants.CommandApi.DomainProcessing;
@@ -26,6 +27,10 @@ builder.Services.AddHostedService<TenantBootstrapHostedService>();
 builder.Services.AddScoped<DomainServiceRequestHandler>();
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
+builder.Services.AddActors(options =>
+{
+    options.Actors.RegisterActor<TenantsProjectionActor>();
+});
 
 WebApplication app = builder.Build();
 

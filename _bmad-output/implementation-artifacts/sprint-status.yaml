@@ -72,15 +72,15 @@ development_status:
   epic-4-retrospective: optional
 
   # Epic 5: Tenant Discovery & Query
-  epic-5: in-progress
+  epic-5: done
   5-1-per-tenant-and-global-admin-projections: done
   5-2-cross-tenant-index-projection: done
-  5-3-query-endpoints-and-authorization: ready-for-dev
+  5-3-query-endpoints-and-authorization: done
   epic-5-retrospective: optional
 
   # Epic 6: Testing Package
-  epic-6: backlog
-  6-1-in-memory-tenant-service-and-test-helpers: backlog
+  epic-6: in-progress
+  6-1-in-memory-tenant-service-and-test-helpers: ready-for-dev
   6-2-in-memory-projection-and-conformance-tests: backlog
   epic-6-retrospective: optional
 
