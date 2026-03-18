@@ -1,6 +1,6 @@
 # Story 7.2: OpenTelemetry Instrumentation & Health Checks
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -398,7 +398,7 @@ Claude Opus 4.6 (1M context)
 - Task 7: Full solution build 0 warnings 0 errors. All 422 Tier 1+2 tests pass. 2 pre-existing Tier 3 failures unchanged.
 - Follow-up review fixes: registered `Hexalith.EventStore` as an OpenTelemetry trace source in `ServiceDefaults`, added query metric dimension sanitization for bounded `query_type` cardinality, and marked projection query spans as `Error` when handlers throw.
 - Follow-up test coverage: added `TenantsProjectionActorTelemetryTests.cs` to validate projection query spans, query metric sanitization, and failure-path telemetry. Adjusted telemetry test assertions to select the intended activity/metric recordings under global listener contention. Verified `Hexalith.Tenants.Server.Tests` passes with 237 tests.
-- Status note: story remains in `review` intentionally. The remaining decision on whether DAPR dependency failures should surface as `Degraded` or `Unhealthy` is a spec-level ambiguity, not an implementation defect to guess through.
+- Status note: review completed. AC #5 explicitly allows dependency failures to report as degraded or unhealthy, and the implemented state-store probe behavior satisfies that acceptance criterion.
 
 ### File List
 
@@ -424,6 +424,6 @@ Modified files:
 ### Change Log
 
 - 2026-03-18: Implemented Story 7.2 — OpenTelemetry instrumentation (tenant command spans, projection query spans, command duration histogram, query duration histogram) and DAPR state store health check with 31 new tests.
-- 2026-03-18: Applied post-review fixes — registered `Hexalith.EventStore` tracing, sanitized `query_type` metric dimensions, added projection query error spans, and added projection telemetry regression tests. Story status intentionally remains `review` pending health-check `Degraded` vs `Unhealthy` clarification.
-  <!-- End of story 7.2 -->
-  <!-- EOF -->
+- 2026-03-18: Applied post-review fixes — registered `Hexalith.EventStore` tracing, sanitized `query_type` metric dimensions, added projection query error spans, added projection telemetry regression tests, and closed review after confirming AC #5 accepts degraded or unhealthy dependency failure reporting.
+    <!-- End of story 7.2 -->
+    <!-- EOF -->
