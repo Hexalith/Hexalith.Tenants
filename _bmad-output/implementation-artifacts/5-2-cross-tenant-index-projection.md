@@ -1,6 +1,6 @@
 # Story 5.2: Cross-Tenant Index Projection
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -34,33 +34,33 @@ So that ListTenants and GetUserTenants queries can be served efficiently at scal
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `TenantIndexReadModel.cs` (AC: #1, #2, #3)
-  - [ ] 1.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
-  - [ ] 1.2: Properties: `Tenants` (Dictionary<string, TenantIndexEntry>), `UserTenants` (Dictionary<string, Dictionary<string, TenantRole>>)
-  - [ ] 1.3: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexEntry.cs` — record with `Name` (string), `Status` (TenantStatus)
-  - [ ] 1.4: Apply methods for: `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`
-  - [ ] 1.5: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Create `TenantIndexReadModel.cs` (AC: #1, #2, #3)
+  - [x] 1.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
+  - [x] 1.2: Properties: `Tenants` (Dictionary<string, TenantIndexEntry>), `UserTenants` (Dictionary<string, Dictionary<string, TenantRole>>)
+  - [x] 1.3: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexEntry.cs` — record with `Name` (string), `Status` (TenantStatus)
+  - [x] 1.4: Apply methods for: `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`
+  - [x] 1.5: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create `TenantIndexProjection.cs` (AC: #1, #2, #3)
-  - [ ] 2.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexProjection.cs` inheriting `EventStoreProjection<TenantIndexReadModel>`
-  - [ ] 2.2: Override `OnConfiguring` to set domain name to `"tenants"` (verify via `NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection))` first — override only if convention returns wrong name)
-  - [ ] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 2: Create `TenantIndexProjection.cs` (AC: #1, #2, #3)
+  - [x] 2.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexProjection.cs` inheriting `EventStoreProjection<TenantIndexReadModel>`
+  - [x] 2.2: Domain name verified — convention derives "tenant-index" (not "tenants"). No attribute override needed. Using "tenants" causes assembly scanner duplicate domain name conflict with TenantProjection. "tenant-index" is semantically correct for the cross-tenant index.
+  - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 3: Verify CachingProjectionActor fan-in support (AC: #4)
-  - [ ] 3.1: Investigate whether `CachingProjectionActor` supports fan-in (events from ALL tenant aggregates → one projection actor). Focus on the **event routing and subscription model**, not the caching layer — caching is a query-time concern (Story 5.3)
-  - [ ] 3.2: Investigate assembly scanning behavior — will EventStore infrastructure route events to BOTH `TenantProjection` and `TenantIndexProjection` since both are `EventStoreProjection<T>` subclasses in the same assembly? Or does the projection type determine routing?
-  - [ ] 3.3: If fan-in supported → document in completion notes, Story 5.3 builds the actor using `CachingProjectionActor`
-  - [ ] 3.4: If NOT supported → document fallback decision: manual DAPR state store with ETag retry pattern (implementation deferred to Story 5.3 query hosting)
-  - [ ] 3.5: **Deliverable:** Add a `### CachingProjectionActor Fan-In Findings` section to this story's Dev Agent Record with specific findings from 3.1-3.4 — this is a required handoff artifact for Story 5.3
+- [x] Task 3: Verify CachingProjectionActor fan-in support (AC: #4)
+  - [x] 3.1: Investigated — CachingProjectionActor is query-side caching only, NOT an event subscription/routing mechanism. It handles QueryAsync() calls and caches results via ETag invalidation. It does not process events.
+  - [x] 3.2: Investigated — Assembly scanner detects BOTH TenantProjection and TenantIndexProjection. Scanner enforces unique domain names per category (projection). Initially used [EventStoreDomain("tenants")] on TenantIndexProjection → scanner threw duplicate error. Fixed by using convention-derived "tenant-index" domain name.
+  - [x] 3.3: Fan-in IS supported at the query caching layer. CachingProjectionActor subclass can serve cross-tenant index queries. Event fan-in must be handled externally via DAPR pub/sub subscription handler.
+  - [x] 3.4: Hybrid approach recommended: DAPR pub/sub subscription handler for event fan-in (read-modify-write with ETag retry on DAPR state store), CachingProjectionActor subclass for query serving with ETag cache invalidation.
+  - [x] 3.5: CachingProjectionActor Fan-In Findings section added to Dev Agent Record below.
 
-- [ ] Task 4: Create unit tests (AC: #1, #2, #3, #5)
-  - [ ] 4.1: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexReadModelTests.cs`
-  - [ ] 4.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionTests.cs`
-  - [ ] 4.3: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [x] Task 4: Create unit tests (AC: #1, #2, #3, #5)
+  - [x] 4.1: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexReadModelTests.cs`
+  - [x] 4.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionTests.cs`
+  - [x] 4.3: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
-- [ ] Task 5: Build verification (all ACs)
-  - [ ] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 5.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions
+- [x] Task 5: Build verification (all ACs)
+  - [x] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+  - [x] 5.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions (2 pre-existing DaprEndToEndTests failures requiring DAPR infrastructure are unrelated)
 
 ## Dev Notes
 
@@ -541,10 +541,49 @@ Recent commits show Epic 4 completion and Story 5.1 story creation. The codebase
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+- Initial build failed due to corrupted Contracts.dll metadata cache → resolved with `dotnet clean` + rebuild
+- Assembly scanner threw `Duplicate projection domain name 'tenants'` when TenantIndexProjection used `[EventStoreDomain("tenants")]` → resolved by removing attribute, using convention-derived "tenant-index" domain name
+
+### CachingProjectionActor Fan-In Findings
+
+**Task 3 Investigation Results — Handoff Artifact for Story 5.3**
+
+**3.1 Event Routing:** `CachingProjectionActor` is a query-side caching actor. It receives `QueryAsync()` calls, checks ETag freshness via `IETagService`, and caches `QueryResult` payloads. It does NOT subscribe to events, process event streams, or interact with the event store directly. Event fan-in (receiving events from ALL tenant aggregates into one read model) must be handled by a separate subscription handler component.
+
+**3.2 Assembly Scanning:** The `AssemblyScanner.DetectWithinCategoryDuplicates()` method enforces unique domain names within each category (aggregate, projection). `TenantProjection` and `TenantIndexProjection` are both projections discovered by scanning. Using `[EventStoreDomain("tenants")]` on TenantIndexProjection caused a duplicate domain name conflict. Resolution: TenantIndexProjection uses convention-derived domain name `"tenant-index"` (strip "Projection" suffix → "TenantIndex" → kebab-case → "tenant-index"). This means the Event routing for the cross-tenant index uses a different domain than per-tenant projections.
+
+**3.3 Fan-In Support:** YES — CachingProjectionActor supports fan-in at the query caching layer. A `CachingProjectionActor` subclass for the cross-tenant index would:
+- Receive `QueryAsync(envelope)` with domain="tenant-index"
+- Execute query logic against DAPR state store (where the serialized `TenantIndexReadModel` lives)
+- Cache the result with ETag-based invalidation
+- The actor doesn't care how the data was built (per-aggregate replay or fan-in)
+
+**3.4 Recommended Architecture for Story 5.3:**
+- **Event fan-in:** DAPR pub/sub subscription handler receives all tenant domain events, deserializes `TenantIndexReadModel` from DAPR state store, calls Apply methods incrementally, persists back with ETag (retry on 409 Conflict, max 3 attempts per AC4)
+- **Query serving:** `CachingProjectionActor` subclass reads `TenantIndexReadModel` from state store, uses "tenant-index" domain for ETag cache invalidation
+- **ETag notification:** Subscription handler must call `Notifier.NotifyProjectionChangedAsync("tenant-index", tenantId)` directly after each Apply — `Project()` is NOT the entry point for fan-in, so `FireProjectionChangeNotification()` won't fire automatically
+- **Domain name:** Use "tenant-index" consistently across subscription handler, CachingProjectionActor, and ETag service
+
 ### Completion Notes List
 
+- **Task 1:** Created `TenantIndexReadModel.cs` with 7 Apply methods (TenantCreated, TenantUpdated, TenantDisabled, TenantEnabled, UserAddedToTenant, UserRemovedFromTenant, UserRoleChanged) and `TenantIndexEntry.cs` as separate record file. Uses TryGetValue guards for fan-in out-of-order safety. UserTenants cleanup on empty dictionary.
+- **Task 2:** Created `TenantIndexProjection.cs` inheriting `EventStoreProjection<TenantIndexReadModel>`. Domain name resolves to "tenant-index" via convention — NOT "tenants" (avoids assembly scanner duplicate conflict with TenantProjection).
+- **Task 3:** CachingProjectionActor fan-in investigation complete. See "CachingProjectionActor Fan-In Findings" section above. Key finding: fan-in supported at query layer, event subscription must be external.
+- **Task 4:** Created 22 unit tests across TenantIndexReadModelTests (16 tests: IX1-IX13, null guard, canary IX18) and TenantIndexProjectionTests (6 tests: IX14-IX17, IX19 domain name). All 179 Server.Tests pass.
+- **Task 5:** Build verification: 0 warnings, 0 errors in Release mode. All tests pass (2 pre-existing DaprEndToEndTests failures require DAPR infrastructure — unrelated to this story).
+
+### Change Log
+
+- 2026-03-18: Story 5.2 implementation complete. Created TenantIndexReadModel, TenantIndexEntry, TenantIndexProjection source files and 22 unit tests. Domain name discovery: "tenant-index" (not "tenants") to avoid assembly scanner conflict.
+
 ### File List
+
+- `src/Hexalith.Tenants.Server/Projections/TenantIndexEntry.cs` (NEW)
+- `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs` (NEW)
+- `src/Hexalith.Tenants.Server/Projections/TenantIndexProjection.cs` (NEW)
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexReadModelTests.cs` (NEW)
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionTests.cs` (NEW)
