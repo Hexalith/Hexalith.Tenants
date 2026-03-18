@@ -1,6 +1,6 @@
 # Story 5.1: Per-Tenant & Global Admin Projections
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,38 +38,38 @@ So that query endpoints have up-to-date data for tenant details, user lists, and
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `TenantReadModel.cs` (AC: #1, #2, #3, #4) — BUILD FIRST: projection depends on this
-    - [ ] 1.1: Create `src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs`
-    - [ ] 1.2: Properties: `TenantId` (string), `Name` (string), `Description` (string?), `Status` (TenantStatus), `Members` (Dictionary<string, TenantRole>), `Configuration` (Dictionary<string, string>), `CreatedAt` (DateTimeOffset)
-    - [ ] 1.3: Apply methods for all 9 tenant events: `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `TenantConfigurationSet`, `TenantConfigurationRemoved`
-    - [ ] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Create `TenantReadModel.cs` (AC: #1, #2, #3, #4) — BUILD FIRST: projection depends on this
+    - [x] 1.1: Create `src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs`
+    - [x] 1.2: Properties: `TenantId` (string), `Name` (string), `Description` (string?), `Status` (TenantStatus), `Members` (Dictionary<string, TenantRole>), `Configuration` (Dictionary<string, string>), `CreatedAt` (DateTimeOffset)
+    - [x] 1.3: Apply methods for all 9 tenant events: `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `TenantConfigurationSet`, `TenantConfigurationRemoved`
+    - [x] 1.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create `TenantProjection.cs` (AC: #1, #2, #3, #4, #6)
-    - [ ] 2.1: Create `src/Hexalith.Tenants.Server/Projections/TenantProjection.cs` inheriting `EventStoreProjection<TenantReadModel>`
-    - [ ] 2.2: No additional code needed — `EventStoreProjection<T>` uses reflection to discover `Apply` methods on `TenantReadModel`
-    - [ ] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 2: Create `TenantProjection.cs` (AC: #1, #2, #3, #4, #6)
+    - [x] 2.1: Create `src/Hexalith.Tenants.Server/Projections/TenantProjection.cs` inheriting `EventStoreProjection<TenantReadModel>`
+    - [x] 2.2: No additional code needed — `EventStoreProjection<T>` uses reflection to discover `Apply` methods on `TenantReadModel`
+    - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 3: Create `GlobalAdministratorReadModel.cs` (AC: #5)
-    - [ ] 3.1: Create `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorReadModel.cs`
-    - [ ] 3.2: Properties: `Administrators` (HashSet<string>)
-    - [ ] 3.3: Apply methods for: `GlobalAdministratorSet`, `GlobalAdministratorRemoved`
-    - [ ] 3.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 3: Create `GlobalAdministratorReadModel.cs` (AC: #5)
+    - [x] 3.1: Create `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorReadModel.cs`
+    - [x] 3.2: Properties: `Administrators` (HashSet<string>)
+    - [x] 3.3: Apply methods for: `GlobalAdministratorSet`, `GlobalAdministratorRemoved`
+    - [x] 3.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 4: Create `GlobalAdministratorProjection.cs` (AC: #5, #6)
-    - [ ] 4.1: Create `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorProjection.cs` inheriting `EventStoreProjection<GlobalAdministratorReadModel>`
-    - [ ] 4.2: No additional code needed — reflection-based Apply discovery
-    - [ ] 4.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 4: Create `GlobalAdministratorProjection.cs` (AC: #5, #6)
+    - [x] 4.1: Create `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorProjection.cs` inheriting `EventStoreProjection<GlobalAdministratorReadModel>`
+    - [x] 4.2: No additional code needed — reflection-based Apply discovery
+    - [x] 4.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 5: Create unit tests (all ACs)
-    - [ ] 5.1: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantReadModelTests.cs`
-    - [ ] 5.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionTests.cs`
-    - [ ] 5.3: Create `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorReadModelTests.cs`
-    - [ ] 5.4: Create `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionTests.cs`
-    - [ ] 5.5: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [x] Task 5: Create unit tests (all ACs)
+    - [x] 5.1: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantReadModelTests.cs`
+    - [x] 5.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionTests.cs`
+    - [x] 5.3: Create `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorReadModelTests.cs`
+    - [x] 5.4: Create `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionTests.cs`
+    - [x] 5.5: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
-- [ ] Task 6: Build verification (all ACs)
-    - [ ] 6.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-    - [ ] 6.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions
+- [x] Task 6: Build verification (all ACs)
+    - [x] 6.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 6.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions
 
 ## Dev Notes
 
@@ -203,12 +203,14 @@ public sealed class GlobalAdministratorReadModel
 ```csharp
 // src/Hexalith.Tenants.Server/Projections/TenantProjection.cs
 using Hexalith.EventStore.Client.Aggregates;
+using Hexalith.EventStore.Client.Attributes;
 
 namespace Hexalith.Tenants.Server.Projections;
 
 /// <summary>
 /// Per-tenant read model projection. Auto-discovered by EventStore's assembly scanning.
 /// </summary>
+[EventStoreDomain("tenants")]
 public sealed class TenantProjection : EventStoreProjection<TenantReadModel>
 {
 }
@@ -217,27 +219,29 @@ public sealed class TenantProjection : EventStoreProjection<TenantReadModel>
 ```csharp
 // src/Hexalith.Tenants.Server/Projections/GlobalAdministratorProjection.cs
 using Hexalith.EventStore.Client.Aggregates;
+using Hexalith.EventStore.Client.Attributes;
 
 namespace Hexalith.Tenants.Server.Projections;
 
 /// <summary>
 /// Global administrator read model projection. Auto-discovered by EventStore's assembly scanning.
 /// </summary>
+[EventStoreDomain("global-administrators")]
 public sealed class GlobalAdministratorProjection : EventStoreProjection<GlobalAdministratorReadModel>
 {
 }
 ```
 
-**IMPORTANT:** The projection classes are `sealed` — no subclassing needed. They are empty because `EventStoreProjection<T>` discovers Apply methods on `T` (the read model) via reflection. The projection class exists solely for assembly scanning discovery.
+**IMPORTANT:** The projection classes are `sealed` — no subclassing needed. They remain shell types because `EventStoreProjection<T>` discovers Apply methods on `T` (the read model) via reflection, but they now use `EventStoreDomainAttribute` to pin projection discovery to the intended domains and avoid singular/plural naming drift.
 
 ### Differences Between ReadModel and State
 
-| Concern | TenantState (aggregate) | TenantReadModel (projection) |
-|---------|------------------------|------------------------------|
-| `HasMembershipHistory` | Yes — invariant for "new tenant" detection | No — query-irrelevant |
-| `Bootstrapped` (GlobalAdmin) | Yes — prevents duplicate bootstrap | No — query-irrelevant |
-| Private setters | Yes | Yes — Apply methods mutate via private setters |
-| Parameterless constructor | Yes (implicit) | Yes (required by `EventStoreProjection<T>` which calls `new TReadModel()`) |
+| Concern                      | TenantState (aggregate)                    | TenantReadModel (projection)                                               |
+| ---------------------------- | ------------------------------------------ | -------------------------------------------------------------------------- |
+| `HasMembershipHistory`       | Yes — invariant for "new tenant" detection | No — query-irrelevant                                                      |
+| `Bootstrapped` (GlobalAdmin) | Yes — prevents duplicate bootstrap         | No — query-irrelevant                                                      |
+| Private setters              | Yes                                        | Yes — Apply methods mutate via private setters                             |
+| Parameterless constructor    | Yes (implicit)                             | Yes (required by `EventStoreProjection<T>` which calls `new TReadModel()`) |
 
 ### Assembly Scanning — No Manual Registration
 
@@ -257,7 +261,7 @@ protected override void OnConfiguring(EventStoreDomainOptions options)
 }
 ```
 
-This override is only needed if the convention-derived name is wrong. Check first, override only if necessary.
+Post-review implementation note: the final code uses `EventStoreDomainAttribute` on both projection classes (`"tenants"` and `"global-administrators"`) and adds regression tests asserting the resolved domain names via `NamingConventionEngine.GetDomainName(...)`.
 
 ### Design Decisions & Assumptions
 
@@ -292,15 +296,15 @@ Apply methods do not validate preconditions (e.g., `Apply(UserRoleChanged)` does
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| TenantReadModel | Server | Projections/ | TenantReadModel.cs (CREATE) |
-| TenantProjection | Server | Projections/ | TenantProjection.cs (CREATE) |
-| GlobalAdministratorReadModel | Server | Projections/ | GlobalAdministratorReadModel.cs (CREATE) |
-| GlobalAdministratorProjection | Server | Projections/ | GlobalAdministratorProjection.cs (CREATE) |
-| TenantReadModel tests | Server.Tests | Projections/ | TenantReadModelTests.cs (CREATE) |
-| TenantProjection tests | Server.Tests | Projections/ | TenantProjectionTests.cs (CREATE) |
-| GlobalAdministratorReadModel tests | Server.Tests | Projections/ | GlobalAdministratorReadModelTests.cs (CREATE) |
+| Type                                | Project      | Folder       | File                                           |
+| ----------------------------------- | ------------ | ------------ | ---------------------------------------------- |
+| TenantReadModel                     | Server       | Projections/ | TenantReadModel.cs (CREATE)                    |
+| TenantProjection                    | Server       | Projections/ | TenantProjection.cs (CREATE)                   |
+| GlobalAdministratorReadModel        | Server       | Projections/ | GlobalAdministratorReadModel.cs (CREATE)       |
+| GlobalAdministratorProjection       | Server       | Projections/ | GlobalAdministratorProjection.cs (CREATE)      |
+| TenantReadModel tests               | Server.Tests | Projections/ | TenantReadModelTests.cs (CREATE)               |
+| TenantProjection tests              | Server.Tests | Projections/ | TenantProjectionTests.cs (CREATE)              |
+| GlobalAdministratorReadModel tests  | Server.Tests | Projections/ | GlobalAdministratorReadModelTests.cs (CREATE)  |
 | GlobalAdministratorProjection tests | Server.Tests | Projections/ | GlobalAdministratorProjectionTests.cs (CREATE) |
 
 **DO NOT:**
@@ -359,43 +363,43 @@ tests/Hexalith.Tenants.Server.Tests/
 
 **TenantReadModel tests — verify each Apply method mutates state correctly:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| P1 | Apply TenantCreated sets all properties | New TenantReadModel, apply TenantCreated | TenantId, Name, Description, Status=Active, CreatedAt set; Members/Configuration empty | #1 |
-| P2 | Apply TenantUpdated updates name and description | Apply TenantCreated then TenantUpdated | Name and Description updated | #1 |
-| P3 | Apply TenantDisabled sets status | Apply TenantCreated then TenantDisabled | Status == Disabled | #4 |
-| P4 | Apply TenantEnabled sets status | Apply TenantCreated, TenantDisabled, TenantEnabled | Status == Active | #4 |
-| P5 | Apply UserAddedToTenant adds member | Apply TenantCreated then UserAddedToTenant | Members contains user with correct role | #2 |
-| P6 | Apply UserRemovedFromTenant removes member | Add then remove user | Members no longer contains user | #2 |
-| P7 | Apply UserRoleChanged updates role | Add user then change role | Members[userId] == new role | #2 |
-| P8 | Apply TenantConfigurationSet adds config | Apply TenantCreated then TenantConfigurationSet | Configuration contains key-value | #3 |
-| P9 | Apply TenantConfigurationRemoved removes config | Set then remove config | Configuration no longer contains key | #3 |
-| P10 | Apply multiple events in sequence | Full lifecycle: create, add users, set config, disable | Final state reflects all mutations | #1-4 |
+| #   | Test                                             | Setup                                                  | Expected                                                                               | AC   |
+| --- | ------------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------- | ---- |
+| P1  | Apply TenantCreated sets all properties          | New TenantReadModel, apply TenantCreated               | TenantId, Name, Description, Status=Active, CreatedAt set; Members/Configuration empty | #1   |
+| P2  | Apply TenantUpdated updates name and description | Apply TenantCreated then TenantUpdated                 | Name and Description updated                                                           | #1   |
+| P3  | Apply TenantDisabled sets status                 | Apply TenantCreated then TenantDisabled                | Status == Disabled                                                                     | #4   |
+| P4  | Apply TenantEnabled sets status                  | Apply TenantCreated, TenantDisabled, TenantEnabled     | Status == Active                                                                       | #4   |
+| P5  | Apply UserAddedToTenant adds member              | Apply TenantCreated then UserAddedToTenant             | Members contains user with correct role                                                | #2   |
+| P6  | Apply UserRemovedFromTenant removes member       | Add then remove user                                   | Members no longer contains user                                                        | #2   |
+| P7  | Apply UserRoleChanged updates role               | Add user then change role                              | Members[userId] == new role                                                            | #2   |
+| P8  | Apply TenantConfigurationSet adds config         | Apply TenantCreated then TenantConfigurationSet        | Configuration contains key-value                                                       | #3   |
+| P9  | Apply TenantConfigurationRemoved removes config  | Set then remove config                                 | Configuration no longer contains key                                                   | #3   |
+| P10 | Apply multiple events in sequence                | Full lifecycle: create, add users, set config, disable | Final state reflects all mutations                                                     | #1-4 |
 
 **TenantProjection tests — verify the `EventStoreProjection<T>` base class discovers and invokes Apply methods:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| P11 | Project returns TenantReadModel from events | Create TenantProjection, call Project() with TenantCreated + UserAddedToTenant events | Returned TenantReadModel has correct state | #1, #2, #6 |
-| P12 | Project handles all 9 event types with correct final state | Call Project() with a deterministic sequence of all 9 event types | Assert every property on final TenantReadModel: TenantId, Name (updated), Description (updated), Status (re-enabled after disable), Members (added + role changed - removed = net result), Configuration (set + removed = net result), CreatedAt | #1-4, #6 |
-| P13 | Project with empty event list returns default model | Call Project() with empty list | TenantReadModel with defaults (empty strings, empty dicts) | #6 |
-| P19 | Project skips null events gracefully | Call Project() with list containing null entries interspersed with valid events | No exception thrown, valid events still applied correctly | #6 |
-| P20 | TenantProjection discovers all 9 Apply methods (canary) | Use reflection to count Apply methods on TenantReadModel matching EventStoreProjection discovery rules (public, void, single parameter) | Exactly 9 Apply methods discovered — fails if a new event is added to Contracts but not handled | #1-4, #6 |
+| #   | Test                                                       | Setup                                                                                                                                   | Expected                                                                                                                                                                                                                                         | AC         |
+| --- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| P11 | Project returns TenantReadModel from events                | Create TenantProjection, call Project() with TenantCreated + UserAddedToTenant events                                                   | Returned TenantReadModel has correct state                                                                                                                                                                                                       | #1, #2, #6 |
+| P12 | Project handles all 9 event types with correct final state | Call Project() with a deterministic sequence of all 9 event types                                                                       | Assert every property on final TenantReadModel: TenantId, Name (updated), Description (updated), Status (re-enabled after disable), Members (added + role changed - removed = net result), Configuration (set + removed = net result), CreatedAt | #1-4, #6   |
+| P13 | Project with empty event list returns default model        | Call Project() with empty list                                                                                                          | TenantReadModel with defaults (empty strings, empty dicts)                                                                                                                                                                                       | #6         |
+| P19 | Project skips null events gracefully                       | Call Project() with list containing null entries interspersed with valid events                                                         | No exception thrown, valid events still applied correctly                                                                                                                                                                                        | #6         |
+| P20 | TenantProjection discovers all 9 Apply methods (canary)    | Use reflection to count Apply methods on TenantReadModel matching EventStoreProjection discovery rules (public, void, single parameter) | Exactly 9 Apply methods discovered — fails if a new event is added to Contracts but not handled                                                                                                                                                  | #1-4, #6   |
 
 **GlobalAdministratorReadModel tests:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| P14 | Apply GlobalAdministratorSet adds administrator | New model, apply GlobalAdministratorSet | Administrators contains userId | #5 |
-| P15 | Apply GlobalAdministratorRemoved removes administrator | Set then remove | Administrators no longer contains userId | #5 |
-| P16 | Apply multiple GlobalAdministratorSet events | Add multiple admins | Administrators contains all userIds | #5 |
-| P17 | GlobalAdministratorSet is idempotent | Apply same userId twice | Administrators.Count == 1 (HashSet) | #5 |
+| #   | Test                                                   | Setup                                   | Expected                                 | AC  |
+| --- | ------------------------------------------------------ | --------------------------------------- | ---------------------------------------- | --- |
+| P14 | Apply GlobalAdministratorSet adds administrator        | New model, apply GlobalAdministratorSet | Administrators contains userId           | #5  |
+| P15 | Apply GlobalAdministratorRemoved removes administrator | Set then remove                         | Administrators no longer contains userId | #5  |
+| P16 | Apply multiple GlobalAdministratorSet events           | Add multiple admins                     | Administrators contains all userIds      | #5  |
+| P17 | GlobalAdministratorSet is idempotent                   | Apply same userId twice                 | Administrators.Count == 1 (HashSet)      | #5  |
 
 **GlobalAdministratorProjection tests:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| P18 | Project returns GlobalAdministratorReadModel from events | Create projection, call Project() with events | Correct admin set | #5, #6 |
+| #   | Test                                                                 | Setup                                                                                          | Expected                                                                           | AC     |
+| --- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------ |
+| P18 | Project returns GlobalAdministratorReadModel from events             | Create projection, call Project() with events                                                  | Correct admin set                                                                  | #5, #6 |
 | P21 | GlobalAdministratorProjection discovers all 2 Apply methods (canary) | Use reflection to count Apply methods on GlobalAdministratorReadModel matching discovery rules | Exactly 2 Apply methods discovered — fails if a new event is added but not handled | #5, #6 |
 
 **Test patterns:**
@@ -531,6 +535,7 @@ adminApplyMethods.Count.ShouldBe(2, "GlobalAdministratorReadModel should handle 
 ### Git Intelligence
 
 Recent commits show Epic 4 implementation (client DI, event subscription, local projection). The codebase has established:
+
 - Apply method pattern with `ArgumentNullException.ThrowIfNull(e)` null guards
 - Allman brace style consistently
 - Private setters for state properties
@@ -539,11 +544,13 @@ Recent commits show Epic 4 implementation (client DI, event subscription, local 
 ### Cross-Story Dependencies
 
 **This story depends on:**
+
 - Story 2.1 (done): All event contracts in Contracts project
 - Story 2.3 (done): TenantState Apply method pattern to mirror
 - Story 2.2 (done): GlobalAdministratorsState Apply method pattern to mirror
 
 **Stories that depend on this:**
+
 - Story 5.2: Cross-Tenant Index Projection — different concern (fan-in across all tenants)
 - Story 5.3: Query Endpoints & Authorization — uses these projections via CachingProjectionActor for query responses
 - Story 6.2: In-Memory Projection & Conformance Tests — InMemoryTenantProjection in Testing package mirrors TenantProjection
@@ -590,10 +597,45 @@ Recent commits show Epic 4 implementation (client DI, event subscription, local 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+Review follow-up applied on 2026-03-18 to fix projection domain routing and strengthen projection regression tests.
+
 ### Completion Notes List
 
+- Created `TenantReadModel` with 9 Apply methods mirroring `TenantState` (minus `HasMembershipHistory`). Properties: TenantId, Name, Description, Status, Members, Configuration, CreatedAt with private setters.
+- Created `TenantProjection` inheriting `EventStoreProjection<TenantReadModel>` and pinned it to the `tenants` domain with `EventStoreDomainAttribute` after review identified convention-based routing drift.
+- Created `GlobalAdministratorReadModel` with 2 Apply methods mirroring `GlobalAdministratorsState` (minus `Bootstrapped`). Property: Administrators (HashSet<string>).
+- Created `GlobalAdministratorProjection` inheriting `EventStoreProjection<GlobalAdministratorReadModel>` and pinned it to the `global-administrators` domain with `EventStoreDomainAttribute`.
+- Created comprehensive unit tests: 12 TenantReadModel tests (P1-P10, null guard, P20 canary), 5 TenantProjection tests (domain-name regression + P11-P13, P19), 6 GlobalAdministratorReadModel tests (P14-P17, null guard, P21 canary), 3 GlobalAdministratorProjection tests (domain-name regression, P18, empty events).
+- Fixed the projection integration canary so the "all nine event types" test actually exercises all 9 distinct tenant event types, including `TenantEnabled`, and verifies the final re-enabled `Active` state.
+- Build: 0 warnings, 0 errors. All 155 Server.Tests pass. 2 pre-existing Tier 3 DAPR integration test failures (unrelated — infrastructure dependency).
+- Post-review validation: targeted `TenantProjectionTests` and `GlobalAdministratorProjectionTests` passed (8/8).
+- No new NuGet packages. No DI registration changes needed — assembly scanning auto-discovers projections once the domains are pinned correctly.
+
+### Change Log
+
+- 2026-03-18: Story 5.1 implementation complete — created per-tenant and global admin read models and projections with comprehensive unit tests.
+- 2026-03-18: Applied review fixes — pinned projection domains with `EventStoreDomainAttribute`, added domain-name regression tests, and corrected the full projection event coverage test.
+
 ### File List
+
+**New files (8):**
+
+- `src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantProjection.cs`
+- `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorProjection.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantReadModelTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorReadModelTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionTests.cs`
+
+**Modified files (4):**
+
+- `src/Hexalith.Tenants.Server/Projections/TenantProjection.cs` — pinned EventStore domain to `tenants`
+- `src/Hexalith.Tenants.Server/Projections/GlobalAdministratorProjection.cs` — pinned EventStore domain to `global-administrators`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionTests.cs` — added naming regression coverage and corrected full event-type projection test
+- `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionTests.cs` — added naming regression coverage
