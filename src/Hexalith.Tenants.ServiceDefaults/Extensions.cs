@@ -55,11 +55,13 @@ public static class Extensions
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation())
+                .AddRuntimeInstrumentation()
+                .AddMeter("Hexalith.Tenants"))
             .WithTracing(tracing => tracing
                 .AddSource(builder.Environment.ApplicationName)
                 .AddSource("Hexalith.Tenants.CommandApi")
                 .AddSource("Hexalith.Tenants")
+                .AddSource("Hexalith.EventStore")
                 .AddAspNetCoreInstrumentation(tracing =>
                     tracing.Filter = context =>
                         !context.Request.Path.StartsWithSegments(HealthEndpointPath)

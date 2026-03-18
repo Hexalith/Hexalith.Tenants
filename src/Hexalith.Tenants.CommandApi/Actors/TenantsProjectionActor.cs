@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -6,6 +7,7 @@ using Dapr.Client;
 
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Queries;
+using Hexalith.Tenants.CommandApi.Telemetry;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
@@ -47,15 +49,36 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
     {
         ArgumentNullException.ThrowIfNull(envelope);
 
-        return envelope.QueryType switch
+        using Activity? activity = TenantActivitySource.Instance.StartActivity(
+            TenantActivitySource.QueryExecute, ActivityKind.Internal);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
+        activity?.SetTag(TenantActivitySource.TagQueryType, envelope.QueryType);
+
+        try
         {
-            "get-tenant" => await HandleGetTenantAsync(envelope).ConfigureAwait(false),
-            "list-tenants" => await HandleListTenantsAsync(envelope).ConfigureAwait(false),
-            "get-tenant-users" => await HandleGetTenantUsersAsync(envelope).ConfigureAwait(false),
-            "get-user-tenants" => await HandleGetUserTenantsAsync(envelope).ConfigureAwait(false),
-            "get-tenant-audit" => await HandleGetTenantAuditAsync(envelope).ConfigureAwait(false),
-            _ => new QueryResult(false, default, ErrorMessage: $"Unknown query type: {envelope.QueryType}"),
-        };
+            QueryResult result = envelope.QueryType switch
+            {
+                "get-tenant" => await HandleGetTenantAsync(envelope).ConfigureAwait(false),
+                "list-tenants" => await HandleListTenantsAsync(envelope).ConfigureAwait(false),
+                "get-tenant-users" => await HandleGetTenantUsersAsync(envelope).ConfigureAwait(false),
+                "get-user-tenants" => await HandleGetUserTenantsAsync(envelope).ConfigureAwait(false),
+                "get-tenant-audit" => await HandleGetTenantAuditAsync(envelope).ConfigureAwait(false),
+                _ => new QueryResult(false, default, ErrorMessage: $"Unknown query type: {envelope.QueryType}"),
+            };
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            TenantMetrics.RecordQueryDuration(stopwatch.Elapsed.TotalMilliseconds, envelope.QueryType);
+        }
     }
 
     private async Task<QueryResult> HandleGetTenantAsync(QueryEnvelope envelope)

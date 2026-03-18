@@ -10,14 +10,22 @@ using Hexalith.Tenants.CommandApi.Actors;
 using Hexalith.Tenants.CommandApi.Bootstrap;
 using Hexalith.Tenants.CommandApi.Configuration;
 using Hexalith.Tenants.CommandApi.DomainProcessing;
+using Hexalith.Tenants.CommandApi.Health;
 using Hexalith.Tenants.CommandApi.Validation;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
+
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddDaprClient();
+builder.Services.AddHealthChecks()
+    .AddCheck<DaprStateStoreHealthCheck>(
+        "dapr-statestore",
+        failureStatus: HealthStatus.Degraded,
+        tags: ["ready"]);
 builder.Services.AddCommandApi();
 builder.Services.AddEventStoreServer(builder.Configuration);
 builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
