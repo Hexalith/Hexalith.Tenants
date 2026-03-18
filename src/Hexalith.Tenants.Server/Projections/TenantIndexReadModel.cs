@@ -12,6 +12,11 @@ public sealed class TenantIndexReadModel
     public void Apply(TenantCreated e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (Tenants.ContainsKey(e.TenantId))
+        {
+            return;
+        }
+
         Tenants[e.TenantId] = new TenantIndexEntry(e.Name, TenantStatus.Active);
     }
 
@@ -45,6 +50,11 @@ public sealed class TenantIndexReadModel
     public void Apply(UserAddedToTenant e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (!Tenants.ContainsKey(e.TenantId))
+        {
+            return;
+        }
+
         if (!UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants))
         {
             tenants = new Dictionary<string, TenantRole>();
@@ -70,7 +80,8 @@ public sealed class TenantIndexReadModel
     public void Apply(UserRoleChanged e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        if (UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants))
+        if (UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants)
+            && tenants.ContainsKey(e.TenantId))
         {
             tenants[e.TenantId] = e.NewRole;
         }

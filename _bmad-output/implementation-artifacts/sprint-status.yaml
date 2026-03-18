@@ -74,7 +74,7 @@ development_status:
   # Epic 5: Tenant Discovery & Query
   epic-5: in-progress
   5-1-per-tenant-and-global-admin-projections: done
-  5-2-cross-tenant-index-projection: review
+  5-2-cross-tenant-index-projection: done
   5-3-query-endpoints-and-authorization: ready-for-dev
   epic-5-retrospective: optional
 

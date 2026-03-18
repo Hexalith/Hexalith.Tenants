@@ -30,7 +30,7 @@ So that I can discover tenants, manage access, and produce compliance reports.
 
 5. **Given** an authenticated GlobalAdministrator
    **When** a GET request is sent to `/api/tenants/{tenantId}/audit` with date range parameters
-   **Then** tenant access change events are returned with pagination support (default 100, max 1,000 results per page)
+   **Then** the endpoint returns HTTP 501 Not Implemented with a ProblemDetails body (MVP decision: full audit deferred to follow-up story; endpoint exists with GlobalAdmin authorization enforced)
 
 6. **Given** an authenticated user without a role in the target tenant and not a GlobalAdmin
    **When** a GET request is sent to `/api/tenants/{tenantId}` or `/api/tenants/{tenantId}/users`
@@ -43,81 +43,101 @@ So that I can discover tenants, manage access, and produce compliance reports.
 8. **Given** a command has just been processed (e.g., CreateTenant)
    **When** the command response is returned
    **Then** the response includes the aggregate ID so the client can navigate directly to `GET /api/tenants/{id}` for read-after-write confirmation
+   _(Already satisfied by EventStore's existing `SubmitCommandResponse` which includes AggregateId via `SubmitCommandRequest`. No implementation needed in this story — verify only.)_
+
+9. **Given** two concurrent tenant-domain events update the shared cross-tenant index key
+   **When** Story 5.3 persists the `TenantIndexReadModel`
+   **Then** the hosting layer uses ETag-based optimistic concurrency (`ConcurrencyMode.FirstWrite`) and retries conflicts up to 3 times before surfacing an error
+
+10. **Given** the cross-tenant index is populated with 1,000 tenants
+    **When** `GET /api/tenants` or `GET /api/users/{userId}/tenants` is queried
+    **Then** the paginated response meets NFR2 latency targets (50ms p95 per page) using stable sort-by-tenant-id ordering
 
 ## Tasks / Subtasks
 
+- [ ] Task 0: Add EventStore.Contracts reference to Contracts.csproj (PREREQUISITE — blocks all other tasks)
+    - [ ] 0.1: Add `<ProjectReference Include="..\..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj" />` to `src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj`
+    - [ ] 0.2: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+
 - [ ] Task 1: Create query contracts in Contracts project (AC: #1-5, #7)
-  - [ ] 1.1: Create `src/Hexalith.Tenants.Contracts/Queries/GetTenantQuery.cs` implementing `IQueryContract`
-  - [ ] 1.2: Create `src/Hexalith.Tenants.Contracts/Queries/ListTenantsQuery.cs` implementing `IQueryContract`
-  - [ ] 1.3: Create `src/Hexalith.Tenants.Contracts/Queries/GetTenantUsersQuery.cs` implementing `IQueryContract`
-  - [ ] 1.4: Create `src/Hexalith.Tenants.Contracts/Queries/GetUserTenantsQuery.cs` implementing `IQueryContract`
-  - [ ] 1.5: Create `src/Hexalith.Tenants.Contracts/Queries/GetTenantAuditQuery.cs` implementing `IQueryContract`
-  - [ ] 1.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [ ] 1.1: Create `src/Hexalith.Tenants.Contracts/Queries/GetTenantQuery.cs` implementing `IQueryContract`
+    - [ ] 1.2: Create `src/Hexalith.Tenants.Contracts/Queries/ListTenantsQuery.cs` implementing `IQueryContract`
+    - [ ] 1.3: Create `src/Hexalith.Tenants.Contracts/Queries/GetTenantUsersQuery.cs` implementing `IQueryContract`
+    - [ ] 1.4: Create `src/Hexalith.Tenants.Contracts/Queries/GetUserTenantsQuery.cs` implementing `IQueryContract`
+    - [ ] 1.5: Create `src/Hexalith.Tenants.Contracts/Queries/GetTenantAuditQuery.cs` implementing `IQueryContract`
+    - [ ] 1.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [ ] Task 2: Create query response types in Contracts project (AC: #1-5)
-  - [ ] 2.1: Create `src/Hexalith.Tenants.Contracts/Queries/TenantSummary.cs` — lightweight DTO for list endpoints
-  - [ ] 2.2: Create `src/Hexalith.Tenants.Contracts/Queries/TenantDetail.cs` — full tenant details DTO
-  - [ ] 2.3: Create `src/Hexalith.Tenants.Contracts/Queries/TenantMember.cs` — user+role DTO
-  - [ ] 2.4: Create `src/Hexalith.Tenants.Contracts/Queries/UserTenantMembership.cs` — tenant+role DTO for user lookups
-  - [ ] 2.5: Create `src/Hexalith.Tenants.Contracts/Queries/PaginatedResult.cs` — generic paginated response wrapper
-  - [ ] 2.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [ ] 2.1: Create `src/Hexalith.Tenants.Contracts/Queries/TenantSummary.cs` — lightweight DTO for list endpoints
+    - [ ] 2.2: Create `src/Hexalith.Tenants.Contracts/Queries/TenantDetail.cs` — full tenant details DTO
+    - [ ] 2.3: Create `src/Hexalith.Tenants.Contracts/Queries/TenantMember.cs` — user+role DTO
+    - [ ] 2.4: Create `src/Hexalith.Tenants.Contracts/Queries/UserTenantMembership.cs` — tenant+role DTO for user lookups
+    - [ ] 2.5: Create `src/Hexalith.Tenants.Contracts/Queries/PaginatedResult.cs` — generic paginated response wrapper
+    - [ ] 2.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [ ] Task 3: Create TenantsProjectionActor in CommandApi (AC: #1-6)
-  - [ ] 3.1: Create `src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs` inheriting `CachingProjectionActor`
-  - [ ] 3.2: Implement `ExecuteQueryAsync` — dispatch to per-query-type handler methods
-  - [ ] 3.3: Implement GetTenant handler — load TenantReadModel from projection, authorize, return TenantDetail
-  - [ ] 3.4: Implement ListTenants handler — load TenantIndexReadModel, authorize (filter by user membership or GlobalAdmin sees all), paginate, return PaginatedResult<TenantSummary>
-  - [ ] 3.5: Implement GetTenantUsers handler — load TenantReadModel, authorize, paginate members, return PaginatedResult<TenantMember>
-  - [ ] 3.6: Implement GetUserTenants handler — load TenantIndexReadModel, extract user's tenants, paginate, return PaginatedResult<UserTenantMembership>
-  - [ ] 3.7: Implement GetTenantAudit handler — GlobalAdmin-only authorization, replay events from state store, return PaginatedResult<AuditEntry> (simplified MVP implementation)
-  - [ ] 3.8: Register actor in Program.cs via `MapActorsHandlers` (verify DAPR actor registration uses `ProjectionActorTypeName`)
-  - [ ] 3.9: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [ ] 3.1: Create `src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs` inheriting `CachingProjectionActor`
+    - [ ] 3.2: Implement `ExecuteQueryAsync` — dispatch to per-query-type handler methods
+    - [ ] 3.3: Implement GetTenant handler — load TenantReadModel from projection, authorize, return TenantDetail
+        - [ ] 3.4: Implement ListTenants handler — load TenantIndexReadModel, authorize (filter by user membership or GlobalAdmin sees all), paginate, return `PaginatedResult<TenantSummary>` **[REQUIRES Story 5.2 complete — skip if TenantIndexReadModel does not exist]**
+        - [ ] 3.5: Implement GetTenantUsers handler — load TenantReadModel, authorize, paginate members, return `PaginatedResult<TenantMember>`
+        - [ ] 3.6: Implement GetUserTenants handler — load TenantIndexReadModel, extract user's tenants, paginate, return `PaginatedResult<UserTenantMembership>` **[REQUIRES Story 5.2 complete — skip if TenantIndexReadModel does not exist]**
+    - [ ] 3.7: Implement GetTenantAudit handler — FIRST check GlobalAdmin authorization (return 403 if not admin), THEN return 501 Not Implemented (MVP decision: full audit deferred to follow-up story; non-admins must get 403, not 501, to avoid leaking endpoint existence)
+    - [ ] 3.8: Register actor in Program.cs — `AddEventStoreServer()` does NOT register a ProjectionActor; each domain service must register its own. Add `builder.Services.AddActors(options => { options.Actors.RegisterActor<TenantsProjectionActor>(typeOptions: new Dapr.Actors.Runtime.ActorRegistrationOptions { TypeName = "ProjectionActor" }); });`
+        - [ ] 3.9: Implement the Story 5.2 handoff for cross-tenant fan-in hosting — shared `TenantIndexReadModel` state key, ETag-based optimistic concurrency (`ConcurrencyMode.FirstWrite`), and retry loop (max 3 attempts) for incremental Apply operations
+        - [ ] 3.10: After each successful incremental Apply, explicitly notify projection invalidation for `"tenant-index"` because `Project()` is not the fan-in entry point
+        - [ ] 3.11: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [ ] Task 4: Create TenantsQueryController in CommandApi (AC: #1-5, #7)
-  - [ ] 4.1: Create `src/Hexalith.Tenants.CommandApi/Controllers/TenantsQueryController.cs`
-  - [ ] 4.2: Implement `GET /api/tenants` — translate to ListTenantsQuery via SubmitQueryRequest → MediatR
-  - [ ] 4.3: Implement `GET /api/tenants/{tenantId}` — translate to GetTenantQuery
-  - [ ] 4.4: Implement `GET /api/tenants/{tenantId}/users` — translate to GetTenantUsersQuery
-  - [ ] 4.5: Implement `GET /api/users/{userId}/tenants` — translate to GetUserTenantsQuery
-  - [ ] 4.6: Implement `GET /api/tenants/{tenantId}/audit` — translate to GetTenantAuditQuery
-  - [ ] 4.7: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [ ] 4.1: Create `src/Hexalith.Tenants.CommandApi/Controllers/TenantsQueryController.cs`
+    - [ ] 4.2: Implement `GET /api/tenants` — translate to ListTenantsQuery via SubmitQueryRequest → MediatR
+    - [ ] 4.3: Implement `GET /api/tenants/{tenantId}` — translate to GetTenantQuery
+    - [ ] 4.4: Implement `GET /api/tenants/{tenantId}/users` — translate to GetTenantUsersQuery
+    - [ ] 4.5: Implement `GET /api/users/{userId}/tenants` — translate to GetUserTenantsQuery
+    - [ ] 4.6: Implement `GET /api/tenants/{tenantId}/audit` — translate to GetTenantAuditQuery
+    - [ ] 4.7: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [ ] Task 5: Register query infrastructure in Program.cs (AC: #1-8)
-  - [ ] 5.1: Ensure `MapControllers()` picks up new TenantsQueryController
-  - [ ] 5.2: Register TenantsProjectionActor with DAPR actor runtime (type name = `"ProjectionActor"`)
-  - [ ] 5.3: Verify no duplicate actor type registrations
-  - [ ] 5.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [ ] 5.1: Ensure `MapControllers()` picks up new TenantsQueryController
+    - [ ] 5.2: Register TenantsProjectionActor with DAPR actor runtime (type name = `"ProjectionActor"`)
+    - [ ] 5.3: Verify no duplicate actor type registrations
+    - [ ] 5.4: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 6: Create unit tests (AC: #1-7)
-  - [ ] 6.1: Create `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryContractNamingTests.cs` — reflection-based naming convention test
-  - [ ] 6.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` — actor logic tests
-  - [ ] 6.3: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [ ] Task 6: Create unit tests (AC: #1-7, #9) — 29+ tests across 3 test files
+    - [ ] 6.1: Create `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryContractNamingTests.cs` — 5 reflection-based naming convention tests (Q1-Q5)
+    - [ ] 6.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` — 19 actor logic tests with mocked DaprClient (Q6-Q21, Q25-Q27). NOTE: Actor lives in CommandApi but tests go in Server.Tests to avoid creating a new test project — Server.Tests.csproj needs a `ProjectReference` to CommandApi added
+    - [ ] 6.3: Create `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryDtoSerializationTests.cs` — 3 DTO round-trip serialization tests (Q22-Q24)
+        - [ ] 6.4: Add focused cross-tenant hosting tests for ETag retry / conflict handling and `tenant-index` invalidation notification (Q28-Q29)
+        - [ ] 6.5: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
 - [ ] Task 7: Build verification (all ACs)
-  - [ ] 7.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 7.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions
+    - [ ] 7.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [ ] 7.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions
 
 ## Dev Notes
 
 ### TL;DR
 
-Build the query layer for the Tenants service. 5 query contracts (`IQueryContract` implementations in Contracts/Queries/), a `TenantsProjectionActor` (inherits `CachingProjectionActor`) that loads projection state and serves queries with authorization checks, and a thin REST controller (`TenantsQueryController`) that translates `GET /api/tenants/*` routes into `SubmitQueryRequest` MediatR dispatches. The query pipeline is: REST → MediatR → QueryRouter → CachingProjectionActor → ReadModel. Authorization is dual-layer: JWT at API boundary (existing `AuthorizationBehavior`), domain RBAC (tenant membership / GlobalAdmin check) in the projection actor's `ExecuteQueryAsync`.
+Build the query layer for the Tenants service. 5 query contracts (`IQueryContract` implementations in Contracts/Queries/), a `TenantsProjectionActor` (inherits `CachingProjectionActor`) that loads projection state and serves queries with authorization checks, a thin REST controller (`TenantsQueryController`) that translates `GET /api/tenants/*` routes into `SubmitQueryRequest` MediatR dispatches, and the cross-tenant fan-in hosting glue from Story 5.2 (shared-key state persistence, ETag retry, explicit `tenant-index` invalidation). The query pipeline is: REST → MediatR → QueryRouter → CachingProjectionActor → ReadModel. Authorization is dual-layer: JWT at API boundary (existing `AuthorizationBehavior`), domain RBAC (tenant membership / GlobalAdmin check) in the projection actor's `ExecuteQueryAsync`.
 
 ### Architecture: Dual-Layer Query Architecture (D7 Revision)
 
 Per architecture, query endpoints use EventStore's built-in query pipeline:
 
 **Internal layer:**
+
 - Query contracts implement `IQueryContract` with static `QueryType`, `Domain`, `ProjectionType`
 - Dispatched via `SubmitQuery`/`QueryRouter` through MediatR pipeline
 - `CachingProjectionActor` serves cached results with ETag support
 
 **External layer:**
+
 - Thin REST controller (`GET /api/tenants/*`) translates REST requests into `SubmitQueryRequest` dispatches
 - Preserves clean REST API semantics
 
 **Query flow:**
-```
+
+```text
 Client → GET /api/tenants/{id}
   → TenantsQueryController.GetTenant(id)
     → mediator.Send(SubmitQuery{QueryType="get-tenant", EntityId=id, ...})
@@ -153,15 +173,16 @@ public sealed class GetTenantQuery : IQueryContract
 
 **All 5 query contracts:**
 
-| Query Contract | QueryType | Domain | ProjectionType | Tier | EntityId | FR |
-|---------------|-----------|--------|----------------|------|----------|-----|
-| `GetTenantQuery` | `get-tenant` | `tenants` | `tenants` | 1 | tenantId | FR26 |
-| `ListTenantsQuery` | `list-tenants` | `tenants` | `tenant-index` | 3 (or 2 with pagination payload) | null | FR25 |
-| `GetTenantUsersQuery` | `get-tenant-users` | `tenants` | `tenants` | 1 | tenantId | FR27 |
-| `GetUserTenantsQuery` | `get-user-tenants` | `tenants` | `tenant-index` | 1 | userId | FR28 |
-| `GetTenantAuditQuery` | `get-tenant-audit` | `tenants` | `tenants` | 1 | tenantId | FR29 |
+| Query Contract        | QueryType          | Domain    | ProjectionType | Tier                             | EntityId | FR   |
+| --------------------- | ------------------ | --------- | -------------- | -------------------------------- | -------- | ---- |
+| `GetTenantQuery`      | `get-tenant`       | `tenants` | `tenants`      | 1                                | tenantId | FR26 |
+| `ListTenantsQuery`    | `list-tenants`     | `tenants` | `tenant-index` | 3 (or 2 with pagination payload) | null     | FR25 |
+| `GetTenantUsersQuery` | `get-tenant-users` | `tenants` | `tenants`      | 1                                | tenantId | FR27 |
+| `GetUserTenantsQuery` | `get-user-tenants` | `tenants` | `tenant-index` | 1                                | userId   | FR28 |
+| `GetTenantAuditQuery` | `get-tenant-audit` | `tenants` | `tenants`      | 1                                | tenantId | FR29 |
 
 **ProjectionType determines ETag scope:**
+
 - `"tenants"` — per-tenant projections (GetTenant, GetTenantUsers, GetTenantAudit): ETag invalidated when specific tenant's events are processed
 - `"tenant-index"` — cross-tenant index projections (ListTenants, GetUserTenants): ETag invalidated when any tenant event is processed
 
@@ -286,26 +307,21 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
 }
 ```
 
-**Critical: Actor registration.** The DAPR actor type name MUST be `"ProjectionActor"` (from `QueryRouter.ProjectionActorTypeName`). Registration in `Program.cs`:
+**Actor Registration (RESOLVED).** `AddEventStoreServer()` does NOT register a `ProjectionActor`. Each domain service must register its own. The DAPR actor type name MUST be `"ProjectionActor"` (from `QueryRouter.ProjectionActorTypeName`). Registration in `Program.cs`:
 
 ```csharp
-// In Program.cs, configure actor runtime:
+// In Program.cs, add BEFORE builder.Build():
 builder.Services.AddActors(options =>
 {
     options.Actors.RegisterActor<TenantsProjectionActor>(
-        typeOptions: new ActorRuntimeOptions { ActorTypeName = "ProjectionActor" });
+        typeOptions: new Dapr.Actors.Runtime.ActorRegistrationOptions
+        {
+            TypeName = "ProjectionActor"
+        });
 });
 ```
 
-**Wait — check if `MapActorsHandlers()` already handles this.** The existing `app.MapActorsHandlers()` call in Program.cs maps DAPR actor endpoints. Actor registration needs to happen via `AddActors()` in DI configuration. Check whether `AddEventStore()` or `AddEventStoreServer()` already registers a default `ProjectionActor`. If they do, the Tenants service needs to provide its own implementation under the same type name. If they don't, the registration above is needed.
-
-**CRITICAL INVESTIGATION:** Before implementing, check what `AddEventStoreServer(builder.Configuration)` and `AddEventStore(typeof(TenantAggregate).Assembly)` do for actor registration. Search for `RegisterActor` and `ProjectionActor` in EventStore.Server and EventStore.CommandApi:
-
-```bash
-grep -rn "RegisterActor\|ProjectionActor\|AddActors" Hexalith.EventStore/src/ --include="*.cs"
-```
-
-If EventStore already registers a generic ProjectionActor, you may need to replace or extend it rather than adding a parallel registration.
+The existing `app.MapActorsHandlers()` maps DAPR actor HTTP endpoints — it already exists in Program.cs and picks up actors registered via `AddActors()`. No changes needed to the middleware pipeline.
 
 ### TenantsQueryController — Thin REST Controller
 
@@ -370,13 +386,13 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
 
 **REST → Query mapping:**
 
-| REST Endpoint | Query Contract | AggregateId | EntityId | Payload |
-|--------------|---------------|-------------|----------|---------|
-| `GET /api/tenants` | ListTenantsQuery | `"index"` | null | `{cursor, pageSize}` |
-| `GET /api/tenants/{tenantId}` | GetTenantQuery | tenantId | tenantId | empty |
-| `GET /api/tenants/{tenantId}/users` | GetTenantUsersQuery | tenantId | tenantId | `{cursor, pageSize}` |
-| `GET /api/users/{userId}/tenants` | GetUserTenantsQuery | `"index"` | userId | `{cursor, pageSize}` |
-| `GET /api/tenants/{tenantId}/audit` | GetTenantAuditQuery | tenantId | tenantId | `{from, to, cursor, pageSize}` |
+| REST Endpoint                       | Query Contract      | AggregateId | EntityId | Payload                        |
+| ----------------------------------- | ------------------- | ----------- | -------- | ------------------------------ |
+| `GET /api/tenants`                  | ListTenantsQuery    | `"index"`   | null     | `{cursor, pageSize}`           |
+| `GET /api/tenants/{tenantId}`       | GetTenantQuery      | tenantId    | tenantId | empty                          |
+| `GET /api/tenants/{tenantId}/users` | GetTenantUsersQuery | tenantId    | tenantId | `{cursor, pageSize}`           |
+| `GET /api/users/{userId}/tenants`   | GetUserTenantsQuery | `"index"`   | userId   | `{cursor, pageSize}`           |
+| `GET /api/tenants/{tenantId}/audit` | GetTenantAuditQuery | tenantId    | tenantId | `{from, to, cursor, pageSize}` |
 
 ### Authorization — Dual-Layer Implementation
 
@@ -385,39 +401,36 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
 **Layer 2 (Domain RBAC — in projection actor):** The projection actor's `ExecuteQueryAsync` receives `envelope.UserId` (extracted from JWT `sub` claim by QueriesController/TenantsQueryController). The actor must:
 
 1. **For tenant-specific queries** (GetTenant, GetTenantUsers, GetTenantAudit):
-   - Load `TenantReadModel` for the target tenant
-   - Check if `envelope.UserId` exists in `TenantReadModel.Members` OR user is GlobalAdmin
-   - If not authorized → return `QueryResult(false, default, ErrorMessage: "Forbidden")`
+    - Load `TenantReadModel` for the target tenant
+    - Check if `envelope.UserId` exists in `TenantReadModel.Members` OR user is GlobalAdmin
+    - If not authorized → return `QueryResult(false, default, ErrorMessage: "Forbidden")`
 
 2. **For cross-tenant queries** (ListTenants):
-   - Load `TenantIndexReadModel`
-   - If user is GlobalAdmin → return all tenants (filtered by pagination)
-   - If not GlobalAdmin → filter to tenants where user has a role in `TenantIndexReadModel.UserTenants[userId]`
+    - Load `TenantIndexReadModel`
+    - If user is GlobalAdmin → return all tenants (filtered by pagination)
+    - If not GlobalAdmin → filter to tenants where user has a role in `TenantIndexReadModel.UserTenants[userId]`
 
 3. **For user-tenant queries** (GetUserTenants):
-   - Any authenticated user can query their own tenants
-   - GlobalAdmin can query any user's tenants
-   - Non-admin querying another user → return 403
+    - Any authenticated user can query their own tenants
+    - GlobalAdmin can query any user's tenants
+    - Non-admin querying another user → return 403
 
 4. **For audit queries** (GetTenantAudit):
-   - GlobalAdmin only (AC5)
-   - If not GlobalAdmin → return 403
+    - GlobalAdmin only (AC5)
+    - If not GlobalAdmin → return 403
 
 **GlobalAdmin check:** Load `GlobalAdministratorReadModel` from projection state. Check if `envelope.UserId` is in `Administrators` set.
 
-**How to load projection state:** The projection actor uses `_daprClient.GetStateAsync<T>()` to read projection state from the DAPR state store. The state store name is `"tenants-eventstore"` (from `dapr/components/statestore.yaml`). The state key for per-tenant read models follows the pattern established by `EventStoreProjection<T>` — investigate the key naming convention by checking `EventStoreProjection<T>.Project()` or `CachingProjectionActor` for how state is stored.
+**How to load projection state (RESOLVED).** `CachingProjectionActor.ExecuteQueryAsync` is abstract — the implementer (TenantsProjectionActor) is responsible for loading projection state. The projection handler writes state to the DAPR state store via `EventStoreProjection<T>`. The actor reads it back using `DaprClient.GetStateAsync<T>()`.
 
-**CRITICAL INVESTIGATION:** How does EventStore store projection state? Check:
-- `EventStoreProjection<T>` — does it persist to DAPR state store automatically?
-- What state key format is used?
-- Does `CachingProjectionActor` read projection state, or does it delegate to the implementer?
+**State store and key conventions:**
 
-Looking at `CachingProjectionActor.ExecuteQueryAsync` — this is abstract and the implementer must provide the actual query logic including state loading. The implementer is responsible for reading projection state from wherever it's stored.
-
-**State key conventions — investigate at implementation time:**
-```bash
-grep -rn "StateStoreName\|GetStateAsync\|SaveStateAsync\|stateStore" Hexalith.EventStore/src/ --include="*.cs" | head -30
-```
+- **State store name:** `"tenants-eventstore"` (from `dapr/components/statestore.yaml`)
+- **Per-tenant read model key:** The aggregate actor stores state keyed by aggregate identity. For projections, EventStore uses the actor's state manager (`StateManager`), keyed by the actor ID. However, the projection actor is NOT the same actor as the aggregate actor. The projection actor needs to read state that the projection handler wrote.
+- **Practical approach:** Use `_daprClient.GetStateAsync<TenantReadModel>("tenants-eventstore", $"projection:tenants:{tenantId}")` — but verify the exact key format by checking how `EventStoreProjection<T>` persists state. Search: `grep -rn "SaveStateAsync\|SetStateAsync" Hexalith.EventStore/src/Hexalith.EventStore.Server/ --include="*.cs"` at dev time to confirm the key format.
+- **For GlobalAdministratorReadModel:** Use key `"projection:global-administrators:singleton"` (single instance, not per-tenant).
+- **For TenantIndexReadModel:** Use key `"projection:tenant-index:singleton"` (single instance aggregating all tenants).
+- **IMPORTANT:** If the key format doesn't match what you expect, check the EventStore `ProjectionEventHandler` or `ProjectionSubscriptionEndpoint` classes — they contain the actual write logic that determines key format.
 
 ### Cursor-Based Pagination (FR30)
 
@@ -452,17 +465,47 @@ static PaginatedResult<T> Paginate<T>(
 
 **Consistent ordering:** Dictionary entries sorted by key (TenantId). At 1K tenants scale, in-memory sorting is sub-millisecond (architecture decision).
 
-### FR29 Audit Query — MVP Simplification
+### FR29 Audit Query — MVP Decision: 501 Not Implemented
 
-FR29 requires "query tenant access changes by tenant ID and date range." This requires access to the historical event stream, not just the current projection state. **MVP approach:**
+FR29 requires "query tenant access changes by tenant ID and date range." This requires access to the historical event stream, not just the current projection state. Full audit event replay requires infrastructure that is not yet available in the projection actor pattern (event stream query access, date-range filtering of persisted events).
 
-**Option A (Recommended):** Replay events from the tenant's event stream via `EventStoreProjection<T>.Project()` or by loading the aggregate's event history from DAPR state store. Filter events that are "access change" events (`UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `TenantDisabled`, `TenantEnabled`) by date range. This is a read-only operation.
+**Decision: Return HTTP 501 Not Implemented for `/api/tenants/{tenantId}/audit`.** The endpoint exists (route registered, GlobalAdmin authorization enforced) but returns 501 with a ProblemDetails body explaining audit queries are planned for a future release. This is acceptable because the other 4 query endpoints fully serve FR25-28, FR30. A follow-up story will implement FR29 when event stream query capability is available.
 
-**Option B (Simpler fallback):** Add an `AuditLog` property to `TenantReadModel` (list of audit entries with timestamps). This grows unbounded — not ideal but workable at MVP scale. **Do NOT choose this option** — it pollutes the read model with historical data.
+**Implementation:**
 
-**Option C (Most practical MVP):** Return a "not yet implemented" response with 501 Not Implemented for the audit endpoint. Document that full audit requires event stream query capability. This is acceptable if the other 4 query endpoints are complete.
+```csharp
+// In TenantsProjectionActor:
+private async Task<QueryResult> HandleGetTenantAuditAsync(QueryEnvelope envelope)
+{
+    // CRITICAL: Check GlobalAdmin FIRST — non-admins must get 403, not 501
+    // (avoids leaking endpoint existence to unauthorized users)
+    GlobalAdministratorReadModel? adminModel = await _daprClient
+        .GetStateAsync<GlobalAdministratorReadModel>("tenants-eventstore", "projection:global-administrators:singleton")
+        .ConfigureAwait(false);
 
-**Decision for dev agent:** Implement Option A if the event stream is accessible. If loading historical events proves too complex for the projection actor, fall back to Option C and document the limitation.
+    if (adminModel is null || !adminModel.Administrators.Contains(envelope.UserId))
+    {
+        return new QueryResult(false, default, ErrorMessage: "Forbidden");
+    }
+
+    // Only GlobalAdmins reach here — return 501
+    return new QueryResult(
+        false, default,
+        ErrorMessage: "Audit queries are not yet implemented (FR29). Planned for a future release.");
+}
+
+// In TenantsQueryController — map the 501:
+[HttpGet("{tenantId}/audit")]
+public IActionResult GetTenantAudit(string tenantId)
+{
+    return StatusCode(501, new ProblemDetails
+    {
+        Title = "Not Implemented",
+        Detail = "Tenant audit queries (FR29) are planned for a future release.",
+        Status = 501,
+    });
+}
+```
 
 ### Design Decisions & Assumptions
 
@@ -491,7 +534,17 @@ Per architecture: "Projections are eventually consistent — a tenant created vi
 One generic paginated result type serves all list endpoints. The cursor is opaque to the client — internally it's the last item's sort key. `HasMore` indicates if more pages exist.
 
 **D9: `enum` values for TenantStatus and TenantRole serialize as strings.**
-Ensure JSON serialization uses `JsonStringEnumConverter` or that `System.Text.Json` serializer options include string enum conversion. Check if the existing serialization pipeline handles this.
+Ensure JSON serialization uses `JsonStringEnumConverter` for enum properties (`TenantStatus`, `TenantRole`). **Where to configure:** The projection actor serializes query results via `JsonSerializer.SerializeToElement()` before returning `QueryResult.Payload`. Use `JsonSerializerOptions` with `JsonStringEnumConverter` added to `Converters` at serialization time. Do NOT modify global serializer settings — keep the converter scoped to query response serialization. Pattern:
+
+```csharp
+private static readonly JsonSerializerOptions s_queryJsonOptions = new()
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    Converters = { new JsonStringEnumConverter() },
+};
+```
+
+Use `s_queryJsonOptions` in all `JsonSerializer.SerializeToElement()` calls within the projection actor.
 
 **D10 (CRITICAL): Rejection events in the event stream.**
 Story 5.1 D5 documented that `EventPersister` stores ALL events including rejection events. The typed `EventStoreProjection<T>.Project()` silently skips unknown event types (no Apply method → continue). However, `ProjectFromJson(JsonElement)` throws on unknown types. If the projection actor ever uses `ProjectFromJson()` (e.g., for audit event replay), it MUST filter rejection events first. The projection definitions themselves are safe.
@@ -500,21 +553,21 @@ Story 5.1 D5 documented that `EventPersister` stores ALL events including reject
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| GetTenantQuery | Contracts | Queries/ | GetTenantQuery.cs (CREATE) |
-| ListTenantsQuery | Contracts | Queries/ | ListTenantsQuery.cs (CREATE) |
-| GetTenantUsersQuery | Contracts | Queries/ | GetTenantUsersQuery.cs (CREATE) |
-| GetUserTenantsQuery | Contracts | Queries/ | GetUserTenantsQuery.cs (CREATE) |
-| GetTenantAuditQuery | Contracts | Queries/ | GetTenantAuditQuery.cs (CREATE) |
-| TenantSummary | Contracts | Queries/ | TenantSummary.cs (CREATE) |
-| TenantDetail | Contracts | Queries/ | TenantDetail.cs (CREATE) |
-| TenantMember | Contracts | Queries/ | TenantMember.cs (CREATE) |
-| UserTenantMembership | Contracts | Queries/ | UserTenantMembership.cs (CREATE) |
-| PaginatedResult<T> | Contracts | Queries/ | PaginatedResult.cs (CREATE) |
-| TenantsProjectionActor | CommandApi | Actors/ | TenantsProjectionActor.cs (CREATE) |
-| TenantsQueryController | CommandApi | Controllers/ | TenantsQueryController.cs (CREATE) |
-| Query contract naming tests | Contracts.Tests | Queries/ | QueryContractNamingTests.cs (CREATE) |
+| Type                        | Project         | Folder       | File                                 |
+| --------------------------- | --------------- | ------------ | ------------------------------------ |
+| GetTenantQuery              | Contracts       | Queries/     | GetTenantQuery.cs (CREATE)           |
+| ListTenantsQuery            | Contracts       | Queries/     | ListTenantsQuery.cs (CREATE)         |
+| GetTenantUsersQuery         | Contracts       | Queries/     | GetTenantUsersQuery.cs (CREATE)      |
+| GetUserTenantsQuery         | Contracts       | Queries/     | GetUserTenantsQuery.cs (CREATE)      |
+| GetTenantAuditQuery         | Contracts       | Queries/     | GetTenantAuditQuery.cs (CREATE)      |
+| TenantSummary               | Contracts       | Queries/     | TenantSummary.cs (CREATE)            |
+| TenantDetail                | Contracts       | Queries/     | TenantDetail.cs (CREATE)             |
+| TenantMember                | Contracts       | Queries/     | TenantMember.cs (CREATE)             |
+| UserTenantMembership        | Contracts       | Queries/     | UserTenantMembership.cs (CREATE)     |
+| PaginatedResult<T>          | Contracts       | Queries/     | PaginatedResult.cs (CREATE)          |
+| TenantsProjectionActor      | CommandApi      | Actors/      | TenantsProjectionActor.cs (CREATE)   |
+| TenantsQueryController      | CommandApi      | Controllers/ | TenantsQueryController.cs (CREATE)   |
+| Query contract naming tests | Contracts.Tests | Queries/     | QueryContractNamingTests.cs (CREATE) |
 
 **DO NOT:**
 
@@ -591,28 +644,54 @@ tests/Hexalith.Tenants.Contracts.Tests/
 
 **Query contract naming tests — reflection-based convention verification:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| Q1 | All IQueryContract implementations have kebab-case QueryType | Scan Contracts assembly for IQueryContract impls | All QueryType values match `^[a-z][a-z0-9-]*$` | #1-5 |
-| Q2 | All IQueryContract implementations have non-empty Domain | Scan for impls | Domain is non-empty and kebab-case | #1-5 |
-| Q3 | All IQueryContract implementations have non-empty ProjectionType | Scan for impls | ProjectionType is non-empty, no colons, <= 100 chars | #1-5 |
-| Q4 | QueryType values are unique | All impls | No duplicate QueryType values across contracts | #1-5 |
-| Q5 | Exactly 5 IQueryContract implementations exist (canary) | Reflection count | 5 implementations — fails if new query added without convention test | #1-5 |
+| #   | Test                                                             | Setup                                            | Expected                                                             | AC   |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- | ---- |
+| Q1  | All IQueryContract implementations have kebab-case QueryType     | Scan Contracts assembly for IQueryContract impls | All QueryType values match `^[a-z][a-z0-9-]*$`                       | #1-5 |
+| Q2  | All IQueryContract implementations have non-empty Domain         | Scan for impls                                   | Domain is non-empty and kebab-case                                   | #1-5 |
+| Q3  | All IQueryContract implementations have non-empty ProjectionType | Scan for impls                                   | ProjectionType is non-empty, no colons, <= 100 chars                 | #1-5 |
+| Q4  | QueryType values are unique                                      | All impls                                        | No duplicate QueryType values across contracts                       | #1-5 |
+| Q5  | Exactly 5 IQueryContract implementations exist (canary)          | Reflection count                                 | 5 implementations — fails if new query added without convention test | #1-5 |
 
-**Projection actor tests (if testable without DAPR):**
+**Projection actor tests — mock `DaprClient.GetStateAsync` via `NSubstitute`:**
 
-| # | Test | Expected | AC |
-|---|------|----------|-----|
-| Q6 | Authorized user can get tenant details | Returns TenantDetail with correct data | #2 |
-| Q7 | Unauthorized user gets 403 for GetTenant | QueryResult.Success = false | #6 |
-| Q8 | GlobalAdmin can access any tenant | Returns TenantDetail | #2 |
-| Q9 | ListTenants filters by user membership | Only user's tenants returned | #1 |
-| Q10 | GlobalAdmin ListTenants returns all | All tenants returned | #1 |
-| Q11 | Pagination returns correct page with cursor | Page size respected, cursor valid | #7 |
-| Q12 | GetUserTenants for own user works | Returns user's tenant list | #4 |
-| Q13 | Non-admin cannot query other user's tenants | 403 returned | #4, #6 |
+Use `NSubstitute` to mock `DaprClient`. Create a helper that returns pre-built `TenantReadModel`, `GlobalAdministratorReadModel`, `TenantIndexReadModel` instances from mocked state store calls. This enables full Tier 1 testing without DAPR infrastructure.
 
-**Note:** Projection actor tests may require mocking DAPR state store calls. Use `NSubstitute` to mock `DaprClient.GetStateAsync`. If the DAPR dependency makes unit testing impractical, document as a testing limitation and defer to Tier 2/3 integration tests.
+```csharp
+// Test setup pattern:
+var daprClient = Substitute.For<DaprClient>();
+daprClient.GetStateAsync<TenantReadModel>("tenants-eventstore", Arg.Any<string>())
+    .Returns(Task.FromResult(someTenantReadModel));
+```
+
+| #   | Test                                                      | Setup                                                                                             | Expected                                                                                                           | AC     |
+| --- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------ |
+| Q6  | Authorized user can get tenant details                    | Mock TenantReadModel with user1 in Members, envelope.UserId=user1                                 | Returns TenantDetail with correct TenantId, Name, Members                                                          | #2     |
+| Q7  | Unauthorized user gets 403 for GetTenant                  | Mock TenantReadModel with user1 in Members, envelope.UserId=user2 (not a member, not GlobalAdmin) | QueryResult.Success=false, ErrorMessage contains "Forbidden"                                                       | #6     |
+| Q8  | GlobalAdmin can access any tenant                         | Mock GlobalAdminReadModel with user2 as admin, TenantReadModel without user2 in Members           | Returns TenantDetail (GlobalAdmin bypasses membership check)                                                       | #2     |
+| Q9  | ListTenants filters by user membership (non-admin)        | Mock TenantIndexReadModel with 5 tenants, UserTenants[user1] has 2 tenants                        | Returns PaginatedResult with exactly 2 tenants                                                                     | #1     |
+| Q10 | GlobalAdmin ListTenants returns all tenants               | Mock GlobalAdminReadModel with user1 as admin, TenantIndexReadModel with 5 tenants                | Returns PaginatedResult with all 5 tenants                                                                         | #1     |
+| Q11 | Pagination returns correct first page                     | Mock TenantIndexReadModel with 10 tenants, pageSize=3                                             | 3 items returned, HasMore=true, Cursor set to 3rd item's key                                                       | #7     |
+| Q12 | Pagination with cursor returns next page                  | Mock 10 tenants, cursor=3rd tenant key, pageSize=3                                                | Items 4-6 returned, HasMore=true                                                                                   | #7     |
+| Q13 | Pagination last page has HasMore=false                    | Mock 5 tenants, pageSize=10                                                                       | 5 items returned, HasMore=false, Cursor=null                                                                       | #7     |
+| Q14 | GetTenantUsers returns paginated member list              | Mock TenantReadModel with 5 members, user1 is TenantOwner                                         | PaginatedResult with 5 TenantMember items, correct roles                                                           | #3     |
+| Q15 | GetUserTenants for own user works                         | Mock TenantIndexReadModel, UserTenants[user1] has 3 tenants, envelope.UserId=user1                | Returns 3 UserTenantMembership items with correct roles                                                            | #4     |
+| Q16 | Non-admin cannot query other user's tenants               | envelope.UserId=user1, EntityId=user2, user1 not GlobalAdmin                                      | QueryResult.Success=false, "Forbidden"                                                                             | #4, #6 |
+| Q17 | GlobalAdmin can query any user's tenants                  | envelope.UserId=admin1 (GlobalAdmin), EntityId=user2                                              | Returns user2's tenant list                                                                                        | #4     |
+| Q18 | GetTenantAudit returns 501 Not Implemented                | Any valid envelope with QueryType=get-tenant-audit                                                | QueryResult.Success=false, ErrorMessage contains "not yet implemented"                                             | #5     |
+| Q19 | Unknown query type returns error                          | envelope.QueryType="unknown-query"                                                                | QueryResult.Success=false, ErrorMessage contains "Unknown query type"                                              | —      |
+| Q20 | Empty TenantIndexReadModel returns empty paginated result | Mock empty TenantIndexReadModel                                                                   | PaginatedResult with 0 items, HasMore=false                                                                        | #1     |
+| Q21 | GetTenant with non-existent tenantId                      | Mock DaprClient returns null/default for unknown key                                              | QueryResult.Success=false, appropriate error                                                                       | #2     |
+| Q25 | Malformed cursor treated as start-from-beginning          | Mock 5 tenants, cursor="zzz-nonexistent"                                                          | Returns items from beginning of sorted order (cursor doesn't match any key → no items after it → empty or restart) | #7     |
+| Q26 | Cursor pointing to deleted tenant skips gracefully        | Mock 5 tenants (A,B,C,D,E), cursor="B" but B removed from index                                   | Returns C,D,E (items after cursor position in sort order)                                                          | #7     |
+| Q27 | Non-admin hitting audit endpoint gets 403 not 501         | envelope.UserId=user1 (not GlobalAdmin), QueryType=get-tenant-audit                               | QueryResult.Success=false, ErrorMessage contains "Forbidden" (NOT "not yet implemented")                           | #5, #6 |
+
+**DTO serialization tests:**
+
+| #   | Test                                                | Expected                                               | AC                                                                            |
+| --- | --------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- | ---- |
+| Q22 | TenantDetail serializes to JSON with all properties | Round-trip serialize/deserialize TenantDetail          | All properties preserved including Members list and Configuration dict        | #2   |
+| Q23 | PaginatedResult<TenantSummary> serializes correctly | Round-trip PaginatedResult with Items, Cursor, HasMore | JSON structure matches `{ "items": [...], "cursor": "...", "hasMore": true }` | #7   |
+| Q24 | TenantStatus and TenantRole serialize as strings    | Serialize TenantSummary with Status=Active             | JSON contains `"status":"Active"` not `"status":0`                            | #1-4 |
 
 ### Code Style Requirements
 
@@ -645,6 +724,7 @@ tests/Hexalith.Tenants.Contracts.Tests/
 - 7 Apply methods (no config events — index doesn't track per-tenant config)
 - Defensive `TryGetValue` guards for fan-in event ordering
 - **Critical for ListTenants and GetUserTenants queries** — these endpoints read from `TenantIndexReadModel`
+- Story 5.2 review clarified ownership: this story now implements the shared-key fan-in host, ETag retry loop, explicit `tenant-index` invalidation, and NFR2 validation for cross-tenant query paths
 - Note: Story 5.2 may or may not be implemented when Story 5.3 starts. If `TenantIndexReadModel` doesn't exist yet, ListTenants and GetUserTenants queries cannot be implemented. **Check** if 5.2 files exist before implementing cross-tenant queries. If not, implement only per-tenant queries (GetTenant, GetTenantUsers, GetTenantAudit) first.
 
 **Story 4.3 (done) — Sample Consuming Service & Idempotent Processing Guide:**
@@ -655,6 +735,7 @@ tests/Hexalith.Tenants.Contracts.Tests/
 ### Git Intelligence
 
 Recent commits:
+
 - `d5dbae4` Add idempotent event processing documentation and implement access check endpoints
 - `691a9f0` chore: Update subproject commit reference for Hexalith.EventStore
 - `968791d` feat: Add design decisions and assumptions for tenant projections
@@ -662,6 +743,7 @@ Recent commits:
 - `33ab49e` feat: Implement tenant configuration management with DI registration and unit tests
 
 Established patterns:
+
 - Apply method pattern with `ArgumentNullException.ThrowIfNull(e)` null guards
 - Allman brace style consistently
 - Private setters for state properties
@@ -672,6 +754,7 @@ Established patterns:
 ### Cross-Story Dependencies
 
 **This story depends on:**
+
 - Story 5.1 (review): `TenantReadModel`, `GlobalAdministratorReadModel`, projections — for per-tenant queries and GlobalAdmin authorization check
 - Story 5.2 (ready-for-dev): `TenantIndexReadModel`, `TenantIndexProjection` — for ListTenants and GetUserTenants queries. **If 5.2 is not yet implemented, defer cross-tenant queries**
 - Story 2.1 (done): Event contracts (for audit event replay if implementing FR29)
@@ -697,11 +780,13 @@ Established patterns:
 ### Concurrency & ETag Caching Notes
 
 `CachingProjectionActor` provides automatic ETag-based caching:
+
 1. On query, checks if cached ETag matches current ETag from `IETagService`
 2. On cache hit → returns cached payload (no state store read)
 3. On cache miss → calls `ExecuteQueryAsync` (your implementation), caches result
 
 ETag invalidation happens via `IProjectionChangeNotifier` when projections process new events. This means:
+
 - After a command is processed → projection handler processes event → ETag invalidated → next query returns fresh data
 - The projection actor does NOT need to manage ETag invalidation — it's automatic
 

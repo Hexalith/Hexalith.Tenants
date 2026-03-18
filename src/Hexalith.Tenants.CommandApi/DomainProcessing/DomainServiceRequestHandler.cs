@@ -4,6 +4,13 @@ using Hexalith.EventStore.Contracts.Results;
 
 namespace Hexalith.Tenants.CommandApi.DomainProcessing;
 
+internal static class DomainProcessorMismatchMessages
+{
+    public const string MissingHandleMethod = "No Handle method found for command type";
+
+    public const string MissingApplyMethodOnState = "No matching Apply method found on state";
+}
+
 internal sealed class DomainServiceRequestHandler(
     IEnumerable<IDomainProcessor> processors,
     ILogger<DomainServiceRequestHandler> logger)
@@ -32,6 +39,6 @@ internal sealed class DomainServiceRequestHandler(
     }
 
     private static bool IsProcessorMismatch(InvalidOperationException ex)
-        => ex.Message.Contains("No Handle method found for command type", StringComparison.Ordinal)
-        || ex.Message.Contains("Unable to rehydrate aggregate state", StringComparison.Ordinal);
+        => ex.Message.Contains(DomainProcessorMismatchMessages.MissingHandleMethod, StringComparison.Ordinal)
+        || ex.Message.Contains(DomainProcessorMismatchMessages.MissingApplyMethodOnState, StringComparison.Ordinal);
 }

@@ -124,6 +124,9 @@ public class TenantIndexReadModelTests
     public void Apply_UserRemovedFromOneOfMultipleTenants_OtherMappingsRemain()
     {
         var model = new TenantIndexReadModel();
+        model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
+        model.Apply(new TenantCreated("beta", "Beta Inc", null, DateTimeOffset.UtcNow));
+        model.Apply(new TenantCreated("gamma", "Gamma LLC", null, DateTimeOffset.UtcNow));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
         model.Apply(new UserAddedToTenant("beta", "user1", TenantRole.TenantReader));
         model.Apply(new UserAddedToTenant("gamma", "user1", TenantRole.TenantContributor));
@@ -185,11 +188,51 @@ public class TenantIndexReadModelTests
     public void Apply_UserRoleChanged_UpdatesRoleInMapping()
     {
         var model = new TenantIndexReadModel();
+        model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantReader));
 
         model.Apply(new UserRoleChanged("acme", "user1", TenantRole.TenantReader, TenantRole.TenantContributor));
 
         model.UserTenants["user1"]["acme"].ShouldBe(TenantRole.TenantContributor);
+    }
+
+    [Fact]
+    public void Apply_DuplicateTenantCreated_PreservesExistingTenantState()
+    {
+        var model = new TenantIndexReadModel();
+        model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "updated desc"));
+        model.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        model.Apply(new TenantCreated("acme", "Stale Name", null, DateTimeOffset.UtcNow));
+
+        model.Tenants["acme"].Name.ShouldBe("Acme Updated");
+        model.Tenants["acme"].Status.ShouldBe(TenantStatus.Disabled);
+    }
+
+    [Fact]
+    public void Apply_UserAddedToTenantWhenTenantNotInIndex_IgnoresEvent()
+    {
+        var model = new TenantIndexReadModel();
+
+        model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
+
+        model.UserTenants.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Apply_UserRoleChangedWhenTenantMappingMissing_DoesNotCreateMembership()
+    {
+        var model = new TenantIndexReadModel();
+        model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
+        model.Apply(new TenantCreated("beta", "Beta Inc", null, DateTimeOffset.UtcNow));
+        model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantReader));
+
+        model.Apply(new UserRoleChanged("beta", "user1", TenantRole.TenantReader, TenantRole.TenantContributor));
+
+        model.UserTenants["user1"].Count.ShouldBe(1);
+        model.UserTenants["user1"]["acme"].ShouldBe(TenantRole.TenantReader);
+        model.UserTenants["user1"].ShouldNotContainKey("beta");
     }
 
     // IX13: Full lifecycle test across multiple tenants and users

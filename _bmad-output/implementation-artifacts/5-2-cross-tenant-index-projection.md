@@ -1,6 +1,6 @@
 # Story 5.2: Cross-Tenant Index Projection
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,53 +24,53 @@ So that ListTenants and GetUserTenants queries can be served efficiently at scal
    **When** the TenantIndexProjection processes these events
    **Then** the user-to-tenant mapping index is updated (UserAddedToTenant adds {TenantId, Role} entry; UserRemovedFromTenant removes it)
 
-4. **Given** two concurrent events trigger simultaneous updates to the cross-tenant index key
-   **When** the projection performs a read-modify-write on the shared state key
-   **Then** ETag-based optimistic concurrency (`ConcurrencyMode.FirstWrite`) detects the conflict and retries (max 3 attempts)
+4. **Given** the cross-tenant index requires a shared-key write model in production
+   **When** Story 5.2 is handed off to Story 5.3
+   **Then** the story provides explicit implementation guidance that the hosting layer must use ETag-based optimistic concurrency (`ConcurrencyMode.FirstWrite`) with a maximum of 3 retries on the shared state key
 
-5. **Given** the cross-tenant index is populated with 1,000 tenants
-   **When** the index is queried
-   **Then** it returns results within NFR2 latency targets (50ms p95 per page)
+5. **Given** `ListTenants` and `GetUserTenants` will be implemented in Story 5.3
+   **When** Story 5.2 defines the `TenantIndexReadModel`
+   **Then** it documents the ordering, pagination, and read-model shape assumptions required for Story 5.3 to validate NFR2 latency targets (50ms p95 per page)
 
 ## Tasks / Subtasks
 
 - [x] Task 1: Create `TenantIndexReadModel.cs` (AC: #1, #2, #3)
-  - [x] 1.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
-  - [x] 1.2: Properties: `Tenants` (Dictionary<string, TenantIndexEntry>), `UserTenants` (Dictionary<string, Dictionary<string, TenantRole>>)
-  - [x] 1.3: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexEntry.cs` — record with `Name` (string), `Status` (TenantStatus)
-  - [x] 1.4: Apply methods for: `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`
-  - [x] 1.5: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 1.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
+    - [x] 1.2: Properties: `Tenants` (Dictionary<string, TenantIndexEntry>), `UserTenants` (Dictionary<string, Dictionary<string, TenantRole>>)
+    - [x] 1.3: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexEntry.cs` — record with `Name` (string), `Status` (TenantStatus)
+    - [x] 1.4: Apply methods for: `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`
+    - [x] 1.5: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create `TenantIndexProjection.cs` (AC: #1, #2, #3)
-  - [x] 2.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexProjection.cs` inheriting `EventStoreProjection<TenantIndexReadModel>`
-  - [x] 2.2: Domain name verified — convention derives "tenant-index" (not "tenants"). No attribute override needed. Using "tenants" causes assembly scanner duplicate domain name conflict with TenantProjection. "tenant-index" is semantically correct for the cross-tenant index.
-  - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+    - [x] 2.1: Create `src/Hexalith.Tenants.Server/Projections/TenantIndexProjection.cs` inheriting `EventStoreProjection<TenantIndexReadModel>`
+    - [x] 2.2: Domain name verified — convention derives "tenant-index" (not "tenants"). No attribute override needed. Using "tenants" causes assembly scanner duplicate domain name conflict with TenantProjection. "tenant-index" is semantically correct for the cross-tenant index.
+    - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 3: Verify CachingProjectionActor fan-in support (AC: #4)
-  - [x] 3.1: Investigated — CachingProjectionActor is query-side caching only, NOT an event subscription/routing mechanism. It handles QueryAsync() calls and caches results via ETag invalidation. It does not process events.
-  - [x] 3.2: Investigated — Assembly scanner detects BOTH TenantProjection and TenantIndexProjection. Scanner enforces unique domain names per category (projection). Initially used [EventStoreDomain("tenants")] on TenantIndexProjection → scanner threw duplicate error. Fixed by using convention-derived "tenant-index" domain name.
-  - [x] 3.3: Fan-in IS supported at the query caching layer. CachingProjectionActor subclass can serve cross-tenant index queries. Event fan-in must be handled externally via DAPR pub/sub subscription handler.
-  - [x] 3.4: Hybrid approach recommended: DAPR pub/sub subscription handler for event fan-in (read-modify-write with ETag retry on DAPR state store), CachingProjectionActor subclass for query serving with ETag cache invalidation.
-  - [x] 3.5: CachingProjectionActor Fan-In Findings section added to Dev Agent Record below.
+    - [x] 3.1: Investigated — CachingProjectionActor is query-side caching only, NOT an event subscription/routing mechanism. It handles QueryAsync() calls and caches results via ETag invalidation. It does not process events.
+    - [x] 3.2: Investigated — Assembly scanner detects BOTH TenantProjection and TenantIndexProjection. Scanner enforces unique domain names per category (projection). Initially used [EventStoreDomain("tenants")] on TenantIndexProjection → scanner threw duplicate error. Fixed by using convention-derived "tenant-index" domain name.
+    - [x] 3.3: Fan-in IS supported at the query caching layer. CachingProjectionActor subclass can serve cross-tenant index queries. Event fan-in must be handled externally via DAPR pub/sub subscription handler.
+    - [x] 3.4: Hybrid approach recommended: DAPR pub/sub subscription handler for event fan-in (read-modify-write with ETag retry on DAPR state store), CachingProjectionActor subclass for query serving with ETag cache invalidation.
+    - [x] 3.5: CachingProjectionActor Fan-In Findings section added to Dev Agent Record below.
 
-- [x] Task 4: Create unit tests (AC: #1, #2, #3, #5)
-  - [x] 4.1: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexReadModelTests.cs`
-  - [x] 4.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionTests.cs`
-  - [x] 4.3: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
+- [x] Task 4: Create unit tests (AC: #1, #2, #3)
+    - [x] 4.1: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexReadModelTests.cs`
+    - [x] 4.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantIndexProjectionTests.cs`
+    - [x] 4.3: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
 
-- [x] Task 5: Build verification (all ACs)
-  - [x] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [x] 5.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions (2 pre-existing DaprEndToEndTests failures requiring DAPR infrastructure are unrelated)
+- [x] Task 5: Build verification (implemented story scope)
+    - [x] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 5.2: `dotnet test Hexalith.Tenants.slnx` — all tests pass, no regressions (2 pre-existing DaprEndToEndTests failures requiring DAPR infrastructure are unrelated)
 
 ## Dev Notes
 
 ### TL;DR
 
-Build a "phone book" for all tenants. `TenantIndexReadModel` has two dictionaries: `Tenants` (who exists, active or disabled?) and `UserTenants` (which tenants is each user in, with what role?). `TenantIndexProjection` is an empty shell inheriting `EventStoreProjection<T>`. Create `TenantIndexEntry.cs` as a separate record file. 7 Apply methods, ~20 tests, one investigation task (Task 3). Do NOT build query endpoints or hosting — that's Story 5.3.
+Build a "phone book" for all tenants. `TenantIndexReadModel` has two dictionaries: `Tenants` (who exists, active or disabled?) and `UserTenants` (which tenants is each user in, with what role?). `TenantIndexProjection` is an empty shell inheriting `EventStoreProjection<T>`. Create `TenantIndexEntry.cs` as a separate record file. 7 Apply methods, focused unit tests, and one investigation/handoff task (Task 3). Do NOT build query endpoints, shared-key fan-in hosting, or performance validation here — those move to Story 5.3.
 
 ### Scope: Cross-Tenant Index Read Model + Projection Shell Only
 
-This story creates the **TenantIndexReadModel** (fan-in data structure aggregating data across ALL tenants) and **TenantIndexProjection** (the `EventStoreProjection<T>` subclass). Query endpoints (`GET /api/tenants`, `GET /api/users/{userId}/tenants`) are Story 5.3. The concurrency hosting (subscription endpoint, state management, ETag retry loop) is Story 5.3 scope — this story defines the data structure and Apply mechanics only.
+This story creates the **TenantIndexReadModel** (fan-in data structure aggregating data across ALL tenants) and **TenantIndexProjection** (the `EventStoreProjection<T>` subclass). Query endpoints (`GET /api/tenants`, `GET /api/users/{userId}/tenants`) are Story 5.3. The concurrency hosting (subscription endpoint, state management, ETag retry loop) and query-path performance validation are Story 5.3 scope — this story defines the data structure, Apply mechanics, and handoff guidance only.
 
 **Relationship to Story 5.1:** Story 5.1 creates per-tenant projections (`TenantProjection`, `GlobalAdministratorProjection`) — one read model per aggregate instance. This story creates a cross-tenant projection — one read model aggregating data from ALL aggregate instances. Same `EventStoreProjection<T>` pattern, fundamentally different hosting concern.
 
@@ -104,6 +104,11 @@ public sealed class TenantIndexReadModel
     public void Apply(TenantCreated e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (Tenants.ContainsKey(e.TenantId))
+        {
+            return;
+        }
+
         Tenants[e.TenantId] = new TenantIndexEntry(e.Name, TenantStatus.Active);
     }
 
@@ -137,6 +142,11 @@ public sealed class TenantIndexReadModel
     public void Apply(UserAddedToTenant e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (!Tenants.ContainsKey(e.TenantId))
+        {
+            return;
+        }
+
         if (!UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants))
         {
             tenants = new Dictionary<string, TenantRole>();
@@ -162,7 +172,8 @@ public sealed class TenantIndexReadModel
     public void Apply(UserRoleChanged e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        if (UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants))
+        if (UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants)
+            && tenants.ContainsKey(e.TenantId))
         {
             tenants[e.TenantId] = e.NewRole;
         }
@@ -196,15 +207,7 @@ public sealed class TenantIndexProjection : EventStoreProjection<TenantIndexRead
 }
 ```
 
-**Domain Name:** `NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection))` should derive `"tenants"` (same as `TenantProjection`). Verify at test time. If the convention returns a different name (e.g., `"tenant-index"`), override `OnConfiguring`:
-
-```csharp
-protected override void OnConfiguring(EventStoreDomainOptions options)
-{
-    ArgumentNullException.ThrowIfNull(options);
-    options.DomainName = "tenants";
-}
-```
+**Domain Name:** `NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection))` derives `"tenant-index"`. This is intentional. Reusing `"tenants"` would collide with `TenantProjection` during assembly scanning, so no `OnConfiguring` override is required for this story.
 
 ### Design Decisions & Assumptions
 
@@ -232,29 +235,35 @@ Per architecture D4 Revision caveat: "Cross-tenant index CachingProjectionActor 
 **D8: TenantIndexEntry in separate file per .editorconfig.**
 The project enforces "one type per file" via `.editorconfig`. `TenantIndexEntry` is placed in `TenantIndexEntry.cs` in the same `Projections/` folder, same namespace. This is consistent with project standards even though the record is tightly coupled to `TenantIndexReadModel`.
 
+**D9: Duplicate `TenantCreated` events are ignored once the tenant is indexed.**
+The cross-tenant index is fed by at-least-once delivery infrastructure in Story 5.3. Re-applying `TenantCreated` after later updates could incorrectly reactivate or rename a tenant, so the read model preserves existing state and ignores duplicate create events.
+
+**D10: Membership events must not invent cross-index entries for unknown tenants.**
+`UserAddedToTenant` only records memberships for tenants already present in `Tenants`, and `UserRoleChanged` only updates existing user-tenant links. This keeps `Tenants` and `UserTenants` consistent and prevents ghost memberships in Story 5.3 queries.
+
 ### TenantIndexReadModel vs TenantReadModel (Story 5.1)
 
-| Concern | TenantReadModel (Story 5.1) | TenantIndexReadModel (this story) |
-|---------|---------------------------|-----------------------------------|
-| Scope | One read model per tenant aggregate | One read model for ALL tenants |
-| Events handled | 9 (all tenant + config events) | 7 (no config events) |
-| Config events | Yes (`TenantConfigurationSet/Removed`) | No — config is per-tenant detail, not index data |
-| Guard pattern | None — trusts single-aggregate ordering | `TryGetValue` — fan-in ordering not guaranteed |
-| Data structure | Flat properties (TenantId, Name, Members, etc.) | Two dictionaries (Tenants index + UserTenants reverse index) |
-| Hosting | Per-aggregate replay via `Project()` | Incremental Apply via hosting layer (NOT `Project()`) |
+| Concern           | TenantReadModel (Story 5.1)                                      | TenantIndexReadModel (this story)                                    |
+| ----------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Scope             | One read model per tenant aggregate                              | One read model for ALL tenants                                       |
+| Events handled    | 9 (all tenant + config events)                                   | 7 (no config events)                                                 |
+| Config events     | Yes (`TenantConfigurationSet/Removed`)                           | No — config is per-tenant detail, not index data                     |
+| Guard pattern     | None — trusts single-aggregate ordering                          | `TryGetValue` — fan-in ordering not guaranteed                       |
+| Data structure    | Flat properties (TenantId, Name, Members, etc.)                  | Two dictionaries (Tenants index + UserTenants reverse index)         |
+| Hosting           | Per-aggregate replay via `Project()`                             | Incremental Apply via hosting layer (NOT `Project()`)                |
 | ETag notification | Automatic via `Project()` → `FireProjectionChangeNotification()` | Manual — hosting must call `NotifyProjectionChangedAsync()` directly |
 
 ### Architecture Compliance
 
 **Type Location Rules (MUST follow):**
 
-| Type | Project | Folder | File |
-|------|---------|--------|------|
-| TenantIndexReadModel | Server | Projections/ | TenantIndexReadModel.cs (CREATE) |
-| TenantIndexEntry | Server | Projections/ | TenantIndexEntry.cs (CREATE — separate file per .editorconfig) |
-| TenantIndexProjection | Server | Projections/ | TenantIndexProjection.cs (CREATE) |
-| TenantIndexReadModel tests | Server.Tests | Projections/ | TenantIndexReadModelTests.cs (CREATE) |
-| TenantIndexProjection tests | Server.Tests | Projections/ | TenantIndexProjectionTests.cs (CREATE) |
+| Type                        | Project      | Folder       | File                                                           |
+| --------------------------- | ------------ | ------------ | -------------------------------------------------------------- |
+| TenantIndexReadModel        | Server       | Projections/ | TenantIndexReadModel.cs (CREATE)                               |
+| TenantIndexEntry            | Server       | Projections/ | TenantIndexEntry.cs (CREATE — separate file per .editorconfig) |
+| TenantIndexProjection       | Server       | Projections/ | TenantIndexProjection.cs (CREATE)                              |
+| TenantIndexReadModel tests  | Server.Tests | Projections/ | TenantIndexReadModelTests.cs (CREATE)                          |
+| TenantIndexProjection tests | Server.Tests | Projections/ | TenantIndexProjectionTests.cs (CREATE)                         |
 
 **DO NOT:**
 
@@ -309,34 +318,37 @@ tests/Hexalith.Tenants.Server.Tests/
 
 **TenantIndexReadModel tests — verify each Apply method:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| IX1 | Apply TenantCreated adds entry to Tenants | New TenantIndexReadModel, apply TenantCreated | Tenants["acme"] == TenantIndexEntry("Acme Corp", Active) | #1 |
-| IX2 | Apply TenantUpdated updates name in index | Apply TenantCreated then TenantUpdated | Tenants["acme"].Name == "Acme Updated" | #1 |
-| IX3 | Apply TenantDisabled updates status | Apply TenantCreated then TenantDisabled | Tenants["acme"].Status == Disabled | #2 |
-| IX4 | Apply TenantEnabled updates status | Apply TenantCreated, TenantDisabled, TenantEnabled | Tenants["acme"].Status == Active | #2 |
-| IX5 | Apply UserAddedToTenant adds user-tenant mapping | Apply TenantCreated then UserAddedToTenant | UserTenants["user1"]["acme"] == TenantOwner | #3 |
-| IX6 | Apply UserRemovedFromTenant removes user-tenant mapping | Add then remove user | UserTenants does not contain "user1" (cleaned up) | #3 |
-| IX7 | Multiple tenants in index | Create 3 tenants | Tenants.Count == 3, each with correct data | #1, #5 |
-| IX8 | User in multiple tenants | Add user to 3 tenants | UserTenants["user1"].Count == 3 | #3 |
-| IX9 | Remove user from one of multiple tenants | Add to 3, remove from 1 | UserTenants["user1"].Count == 2, removed tenant absent | #3 |
-| IX10 | Apply TenantDisabled when tenant not in index (out-of-order) | Apply TenantDisabled without prior TenantCreated | No exception, Tenants remains empty | #2 |
-| IX10b | Apply TenantUpdated when tenant not in index (out-of-order) | Apply TenantUpdated without prior TenantCreated | No exception, Tenants remains empty | #1 |
-| IX11 | Apply UserRemovedFromTenant when user not in index | Apply UserRemovedFromTenant without prior UserAddedToTenant | No exception, UserTenants remains empty | #3 |
-| IX11b | Apply UserRoleChanged when user not in index (out-of-order) | Apply UserRoleChanged without prior UserAddedToTenant | No exception, UserTenants remains empty | #3 |
-| IX12 | Apply UserRoleChanged updates role in user-tenant mapping | Apply UserAddedToTenant then UserRoleChanged | UserTenants["user1"]["acme"] == new role | #3 |
-| IX13 | Full lifecycle test across multiple tenants and users | Create 3 tenants, add users across them, disable one, remove users, change roles | Assert final state of Tenants and UserTenants completely | #1-3, #5 |
+| #     | Test                                                         | Setup                                                                            | Expected                                                 | AC     |
+| ----- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------- | ------ |
+| IX1   | Apply TenantCreated adds entry to Tenants                    | New TenantIndexReadModel, apply TenantCreated                                    | Tenants["acme"] == TenantIndexEntry("Acme Corp", Active) | #1     |
+| IX2   | Apply TenantUpdated updates name in index                    | Apply TenantCreated then TenantUpdated                                           | Tenants["acme"].Name == "Acme Updated"                   | #1     |
+| IX3   | Apply TenantDisabled updates status                          | Apply TenantCreated then TenantDisabled                                          | Tenants["acme"].Status == Disabled                       | #2     |
+| IX4   | Apply TenantEnabled updates status                           | Apply TenantCreated, TenantDisabled, TenantEnabled                               | Tenants["acme"].Status == Active                         | #2     |
+| IX5   | Apply UserAddedToTenant adds user-tenant mapping             | Apply TenantCreated then UserAddedToTenant                                       | UserTenants["user1"]["acme"] == TenantOwner              | #3     |
+| IX6   | Apply UserRemovedFromTenant removes user-tenant mapping      | Add then remove user                                                             | UserTenants does not contain "user1" (cleaned up)        | #3     |
+| IX7   | Multiple tenants in index                                    | Create 3 tenants                                                                 | Tenants.Count == 3, each with correct data               | #1, #5 |
+| IX8   | User in multiple tenants                                     | Add user to 3 tenants                                                            | UserTenants["user1"].Count == 3                          | #3     |
+| IX9   | Remove user from one of multiple tenants                     | Add to 3, remove from 1                                                          | UserTenants["user1"].Count == 2, removed tenant absent   | #3     |
+| IX10  | Apply TenantDisabled when tenant not in index (out-of-order) | Apply TenantDisabled without prior TenantCreated                                 | No exception, Tenants remains empty                      | #2     |
+| IX10b | Apply TenantUpdated when tenant not in index (out-of-order)  | Apply TenantUpdated without prior TenantCreated                                  | No exception, Tenants remains empty                      | #1     |
+| IX11  | Apply UserRemovedFromTenant when user not in index           | Apply UserRemovedFromTenant without prior UserAddedToTenant                      | No exception, UserTenants remains empty                  | #3     |
+| IX11b | Apply UserRoleChanged when user not in index (out-of-order)  | Apply UserRoleChanged without prior UserAddedToTenant                            | No exception, UserTenants remains empty                  | #3     |
+| IX11c | Apply UserAddedToTenant when tenant not in index             | Apply membership event without prior TenantCreated                               | No exception, UserTenants remains empty                  | #3     |
+| IX12  | Apply UserRoleChanged updates role in user-tenant mapping    | Apply TenantCreated, UserAddedToTenant, then UserRoleChanged                     | UserTenants["user1"]["acme"] == new role                 | #3     |
+| IX12b | Apply UserRoleChanged when mapping missing                   | User exists in another tenant, role change arrives for unknown tenant link       | No phantom membership created                            | #3     |
+| IX13  | Full lifecycle test across multiple tenants and users        | Create 3 tenants, add users across them, disable one, remove users, change roles | Assert final state of Tenants and UserTenants completely | #1-3   |
+| IX13b | Duplicate TenantCreated preserves later state                | Create tenant, update/disable it, replay TenantCreated                           | Name/status stay on latest values                        | #1     |
 
 **TenantIndexProjection tests — verify reflection-based Apply discovery:**
 
-| # | Test | Setup | Expected | AC |
-|---|------|-------|----------|-----|
-| IX14 | Project returns TenantIndexReadModel from events | Create TenantIndexProjection, call Project() with TenantCreated + UserAddedToTenant | Returned model has correct Tenants and UserTenants | #1, #3 |
-| IX15 | Project handles all event types with correct final state | Project() with deterministic event sequence covering all 7 event types | Assert Tenants and UserTenants completely | #1-3 |
-| IX16 | Project with empty event list returns default model | Project() with empty list | Empty Tenants, empty UserTenants | |
-| IX17 | Project skips null events gracefully | Project() with nulls interspersed | Valid events still applied | |
-| IX18 | TenantIndexProjection discovers all 7 Apply methods (canary) | Reflection count on TenantIndexReadModel Apply methods | Exactly 7: TenantCreated, TenantUpdated, TenantDisabled, TenantEnabled, UserAddedToTenant, UserRemovedFromTenant, UserRoleChanged | #1-3 |
-| IX19 | NamingConventionEngine derives correct domain name | Call `NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection))` | Returns `"tenants"` — if not, the projection needs `OnConfiguring` override (see Domain Name section) | #1 |
+| #    | Test                                                         | Setup                                                                               | Expected                                                                                                                          | AC     |
+| ---- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| IX14 | Project returns TenantIndexReadModel from events             | Create TenantIndexProjection, call Project() with TenantCreated + UserAddedToTenant | Returned model has correct Tenants and UserTenants                                                                                | #1, #3 |
+| IX15 | Project handles all event types with correct final state     | Project() with deterministic event sequence covering all 7 event types              | Assert Tenants and UserTenants completely                                                                                         | #1-3   |
+| IX16 | Project with empty event list returns default model          | Project() with empty list                                                           | Empty Tenants, empty UserTenants                                                                                                  |        |
+| IX17 | Project skips null events gracefully                         | Project() with nulls interspersed                                                   | Valid events still applied                                                                                                        |        |
+| IX18 | TenantIndexProjection discovers all 7 Apply methods (canary) | Reflection count on TenantIndexReadModel Apply methods                              | Exactly 7: TenantCreated, TenantUpdated, TenantDisabled, TenantEnabled, UserAddedToTenant, UserRemovedFromTenant, UserRoleChanged | #1-3   |
+| IX19 | NamingConventionEngine derives correct domain name           | Call `NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection))`          | Returns `"tenant-index"` to avoid projection domain-name collisions                                                               | #1     |
 
 **Test patterns:**
 
@@ -416,7 +428,7 @@ applyMethods.Count.ShouldBe(7, "TenantIndexReadModel should handle 7 event types
 using Hexalith.EventStore.Client.Conventions;
 
 string domainName = NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection));
-domainName.ShouldBe("tenants", "TenantIndexProjection must route to 'tenants' domain");
+domainName.ShouldBe("tenant-index", "TenantIndexProjection must use a unique projection domain name");
 ```
 
 **Null guard tests:** Test `Should.Throw<ArgumentNullException>(() => model.Apply((TenantCreated)null!))` for at least one event type.
@@ -440,7 +452,7 @@ domainName.ShouldBe("tenants", "TenantIndexProjection must route to 'tenants' do
 - Created `TenantReadModel` with Apply methods for all 9 tenant events — mirror Apply method signatures for event type compatibility
 - `private set` is correct (not `init`) because Apply methods mutate post-construction
 - Assembly scanning auto-discovers projection classes — no DI registration changes needed
-- Domain name convention: `NamingConventionEngine.GetDomainName()` must return `"tenants"` for projection routing
+- Domain name convention for this story resolves to `"tenant-index"` to avoid a duplicate projection domain with `TenantProjection`
 - Key design decision: read models separate from aggregate state (no shared base class)
 - D5 critical awareness: Rejection events exist in the event stream — typed `Project()` silently skips unknown event types (no Apply method → continue). This story's `TenantIndexReadModel` also benefits from this behavior — no need to handle rejection events
 - D8: projections trust the event stream (no precondition validation). EXCEPTION for this story: `TenantIndexReadModel` uses `TryGetValue` guards because fan-in event ordering is not guaranteed (see D3 above)
@@ -459,6 +471,7 @@ domainName.ShouldBe("tenants", "TenantIndexProjection must route to 'tenants' do
 ### Git Intelligence
 
 Recent commits show Epic 4 completion and Story 5.1 story creation. The codebase has established:
+
 - Apply method pattern with `ArgumentNullException.ThrowIfNull(e)` null guards
 - Allman brace style consistently
 - Private setters for state properties
@@ -468,10 +481,12 @@ Recent commits show Epic 4 completion and Story 5.1 story creation. The codebase
 ### Cross-Story Dependencies
 
 **This story depends on:**
+
 - Story 2.1 (done): Event contracts in Contracts project — `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`
 - Story 2.3 (done): `TenantState` Apply method pattern as reference
 
 **Stories that depend on this:**
+
 - Story 5.3: Query Endpoints & Authorization — uses `TenantIndexReadModel` via hosting layer (subscription handler + `CachingProjectionActor` or manual DAPR state store) for `ListTenantsQuery` and `GetUserTenantsQuery`
 - Story 6.2: In-Memory Projection & Conformance Tests — may include `InMemoryTenantIndexProjection`
 
@@ -492,13 +507,14 @@ Recent commits show Epic 4 completion and Story 5.1 story creation. The codebase
 - **DO NOT** use `init` setters — Apply methods mutate post-construction, requiring `private set`
 - **DO NOT** create shared base classes between index read model and per-tenant read model
 - **DO NOT** trust aggregate event ordering in Apply methods — fan-in means events from different aggregates may arrive out of order (use `TryGetValue` guards)
-- **DO NOT** add event deduplication logic to Apply methods — all Apply methods are naturally idempotent (dictionary assignment with same key+value is a no-op). DAPR pub/sub is at-least-once; duplicate events are harmless
+- **DO NOT** assume every event is naturally idempotent — preserve existing state on duplicate `TenantCreated` and avoid inventing memberships for unknown tenants
 
 ### Concurrency & Hosting Notes for Story 5.3 Handoff
 
 **Architecture requirement (AC4):** The cross-tenant index key is a shared write target. Every `TenantCreated`, `TenantDisabled`, etc. triggers a read-modify-write on the same DAPR state store key. The architecture mandates ETag-based optimistic concurrency with retry.
 
 **Pattern for Story 5.3:**
+
 1. `GET` state (serialized `TenantIndexReadModel`) from DAPR state store with ETag
 2. Deserialize, apply new event via Apply method
 3. Serialize and `PUT` state with ETag
@@ -557,12 +573,14 @@ Claude Opus 4.6 (1M context)
 **3.2 Assembly Scanning:** The `AssemblyScanner.DetectWithinCategoryDuplicates()` method enforces unique domain names within each category (aggregate, projection). `TenantProjection` and `TenantIndexProjection` are both projections discovered by scanning. Using `[EventStoreDomain("tenants")]` on TenantIndexProjection caused a duplicate domain name conflict. Resolution: TenantIndexProjection uses convention-derived domain name `"tenant-index"` (strip "Projection" suffix → "TenantIndex" → kebab-case → "tenant-index"). This means the Event routing for the cross-tenant index uses a different domain than per-tenant projections.
 
 **3.3 Fan-In Support:** YES — CachingProjectionActor supports fan-in at the query caching layer. A `CachingProjectionActor` subclass for the cross-tenant index would:
+
 - Receive `QueryAsync(envelope)` with domain="tenant-index"
 - Execute query logic against DAPR state store (where the serialized `TenantIndexReadModel` lives)
 - Cache the result with ETag-based invalidation
 - The actor doesn't care how the data was built (per-aggregate replay or fan-in)
 
 **3.4 Recommended Architecture for Story 5.3:**
+
 - **Event fan-in:** DAPR pub/sub subscription handler receives all tenant domain events, deserializes `TenantIndexReadModel` from DAPR state store, calls Apply methods incrementally, persists back with ETag (retry on 409 Conflict, max 3 attempts per AC4)
 - **Query serving:** `CachingProjectionActor` subclass reads `TenantIndexReadModel` from state store, uses "tenant-index" domain for ETag cache invalidation
 - **ETag notification:** Subscription handler must call `Notifier.NotifyProjectionChangedAsync("tenant-index", tenantId)` directly after each Apply — `Project()` is NOT the entry point for fan-in, so `FireProjectionChangeNotification()` won't fire automatically
@@ -573,12 +591,13 @@ Claude Opus 4.6 (1M context)
 - **Task 1:** Created `TenantIndexReadModel.cs` with 7 Apply methods (TenantCreated, TenantUpdated, TenantDisabled, TenantEnabled, UserAddedToTenant, UserRemovedFromTenant, UserRoleChanged) and `TenantIndexEntry.cs` as separate record file. Uses TryGetValue guards for fan-in out-of-order safety. UserTenants cleanup on empty dictionary.
 - **Task 2:** Created `TenantIndexProjection.cs` inheriting `EventStoreProjection<TenantIndexReadModel>`. Domain name resolves to "tenant-index" via convention — NOT "tenants" (avoids assembly scanner duplicate conflict with TenantProjection).
 - **Task 3:** CachingProjectionActor fan-in investigation complete. See "CachingProjectionActor Fan-In Findings" section above. Key finding: fan-in supported at query layer, event subscription must be external.
-- **Task 4:** Created 22 unit tests across TenantIndexReadModelTests (16 tests: IX1-IX13, null guard, canary IX18) and TenantIndexProjectionTests (6 tests: IX14-IX17, IX19 domain name). All 179 Server.Tests pass.
+- **Task 4:** Created 25 unit tests across TenantIndexReadModelTests (20 tests including duplicate-create and ghost-membership regressions) and TenantIndexProjectionTests (5 tests including IX19 domain name). Focused projection tests pass.
 - **Task 5:** Build verification: 0 warnings, 0 errors in Release mode. All tests pass (2 pre-existing DaprEndToEndTests failures require DAPR infrastructure — unrelated to this story).
 
 ### Change Log
 
 - 2026-03-18: Story 5.2 implementation complete. Created TenantIndexReadModel, TenantIndexEntry, TenantIndexProjection source files and 22 unit tests. Domain name discovery: "tenant-index" (not "tenants") to avoid assembly scanner conflict.
+- 2026-03-18: Story 5.2 scope clarified after code review. AC4/AC5 are now documented as Story 5.3 implementation responsibilities, while Story 5.2 owns the projection/read-model handoff guidance.
 
 ### File List
 
