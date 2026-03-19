@@ -1,6 +1,6 @@
 # Story 7.3: Stateless Scaling & Snapshot Configuration
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -38,30 +38,30 @@ So that I can scale horizontally, restart without data loss, and maintain operat
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Configure snapshot interval for tenant domain (AC: #2, #3)
-  - [ ] 1.1: In `src/Hexalith.Tenants.CommandApi/appsettings.json`, add the `EventStore:Snapshots` section with `DomainIntervals` setting `tenants` to `50`. The `DefaultInterval` stays at `100` (EventStore's default in `SnapshotOptions`) — this covers GlobalAdministratorAggregate's low event volume. Do NOT set `TenantDomainIntervals` — the `system` tenant uses the same domain interval as any other tenant
-  - [ ] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 1: Configure snapshot interval for tenant domain (AC: #2, #3)
+    - [x] 1.1: In `src/Hexalith.Tenants.CommandApi/appsettings.json`, add the `EventStore:Snapshots` section with `DomainIntervals` setting `tenants` to `50`. The `DefaultInterval` stays at `100` (EventStore's default in `SnapshotOptions`) — this covers GlobalAdministratorAggregate's low event volume. Do NOT set `TenantDomainIntervals` — the `system` tenant uses the same domain interval as any other tenant
+    - [x] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 2: Create snapshot configuration unit test (AC: #2, #3)
-  - [ ] 2.1: Create `tests/Hexalith.Tenants.Server.Tests/Configuration/SnapshotConfigurationTests.cs` — test that verifies the `appsettings.json` snapshot configuration loads correctly into `SnapshotOptions`. Use `ConfigurationBuilder` with `AddJsonFile("appsettings.json")` and bind to `SnapshotOptions`. Assert: `DomainIntervals["tenants"] == 50`, `DefaultInterval == 100`. This is a Tier 1 test (no infrastructure). Copy `appsettings.json` to test output via `<Content Include="...appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />` in test csproj
-  - [ ] 2.2: Verify build and test: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"`
+- [x] Task 2: Create snapshot configuration unit test (AC: #2, #3)
+    - [x] 2.1: Create `tests/Hexalith.Tenants.Server.Tests/Configuration/SnapshotConfigurationTests.cs` — test that verifies the `appsettings.json` snapshot configuration loads correctly into `SnapshotOptions`. Use `ConfigurationBuilder` with `AddJsonFile("appsettings.json")` and bind to `SnapshotOptions`. Assert: `DomainIntervals["tenants"] == 50`, `DefaultInterval == 100`. This is a Tier 1 test (no infrastructure). Copy `appsettings.json` to test output via `<Content Include="...appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />` in test csproj
+    - [x] 2.2: Verify build and test: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"`
 
-- [ ] Task 3: Create stateless restart verification test (AC: #1)
-  - [ ] 3.1: Create `tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs` — Tier 2 integration test using the existing `TenantsDaprTestFixture`. Send a `CreateTenant` command via actor proxy, verify accepted. Then create a **new** actor proxy for the same actor ID (simulating restart/rehydration — DAPR actors deactivate and reactivate, replaying state from the state store). Send `DisableTenant` to the same tenant, verify accepted (proves state was reconstructed from event store). Mark with `[Trait("Category", "Integration")]`
-  - [ ] 3.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 3: Create stateless restart verification test (AC: #1)
+    - [x] 3.1: Create `tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs` — Tier 2 integration test using the existing `TenantsDaprTestFixture`. Send a `CreateTenant` command via actor proxy, verify accepted. Then create a **new** actor proxy for the same actor ID (simulating restart/rehydration — DAPR actors deactivate and reactivate, replaying state from the state store). Send `DisableTenant` to the same tenant, verify accepted (proves state was reconstructed from event store). Mark with `[Trait("Category", "Integration")]`
+    - [x] 3.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 4: Create graceful degradation verification test (AC: #4, #5)
-  - [ ] 4.1: Create `tests/Hexalith.Tenants.IntegrationTests/GracefulDegradationTests.cs` — Tier 2 integration test using the existing `TenantsDaprTestFixture`. The test verifies that commands succeed even when pub/sub publication fails. The EventStore's `AggregateActor` already handles this: when pub/sub fails, events are persisted in the state store and a drain reminder is scheduled (Story 4.4 drain recovery). The test: (1) Configure the `FakeEventPublisher` in the fixture to throw on publish (simulating pub/sub outage), (2) Send `CreateTenant` command via actor proxy, (3) Verify the command result indicates events were persisted (`EventCount == 1`) even though publication failed (`result.Status` may be `PublishFailed` — this is expected terminal state, NOT a failure for AC #4 — the key assertion is that events are **persisted**, not lost), (4) Reset the `FakeEventPublisher` to succeed, (5) Trigger drain recovery (invoke the actor's reminder mechanism or wait for auto-drain), (6) Verify events are eventually published. Mark with `[Trait("Category", "Integration")]`
-  - [ ] 4.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 4: Create graceful degradation verification test (AC: #4, #5)
+    - [x] 4.1: Create `tests/Hexalith.Tenants.IntegrationTests/GracefulDegradationTests.cs` — Tier 2 integration test using the existing `TenantsDaprTestFixture`. The test verifies that commands succeed even when pub/sub publication fails. The EventStore's `AggregateActor` already handles this: when pub/sub fails, events are persisted in the state store and a drain reminder is scheduled (Story 4.4 drain recovery). The test: (1) Configure the `FakeEventPublisher` in the fixture to throw on publish (simulating pub/sub outage), (2) Send `CreateTenant` command via actor proxy, (3) Verify the command result indicates events were persisted (`EventCount == 1`) even though publication failed (`result.Status` may be `PublishFailed` — this is expected terminal state, NOT a failure for AC #4 — the key assertion is that events are **persisted**, not lost), (4) Reset the `FakeEventPublisher` to succeed, (5) Trigger drain recovery (invoke the actor's reminder mechanism or wait for auto-drain), (6) Verify events are eventually published. Mark with `[Trait("Category", "Integration")]`
+    - [x] 4.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 5: Create snapshot performance test scaffold (AC: #6)
-  - [ ] 5.1: Create `tests/Hexalith.Tenants.IntegrationTests/SnapshotPerformanceTests.cs` — Tier 3 performance test. Mark with `[Trait("Category", "Performance")]` for CI filtering (nightly schedule only, NOT on every PR). The test: (1) Seed 1,000 tenant aggregates via actor proxies with 500 events each (Create + 499 Update/AddUser/SetConfig commands per tenant) — use parallel Task execution with `SemaphoreSlim` to limit concurrency, (2) Deactivate all actors (force cold-start), (3) Measure cold-start rehydration time for a single actor: create a new actor proxy and send a command (triggers full rehydration from snapshot + tail events), (4) Assert rehydration completes in under 30 seconds. Note: This test requires a running DAPR sidecar with Redis state store. The 50-event snapshot interval means each tenant has ~10 snapshots, and rehydration replays at most 50 events from the last snapshot
-  - [ ] 5.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
+- [x] Task 5: Create snapshot performance test scaffold (AC: #6)
+    - [x] 5.1: Create `tests/Hexalith.Tenants.IntegrationTests/SnapshotPerformanceTests.cs` — Tier 3 performance test. Mark with `[Trait("Category", "Performance")]` for CI filtering (nightly schedule only, NOT on every PR). The test: (1) Seed 1,000 tenant aggregates via actor proxies with 500 events each (Create + 499 Update/AddUser/SetConfig commands per tenant) — use parallel Task execution with `SemaphoreSlim` to limit concurrency, (2) Deactivate all actors (force cold-start), (3) Measure cold-start rehydration time for a single actor: create a new actor proxy and send a command (triggers full rehydration from snapshot + tail events), (4) Assert rehydration completes in under 30 seconds. Note: This test requires a running DAPR sidecar with Redis state store. The 50-event snapshot interval means each tenant has ~10 snapshots, and rehydration replays at most 50 events from the last snapshot
+    - [x] 5.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [ ] Task 6: Full solution validation
-  - [ ] 6.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-  - [ ] 6.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration&Category!=Performance"` — all Tier 1+2 tests pass (422+N, N = new snapshot config test)
-  - [ ] 6.3: Verify no existing tests broken by configuration changes
+- [x] Task 6: Full solution validation
+    - [x] 6.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
+    - [x] 6.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration&Category!=Performance"` — all Tier 1+2 tests pass (422+N, N = new snapshot config test)
+    - [x] 6.3: Verify no existing tests broken by configuration changes
 
 ## Dev Notes
 
@@ -79,19 +79,19 @@ This story validates three architectural properties that are **already implement
 
 ### What Already Exists (DO NOT Recreate)
 
-| Component | Location | Status |
-|-----------|----------|--------|
-| `SnapshotManager` (configurable intervals) | `Hexalith.EventStore.Server.Events.SnapshotManager` | Complete — three-tier resolution: tenant-domain > domain > default |
-| `SnapshotOptions` (configuration model) | `Hexalith.EventStore.Server.Configuration.SnapshotOptions` | Complete — `DefaultInterval`, `DomainIntervals`, `TenantDomainIntervals` |
-| `ISnapshotManager` DI registration | `EventStoreServerServiceCollectionExtensions.AddEventStoreServer()` | Complete — binds `EventStore:Snapshots` config section |
-| `AggregateActor` snapshot integration | `Hexalith.EventStore.Server.Actors.AggregateActor` | Complete — Step 5b creates snapshots after event persistence |
-| `AggregateActor` drain recovery | `Hexalith.EventStore.Server.Actors.AggregateActor` (Story 4.4) | Complete — `IRemindable` for pub/sub failure recovery |
-| `FakeSnapshotManager` for testing | `Hexalith.EventStore.Testing.Fakes.FakeSnapshotManager` | Complete — in-memory implementation with assertion helpers |
-| `FakeEventPublisher` for testing | `Hexalith.EventStore.Testing.Fakes.FakeEventPublisher` | Complete — used in `TenantsDaprTestFixture` |
-| DAPR resiliency YAML | `src/Hexalith.Tenants.AppHost/DaprComponents/resiliency.yaml` | Complete — pub/sub circuit breaker, state store retry |
-| `TenantsDaprTestFixture` | `tests/Hexalith.Tenants.IntegrationTests/Fixtures/` | Complete — boots CommandApi with local daprd sidecar |
-| Health check endpoints | `ServiceDefaults.MapDefaultEndpoints()` | Complete — `/health`, `/alive`, `/ready` |
-| Telemetry instrumentation | Story 7.2 | Complete — command spans, projection metrics, health checks |
+| Component                                  | Location                                                            | Status                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `SnapshotManager` (configurable intervals) | `Hexalith.EventStore.Server.Events.SnapshotManager`                 | Complete — three-tier resolution: tenant-domain > domain > default       |
+| `SnapshotOptions` (configuration model)    | `Hexalith.EventStore.Server.Configuration.SnapshotOptions`          | Complete — `DefaultInterval`, `DomainIntervals`, `TenantDomainIntervals` |
+| `ISnapshotManager` DI registration         | `EventStoreServerServiceCollectionExtensions.AddEventStoreServer()` | Complete — binds `EventStore:Snapshots` config section                   |
+| `AggregateActor` snapshot integration      | `Hexalith.EventStore.Server.Actors.AggregateActor`                  | Complete — Step 5b creates snapshots after event persistence             |
+| `AggregateActor` drain recovery            | `Hexalith.EventStore.Server.Actors.AggregateActor` (Story 4.4)      | Complete — `IRemindable` for pub/sub failure recovery                    |
+| `FakeSnapshotManager` for testing          | `Hexalith.EventStore.Testing.Fakes.FakeSnapshotManager`             | Complete — in-memory implementation with assertion helpers               |
+| `FakeEventPublisher` for testing           | `Hexalith.EventStore.Testing.Fakes.FakeEventPublisher`              | Complete — used in `TenantsDaprTestFixture`                              |
+| DAPR resiliency YAML                       | `src/Hexalith.Tenants.AppHost/DaprComponents/resiliency.yaml`       | Complete — pub/sub circuit breaker, state store retry                    |
+| `TenantsDaprTestFixture`                   | `tests/Hexalith.Tenants.IntegrationTests/Fixtures/`                 | Complete — boots CommandApi with local daprd sidecar                     |
+| Health check endpoints                     | `ServiceDefaults.MapDefaultEndpoints()`                             | Complete — `/health`, `/alive`, `/ready`                                 |
+| Telemetry instrumentation                  | Story 7.2                                                           | Complete — command spans, projection metrics, health checks              |
 
 ### Snapshot Configuration Detail
 
@@ -99,17 +99,18 @@ EventStore's `SnapshotOptions` is bound from `appsettings.json` at the path `Eve
 
 ```json
 {
-  "EventStore": {
-    "Snapshots": {
-      "DomainIntervals": {
-        "tenants": 50
-      }
+    "EventStore": {
+        "Snapshots": {
+            "DomainIntervals": {
+                "tenants": 50
+            }
+        }
     }
-  }
 }
 ```
 
 **Resolution order** (from `SnapshotManager.GetInterval()`):
+
 1. `TenantDomainIntervals["system:tenants"]` — NOT needed (no per-tenant override)
 2. `DomainIntervals["tenants"]` = 50 — **THIS IS WHAT WE SET**
 3. `DefaultInterval` = 100 — default from `SnapshotOptions`, covers GlobalAdministratorAggregate
@@ -121,6 +122,7 @@ EventStore's `SnapshotOptions` is bound from `appsettings.json` at the path `Eve
 ### Stateless Service Verification
 
 The tenant service is stateless by design:
+
 - `Program.cs` does NOT persist any state locally — no file writes, no in-memory caches surviving restarts
 - All domain state lives in the DAPR state store, managed by `AggregateActor`
 - Projections use `CachingProjectionActor` which rebuilds from state store on activation
@@ -131,6 +133,7 @@ The Tier 2 test for AC #1 simulates restart by creating a new actor proxy (DAPR 
 ### Graceful Degradation (NFR17)
 
 EventStore's `AggregateActor` 5-step pipeline handles pub/sub failure at Step 5:
+
 1. Events are persisted atomically in the DAPR state store (Step 5a — never lost)
 2. If pub/sub publication fails, the actor transitions to `PublishFailed` terminal state
 3. A drain record is stored alongside the events (same atomic batch)
@@ -144,18 +147,21 @@ The DAPR resiliency YAML (`resiliency.yaml`) adds circuit breaker protection: `p
 ### Test Strategy
 
 **Task 2 — Snapshot Configuration Test (Tier 1):**
+
 - Load `appsettings.json` via `ConfigurationBuilder`, bind to `SnapshotOptions`
 - Assert `DomainIntervals["tenants"] == 50` and `DefaultInterval == 100`
 - No infrastructure required — pure configuration binding test
 - Place in `tests/Hexalith.Tenants.Server.Tests/Configuration/`
 
 **Task 3 — Stateless Restart Test (Tier 2):**
+
 - Uses existing `TenantsDaprTestFixture` (DAPR sidecar + Redis)
 - Send CreateTenant, then create new actor proxy for same actor ID, send DisableTenant
 - Proves state survives actor deactivation/reactivation
 - `[Collection("TenantsDaprTest")]` for fixture sharing
 
 **Task 4 — Graceful Degradation Test (Tier 2):**
+
 - Uses existing `TenantsDaprTestFixture`
 - Manipulate `FakeEventPublisher` to simulate pub/sub outage
 - Verify events are persisted even when publication fails
@@ -163,6 +169,7 @@ The DAPR resiliency YAML (`resiliency.yaml`) adds circuit breaker protection: `p
 - `[Collection("TenantsDaprTest")]` for fixture sharing
 
 **Task 5 — Snapshot Performance Test (Tier 3, nightly only):**
+
 - Seed 500K events, cold-start rehydration, measure < 30s
 - `[Trait("Category", "Performance")]` — excluded from PR CI
 - May need dedicated infrastructure setup
@@ -210,6 +217,7 @@ tests/Hexalith.Tenants.IntegrationTests/
 ### Previous Story Intelligence (7.2)
 
 Story 7.2 established:
+
 - Telemetry instrumentation: `TenantActivitySource`, `TenantMetrics` in CommandApi
 - Health check: `DaprStateStoreHealthCheck` with `["ready"]` tag, `failureStatus: HealthStatus.Degraded`
 - ServiceDefaults updated with `.AddMeter("Hexalith.Tenants")`
@@ -219,6 +227,7 @@ Story 7.2 established:
 - `using Activity?` declaration vs manual disposal issue on .NET 10 — prefer manual `activity?.Dispose()` in `finally`
 
 Story 7.1 established:
+
 - AppHost topology with CommandApi and Sample, both with DAPR sidecars
 - Aspire topology smoke tests (3 tests) in IntegrationTests
 - The Sample does NOT use ServiceDefaults
@@ -226,20 +235,21 @@ Story 7.1 established:
 ### Git Intelligence
 
 Recent commits:
+
 - `e09dbea` — Story 7.1: Aspire hosting and smoke tests
 - `a1a9d53` — Refactor code structure (readability)
 - `3e4ef10` — InMemoryTenantService and TenantTestHelpers
 
 ### Technology Versions
 
-| Technology | Version | Source |
-|-----------|---------|--------|
-| .NET SDK | 10.0.103 | global.json |
-| DAPR SDK | 1.17.3 | Directory.Packages.props |
-| Aspire.Hosting | 13.1.2 | Directory.Packages.props |
-| xUnit | 2.9.3 | Directory.Packages.props |
-| Shouldly | 4.3.0 | Directory.Packages.props |
-| NSubstitute | 5.3.0 | Directory.Packages.props |
+| Technology     | Version  | Source                   |
+| -------------- | -------- | ------------------------ |
+| .NET SDK       | 10.0.103 | global.json              |
+| DAPR SDK       | 1.17.3   | Directory.Packages.props |
+| Aspire.Hosting | 13.1.2   | Directory.Packages.props |
+| xUnit          | 2.9.3    | Directory.Packages.props |
+| Shouldly       | 4.3.0    | Directory.Packages.props |
+| NSubstitute    | 5.3.0    | Directory.Packages.props |
 
 ### Project Structure Notes
 
@@ -273,10 +283,32 @@ Recent commits:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Added `EventStore:Snapshots` section to `appsettings.json` with `DomainIntervals["tenants"] = 50`. DefaultInterval remains at 100 (SnapshotOptions default), covering GlobalAdministratorAggregate. No TenantDomainIntervals set. Build: 0 warnings, 0 errors.
+- Task 2: Created 3 Tier 1 snapshot configuration tests: config loads correctly, passes validation, and has no TenantDomainIntervals. Added `<Content>` item in csproj to copy appsettings.json to test output. Server.Tests: 240 tests pass (up from 237).
+- Task 3: Created StatelessRestartTests.cs — Tier 2 integration test verifying state reconstruction after actor reactivation. Creates tenant, creates new proxy (simulates restart), sends DisableTenant, asserts success. Marked with `[Trait("Category", "Integration")]`.
+- Task 4: Created GracefulDegradationTests.cs — Tier 2 integration test with two tests: (1) Command_Succeeds_AndEventsPersisted_WhenPubSubUnavailable — uses FakeEventPublisher.SetupFailure() to simulate pub/sub outage, verifies Accepted=true and EventCount=1; (2) DrainRecovery_PublishesPendingEvents_WhenPubSubRecovers — verifies drain reminder eventually publishes events after FakeEventPublisher failure is cleared (polls up to 90 seconds). Uses reflection to clear FakeEventPublisher private \_failureMessage field (no ClearFailure() API available). Marked with `[Trait("Category", "Integration")]`.
+- Task 5: Created SnapshotPerformanceTests.cs — Tier 3 performance test scaffold. Seeds 1,000 tenants x 500 events each using parallel Task execution with SemaphoreSlim(50). Measures cold-start rehydration time with Stopwatch. Asserts < 30 seconds (NFR13). Uses mixed command types (AddUserToTenant, SetTenantConfiguration, UpdateTenant). Marked with `[Trait("Category", "Performance")]`.
+- Task 6: Full solution validation — build 0 warnings/0 errors, 437 non-integration tests pass, 2 pre-existing DaprEndToEndTests failures unchanged.
+
+### Implementation Plan
+
+Configuration-only story. Added snapshot interval config to appsettings.json. Created verification tests at three tiers: Tier 1 (config binding), Tier 2 (stateless restart + graceful degradation with DAPR actors), Tier 3 (performance scaffold for nightly CI). No EventStore code modified. No new NuGet packages.
+
 ### File List
+
+- `src/Hexalith.Tenants.CommandApi/appsettings.json` — MODIFIED: added EventStore:Snapshots section with DomainIntervals["tenants"]=50
+- `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — MODIFIED: added Content item for appsettings.json
+- `tests/Hexalith.Tenants.Server.Tests/Configuration/SnapshotConfigurationTests.cs` — NEW: Tier 1 config binding tests (3 tests)
+- `tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs` — NEW: Tier 2 stateless restart verification (1 test)
+- `tests/Hexalith.Tenants.IntegrationTests/GracefulDegradationTests.cs` — NEW: Tier 2 graceful degradation verification (2 tests)
+- `tests/Hexalith.Tenants.IntegrationTests/SnapshotPerformanceTests.cs` — NEW: Tier 3 performance test scaffold (1 test)
+
+## Change Log
+
+- 2026-03-19: Story 7.3 implementation complete — configured snapshot intervals for tenant domain (50 events) and created verification tests at all three tiers (config binding, DAPR integration, performance scaffold)
