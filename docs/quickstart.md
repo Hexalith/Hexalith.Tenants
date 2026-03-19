@@ -142,6 +142,7 @@ Before creating tenants, you must authorize an administrator. Expand the **POST 
 
 ```json
 {
+    "messageId": "01JNQV0001-bootstrap",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "global-administrators",
@@ -152,6 +153,8 @@ Before creating tenants, you must authorize an administrator. Expand the **POST 
 }
 ```
 
+> **`messageId`** is required — it is the idempotency key. Generate a unique value per command (e.g., a ULID). Resubmitting the same `messageId` is safely deduplicated.
+
 Click **Execute**. The API returns `202 Accepted` with a correlation ID. This registers `admin-user` as a global administrator who can create and manage tenants.
 
 ### Step 2: Create Your First Tenant
@@ -160,6 +163,7 @@ Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
 
 ```json
 {
+    "messageId": "01JNQV0002-create-tenant",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
@@ -222,6 +226,7 @@ Create a multi-step workflow — add a user to your new tenant:
 
 ```json
 {
+    "messageId": "01JNQV0003-add-user",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
