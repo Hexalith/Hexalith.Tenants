@@ -50,7 +50,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Core Tenant Management & Global Administration
-  epic-2: in-progress
+  epic-2: done
   2-1-tenant-domain-contracts: done
   2-2-global-administrator-aggregate: done
   2-3-tenant-aggregate-lifecycle: done
@@ -58,7 +58,7 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Tenant Membership, Roles & Configuration
-  epic-3: in-progress
+  epic-3: done
   3-1-user-role-management: done
   3-2-role-behavior-enforcement: done
   3-3-tenant-configuration-management: done
@@ -85,15 +85,15 @@ development_status:
   epic-6-retrospective: optional
 
   # Epic 7: Deployment & Observability
-  epic-7: in-progress
+  epic-7: done
   7-1-aspire-hosting-and-apphost: done
   7-2-opentelemetry-instrumentation-and-health-checks: done
   7-3-stateless-scaling-and-snapshot-configuration: done
   epic-7-retrospective: optional
 
   # Epic 8: Documentation & Adoption
-  epic-8: in-progress
+  epic-8: done
   8-1-quickstart-guide-and-readme: done
   8-2-event-contract-reference-and-technical-documentation: done
-  8-3-aha-moment-demo-and-project-documentation: ready-for-dev
+  8-3-aha-moment-demo-and-project-documentation: done
   epic-8-retrospective: optional

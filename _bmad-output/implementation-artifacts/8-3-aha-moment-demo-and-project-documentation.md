@@ -1,6 +1,6 @@
 # Story 8.3: "Aha Moment" Demo & Project Documentation
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,16 +30,16 @@ So that I can see the value of event-sourced tenant management in under 2 minute
 
 ## Tasks / Subtasks
 
-- [ ] Task 0: PREREQUISITE — Verify command payload field casing and enum format (MUST complete before writing ANY JSON examples)
-  - [ ] 0.1: **CRITICAL GATE**: The quickstart (`docs/quickstart.md`) uses PascalCase payload fields (`"TenantId"`, `"UserId"`) and **integer enums** (`"Role": 1` for TenantContributor). However, Story 8.2 notes suggest `JsonStringEnumConverter` may cause string serialization in events. The dev agent MUST verify: (a) What casing does the command payload deserializer accept? (b) Does `AddUserToTenant` accept `"Role": "TenantContributor"` (string) or `"Role": 1` (integer) or both? Inspect the `CommandsController` deserialization path and test against the running AppHost. Match the quickstart's verified format exactly. This determination affects EVERY JSON example in the demo and scripts. Do NOT proceed to Task 1.5+ until resolved.
+- [x] Task 0: PREREQUISITE — Verify command payload field casing and enum format (MUST complete before writing ANY JSON examples)
+  - [x] 0.1: **CRITICAL GATE**: The quickstart (`docs/quickstart.md`) uses PascalCase payload fields (`"TenantId"`, `"UserId"`) and **integer enums** (`"Role": 1` for TenantContributor). However, Story 8.2 notes suggest `JsonStringEnumConverter` may cause string serialization in events. The dev agent MUST verify: (a) What casing does the command payload deserializer accept? (b) Does `AddUserToTenant` accept `"Role": "TenantContributor"` (string) or `"Role": 1` (integer) or both? Inspect the `CommandsController` deserialization path and test against the running AppHost. Match the quickstart's verified format exactly. This determination affects EVERY JSON example in the demo and scripts. Do NOT proceed to Task 1.5+ until resolved.
 
-- [ ] Task 1: Create `docs/demo.md` — "Aha Moment" demo walkthrough (AC: #1, #2)
-  - [ ] 1.1: Write introduction explaining the demo's purpose: prove reactive cross-service access revocation. State that this demo uses the AppHost topology which launches CommandApi + Sample consuming service + DAPR sidecars + Redis. Clarify timing: "The demo sequence (Steps 1-6) takes under 2 minutes once the topology is running. Initial one-time setup (AppHost startup, JWT generation) is separate preparation — allow 5-10 minutes on first run."
-  - [ ] 1.2: Write prerequisites section (same prerequisites as quickstart: .NET 10, DAPR CLI + `dapr init`, Docker running)
-  - [ ] 1.3: Write "Start the Topology" section: `dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`. Note: first run pulls Docker images (allow 5-10 minutes). Wait for Aspire dashboard to show both `commandapi` and `sample` as running. **Include explicit instructions**: "In the terminal output, look for a line like `Login to the dashboard at https://localhost:17225/login?t=...` — open this URL in your browser. This is the Aspire dashboard. You will use it throughout the demo to find service URLs and view logs."
-  - [ ] 1.3a: Write a "Find Your Service URLs" sub-section immediately after startup: instruct the developer to click `commandapi` in the Aspire dashboard to find the CommandApi base URL (e.g., `https://localhost:{port}`), then click `sample` to find the Sample service base URL. Note these URLs for the remaining steps. Explain: "Aspire assigns ports dynamically — your ports will differ from the examples below. Replace `{commandapi-url}` and `{sample-url}` with your actual URLs throughout this guide."
-  - [ ] 1.4: Write JWT token acquisition step — reuse the exact same approach from `docs/quickstart.md` (dev signing key scripts for PowerShell and bash). Link to quickstart rather than duplicating the full JWT generation instructions — just include a brief "Generate a JWT token following the [Quickstart JWT section](quickstart.md#step-3-get-a-jwt-token)" reference and show the resulting `$TOKEN` / `TOKEN` variable. **Verify**: the JWT claims structure in the demo scripts must produce the same token format that the quickstart scripts produce — any mismatch causes `401 Unauthorized`
-  - [ ] 1.5: Write the 6-step demo sequence as a numbered walkthrough with command payloads. Use the casing and enum format verified in Task 0.
+- [x] Task 1: Create `docs/demo.md` — "Aha Moment" demo walkthrough (AC: #1, #2)
+  - [x] 1.1: Write introduction explaining the demo's purpose: prove reactive cross-service access revocation. State that this demo uses the AppHost topology which launches CommandApi + Sample consuming service + DAPR sidecars + Redis. Clarify timing: "The demo sequence (Steps 1-6) takes under 2 minutes once the topology is running. Initial one-time setup (AppHost startup, JWT generation) is separate preparation — allow 5-10 minutes on first run."
+  - [x] 1.2: Write prerequisites section (same prerequisites as quickstart: .NET 10, DAPR CLI + `dapr init`, Docker running)
+  - [x] 1.3: Write "Start the Topology" section: `dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`. Note: first run pulls Docker images (allow 5-10 minutes). Wait for Aspire dashboard to show both `commandapi` and `sample` as running. **Include explicit instructions**: "In the terminal output, look for a line like `Login to the dashboard at https://localhost:17225/login?t=...` — open this URL in your browser. This is the Aspire dashboard. You will use it throughout the demo to find service URLs and view logs."
+  - [x] 1.3a: Write a "Find Your Service URLs" sub-section immediately after startup: instruct the developer to click `commandapi` in the Aspire dashboard to find the CommandApi base URL (e.g., `https://localhost:{port}`), then click `sample` to find the Sample service base URL. Note these URLs for the remaining steps. Explain: "Aspire assigns ports dynamically — your ports will differ from the examples below. Replace `{commandapi-url}` and `{sample-url}` with your actual URLs throughout this guide."
+  - [x] 1.4: Write JWT token acquisition step — reuse the exact same approach from `docs/quickstart.md` (dev signing key scripts for PowerShell and bash). Link to quickstart rather than duplicating the full JWT generation instructions — just include a brief "Generate a JWT token following the [Quickstart JWT section](quickstart.md#step-3-get-a-jwt-token)" reference and show the resulting `$TOKEN` / `TOKEN` variable. **Verify**: the JWT claims structure in the demo scripts must produce the same token format that the quickstart scripts produce — any mismatch causes `401 Unauthorized`
+  - [x] 1.5: Write the 6-step demo sequence as a numbered walkthrough with command payloads. Use the casing and enum format verified in Task 0.
     **Before Step 1**, include a Swagger UI setup instruction: "Open `{commandapi-url}/swagger` in your browser. Click the **Authorize** button (top right), enter `Bearer {your-JWT-token}` (the token from the previous step), and click **Authorize**. You are now authenticated for all subsequent requests."
     For each step, include:
     - The JSON command body for `POST /api/v1/commands` — paste into the Swagger UI request body (do NOT include curl examples in demo.md; the automation scripts in `scripts/` handle programmatic HTTP)
@@ -109,7 +109,7 @@ So that I can see the value of event-sourced tenant management in under 2 minute
     - Observe: Tenant details showing the current state — the tenant exists with an empty members list (jane-doe was added then removed)
     - **Audit trail note**: The query endpoint shows the CURRENT projection state, not the event history. The full audit trail — `TenantCreated` → `UserAddedToTenant` → `UserRemovedFromTenant` with timestamps and actor IDs — lives in the event store. In the event-sourced model, no state change is ever lost: the add, the remove, who did it, and when are all preserved as immutable events. For audit queries by date range, see `GET /api/tenants/{tenantId}/audit` (FR29). For more on temporal auditability, see [Event Contract Reference](event-contract-reference.md)
 
-  - [ ] 1.6: Write a "What Just Happened?" section explaining the architecture behind the demo:
+  - [x] 1.6: Write a "What Just Happened?" section explaining the architecture behind the demo:
     - CommandApi processed the command and stored events atomically
     - Events were published asynchronously via DAPR pub/sub to the `system.tenants.events` topic
     - The Sample service received the event via its subscription endpoint
@@ -117,8 +117,8 @@ So that I can see the value of event-sourced tenant management in under 2 minute
     - The Sample's local projection (`ITenantProjectionStore`) was updated automatically
     - The `/access` endpoint reads from the local projection — no calls back to CommandApi
     - **Multi-service note**: This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `system.tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The PRD envisions this with Parties, Billing, and Reporting services all reacting to the same event. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription
-  - [ ] 1.7: Write a "Next Steps" section linking to: quickstart.md, event-contract-reference.md, the sample source code at `samples/Hexalith.Tenants.Sample/`
-  - [ ] 1.8: Write a "Troubleshooting" section at the end of demo.md covering:
+  - [x] 1.7: Write a "Next Steps" section linking to: quickstart.md, event-contract-reference.md, the sample source code at `samples/Hexalith.Tenants.Sample/`
+  - [x] 1.8: Write a "Troubleshooting" section at the end of demo.md covering:
     - **HTTPS certificate errors**: Aspire assigns HTTPS URLs with development certificates that are not trusted by default. For `curl`, add `-k` or `--insecure` flag. For PowerShell `Invoke-RestMethod`, add `-SkipCertificateCheck`. For browsers, click through the certificate warning. Alternatively, check if the Aspire dashboard shows HTTP endpoints alongside HTTPS
     - **`TenantAlreadyExists` on re-run**: If running the demo a second time, use a different tenant ID (e.g., `acme-demo-2`) or expect `TenantAlreadyExistsRejection` and `GlobalAdminAlreadyBootstrappedRejection` — these are correct behavior
     - **`401 Unauthorized`**: JWT token expired or claims mismatch — regenerate using the quickstart instructions
@@ -126,8 +126,8 @@ So that I can see the value of event-sourced tenant management in under 2 minute
     - **Access endpoint returns 500 error**: The local projection uses DAPR state store (Redis). Verify Redis is running: `docker ps | grep redis`. If Redis crashed, restart the AppHost
     - **First command fails with connection error (not 401/4xx)**: DAPR sidecars take a few seconds to initialize after the AppHost starts. Wait 10-15 seconds and retry. Check sidecar status in the Aspire dashboard — each service should show its sidecar as "Running"
 
-- [ ] Task 2: Create demo automation scripts (AC: #2)
-  - [ ] 2.1: Create `scripts/demo.ps1` (PowerShell) — automated demo script that:
+- [x] Task 2: Create demo automation scripts (AC: #2)
+  - [x] 2.1: Create `scripts/demo.ps1` (PowerShell) — automated demo script that:
     - Generates a JWT token using the dev signing key (same approach as quickstart — verify the claims structure produces the same token that the quickstart scripts produce)
     - Sends the 6 commands sequentially via `Invoke-RestMethod` to the CommandApi
     - Includes `Start-Sleep -Seconds 2` between steps to allow event propagation and visual observation
@@ -137,23 +137,23 @@ So that I can see the value of event-sourced tenant management in under 2 minute
     - Use realistic unique IDs to avoid conflicts on re-run (append timestamp or GUID suffix to tenant ID and user ID, e.g., `acme-demo-{timestamp}`)
     - Use the enum format verified in Task 0 for the `Role` field
     - **HTTPS handling**: Use `-SkipCertificateCheck` on all `Invoke-RestMethod` calls — Aspire dev certificates are not trusted by default
-  - [ ] 2.2: Create `scripts/demo.sh` (bash) — same automated demo script for bash/macOS/Linux:
+  - [x] 2.2: Create `scripts/demo.sh` (bash) — same automated demo script for bash/macOS/Linux:
     - Uses `curl` and `jq` (note jq as optional — graceful fallback to raw JSON)
     - **HTTPS handling**: Use `curl -k` (or `--insecure`) on all requests — Aspire dev certificates are not trusted by default
     - Same sequential flow with `sleep 2` between steps
     - Same prerequisite check and unique ID generation
     - Use the enum format verified in Task 0
-  - [ ] 2.3: Both scripts **MUST** accept `--base-url` (or `$COMMANDAPI_URL` env var) and `--sample-url` (or `$SAMPLE_URL` env var) as **required parameters with no defaults**. Aspire assigns ports dynamically — hardcoded defaults WILL break. If the user runs the script without providing URLs, print: "ERROR: --base-url and --sample-url are required. Find your service URLs in the Aspire dashboard (typically https://localhost:17225). Example: ./demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235"
-  - [ ] 2.4: Both scripts print a summary at the end showing: number of commands sent, access state transitions verified (granted → denied), demo cycle completed
+  - [x] 2.3: Both scripts **MUST** accept `--base-url` (or `$COMMANDAPI_URL` env var) and `--sample-url` (or `$SAMPLE_URL` env var) as **required parameters with no defaults**. Aspire assigns ports dynamically — hardcoded defaults WILL break. If the user runs the script without providing URLs, print: "ERROR: --base-url and --sample-url are required. Find your service URLs in the Aspire dashboard (typically https://localhost:17225). Example: ./demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235"
+  - [x] 2.4: Both scripts print a summary at the end showing: number of commands sent, access state transitions verified (granted → denied), demo cycle completed
 
-- [ ] Task 3: Update README.md with demo link (AC: #1)
-  - [ ] 3.1: Replace the `<!-- TODO: Story 8.3 — Add "aha moment" demo GIF/link here -->` placeholder with a "See It In Action" section linking to `docs/demo.md` and mentioning the automation scripts in `scripts/`
-  - [ ] 3.2: Write a brief 3-4 sentence description of what the demo shows (reactive access revocation across services)
+- [x] Task 3: Update README.md with demo link (AC: #1)
+  - [x] 3.1: Replace the `<!-- TODO: Story 8.3 — Add "aha moment" demo GIF/link here -->` placeholder with a "See It In Action" section linking to `docs/demo.md` and mentioning the automation scripts in `scripts/`
+  - [x] 3.2: Write a brief 3-4 sentence description of what the demo shows (reactive access revocation across services)
 
-- [ ] Task 4: Create CHANGELOG.md (AC: #3)
-  - [ ] 4.1: Create `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) format
-  - [ ] 4.2: Add an `[Unreleased]` section at the top (standard practice for pre-release)
-  - [ ] 4.3: Add a `[0.1.0] - YYYY-MM-DD` initial release entry (use the actual date when the first `v0.1.0` tag is created — do NOT hardcode today's date, as the release may happen later) with categorized items:
+- [x] Task 4: Create CHANGELOG.md (AC: #3)
+  - [x] 4.1: Create `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) format
+  - [x] 4.2: Add an `[Unreleased]` section at the top (standard practice for pre-release)
+  - [x] 4.3: Add a `[0.1.0] - YYYY-MM-DD` initial release entry (use the actual date when the first `v0.1.0` tag is created — do NOT hardcode today's date, as the release may happen later) with categorized items:
     **Added:**
     - Tenant lifecycle management (Create, Update, Disable, Enable) via event-sourced TenantAggregate
     - User-role management with three roles (TenantOwner, TenantContributor, TenantReader)
@@ -167,55 +167,55 @@ So that I can see the value of event-sourced tenant management in under 2 minute
     - Comprehensive documentation: quickstart guide, event contract reference, cross-aggregate timing, compensating commands
     - CI/CD pipeline with GitHub Actions (build, test, NuGet publish)
     - Sample consuming service demonstrating event subscription and access enforcement
-  - [ ] 4.4: Add footer links section: `[Unreleased]` and `[0.1.0]` linking to GitHub compare/tag URLs using the `Hexalith/Hexalith.Tenants` repository
+  - [x] 4.4: Add footer links section: `[Unreleased]` and `[0.1.0]` linking to GitHub compare/tag URLs using the `Hexalith/Hexalith.Tenants` repository
 
-- [ ] Task 5: Create CONTRIBUTING.md (AC: #4)
-  - [ ] 5.1: Write "Getting Started" section with development setup:
+- [x] Task 5: Create CONTRIBUTING.md (AC: #4)
+  - [x] 5.1: Write "Getting Started" section with development setup:
     - Prerequisites: .NET 10 SDK, DAPR CLI + `dapr init` (**full init, NOT `--slim`** — the Aspire topology requires the full DAPR runtime with placement service for actors), Docker
     - Clone with `--recurse-submodules` (EventStore submodule)
     - Build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
     - Test: `dotnet test Hexalith.Tenants.slnx`
     - Run locally: `dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`
     - Windows long path note: `git config --system core.longpaths true`
-  - [ ] 5.2: Write "Branch Naming Conventions" section:
+  - [x] 5.2: Write "Branch Naming Conventions" section:
     - `feat/<description>` — New features
     - `fix/<description>` — Bug fixes
     - `docs/<description>` — Documentation changes
     - `refactor/<description>` — Code refactoring
     - `test/<description>` — Test additions or changes
-  - [ ] 5.3: Write "Pull Request Process" section:
+  - [x] 5.3: Write "Pull Request Process" section:
     - Create a branch from `main`
     - Make changes and commit with descriptive messages
     - Ensure all Tier 1 and Tier 2 tests pass locally before submitting
     - Open a PR against `main` with a description of changes
     - CI will run automatically — PR must pass before merge
     - PRs require at least one approval
-  - [ ] 5.4: Write "Test Requirements" section:
+  - [x] 5.4: Write "Test Requirements" section:
     - All PRs must pass Tier 1 (unit) and Tier 2 (DAPR integration) tests
     - New domain logic requires Tier 1 tests with 100% branch coverage on authorization paths
     - Test framework: xUnit + Shouldly + NSubstitute
     - Coverage collected via coverlet (> 80% line coverage target)
-  - [ ] 5.5: Write "Code Style" section:
+  - [x] 5.5: Write "Code Style" section:
     - Code style enforced via `.editorconfig` (inherited from EventStore conventions)
     - Key conventions: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation, warnings as errors
     - Run `dotnet format` before committing to auto-fix formatting issues
-  - [ ] 5.6: Write "Submodule Management" section — contributors need to know how to work with the `Hexalith.EventStore` git submodule:
+  - [x] 5.6: Write "Submodule Management" section — contributors need to know how to work with the `Hexalith.EventStore` git submodule:
     - Initial clone: `git clone --recurse-submodules` (already in Getting Started)
     - Pulling submodule updates: `git submodule update --init --recursive` after pulling main
     - When the submodule reference changes in a PR: `git submodule update` to sync
     - Note: Do NOT modify files inside `Hexalith.EventStore/` directly — changes to the submodule must go through the EventStore repository
-  - [ ] 5.7: Write "Project Structure" section — brief overview referencing the README structure table
-  - [ ] 5.8: Write "Reporting Issues" section — link to GitHub Issues
+  - [x] 5.7: Write "Project Structure" section — brief overview referencing the README structure table
+  - [x] 5.8: Write "Reporting Issues" section — link to GitHub Issues
 
-- [ ] Task 6: Validation
-  - [ ] 6.1: Verify `docs/demo.md` is well-formed markdown with language-annotated code blocks
-  - [ ] 6.2: Verify all command payloads in demo.md use the same format as `docs/quickstart.md` — same field names, same casing, same envelope structure, same enum format (integer vs string for Role). Any mismatch = 400 Bad Request for the developer following the demo
-  - [ ] 6.3: Verify `scripts/demo.ps1` and `scripts/demo.sh` produce JWT tokens with the exact same claims structure as the quickstart scripts. Specifically verify: `sub`, `iss` (`hexalith-dev`), `aud` (`hexalith-tenants`), `tenants` array (`["system"]`), `exp` — any mismatch causes `401 Unauthorized`
-  - [ ] 6.4: Verify CHANGELOG.md follows Keep a Changelog format (https://keepachangelog.com/). `[Unreleased]` section should be empty (staging area for future changes)
-  - [ ] 6.5: Verify CONTRIBUTING.md references correct paths, test commands, and tools
-  - [ ] 6.6: Verify README.md demo placeholder is replaced with actual content
-  - [ ] 6.7: Verify cross-references between docs are valid (demo.md → quickstart.md, CONTRIBUTING.md → .editorconfig)
-  - [ ] 6.8: Verify `scripts/` directory is created (new directory — does not exist yet)
+- [x] Task 6: Validation
+  - [x] 6.1: Verify `docs/demo.md` is well-formed markdown with language-annotated code blocks
+  - [x] 6.2: Verify all command payloads in demo.md use the same format as `docs/quickstart.md` — same field names, same casing, same envelope structure, same enum format (integer vs string for Role). Any mismatch = 400 Bad Request for the developer following the demo
+  - [x] 6.3: Verify `scripts/demo.ps1` and `scripts/demo.sh` produce JWT tokens with the exact same claims structure as the quickstart scripts. Specifically verify: `sub`, `iss` (`hexalith-dev`), `aud` (`hexalith-tenants`), `tenants` array (`["system"]`), `exp` — any mismatch causes `401 Unauthorized`
+  - [x] 6.4: Verify CHANGELOG.md follows Keep a Changelog format (https://keepachangelog.com/). `[Unreleased]` section should be empty (staging area for future changes)
+  - [x] 6.5: Verify CONTRIBUTING.md references correct paths, test commands, and tools
+  - [x] 6.6: Verify README.md demo placeholder is replaced with actual content
+  - [x] 6.7: Verify cross-references between docs are valid (demo.md → quickstart.md, CONTRIBUTING.md → .editorconfig)
+  - [x] 6.8: Verify `scripts/` directory is created (new directory — does not exist yet)
 
 ## Dev Notes
 
@@ -410,8 +410,33 @@ All technical details for script implementation are covered in the **MUST-VERIFY
 
 ### Agent Model Used
 
+Claude Opus 4.6 (1M context)
+
 ### Debug Log References
+
+- Task 0 verification: Inspected `EventStoreAggregate.DispatchCommandAsync` (line 142) — uses `JsonSerializer.Deserialize(command.Payload, handleInfo.CommandType)` with default options (PascalCase, integer enums)
+- `TenantRole` enum at `src/Hexalith.Tenants.Contracts/Enums/TenantRole.cs` — no `JsonStringEnumConverter` attribute
+- Health endpoint confirmed at `/health` via `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs:21`
 
 ### Completion Notes List
 
+- Task 0: Verified command payload uses PascalCase for payload fields (`TenantId`, `UserId`, `Role`) and integer enum format (`"Role": 1`). Default `JsonSerializerOptions` used for deserialization. Matches quickstart exactly.
+- Task 1: Created `docs/demo.md` — complete "aha moment" walkthrough with 6-step demo sequence, Swagger UI instructions, dynamic URL placeholders, architecture explanation ("What Just Happened?"), next steps, and comprehensive troubleshooting section.
+- Task 2: Created `scripts/demo.ps1` (PowerShell) and `scripts/demo.sh` (bash). Both scripts: generate JWT tokens matching quickstart claims, require `--base-url`/`--sample-url` with no defaults, use unique timestamp-suffixed IDs, include health check prerequisites, print colored output, handle HTTPS certificates (`-SkipCertificateCheck`/`-k`), and show summary with command count and access transitions.
+- Task 3: Updated `README.md` — replaced `<!-- TODO: Story 8.3 -->` placeholder with "See It In Action" section linking to demo.md and scripts/.
+- Task 4: Created `CHANGELOG.md` — Keep a Changelog format with `[Unreleased]` section and `[0.1.0] - YYYY-MM-DD` initial release entry documenting all MVP capabilities. Footer links to GitHub compare/tag URLs.
+- Task 5: Created `CONTRIBUTING.md` — Getting Started (prerequisites, clone with submodules, build, test, run), Branch Naming Conventions, PR Process, Test Requirements, Code Style (.editorconfig reference), Submodule Management, Project Structure reference, Reporting Issues.
+- Task 6: All validations pass — well-formed markdown, payload formats match quickstart, JWT claims identical across all files, CHANGELOG follows Keep a Changelog format, cross-references valid, README placeholder replaced, scripts/ directory created.
+
 ### File List
+
+- `docs/demo.md` (NEW) — "Aha Moment" demo walkthrough
+- `scripts/demo.ps1` (NEW) — PowerShell demo automation script
+- `scripts/demo.sh` (NEW) — Bash demo automation script
+- `CHANGELOG.md` (NEW) — Keep a Changelog format
+- `CONTRIBUTING.md` (NEW) — Developer contribution guide
+- `README.md` (MODIFIED) — Replaced demo placeholder with "See It In Action" section
+
+### Change Log
+
+- 2026-03-19: Implemented Story 8.3 — created demo walkthrough, automation scripts, CHANGELOG, CONTRIBUTING, and updated README (all 6 tasks + validation complete)

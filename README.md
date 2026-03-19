@@ -21,7 +21,11 @@ Get from clone to your first tenant in about 15 minutes:
 
 **[Quickstart Guide](docs/quickstart.md)** — ~15 minutes with prerequisites installed, ~45 minutes including first-time prerequisite setup.
 
-<!-- TODO: Story 8.3 — Add "aha moment" demo GIF/link here -->
+### See It In Action
+
+Watch reactive cross-service access revocation in action: add a user to a tenant, then remove them — and see the consuming service automatically revoke access via DAPR pub/sub events, with zero custom integration code.
+
+**["Aha Moment" Demo](docs/demo.md)** — Step-by-step walkthrough with automated scripts in [`scripts/`](scripts/).
 
 ## NuGet Packages
 
@@ -59,7 +63,13 @@ samples/
 
 docs/
   quickstart.md                      # Getting started guide
+  demo.md                            # "Aha Moment" demo walkthrough
+  event-contract-reference.md        # Event schemas and audit patterns
   idempotent-event-processing.md     # Event handling patterns
+
+scripts/
+  demo.ps1                           # PowerShell demo automation
+  demo.sh                            # Bash demo automation
 ```
 
 ## Contributing
