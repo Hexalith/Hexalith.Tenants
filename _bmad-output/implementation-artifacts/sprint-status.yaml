@@ -93,7 +93,7 @@ development_status:
 
   # Epic 8: Documentation & Adoption
   epic-8: in-progress
-  8-1-quickstart-guide-and-readme: ready-for-dev
-  8-2-event-contract-reference-and-technical-documentation: backlog
+  8-1-quickstart-guide-and-readme: done
+  8-2-event-contract-reference-and-technical-documentation: ready-for-dev
   8-3-aha-moment-demo-and-project-documentation: backlog
   epic-8-retrospective: optional
