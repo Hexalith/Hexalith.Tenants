@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexalith.Tenants — UX Wireframe Visualizer</title>
+<style>
+  :root {
+    --surface-bg: #fafafa;
+    --surface-card: #ffffff;
+    --surface-elevated: #f5f5f5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    --border: #e5e7eb;
+    --border-secondary: #f0f0f0;
+    --accent: #0d9488;
+    --accent-light: #ccfbf1;
+    --accent-muted: #99f6e4;
+    --status-success: #16a34a;
+    --status-success-bg: #dcfce7;
+    --status-danger: #dc2626;
+    --status-danger-bg: #fee2e2;
+    --status-warning: #d97706;
+    --status-warning-bg: #fef3c7;
+    --status-info: #2563eb;
+    --status-info-bg: #dbeafe;
+    --role-owner: #0d9488;
+    --role-contributor: #6b7280;
+    --role-reader: #9ca3af;
+    --sidebar-width: 240px;
+    --topbar-height: 48px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --radius: 6px;
+    --radius-sm: 4px;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 24px;
+    --spacing-2xl: 32px;
+  }
+
+  [data-theme="dark"] {
+    --surface-bg: #111111;
+    --surface-card: #1a1a1a;
+    --surface-elevated: #222222;
+    --text-primary: #f0f0f0;
+    --text-secondary: #9ca3af;
+    --text-tertiary: #6b7280;
+    --border: #333333;
+    --border-secondary: #2a2a2a;
+    --accent: #2dd4bf;
+    --accent-light: #042f2e;
+    --accent-muted: #0d3d3a;
+    --status-success: #4ade80;
+    --status-success-bg: #052e16;
+    --status-danger: #f87171;
+    --status-danger-bg: #450a0a;
+    --status-warning: #fbbf24;
+    --status-warning-bg: #451a03;
+    --status-info: #60a5fa;
+    --status-info-bg: #172554;
+    --role-owner: #2dd4bf;
+    --role-contributor: #9ca3af;
+    --role-reader: #6b7280;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--surface-bg); color: var(--text-primary); font-size: 14px; line-height: 1.5; }
+
+  /* === CHROME === */
+  .shell { display: grid; grid-template-columns: var(--sidebar-width) 1fr; grid-template-rows: var(--topbar-height) 1fr; height: 100vh; }
+  .topbar { grid-column: 1 / -1; background: var(--surface-card); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 var(--spacing-lg); gap: var(--spacing-lg); z-index: 10; }
+  .topbar-logo { font-weight: 600; color: var(--accent); font-size: 15px; }
+  .topbar-spacer { flex: 1; }
+  .topbar-status { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: var(--spacing-xs); }
+  .topbar-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--status-success); }
+  .topbar-tenant { font-size: 12px; color: var(--text-tertiary); padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .topbar-theme { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: pointer; color: var(--text-secondary); font-size: 12px; }
+  .topbar-user { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+
+  .sidebar { background: var(--surface-card); border-right: 1px solid var(--border); padding: var(--spacing-lg) 0; overflow-y: auto; }
+  .sidebar-group { padding: 0 var(--spacing-md); margin-bottom: var(--spacing-lg); }
+  .sidebar-group-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); padding: 0 var(--spacing-sm); margin-bottom: var(--spacing-xs); }
+  .sidebar-item { display: flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-sm) var(--spacing-sm); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-secondary); font-size: 13px; transition: all 0.15s; position: relative; }
+  .sidebar-item:hover { background: var(--surface-elevated); color: var(--text-primary); }
+  .sidebar-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .sidebar-item.active::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .sidebar-badge { margin-left: auto; background: var(--status-danger); color: white; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
+  .sidebar-icon { width: 16px; text-align: center; font-size: 14px; }
+
+  .content { padding: var(--spacing-2xl); overflow-y: auto; background: var(--surface-bg); }
+  .content-constrained { max-width: 1000px; margin: 0 auto; }
+
+  /* === NAV TABS === */
+  .screen-nav { display: flex; gap: 2px; padding: var(--spacing-sm) var(--spacing-lg); background: var(--surface-card); border-bottom: 1px solid var(--border); overflow-x: auto; position: sticky; top: 0; z-index: 5; }
+  .screen-tab { padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; border: none; background: none; transition: all 0.15s; }
+  .screen-tab:hover { background: var(--surface-elevated); color: var(--text-primary); }
+  .screen-tab.active { background: var(--accent-light); color: var(--accent); }
+
+  /* === COMPONENTS === */
+  .card { background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .page-header { display: flex; align-items: center; gap: var(--spacing-lg); margin-bottom: var(--spacing-xl); }
+  .page-title { font-size: 20px; font-weight: 600; }
+  .page-subtitle { font-size: 13px; color: var(--text-secondary); }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge-success { background: var(--status-success-bg); color: var(--status-success); }
+  .badge-danger { background: var(--status-danger-bg); color: var(--status-danger); }
+  .badge-warning { background: var(--status-warning-bg); color: var(--status-warning); }
+  .badge-owner { background: var(--accent-light); color: var(--role-owner); }
+  .badge-contributor { background: var(--surface-elevated); color: var(--role-contributor); }
+  .badge-reader { background: var(--surface-elevated); color: var(--role-reader); }
+
+  .btn { display: inline-flex; align-items: center; gap: var(--spacing-xs); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface-card); color: var(--text-primary); transition: all 0.15s; }
+  .btn:hover { background: var(--surface-elevated); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-danger { color: var(--status-danger); border-color: var(--status-danger-bg); }
+  .btn-danger:hover { background: var(--status-danger-bg); }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--spacing-md) var(--spacing-lg); box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; align-items: center; gap: var(--spacing-sm); font-size: 13px; z-index: 100; }
+  .toast.show { display: flex; }
+  .toast-icon { font-size: 16px; }
+  .toast-undo { color: var(--accent); cursor: pointer; font-weight: 500; margin-left: var(--spacing-sm); }
+
+  /* === TABLE === */
+  .table-toolbar { display: flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-md); border-bottom: 1px solid var(--border-secondary); }
+  .table-search { padding: var(--spacing-sm) var(--spacing-md); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface-bg); color: var(--text-primary); width: 240px; }
+  .table-filter { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; background: var(--surface-card); color: var(--text-secondary); cursor: pointer; }
+  .table-filter.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .table-spacer { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: var(--spacing-sm) var(--spacing-md); font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); background: var(--surface-elevated); }
+  td { padding: var(--spacing-sm) var(--spacing-md); border-bottom: 1px solid var(--border-secondary); font-size: 13px; vertical-align: middle; }
+  tr:hover td { background: var(--surface-elevated); }
+  tr.row-warning td { color: var(--text-secondary); }
+  tr.row-warning td:first-child { color: var(--text-primary); }
+  tr.row-pending td { opacity: 0.4; text-decoration: line-through; }
+  tr.row-pending td:first-child { text-decoration: none; opacity: 0.4; }
+  tr.row-recent { border-left: 3px solid var(--status-info); }
+  .td-indicators { width: 32px; text-align: center; }
+  .indicator-warning { color: var(--status-danger); font-size: 14px; cursor: help; }
+  .indicator-info { color: var(--status-warning); font-size: 14px; cursor: help; }
+
+  /* === TABS === */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+  .tab { padding: var(--spacing-sm) var(--spacing-lg); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { padding: var(--spacing-xl); }
+
+  /* === TIMELINE === */
+  .timeline { position: relative; padding-left: var(--spacing-xl); }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+  .timeline-item { position: relative; margin-bottom: var(--spacing-lg); }
+  .timeline-dot { position: absolute; left: calc(-1 * var(--spacing-xl) + 4px); top: 6px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface-card); }
+  .timeline-item.access .timeline-dot { border-color: var(--accent); }
+  .timeline-item.admin .timeline-dot { border-color: var(--text-tertiary); }
+  .timeline-narrative { font-size: 13px; color: var(--text-primary); }
+  .timeline-time { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .timeline-detail { margin-top: var(--spacing-sm); padding: var(--spacing-sm) var(--spacing-md); background: var(--surface-elevated); border-radius: var(--radius-sm); font-family: var(--mono); font-size: 11px; color: var(--text-secondary); display: none; }
+  .timeline-item.expanded .timeline-detail { display: block; }
+  .timeline-expand { font-size: 11px; color: var(--accent); cursor: pointer; margin-top: 2px; }
+
+  /* === CONSEQUENCE PREVIEW === */
+  .consequence { padding: var(--spacing-md); background: var(--status-warning-bg); border-radius: var(--radius-sm); margin: var(--spacing-sm) 0; }
+  .consequence-item { display: flex; align-items: flex-start; gap: var(--spacing-sm); font-size: 13px; margin-bottom: var(--spacing-xs); }
+  .consequence-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .consequence-danger { background: var(--status-danger-bg); }
+
+  /* === EMPTY STATE === */
+  .empty-state { text-align: center; padding: var(--spacing-2xl) var(--spacing-xl); }
+  .empty-illustration { font-size: 48px; margin-bottom: var(--spacing-lg); opacity: 0.6; }
+  .empty-title { font-size: 18px; font-weight: 600; margin-bottom: var(--spacing-sm); }
+  .empty-desc { color: var(--text-secondary); font-size: 14px; margin-bottom: var(--spacing-xl); }
+  .empty-inline-form { display: inline-flex; gap: var(--spacing-sm); align-items: center; }
+  .empty-inline-form input { padding: var(--spacing-sm) var(--spacing-md); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; width: 280px; background: var(--surface-card); color: var(--text-primary); }
+
+  /* === RECENT ACTIVITY BANNER === */
+  .activity-banner { display: flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-sm) var(--spacing-md); background: var(--status-info-bg); border-radius: var(--radius-sm); font-size: 12px; color: var(--status-info); margin-bottom: var(--spacing-lg); }
+
+  /* === ROLE SELECTOR === */
+  .role-selector { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: var(--spacing-sm) 0; }
+  .role-option { display: flex; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-sm) var(--spacing-md); cursor: pointer; border-bottom: 1px solid var(--border-secondary); font-size: 13px; }
+  .role-option:last-child { border-bottom: none; }
+  .role-option:hover { background: var(--surface-elevated); }
+  .role-option.selected { background: var(--accent-light); }
+  .role-radio { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
+  .role-option.selected .role-radio { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--surface-card); }
+  .role-comparison { padding: var(--spacing-md); background: var(--surface-elevated); font-size: 12px; }
+  .role-comparison table { font-size: 12px; }
+  .role-comparison th { font-size: 11px; padding: 4px 8px; }
+  .role-comparison td { padding: 4px 8px; text-align: center; }
+  .check { color: var(--status-success); }
+  .cross { color: var(--text-tertiary); }
+
+  /* === SEARCH === */
+  .search-container { max-width: 600px; margin: 0 auto var(--spacing-xl); }
+  .search-input { width: 100%; padding: var(--spacing-md) var(--spacing-lg); border: 2px solid var(--border); border-radius: var(--radius); font-size: 15px; background: var(--surface-card); color: var(--text-primary); transition: border-color 0.15s; }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+  .search-hint { font-size: 12px; color: var(--text-tertiary); margin-top: var(--spacing-xs); }
+
+  /* === INLINE ADD === */
+  .inline-add { display: flex; gap: var(--spacing-sm); align-items: center; padding: var(--spacing-sm) var(--spacing-md); background: var(--surface-elevated); border-bottom: 1px solid var(--border); }
+  .inline-add input { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; flex: 1; background: var(--surface-card); color: var(--text-primary); }
+  .inline-add select { padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface-card); color: var(--text-primary); }
+
+  /* === THREE PHASE DEMO === */
+  .phase-demo { display: flex; flex-direction: column; gap: var(--spacing-xl); padding: var(--spacing-xl); }
+  .phase-step { display: flex; gap: var(--spacing-lg); }
+  .phase-label { flex-shrink: 0; width: 140px; }
+  .phase-number { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--accent); }
+  .phase-name { font-size: 14px; font-weight: 600; }
+  .phase-time { font-size: 12px; color: var(--text-tertiary); }
+  .phase-visual { flex: 1; background: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .phase-row { display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-sm) var(--spacing-md); font-size: 13px; }
+  .phase-row.dimmed { opacity: 0.4; text-decoration: line-through; }
+  .phase-row.confirming { border-bottom: 2px solid var(--accent); animation: confirming 1.5s ease-in-out infinite; }
+  @keyframes confirming { 0%,100% { border-color: var(--accent); } 50% { border-color: transparent; } }
+  .phase-row.exiting { opacity: 0; transform: translateX(20px); transition: all 0.2s ease-out; }
+  .phase-underline { font-size: 11px; color: var(--accent); padding: 2px var(--spacing-md); }
+
+  /* === SLIDE OVER === */
+  .slideover-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 50; display: none; }
+  .slideover { position: fixed; right: 0; top: 0; bottom: 0; width: min(400px, 90vw); background: var(--surface-card); border-left: 1px solid var(--border); z-index: 51; padding: var(--spacing-xl); display: none; overflow-y: auto; }
+  .slideover-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-xl); }
+  .slideover-title { font-size: 18px; font-weight: 600; }
+  .slideover-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); }
+  .form-field { margin-bottom: var(--spacing-lg); }
+  .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: var(--spacing-xs); }
+  .form-input { width: 100%; padding: var(--spacing-sm) var(--spacing-md); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; background: var(--surface-bg); color: var(--text-primary); }
+  .form-textarea { min-height: 80px; resize: vertical; }
+
+  /* === SCREEN SECTIONS === */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Utility */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-sm { gap: var(--spacing-sm); }
+  .gap-md { gap: var(--spacing-md); }
+  .gap-lg { gap: var(--spacing-lg); }
+  .ml-auto { margin-left: auto; }
+  .text-sm { font-size: 12px; }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+  .mt-lg { margin-top: var(--spacing-lg); }
+  .mb-lg { margin-bottom: var(--spacing-lg); }
+  .mb-sm { margin-bottom: var(--spacing-sm); }
+  .fw-medium { font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">Hexalith</div>
+    <div class="topbar-tenant">system</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-status"><span class="dot"></span> Connected</div>
+    <button class="topbar-theme" onclick="toggleTheme()">Theme</button>
+    <div class="topbar-user">SP</div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Tenant Management</div>
+      <div class="sidebar-item active" onclick="showScreen('tenant-list')">
+        <span class="sidebar-icon">&#9632;</span> Tenants
+        <span class="sidebar-badge">2</span>
+      </div>
+      <div class="sidebar-item" onclick="showScreen('audit')">
+        <span class="sidebar-icon">&#9737;</span> Audit
+      </div>
+      <div class="sidebar-item" onclick="showScreen('admin')">
+        <span class="sidebar-icon">&#9881;</span> Administration
+      </div>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Other Modules</div>
+      <div class="sidebar-item" style="opacity:0.4">
+        <span class="sidebar-icon">&#9733;</span> Orders
+      </div>
+      <div class="sidebar-item" style="opacity:0.4">
+        <span class="sidebar-icon">&#9830;</span> Inventory
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div style="display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Screen Navigation -->
+    <div class="screen-nav">
+      <button class="screen-tab active" onclick="showScreen('tenant-list')">Tenant List</button>
+      <button class="screen-tab" onclick="showScreen('tenant-detail')">Tenant Detail</button>
+      <button class="screen-tab" onclick="showScreen('three-phase')">3-Phase Demo</button>
+      <button class="screen-tab" onclick="showScreen('audit')">Audit Timeline</button>
+      <button class="screen-tab" onclick="showScreen('user-search')">User Search</button>
+      <button class="screen-tab" onclick="showScreen('empty-state')">Empty State</button>
+      <button class="screen-tab" onclick="showScreen('create-tenant')">Create Tenant</button>
+      <button class="screen-tab" onclick="showScreen('admin')">Global Admin</button>
+    </div>
+
+    <div class="content">
+
+      <!-- ==================== SCREEN 1: TENANT LIST ==================== -->
+      <div id="tenant-list" class="screen active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Tenants</div>
+            <div class="page-subtitle">30 tenants &middot; 2 need attention</div>
+          </div>
+          <div class="ml-auto">
+            <button class="btn btn-primary" onclick="showScreen('create-tenant')">+ Create Tenant</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-toolbar">
+            <input class="table-search" placeholder="Search tenants..." />
+            <button class="table-filter active">All</button>
+            <button class="table-filter">Active</button>
+            <button class="table-filter">Disabled</button>
+            <button class="table-filter">Has Warnings</button>
+            <div class="table-spacer"></div>
+            <select class="table-filter" style="width:auto">
+              <option>Sort: Name</option>
+              <option selected>Sort: Needs Attention</option>
+              <option>Sort: Last Activity</option>
+              <option>Sort: Member Count</option>
+            </select>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Members</th>
+                <th>Last Activity</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-indicators"><span class="indicator-warning" title="No tenant owners">&#9888;</span></td>
+                <td class="fw-medium">HealthCare Prod</td>
+                <td><span class="badge badge-success">Active</span></td>
+                <td>12</td>
+                <td class="text-secondary">3 days ago</td>
+                <td class="text-secondary" style="text-align:right">&#8250;</td>
+              </tr>
+              <tr class="row-recent">
+                <td class="td-indicators"></td>
+                <td class="fw-medium">Acme Corp</td>
+                <td><span class="badge badge-success">Active</span></td>
+                <td>47</td>
+                <td class="text-secondary">2 hours ago</td>
+                <td class="text-secondary" style="text-align:right">&#8250;</td>
+              </tr>
+              <tr class="row-warning">
+                <td class="td-indicators"></td>
+                <td class="fw-medium">Legacy Systems</td>
+                <td><span class="badge badge-danger">Disabled</span></td>
+                <td>5</td>
+                <td class="text-secondary">2 weeks ago</td>
+                <td class="text-secondary" style="text-align:right">&#8250;</td>
+              </tr>
+              <tr>
+                <td class="td-indicators"><span class="indicator-info" title="Config keys: 82/100">&#9679;</span></td>
+                <td class="fw-medium">Finance Division</td>
+                <td><span class="badge badge-success">Active</span></td>
+                <td>23</td>
+                <td class="text-secondary">Yesterday</td>
+                <td class="text-secondary" style="text-align:right">&#8250;</td>
+              </tr>
+              <tr>
+                <td class="td-indicators"></td>
+                <td class="fw-medium">Engineering Team</td>
+                <td><span class="badge badge-success">Active</span></td>
+                <td>89</td>
+                <td class="text-secondary">5 min ago</td>
+                <td class="text-secondary" style="text-align:right">&#8250;</td>
+              </tr>
+              <tr class="row-recent">
+                <td class="td-indicators"></td>
+                <td class="fw-medium">Marketing Hub</td>
+                <td><span class="badge badge-success">Active</span></td>
+                <td>15</td>
+                <td class="text-secondary">1 hour ago</td>
+                <td class="text-secondary" style="text-align:right">&#8250;</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="padding:var(--spacing-md);display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-tertiary)">
+            <span>Showing 1-6 of 30</span>
+            <span>&#8592; Previous &middot; Next &#8594;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 2: TENANT DETAIL ==================== -->
+      <div id="tenant-detail" class="screen">
+        <div class="content-constrained">
+          <div class="page-header">
+            <div>
+              <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:2px">&#8592; Back to Tenants</div>
+              <div class="page-title flex items-center gap-sm">
+                Acme Corp
+                <span class="badge badge-success">Active</span>
+              </div>
+              <div class="page-subtitle">Created Jan 15, 2026 &middot; 47 members</div>
+            </div>
+            <div class="ml-auto flex gap-sm">
+              <button class="btn btn-danger btn-sm">Disable Tenant</button>
+            </div>
+          </div>
+
+          <div class="activity-banner">
+            &#9432; 2 members added in the last 24 hours by jerome@hexalith.com
+          </div>
+
+          <div class="card">
+            <div class="tabs">
+              <div class="tab active">Members (47)</div>
+              <div class="tab">Configuration (23)</div>
+              <div class="tab">Audit</div>
+              <div class="tab">Overview</div>
+            </div>
+            <div class="table-toolbar">
+              <input class="table-search" placeholder="Search members..." style="width:200px" />
+              <div class="table-spacer"></div>
+              <button class="btn btn-primary btn-sm">+ Add Member</button>
+            </div>
+
+            <!-- Inline Add Form (shown when Add Member clicked) -->
+            <div class="inline-add">
+              <input placeholder="Email or user ID..." style="flex:1" />
+              <select>
+                <option>TenantOwner</option>
+                <option selected>TenantContributor</option>
+                <option>TenantReader</option>
+              </select>
+              <button class="btn btn-primary btn-sm">Add</button>
+              <button class="btn btn-sm">Cancel</button>
+              <span style="font-size:11px;color:var(--accent);cursor:pointer;margin-left:8px">Compare roles &#9660;</span>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Added</th>
+                  <th>Added By</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-medium">jerome@hexalith.com</td>
+                  <td><span class="badge badge-owner">Owner</span></td>
+                  <td class="text-secondary">Jan 15, 2026</td>
+                  <td class="text-secondary">system (bootstrap)</td>
+                  <td></td>
+                </tr>
+                <tr class="row-recent">
+                  <td class="fw-medium">alex@acme.com</td>
+                  <td><span class="badge badge-contributor">Contributor</span></td>
+                  <td class="text-secondary">2 hours ago</td>
+                  <td class="text-secondary">jerome@hexalith.com</td>
+                  <td style="text-align:right">
+                    <button class="btn btn-sm">Change Role</button>
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">dana@acme.com</td>
+                  <td><span class="badge badge-contributor">Contributor</span></td>
+                  <td class="text-secondary">Feb 3, 2026</td>
+                  <td class="text-secondary">jerome@hexalith.com</td>
+                  <td style="text-align:right">
+                    <button class="btn btn-sm">Change Role</button>
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">priya@acme.com</td>
+                  <td><span class="badge badge-reader">Reader</span></td>
+                  <td class="text-secondary">Mar 1, 2026</td>
+                  <td class="text-secondary">jerome@hexalith.com</td>
+                  <td style="text-align:right">
+                    <button class="btn btn-sm">Change Role</button>
+                    <button class="btn btn-danger btn-sm">Remove</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 3: THREE-PHASE DEMO ==================== -->
+      <div id="three-phase" class="screen">
+        <div class="content-constrained">
+          <div class="page-header">
+            <div>
+              <div class="page-title">The Defining Sequence</div>
+              <div class="page-subtitle">Remove user from tenant &mdash; three-phase CQRS feedback</div>
+            </div>
+          </div>
+
+          <div class="phase-demo">
+            <!-- Phase 0: Consequence Preview -->
+            <div class="phase-step">
+              <div class="phase-label">
+                <div class="phase-number">Before</div>
+                <div class="phase-name">Consequence Preview</div>
+              </div>
+              <div class="phase-visual">
+                <div class="phase-row" style="border-bottom:1px solid var(--border-secondary)">
+                  <span class="fw-medium" style="flex:1">alex@acme.com</span>
+                  <span class="badge badge-contributor">Contributor</span>
+                  <button class="btn btn-danger btn-sm">Remove</button>
+                </div>
+                <div class="consequence">
+                  <div class="consequence-item"><span class="consequence-icon">&#9888;</span> alex@acme.com will lose TenantContributor access to this tenant</div>
+                  <div class="consequence-item"><span class="consequence-icon">&#9432;</span> This user has access to 2 other tenants (not affected)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 1: Optimistic -->
+            <div class="phase-step">
+              <div class="phase-label">
+                <div class="phase-number">Phase 1</div>
+                <div class="phase-name">Optimistic</div>
+                <div class="phase-time">&lt; 100ms</div>
+              </div>
+              <div class="phase-visual">
+                <div class="phase-row" style="border-bottom:1px solid var(--border-secondary)">
+                  <span class="fw-medium" style="flex:1">jerome@hexalith.com</span>
+                  <span class="badge badge-owner">Owner</span>
+                </div>
+                <div class="phase-row dimmed" style="border-bottom:1px solid var(--border-secondary)">
+                  <span style="flex:1">alex@acme.com</span>
+                  <span class="badge badge-contributor" style="opacity:0.4">Contributor</span>
+                </div>
+                <div class="phase-row">
+                  <span class="fw-medium" style="flex:1">dana@acme.com</span>
+                  <span class="badge badge-contributor">Contributor</span>
+                </div>
+                <div style="padding:4px var(--spacing-md);font-size:11px;color:var(--text-tertiary)">Members: <span style="text-decoration:line-through">47</span> 46</div>
+              </div>
+            </div>
+
+            <!-- Phase 2: Confirming -->
+            <div class="phase-step">
+              <div class="phase-label">
+                <div class="phase-number">Phase 2</div>
+                <div class="phase-name">Confirming</div>
+                <div class="phase-time">0&ndash;2 seconds</div>
+              </div>
+              <div class="phase-visual">
+                <div class="phase-row" style="border-bottom:1px solid var(--border-secondary)">
+                  <span class="fw-medium" style="flex:1">jerome@hexalith.com</span>
+                  <span class="badge badge-owner">Owner</span>
+                </div>
+                <div class="phase-row dimmed confirming" style="border-bottom:none">
+                  <span style="flex:1">alex@acme.com</span>
+                  <span class="badge badge-contributor" style="opacity:0.4">Contributor</span>
+                </div>
+                <div class="phase-underline">Confirming removal...</div>
+                <div class="phase-row" style="border-top:1px solid var(--border-secondary)">
+                  <span class="fw-medium" style="flex:1">dana@acme.com</span>
+                  <span class="badge badge-contributor">Contributor</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phase 3: Confirmed -->
+            <div class="phase-step">
+              <div class="phase-label">
+                <div class="phase-number">Phase 3</div>
+                <div class="phase-name">Confirmed</div>
+                <div class="phase-time">SignalR arrival</div>
+              </div>
+              <div class="phase-visual">
+                <div class="phase-row" style="border-bottom:1px solid var(--border-secondary)">
+                  <span class="fw-medium" style="flex:1">jerome@hexalith.com</span>
+                  <span class="badge badge-owner">Owner</span>
+                </div>
+                <div class="phase-row">
+                  <span class="fw-medium" style="flex:1">dana@acme.com</span>
+                  <span class="badge badge-contributor">Contributor</span>
+                </div>
+                <div style="padding:4px var(--spacing-md);font-size:11px;color:var(--text-tertiary)">Members: 46</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toast -->
+          <div style="margin-top:var(--spacing-xl);padding:var(--spacing-md) var(--spacing-lg);background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;gap:var(--spacing-sm);font-size:13px;">
+            <span style="color:var(--status-success);font-size:16px">&#10003;</span>
+            alex@acme.com removed from TenantContributor
+            <span class="toast-undo">Undo (8s)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 4: AUDIT TIMELINE ==================== -->
+      <div id="audit" class="screen">
+        <div class="content-constrained">
+          <div class="page-header">
+            <div>
+              <div class="page-title">Audit Trail</div>
+              <div class="page-subtitle">Acme Corp &middot; All events</div>
+            </div>
+          </div>
+
+          <div class="card mb-lg">
+            <div class="table-toolbar">
+              <button class="table-filter active">All Events</button>
+              <button class="table-filter">Access Changes</button>
+              <button class="table-filter">Administrative</button>
+              <div class="table-spacer"></div>
+              <input type="date" class="table-filter" style="width:auto" />
+              <span class="text-tertiary">&mdash;</span>
+              <input type="date" class="table-filter" style="width:auto" />
+            </div>
+          </div>
+
+          <!-- Session Group -->
+          <div class="card mb-lg" style="padding:var(--spacing-lg)">
+            <div class="flex items-center gap-sm mb-sm">
+              <div class="topbar-user" style="width:24px;height:24px;font-size:10px">JP</div>
+              <span class="fw-medium">jerome@hexalith.com</span>
+              <span class="text-tertiary text-sm">&mdash; Today at 2:00 PM &middot; 3 actions</span>
+            </div>
+
+            <div class="timeline">
+              <div class="timeline-item access">
+                <div class="timeline-dot"></div>
+                <div class="timeline-narrative">Added <strong>alex@acme.com</strong> as <span class="badge badge-contributor" style="font-size:10px">Contributor</span></div>
+                <div class="timeline-time">2:03 PM</div>
+                <div class="timeline-expand" onclick="this.parentElement.classList.toggle('expanded')">&#9654; Event detail</div>
+                <div class="timeline-detail">EventId: evt_3f8a2b1c<br>AggregateVersion: 47<br>TenantId: acme-corp<br>Type: UserAddedToTenant</div>
+              </div>
+
+              <div class="timeline-item access">
+                <div class="timeline-dot"></div>
+                <div class="timeline-narrative">Changed <strong>dana@acme.com</strong> from <span class="badge badge-reader" style="font-size:10px">Reader</span> to <span class="badge badge-contributor" style="font-size:10px">Contributor</span></div>
+                <div class="timeline-time">2:01 PM</div>
+                <div class="timeline-expand" onclick="this.parentElement.classList.toggle('expanded')">&#9654; Event detail</div>
+                <div class="timeline-detail">EventId: evt_2e7b1a0d<br>AggregateVersion: 46<br>TenantId: acme-corp<br>Type: UserRoleChanged</div>
+              </div>
+
+              <div class="timeline-item admin">
+                <div class="timeline-dot"></div>
+                <div class="timeline-narrative">Set configuration <strong>billing.plan</strong> = "enterprise"</div>
+                <div class="timeline-time">2:00 PM</div>
+                <div class="timeline-expand" onclick="this.parentElement.classList.toggle('expanded')">&#9654; Event detail</div>
+                <div class="timeline-detail">EventId: evt_1d6a0f9e<br>AggregateVersion: 45<br>TenantId: acme-corp<br>Type: TenantConfigurationSet</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Older Session -->
+          <div class="card" style="padding:var(--spacing-lg)">
+            <div class="flex items-center gap-sm mb-sm">
+              <div class="topbar-user" style="width:24px;height:24px;font-size:10px;background:var(--role-contributor)">SF</div>
+              <span class="fw-medium">sofia@hexalith.com</span>
+              <span class="text-tertiary text-sm">&mdash; Yesterday at 11:03 PM &middot; 2 actions</span>
+            </div>
+
+            <div class="timeline">
+              <div class="timeline-item access" style="border-left:2px solid var(--status-danger-bg);padding-left:8px;">
+                <div class="timeline-dot" style="border-color:var(--status-danger)"></div>
+                <div class="timeline-narrative" style="color:var(--status-danger)">Removed <strong>ext-vendor-9@contractor.io</strong> from <span class="badge badge-contributor" style="font-size:10px">Contributor</span></div>
+                <div class="timeline-time">11:03 PM &middot; Incident response</div>
+                <div class="timeline-expand" onclick="this.parentElement.classList.toggle('expanded')">&#9654; Event detail</div>
+                <div class="timeline-detail">EventId: evt_9c4d3e2f<br>AggregateVersion: 44<br>TenantId: acme-corp<br>Type: UserRemovedFromTenant</div>
+              </div>
+
+              <div class="timeline-item access">
+                <div class="timeline-dot"></div>
+                <div class="timeline-narrative">Removed <strong>jdoe-contractor@ext.com</strong> from <span class="badge badge-contributor" style="font-size:10px">Contributor</span> <em style="color:var(--text-tertiary)">(incorrect removal &mdash; restored below)</em></div>
+                <div class="timeline-time">11:02 PM</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 5: USER SEARCH ==================== -->
+      <div id="user-search" class="screen">
+        <div class="content-constrained">
+          <div class="page-header">
+            <div>
+              <div class="page-title">User Search</div>
+              <div class="page-subtitle">Find a user's tenant memberships across all tenants</div>
+            </div>
+          </div>
+
+          <div class="search-container">
+            <input class="search-input" value="ext-vendor-9@contractor.io" />
+            <div class="search-hint">Search by email or user ID &mdash; shows all tenant memberships</div>
+          </div>
+
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Status</th>
+                  <th>Role</th>
+                  <th>Added</th>
+                  <th>Added By</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-medium">Acme Corp</td>
+                  <td><span class="badge badge-success">Active</span></td>
+                  <td><span class="badge badge-contributor">Contributor</span></td>
+                  <td class="text-secondary">Mar 10, 2026</td>
+                  <td class="text-secondary">marc@acme.com</td>
+                  <td style="text-align:right"><button class="btn btn-danger btn-sm">Revoke</button></td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">HealthCare Prod</td>
+                  <td><span class="badge badge-success">Active</span></td>
+                  <td><span class="badge badge-owner">Owner</span></td>
+                  <td class="text-secondary">Mar 8, 2026</td>
+                  <td class="text-secondary">intern-sa@hc.com</td>
+                  <td style="text-align:right"><button class="btn btn-danger btn-sm">Revoke</button></td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">Finance Division</td>
+                  <td><span class="badge badge-success">Active</span></td>
+                  <td><span class="badge badge-reader">Reader</span></td>
+                  <td class="text-secondary">Feb 20, 2026</td>
+                  <td class="text-secondary">jerome@hexalith.com</td>
+                  <td style="text-align:right"><button class="btn btn-danger btn-sm">Revoke</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:var(--spacing-lg);padding:var(--spacing-md);background:var(--status-danger-bg);border-radius:var(--radius);font-size:13px;color:var(--status-danger)">
+            &#9888; This user has <strong>TenantOwner</strong> access to HealthCare Prod &mdash; granted by intern-sa@hc.com at 2:00 AM on Mar 8. Review this assignment.
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 6: EMPTY STATE ==================== -->
+      <div id="empty-state" class="screen">
+        <div class="content-constrained">
+          <div class="page-header">
+            <div>
+              <div class="page-title">Tenants</div>
+              <div class="page-subtitle">Get started with tenant management</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="empty-state">
+              <div class="empty-illustration">&#127970;</div>
+              <div class="empty-title">No tenants yet</div>
+              <div class="empty-desc">Create your first tenant to start managing access across your platform.</div>
+              <div class="empty-inline-form">
+                <input placeholder="Tenant name (e.g., Acme Corp)..." />
+                <button class="btn btn-primary">Create Tenant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 7: CREATE TENANT (inline reference) ==================== -->
+      <div id="create-tenant" class="screen">
+        <div style="display:flex;height:100%;">
+          <!-- Background: tenant list (dimmed) -->
+          <div style="flex:1;opacity:0.3;pointer-events:none;">
+            <div class="page-header">
+              <div class="page-title">Tenants</div>
+            </div>
+            <div class="card" style="height:300px;"></div>
+          </div>
+          <!-- Slide-over panel -->
+          <div style="width:min(400px,90vw);background:var(--surface-card);border-left:1px solid var(--border);padding:var(--spacing-xl);flex-shrink:0;">
+            <div class="slideover-header">
+              <div class="slideover-title">Create Tenant</div>
+              <button class="slideover-close" onclick="showScreen('tenant-list')">&times;</button>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Tenant Name *</label>
+              <input class="form-input" placeholder="e.g., Acme Corp" />
+            </div>
+            <div class="form-field">
+              <label class="form-label">Tenant ID *</label>
+              <input class="form-input" placeholder="e.g., acme-corp" />
+              <div class="text-sm text-tertiary" style="margin-top:4px">Unique identifier. Cannot be changed after creation.</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Description</label>
+              <textarea class="form-input form-textarea" placeholder="Optional description..."></textarea>
+            </div>
+            <div style="display:flex;gap:var(--spacing-sm);margin-top:var(--spacing-xl)">
+              <button class="btn btn-primary" style="flex:1">Create Tenant</button>
+              <button class="btn" onclick="showScreen('tenant-list')">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 8: GLOBAL ADMIN ==================== -->
+      <div id="admin" class="screen">
+        <div class="content-constrained" style="max-width:800px">
+          <div class="page-header">
+            <div>
+              <div class="page-title">Global Administration</div>
+              <div class="page-subtitle">Platform-wide administrators with cross-tenant access</div>
+            </div>
+          </div>
+
+          <div style="padding:var(--spacing-md);background:var(--status-warning-bg);border-radius:var(--radius);font-size:13px;color:var(--status-warning);margin-bottom:var(--spacing-lg)">
+            &#9888; Global administrators can access and modify all tenants. Changes are fully audited.
+          </div>
+
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="text-sm fw-medium">2 Global Administrators</div>
+              <div class="table-spacer"></div>
+              <button class="btn btn-primary btn-sm">+ Add Global Admin</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Granted</th>
+                  <th>Granted By</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-medium flex items-center gap-sm">jerome@hexalith.com <span class="badge badge-owner" style="font-size:9px">Global Admin</span></td>
+                  <td class="text-secondary">Jan 15, 2026</td>
+                  <td class="text-secondary">system (bootstrap)</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="fw-medium flex items-center gap-sm">sofia@hexalith.com <span class="badge badge-owner" style="font-size:9px">Global Admin</span></td>
+                  <td class="text-secondary">Jan 16, 2026</td>
+                  <td class="text-secondary">jerome@hexalith.com</td>
+                  <td style="text-align:right"><button class="btn btn-danger btn-sm">Remove</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.screen-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen-tab').forEach(t => {
+    if (t.textContent.toLowerCase().includes(id.replace('-',' ').replace('tenant list','tenant list').replace('three phase','3-phase'))) t.classList.add('active');
+  });
+  // Sidebar
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  if (['tenant-list','tenant-detail','empty-state','create-tenant'].includes(id)) {
+    document.querySelector('.sidebar-item:nth-child(1)')?.classList.add('active');
+  } else if (id === 'audit') {
+    document.querySelector('.sidebar-group .sidebar-item:nth-child(2)')?.classList.add('active');
+  } else if (id === 'admin') {
+    document.querySelector('.sidebar-group .sidebar-item:nth-child(3)')?.classList.add('active');
+  }
+}
+
+function toggleTheme() {
+  document.documentElement.toggleAttribute('data-theme');
+  if (document.documentElement.hasAttribute('data-theme')) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+</script>
+</body>
+</html>
