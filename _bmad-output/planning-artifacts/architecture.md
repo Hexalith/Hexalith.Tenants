@@ -8,8 +8,9 @@ stepsCompleted:
   - 6
   - 7
   - 8
-status: 'complete'
+status: 'amended'
 completedAt: '2026-03-07'
+amendedAt: '2026-03-25'
 lastStep: 8
 inputDocuments:
   - prd.md
@@ -27,6 +28,7 @@ inputDocuments:
   - Hexalith.EventStore/docs/guides/configuration-reference.md
   - Hexalith.EventStore/docs/guides/deployment-progression.md
   - Hexalith.EventStore/docs/getting-started/first-domain-service.md
+  - ux-design-specification.md
 workflowType: 'architecture'
 project_name: 'Hexalith.Tenants'
 user_name: 'Jerome'
@@ -499,6 +501,8 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 | State classes (`TenantState`) | Server | Aggregate state, not exposed |
 | Projections (`TenantProjection`) | Server | Read model logic, auto-discovered |
 | Read model classes (`TenantReadModel`) | Server | Projection output, not exposed |
+| Audit read model (`TenantAuditReadModel`) | Server | D12: Audit projection output |
+| Audit event category enum (`AuditEventCategory`) | Contracts | D12: Referenced by query contracts |
 | Rejection events (`*Rejection`) | Contracts | Business rule violation events (IRejectionEvent) |
 | FluentValidation validators | Server | Command validation |
 | Controllers | CommandApi | REST endpoints |
@@ -729,7 +733,9 @@ Hexalith.Tenants/
 │   │   │   ├── GlobalAdministratorProjection.cs
 │   │   │   ├── GlobalAdministratorReadModel.cs
 │   │   │   ├── TenantIndexProjection.cs   # Cross-tenant index (FR25, FR28-30)
-│   │   │   └── TenantIndexReadModel.cs
+│   │   │   ├── TenantIndexReadModel.cs
+│   │   │   ├── TenantAuditProjection.cs   # D12: Audit trail (FR29, UX Journey 5)
+│   │   │   └── TenantAuditReadModel.cs
 │   │   └── Validators/
 │   │       ├── CreateTenantValidator.cs
 │   │       ├── AddUserToTenantValidator.cs
@@ -957,12 +963,224 @@ public async Task CreateTenant_WhenTenantDoesNotExist_ProducesTenantCreated()
 
 All tests are Tier 1 (unit) — no DAPR, no actors, no mocking.
 
+## UX-Driven Architecture Amendments (2026-03-25)
+
+_Amendments based on the UX Design Specification (ux-design-specification.md, completed 2026-03-24). The UX spec introduces frontend screens, interaction patterns, and data requirements that surface gaps in the original architecture. Each amendment references the original decision it extends._
+
+### D11: User Search Authorization Scoping
+
+**Decision:** `GetUserTenantsQuery` uses row-level filtering in the query handler based on the requesting user's authorization scope.
+
+**Authorization scoping rules:**
+
+| Requesting User | Query Scope | Rationale |
+|----------------|-------------|-----------|
+| Any authenticated user searching **themselves** | All own memberships across all tenants | Self-audit capability (UX Journey 7) |
+| TenantOwner searching **another user** | Only memberships in tenants the requester owns | TenantOwner manages their tenant but cannot see other tenants' memberships |
+| GlobalAdmin searching **any user** | All memberships across all tenants | Platform-level oversight (UX Journey 3 — incident response) |
+
+**Implementation location:** Query handler for `GetUserTenantsQuery` in Server. The `AuthorizationBehavior` in MediatR pipeline validates API access (Layer 1). The query handler receives the requesting user's identity from the command context and applies row-level filtering on the result set before returning.
+
+**This is a third authorization pattern** — neither command-side domain RBAC (Layer 2) nor API-level JWT validation (Layer 1). It is **query-side result filtering** based on the requesting user's aggregate membership state. The pattern:
+1. `AuthorizationBehavior` validates JWT claims (Layer 1 — existing)
+2. Query handler loads full result set from projection
+3. Query handler loads requesting user's memberships/roles from projection
+4. Query handler filters results: keep rows where requester is the target user, OR requester is TenantOwner of that tenant, OR requester is GlobalAdmin
+5. Return filtered results
+
+**Affects:** Server (`GetUserTenantsQuery` handler), potentially a shared authorization helper for query-side filtering reusable by other scoped queries.
+
+**Extends:** D8 (Authorization Model) — adds Layer 2b (query-side result filtering) alongside Layer 2 (domain RBAC in Handle methods).
+
+---
+
+### D12: Audit Projection and Query Design
+
+**Decision:** A dedicated `TenantAuditProjection` materializes audit-relevant event data into a queryable read model, supporting date range filtering and event category classification.
+
+**Rationale:** The UX spec makes the audit trail a must-ship screen with three entry points (standalone, tenant detail tab, user search drill-down), date range filtering, and event category filtering (Access vs Administrative). Event store replay is not suitable for fast, filtered reads at query time.
+
+**Projection design:**
+
+```
+TenantAuditProjection : EventStoreProjection<TenantAuditReadModel>
+```
+
+**`TenantAuditReadModel` fields:**
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `eventId` | string | Unique event identifier |
+| `eventType` | string | Event type name (e.g., `UserAddedToTenant`) |
+| `category` | enum: `Access`, `Administrative` | Classified at projection time for UX filtering |
+| `actorId` | string | User ID of who performed the action |
+| `timestamp` | DateTimeOffset | When the event occurred |
+| `tenantId` | string | Which managed tenant |
+| `narrativePayload` | Dictionary<string, string> | Key fields for narrative template rendering (e.g., `targetUserId`, `role`, `configKey`) |
+
+**Event category classification:**
+
+| Category | Events |
+|----------|--------|
+| **Access** | `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `GlobalAdministratorSet`, `GlobalAdministratorRemoved` |
+| **Administrative** | `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, `TenantConfigurationRemoved` |
+
+**Query contract:**
+
+```csharp
+public record GetTenantAuditQuery(
+    string TenantId,
+    DateTimeOffset? From,
+    DateTimeOffset? To,
+    AuditEventCategory? Category,  // Access, Administrative, or null for all
+    string? Cursor,
+    int PageSize = 50
+) : IQueryContract;
+```
+
+**DAPR state store key design:** `audit:{tenantId}` — stores audit entries as a time-ordered list per tenant. Cursor-based pagination over the list. At 1K tenants × ~1000 events per tenant (max), this is workable with the existing DAPR state store approach. If audit volume grows significantly, a DAPR state store backend with native query support (e.g., CosmosDB) can be swapped without code changes.
+
+**REST endpoint:** `GET /api/tenants/{tenantId}/audit?from=2026-03-01&to=2026-03-25&category=access&cursor=xxx`
+
+**Type locations:**
+- `GetTenantAuditQuery`, `AuditEventCategory` enum → Contracts
+- `TenantAuditProjection`, `TenantAuditReadModel` → Server
+- REST endpoint → CommandApi (`TenantsQueryController`)
+
+**Extends:** D4 (Data Architecture — Read Model) — adds a fourth projection alongside `TenantProjection`, `GlobalAdministratorProjection`, and `TenantIndexProjection`.
+
+---
+
+### D13: SignalR as Must-Ship Dependency
+
+**Decision:** SignalR real-time projection updates are a must-ship dependency, not optional. EventStore's `IProjectionChangedBroadcaster` and `IProjectionChangeNotifier` are required infrastructure for the Tenants module.
+
+**Rationale:** The UX spec's three-phase feedback pattern (optimistic → confirming → confirmed) depends on SignalR delivering Phase 3 confirmation. This is the core trust-building mechanism — without it, every command shows a perpetual "Verifying..." state with fallback polling. The UX spec defines explicit degradation thresholds:
+
+| Threshold | UX Response |
+|-----------|-------------|
+| 0-2s | Phase 2 confirming indicator (normal) |
+| 5s | "Verifying..." text appears |
+| 15s | Amber banner: "Connection issue — changes may be delayed" |
+| Reconnect | Batch resolve all pending operations from projection state |
+
+**Multi-tenant SignalR subscription pattern:**
+
+The User Search page displays memberships across multiple tenants and must receive real-time updates from ALL tenants in the result set. Proposed approach:
+
+- SignalR hub uses **topic-based groups**: `tenant:{tenantId}`
+- User Search page joins groups for all tenants in the result set on mount
+- Leaves groups on unmount or when results change
+- EventStore's `IProjectionChangedBroadcaster` publishes to the relevant tenant group when a projection updates
+- Standard SignalR group management — no custom infrastructure needed
+
+**Fallback:** Automatic polling at 5s intervals when SignalR connection fails. Client uses `stale-while-revalidate` pattern — shows cached data immediately, refreshes silently on reconnect.
+
+**Affects:** CommandApi (SignalR hub configuration), ServiceDefaults (SignalR service registration), AppHost (SignalR resource in Aspire topology).
+
+**Extends:** D4 Revision (2026-03-15) — promotes `IProjectionChangedBroadcaster` from optional to required; adds multi-tenant subscription pattern.
+
+---
+
+### D14: Anomaly Detection — Client-Side Heuristics
+
+**Decision:** MVP anomaly detection for User Search is implemented as client-side heuristics. No backend anomaly service or scoring projection.
+
+**Rationale:** The projection already exposes the fields needed for simple heuristic checks (timestamps, actor IDs). Server-side anomaly scoring adds complexity without clear MVP value. Phase 2 can introduce server-side scoring if heuristics prove insufficient.
+
+**Client-side heuristic rules:**
+
+| Anomaly | Heuristic | Data Source |
+|---------|-----------|-------------|
+| Off-hours grant | `grantedAt` hour is outside 6 AM - 10 PM local time | `GetUserTenantsQuery` response |
+| First-time actor | `grantedBy` is not a known admin in the tenant's projection | `GetUserTenantsQuery` response + `TenantReadModel` |
+| Rapid bulk additions | 3+ grants by same actor within 5 minutes to same tenant | `GetUserTenantsQuery` response (multiple rows) |
+
+**Backend requirement:** No new endpoints. The `GetUserTenantsQuery` response must include per-membership metadata fields (see D15).
+
+**Extends:** No existing decision — new UX-driven concern. Client-side only for MVP.
+
+---
+
+### D15: Projection Field Enrichment
+
+**Decision:** Existing projections are enriched with additional fields required by the UX design specification.
+
+**`TenantReadModel` — additional fields:**
+
+| Field | Type | Purpose | Derived From |
+|-------|------|---------|-------------|
+| `lastActivityAt` | DateTimeOffset | Dashboard "last activity" column, recency highlight | Timestamp of most recent event applied to projection |
+| `ownerCount` | int | "No owners" warning indicator, last-owner consequence preview | Count of members with `TenantOwner` role |
+| `configKeyCount` | int | Config limit proximity warning indicator | Count of configuration entries |
+
+Note: `ownerCount` and `configKeyCount` are derivable from `Members.Count(r => r == TenantOwner)` and `Configuration.Count` respectively, but pre-computed in the read model for fast dashboard rendering at scale (1K tenants list without per-row computation).
+
+**`GetUserTenantsQuery` response — per-membership metadata:**
+
+| Field | Type | Purpose | Derived From |
+|-------|------|---------|-------------|
+| `grantedAt` | DateTimeOffset | Anomaly detection (time-of-day heuristic) | `UserAddedToTenant` event timestamp |
+| `grantedBy` | string | Anomaly detection (actor attribution) | `UserAddedToTenant` event actor ID |
+| `lastRoleChangeAt` | DateTimeOffset? | Anomaly detection for role changes | `UserRoleChanged` event timestamp (null if role never changed) |
+| `lastRoleChangeBy` | string? | Anomaly detection (role change actor) | `UserRoleChanged` event actor ID (null if role never changed) |
+
+**Implementation:** These fields are populated in the `TenantProjection.Apply()` methods for the relevant events. The `UserAddedToTenant` Apply stores the actor and timestamp alongside the membership entry. The `UserRoleChanged` Apply updates the role change metadata.
+
+**State design impact:** The `TenantState` (command-side) is unchanged — these are read model enrichments only. The `TenantReadModel` adds the pre-computed counts. The membership detail in the read model extends from `{ userId, role }` to `{ userId, role, grantedAt, grantedBy, lastRoleChangeAt, lastRoleChangeBy }`.
+
+**Extends:** D4 (Data Architecture) — enriches existing `TenantReadModel` and shapes the `GetUserTenantsQuery` response contract.
+
+---
+
+### D16: Consequence Preview Data Flow
+
+**Decision:** Consequence previews use data already available in client-side projections. No dedicated consequence computation endpoint.
+
+**Rationale:** The UX spec explicitly requires zero additional round-trips for consequence data during high-impact operations. All required data is derivable from projections already loaded on the screen.
+
+**Consequence data mapping:**
+
+| Command | Consequence Data | Source (Already on Screen) |
+|---------|-----------------|---------------------------|
+| `DisableTenant` | "N active members will lose command access" | `TenantReadModel.Members.Count` from tenant detail |
+| `RemoveUserFromTenant` | "This user has access to N other tenants" | `GetUserTenantsQuery` results (User Search page) or not shown (tenant detail — only current tenant visible) |
+| `RemoveUserFromTenant` | "This is the last TenantOwner" warning | `TenantReadModel.ownerCount` from tenant detail |
+| `RemoveGlobalAdministrator` | "Last global administrator" warning | `GlobalAdministratorReadModel` admin count from Global Admin page |
+
+**Domain invariant decision:** The domain does **not** enforce a "must have at least one TenantOwner" invariant. Removing the last owner is allowed — the consequence preview provides a prominent warning, but the Handle method does not reject. Rationale: hard invariants block legitimate scenarios (e.g., reassigning ownership requires removing the old owner first). The "no owners" state is surfaced as a dashboard warning indicator (D15, `ownerCount == 0`) for Elena's daily review.
+
+**Extends:** No existing decision directly — documents the data flow pattern for UX consequence previews as a client-side concern with no backend impact beyond D15 projection enrichments.
+
+---
+
+### D17: FrontShell Cross-Project Dependencies
+
+**Decision:** The Tenants UI depends on deliverables from Hexalith.FrontShell that must be sequenced in epic/story planning. These are documented as external dependencies.
+
+**FrontShell Change Proposal deliverables:**
+
+| Deliverable | Type | Tenants Screens Blocked |
+|-------------|------|------------------------|
+| `<AuditTimeline>` component (flat MVP, grouped fast-follow) | New `@hexalith/ui` component | Audit trail screens (standalone + tenant detail tab) |
+| `<ConsequencePreview>` component | New `@hexalith/ui` component | Remove user, disable tenant, remove global admin |
+| `useCommand` `pendingIds` enhancement | Hook API change | Three-phase feedback on all table rows |
+| `useCommand` concurrent command support | Hook API change | Sequential rapid action (incident response) |
+| Toast batch consolidation (100ms window) | Shell behavior | Multiple Phase 3 confirmations during rapid operations |
+| `<PageLayout>` `full-width` / `constrained` variants | Confirm or add | All page layouts |
+| 5 new design tokens (3 role semantic + 2 component) | Token additions | Role badges, timeline connector, consequence panel |
+| Three-phase Storybook story | Developer documentation | Pattern reference for module developers |
+
+**Sequencing constraint:** Tenants UI stories that use these deliverables must have explicit `blockedBy` relationships to the corresponding FrontShell stories. Backend stories (aggregates, projections, API endpoints) are not blocked — only frontend stories that consume these components.
+
+**Extends:** No existing backend decision — documents cross-project dependency for implementation planning.
+
 ## Architecture Validation Results
 
 ### Coherence Validation ✅
 
 **Decision Compatibility:**
-All technology choices work together without conflicts. .NET 10 + DAPR SDK 1.17.3 + .NET Aspire 13.1.x are compatible. System.Text.Json used throughout (no serializer conflicts). MediatR + FluentValidation pipeline follows EventStore pattern. JWT auth + domain RBAC are two clear, non-overlapping layers. Single deployable (CommandApi) with route groups has no contradictions with CQRS decisions.
+All technology choices work together without conflicts. .NET 10 + DAPR SDK 1.17.3 + .NET Aspire 13.1.x are compatible. System.Text.Json used throughout (no serializer conflicts). MediatR + FluentValidation pipeline follows EventStore pattern. JWT auth + domain RBAC + query-side result filtering (D11) are three clear, non-overlapping authorization layers. Single deployable (CommandApi) with route groups has no contradictions with CQRS decisions. SignalR (D13) integrates via EventStore's existing `IProjectionChangedBroadcaster` infrastructure. UX amendments (D11-D17) are additive — no conflicts with original D1-D10 decisions.
 
 **Pattern Consistency:**
 All implementation patterns support the architectural decisions. Naming conventions (PascalCase commands/events) align with EventStore's reflection-based discovery. Handle/Apply pure function pattern is enforced by EventStore's aggregate base class. RFC 7807 error responses match EventStore's error handler infrastructure. Structured logging follows OpenTelemetry semantic conventions.
@@ -1061,10 +1279,15 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 1. DAPR state store key design for cross-tenant indexes — ETag concurrency decided, specific key schema deferred to implementation (appropriate for architecture level)
 2. PRD FR25-30 consistency model clarification — PRD does not specify eventual consistency for queries. Should be updated to prevent test assertions assuming immediate consistency
 3. "Aha moment" demo artifact (FR63) — screencast/video not mapped to a file; can be added to docs/ or project root during implementation
+4. ~~Audit query design~~ → Resolved by D12 (TenantAuditProjection with date range + category filtering)
+5. ~~SignalR as optional~~ → Resolved by D13 (promoted to must-ship dependency)
+6. ~~User Search authorization scoping~~ → Resolved by D11 (query-side result filtering)
+7. ~~Projection fields for UX dashboard~~ → Resolved by D15 (TenantReadModel + GetUserTenantsQuery enrichment)
 
 **Nice-to-Have (future enhancement):**
 - Sample consuming service internal structure detail
 - Migration guide for v1.0 event contract stability transition
+- Server-side anomaly scoring for User Search (D14 documents MVP client-side heuristics; Phase 2 may introduce backend scoring)
 
 ### Architecture Completeness Checklist
 
@@ -1099,6 +1322,15 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 - [x] Snapshot performance test category and threshold defined (Medium)
 - [x] Bootstrap multi-instance behavior documented as expected (Medium)
 
+**✅ UX-Driven Amendments (2026-03-25)**
+- [x] User Search authorization scoping — query-side result filtering (D11)
+- [x] Audit projection and query design — TenantAuditProjection with date range + category (D12)
+- [x] SignalR promoted to must-ship — degradation thresholds, multi-tenant subscription (D13)
+- [x] Anomaly detection — client-side heuristics for MVP (D14)
+- [x] Projection field enrichment — TenantReadModel + GetUserTenantsQuery metadata (D15)
+- [x] Consequence preview data flow — client-side, no new endpoints (D16)
+- [x] FrontShell cross-project dependencies documented (D17)
+
 ### Architecture Readiness Assessment
 
 **Overall Status:** READY FOR IMPLEMENTATION
@@ -1117,6 +1349,8 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 - Bulk provisioning execution path (Phase 2)
 - Real-time feature flag service boundary documentation
 - Cross-tenant index `CachingProjectionActor` fan-in verification (Epic 5, Story 5.2)
+- Server-side anomaly scoring for User Search (D14 — Phase 2)
+- Audit timeline grouped-by-session mode (D12/D17 — fast-follow)
 
 ### Implementation Handoff
 
