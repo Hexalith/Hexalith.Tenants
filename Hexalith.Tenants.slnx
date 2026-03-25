@@ -3,6 +3,7 @@
     <Project Path="samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj" />
     <Project Path="samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj" />
   </Folder>
+  
   <Folder Name="/src/">
     <Project Path="src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj" />
     <Project Path="src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj" />
