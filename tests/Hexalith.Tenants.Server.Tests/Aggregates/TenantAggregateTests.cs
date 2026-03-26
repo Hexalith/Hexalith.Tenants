@@ -14,8 +14,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Aggregates;
 
-public class TenantAggregateTests
-{
+public class TenantAggregateTests {
     private static CommandEnvelope CreateCommand<T>(
         T command,
         string actorUserId = "test-user",
@@ -35,8 +34,7 @@ public class TenantAggregateTests
                 ? new Dictionary<string, string> { ["actor:globalAdmin"] = "true" }
                 : null);
 
-    private static TenantState CreateStateWithRoles()
-    {
+    private static TenantState CreateStateWithRoles() {
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
@@ -49,8 +47,7 @@ public class TenantAggregateTests
 
     // Test 1: CreateTenant with no prior state → Success (AC #1)
     [Fact]
-    public async Task CreateTenant_with_no_prior_state_produces_TenantCreated()
-    {
+    public async Task CreateTenant_with_no_prior_state_produces_TenantCreated() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"));
 
@@ -69,8 +66,7 @@ public class TenantAggregateTests
 
     // Test 2: CreateTenant when tenant already exists → Rejection (AC #2)
     [Fact]
-    public async Task CreateTenant_when_tenant_exists_produces_rejection()
-    {
+    public async Task CreateTenant_when_tenant_exists_produces_rejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -80,13 +76,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantAlreadyExistsRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantAlreadyExistsRejection>();
     }
 
     // Test 3: UpdateTenant on active tenant → Success (AC #3)
     [Fact]
-    public async Task UpdateTenant_on_active_tenant_produces_TenantUpdated()
-    {
+    public async Task UpdateTenant_on_active_tenant_produces_TenantUpdated() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -106,21 +101,19 @@ public class TenantAggregateTests
 
     // Test 4: UpdateTenant on non-existent tenant → Rejection (AC #7)
     [Fact]
-    public async Task UpdateTenant_on_nonexistent_tenant_produces_rejection()
-    {
+    public async Task UpdateTenant_on_nonexistent_tenant_produces_rejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new UpdateTenant("acme", "Name", "Desc"));
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // Test 5: UpdateTenant on disabled tenant → Rejection (AC #5)
     [Fact]
-    public async Task UpdateTenant_on_disabled_tenant_produces_rejection()
-    {
+    public async Task UpdateTenant_on_disabled_tenant_produces_rejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -131,13 +124,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // Test 6: DisableTenant on active tenant → Success (AC #4)
     [Fact]
-    public async Task DisableTenant_on_active_tenant_produces_TenantDisabled()
-    {
+    public async Task DisableTenant_on_active_tenant_produces_TenantDisabled() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -157,21 +149,19 @@ public class TenantAggregateTests
 
     // Test 7: DisableTenant on non-existent tenant → Rejection (AC #7)
     [Fact]
-    public async Task DisableTenant_on_nonexistent_tenant_produces_rejection()
-    {
+    public async Task DisableTenant_on_nonexistent_tenant_produces_rejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"));
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // Test 8: DisableTenant on already disabled tenant → NoOp (AC #4 idempotent)
     [Fact]
-    public async Task DisableTenant_on_already_disabled_tenant_produces_NoOp()
-    {
+    public async Task DisableTenant_on_already_disabled_tenant_produces_NoOp() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -187,8 +177,7 @@ public class TenantAggregateTests
 
     // Test 9: EnableTenant on disabled tenant → Success (AC #6)
     [Fact]
-    public async Task EnableTenant_on_disabled_tenant_produces_TenantEnabled()
-    {
+    public async Task EnableTenant_on_disabled_tenant_produces_TenantEnabled() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -209,21 +198,19 @@ public class TenantAggregateTests
 
     // Test 10: EnableTenant on non-existent tenant → Rejection (AC #7)
     [Fact]
-    public async Task EnableTenant_on_nonexistent_tenant_produces_rejection()
-    {
+    public async Task EnableTenant_on_nonexistent_tenant_produces_rejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"));
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // Test 11: EnableTenant on already active tenant → NoOp (AC #6 idempotent)
     [Fact]
-    public async Task EnableTenant_on_already_active_tenant_produces_NoOp()
-    {
+    public async Task EnableTenant_on_already_active_tenant_produces_NoOp() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -238,8 +225,7 @@ public class TenantAggregateTests
 
     // Test 12: State replay — Create → Update → Disable → Enable (AC #8)
     [Fact]
-    public async Task State_replay_tracks_tenant_lifecycle_correctly()
-    {
+    public async Task State_replay_tracks_tenant_lifecycle_correctly() {
         var aggregate = new TenantAggregate();
 
         // Step 1: Create tenant
@@ -285,8 +271,7 @@ public class TenantAggregateTests
     }
 
     [Fact]
-    public void TenantState_apply_methods_update_users_and_configuration()
-    {
+    public void TenantState_apply_methods_update_users_and_configuration() {
         var state = new TenantState();
 
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test tenant", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -312,8 +297,7 @@ public class TenantAggregateTests
     [InlineData(TenantRole.TenantOwner)]
     [InlineData(TenantRole.TenantContributor)]
     [InlineData(TenantRole.TenantReader)]
-    public async Task AddUserToTenant_on_active_tenant_produces_UserAddedToTenant(TenantRole role)
-    {
+    public async Task AddUserToTenant_on_active_tenant_produces_UserAddedToTenant(TenantRole role) {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -332,21 +316,19 @@ public class TenantAggregateTests
 
     // Test 14: AddUserToTenant on null state → TenantNotFoundRejection (AC #1)
     [Fact]
-    public async Task AddUserToTenant_on_null_state_produces_TenantNotFoundRejection()
-    {
+    public async Task AddUserToTenant_on_null_state_produces_TenantNotFoundRejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantReader));
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // Test 15: AddUserToTenant on disabled tenant → TenantDisabledRejection (AC #1)
     [Fact]
-    public async Task AddUserToTenant_on_disabled_tenant_produces_TenantDisabledRejection()
-    {
+    public async Task AddUserToTenant_on_disabled_tenant_produces_TenantDisabledRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -357,13 +339,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // Test 16: AddUserToTenant when user already member → UserAlreadyInTenantRejection (AC #2)
     [Fact]
-    public async Task AddUserToTenant_when_user_already_member_produces_UserAlreadyInTenantRejection()
-    {
+    public async Task AddUserToTenant_when_user_already_member_produces_UserAlreadyInTenantRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -384,8 +365,7 @@ public class TenantAggregateTests
     // Test 17: AddUserToTenant with undefined role → RoleEscalationRejection (AC #6)
     // Note: Empty Users dict → bootstrap exception applies, RBAC is skipped → undefined role check fires
     [Fact]
-    public async Task AddUserToTenant_with_undefined_role_produces_RoleEscalationRejection()
-    {
+    public async Task AddUserToTenant_with_undefined_role_produces_RoleEscalationRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -395,13 +375,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+        _ = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
     }
 
     // Test 18: RemoveUserFromTenant when user is member → Success (AC #3)
     [Fact]
-    public async Task RemoveUserFromTenant_when_user_is_member_produces_UserRemovedFromTenant()
-    {
+    public async Task RemoveUserFromTenant_when_user_is_member_produces_UserRemovedFromTenant() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -421,21 +400,19 @@ public class TenantAggregateTests
 
     // Test 19: RemoveUserFromTenant on null state → TenantNotFoundRejection (AC #3)
     [Fact]
-    public async Task RemoveUserFromTenant_on_null_state_produces_TenantNotFoundRejection()
-    {
+    public async Task RemoveUserFromTenant_on_null_state_produces_TenantNotFoundRejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new RemoveUserFromTenant("acme", "user-1"));
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // Test 20: RemoveUserFromTenant on disabled tenant → TenantDisabledRejection (AC #3)
     [Fact]
-    public async Task RemoveUserFromTenant_on_disabled_tenant_produces_TenantDisabledRejection()
-    {
+    public async Task RemoveUserFromTenant_on_disabled_tenant_produces_TenantDisabledRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -446,13 +423,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // Test 21: RemoveUserFromTenant when user not member → UserNotInTenantRejection (AC #4)
     [Fact]
-    public async Task RemoveUserFromTenant_when_user_not_member_produces_UserNotInTenantRejection()
-    {
+    public async Task RemoveUserFromTenant_when_user_not_member_produces_UserNotInTenantRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -463,13 +439,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+        _ = result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
     }
 
     // Test 22: ChangeUserRole with valid new role → Success (AC #5)
     [Fact]
-    public async Task ChangeUserRole_with_valid_new_role_produces_UserRoleChanged()
-    {
+    public async Task ChangeUserRole_with_valid_new_role_produces_UserRoleChanged() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -491,21 +466,19 @@ public class TenantAggregateTests
 
     // Test 23: ChangeUserRole on null state → TenantNotFoundRejection (AC #5)
     [Fact]
-    public async Task ChangeUserRole_on_null_state_produces_TenantNotFoundRejection()
-    {
+    public async Task ChangeUserRole_on_null_state_produces_TenantNotFoundRejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.TenantContributor));
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // Test 24: ChangeUserRole on disabled tenant → TenantDisabledRejection (AC #5)
     [Fact]
-    public async Task ChangeUserRole_on_disabled_tenant_produces_TenantDisabledRejection()
-    {
+    public async Task ChangeUserRole_on_disabled_tenant_produces_TenantDisabledRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -516,13 +489,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // Test 25: ChangeUserRole when user not member → UserNotInTenantRejection (AC #5)
     [Fact]
-    public async Task ChangeUserRole_when_user_not_member_produces_UserNotInTenantRejection()
-    {
+    public async Task ChangeUserRole_when_user_not_member_produces_UserNotInTenantRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -533,13 +505,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+        _ = result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
     }
 
     // Test 26: ChangeUserRole with same role → NoOp (AC #5)
     [Fact]
-    public async Task ChangeUserRole_with_same_role_produces_NoOp()
-    {
+    public async Task ChangeUserRole_with_same_role_produces_NoOp() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -556,8 +527,7 @@ public class TenantAggregateTests
 
     // Test 27: ChangeUserRole with undefined role → RoleEscalationRejection (AC #6)
     [Fact]
-    public async Task ChangeUserRole_with_undefined_role_produces_RoleEscalationRejection()
-    {
+    public async Task ChangeUserRole_with_undefined_role_produces_RoleEscalationRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -569,13 +539,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+        _ = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
     }
 
     // Test 28: AddUserToTenant on disabled tenant with existing member → TenantDisabledRejection (verifies switch arm ordering) (AC #1, #2)
     [Fact]
-    public async Task AddUserToTenant_on_disabled_tenant_with_existing_member_produces_TenantDisabledRejection()
-    {
+    public async Task AddUserToTenant_on_disabled_tenant_with_existing_member_produces_TenantDisabledRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -587,15 +556,14 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // ===== Story 3.2: Role Behavior Enforcement (RBAC) Tests =====
 
     // R1: AddUserToTenant by Reader → InsufficientPermissionsRejection (AC #1)
     [Fact]
-    public async Task RBAC_AddUserToTenant_by_reader_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_AddUserToTenant_by_reader_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -615,8 +583,7 @@ public class TenantAggregateTests
 
     // R2: AddUserToTenant by Contributor → InsufficientPermissionsRejection (AC #2)
     [Fact]
-    public async Task RBAC_AddUserToTenant_by_contributor_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_AddUserToTenant_by_contributor_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -633,8 +600,7 @@ public class TenantAggregateTests
 
     // R3: AddUserToTenant by Owner → Success (AC #3)
     [Fact]
-    public async Task RBAC_AddUserToTenant_by_owner_succeeds()
-    {
+    public async Task RBAC_AddUserToTenant_by_owner_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -645,13 +611,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        _ = result.Events[0].ShouldBeOfType<UserAddedToTenant>();
     }
 
     // R4: AddUserToTenant by GlobalAdmin (not in Users) → Success (AC #6)
     [Fact]
-    public async Task RBAC_AddUserToTenant_by_globalAdmin_succeeds()
-    {
+    public async Task RBAC_AddUserToTenant_by_globalAdmin_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -663,13 +628,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        _ = result.Events[0].ShouldBeOfType<UserAddedToTenant>();
     }
 
     // R5: AddUserToTenant by non-member → InsufficientPermissionsRejection (AC #5)
     [Fact]
-    public async Task RBAC_AddUserToTenant_by_nonMember_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_AddUserToTenant_by_nonMember_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -687,8 +651,7 @@ public class TenantAggregateTests
 
     // R6: RemoveUserFromTenant by Reader → InsufficientPermissionsRejection (AC #1)
     [Fact]
-    public async Task RBAC_RemoveUserFromTenant_by_reader_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_RemoveUserFromTenant_by_reader_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -699,13 +662,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
     }
 
     // R7: RemoveUserFromTenant by Contributor → InsufficientPermissionsRejection (AC #2)
     [Fact]
-    public async Task RBAC_RemoveUserFromTenant_by_contributor_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_RemoveUserFromTenant_by_contributor_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -716,13 +678,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
     }
 
     // R8: RemoveUserFromTenant by Owner → Success (AC #3)
     [Fact]
-    public async Task RBAC_RemoveUserFromTenant_by_owner_succeeds()
-    {
+    public async Task RBAC_RemoveUserFromTenant_by_owner_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -733,13 +694,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        _ = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
     }
 
     // R9: RemoveUserFromTenant by GlobalAdmin → Success (AC #6)
     [Fact]
-    public async Task RBAC_RemoveUserFromTenant_by_globalAdmin_succeeds()
-    {
+    public async Task RBAC_RemoveUserFromTenant_by_globalAdmin_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -751,13 +711,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        _ = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
     }
 
     // R10: ChangeUserRole by Reader → InsufficientPermissionsRejection (AC #1)
     [Fact]
-    public async Task RBAC_ChangeUserRole_by_reader_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_ChangeUserRole_by_reader_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -768,13 +727,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
     }
 
     // R11: ChangeUserRole by Contributor → InsufficientPermissionsRejection (AC #2)
     [Fact]
-    public async Task RBAC_ChangeUserRole_by_contributor_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_ChangeUserRole_by_contributor_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -785,13 +743,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
     }
 
     // R12: ChangeUserRole by Owner → Success (AC #3)
     [Fact]
-    public async Task RBAC_ChangeUserRole_by_owner_succeeds()
-    {
+    public async Task RBAC_ChangeUserRole_by_owner_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -809,8 +766,7 @@ public class TenantAggregateTests
 
     // R13: ChangeUserRole by GlobalAdmin → Success (AC #6)
     [Fact]
-    public async Task RBAC_ChangeUserRole_by_globalAdmin_succeeds()
-    {
+    public async Task RBAC_ChangeUserRole_by_globalAdmin_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -822,13 +778,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserRoleChanged>();
+        _ = result.Events[0].ShouldBeOfType<UserRoleChanged>();
     }
 
     // R14: UpdateTenant by Reader → InsufficientPermissionsRejection (AC #1)
     [Fact]
-    public async Task RBAC_UpdateTenant_by_reader_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_UpdateTenant_by_reader_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -845,8 +800,7 @@ public class TenantAggregateTests
 
     // R15: UpdateTenant by Contributor → Success (AC #4)
     [Fact]
-    public async Task RBAC_UpdateTenant_by_contributor_succeeds()
-    {
+    public async Task RBAC_UpdateTenant_by_contributor_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -857,13 +811,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantUpdated>();
+        _ = result.Events[0].ShouldBeOfType<TenantUpdated>();
     }
 
     // R16: UpdateTenant by Owner → Success (AC #3)
     [Fact]
-    public async Task RBAC_UpdateTenant_by_owner_succeeds()
-    {
+    public async Task RBAC_UpdateTenant_by_owner_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -874,13 +827,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantUpdated>();
+        _ = result.Events[0].ShouldBeOfType<TenantUpdated>();
     }
 
     // R17: UpdateTenant by GlobalAdmin → Success (AC #6)
     [Fact]
-    public async Task RBAC_UpdateTenant_by_globalAdmin_succeeds()
-    {
+    public async Task RBAC_UpdateTenant_by_globalAdmin_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -892,13 +844,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantUpdated>();
+        _ = result.Events[0].ShouldBeOfType<TenantUpdated>();
     }
 
     // R18: Owner self-removal → Success (AC #3)
     [Fact]
-    public async Task RBAC_owner_self_removal_succeeds()
-    {
+    public async Task RBAC_owner_self_removal_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -909,13 +860,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        _ = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
     }
 
     // R19: Owner self-demotion → Success (AC #3)
     [Fact]
-    public async Task RBAC_owner_self_demotion_succeeds()
-    {
+    public async Task RBAC_owner_self_demotion_succeeds() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -933,8 +883,7 @@ public class TenantAggregateTests
 
     // R20: AddUserToTenant on empty tenant (bootstrap) by non-member → Success (AC #5 exception)
     [Fact]
-    public async Task RBAC_AddUserToTenant_on_empty_tenant_bootstrap_succeeds()
-    {
+    public async Task RBAC_AddUserToTenant_on_empty_tenant_bootstrap_succeeds() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -947,13 +896,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        _ = result.Events[0].ShouldBeOfType<UserAddedToTenant>();
     }
 
     // R20b: After bootstrap, non-owner is rejected
     [Fact]
-    public async Task RBAC_after_bootstrap_non_owner_AddUser_is_rejected()
-    {
+    public async Task RBAC_after_bootstrap_non_owner_AddUser_is_rejected() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -967,12 +915,11 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
     }
 
     [Fact]
-    public async Task RBAC_previously_populated_tenant_cannot_reopen_bootstrap_after_becoming_empty()
-    {
+    public async Task RBAC_previously_populated_tenant_cannot_reopen_bootstrap_after_becoming_empty() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -993,8 +940,7 @@ public class TenantAggregateTests
 
     // R21: RemoveUserFromTenant by non-member → InsufficientPermissionsRejection (AC #5)
     [Fact]
-    public async Task RBAC_RemoveUserFromTenant_by_nonMember_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_RemoveUserFromTenant_by_nonMember_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -1012,8 +958,7 @@ public class TenantAggregateTests
 
     // R22: ChangeUserRole by non-member → InsufficientPermissionsRejection (AC #5)
     [Fact]
-    public async Task RBAC_ChangeUserRole_by_nonMember_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_ChangeUserRole_by_nonMember_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -1031,8 +976,7 @@ public class TenantAggregateTests
 
     // R23: UpdateTenant by non-member → InsufficientPermissionsRejection (AC #5)
     [Fact]
-    public async Task RBAC_UpdateTenant_by_nonMember_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RBAC_UpdateTenant_by_nonMember_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRoles();
 
@@ -1051,18 +995,15 @@ public class TenantAggregateTests
 
     // ===== Story 3.3: Tenant Configuration Management Tests =====
 
-    private static TenantState CreateStateWithRolesAndConfig()
-    {
+    private static TenantState CreateStateWithRolesAndConfig() {
         TenantState state = CreateStateWithRoles();
         state.Apply(new TenantConfigurationSet("acme", "billing.plan", "pro"));
         return state;
     }
 
-    private static TenantState CreateStateWith100ConfigKeys()
-    {
+    private static TenantState CreateStateWith100ConfigKeys() {
         TenantState state = CreateStateWithRolesAndConfig(); // already has billing.plan
-        for (int i = 1; i < 100; i++)
-        {
+        for (int i = 1; i < 100; i++) {
             state.Apply(new TenantConfigurationSet("acme", $"key.{i}", $"value-{i}"));
         }
 
@@ -1072,8 +1013,7 @@ public class TenantAggregateTests
 
     // C1: SetTenantConfiguration success — new key (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_new_key_produces_TenantConfigurationSet()
-    {
+    public async Task SetTenantConfiguration_new_key_produces_TenantConfigurationSet() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1092,8 +1032,7 @@ public class TenantAggregateTests
 
     // C2: SetTenantConfiguration overwrite existing key (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_overwrite_existing_key_produces_TenantConfigurationSet()
-    {
+    public async Task SetTenantConfiguration_overwrite_existing_key_produces_TenantConfigurationSet() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1110,8 +1049,7 @@ public class TenantAggregateTests
 
     // C3: SetTenantConfiguration dot-delimited key (AC #3)
     [Fact]
-    public async Task SetTenantConfiguration_dot_delimited_key_is_accepted()
-    {
+    public async Task SetTenantConfiguration_dot_delimited_key_is_accepted() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1128,8 +1066,7 @@ public class TenantAggregateTests
 
     // C4: SetTenantConfiguration null state → TenantNotFoundRejection (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_null_state_produces_TenantNotFoundRejection()
-    {
+    public async Task SetTenantConfiguration_null_state_produces_TenantNotFoundRejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(
             new SetTenantConfiguration("acme", "key", "value"),
@@ -1138,13 +1075,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // C5: SetTenantConfiguration disabled tenant → TenantDisabledRejection (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_disabled_tenant_produces_TenantDisabledRejection()
-    {
+    public async Task SetTenantConfiguration_disabled_tenant_produces_TenantDisabledRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -1155,13 +1091,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // C6: SetTenantConfiguration reader → InsufficientPermissionsRejection (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_reader_produces_InsufficientPermissionsRejection()
-    {
+    public async Task SetTenantConfiguration_reader_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1179,8 +1114,7 @@ public class TenantAggregateTests
 
     // C7: SetTenantConfiguration contributor → InsufficientPermissionsRejection (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_contributor_produces_InsufficientPermissionsRejection()
-    {
+    public async Task SetTenantConfiguration_contributor_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1197,8 +1131,7 @@ public class TenantAggregateTests
 
     // C8: SetTenantConfiguration global admin bypasses RBAC (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_global_admin_bypasses_RBAC()
-    {
+    public async Task SetTenantConfiguration_global_admin_bypasses_RBAC() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1209,13 +1142,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        _ = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
     }
 
     // C9: SetTenantConfiguration key exceeds 256 chars → ConfigurationLimitExceededRejection (AC #6)
     [Fact]
-    public async Task SetTenantConfiguration_key_exceeding_max_length_produces_rejection()
-    {
+    public async Task SetTenantConfiguration_key_exceeding_max_length_produces_rejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         string longKey = new('k', 257);
@@ -1235,8 +1167,7 @@ public class TenantAggregateTests
 
     // C10: SetTenantConfiguration value exceeds 1024 chars → ConfigurationLimitExceededRejection (AC #5)
     [Fact]
-    public async Task SetTenantConfiguration_value_exceeding_max_length_produces_rejection()
-    {
+    public async Task SetTenantConfiguration_value_exceeding_max_length_produces_rejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         string longValue = new('v', 1025);
@@ -1255,8 +1186,7 @@ public class TenantAggregateTests
 
     // C11: SetTenantConfiguration 101st key → ConfigurationLimitExceededRejection (AC #4)
     [Fact]
-    public async Task SetTenantConfiguration_101st_key_produces_rejection()
-    {
+    public async Task SetTenantConfiguration_101st_key_produces_rejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWith100ConfigKeys();
         state.Configuration.Count.ShouldBe(100);
@@ -1275,8 +1205,7 @@ public class TenantAggregateTests
 
     // C12: SetTenantConfiguration overwrite existing key when at 100 keys → Success (AC #4)
     [Fact]
-    public async Task SetTenantConfiguration_overwrite_at_100_keys_produces_success()
-    {
+    public async Task SetTenantConfiguration_overwrite_at_100_keys_produces_success() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWith100ConfigKeys();
         state.Configuration.Count.ShouldBe(100);
@@ -1293,8 +1222,7 @@ public class TenantAggregateTests
 
     // C13: SetTenantConfiguration same value → NoOp (AC #1)
     [Fact]
-    public async Task SetTenantConfiguration_same_value_produces_NoOp()
-    {
+    public async Task SetTenantConfiguration_same_value_produces_NoOp() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1309,8 +1237,7 @@ public class TenantAggregateTests
 
     // C14: RemoveTenantConfiguration success (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_existing_key_produces_TenantConfigurationRemoved()
-    {
+    public async Task RemoveTenantConfiguration_existing_key_produces_TenantConfigurationRemoved() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1328,8 +1255,7 @@ public class TenantAggregateTests
 
     // C15: RemoveTenantConfiguration null state (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_null_state_produces_TenantNotFoundRejection()
-    {
+    public async Task RemoveTenantConfiguration_null_state_produces_TenantNotFoundRejection() {
         var aggregate = new TenantAggregate();
         CommandEnvelope cmd = CreateCommand(
             new RemoveTenantConfiguration("acme", "billing.plan"),
@@ -1338,13 +1264,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
     // C16: RemoveTenantConfiguration disabled tenant (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_disabled_tenant_produces_TenantDisabledRejection()
-    {
+    public async Task RemoveTenantConfiguration_disabled_tenant_produces_TenantDisabledRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -1355,13 +1280,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // C17: RemoveTenantConfiguration reader → InsufficientPermissionsRejection (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_reader_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RemoveTenantConfiguration_reader_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1378,8 +1302,7 @@ public class TenantAggregateTests
 
     // C18: RemoveTenantConfiguration non-existent key → NoOp (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_nonexistent_key_produces_NoOp()
-    {
+    public async Task RemoveTenantConfiguration_nonexistent_key_produces_NoOp() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1394,8 +1317,7 @@ public class TenantAggregateTests
 
     // C19: RemoveTenantConfiguration global admin bypasses RBAC (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_global_admin_bypasses_RBAC()
-    {
+    public async Task RemoveTenantConfiguration_global_admin_bypasses_RBAC() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1406,13 +1328,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantConfigurationRemoved>();
+        _ = result.Events[0].ShouldBeOfType<TenantConfigurationRemoved>();
     }
 
     // C23: RemoveTenantConfiguration contributor → InsufficientPermissionsRejection (RBAC coverage)
     [Fact]
-    public async Task RemoveTenantConfiguration_contributor_produces_InsufficientPermissionsRejection()
-    {
+    public async Task RemoveTenantConfiguration_contributor_produces_InsufficientPermissionsRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1430,8 +1351,7 @@ public class TenantAggregateTests
 
     // C24: SetTenantConfiguration non-member user → InsufficientPermissionsRejection with null role
     [Fact]
-    public async Task SetTenantConfiguration_non_member_produces_InsufficientPermissionsRejection_with_null_role()
-    {
+    public async Task SetTenantConfiguration_non_member_produces_InsufficientPermissionsRejection_with_null_role() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1449,8 +1369,7 @@ public class TenantAggregateTests
 
     // C25: RemoveTenantConfiguration non-member user → InsufficientPermissionsRejection with null role
     [Fact]
-    public async Task RemoveTenantConfiguration_non_member_produces_InsufficientPermissionsRejection_with_null_role()
-    {
+    public async Task RemoveTenantConfiguration_non_member_produces_InsufficientPermissionsRejection_with_null_role() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -1468,8 +1387,7 @@ public class TenantAggregateTests
 
     // C20: SetTenantConfiguration disabled tenant by reader → TenantDisabledRejection (switch arm ordering)
     [Fact]
-    public async Task SetTenantConfiguration_disabled_tenant_by_reader_produces_TenantDisabledRejection_not_RBAC()
-    {
+    public async Task SetTenantConfiguration_disabled_tenant_by_reader_produces_TenantDisabledRejection_not_RBAC() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -1480,13 +1398,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // C21: SetTenantConfiguration key exactly 256 chars → Success (boundary test, AC #6)
     [Fact]
-    public async Task SetTenantConfiguration_key_exactly_at_max_length_produces_success()
-    {
+    public async Task SetTenantConfiguration_key_exactly_at_max_length_produces_success() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         string maxKey = new('k', 256);
@@ -1497,13 +1414,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        _ = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
     }
 
     // C22: SetTenantConfiguration value exactly 1024 chars → Success (boundary test, AC #5)
     [Fact]
-    public async Task SetTenantConfiguration_value_exactly_at_max_length_produces_success()
-    {
+    public async Task SetTenantConfiguration_value_exactly_at_max_length_produces_success() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         string maxValue = new('v', 1024);
@@ -1514,13 +1430,12 @@ public class TenantAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        _ = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
     }
 
     // Task 3.7: TenantRole enum ordinal regression test
     [Fact]
-    public void TenantRole_ordinal_values_maintain_privilege_hierarchy()
-    {
+    public void TenantRole_ordinal_values_maintain_privilege_hierarchy() {
         ((int)TenantRole.TenantOwner).ShouldBeLessThan((int)TenantRole.TenantContributor);
         ((int)TenantRole.TenantContributor).ShouldBeLessThan((int)TenantRole.TenantReader);
         Enum.GetValues<TenantRole>().Length.ShouldBe(3);
@@ -1528,8 +1443,7 @@ public class TenantAggregateTests
 
     // Task 3.10: 3-param Handle method discovery guard
     [Fact]
-    public void TenantAggregate_exposes_three_param_Handle_methods()
-    {
+    public void TenantAggregate_exposes_three_param_Handle_methods() {
         MethodInfo[] handleMethods = typeof(TenantAggregate)
             .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
             .Where(m => m.Name == "Handle" && m.GetParameters().Length == 3)

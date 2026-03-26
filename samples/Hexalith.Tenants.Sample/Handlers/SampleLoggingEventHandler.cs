@@ -1,8 +1,6 @@
 using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Contracts.Events;
 
-using Microsoft.Extensions.Logging;
-
 namespace Hexalith.Tenants.Sample.Handlers;
 
 /// <summary>
@@ -12,18 +10,15 @@ namespace Hexalith.Tenants.Sample.Handlers;
 public class SampleLoggingEventHandler :
     ITenantEventHandler<UserAddedToTenant>,
     ITenantEventHandler<UserRemovedFromTenant>,
-    ITenantEventHandler<TenantDisabled>
-{
+    ITenantEventHandler<TenantDisabled> {
     private readonly ILogger<SampleLoggingEventHandler> _logger;
 
-    public SampleLoggingEventHandler(ILogger<SampleLoggingEventHandler> logger)
-    {
+    public SampleLoggingEventHandler(ILogger<SampleLoggingEventHandler> logger) {
         ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
-    public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default)
-    {
+    public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         _logger.LogInformation(
@@ -32,8 +27,7 @@ public class SampleLoggingEventHandler :
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(UserRemovedFromTenant @event, TenantEventContext context, CancellationToken cancellationToken = default)
-    {
+    public Task HandleAsync(UserRemovedFromTenant @event, TenantEventContext context, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         _logger.LogWarning(
@@ -42,8 +36,7 @@ public class SampleLoggingEventHandler :
         return Task.CompletedTask;
     }
 
-    public Task HandleAsync(TenantDisabled @event, TenantEventContext context, CancellationToken cancellationToken = default)
-    {
+    public Task HandleAsync(TenantDisabled @event, TenantEventContext context, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         _logger.LogWarning(

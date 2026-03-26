@@ -1,15 +1,12 @@
 using Hexalith.Tenants.Client.Projections;
-using Hexalith.Tenants.Contracts.Enums;
 
 using Shouldly;
 
 namespace Hexalith.Tenants.Client.Tests.Projections;
 
-public class InMemoryTenantProjectionStoreTests
-{
+public class InMemoryTenantProjectionStoreTests {
     [Fact]
-    public async Task GetAsync_UnknownTenant_ReturnsNull()
-    {
+    public async Task GetAsync_UnknownTenant_ReturnsNull() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
 
@@ -21,8 +18,7 @@ public class InMemoryTenantProjectionStoreTests
     }
 
     [Fact]
-    public async Task SaveAsync_ThenGetAsync_ReturnsState()
-    {
+    public async Task SaveAsync_ThenGetAsync_ReturnsState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var state = new TenantLocalState { TenantId = "acme", Name = "Acme Corp" };
@@ -32,15 +28,14 @@ public class InMemoryTenantProjectionStoreTests
         TenantLocalState? result = await store.GetAsync("acme");
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.TenantId.ShouldBe("acme");
         result.Name.ShouldBe("Acme Corp");
         ReferenceEquals(result, state).ShouldBeFalse();
     }
 
     [Fact]
-    public async Task SaveAsync_OverwritesExistingState()
-    {
+    public async Task SaveAsync_OverwritesExistingState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var original = new TenantLocalState { TenantId = "acme", Name = "Original" };
@@ -52,31 +47,29 @@ public class InMemoryTenantProjectionStoreTests
         TenantLocalState? result = await store.GetAsync("acme");
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Name.ShouldBe("Updated");
     }
 
     [Fact]
-    public async Task GetAsync_ReturnedStateDoesNotMutateStoredState()
-    {
+    public async Task GetAsync_ReturnedStateDoesNotMutateStoredState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         await store.SaveAsync(new TenantLocalState { TenantId = "acme", Name = "Original" });
 
         // Act
         TenantLocalState? retrieved = await store.GetAsync("acme");
-        retrieved.ShouldNotBeNull();
+        _ = retrieved.ShouldNotBeNull();
         retrieved.Name = "Mutated";
         TenantLocalState? reloaded = await store.GetAsync("acme");
 
         // Assert
-        reloaded.ShouldNotBeNull();
+        _ = reloaded.ShouldNotBeNull();
         reloaded.Name.ShouldBe("Original");
     }
 
     [Fact]
-    public async Task GetAsync_TenantIsolation()
-    {
+    public async Task GetAsync_TenantIsolation() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var acme = new TenantLocalState { TenantId = "acme", Name = "Acme" };
@@ -89,40 +82,37 @@ public class InMemoryTenantProjectionStoreTests
         // Assert
         TenantLocalState? acmeResult = await store.GetAsync("acme");
         TenantLocalState? betaResult = await store.GetAsync("beta");
-        acmeResult.ShouldNotBeNull();
-        betaResult.ShouldNotBeNull();
+        _ = acmeResult.ShouldNotBeNull();
+        _ = betaResult.ShouldNotBeNull();
         acmeResult.Name.ShouldBe("Acme");
         betaResult.Name.ShouldBe("Beta");
     }
 
     [Fact]
-    public async Task SaveAsync_NullState_ThrowsArgumentNullException()
-    {
+    public async Task SaveAsync_NullState_ThrowsArgumentNullException() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
 
         // Act & Assert
-        await Should.ThrowAsync<ArgumentNullException>(() => store.SaveAsync(null!));
+        _ = await Should.ThrowAsync<ArgumentNullException>(() => store.SaveAsync(null!));
     }
 
     [Fact]
-    public async Task GetAsync_EmptyTenantId_ThrowsArgumentException()
-    {
+    public async Task GetAsync_EmptyTenantId_ThrowsArgumentException() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
 
         // Act & Assert
-        await Should.ThrowAsync<ArgumentException>(() => store.GetAsync(""));
+        _ = await Should.ThrowAsync<ArgumentException>(() => store.GetAsync(""));
     }
 
     [Fact]
-    public async Task SaveAsync_EmptyTenantId_ThrowsArgumentException()
-    {
+    public async Task SaveAsync_EmptyTenantId_ThrowsArgumentException() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var state = new TenantLocalState { TenantId = "" };
 
         // Act & Assert
-        await Should.ThrowAsync<ArgumentException>(() => store.SaveAsync(state));
+        _ = await Should.ThrowAsync<ArgumentException>(() => store.SaveAsync(state));
     }
 }

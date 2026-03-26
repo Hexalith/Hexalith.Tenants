@@ -14,15 +14,14 @@ namespace Hexalith.Tenants.Testing.Fakes;
 /// Handle/Apply methods used in production. Does not reimplement domain logic — wraps existing pure-function
 /// methods in a simple in-memory container for fast, infrastructure-free testing.
 /// </summary>
-public sealed class InMemoryTenantService
-{
+public sealed class InMemoryTenantService {
     private const string DefaultDomain = "tenants";
     private const string GlobalAdminAggregateId = "system";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private const string SystemTenantId = "system";
 
     private readonly List<IEventPayload> _eventHistory = [];
-    private readonly Dictionary<string, TenantState> _tenantStates = new();
+    private readonly Dictionary<string, TenantState> _tenantStates = [];
     private GlobalAdministratorsState? _globalAdminState;
 
     /// <summary>
@@ -41,8 +40,7 @@ public sealed class InMemoryTenantService
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <returns>The current <see cref="TenantState"/> or null.</returns>
-    public TenantState? GetTenantState(string tenantId)
-    {
+    public TenantState? GetTenantState(string tenantId) {
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         return _tenantStates.TryGetValue(tenantId, out TenantState? state) ? state : null;
     }
@@ -50,8 +48,7 @@ public sealed class InMemoryTenantService
     // ─── Tenant Commands (no envelope needed) ───
 
     /// <summary>Processes a CreateTenant command.</summary>
-    public DomainResult ProcessCommand(CreateTenant command)
-    {
+    public DomainResult ProcessCommand(CreateTenant command) {
         ArgumentNullException.ThrowIfNull(command);
         TenantState? state = GetOrDefaultTenantState(command.TenantId);
         DomainResult result = TenantAggregate.Handle(command, state);
@@ -60,8 +57,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a DisableTenant command.</summary>
-    public DomainResult ProcessCommand(DisableTenant command)
-    {
+    public DomainResult ProcessCommand(DisableTenant command) {
         ArgumentNullException.ThrowIfNull(command);
         TenantState? state = GetOrDefaultTenantState(command.TenantId);
         DomainResult result = TenantAggregate.Handle(command, state);
@@ -70,8 +66,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes an EnableTenant command.</summary>
-    public DomainResult ProcessCommand(EnableTenant command)
-    {
+    public DomainResult ProcessCommand(EnableTenant command) {
         ArgumentNullException.ThrowIfNull(command);
         TenantState? state = GetOrDefaultTenantState(command.TenantId);
         DomainResult result = TenantAggregate.Handle(command, state);
@@ -82,8 +77,7 @@ public sealed class InMemoryTenantService
     // ─── Tenant Commands (envelope needed for RBAC) ───
 
     /// <summary>Processes an UpdateTenant command.</summary>
-    public DomainResult ProcessCommand(UpdateTenant command, string userId, bool isGlobalAdmin = false)
-    {
+    public DomainResult ProcessCommand(UpdateTenant command, string userId, bool isGlobalAdmin = false) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -94,8 +88,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes an AddUserToTenant command.</summary>
-    public DomainResult ProcessCommand(AddUserToTenant command, string userId, bool isGlobalAdmin = false)
-    {
+    public DomainResult ProcessCommand(AddUserToTenant command, string userId, bool isGlobalAdmin = false) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -106,8 +99,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a RemoveUserFromTenant command.</summary>
-    public DomainResult ProcessCommand(RemoveUserFromTenant command, string userId, bool isGlobalAdmin = false)
-    {
+    public DomainResult ProcessCommand(RemoveUserFromTenant command, string userId, bool isGlobalAdmin = false) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -118,8 +110,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a ChangeUserRole command.</summary>
-    public DomainResult ProcessCommand(ChangeUserRole command, string userId, bool isGlobalAdmin = false)
-    {
+    public DomainResult ProcessCommand(ChangeUserRole command, string userId, bool isGlobalAdmin = false) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -130,8 +121,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a SetTenantConfiguration command.</summary>
-    public DomainResult ProcessCommand(SetTenantConfiguration command, string userId, bool isGlobalAdmin = false)
-    {
+    public DomainResult ProcessCommand(SetTenantConfiguration command, string userId, bool isGlobalAdmin = false) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -142,8 +132,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a RemoveTenantConfiguration command.</summary>
-    public DomainResult ProcessCommand(RemoveTenantConfiguration command, string userId, bool isGlobalAdmin = false)
-    {
+    public DomainResult ProcessCommand(RemoveTenantConfiguration command, string userId, bool isGlobalAdmin = false) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -156,8 +145,7 @@ public sealed class InMemoryTenantService
     // ─── Global Admin Commands (no envelope needed) ───
 
     /// <summary>Processes a BootstrapGlobalAdmin command.</summary>
-    public DomainResult ProcessCommand(BootstrapGlobalAdmin command)
-    {
+    public DomainResult ProcessCommand(BootstrapGlobalAdmin command) {
         ArgumentNullException.ThrowIfNull(command);
         DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState);
         ApplyGlobalAdminEvents(result);
@@ -165,8 +153,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a SetGlobalAdministrator command.</summary>
-    public DomainResult ProcessCommand(SetGlobalAdministrator command)
-    {
+    public DomainResult ProcessCommand(SetGlobalAdministrator command) {
         ArgumentNullException.ThrowIfNull(command);
         DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState);
         ApplyGlobalAdminEvents(result);
@@ -174,8 +161,7 @@ public sealed class InMemoryTenantService
     }
 
     /// <summary>Processes a RemoveGlobalAdministrator command.</summary>
-    public DomainResult ProcessCommand(RemoveGlobalAdministrator command)
-    {
+    public DomainResult ProcessCommand(RemoveGlobalAdministrator command) {
         ArgumentNullException.ThrowIfNull(command);
         DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState);
         ApplyGlobalAdminEvents(result);
@@ -193,15 +179,13 @@ public sealed class InMemoryTenantService
     /// <param name="envelope">The command envelope.</param>
     /// <returns>The domain result.</returns>
     public DomainResult ProcessTenantCommand<T>(T command, CommandEnvelope envelope)
-        where T : notnull
-    {
+        where T : notnull {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
         string aggregateId = envelope.AggregateId;
         TenantState? state = GetOrDefaultTenantState(aggregateId);
 
-        DomainResult result = command switch
-        {
+        DomainResult result = command switch {
             CreateTenant c => TenantAggregate.Handle(c, state),
             DisableTenant c => TenantAggregate.Handle(c, state),
             EnableTenant c => TenantAggregate.Handle(c, state),
@@ -222,9 +206,7 @@ public sealed class InMemoryTenantService
     // ─── Internal helpers ───
 
     private static CommandEnvelope CreateEnvelope<T>(T command, string aggregateId, string userId, bool isGlobalAdmin)
-        where T : notnull
-    {
-        return new CommandEnvelope(
+        where T : notnull => new(
             Guid.NewGuid().ToString(),
             SystemTenantId,
             DefaultDomain,
@@ -237,21 +219,16 @@ public sealed class InMemoryTenantService
             isGlobalAdmin
                 ? new Dictionary<string, string> { [GlobalAdminExtensionKey] = "true" }
                 : null);
-    }
 
-    private void ApplyGlobalAdminEvents(DomainResult result)
-    {
-        if (!result.IsSuccess)
-        {
+    private void ApplyGlobalAdminEvents(DomainResult result) {
+        if (!result.IsSuccess) {
             return;
         }
 
         _globalAdminState ??= new GlobalAdministratorsState();
 
-        foreach (IEventPayload evt in result.Events)
-        {
-            switch (evt)
-            {
+        foreach (IEventPayload evt in result.Events) {
+            switch (evt) {
                 case GlobalAdministratorSet e:
                     _globalAdminState.Apply(e);
                     break;
@@ -263,30 +240,24 @@ public sealed class InMemoryTenantService
                     break;
             }
 
-            lock (_eventHistory)
-            {
+            lock (_eventHistory) {
                 _eventHistory.Add(evt);
             }
         }
     }
 
-    private void ApplyTenantEvents(string tenantId, DomainResult result)
-    {
-        if (!result.IsSuccess)
-        {
+    private void ApplyTenantEvents(string tenantId, DomainResult result) {
+        if (!result.IsSuccess) {
             return;
         }
 
-        if (!_tenantStates.TryGetValue(tenantId, out TenantState? state))
-        {
+        if (!_tenantStates.TryGetValue(tenantId, out TenantState? state)) {
             state = new TenantState();
             _tenantStates[tenantId] = state;
         }
 
-        foreach (IEventPayload evt in result.Events)
-        {
-            switch (evt)
-            {
+        foreach (IEventPayload evt in result.Events) {
+            switch (evt) {
                 case TenantCreated e:
                     state.Apply(e);
                     break;
@@ -319,8 +290,7 @@ public sealed class InMemoryTenantService
                     break;
             }
 
-            lock (_eventHistory)
-            {
+            lock (_eventHistory) {
                 _eventHistory.Add(evt);
             }
         }

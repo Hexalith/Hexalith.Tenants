@@ -16,20 +16,14 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Sample.Tests.Endpoints;
 
-public class AccessCheckEndpointsTests
-{
-    private static IReadOnlyDictionary<string, Type> BuildRegistry()
-    {
-        return typeof(TenantCreated).Assembly
+public class AccessCheckEndpointsTests {
+    private static IReadOnlyDictionary<string, Type> BuildRegistry() => typeof(TenantCreated).Assembly
             .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
             .ToDictionary(t => t.FullName!, t => t);
-    }
 
     private static TenantEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event)
-        where TEvent : IEventPayload
-    {
-        return new TenantEventEnvelope(
+        where TEvent : IEventPayload => new(
             messageId,
             "acme",
             "system",
@@ -39,19 +33,17 @@ public class AccessCheckEndpointsTests
             "corr-1",
             "json",
             JsonSerializer.SerializeToUtf8Bytes(@event));
-    }
 
-    private static (TenantEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor()
-    {
+    private static (TenantEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor() {
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
 
         var services = new ServiceCollection();
-        services.AddSingleton<ITenantProjectionStore>(store);
-        services.AddSingleton(handler);
-        services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
-        services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(handler);
-        services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(handler);
+        _ = services.AddSingleton<ITenantProjectionStore>(store);
+        _ = services.AddSingleton(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(handler);
         ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
@@ -62,20 +54,17 @@ public class AccessCheckEndpointsTests
         return (processor, store, provider);
     }
 
-    private static string SerializeResultValue(IResult result)
-    {
-        IValueHttpResult valueResult = (IValueHttpResult)result;
-        valueResult.Value.ShouldNotBeNull();
+    private static string SerializeResultValue(IResult result) {
+        var valueResult = (IValueHttpResult)result;
+        _ = valueResult.Value.ShouldNotBeNull();
         return JsonSerializer.Serialize(valueResult.Value);
     }
 
     [Fact]
-    public async Task CheckAccessAsync_MemberWithRole_ReturnsGranted()
-    {
+    public async Task CheckAccessAsync_MemberWithRole_ReturnsGranted() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
-        await store.SaveAsync(new TenantLocalState
-        {
+        await store.SaveAsync(new TenantLocalState {
             TenantId = "acme",
             Name = "Acme Corp",
             Status = TenantStatus.Active,
@@ -93,12 +82,10 @@ public class AccessCheckEndpointsTests
     }
 
     [Fact]
-    public async Task CheckAccessAsync_NonMember_ReturnsDenied()
-    {
+    public async Task CheckAccessAsync_NonMember_ReturnsDenied() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
-        await store.SaveAsync(new TenantLocalState
-        {
+        await store.SaveAsync(new TenantLocalState {
             TenantId = "acme",
             Name = "Acme Corp",
             Status = TenantStatus.Active,
@@ -115,12 +102,10 @@ public class AccessCheckEndpointsTests
     }
 
     [Fact]
-    public async Task CheckAccessAsync_DisabledTenant_ReturnsDenied()
-    {
+    public async Task CheckAccessAsync_DisabledTenant_ReturnsDenied() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
-        await store.SaveAsync(new TenantLocalState
-        {
+        await store.SaveAsync(new TenantLocalState {
             TenantId = "acme",
             Name = "Acme Corp",
             Status = TenantStatus.Disabled,
@@ -138,8 +123,7 @@ public class AccessCheckEndpointsTests
     }
 
     [Fact]
-    public async Task CheckAccessAsync_UnknownTenant_ReturnsNotFound()
-    {
+    public async Task CheckAccessAsync_UnknownTenant_ReturnsNotFound() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
 
@@ -151,18 +135,15 @@ public class AccessCheckEndpointsTests
     }
 
     [Fact]
-    public async Task CheckAccessAsync_NullStore_ThrowsArgumentNullException()
-    {
+    public async Task CheckAccessAsync_NullStore_ThrowsArgumentNullException() =>
         // Act & Assert
         await Should.ThrowAsync<ArgumentNullException>(
             () => AccessCheckEndpoints.CheckAccessAsync("acme", "user1", null!, CancellationToken.None));
-    }
 
     [Theory]
     [InlineData(" ", "user1")]
     [InlineData("acme", " ")]
-    public async Task CheckAccessAsync_WhitespaceIdentifiers_ReturnsBadRequest(string tenantId, string userId)
-    {
+    public async Task CheckAccessAsync_WhitespaceIdentifiers_ReturnsBadRequest(string tenantId, string userId) {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
 
@@ -174,12 +155,10 @@ public class AccessCheckEndpointsTests
     }
 
     [Fact]
-    public async Task CheckAccessAsync_UserAddedEventPipeline_GrantsAccessFromProjection()
-    {
+    public async Task CheckAccessAsync_UserAddedEventPipeline_GrantsAccessFromProjection() {
         // Arrange
         (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             // Act
             TenantEventProcessingResult created = await processor.ProcessAsync(
                 CreateEnvelope("msg-created", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow)));
@@ -198,12 +177,10 @@ public class AccessCheckEndpointsTests
     }
 
     [Fact]
-    public async Task CheckAccessAsync_UserRemovedEventPipeline_RevokesAccessFromProjection()
-    {
+    public async Task CheckAccessAsync_UserRemovedEventPipeline_RevokesAccessFromProjection() {
         // Arrange
         (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             _ = await processor.ProcessAsync(
                 CreateEnvelope("msg-created", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow)));
             _ = await processor.ProcessAsync(

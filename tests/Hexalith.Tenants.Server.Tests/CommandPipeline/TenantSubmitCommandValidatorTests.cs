@@ -10,8 +10,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.CommandPipeline;
 
-public class TenantSubmitCommandValidatorTests
-{
+public class TenantSubmitCommandValidatorTests {
     private readonly TenantSubmitCommandValidator _validator = new(
         new AddUserToTenantValidator(),
         new ChangeUserRoleValidator(),
@@ -19,8 +18,7 @@ public class TenantSubmitCommandValidatorTests
         new RemoveTenantConfigurationValidator());
 
     [Fact]
-    public void AddUserToTenant_payload_with_empty_user_id_fails_validation()
-    {
+    public void AddUserToTenant_payload_with_empty_user_id_fails_validation() {
         SubmitCommand command = CreateCommand(new AddUserToTenant("acme", string.Empty, TenantRole.TenantReader));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -30,8 +28,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void ChangeUserRole_payload_with_invalid_enum_fails_validation()
-    {
+    public void ChangeUserRole_payload_with_invalid_enum_fails_validation() {
         SubmitCommand command = CreateCommand(new ChangeUserRole("acme", "user-1", (TenantRole)99));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -41,8 +38,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void SetTenantConfiguration_payload_with_empty_key_fails_validation()
-    {
+    public void SetTenantConfiguration_payload_with_empty_key_fails_validation() {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", string.Empty, "value"));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -52,8 +48,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void SetTenantConfiguration_payload_with_whitespace_key_passes_validation()
-    {
+    public void SetTenantConfiguration_payload_with_whitespace_key_passes_validation() {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "   ", "value"));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -62,8 +57,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void SetTenantConfiguration_payload_with_null_value_fails_validation()
-    {
+    public void SetTenantConfiguration_payload_with_null_value_fails_validation() {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "key", null!));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -73,8 +67,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void RemoveTenantConfiguration_payload_with_null_key_fails_validation()
-    {
+    public void RemoveTenantConfiguration_payload_with_null_key_fails_validation() {
         SubmitCommand command = CreateCommand(new RemoveTenantConfiguration("acme", null!));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -84,8 +77,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void RemoveTenantConfiguration_payload_with_empty_key_fails_validation()
-    {
+    public void RemoveTenantConfiguration_payload_with_empty_key_fails_validation() {
         SubmitCommand command = CreateCommand(new RemoveTenantConfiguration("acme", string.Empty));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
@@ -95,8 +87,7 @@ public class TenantSubmitCommandValidatorTests
     }
 
     [Fact]
-    public void Unrelated_command_payload_is_ignored_by_tenant_submit_command_validator()
-    {
+    public void Unrelated_command_payload_is_ignored_by_tenant_submit_command_validator() {
         SubmitCommand command = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);

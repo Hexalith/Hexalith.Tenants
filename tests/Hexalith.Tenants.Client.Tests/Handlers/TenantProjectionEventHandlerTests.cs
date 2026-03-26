@@ -7,14 +7,12 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Client.Tests.Handlers;
 
-public class TenantProjectionEventHandlerTests
-{
+public class TenantProjectionEventHandlerTests {
     private static TenantEventContext CreateContext(string tenantId, string messageId = "msg-1")
         => new(tenantId, messageId, 1, DateTimeOffset.UtcNow, "corr-1");
 
     [Fact]
-    public async Task HandleAsync_TenantCreated_InitializesState()
-    {
+    public async Task HandleAsync_TenantCreated_InitializesState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -25,7 +23,7 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.TenantId.ShouldBe("acme");
         state.Name.ShouldBe("Acme Corp");
         state.Description.ShouldBe("A description");
@@ -33,8 +31,7 @@ public class TenantProjectionEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_UserAddedToTenant_AddsMemberWithRole()
-    {
+    public async Task HandleAsync_UserAddedToTenant_AddsMemberWithRole() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -45,14 +42,13 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Members.ShouldContainKey("user1");
         state.Members["user1"].ShouldBe(TenantRole.TenantOwner);
     }
 
     [Fact]
-    public async Task HandleAsync_UserRemovedFromTenant_RemovesMember()
-    {
+    public async Task HandleAsync_UserRemovedFromTenant_RemovesMember() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -67,13 +63,12 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Members.ShouldNotContainKey("user1");
     }
 
     [Fact]
-    public async Task HandleAsync_TenantDisabled_SetsStatusDisabled()
-    {
+    public async Task HandleAsync_TenantDisabled_SetsStatusDisabled() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -88,13 +83,12 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Status.ShouldBe(TenantStatus.Disabled);
     }
 
     [Fact]
-    public async Task HandleAsync_TenantEnabled_RestoresStatusActive()
-    {
+    public async Task HandleAsync_TenantEnabled_RestoresStatusActive() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -109,13 +103,12 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Status.ShouldBe(TenantStatus.Active);
     }
 
     [Fact]
-    public async Task HandleAsync_TenantConfigurationSet_AddsConfiguration()
-    {
+    public async Task HandleAsync_TenantConfigurationSet_AddsConfiguration() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -126,14 +119,13 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Configuration.ShouldContainKey("billing.plan");
         state.Configuration["billing.plan"].ShouldBe("pro");
     }
 
     [Fact]
-    public async Task HandleAsync_TenantConfigurationRemoved_RemovesConfiguration()
-    {
+    public async Task HandleAsync_TenantConfigurationRemoved_RemovesConfiguration() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -148,13 +140,12 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Configuration.ShouldNotContainKey("billing.plan");
     }
 
     [Fact]
-    public async Task HandleAsync_UserRoleChanged_UpdatesRole()
-    {
+    public async Task HandleAsync_UserRoleChanged_UpdatesRole() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -169,13 +160,12 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Members["user1"].ShouldBe(TenantRole.TenantReader);
     }
 
     [Fact]
-    public async Task HandleAsync_TenantUpdated_UpdatesMetadata()
-    {
+    public async Task HandleAsync_TenantUpdated_UpdatesMetadata() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
@@ -190,14 +180,13 @@ public class TenantProjectionEventHandlerTests
 
         // Assert
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         state.Name.ShouldBe("New Name");
         state.Description.ShouldBe("New Desc");
     }
 
     [Fact]
-    public async Task HandleAsync_MultipleTenants_MaintainsIndependentState()
-    {
+    public async Task HandleAsync_MultipleTenants_MaintainsIndependentState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);

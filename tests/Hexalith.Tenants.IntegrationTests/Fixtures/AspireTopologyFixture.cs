@@ -12,8 +12,7 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// (CommandApi + Sample with DAPR sidecars) and creates HTTP clients for smoke tests.
 /// Implements <see cref="IAsyncLifetime"/> for xUnit lifecycle management.
 /// </summary>
-public class AspireTopologyFixture : IAsyncLifetime
-{
+public class AspireTopologyFixture : IAsyncLifetime {
     private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
     private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
@@ -45,15 +44,13 @@ public class AspireTopologyFixture : IAsyncLifetime
         "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
 
     /// <inheritdoc/>
-    public async Task InitializeAsync()
-    {
+    public async Task InitializeAsync() {
         _startupStopwatch.Start();
 
         // 3-minute timeout: DAPR actor placement service registration takes time.
         using var startupCts = new CancellationTokenSource(StartupTimeout);
 
-        try
-        {
+        try {
             await VerifyPrerequisitesAsync().ConfigureAwait(false);
 
             _builder = await DistributedApplicationTestingBuilder
@@ -76,16 +73,14 @@ public class AspireTopologyFixture : IAsyncLifetime
             // Wait for Sample /health to return 200 OK.
             await WaitForHealthAsync(_sampleClient, "sample", SampleHealthTimeout, CancellationToken.None).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (startupCts.IsCancellationRequested)
-        {
+        catch (OperationCanceledException) when (startupCts.IsCancellationRequested) {
             _startupStopwatch.Stop();
             string diagnostics = BuildTimeoutDiagnostics();
             await DisposeAsync().ConfigureAwait(false);
             throw new TimeoutException(
                 $"Aspire topology did not start within {StartupTimeout}. Startup ran for {_startupStopwatch.Elapsed}.{Environment.NewLine}{diagnostics}");
         }
-        catch
-        {
+        catch {
             _startupStopwatch.Stop();
             await DisposeAsync().ConfigureAwait(false);
             throw;
@@ -95,49 +90,40 @@ public class AspireTopologyFixture : IAsyncLifetime
     }
 
     /// <inheritdoc/>
-    public async Task DisposeAsync()
-    {
+    public async Task DisposeAsync() {
         _commandApiClient?.Dispose();
         _sampleClient?.Dispose();
 
-        if (_app is not null)
-        {
+        if (_app is not null) {
             await _app.DisposeAsync().ConfigureAwait(false);
         }
 
-        if (_builder is not null)
-        {
+        if (_builder is not null) {
             await _builder.DisposeAsync().ConfigureAwait(false);
         }
     }
 
-    private async Task WaitForHealthAsync(HttpClient client, string resourceName, TimeSpan timeout, CancellationToken cancellationToken)
-    {
+    private async Task WaitForHealthAsync(HttpClient client, string resourceName, TimeSpan timeout, CancellationToken cancellationToken) {
         using var probeCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         probeCts.CancelAfter(timeout);
 
-        while (!probeCts.Token.IsCancellationRequested)
-        {
-            try
-            {
+        while (!probeCts.Token.IsCancellationRequested) {
+            try {
                 using HttpResponseMessage response = await client
                     .GetAsync("/health", probeCts.Token)
                     .ConfigureAwait(false);
 
-                if (response.StatusCode == HttpStatusCode.OK)
-                {
+                if (response.StatusCode == HttpStatusCode.OK) {
                     SetHealthDiagnostics(resourceName, response.StatusCode, null);
                     return;
                 }
 
                 SetHealthDiagnostics(resourceName, response.StatusCode, null);
             }
-            catch (HttpRequestException ex)
-            {
+            catch (HttpRequestException ex) {
                 SetHealthDiagnostics(resourceName, null, ex.Message);
             }
-            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested && !probeCts.Token.IsCancellationRequested)
-            {
+            catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested && !probeCts.Token.IsCancellationRequested) {
                 SetHealthDiagnostics(resourceName, null, ex.Message);
             }
 
@@ -148,47 +134,38 @@ public class AspireTopologyFixture : IAsyncLifetime
             $"Resource '{resourceName}' did not become healthy within {timeout}. {GetHealthDiagnostic(resourceName)}");
     }
 
-    private static async Task VerifyPrerequisitesAsync()
-    {
+    private static async Task VerifyPrerequisitesAsync() {
         var failures = new List<string>();
 
-        if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false))
-        {
+        if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
             failures.Add($"Dapr placement service is not reachable on localhost:{PlacementPort}");
         }
 
-        if (!await IsPortReachableAsync("localhost", SchedulerPort).ConfigureAwait(false))
-        {
+        if (!await IsPortReachableAsync("localhost", SchedulerPort).ConfigureAwait(false)) {
             failures.Add($"Dapr scheduler service is not reachable on localhost:{SchedulerPort}");
         }
 
-        if (failures.Count > 0)
-        {
+        if (failures.Count > 0) {
             throw new InvalidOperationException(
                 "Aspire topology prerequisites are missing. Have you run 'dapr init'?" + Environment.NewLine
                 + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}")));
         }
     }
 
-    private static async Task<bool> IsPortReachableAsync(string host, int port)
-    {
-        try
-        {
+    private static async Task<bool> IsPortReachableAsync(string host, int port) {
+        try {
             using var client = new TcpClient();
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             await client.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
             return true;
         }
-        catch
-        {
+        catch {
             return false;
         }
     }
 
-    private void SetHealthDiagnostics(string resourceName, HttpStatusCode? status, string? error)
-    {
-        if (string.Equals(resourceName, "commandapi", StringComparison.Ordinal))
-        {
+    private void SetHealthDiagnostics(string resourceName, HttpStatusCode? status, string? error) {
+        if (string.Equals(resourceName, "commandapi", StringComparison.Ordinal)) {
             _commandApiLastStatus = status;
             _commandApiLastError = error;
             return;
@@ -203,12 +180,9 @@ public class AspireTopologyFixture : IAsyncLifetime
             ? $"Last status: {_commandApiLastStatus?.ToString() ?? "n/a"}, Last error: {_commandApiLastError ?? "n/a"}"
             : $"Last status: {_sampleLastStatus?.ToString() ?? "n/a"}, Last error: {_sampleLastError ?? "n/a"}";
 
-    private string BuildTimeoutDiagnostics()
-    {
-        try
-        {
-            if (_app is null)
-            {
+    private string BuildTimeoutDiagnostics() {
+        try {
+            if (_app is null) {
                 return "Application did not start (builder or build phase failed).";
             }
 
@@ -217,8 +191,7 @@ public class AspireTopologyFixture : IAsyncLifetime
                 + $"commandapi => {GetHealthDiagnostic("commandapi")}. "
                 + $"sample => {GetHealthDiagnostic("sample")}.";
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             return $"Failed to capture diagnostics: {ex.Message}";
         }
     }

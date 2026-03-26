@@ -4,12 +4,10 @@ using Hexalith.Tenants.Contracts.Commands;
 
 namespace Hexalith.Tenants.Server.Validators;
 
-public class AddUserToTenantValidator : AbstractValidator<AddUserToTenant>
-{
-    public AddUserToTenantValidator()
-    {
-        RuleFor(x => x.TenantId).NotEmpty();
-        RuleFor(x => x.UserId).NotEmpty();
-        RuleFor(x => x.Role).IsInEnum();
+public class AddUserToTenantValidator : AbstractValidator<AddUserToTenant> {
+    public AddUserToTenantValidator() {
+        _ = RuleFor(x => x.TenantId).NotEmpty();
+        _ = RuleFor(x => x.UserId).NotEmpty();
+        _ = RuleFor(x => x.Role).IsInEnum();
     }
 }

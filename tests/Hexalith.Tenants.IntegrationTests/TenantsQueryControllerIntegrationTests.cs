@@ -11,8 +11,6 @@ using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.CommandApi.Configuration;
 
-using MediatR;
-
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -28,11 +26,9 @@ using Shouldly;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
-public class TenantsQueryControllerIntegrationTests
-{
+public class TenantsQueryControllerIntegrationTests {
     [Fact]
-    public async Task GetTenant_returns_403_problem_details_when_projection_forbids_access()
-    {
+    public async Task GetTenant_returns_403_problem_details_when_projection_forbids_access() {
         IQueryRouter router = CreateRouter(
             "get-tenant",
             new QueryRouterResult(false, null, false, "Forbidden"));
@@ -46,14 +42,13 @@ public class TenantsQueryControllerIntegrationTests
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        details.ShouldNotBeNull();
+        _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(403);
         details.Title.ShouldBe("Forbidden");
     }
 
     [Fact]
-    public async Task GetTenant_returns_404_problem_details_when_projection_reports_not_found()
-    {
+    public async Task GetTenant_returns_404_problem_details_when_projection_reports_not_found() {
         IQueryRouter router = CreateRouter(
             "get-tenant",
             new QueryRouterResult(false, null, false, "Tenant not found"));
@@ -67,14 +62,13 @@ public class TenantsQueryControllerIntegrationTests
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        details.ShouldNotBeNull();
+        _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(404);
         details.Title.ShouldBe("Not Found");
     }
 
     [Fact]
-    public async Task GetTenantAudit_returns_501_problem_details_when_projection_reports_not_implemented()
-    {
+    public async Task GetTenantAudit_returns_501_problem_details_when_projection_reports_not_implemented() {
         IQueryRouter router = CreateRouter(
             "get-tenant-audit",
             new QueryRouterResult(false, null, false, "Audit queries are not yet implemented (FR29). Planned for a future release."));
@@ -88,16 +82,15 @@ public class TenantsQueryControllerIntegrationTests
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        details.ShouldNotBeNull();
+        _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(501);
         details.Title.ShouldBe("Not Implemented");
-        details.Detail.ShouldNotBeNull();
+        _ = details.Detail.ShouldNotBeNull();
         details.Detail.ShouldContain("not yet implemented", Case.Insensitive);
     }
 
     [Fact]
-    public async Task GetTenantAudit_returns_payload_when_query_succeeds()
-    {
+    public async Task GetTenantAudit_returns_payload_when_query_succeeds() {
         JsonElement payload = JsonSerializer.SerializeToElement(new { entries = Array.Empty<object>() });
         IQueryRouter router = CreateRouter(
             "get-tenant-audit",
@@ -113,15 +106,13 @@ public class TenantsQueryControllerIntegrationTests
         result.TryGetProperty("entries", out _).ShouldBeTrue();
     }
 
-    private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<TenantBootstrapOptions> factory)
-    {
+    private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<TenantBootstrapOptions> factory) {
         HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName);
         return client;
     }
 
-    private static IQueryRouter CreateRouter(string queryType, QueryRouterResult result)
-    {
+    private static IQueryRouter CreateRouter(string queryType, QueryRouterResult result) {
         ArgumentException.ThrowIfNullOrWhiteSpace(queryType);
 
         IQueryRouter router = Substitute.For<IQueryRouter>();
@@ -132,31 +123,24 @@ public class TenantsQueryControllerIntegrationTests
         return router;
     }
 
-    private sealed class TenantsQueryWebApplicationFactory(IQueryRouter router) : WebApplicationFactory<TenantBootstrapOptions>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.ConfigureServices(services =>
-            {
-                _ = services.AddAuthentication(TestAuthHandler.SchemeName)
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+    private sealed class TenantsQueryWebApplicationFactory(IQueryRouter router) : WebApplicationFactory<TenantBootstrapOptions> {
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
+            _ = services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
 
-                services.RemoveAll<IQueryRouter>();
-                services.AddSingleton(router);
-            });
-        }
+            _ = services.RemoveAll<IQueryRouter>();
+            _ = services.AddSingleton(router);
+        });
     }
 
     private sealed class TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder)
-        : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
-    {
+        : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder) {
         public const string SchemeName = "Test";
 
-        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-        {
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync() {
             var identity = new ClaimsIdentity(
             [
                 new Claim("sub", "test-user"),

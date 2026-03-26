@@ -13,20 +13,14 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Client.Tests.Subscription;
 
-public class TenantEventProcessorTests
-{
-    private static IReadOnlyDictionary<string, Type> BuildRegistry()
-    {
-        return typeof(TenantCreated).Assembly
+public class TenantEventProcessorTests {
+    private static IReadOnlyDictionary<string, Type> BuildRegistry() => typeof(TenantCreated).Assembly
             .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
             .ToDictionary(t => t.FullName!, t => t);
-    }
 
     private static TenantEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event)
-        where TEvent : IEventPayload
-    {
-        return new TenantEventEnvelope(
+        where TEvent : IEventPayload => new(
             messageId,
             "acme",
             "system",
@@ -36,26 +30,24 @@ public class TenantEventProcessorTests
             "corr-1",
             "json",
             JsonSerializer.SerializeToUtf8Bytes(@event));
-    }
 
-    private static (TenantEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor()
-    {
+    private static (TenantEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor() {
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
         IReadOnlyDictionary<string, Type> registry = BuildRegistry();
 
         var services = new ServiceCollection();
-        services.AddSingleton<ITenantProjectionStore>(store);
-        services.AddSingleton(handler);
-        services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
-        services.AddSingleton<ITenantEventHandler<TenantUpdated>>(handler);
-        services.AddSingleton<ITenantEventHandler<TenantDisabled>>(handler);
-        services.AddSingleton<ITenantEventHandler<TenantEnabled>>(handler);
-        services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(handler);
-        services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(handler);
-        services.AddSingleton<ITenantEventHandler<UserRoleChanged>>(handler);
-        services.AddSingleton<ITenantEventHandler<TenantConfigurationSet>>(handler);
-        services.AddSingleton<ITenantEventHandler<TenantConfigurationRemoved>>(handler);
+        _ = services.AddSingleton<ITenantProjectionStore>(store);
+        _ = services.AddSingleton(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantUpdated>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantDisabled>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantEnabled>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<UserRoleChanged>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantConfigurationSet>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantConfigurationRemoved>>(handler);
         ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
@@ -67,12 +59,10 @@ public class TenantEventProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_KnownEventType_ReturnsProcessed()
-    {
+    public async Task ProcessAsync_KnownEventType_ReturnsProcessed() {
         // Arrange
         (TenantEventProcessor processor, _, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             TenantEventEnvelope envelope = CreateEnvelope("msg-1", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
             // Act
@@ -84,31 +74,27 @@ public class TenantEventProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_KnownEventType_HandlerAppliesEvent()
-    {
+    public async Task ProcessAsync_KnownEventType_HandlerAppliesEvent() {
         // Arrange
         (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             TenantEventEnvelope envelope = CreateEnvelope("msg-1", new TenantCreated("acme", "Acme Corp", "desc", DateTimeOffset.UtcNow));
 
             // Act
-            await processor.ProcessAsync(envelope);
+            _ = await processor.ProcessAsync(envelope);
 
             // Assert
             TenantLocalState? state = await store.GetAsync("acme");
-            state.ShouldNotBeNull();
+            _ = state.ShouldNotBeNull();
             state.Name.ShouldBe("Acme Corp");
         }
     }
 
     [Fact]
-    public async Task ProcessAsync_UnknownEventType_ReturnsSkippedUnknownEventType()
-    {
+    public async Task ProcessAsync_UnknownEventType_ReturnsSkippedUnknownEventType() {
         // Arrange
         (TenantEventProcessor processor, _, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             var envelope = new TenantEventEnvelope(
                 "msg-1",
                 "acme",
@@ -129,12 +115,10 @@ public class TenantEventProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_DuplicateMessageId_ReturnsDuplicate()
-    {
+    public async Task ProcessAsync_DuplicateMessageId_ReturnsDuplicate() {
         // Arrange
         (TenantEventProcessor processor, _, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             TenantEventEnvelope envelope = CreateEnvelope("msg-1", new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
 
             // Act
@@ -148,8 +132,7 @@ public class TenantEventProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_NoHandlersRegistered_ReturnsSkippedNoHandlers()
-    {
+    public async Task ProcessAsync_NoHandlersRegistered_ReturnsSkippedNoHandlers() {
         // Arrange
         IReadOnlyDictionary<string, Type> registry = BuildRegistry();
         using ServiceProvider provider = new ServiceCollection().BuildServiceProvider();
@@ -168,12 +151,10 @@ public class TenantEventProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_InvalidPayload_ReturnsFailedInvalidPayload()
-    {
+    public async Task ProcessAsync_InvalidPayload_ReturnsFailedInvalidPayload() {
         // Arrange
         (TenantEventProcessor processor, _, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             var envelope = new TenantEventEnvelope(
                 "msg-1",
                 "acme",
@@ -194,13 +175,12 @@ public class TenantEventProcessorTests
     }
 
     [Fact]
-    public async Task ProcessAsync_HandlerFailure_AllowsRetryWithSameMessageId()
-    {
+    public async Task ProcessAsync_HandlerFailure_AllowsRetryWithSameMessageId() {
         // Arrange
         IReadOnlyDictionary<string, Type> registry = BuildRegistry();
         var handler = new ThrowOnceHandler();
         var services = new ServiceCollection();
-        services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
 
         using ServiceProvider provider = services.BuildServiceProvider();
         var processor = new TenantEventProcessor(
@@ -211,26 +191,23 @@ public class TenantEventProcessorTests
         TenantEventEnvelope envelope = CreateEnvelope("msg-1", new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
 
         // Act & Assert
-        await Should.ThrowAsync<InvalidOperationException>(() => processor.ProcessAsync(envelope));
+        _ = await Should.ThrowAsync<InvalidOperationException>(() => processor.ProcessAsync(envelope));
         TenantEventProcessingResult retryResult = await processor.ProcessAsync(envelope);
         retryResult.ShouldBe(TenantEventProcessingResult.Processed);
     }
 
     [Fact]
-    public async Task ProcessAsync_NullEnvelope_ThrowsArgumentNullException()
-    {
+    public async Task ProcessAsync_NullEnvelope_ThrowsArgumentNullException() {
         // Arrange
         (TenantEventProcessor processor, _, ServiceProvider provider) = CreateProcessor();
-        using (provider)
-        {
+        using (provider) {
             // Act & Assert
-            await Should.ThrowAsync<ArgumentNullException>(() => processor.ProcessAsync(null!));
+            _ = await Should.ThrowAsync<ArgumentNullException>(() => processor.ProcessAsync(null!));
         }
     }
 
     [Fact]
-    public async Task ProcessAsync_DispatchesToMultipleHandlers()
-    {
+    public async Task ProcessAsync_DispatchesToMultipleHandlers() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
         var projectionHandler = new TenantProjectionEventHandler(store);
@@ -238,8 +215,8 @@ public class TenantEventProcessorTests
         IReadOnlyDictionary<string, Type> registry = BuildRegistry();
 
         var services = new ServiceCollection();
-        services.AddSingleton<ITenantEventHandler<TenantCreated>>(projectionHandler);
-        services.AddSingleton<ITenantEventHandler<TenantCreated>>(trackingHandler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(projectionHandler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(trackingHandler);
         using ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
@@ -255,19 +232,16 @@ public class TenantEventProcessorTests
         // Assert
         result.ShouldBe(TenantEventProcessingResult.Processed);
         TenantLocalState? state = await store.GetAsync("acme");
-        state.ShouldNotBeNull();
+        _ = state.ShouldNotBeNull();
         trackingHandler.HandledEvents.ShouldBe(1);
     }
 
-    private sealed class ThrowOnceHandler : ITenantEventHandler<TenantCreated>
-    {
+    private sealed class ThrowOnceHandler : ITenantEventHandler<TenantCreated> {
         private int _attempts;
 
-        public Task HandleAsync(TenantCreated @event, TenantEventContext context, CancellationToken cancellationToken = default)
-        {
+        public Task HandleAsync(TenantCreated @event, TenantEventContext context, CancellationToken cancellationToken = default) {
             _attempts++;
-            if (_attempts == 1)
-            {
+            if (_attempts == 1) {
                 throw new InvalidOperationException("Boom on first attempt.");
             }
 
@@ -275,12 +249,10 @@ public class TenantEventProcessorTests
         }
     }
 
-    private sealed class TrackingEventHandler : ITenantEventHandler<TenantCreated>
-    {
+    private sealed class TrackingEventHandler : ITenantEventHandler<TenantCreated> {
         public int HandledEvents { get; private set; }
 
-        public Task HandleAsync(TenantCreated @event, TenantEventContext context, CancellationToken cancellationToken = default)
-        {
+        public Task HandleAsync(TenantCreated @event, TenantEventContext context, CancellationToken cancellationToken = default) {
             HandledEvents++;
             return Task.CompletedTask;
         }

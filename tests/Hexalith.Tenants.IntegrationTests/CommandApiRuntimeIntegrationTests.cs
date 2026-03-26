@@ -30,11 +30,9 @@ using Shouldly;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
-public class CommandApiRuntimeIntegrationTests
-{
+public class CommandApiRuntimeIntegrationTests {
     [Fact]
-    public async Task Process_endpoint_dispatches_create_tenant_command()
-    {
+    public async Task Process_endpoint_dispatches_create_tenant_command() {
         await using var factory = new CommandApiWebApplicationFactory();
         using HttpClient client = factory.CreateClient();
 
@@ -56,15 +54,14 @@ public class CommandApiRuntimeIntegrationTests
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.IsRejection.ShouldBeFalse();
         result.Events.Count.ShouldBe(1);
         result.Events[0].EventTypeName.ShouldEndWith("TenantCreated");
     }
 
     [Fact]
-    public async Task Commands_endpoint_returns_problem_details_for_domain_rejection()
-    {
+    public async Task Commands_endpoint_returns_problem_details_for_domain_rejection() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(false, "Domain rejection: GlobalAdminAlreadyBootstrappedRejection", "test-correlation"));
@@ -86,7 +83,7 @@ public class CommandApiRuntimeIntegrationTests
         using HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
 
-        var payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
+        JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
         var request = new SubmitCommandRequest(
             Guid.NewGuid().ToString(),
             "system",
@@ -100,7 +97,7 @@ public class CommandApiRuntimeIntegrationTests
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        details.ShouldNotBeNull();
+        _ = details.ShouldNotBeNull();
         details.Title.ShouldBe("Conflict");
         details.Status.ShouldBe(409);
         details.Detail.ShouldNotBeNullOrWhiteSpace();
@@ -111,46 +108,36 @@ public class CommandApiRuntimeIntegrationTests
     private sealed class CommandApiWebApplicationFactory(
         ICommandRouter? router = null,
         ICommandStatusStore? statusStore = null,
-        ICommandArchiveStore? archiveStore = null) : WebApplicationFactory<TenantBootstrapOptions>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.ConfigureServices(services =>
-            {
-                _ = services.AddAuthentication(TestAuthHandler.SchemeName)
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+        ICommandArchiveStore? archiveStore = null) : WebApplicationFactory<TenantBootstrapOptions> {
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
+            _ = services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
 
-                if (router is not null)
-                {
-                    services.RemoveAll<ICommandRouter>();
-                    services.AddSingleton(router);
-                }
+            if (router is not null) {
+                _ = services.RemoveAll<ICommandRouter>();
+                _ = services.AddSingleton(router);
+            }
 
-                if (statusStore is not null)
-                {
-                    services.RemoveAll<ICommandStatusStore>();
-                    services.AddSingleton(statusStore);
-                }
+            if (statusStore is not null) {
+                _ = services.RemoveAll<ICommandStatusStore>();
+                _ = services.AddSingleton(statusStore);
+            }
 
-                if (archiveStore is not null)
-                {
-                    services.RemoveAll<ICommandArchiveStore>();
-                    services.AddSingleton(archiveStore);
-                }
-            });
-        }
+            if (archiveStore is not null) {
+                _ = services.RemoveAll<ICommandArchiveStore>();
+                _ = services.AddSingleton(archiveStore);
+            }
+        });
     }
 
     private sealed class TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder)
-        : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
-    {
+        : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder) {
         public const string SchemeName = "Test";
 
-        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-        {
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync() {
             var identity = new ClaimsIdentity(
             [
                 new Claim("sub", "test-user"),

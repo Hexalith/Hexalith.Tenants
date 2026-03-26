@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 
@@ -15,10 +14,8 @@ namespace Hexalith.Tenants.Client.Subscription;
 /// Receives tenant event envelopes, resolves the event type, deserializes the payload,
 /// deduplicates by MessageId, and dispatches to registered <see cref="ITenantEventHandler{TEvent}"/> implementations.
 /// </summary>
-public class TenantEventProcessor
-{
-    private enum ProcessingState
-    {
+public class TenantEventProcessor {
+    private enum ProcessingState {
         InProgress,
         Completed,
     }
@@ -44,8 +41,7 @@ public class TenantEventProcessor
     public TenantEventProcessor(
         IServiceProvider serviceProvider,
         IReadOnlyDictionary<string, Type> eventTypeRegistry,
-        ILogger<TenantEventProcessor> logger)
-    {
+        ILogger<TenantEventProcessor> logger) {
         ArgumentNullException.ThrowIfNull(serviceProvider);
         ArgumentNullException.ThrowIfNull(eventTypeRegistry);
         ArgumentNullException.ThrowIfNull(logger);
@@ -60,45 +56,37 @@ public class TenantEventProcessor
     /// <param name="envelope">The tenant event envelope.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The event processing outcome.</returns>
-    public async Task<TenantEventProcessingResult> ProcessAsync(TenantEventEnvelope envelope, CancellationToken cancellationToken = default)
-    {
+    public async Task<TenantEventProcessingResult> ProcessAsync(TenantEventEnvelope envelope, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(envelope);
 
-        if (!_processedMessageIds.TryAdd(envelope.MessageId, ProcessingState.InProgress))
-        {
+        if (!_processedMessageIds.TryAdd(envelope.MessageId, ProcessingState.InProgress)) {
             _logger.LogDebug("Skipping duplicate event {MessageId}", envelope.MessageId);
             return TenantEventProcessingResult.Duplicate;
         }
 
-        try
-        {
-            if (!_eventTypeRegistry.TryGetValue(envelope.EventTypeName, out Type? eventType))
-            {
+        try {
+            if (!_eventTypeRegistry.TryGetValue(envelope.EventTypeName, out Type? eventType)) {
                 _logger.LogWarning("Unknown event type '{EventTypeName}' — skipping", envelope.EventTypeName);
                 _processedMessageIds[envelope.MessageId] = ProcessingState.Completed;
                 return TenantEventProcessingResult.SkippedUnknownEventType;
             }
 
             object? deserialized;
-            try
-            {
+            try {
                 deserialized = JsonSerializer.Deserialize(envelope.Payload, eventType);
             }
-            catch (JsonException exception)
-            {
+            catch (JsonException exception) {
                 _logger.LogWarning(exception, "Failed to deserialize event {MessageId} as {EventTypeName}", envelope.MessageId, envelope.EventTypeName);
                 _ = _processedMessageIds.TryRemove(envelope.MessageId, out _);
                 return TenantEventProcessingResult.FailedInvalidPayload;
             }
-            catch (NotSupportedException exception)
-            {
+            catch (NotSupportedException exception) {
                 _logger.LogWarning(exception, "Failed to deserialize event {MessageId} as {EventTypeName}", envelope.MessageId, envelope.EventTypeName);
                 _ = _processedMessageIds.TryRemove(envelope.MessageId, out _);
                 return TenantEventProcessingResult.FailedInvalidPayload;
             }
 
-            if (deserialized is not IEventPayload @event)
-            {
+            if (deserialized is not IEventPayload @event) {
                 _logger.LogWarning("Failed to deserialize event {MessageId} as {EventTypeName}", envelope.MessageId, envelope.EventTypeName);
                 _ = _processedMessageIds.TryRemove(envelope.MessageId, out _);
                 return TenantEventProcessingResult.FailedInvalidPayload;
@@ -113,8 +101,7 @@ public class TenantEventProcessor
 
             MethodInfo genericDispatch = _dispatchMethod.MakeGenericMethod(eventType);
             int handlerCount = await ((Task<int>)genericDispatch.Invoke(this, [@event, context, cancellationToken])!).ConfigureAwait(false);
-            if (handlerCount == 0)
-            {
+            if (handlerCount == 0) {
                 _logger.LogWarning("No handlers registered for event type '{EventTypeName}' — skipping", envelope.EventTypeName);
                 _processedMessageIds[envelope.MessageId] = ProcessingState.Completed;
                 return TenantEventProcessingResult.SkippedNoHandlers;
@@ -123,19 +110,16 @@ public class TenantEventProcessor
             _processedMessageIds[envelope.MessageId] = ProcessingState.Completed;
             return TenantEventProcessingResult.Processed;
         }
-        catch
-        {
+        catch {
             _ = _processedMessageIds.TryRemove(envelope.MessageId, out _);
             throw;
         }
     }
 
     private async Task<int> DispatchAsync<TEvent>(TEvent @event, TenantEventContext context, CancellationToken cancellationToken)
-        where TEvent : IEventPayload
-    {
+        where TEvent : IEventPayload {
         ITenantEventHandler<TEvent>[] handlers = _serviceProvider.GetServices<ITenantEventHandler<TEvent>>().ToArray();
-        foreach (ITenantEventHandler<TEvent> handler in handlers)
-        {
+        foreach (ITenantEventHandler<TEvent> handler in handlers) {
             await handler.HandleAsync(@event, context, cancellationToken).ConfigureAwait(false);
         }
 

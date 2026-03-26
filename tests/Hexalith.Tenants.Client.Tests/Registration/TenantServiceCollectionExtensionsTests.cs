@@ -15,33 +15,29 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Client.Tests.Registration;
 
-public class TenantServiceCollectionExtensionsTests
-{
+public class TenantServiceCollectionExtensionsTests {
     [Fact]
-    public void AddHexalithTenants_RegistersDaprClient()
-    {
+    public void AddHexalithTenants_RegistersDaprClient() {
         // Arrange
         IServiceCollection services = CreateServiceCollectionWithConfig();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert — descriptor check only, DO NOT resolve (gRPC needs DAPR sidecar)
         services.ShouldContain(s => s.ServiceType == typeof(DaprClient));
     }
 
     [Fact]
-    public void AddHexalithTenants_RegistersExpectedServiceLifetimes()
-    {
+    public void AddHexalithTenants_RegistersExpectedServiceLifetimes() {
         // Arrange
         IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?>
-            {
+            new Dictionary<string, string?> {
                 ["Tenants:PubSubName"] = "mypubsub",
             });
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         GetRequiredDescriptor(services, typeof(DaprClient)).Lifetime.ShouldBe(ServiceLifetime.Singleton);
@@ -53,17 +49,15 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_BindsTenantsOptions()
-    {
+    public void AddHexalithTenants_BindsTenantsOptions() {
         // Arrange
         IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?>
-            {
+            new Dictionary<string, string?> {
                 ["Tenants:PubSubName"] = "mypubsub",
             });
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         using ServiceProvider provider = services.BuildServiceProvider();
@@ -72,18 +66,16 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_IsIdempotent()
-    {
+    public void AddHexalithTenants_IsIdempotent() {
         // Arrange
         IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?>
-            {
+            new Dictionary<string, string?> {
                 ["Tenants:PubSubName"] = "mypubsub",
             });
 
         // Act
-        services.AddHexalithTenants();
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert — Configure<T>() registers IConfigureOptions<T>, check count
         services.Count(s => s.ServiceType == typeof(IConfigureOptions<HexalithTenantsOptions>)).ShouldBe(1);
@@ -93,8 +85,7 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_ReturnsSameServiceCollection()
-    {
+    public void AddHexalithTenants_ReturnsSameServiceCollection() {
         // Arrange
         IServiceCollection services = CreateServiceCollectionWithConfig();
 
@@ -106,13 +97,12 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_DefaultOptionsValues()
-    {
+    public void AddHexalithTenants_DefaultOptionsValues() {
         // Arrange — no config section
         IServiceCollection services = CreateServiceCollectionWithConfig();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         using ServiceProvider provider = services.BuildServiceProvider();
@@ -123,43 +113,35 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_ThrowsOnNullServices()
-    {
+    public void AddHexalithTenants_ThrowsOnNullServices() =>
         // Assert — must use static call syntax (extension method on null is invalid)
         Should.Throw<ArgumentNullException>(() =>
             TenantServiceCollectionExtensions.AddHexalithTenants(null!));
-    }
 
     [Fact]
-    public void AddHexalithTenants_WithAction_ThrowsOnNullServices()
-    {
-        Should.Throw<ArgumentNullException>(() =>
-            TenantServiceCollectionExtensions.AddHexalithTenants(null!, _ => { }));
-    }
+    public void AddHexalithTenants_WithAction_ThrowsOnNullServices() => Should.Throw<ArgumentNullException>(() =>
+                                                                                 TenantServiceCollectionExtensions.AddHexalithTenants(null!, _ => { }));
 
     [Fact]
-    public void AddHexalithTenants_WithAction_ThrowsOnNullAction()
-    {
+    public void AddHexalithTenants_WithAction_ThrowsOnNullAction() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
         // Assert
-        Should.Throw<ArgumentNullException>(() =>
-            TenantServiceCollectionExtensions.AddHexalithTenants(services, (Action<HexalithTenantsOptions>)null!));
+        _ = Should.Throw<ArgumentNullException>(() =>
+            TenantServiceCollectionExtensions.AddHexalithTenants(services, null!));
     }
 
     [Fact]
-    public void AddHexalithTenants_ConfigExistsButNoTenantsSection()
-    {
+    public void AddHexalithTenants_ConfigExistsButNoTenantsSection() {
         // Arrange — config with unrelated keys only
         IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?>
-            {
+            new Dictionary<string, string?> {
                 ["Logging:LogLevel:Default"] = "Information",
             });
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert — options resolve with defaults when config section is absent
         using ServiceProvider provider = services.BuildServiceProvider();
@@ -170,13 +152,12 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_WithAction_ConfiguresOptions()
-    {
+    public void AddHexalithTenants_WithAction_ConfiguresOptions() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
         // Act
-        services.AddHexalithTenants(o => o.PubSubName = "custom");
+        _ = services.AddHexalithTenants(o => o.PubSubName = "custom");
 
         // Assert
         using ServiceProvider provider = services.BuildServiceProvider();
@@ -185,15 +166,14 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_SkipsDaprClientIfAlreadyRegistered()
-    {
+    public void AddHexalithTenants_SkipsDaprClientIfAlreadyRegistered() {
         // Arrange
         IServiceCollection services = CreateServiceCollectionWithConfig();
         services.AddDaprClient();
         int daprCountBefore = services.Count(s => s.ServiceType == typeof(DaprClient));
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
         int daprCountAfter = services.Count(s => s.ServiceType == typeof(DaprClient));
 
         // Assert
@@ -201,25 +181,23 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_RegistersDaprClientWhenOptionsAlreadyConfigured()
-    {
+    public void AddHexalithTenants_RegistersDaprClientWhenOptionsAlreadyConfigured() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
-        services.Configure<HexalithTenantsOptions>(options => options.TopicName = "preconfigured");
+        _ = services.Configure<HexalithTenantsOptions>(options => options.TopicName = "preconfigured");
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         services.ShouldContain(s => s.ServiceType == typeof(DaprClient));
     }
 
     [Fact]
-    public void AddHexalithTenants_BindsConfigurationAddedAfterInitialRegistration()
-    {
+    public void AddHexalithTenants_BindsConfigurationAddedAfterInitialRegistration() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
@@ -227,10 +205,10 @@ public class TenantServiceCollectionExtensionsTests
                 new KeyValuePair<string, string?>("Tenants:PubSubName", "latepubsub"),
             ])
             .Build();
-        services.AddSingleton(configuration);
+        _ = services.AddSingleton(configuration);
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         using ServiceProvider provider = services.BuildServiceProvider();
@@ -240,13 +218,12 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_WorksWithoutIConfiguration()
-    {
+    public void AddHexalithTenants_WorksWithoutIConfiguration() {
         // Arrange — empty ServiceCollection, no IConfiguration
         IServiceCollection services = new ServiceCollection();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert — options registered with defaults, no exception
         using ServiceProvider provider = services.BuildServiceProvider();
@@ -255,39 +232,36 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_RegistersITenantProjectionStore()
-    {
+    public void AddHexalithTenants_RegistersITenantProjectionStore() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         services.ShouldContain(s => s.ServiceType == typeof(ITenantProjectionStore));
     }
 
     [Fact]
-    public void AddHexalithTenants_RegistersTenantEventProcessor()
-    {
+    public void AddHexalithTenants_RegistersTenantEventProcessor() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         services.ShouldContain(s => s.ServiceType == typeof(TenantEventProcessor));
     }
 
     [Fact]
-    public void AddHexalithTenants_RegistersTenantProjectionEventHandler()
-    {
+    public void AddHexalithTenants_RegistersTenantProjectionEventHandler() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
@@ -302,13 +276,12 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_InMemoryTenantProjectionStoreIsDefaultImplementation()
-    {
+    public void AddHexalithTenants_InMemoryTenantProjectionStoreIsDefaultImplementation() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert
         ServiceDescriptor descriptor = GetRequiredDescriptor(services, typeof(ITenantProjectionStore));
@@ -316,14 +289,13 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddHexalithTenants_CustomProjectionStorePreventsDuplicateRegistration()
-    {
+    public void AddHexalithTenants_CustomProjectionStorePreventsDuplicateRegistration() {
         // Arrange — register custom store before AddHexalithTenants
         IServiceCollection services = new ServiceCollection();
-        services.AddSingleton<ITenantProjectionStore, InMemoryTenantProjectionStore>();
+        _ = services.AddSingleton<ITenantProjectionStore, InMemoryTenantProjectionStore>();
 
         // Act
-        services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
 
         // Assert — only one registration
         services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
@@ -332,15 +304,13 @@ public class TenantServiceCollectionExtensionsTests
     }
 
     private static IServiceCollection CreateServiceCollectionWithConfig(
-        Dictionary<string, string?>? configValues = null)
-    {
+        Dictionary<string, string?>? configValues = null) {
         var services = new ServiceCollection();
-        if (configValues is not null)
-        {
+        if (configValues is not null) {
             IConfiguration configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(configValues)
                 .Build();
-            services.AddSingleton<IConfiguration>(configuration);
+            _ = services.AddSingleton<IConfiguration>(configuration);
         }
 
         return services;

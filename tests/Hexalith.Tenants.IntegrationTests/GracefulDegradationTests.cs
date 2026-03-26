@@ -26,9 +26,7 @@ namespace Hexalith.Tenants.IntegrationTests;
 public class GracefulDegradationTests {
     private readonly TenantsDaprTestFixture _fixture;
 
-    public GracefulDegradationTests(TenantsDaprTestFixture fixture) {
-        _fixture = fixture;
-    }
+    public GracefulDegradationTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
     [Fact]
     public async Task Command_Succeeds_AndEventsPersisted_WhenPubSubUnavailable() {
@@ -53,7 +51,7 @@ public class GracefulDegradationTests {
             // Assert — command is accepted and events are persisted even though publication failed.
             // The AggregateActor persists events atomically in the DAPR state store before publishing.
             // When publish fails, it transitions to PublishFailed state but the events are NOT lost.
-            result.ShouldNotBeNull();
+            _ = result.ShouldNotBeNull();
             result.Accepted.ShouldBeTrue(
                 $"Command should be accepted even during pub/sub outage but got: {result.ErrorMessage}");
             result.EventCount.ShouldBe(1,

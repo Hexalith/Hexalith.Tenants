@@ -11,8 +11,7 @@ namespace Hexalith.Tenants.Testing.Helpers;
 /// <summary>
 /// Common setup patterns for tenant integration tests, reducing test authoring to under 10 lines per test.
 /// </summary>
-public static class TenantTestHelpers
-{
+public static class TenantTestHelpers {
     private const string DefaultDomain = "tenants";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private const string SystemTenantId = "system";
@@ -25,8 +24,7 @@ public static class TenantTestHelpers
     /// <returns>The domain result containing the GlobalAdministratorSet event.</returns>
     public static DomainResult BootstrapGlobalAdmin(
         InMemoryTenantService service,
-        string userId = "global-admin")
-    {
+        string userId = "global-admin") {
         ArgumentNullException.ThrowIfNull(service);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         return service.ProcessCommand(new BootstrapGlobalAdmin(userId));
@@ -47,8 +45,7 @@ public static class TenantTestHelpers
         string aggregateId,
         string userId,
         bool isGlobalAdmin = false)
-        where T : notnull
-    {
+        where T : notnull {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
@@ -80,8 +77,7 @@ public static class TenantTestHelpers
         InMemoryTenantService service,
         string tenantId = "test-tenant",
         string name = "Test Tenant",
-        string? description = null)
-    {
+        string? description = null) {
         ArgumentNullException.ThrowIfNull(service);
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -100,8 +96,7 @@ public static class TenantTestHelpers
         InMemoryTenantService service,
         string tenantId = "test-tenant",
         string ownerUserId = "owner",
-        string tenantName = "Test Tenant")
-    {
+        string tenantName = "Test Tenant") {
         ArgumentNullException.ThrowIfNull(service);
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);

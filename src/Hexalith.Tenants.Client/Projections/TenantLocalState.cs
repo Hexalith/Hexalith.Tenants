@@ -6,21 +6,18 @@ namespace Hexalith.Tenants.Client.Projections;
 /// Per-tenant read model built from tenant event stream.
 /// Consuming services use this to enforce access and react to tenant changes.
 /// </summary>
-public class TenantLocalState
-{
+public class TenantLocalState {
     /// <summary>
     /// Initializes a new instance of the <see cref="TenantLocalState"/> class.
     /// </summary>
-    public TenantLocalState()
-    {
+    public TenantLocalState() {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TenantLocalState"/> class by copying an existing state.
     /// </summary>
     /// <param name="other">The state to copy.</param>
-    public TenantLocalState(TenantLocalState other)
-    {
+    public TenantLocalState(TenantLocalState other) {
         ArgumentNullException.ThrowIfNull(other);
         TenantId = other.TenantId;
         Name = other.Name;

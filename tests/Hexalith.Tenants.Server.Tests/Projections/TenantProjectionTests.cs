@@ -7,11 +7,9 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class TenantProjectionTests
-{
+public class TenantProjectionTests {
     [Fact]
-    public void GetDomainName_TenantProjection_ResolvesToTenants()
-    {
+    public void GetDomainName_TenantProjection_ResolvesToTenants() {
         string domainName = NamingConventionEngine.GetDomainName(typeof(TenantProjection));
 
         domainName.ShouldBe("tenants");
@@ -19,10 +17,9 @@ public class TenantProjectionTests
 
     // P11: Project returns TenantReadModel from events
     [Fact]
-    public void Project_WithTenantCreatedAndUserAdded_ReturnsCorrectState()
-    {
+    public void Project_WithTenantCreatedAndUserAdded_ReturnsCorrectState() {
         var projection = new TenantProjection();
-        var events = new object[]
+        object[] events = new object[]
         {
             new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow),
             new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner),
@@ -38,13 +35,12 @@ public class TenantProjectionTests
 
     // P12: Project handles all 9 event types with correct final state
     [Fact]
-    public void Project_AllNineEventTypes_ProducesCorrectFinalState()
-    {
+    public void Project_AllNineEventTypes_ProducesCorrectFinalState() {
         var projection = new TenantProjection();
         var createdAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
         var disabledAt = DateTimeOffset.Parse("2026-01-02T00:00:00Z");
         var enabledAt = DateTimeOffset.Parse("2026-01-03T00:00:00Z");
-        var events = new object[]
+        object[] events = new object[]
         {
             new TenantCreated("acme", "Acme Corp", "Original", createdAt),
             new TenantUpdated("acme", "Acme Updated", "New desc"),
@@ -71,8 +67,7 @@ public class TenantProjectionTests
 
     // P13: Project with empty event list returns default model
     [Fact]
-    public void Project_EmptyEventList_ReturnsDefaultModel()
-    {
+    public void Project_EmptyEventList_ReturnsDefaultModel() {
         var projection = new TenantProjection();
 
         TenantReadModel result = projection.Project(Array.Empty<object>());
@@ -86,10 +81,9 @@ public class TenantProjectionTests
 
     // P19: Project skips null events gracefully
     [Fact]
-    public void Project_WithNullEvents_SkipsNullsAndAppliesValid()
-    {
+    public void Project_WithNullEvents_SkipsNullsAndAppliesValid() {
         var projection = new TenantProjection();
-        var events = new object?[]
+        object?[] events = new object?[]
         {
             new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow),
             null,
@@ -97,7 +91,7 @@ public class TenantProjectionTests
             null,
         };
 
-        TenantReadModel result = projection.Project((System.Collections.IEnumerable)events);
+        TenantReadModel result = projection.Project(events);
 
         result.TenantId.ShouldBe("acme");
         result.Members.ShouldContainKey("user1");

@@ -6,8 +6,7 @@ using Hexalith.Tenants.Server.Validators;
 
 namespace Hexalith.Tenants.Server.Tests.Validators;
 
-public class AddUserToTenantValidatorTests
-{
+public class AddUserToTenantValidatorTests {
     private readonly AddUserToTenantValidator _validator = new();
 
     [Fact]

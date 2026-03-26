@@ -7,8 +7,7 @@ using Hexalith.Tenants.Contracts.Events.Rejections;
 
 namespace Hexalith.Tenants.Server.Aggregates;
 
-public class TenantAggregate : EventStoreAggregate<TenantState>
-{
+public class TenantAggregate : EventStoreAggregate<TenantState> {
     // FR23: Configuration limits — 1KB value limit interpreted as 1024 characters (not bytes).
     // Using string.Length for simplicity. For Latin text chars ≈ bytes; for multi-byte this is more lenient.
     // Do NOT change to Encoding.UTF8.GetByteCount without updating tests and validator.
@@ -18,20 +17,17 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
 
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
 
-    public static DomainResult Handle(CreateTenant command, TenantState? state)
-    {
+    public static DomainResult Handle(CreateTenant command, TenantState? state) {
         ArgumentNullException.ThrowIfNull(command);
         return state is not null
             ? DomainResult.Rejection([new TenantAlreadyExistsRejection(command.TenantId)])
             : DomainResult.Success([new TenantCreated(command.TenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
     }
 
-    public static DomainResult Handle(UpdateTenant command, TenantState? state, CommandEnvelope envelope)
-    {
+    public static DomainResult Handle(UpdateTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             _ when !IsGlobalAdmin(envelope)
@@ -44,34 +40,28 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
         };
     }
 
-    public static DomainResult Handle(DisableTenant command, TenantState? state)
-    {
+    public static DomainResult Handle(DisableTenant command, TenantState? state) {
         ArgumentNullException.ThrowIfNull(command);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.NoOp(),
             _ => DomainResult.Success([new TenantDisabled(command.TenantId, DateTimeOffset.UtcNow)]),
         };
     }
 
-    public static DomainResult Handle(EnableTenant command, TenantState? state)
-    {
+    public static DomainResult Handle(EnableTenant command, TenantState? state) {
         ArgumentNullException.ThrowIfNull(command);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Active } => DomainResult.NoOp(),
             _ => DomainResult.Success([new TenantEnabled(command.TenantId, DateTimeOffset.UtcNow)]),
         };
     }
 
-    public static DomainResult Handle(AddUserToTenant command, TenantState? state, CommandEnvelope envelope)
-    {
+    public static DomainResult Handle(AddUserToTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin OR first user bootstrap on empty tenant)
@@ -90,12 +80,10 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
         };
     }
 
-    public static DomainResult Handle(RemoveUserFromTenant command, TenantState? state, CommandEnvelope envelope)
-    {
+    public static DomainResult Handle(RemoveUserFromTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin)
@@ -111,14 +99,12 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
         };
     }
 
-    public static DomainResult Handle(SetTenantConfiguration command, TenantState? state, CommandEnvelope envelope)
-    {
+    public static DomainResult Handle(SetTenantConfiguration command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
         ArgumentNullException.ThrowIfNull(command.Key);
         ArgumentNullException.ThrowIfNull(command.Value);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: TenantOwner only (skip if GlobalAdmin)
@@ -149,13 +135,11 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
         };
     }
 
-    public static DomainResult Handle(RemoveTenantConfiguration command, TenantState? state, CommandEnvelope envelope)
-    {
+    public static DomainResult Handle(RemoveTenantConfiguration command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
         ArgumentNullException.ThrowIfNull(command.Key);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: TenantOwner only (skip if GlobalAdmin)
@@ -172,12 +156,10 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
         };
     }
 
-    public static DomainResult Handle(ChangeUserRole command, TenantState? state, CommandEnvelope envelope)
-    {
+    public static DomainResult Handle(ChangeUserRole command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
-        return state switch
-        {
+        return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
             { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin) — must precede domain checks so unauthorized users get rejection, not NoOp
@@ -206,8 +188,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState>
     /// Default deny: unknown roles are rejected. Update this method when adding new TenantRole values.
     /// </summary>
     private static bool MeetsMinimumRole(TenantRole actorRole, TenantRole minimumRole)
-        => minimumRole switch
-        {
+        => minimumRole switch {
             TenantRole.TenantReader => true,
             TenantRole.TenantContributor => actorRole is TenantRole.TenantContributor or TenantRole.TenantOwner,
             TenantRole.TenantOwner => actorRole is TenantRole.TenantOwner,

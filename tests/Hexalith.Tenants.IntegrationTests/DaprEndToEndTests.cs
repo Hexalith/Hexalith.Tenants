@@ -6,7 +6,6 @@ using Dapr.Actors;
 using Dapr.Actors.Client;
 
 using Hexalith.EventStore.Contracts.Commands;
-using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -21,18 +20,13 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// Requires: dapr init (Redis, Placement, Scheduler running).
 /// </summary>
 [Collection("TenantsDaprTest")]
-public class DaprEndToEndTests
-{
+public class DaprEndToEndTests {
     private readonly TenantsDaprTestFixture _fixture;
 
-    public DaprEndToEndTests(TenantsDaprTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
+    public DaprEndToEndTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
     [Fact]
-    public async Task CreateTenant_succeeds_end_to_end_with_events_published()
-    {
+    public async Task CreateTenant_succeeds_end_to_end_with_events_published() {
         // Arrange
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string tenantId = $"t-create-{Guid.NewGuid():N}";
@@ -45,7 +39,7 @@ public class DaprEndToEndTests
         CommandProcessingResult result = await proxy.ProcessCommandAsync(command);
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue("CreateTenant should be accepted");
         result.EventCount.ShouldBe(1, "CreateTenant should produce 1 TenantCreated event");
         result.CorrelationId.ShouldBe(command.CorrelationId);
@@ -57,8 +51,7 @@ public class DaprEndToEndTests
     }
 
     [Fact]
-    public async Task DisableTenant_succeeds_end_to_end_with_events_published()
-    {
+    public async Task DisableTenant_succeeds_end_to_end_with_events_published() {
         // Arrange — create tenant first, then disable it
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string tenantId = $"t-disable-{Guid.NewGuid():N}";
@@ -73,7 +66,7 @@ public class DaprEndToEndTests
         CommandProcessingResult result = await proxy.ProcessCommandAsync(disableCmd);
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue($"DisableTenant should be accepted but got error: {result.ErrorMessage}");
         result.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
 
@@ -82,8 +75,7 @@ public class DaprEndToEndTests
     }
 
     [Fact]
-    public async Task EnableTenant_succeeds_end_to_end_with_events_published()
-    {
+    public async Task EnableTenant_succeeds_end_to_end_with_events_published() {
         // Arrange — create tenant, disable it, then enable it
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string tenantId = $"t-enable-{Guid.NewGuid():N}";
@@ -102,7 +94,7 @@ public class DaprEndToEndTests
         CommandProcessingResult result = await proxy.ProcessCommandAsync(enableCmd);
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue("EnableTenant should be accepted");
         result.EventCount.ShouldBe(1, "EnableTenant should produce 1 TenantEnabled event");
 
@@ -111,8 +103,7 @@ public class DaprEndToEndTests
     }
 
     [Fact]
-    public async Task BootstrapGlobalAdmin_succeeds_end_to_end_with_events_published()
-    {
+    public async Task BootstrapGlobalAdmin_succeeds_end_to_end_with_events_published() {
         // Arrange
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
 
@@ -130,7 +121,7 @@ public class DaprEndToEndTests
         CommandProcessingResult result = await proxy.ProcessCommandAsync(command);
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue("BootstrapGlobalAdmin should be accepted on first run");
         result.EventCount.ShouldBe(1, "BootstrapGlobalAdmin should produce 1 GlobalAdministratorSet event");
 
@@ -140,8 +131,7 @@ public class DaprEndToEndTests
     }
 
     [Fact]
-    public async Task BootstrapGlobalAdmin_duplicate_produces_rejection()
-    {
+    public async Task BootstrapGlobalAdmin_duplicate_produces_rejection() {
         // Arrange — bootstrap once, then try again
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string uniqueAggId = $"global-administrators-{Guid.NewGuid():N}";
@@ -156,7 +146,7 @@ public class DaprEndToEndTests
         CommandProcessingResult result = await proxy.ProcessCommandAsync(secondCmd);
 
         // Assert
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate BootstrapGlobalAdmin should be rejected");
         result.EventCount.ShouldBe(1, "Rejection event should be persisted");
     }

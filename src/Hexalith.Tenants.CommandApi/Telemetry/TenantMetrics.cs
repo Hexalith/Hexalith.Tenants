@@ -6,21 +6,17 @@ namespace Hexalith.Tenants.CommandApi.Telemetry;
 /// Custom metrics for the Tenants service using <see cref="System.Diagnostics.Metrics.Meter"/>.
 /// Histograms natively track count, sum, and bucket distribution.
 /// </summary>
-internal static class TenantMetrics
-{
+internal static class TenantMetrics {
+
     /// <summary>The meter name registered with OpenTelemetry.</summary>
     public const string MeterName = "Hexalith.Tenants";
-
-    private static readonly Meter s_meter = new(MeterName);
 
     private static readonly Histogram<double> s_commandDuration =
         s_meter.CreateHistogram<double>("tenants.command.duration", "ms", "Tenant command processing duration");
 
-    private static readonly Histogram<double> s_projectionQueryDuration =
-        s_meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
-
-    private static readonly HashSet<string> s_knownCommandTypes = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> s_knownCommandTypes =
+    [
+with(StringComparer.Ordinal),
         "CreateTenant",
         "UpdateTenantInformation",
         "DisableTenant",
@@ -33,16 +29,22 @@ internal static class TenantMetrics
         "AddGlobalAdministrator",
         "RemoveGlobalAdministrator",
         "RegisterGlobalAdministrator",
-    };
+    ];
 
-    private static readonly HashSet<string> s_knownQueryTypes = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> s_knownQueryTypes =
+    [
+with(StringComparer.Ordinal),
         "get-tenant",
         "list-tenants",
         "get-tenant-users",
         "get-user-tenants",
         "get-tenant-audit",
-    };
+    ];
+
+    private static readonly Meter s_meter = new(MeterName);
+
+    private static readonly Histogram<double> s_projectionQueryDuration =
+        s_meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
 
     /// <summary>
     /// Records the duration of a tenant command processing operation.

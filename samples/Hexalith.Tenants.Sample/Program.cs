@@ -5,7 +5,7 @@ using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Sample.Endpoints;
 using Hexalith.Tenants.Sample.Handlers;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // 1. Register all tenant client services (DaprClient, options, event handlers, projections)
 builder.Services.AddHexalithTenants();
@@ -16,7 +16,7 @@ builder.Services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(sp => sp.G
 builder.Services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(sp => sp.GetRequiredService<SampleLoggingEventHandler>());
 builder.Services.AddSingleton<ITenantEventHandler<TenantDisabled>>(sp => sp.GetRequiredService<SampleLoggingEventHandler>());
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // 3. Enable CloudEvents middleware (required for DAPR pub/sub)
 app.UseCloudEvents();

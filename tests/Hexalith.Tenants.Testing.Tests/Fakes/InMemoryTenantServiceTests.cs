@@ -1,28 +1,28 @@
 using System.Diagnostics;
 
+using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Testing.Fakes;
 
 using Shouldly;
 
 namespace Hexalith.Tenants.Testing.Tests.Fakes;
 
-public class InMemoryTenantServiceTests
-{
+public class InMemoryTenantServiceTests {
     // ─── 3.2: CreateTenant produces TenantCreated event ───
 
     [Fact]
-    public void CreateTenant_produces_TenantCreated_event()
-    {
+    public void CreateTenant_produces_TenantCreated_event() {
         var svc = new InMemoryTenantService();
-        var result = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", "A test tenant"));
+        DomainResult result = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", "A test tenant"));
 
         result.IsSuccess.ShouldBeTrue();
         result.Events.Count.ShouldBe(1);
-        result.Events[0].ShouldBeOfType<TenantCreated>();
+        _ = result.Events[0].ShouldBeOfType<TenantCreated>();
         var evt = (TenantCreated)result.Events[0];
         evt.TenantId.ShouldBe("acme");
         evt.Name.ShouldBe("Acme Corp");
@@ -32,131 +32,125 @@ public class InMemoryTenantServiceTests
     // ─── 3.3: CreateTenant + AddUserToTenant produces correct events with maintained state ───
 
     [Fact]
-    public void CreateTenant_then_AddUser_produces_correct_events_and_maintains_state()
-    {
+    public void CreateTenant_then_AddUser_produces_correct_events_and_maintains_state() {
         var svc = new InMemoryTenantService();
-        var createResult = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        DomainResult createResult = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
         createResult.IsSuccess.ShouldBeTrue();
 
-        var addResult = svc.ProcessCommand(
+        DomainResult addResult = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", TenantRole.TenantContributor),
             userId: "owner",
             isGlobalAdmin: true);
 
         addResult.IsSuccess.ShouldBeTrue();
         addResult.Events.Count.ShouldBe(1);
-        addResult.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        _ = addResult.Events[0].ShouldBeOfType<UserAddedToTenant>();
 
         // State should be maintained
-        var state = svc.GetTenantState("acme");
-        state.ShouldNotBeNull();
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
         state.TenantId.ShouldBe("acme");
         state.Users.ShouldContainKey("alice");
         state.Users["alice"].ShouldBe(TenantRole.TenantContributor);
 
         // EventHistory should contain both events
         svc.EventHistory.Count.ShouldBe(2);
-        svc.EventHistory[0].ShouldBeOfType<TenantCreated>();
-        svc.EventHistory[1].ShouldBeOfType<UserAddedToTenant>();
+        _ = svc.EventHistory[0].ShouldBeOfType<TenantCreated>();
+        _ = svc.EventHistory[1].ShouldBeOfType<UserAddedToTenant>();
     }
 
     // ─── 3.4: Duplicate tenant creation returns TenantAlreadyExistsRejection ───
 
     [Fact]
-    public void Duplicate_CreateTenant_returns_TenantAlreadyExistsRejection()
-    {
+    public void Duplicate_CreateTenant_returns_TenantAlreadyExistsRejection() {
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
 
-        var result = svc.ProcessCommand(new CreateTenant("acme", "Acme Again", null));
+        DomainResult result = svc.ProcessCommand(new CreateTenant("acme", "Acme Again", null));
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantAlreadyExistsRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantAlreadyExistsRejection>();
     }
 
     // ─── 3.5: AddUserToTenant on disabled tenant returns TenantDisabledRejection ───
 
     [Fact]
-    public void AddUser_on_disabled_tenant_returns_TenantDisabledRejection()
-    {
+    public void AddUser_on_disabled_tenant_returns_TenantDisabledRejection() {
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
-        var result = svc.ProcessCommand(
+        DomainResult result = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", TenantRole.TenantReader),
             userId: "owner",
             isGlobalAdmin: true);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
     // ─── 3.6: Duplicate user add returns UserAlreadyInTenantRejection ───
 
     [Fact]
-    public void Duplicate_AddUser_returns_UserAlreadyInTenantRejection()
-    {
+    public void Duplicate_AddUser_returns_UserAlreadyInTenantRejection() {
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
-        svc.ProcessCommand(
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", TenantRole.TenantContributor),
             userId: "owner",
             isGlobalAdmin: true);
 
-        var result = svc.ProcessCommand(
+        DomainResult result = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", TenantRole.TenantReader),
             userId: "owner",
             isGlobalAdmin: true);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>();
+        _ = result.Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>();
     }
 
     // ─── 3.7: Role escalation returns RoleEscalationRejection ───
 
     [Fact]
-    public void Invalid_role_returns_RoleEscalationRejection()
-    {
+    public void Invalid_role_returns_RoleEscalationRejection() {
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
 
-        var result = svc.ProcessCommand(
+        DomainResult result = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", (TenantRole)999),
             userId: "owner",
             isGlobalAdmin: true);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+        _ = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
     }
 
     // ─── 3.8: Cross-tenant isolation ───
 
     [Fact]
-    public void Cross_tenant_isolation_guarantees_no_data_leaks()
-    {
+    public void Cross_tenant_isolation_guarantees_no_data_leaks() {
         var svc = new InMemoryTenantService();
 
         // Create two tenants
-        svc.ProcessCommand(new CreateTenant("tenant-a", "Tenant A", null));
-        svc.ProcessCommand(new CreateTenant("tenant-b", "Tenant B", null));
+        _ = svc.ProcessCommand(new CreateTenant("tenant-a", "Tenant A", null));
+        _ = svc.ProcessCommand(new CreateTenant("tenant-b", "Tenant B", null));
 
         // Add users to each tenant
-        svc.ProcessCommand(
+        _ = svc.ProcessCommand(
             new AddUserToTenant("tenant-a", "alice", TenantRole.TenantOwner),
             userId: "admin",
             isGlobalAdmin: true);
-        svc.ProcessCommand(
+        _ = svc.ProcessCommand(
             new AddUserToTenant("tenant-b", "bob", TenantRole.TenantOwner),
             userId: "admin",
             isGlobalAdmin: true);
 
         // Verify isolation
-        var stateA = svc.GetTenantState("tenant-a");
-        var stateB = svc.GetTenantState("tenant-b");
+        TenantState? stateA = svc.GetTenantState("tenant-a");
+        TenantState? stateB = svc.GetTenantState("tenant-b");
 
-        stateA.ShouldNotBeNull();
-        stateB.ShouldNotBeNull();
+        _ = stateA.ShouldNotBeNull();
+        _ = stateB.ShouldNotBeNull();
 
         stateA.TenantId.ShouldBe("tenant-a");
         stateB.TenantId.ShouldBe("tenant-b");
@@ -174,33 +168,32 @@ public class InMemoryTenantServiceTests
     // ─── 3.9: GlobalAdmin commands ───
 
     [Fact]
-    public void BootstrapGlobalAdmin_then_Set_then_Remove_works_correctly()
-    {
+    public void BootstrapGlobalAdmin_then_Set_then_Remove_works_correctly() {
         var svc = new InMemoryTenantService();
 
         // Bootstrap
-        var bootstrapResult = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        DomainResult bootstrapResult = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
         bootstrapResult.IsSuccess.ShouldBeTrue();
-        bootstrapResult.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        _ = bootstrapResult.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
 
-        var gaState = svc.GetGlobalAdminState();
-        gaState.ShouldNotBeNull();
+        GlobalAdministratorsState? gaState = svc.GetGlobalAdminState();
+        _ = gaState.ShouldNotBeNull();
         gaState.Administrators.ShouldContain("admin1");
         gaState.Bootstrapped.ShouldBeTrue();
 
         // Set another admin
-        var setResult = svc.ProcessCommand(new SetGlobalAdministrator("admin2"));
+        DomainResult setResult = svc.ProcessCommand(new SetGlobalAdministrator("admin2"));
         setResult.IsSuccess.ShouldBeTrue();
-        setResult.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        _ = setResult.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
 
         gaState = svc.GetGlobalAdminState();
         gaState!.Administrators.Count.ShouldBe(2);
         gaState.Administrators.ShouldContain("admin2");
 
         // Remove first admin (should succeed — 2 admins remain after adding admin2)
-        var removeResult = svc.ProcessCommand(new RemoveGlobalAdministrator("admin1"));
+        DomainResult removeResult = svc.ProcessCommand(new RemoveGlobalAdministrator("admin1"));
         removeResult.IsSuccess.ShouldBeTrue();
-        removeResult.Events[0].ShouldBeOfType<GlobalAdministratorRemoved>();
+        _ = removeResult.Events[0].ShouldBeOfType<GlobalAdministratorRemoved>();
 
         gaState = svc.GetGlobalAdminState();
         gaState!.Administrators.Count.ShouldBe(1);
@@ -212,8 +205,7 @@ public class InMemoryTenantServiceTests
 
     [Fact]
     [Trait("Category", "Performance")]
-    public void Commands_execute_within_10ms_p95()
-    {
+    public void Commands_execute_within_10ms_p95() {
         const int totalIterations = 100;
         const int warmupIterations = 5;
         const double maxP95Ms = 10.0;
@@ -221,13 +213,12 @@ public class InMemoryTenantServiceTests
         var timings = new List<double>(totalIterations);
         var sw = new Stopwatch();
 
-        for (int i = 0; i < totalIterations; i++)
-        {
+        for (int i = 0; i < totalIterations; i++) {
             var svc = new InMemoryTenantService();
 
             sw.Restart();
-            svc.ProcessCommand(new CreateTenant($"t-{i}", $"Tenant {i}", null));
-            svc.ProcessCommand(
+            _ = svc.ProcessCommand(new CreateTenant($"t-{i}", $"Tenant {i}", null));
+            _ = svc.ProcessCommand(
                 new AddUserToTenant($"t-{i}", $"user-{i}", TenantRole.TenantContributor),
                 userId: "admin",
                 isGlobalAdmin: true);
@@ -250,16 +241,15 @@ public class InMemoryTenantServiceTests
     // ─── Additional: NoOp and Rejection do NOT mutate state ───
 
     [Fact]
-    public void NoOp_result_does_not_mutate_state()
-    {
+    public void NoOp_result_does_not_mutate_state() {
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         int eventCountBefore = svc.EventHistory.Count;
 
         // DisableTenant on already disabled tenant → NoOp
-        var result = svc.ProcessCommand(new DisableTenant("acme"));
+        DomainResult result = svc.ProcessCommand(new DisableTenant("acme"));
         result.IsNoOp.ShouldBeTrue();
 
         // EventHistory should not have grown
@@ -267,14 +257,13 @@ public class InMemoryTenantServiceTests
     }
 
     [Fact]
-    public void Rejection_result_does_not_mutate_state()
-    {
+    public void Rejection_result_does_not_mutate_state() {
         var svc = new InMemoryTenantService();
 
         int eventCountBefore = svc.EventHistory.Count;
 
         // AddUserToTenant on nonexistent tenant → Rejection
-        var result = svc.ProcessCommand(
+        DomainResult result = svc.ProcessCommand(
             new AddUserToTenant("nonexistent", "alice", TenantRole.TenantReader),
             userId: "admin",
             isGlobalAdmin: true);

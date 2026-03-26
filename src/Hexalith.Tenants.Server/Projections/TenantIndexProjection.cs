@@ -7,6 +7,5 @@ namespace Hexalith.Tenants.Server.Projections;
 /// Auto-discovered by EventStore's assembly scanning.
 /// Domain name resolves to "tenant-index" via convention (distinct from per-tenant "tenants" projection).
 /// </summary>
-public sealed class TenantIndexProjection : EventStoreProjection<TenantIndexReadModel>
-{
+public sealed class TenantIndexProjection : EventStoreProjection<TenantIndexReadModel> {
 }

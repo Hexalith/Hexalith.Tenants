@@ -1,7 +1,9 @@
+using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Testing.Fakes;
 using Hexalith.Tenants.Testing.Helpers;
 using Hexalith.Tenants.Testing.Projections;
@@ -13,13 +15,11 @@ namespace Hexalith.Tenants.Testing.Tests.Projections;
 /// <summary>
 /// Unit tests for <see cref="InMemoryTenantProjection"/>.
 /// </summary>
-public sealed class InMemoryTenantProjectionTests
-{
+public sealed class InMemoryTenantProjectionTests {
     // ─── 3.2: TenantCreated ───
 
     [Fact]
-    public void Apply_TenantCreated_StoresTenantWithCorrectFields()
-    {
+    public void Apply_TenantCreated_StoresTenantWithCorrectFields() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         var evt = new TenantCreated("acme", "Acme Corp", "A test tenant", DateTimeOffset.UtcNow);
@@ -28,8 +28,8 @@ public sealed class InMemoryTenantProjectionTests
         projection.Apply(evt);
 
         // Assert
-        var tenant = projection.GetTenant("acme");
-        tenant.ShouldNotBeNull();
+        TenantReadModel? tenant = projection.GetTenant("acme");
+        _ = tenant.ShouldNotBeNull();
         tenant.TenantId.ShouldBe("acme");
         tenant.Name.ShouldBe("Acme Corp");
         tenant.Description.ShouldBe("A test tenant");
@@ -39,8 +39,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.3: TenantUpdated ───
 
     [Fact]
-    public void Apply_TenantUpdated_UpdatesNameAndDescription()
-    {
+    public void Apply_TenantUpdated_UpdatesNameAndDescription() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
@@ -49,8 +48,8 @@ public sealed class InMemoryTenantProjectionTests
         projection.Apply(new TenantUpdated("acme", "Acme Inc", "Updated description"));
 
         // Assert
-        var tenant = projection.GetTenant("acme");
-        tenant.ShouldNotBeNull();
+        TenantReadModel? tenant = projection.GetTenant("acme");
+        _ = tenant.ShouldNotBeNull();
         tenant.Name.ShouldBe("Acme Inc");
         tenant.Description.ShouldBe("Updated description");
     }
@@ -58,8 +57,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.4: TenantDisabled / TenantEnabled ───
 
     [Fact]
-    public void Apply_TenantDisabled_TracksStatus()
-    {
+    public void Apply_TenantDisabled_TracksStatus() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -72,8 +70,7 @@ public sealed class InMemoryTenantProjectionTests
     }
 
     [Fact]
-    public void Apply_TenantEnabled_TracksStatus()
-    {
+    public void Apply_TenantEnabled_TracksStatus() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -89,8 +86,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.5: UserAddedToTenant ───
 
     [Fact]
-    public void Apply_UserAddedToTenant_AddsMemberWithRole()
-    {
+    public void Apply_UserAddedToTenant_AddsMemberWithRole() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -99,8 +95,8 @@ public sealed class InMemoryTenantProjectionTests
         projection.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
 
         // Assert
-        var tenant = projection.GetTenant("acme");
-        tenant.ShouldNotBeNull();
+        TenantReadModel? tenant = projection.GetTenant("acme");
+        _ = tenant.ShouldNotBeNull();
         tenant.Members.ShouldContainKey("alice");
         tenant.Members["alice"].ShouldBe(TenantRole.TenantContributor);
     }
@@ -108,8 +104,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.6: UserRemovedFromTenant ───
 
     [Fact]
-    public void Apply_UserRemovedFromTenant_RemovesMember()
-    {
+    public void Apply_UserRemovedFromTenant_RemovesMember() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -125,8 +120,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.7: UserRoleChanged ───
 
     [Fact]
-    public void Apply_UserRoleChanged_UpdatesMemberRole()
-    {
+    public void Apply_UserRoleChanged_UpdatesMemberRole() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -142,8 +136,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.8: TenantConfigurationSet / TenantConfigurationRemoved ───
 
     [Fact]
-    public void Apply_TenantConfigurationSet_ManagesConfig()
-    {
+    public void Apply_TenantConfigurationSet_ManagesConfig() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -152,15 +145,14 @@ public sealed class InMemoryTenantProjectionTests
         projection.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
 
         // Assert
-        var tenant = projection.GetTenant("acme");
-        tenant.ShouldNotBeNull();
+        TenantReadModel? tenant = projection.GetTenant("acme");
+        _ = tenant.ShouldNotBeNull();
         tenant.Configuration.ShouldContainKey("theme");
         tenant.Configuration["theme"].ShouldBe("dark");
     }
 
     [Fact]
-    public void Apply_TenantConfigurationRemoved_RemovesConfig()
-    {
+    public void Apply_TenantConfigurationRemoved_RemovesConfig() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
@@ -176,8 +168,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.9: GlobalAdministratorSet / GlobalAdministratorRemoved ───
 
     [Fact]
-    public void Apply_GlobalAdministratorSet_TracksAdmins()
-    {
+    public void Apply_GlobalAdministratorSet_TracksAdmins() {
         // Arrange
         var projection = new InMemoryTenantProjection();
 
@@ -189,8 +180,7 @@ public sealed class InMemoryTenantProjectionTests
     }
 
     [Fact]
-    public void Apply_GlobalAdministratorRemoved_RemovesAdmin()
-    {
+    public void Apply_GlobalAdministratorRemoved_RemovesAdmin() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -207,15 +197,14 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.10: GetAllTenants ───
 
     [Fact]
-    public void GetAllTenants_ReturnsAllProjectedTenants()
-    {
+    public void GetAllTenants_ReturnsAllProjectedTenants() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
         projection.Apply(new TenantCreated("contoso", "Contoso", null, DateTimeOffset.UtcNow));
 
         // Act
-        var tenants = projection.GetAllTenants();
+        IReadOnlyList<TenantReadModel> tenants = projection.GetAllTenants();
 
         // Assert
         tenants.Count.ShouldBe(2);
@@ -226,8 +215,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.11: Cross-tenant isolation ───
 
     [Fact]
-    public void CrossTenantIsolation_TenantADataNeverAppearsInTenantBQuery()
-    {
+    public void CrossTenantIsolation_TenantADataNeverAppearsInTenantBQuery() {
         // Arrange
         var projection = new InMemoryTenantProjection();
         projection.Apply(new TenantCreated("alpha", "Alpha Corp", null, DateTimeOffset.UtcNow));
@@ -236,15 +224,15 @@ public sealed class InMemoryTenantProjectionTests
         projection.Apply(new TenantConfigurationSet("alpha", "key1", "val1"));
 
         // Act
-        var alpha = projection.GetTenant("alpha");
-        var beta = projection.GetTenant("beta");
+        TenantReadModel? alpha = projection.GetTenant("alpha");
+        TenantReadModel? beta = projection.GetTenant("beta");
 
         // Assert
-        alpha.ShouldNotBeNull();
+        _ = alpha.ShouldNotBeNull();
         alpha.Members.ShouldContainKey("alice");
         alpha.Configuration.ShouldContainKey("key1");
 
-        beta.ShouldNotBeNull();
+        _ = beta.ShouldNotBeNull();
         beta.Members.ShouldBeEmpty();
         beta.Configuration.ShouldBeEmpty();
     }
@@ -252,12 +240,11 @@ public sealed class InMemoryTenantProjectionTests
     // ─── 3.12: End-to-end with InMemoryTenantService ───
 
     [Fact]
-    public void EndToEnd_InMemoryTenantServiceCommand_EventsProjection_Query()
-    {
+    public void EndToEnd_InMemoryTenantServiceCommand_EventsProjection_Query() {
         // Arrange
         var svc = new InMemoryTenantService();
-        TenantTestHelpers.CreateTenant(svc, "acme", "Acme Corp");
-        svc.ProcessCommand(
+        _ = TenantTestHelpers.CreateTenant(svc, "acme", "Acme Corp");
+        _ = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", TenantRole.TenantContributor),
             userId: "admin",
             isGlobalAdmin: true);
@@ -268,8 +255,8 @@ public sealed class InMemoryTenantProjectionTests
         projection.ApplyEvents(svc.EventHistory);
 
         // Assert
-        var tenant = projection.GetTenant("acme");
-        tenant.ShouldNotBeNull();
+        TenantReadModel? tenant = projection.GetTenant("acme");
+        _ = tenant.ShouldNotBeNull();
         tenant.TenantId.ShouldBe("acme");
         tenant.Name.ShouldBe("Acme Corp");
         tenant.Status.ShouldBe(TenantStatus.Active);
@@ -280,8 +267,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── Additional: Rejection event is silently skipped ───
 
     [Fact]
-    public void Apply_RejectionEvent_IsSilentlySkipped()
-    {
+    public void Apply_RejectionEvent_IsSilentlySkipped() {
         // Arrange
         var projection = new InMemoryTenantProjection();
 
@@ -295,8 +281,7 @@ public sealed class InMemoryTenantProjectionTests
     // ─── Additional: GetTenant returns null for unknown tenant ───
 
     [Fact]
-    public void GetTenant_UnknownTenantId_ReturnsNull()
-    {
+    public void GetTenant_UnknownTenantId_ReturnsNull() {
         var projection = new InMemoryTenantProjection();
         projection.GetTenant("nonexistent").ShouldBeNull();
     }
@@ -304,26 +289,24 @@ public sealed class InMemoryTenantProjectionTests
     // ─── Additional: GetGlobalAdministrators returns empty on fresh projection ───
 
     [Fact]
-    public void GetGlobalAdministrators_FreshProjection_ReturnsEmptyModel()
-    {
+    public void GetGlobalAdministrators_FreshProjection_ReturnsEmptyModel() {
         var projection = new InMemoryTenantProjection();
-        var admins = projection.GetGlobalAdministrators();
-        admins.ShouldNotBeNull();
+        GlobalAdministratorReadModel admins = projection.GetGlobalAdministrators();
+        _ = admins.ShouldNotBeNull();
         admins.Administrators.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Projection_Replay_IsIdempotent()
-    {
+    public void Projection_Replay_IsIdempotent() {
         // Arrange
         var svc = new InMemoryTenantService();
-        TenantTestHelpers.CreateTenant(svc, "acme", "Acme Corp");
-        svc.ProcessCommand(
+        _ = TenantTestHelpers.CreateTenant(svc, "acme", "Acme Corp");
+        _ = svc.ProcessCommand(
             new AddUserToTenant("acme", "alice", TenantRole.TenantContributor),
             userId: "admin",
             isGlobalAdmin: true);
 
-        var stream = svc.EventHistory;
+        IReadOnlyList<IEventPayload> stream = svc.EventHistory;
 
         // Act
         var projection1 = new InMemoryTenantProjection();
@@ -333,11 +316,11 @@ public sealed class InMemoryTenantProjectionTests
         projection2.ApplyEvents(stream);
 
         // Assert
-        var t1 = projection1.GetTenant("acme");
-        var t2 = projection2.GetTenant("acme");
+        TenantReadModel? t1 = projection1.GetTenant("acme");
+        TenantReadModel? t2 = projection2.GetTenant("acme");
 
-        t1.ShouldNotBeNull();
-        t2.ShouldNotBeNull();
+        _ = t1.ShouldNotBeNull();
+        _ = t2.ShouldNotBeNull();
         t1.Name.ShouldBe(t2.Name);
         t1.Members.Count.ShouldBe(t2.Members.Count);
         t1.Members["alice"].ShouldBe(t2.Members["alice"]);

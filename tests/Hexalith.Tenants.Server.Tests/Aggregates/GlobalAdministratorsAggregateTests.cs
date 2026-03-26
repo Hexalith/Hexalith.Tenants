@@ -12,8 +12,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Aggregates;
 
-public class GlobalAdministratorsAggregateTests
-{
+public class GlobalAdministratorsAggregateTests {
     private static CommandEnvelope CreateCommand<T>(T command)
         where T : notnull
         => new(
@@ -30,8 +29,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 1: Bootstrap with no prior state → Success (AC #1)
     [Fact]
-    public async Task Bootstrap_with_no_prior_state_produces_GlobalAdministratorSet()
-    {
+    public async Task Bootstrap_with_no_prior_state_produces_GlobalAdministratorSet() {
         var aggregate = new GlobalAdministratorsAggregate();
         CommandEnvelope cmd = CreateCommand(new BootstrapGlobalAdmin("admin-1"));
 
@@ -46,8 +44,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 2: Bootstrap when already bootstrapped → Rejection (AC #2)
     [Fact]
-    public async Task Bootstrap_when_already_bootstrapped_produces_rejection()
-    {
+    public async Task Bootstrap_when_already_bootstrapped_produces_rejection() {
         var aggregate = new GlobalAdministratorsAggregate();
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -57,13 +54,12 @@ public class GlobalAdministratorsAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<GlobalAdminAlreadyBootstrappedRejection>();
+        _ = result.Events[0].ShouldBeOfType<GlobalAdminAlreadyBootstrappedRejection>();
     }
 
     // Test 3: Set new administrator → Success (AC #3)
     [Fact]
-    public async Task Set_new_administrator_produces_GlobalAdministratorSet()
-    {
+    public async Task Set_new_administrator_produces_GlobalAdministratorSet() {
         var aggregate = new GlobalAdministratorsAggregate();
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -81,8 +77,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 4: Set existing administrator → NoOp (AC #3, idempotency)
     [Fact]
-    public async Task Set_existing_administrator_produces_NoOp()
-    {
+    public async Task Set_existing_administrator_produces_NoOp() {
         var aggregate = new GlobalAdministratorsAggregate();
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -97,8 +92,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 5: Remove administrator when multiple exist → Success (AC #4)
     [Fact]
-    public async Task Remove_administrator_with_multiple_admins_produces_GlobalAdministratorRemoved()
-    {
+    public async Task Remove_administrator_with_multiple_admins_produces_GlobalAdministratorRemoved() {
         var aggregate = new GlobalAdministratorsAggregate();
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -117,8 +111,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 6: Remove last administrator → Rejection (AC #5)
     [Fact]
-    public async Task Remove_last_administrator_produces_rejection()
-    {
+    public async Task Remove_last_administrator_produces_rejection() {
         var aggregate = new GlobalAdministratorsAggregate();
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -128,13 +121,12 @@ public class GlobalAdministratorsAggregateTests
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        result.Events[0].ShouldBeOfType<LastGlobalAdministratorRejection>();
+        _ = result.Events[0].ShouldBeOfType<LastGlobalAdministratorRejection>();
     }
 
     // Test 7: Remove nonexistent administrator → NoOp (AC #4, idempotency)
     [Fact]
-    public async Task Remove_nonexistent_administrator_produces_NoOp()
-    {
+    public async Task Remove_nonexistent_administrator_produces_NoOp() {
         var aggregate = new GlobalAdministratorsAggregate();
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
@@ -149,8 +141,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 8: Remove with no prior state → NoOp (AC #4, edge)
     [Fact]
-    public async Task Remove_with_no_prior_state_produces_NoOp()
-    {
+    public async Task Remove_with_no_prior_state_produces_NoOp() {
         var aggregate = new GlobalAdministratorsAggregate();
         CommandEnvelope cmd = CreateCommand(new RemoveGlobalAdministrator("any"));
 
@@ -162,8 +153,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 9: Set with no prior state → Success (AC #3, edge)
     [Fact]
-    public async Task Set_with_no_prior_state_produces_GlobalAdministratorSet()
-    {
+    public async Task Set_with_no_prior_state_produces_GlobalAdministratorSet() {
         var aggregate = new GlobalAdministratorsAggregate();
         CommandEnvelope cmd = CreateCommand(new SetGlobalAdministrator("admin-1"));
 
@@ -178,8 +168,7 @@ public class GlobalAdministratorsAggregateTests
 
     // Test 10: State replay — Bootstrap + Set + Remove verifies state transitions (AC #7)
     [Fact]
-    public async Task State_replay_tracks_administrators_correctly()
-    {
+    public async Task State_replay_tracks_administrators_correctly() {
         var aggregate = new GlobalAdministratorsAggregate();
 
         // Step 1: Bootstrap

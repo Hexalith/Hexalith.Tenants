@@ -6,12 +6,10 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class TenantIndexReadModelTests
-{
+public class TenantIndexReadModelTests {
     // IX1: Apply TenantCreated adds entry to Tenants
     [Fact]
-    public void Apply_TenantCreated_AddsEntryToTenants()
-    {
+    public void Apply_TenantCreated_AddsEntryToTenants() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.UtcNow));
@@ -24,8 +22,7 @@ public class TenantIndexReadModelTests
 
     // IX2: Apply TenantUpdated updates name in index
     [Fact]
-    public void Apply_TenantUpdated_UpdatesNameInIndex()
-    {
+    public void Apply_TenantUpdated_UpdatesNameInIndex() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
@@ -37,8 +34,7 @@ public class TenantIndexReadModelTests
 
     // IX3: Apply TenantDisabled updates status
     [Fact]
-    public void Apply_TenantDisabled_UpdatesStatusToDisabled()
-    {
+    public void Apply_TenantDisabled_UpdatesStatusToDisabled() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
@@ -49,8 +45,7 @@ public class TenantIndexReadModelTests
 
     // IX4: Apply TenantEnabled updates status
     [Fact]
-    public void Apply_TenantEnabled_UpdatesStatusToActive()
-    {
+    public void Apply_TenantEnabled_UpdatesStatusToActive() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -62,8 +57,7 @@ public class TenantIndexReadModelTests
 
     // IX5: Apply UserAddedToTenant adds user-tenant mapping
     [Fact]
-    public void Apply_UserAddedToTenant_AddsUserTenantMapping()
-    {
+    public void Apply_UserAddedToTenant_AddsUserTenantMapping() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
@@ -76,8 +70,7 @@ public class TenantIndexReadModelTests
 
     // IX6: Apply UserRemovedFromTenant removes user-tenant mapping
     [Fact]
-    public void Apply_UserRemovedFromTenant_RemovesUserTenantMapping()
-    {
+    public void Apply_UserRemovedFromTenant_RemovesUserTenantMapping() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
@@ -89,8 +82,7 @@ public class TenantIndexReadModelTests
 
     // IX7: Multiple tenants in index
     [Fact]
-    public void Apply_MultipleTenantCreated_AllTenantsInIndex()
-    {
+    public void Apply_MultipleTenantCreated_AllTenantsInIndex() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
@@ -105,8 +97,7 @@ public class TenantIndexReadModelTests
 
     // IX8: User in multiple tenants
     [Fact]
-    public void Apply_UserAddedToMultipleTenants_AllMappingsPresent()
-    {
+    public void Apply_UserAddedToMultipleTenants_AllMappingsPresent() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantCreated("beta", "Beta Inc", null, DateTimeOffset.UtcNow));
@@ -121,8 +112,7 @@ public class TenantIndexReadModelTests
 
     // IX9: Remove user from one of multiple tenants
     [Fact]
-    public void Apply_UserRemovedFromOneOfMultipleTenants_OtherMappingsRemain()
-    {
+    public void Apply_UserRemovedFromOneOfMultipleTenants_OtherMappingsRemain() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantCreated("beta", "Beta Inc", null, DateTimeOffset.UtcNow));
@@ -141,8 +131,7 @@ public class TenantIndexReadModelTests
 
     // IX10: Apply TenantDisabled when tenant not in index (out-of-order)
     [Fact]
-    public void Apply_TenantDisabledWhenNotInIndex_NoException()
-    {
+    public void Apply_TenantDisabledWhenNotInIndex_NoException() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -152,8 +141,7 @@ public class TenantIndexReadModelTests
 
     // IX10b: Apply TenantUpdated when tenant not in index (out-of-order)
     [Fact]
-    public void Apply_TenantUpdatedWhenNotInIndex_NoException()
-    {
+    public void Apply_TenantUpdatedWhenNotInIndex_NoException() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new TenantUpdated("acme", "Acme Updated", "desc"));
@@ -163,8 +151,7 @@ public class TenantIndexReadModelTests
 
     // IX11: Apply UserRemovedFromTenant when user not in index
     [Fact]
-    public void Apply_UserRemovedFromTenantWhenNotInIndex_NoException()
-    {
+    public void Apply_UserRemovedFromTenantWhenNotInIndex_NoException() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new UserRemovedFromTenant("acme", "user1"));
@@ -174,8 +161,7 @@ public class TenantIndexReadModelTests
 
     // IX11b: Apply UserRoleChanged when user not in index (out-of-order)
     [Fact]
-    public void Apply_UserRoleChangedWhenNotInIndex_NoException()
-    {
+    public void Apply_UserRoleChangedWhenNotInIndex_NoException() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new UserRoleChanged("acme", "user1", TenantRole.TenantReader, TenantRole.TenantContributor));
@@ -185,8 +171,7 @@ public class TenantIndexReadModelTests
 
     // IX12: Apply UserRoleChanged updates role in user-tenant mapping
     [Fact]
-    public void Apply_UserRoleChanged_UpdatesRoleInMapping()
-    {
+    public void Apply_UserRoleChanged_UpdatesRoleInMapping() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantReader));
@@ -197,8 +182,7 @@ public class TenantIndexReadModelTests
     }
 
     [Fact]
-    public void Apply_DuplicateTenantCreated_PreservesExistingTenantState()
-    {
+    public void Apply_DuplicateTenantCreated_PreservesExistingTenantState() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantUpdated("acme", "Acme Updated", "updated desc"));
@@ -211,8 +195,7 @@ public class TenantIndexReadModelTests
     }
 
     [Fact]
-    public void Apply_UserAddedToTenantWhenTenantNotInIndex_IgnoresEvent()
-    {
+    public void Apply_UserAddedToTenantWhenTenantNotInIndex_IgnoresEvent() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
@@ -221,8 +204,7 @@ public class TenantIndexReadModelTests
     }
 
     [Fact]
-    public void Apply_UserRoleChangedWhenTenantMappingMissing_DoesNotCreateMembership()
-    {
+    public void Apply_UserRoleChangedWhenTenantMappingMissing_DoesNotCreateMembership() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantCreated("beta", "Beta Inc", null, DateTimeOffset.UtcNow));
@@ -237,8 +219,7 @@ public class TenantIndexReadModelTests
 
     // IX13: Full lifecycle test across multiple tenants and users
     [Fact]
-    public void Apply_FullLifecycle_CorrectFinalState()
-    {
+    public void Apply_FullLifecycle_CorrectFinalState() {
         var model = new TenantIndexReadModel();
 
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.Parse("2026-01-01T00:00:00Z")));
@@ -270,16 +251,14 @@ public class TenantIndexReadModelTests
 
     // Null guard test
     [Fact]
-    public void Apply_NullTenantCreated_ThrowsArgumentNullException()
-    {
+    public void Apply_NullTenantCreated_ThrowsArgumentNullException() {
         var model = new TenantIndexReadModel();
-        Should.Throw<ArgumentNullException>(() => model.Apply((TenantCreated)null!));
+        _ = Should.Throw<ArgumentNullException>(() => model.Apply((TenantCreated)null!));
     }
 
     // IX18: Canary — TenantIndexReadModel must have exactly 7 Apply methods
     [Fact]
-    public void TenantIndexReadModel_HasExactly7ApplyMethods()
-    {
+    public void TenantIndexReadModel_HasExactly7ApplyMethods() {
         var applyMethods = typeof(TenantIndexReadModel)
             .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
             .Where(m => m.Name == "Apply" && m.ReturnType == typeof(void) && m.GetParameters().Length == 1)

@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.Contracts.Enums;
 
-public enum TenantStatus
-{
+public enum TenantStatus {
     Active,
     Disabled,
 }

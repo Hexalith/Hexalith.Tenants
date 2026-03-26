@@ -25,9 +25,7 @@ namespace Hexalith.Tenants.IntegrationTests;
 public class StatelessRestartTests {
     private readonly TenantsDaprTestFixture _fixture;
 
-    public StatelessRestartTests(TenantsDaprTestFixture fixture) {
-        _fixture = fixture;
-    }
+    public StatelessRestartTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
     [Fact]
     public async Task TenantState_IsReconstructedFromEventStore_AfterActorReactivation() {
@@ -63,7 +61,7 @@ public class StatelessRestartTests {
 
         // Assert — DisableTenant succeeds, proving state was reconstructed from the event store.
         // If state were lost, DisableTenant would fail because the aggregate wouldn't know the tenant exists.
-        disableResult.ShouldNotBeNull();
+        _ = disableResult.ShouldNotBeNull();
         disableResult.Accepted.ShouldBeTrue(
             $"DisableTenant should be accepted after actor reactivation but got: {disableResult.ErrorMessage}");
         disableResult.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");

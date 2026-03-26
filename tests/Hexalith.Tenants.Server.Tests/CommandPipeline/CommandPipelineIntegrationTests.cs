@@ -1,7 +1,6 @@
 using System.Text.Json;
 
 using Hexalith.EventStore.Contracts.Commands;
-using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -18,13 +17,11 @@ namespace Hexalith.Tenants.Server.Tests.CommandPipeline;
 /// ProcessAsync path (the same path the AggregateActor takes at Step 4).
 /// Validates AC #10 from Story 2.4.
 /// </summary>
-public class CommandPipelineIntegrationTests
-{
+public class CommandPipelineIntegrationTests {
     // --- Bootstrap pipeline (AC #10, Task 4.1) ---
 
     [Fact]
-    public async Task Bootstrap_then_second_bootstrap_produces_rejection()
-    {
+    public async Task Bootstrap_then_second_bootstrap_produces_rejection() {
         var aggregate = new GlobalAdministratorsAggregate();
 
         // First bootstrap — should succeed
@@ -40,14 +37,13 @@ public class CommandPipelineIntegrationTests
         CommandEnvelope secondCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-2"));
         DomainResult secondResult = await aggregate.ProcessAsync(secondCmd, currentState: state);
         secondResult.IsRejection.ShouldBeTrue();
-        secondResult.Events[0].ShouldBeOfType<GlobalAdminAlreadyBootstrappedRejection>();
+        _ = secondResult.Events[0].ShouldBeOfType<GlobalAdminAlreadyBootstrappedRejection>();
     }
 
     // --- CreateTenant end-to-end (AC #10, Task 4.2) ---
 
     [Fact]
-    public async Task CreateTenant_end_to_end_produces_TenantCreated_event()
-    {
+    public async Task CreateTenant_end_to_end_produces_TenantCreated_event() {
         var aggregate = new TenantAggregate();
 
         CommandEnvelope cmd = CreateTenantCommand(new CreateTenant("acme", "Acme Corp", "Enterprise tenant"));
@@ -64,8 +60,7 @@ public class CommandPipelineIntegrationTests
     // --- DisableTenant / EnableTenant end-to-end (AC #10, Task 4.3) ---
 
     [Fact]
-    public async Task DisableTenant_end_to_end_produces_TenantDisabled_event()
-    {
+    public async Task DisableTenant_end_to_end_produces_TenantDisabled_event() {
         var aggregate = new TenantAggregate();
 
         // Setup: create tenant first
@@ -82,8 +77,7 @@ public class CommandPipelineIntegrationTests
     }
 
     [Fact]
-    public async Task EnableTenant_end_to_end_produces_TenantEnabled_event()
-    {
+    public async Task EnableTenant_end_to_end_produces_TenantEnabled_event() {
         var aggregate = new TenantAggregate();
 
         // Setup: create and disable tenant
@@ -101,8 +95,7 @@ public class CommandPipelineIntegrationTests
     }
 
     [Fact]
-    public async Task Full_tenant_lifecycle_end_to_end()
-    {
+    public async Task Full_tenant_lifecycle_end_to_end() {
         var tenantAggregate = new TenantAggregate();
         var globalAggregate = new GlobalAdministratorsAggregate();
 

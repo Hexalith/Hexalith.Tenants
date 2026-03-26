@@ -3,8 +3,7 @@ namespace Hexalith.Tenants.Client.Projections;
 /// <summary>
 /// Abstraction for persisting and retrieving per-tenant local projections.
 /// </summary>
-public interface ITenantProjectionStore
-{
+public interface ITenantProjectionStore {
     /// <summary>
     /// Gets the tenant local state for the specified tenant.
     /// </summary>

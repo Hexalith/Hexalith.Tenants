@@ -18,8 +18,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -180,30 +180,30 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         // Configure pub/sub name for event publisher
         builder.Configuration["EventStore:Publisher:PubSubName"] = "pubsub";
 
-        builder.WebHost.ConfigureKestrel(serverOptions =>
+        _ = builder.WebHost.ConfigureKestrel(serverOptions =>
             serverOptions.ListenLocalhost(_appPort, listenOptions =>
                 listenOptions.Protocols = HttpProtocols.Http1));
 
         // Register fakes BEFORE AddEventStoreServer (TryAdd won't override these)
-        builder.Services.AddSingleton<IEventPublisher>(EventPublisher);
-        builder.Services.AddSingleton<IDeadLetterPublisher>(DeadLetterPublisher);
-        builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
+        _ = builder.Services.AddSingleton<IEventPublisher>(EventPublisher);
+        _ = builder.Services.AddSingleton<IDeadLetterPublisher>(DeadLetterPublisher);
+        _ = builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
 
         // Register DAPR client and EventStore server infrastructure (actors, command routing, REAL domain service invoker)
         builder.Services.AddDaprClient();
-        builder.Services.AddEventStoreServer(builder.Configuration);
+        _ = builder.Services.AddEventStoreServer(builder.Configuration);
 
         // Register real domain processors (TenantAggregate, GlobalAdministratorsAggregate)
-        builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
+        _ = builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 
         // Register domain service request handler for /process endpoint
-        builder.Services.AddScoped<DomainServiceRequestHandler>();
+        _ = builder.Services.AddScoped<DomainServiceRequestHandler>();
 
         _testHost = builder.Build();
 
         // Map endpoints
-        _testHost.MapActorsHandlers();
-        _testHost.MapPost("/process", async (
+        _ = _testHost.MapActorsHandlers();
+        _ = _testHost.MapPost("/process", async (
             DomainServiceRequest request,
             DomainServiceRequestHandler handler,
             ILogger<TenantsDaprTestFixture> logger,
@@ -219,7 +219,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                         statusCode: 500);
                 }
             });
-        _testHost.MapGet("/healthz", () => Microsoft.AspNetCore.Http.Results.Ok("healthy"));
+        _ = _testHost.MapGet("/healthz", () => Microsoft.AspNetCore.Http.Results.Ok("healthy"));
 
         await _testHost.StartAsync().ConfigureAwait(false);
 
@@ -262,7 +262,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         _daprProcess.OutputDataReceived += (_, e) => {
             if (e.Data is not null) {
                 lock (_daprStdout) {
-                    _daprStdout.AppendLine(e.Data);
+                    _ = _daprStdout.AppendLine(e.Data);
                 }
             }
         };
@@ -270,12 +270,12 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         _daprProcess.ErrorDataReceived += (_, e) => {
             if (e.Data is not null) {
                 lock (_daprStderr) {
-                    _daprStderr.AppendLine(e.Data);
+                    _ = _daprStderr.AppendLine(e.Data);
                 }
             }
         };
 
-        _daprProcess.Start();
+        _ = _daprProcess.Start();
         _daprProcess.BeginOutputReadLine();
         _daprProcess.BeginErrorReadLine();
 
@@ -287,7 +287,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
     private static string CreateComponentFiles() {
         string tempDir = Path.Combine(Path.GetTempPath(), $"dapr-tenants-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempDir);
+        _ = Directory.CreateDirectory(tempDir);
 
         string stateStoreYaml = $$"""
             apiVersion: dapr.io/v1alpha1
@@ -379,7 +379,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
         for (int i = 0; i < 30; i++) {
             try {
-                await httpClient.GetAsync(healthUrl).ConfigureAwait(false);
+                _ = await httpClient.GetAsync(healthUrl).ConfigureAwait(false);
                 return;
             }
             catch (HttpRequestException ex) {
@@ -412,7 +412,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                     }
 
                     process.Kill(entireProcessTree: true);
-                    process.WaitForExit(5000);
+                    _ = process.WaitForExit(5000);
                 }
                 catch {
                     // Best-effort cleanup
@@ -439,9 +439,9 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                         CreateNoWindow = true,
                     },
                 };
-                searcher.Start();
+                _ = searcher.Start();
                 string output = searcher.StandardOutput.ReadToEnd();
-                searcher.WaitForExit(3000);
+                _ = searcher.WaitForExit(3000);
                 return output;
             }
 

@@ -9,8 +9,7 @@ namespace Hexalith.Tenants.Aspire;
 /// Provides extension methods for adding the Hexalith Tenants topology
 /// to an Aspire distributed application.
 /// </summary>
-public static class HexalithTenantsExtensions
-{
+public static class HexalithTenantsExtensions {
     /// <summary>
     /// Adds the Hexalith Tenants topology to the distributed application builder.
     /// This provisions DAPR state store (in-memory with actor support), DAPR pub/sub,
@@ -26,8 +25,7 @@ public static class HexalithTenantsExtensions
     public static HexalithTenantsResources AddHexalithTenants(
         this IDistributedApplicationBuilder builder,
         IResourceBuilder<ProjectResource> commandApi,
-        string? daprConfigPath = null)
-    {
+        string? daprConfigPath = null) {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(commandApi);
 
@@ -44,8 +42,7 @@ public static class HexalithTenantsExtensions
         // the app's actual port from the Aspire resource model.
         _ = commandApi
             .WithDaprSidecar(sidecar => sidecar
-                .WithOptions(new DaprSidecarOptions
-                {
+                .WithOptions(new DaprSidecarOptions {
                     AppId = "commandapi",
                     Config = daprConfigPath,
                 })

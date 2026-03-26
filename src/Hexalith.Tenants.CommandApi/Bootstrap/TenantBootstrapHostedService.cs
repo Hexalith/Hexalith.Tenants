@@ -14,23 +14,18 @@ namespace Hexalith.Tenants.CommandApi.Bootstrap;
 public partial class TenantBootstrapHostedService(
     IServiceScopeFactory scopeFactory,
     IOptions<TenantBootstrapOptions> options,
-    ILogger<TenantBootstrapHostedService> logger) : IHostedService
-{
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
+    ILogger<TenantBootstrapHostedService> logger) : IHostedService {
+    public async Task StartAsync(CancellationToken cancellationToken) {
         string? userId = options.Value.BootstrapGlobalAdminUserId;
 
-        if (string.IsNullOrWhiteSpace(userId))
-        {
+        if (string.IsNullOrWhiteSpace(userId)) {
             Log.BootstrapSkipped(logger);
             return;
         }
 
-        try
-        {
+        try {
             AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
-            await using (scope.ConfigureAwait(false))
-            {
+            await using (scope.ConfigureAwait(false)) {
                 IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
                 var command = new BootstrapGlobalAdmin(userId);
@@ -51,25 +46,21 @@ public partial class TenantBootstrapHostedService(
 
             Log.BootstrapCommandSent(logger, userId);
         }
-        catch (OperationCanceledException)
-        {
+        catch (OperationCanceledException) {
             throw;
         }
         catch (DomainCommandRejectedException ex)
-            when (ex.RejectionType.EndsWith(nameof(GlobalAdminAlreadyBootstrappedRejection), StringComparison.Ordinal))
-        {
+            when (ex.RejectionType.EndsWith(nameof(GlobalAdminAlreadyBootstrappedRejection), StringComparison.Ordinal)) {
             Log.BootstrapAlreadyCompleted(logger);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             Log.BootstrapFailed(logger, ex);
         }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    private static partial class Log
-    {
+    private static partial class Log {
         [LoggerMessage(
             EventId = 2000,
             Level = LogLevel.Information,

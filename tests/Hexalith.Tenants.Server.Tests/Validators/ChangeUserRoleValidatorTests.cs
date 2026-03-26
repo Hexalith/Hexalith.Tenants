@@ -6,8 +6,7 @@ using Hexalith.Tenants.Server.Validators;
 
 namespace Hexalith.Tenants.Server.Tests.Validators;
 
-public class ChangeUserRoleValidatorTests
-{
+public class ChangeUserRoleValidatorTests {
     private readonly ChangeUserRoleValidator _validator = new();
 
     [Fact]

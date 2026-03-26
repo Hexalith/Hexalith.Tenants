@@ -18,8 +18,7 @@ namespace Hexalith.Tenants.CommandApi.Controllers;
 [Authorize]
 [Route("api/tenants")]
 [Tags("Tenants")]
-public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
-{
+public sealed class TenantsQueryController(IMediator mediator) : ControllerBase {
     /// <summary>
     /// Lists tenants visible to the authenticated user with cursor-based pagination.
     /// </summary>
@@ -29,11 +28,9 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> ListTenants(
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         string? userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
+        if (string.IsNullOrWhiteSpace(userId)) {
             return Unauthorized();
         }
 
@@ -62,16 +59,13 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTenant(string tenantId, CancellationToken cancellationToken = default)
-    {
-        if (!IsValidIdentifier(tenantId))
-        {
+    public async Task<IActionResult> GetTenant(string tenantId, CancellationToken cancellationToken = default) {
+        if (!IsValidIdentifier(tenantId)) {
             return BadRequest();
         }
 
         string? userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
+        if (string.IsNullOrWhiteSpace(userId)) {
             return Unauthorized();
         }
 
@@ -101,16 +95,13 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
         string tenantId,
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
-    {
-        if (!IsValidIdentifier(tenantId))
-        {
+        CancellationToken cancellationToken = default) {
+        if (!IsValidIdentifier(tenantId)) {
             return BadRequest();
         }
 
         string? userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
+        if (string.IsNullOrWhiteSpace(userId)) {
             return Unauthorized();
         }
 
@@ -142,16 +133,13 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
         string userId,
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
-    {
-        if (!IsValidIdentifier(userId))
-        {
+        CancellationToken cancellationToken = default) {
+        if (!IsValidIdentifier(userId)) {
             return BadRequest();
         }
 
         string? authenticatedUserId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(authenticatedUserId))
-        {
+        if (string.IsNullOrWhiteSpace(authenticatedUserId)) {
             return Unauthorized();
         }
 
@@ -184,16 +172,13 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase
         string tenantId,
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (!IsValidIdentifier(tenantId))
-        {
+        CancellationToken cancellationToken = default) {
+        if (!IsValidIdentifier(tenantId)) {
             return BadRequest();
         }
 
         string? userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
+        if (string.IsNullOrWhiteSpace(userId)) {
             return Unauthorized();
         }
 

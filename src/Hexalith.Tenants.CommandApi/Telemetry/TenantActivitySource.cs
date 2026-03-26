@@ -6,8 +6,7 @@ namespace Hexalith.Tenants.CommandApi.Telemetry;
 /// Provides a single static <see cref="ActivitySource"/> for OpenTelemetry distributed tracing
 /// across the Tenants service layer. Follows the EventStoreActivitySource pattern.
 /// </summary>
-internal static class TenantActivitySource
-{
+internal static class TenantActivitySource {
     /// <summary>The source name registered with OpenTelemetry.</summary>
     public const string SourceName = "Hexalith.Tenants";
 

@@ -35,9 +35,7 @@ public class SnapshotPerformanceTests {
 
     private readonly TenantsDaprTestFixture _fixture;
 
-    public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) {
-        _fixture = fixture;
-    }
+    public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
     [Fact]
     public async Task ColdStartRehydration_CompletesWithin30Seconds_With500KEvents() {
@@ -94,7 +92,7 @@ public class SnapshotPerformanceTests {
         stopwatch.Stop();
 
         // Assert — rehydration completes within 30 seconds (NFR13)
-        result.ShouldNotBeNull();
+        _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue(
             $"UpdateTenant should succeed after rehydration but got: {result.ErrorMessage}");
 
@@ -141,11 +139,10 @@ public class SnapshotPerformanceTests {
         }
     }
 
-    private static string BuildActorId(string tenantId) {
+    private static string BuildActorId(string tenantId) =>
         // AggregateIdentity.ActorId format: {tenantId}|{domain}|{aggregateId}
         // For tenant aggregates the aggregateId matches the tenantId
-        return $"system|tenants|{tenantId}";
-    }
+        $"system|tenants|{tenantId}";
 
     private async Task DeactivateActorAsync(string actorId) {
         using var httpClient = new HttpClient();

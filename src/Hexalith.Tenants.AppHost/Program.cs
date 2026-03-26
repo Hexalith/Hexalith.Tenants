@@ -7,14 +7,12 @@ IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(ar
 // Resolve DAPR access control configuration path.
 // Both runtime (bin) and source directory are checked for compatibility.
 string accessControlConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "DaprComponents", "accesscontrol.yaml");
-if (!File.Exists(accessControlConfigPath))
-{
+if (!File.Exists(accessControlConfigPath)) {
     accessControlConfigPath = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DaprComponents", "accesscontrol.yaml"));
 }
 
-if (!File.Exists(accessControlConfigPath))
-{
+if (!File.Exists(accessControlConfigPath)) {
     throw new FileNotFoundException(
         "DAPR access control configuration not found. "
         + "Ensure accesscontrol.yaml exists in the DaprComponents directory.",
@@ -29,8 +27,7 @@ HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(commandAp
 // The Sample is a subscriber only — it does NOT reference StateStore (only CommandApi needs actor state).
 _ = builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")
     .WithDaprSidecar(sidecar => sidecar
-        .WithOptions(new DaprSidecarOptions
-        {
+        .WithOptions(new DaprSidecarOptions {
             AppId = "sample",
             Config = accessControlConfigPath,
         })

@@ -6,11 +6,9 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class GlobalAdministratorProjectionTests
-{
+public class GlobalAdministratorProjectionTests {
     [Fact]
-    public void GetDomainName_GlobalAdministratorProjection_ResolvesToGlobalAdministrators()
-    {
+    public void GetDomainName_GlobalAdministratorProjection_ResolvesToGlobalAdministrators() {
         string domainName = NamingConventionEngine.GetDomainName(typeof(GlobalAdministratorProjection));
 
         domainName.ShouldBe("global-administrators");
@@ -18,10 +16,9 @@ public class GlobalAdministratorProjectionTests
 
     // P18: Project returns GlobalAdministratorReadModel from events
     [Fact]
-    public void Project_WithAdminEvents_ReturnsCorrectState()
-    {
+    public void Project_WithAdminEvents_ReturnsCorrectState() {
         var projection = new GlobalAdministratorProjection();
-        var events = new object[]
+        object[] events = new object[]
         {
             new GlobalAdministratorSet("system", "admin1"),
             new GlobalAdministratorSet("system", "admin2"),
@@ -37,8 +34,7 @@ public class GlobalAdministratorProjectionTests
 
     // Project with empty events returns default model
     [Fact]
-    public void Project_EmptyEventList_ReturnsDefaultModel()
-    {
+    public void Project_EmptyEventList_ReturnsDefaultModel() {
         var projection = new GlobalAdministratorProjection();
 
         GlobalAdministratorReadModel result = projection.Project(Array.Empty<object>());

@@ -5,8 +5,7 @@ using Hexalith.Tenants.Server.Validators;
 
 namespace Hexalith.Tenants.Server.Tests.Validators;
 
-public class RemoveTenantConfigurationValidatorTests
-{
+public class RemoveTenantConfigurationValidatorTests {
     private readonly RemoveTenantConfigurationValidator _validator = new();
 
     [Fact]

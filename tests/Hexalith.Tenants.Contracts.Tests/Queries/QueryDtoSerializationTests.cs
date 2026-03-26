@@ -8,29 +8,25 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Contracts.Tests.Queries;
 
-public class QueryDtoSerializationTests
-{
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
+public class QueryDtoSerializationTests {
+    private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() },
     };
 
     [Fact]
-    public void TenantDetail_round_trip_preserves_all_properties()
-    {
+    public void TenantDetail_round_trip_preserves_all_properties() {
         TenantDetail original = new(
             TenantId: "tenant-1",
             Name: "Test Tenant",
             Description: "A test tenant",
             Status: TenantStatus.Active,
-            Members: new List<TenantMember>
-            {
+            Members:
+            [
                 new("user-1", TenantRole.TenantOwner),
                 new("user-2", TenantRole.TenantReader),
-            },
-            Configuration: new Dictionary<string, string>
-            {
+            ],
+            Configuration: new Dictionary<string, string> {
                 ["key1"] = "value1",
                 ["key2"] = "value2",
             },
@@ -39,7 +35,7 @@ public class QueryDtoSerializationTests
         string json = JsonSerializer.Serialize(original, JsonOptions);
         TenantDetail? deserialized = JsonSerializer.Deserialize<TenantDetail>(json, JsonOptions);
 
-        deserialized.ShouldNotBeNull();
+        _ = deserialized.ShouldNotBeNull();
         deserialized.TenantId.ShouldBe(original.TenantId);
         deserialized.Name.ShouldBe(original.Name);
         deserialized.Description.ShouldBe(original.Description);
@@ -53,35 +49,33 @@ public class QueryDtoSerializationTests
     }
 
     [Fact]
-    public void PaginatedResult_round_trip_preserves_structure()
-    {
+    public void PaginatedResult_round_trip_preserves_structure() {
         PaginatedResult<TenantSummary> original = new(
-            Items: new List<TenantSummary>
-            {
+            Items:
+            [
                 new("tenant-1", "First", TenantStatus.Active),
                 new("tenant-2", "Second", TenantStatus.Disabled),
-            },
+            ],
             Cursor: "tenant-2",
             HasMore: true);
 
         string json = JsonSerializer.Serialize(original, JsonOptions);
         PaginatedResult<TenantSummary>? deserialized = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(json, JsonOptions);
 
-        deserialized.ShouldNotBeNull();
+        _ = deserialized.ShouldNotBeNull();
         deserialized.Items.Count.ShouldBe(2);
         deserialized.Cursor.ShouldBe("tenant-2");
         deserialized.HasMore.ShouldBeTrue();
 
         // Verify JSON structure matches expected format
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(json);
         doc.RootElement.TryGetProperty("items", out _).ShouldBeTrue("JSON should have 'items' property (camelCase)");
         doc.RootElement.TryGetProperty("cursor", out _).ShouldBeTrue("JSON should have 'cursor' property");
         doc.RootElement.TryGetProperty("hasMore", out _).ShouldBeTrue("JSON should have 'hasMore' property");
     }
 
     [Fact]
-    public void TenantStatus_and_TenantRole_serialize_as_strings()
-    {
+    public void TenantStatus_and_TenantRole_serialize_as_strings() {
         TenantSummary summary = new("tenant-1", "Test", TenantStatus.Active);
         string json = JsonSerializer.Serialize(summary, JsonOptions);
 

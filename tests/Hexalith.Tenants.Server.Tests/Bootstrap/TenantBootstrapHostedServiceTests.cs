@@ -18,11 +18,9 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Bootstrap;
 
-public class TenantBootstrapHostedServiceTests
-{
+public class TenantBootstrapHostedServiceTests {
     [Fact]
-    public async Task StartAsync_with_configured_userId_sends_BootstrapGlobalAdmin_command()
-    {
+    public async Task StartAsync_with_configured_userId_sends_BootstrapGlobalAdmin_command() {
         // Arrange
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
@@ -33,8 +31,7 @@ public class TenantBootstrapHostedServiceTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
-        {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -47,7 +44,7 @@ public class TenantBootstrapHostedServiceTests
         await service.StartAsync(CancellationToken.None);
 
         // Assert
-        await mediator.Received(1).Send(
+        _ = await mediator.Received(1).Send(
             Arg.Is<SubmitCommand>(cmd =>
                 cmd.Tenant == "system"
                 && cmd.Domain == "tenants"
@@ -61,8 +58,7 @@ public class TenantBootstrapHostedServiceTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task StartAsync_with_empty_userId_skips_bootstrap(string? userId)
-    {
+    public async Task StartAsync_with_empty_userId_skips_bootstrap(string? userId) {
         // Arrange
         IMediator mediator = Substitute.For<IMediator>();
         ServiceCollection services = new();
@@ -70,8 +66,7 @@ public class TenantBootstrapHostedServiceTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
-        {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = userId,
         });
 
@@ -84,14 +79,13 @@ public class TenantBootstrapHostedServiceTests
         await service.StartAsync(CancellationToken.None);
 
         // Assert — no command sent
-        await mediator.DidNotReceive().Send(
+        _ = await mediator.DidNotReceive().Send(
             Arg.Any<SubmitCommand>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task StartAsync_handles_infrastructure_exception_without_crashing()
-    {
+    public async Task StartAsync_handles_infrastructure_exception_without_crashing() {
         // Arrange
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
@@ -102,8 +96,7 @@ public class TenantBootstrapHostedServiceTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
-        {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -118,8 +111,7 @@ public class TenantBootstrapHostedServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_when_bootstrap_already_completed_logs_skip_message()
-    {
+    public async Task StartAsync_when_bootstrap_already_completed_logs_skip_message() {
         // Arrange — mediator throws DomainCommandRejectedException (real pipeline behavior)
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
@@ -134,8 +126,7 @@ public class TenantBootstrapHostedServiceTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
-        {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -150,8 +141,7 @@ public class TenantBootstrapHostedServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_when_cancelled_propagates_OperationCanceledException()
-    {
+    public async Task StartAsync_when_cancelled_propagates_OperationCanceledException() {
         // Arrange
         IMediator mediator = Substitute.For<IMediator>();
         _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
@@ -162,8 +152,7 @@ public class TenantBootstrapHostedServiceTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
-        {
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
@@ -177,8 +166,7 @@ public class TenantBootstrapHostedServiceTests
             () => service.StartAsync(CancellationToken.None));
     }
 
-    private sealed class TestLogger<T> : ILogger<T>
-    {
+    private sealed class TestLogger<T> : ILogger<T> {
         private readonly ConcurrentQueue<string> _messages = new();
 
         public IReadOnlyCollection<string> Messages => _messages.ToArray();
@@ -188,17 +176,12 @@ public class TenantBootstrapHostedServiceTests
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            _messages.Enqueue(formatter(state, exception));
-        }
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => _messages.Enqueue(formatter(state, exception));
 
-        private sealed class NullScope : IDisposable
-        {
+        private sealed class NullScope : IDisposable {
             public static readonly NullScope Instance = new();
 
-            public void Dispose()
-            {
+            public void Dispose() {
             }
         }
     }

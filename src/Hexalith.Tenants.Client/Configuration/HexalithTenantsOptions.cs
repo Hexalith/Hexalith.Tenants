@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.Client.Configuration;
 
-public class HexalithTenantsOptions
-{
+public class HexalithTenantsOptions {
     public string PubSubName { get; set; } = "pubsub";
 
     public string TopicName { get; set; } = "system.tenants.events";

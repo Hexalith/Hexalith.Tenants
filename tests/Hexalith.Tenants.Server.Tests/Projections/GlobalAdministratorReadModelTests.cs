@@ -5,12 +5,10 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class GlobalAdministratorReadModelTests
-{
+public class GlobalAdministratorReadModelTests {
     // P14: Apply GlobalAdministratorSet adds administrator
     [Fact]
-    public void Apply_GlobalAdministratorSet_AddsAdministrator()
-    {
+    public void Apply_GlobalAdministratorSet_AddsAdministrator() {
         var model = new GlobalAdministratorReadModel();
 
         model.Apply(new GlobalAdministratorSet("system", "user1"));
@@ -20,8 +18,7 @@ public class GlobalAdministratorReadModelTests
 
     // P15: Apply GlobalAdministratorRemoved removes administrator
     [Fact]
-    public void Apply_GlobalAdministratorRemoved_RemovesAdministrator()
-    {
+    public void Apply_GlobalAdministratorRemoved_RemovesAdministrator() {
         var model = new GlobalAdministratorReadModel();
         model.Apply(new GlobalAdministratorSet("system", "user1"));
 
@@ -32,8 +29,7 @@ public class GlobalAdministratorReadModelTests
 
     // P16: Apply multiple GlobalAdministratorSet events
     [Fact]
-    public void Apply_MultipleGlobalAdministratorSet_AddsAllAdministrators()
-    {
+    public void Apply_MultipleGlobalAdministratorSet_AddsAllAdministrators() {
         var model = new GlobalAdministratorReadModel();
 
         model.Apply(new GlobalAdministratorSet("system", "user1"));
@@ -48,8 +44,7 @@ public class GlobalAdministratorReadModelTests
 
     // P17: GlobalAdministratorSet is idempotent (HashSet)
     [Fact]
-    public void Apply_DuplicateGlobalAdministratorSet_IsIdempotent()
-    {
+    public void Apply_DuplicateGlobalAdministratorSet_IsIdempotent() {
         var model = new GlobalAdministratorReadModel();
 
         model.Apply(new GlobalAdministratorSet("system", "user1"));
@@ -60,16 +55,14 @@ public class GlobalAdministratorReadModelTests
 
     // Null guard test
     [Fact]
-    public void Apply_NullGlobalAdministratorSet_ThrowsArgumentNullException()
-    {
+    public void Apply_NullGlobalAdministratorSet_ThrowsArgumentNullException() {
         var model = new GlobalAdministratorReadModel();
-        Should.Throw<ArgumentNullException>(() => model.Apply((GlobalAdministratorSet)null!));
+        _ = Should.Throw<ArgumentNullException>(() => model.Apply((GlobalAdministratorSet)null!));
     }
 
     // P21: Canary — GlobalAdministratorReadModel must have exactly 2 Apply methods
     [Fact]
-    public void GlobalAdministratorReadModel_HasExactly2ApplyMethods()
-    {
+    public void GlobalAdministratorReadModel_HasExactly2ApplyMethods() {
         var applyMethods = typeof(GlobalAdministratorReadModel)
             .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
             .Where(m => m.Name == "Apply" && m.ReturnType == typeof(void) && m.GetParameters().Length == 1)

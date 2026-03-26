@@ -6,7 +6,6 @@ using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
-using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Testing.Fakes;
 using Hexalith.Tenants.Testing.Helpers;
@@ -23,23 +22,18 @@ namespace Hexalith.Tenants.Testing.Tests.Conformance;
 /// Uses reflection-based command discovery to automatically include new commands.
 /// </summary>
 [Trait("Category", "Conformance")]
-public sealed class TenantConformanceTests
-{
+public sealed class TenantConformanceTests {
     private readonly ITestOutputHelper _output;
 
-    public TenantConformanceTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
+    public TenantConformanceTests(ITestOutputHelper output) => _output = output;
 
     // ─── 4.2 / 4.3: Reflection-based command type discovery ───
 
     [Fact]
-    public void AllCommandTypesDiscovered()
-    {
+    public void AllCommandTypesDiscovered() {
         // Arrange
         Assembly contractsAssembly = typeof(CreateTenant).Assembly;
-        List<Type> commandTypes = contractsAssembly
+        var commandTypes = contractsAssembly
             .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract
         && t.Namespace != null && t.Namespace.StartsWith("Hexalith.Tenants.Contracts.Commands", StringComparison.Ordinal))
@@ -48,8 +42,7 @@ public sealed class TenantConformanceTests
 
         // Output all discovered types for debugging
         _output.WriteLine($"Discovered {commandTypes.Count} command types:");
-        foreach (Type t in commandTypes)
-        {
+        foreach (Type t in commandTypes) {
             _output.WriteLine($"  - {t.Name}");
         }
 
@@ -65,8 +58,7 @@ public sealed class TenantConformanceTests
     // ─── CreateTenant (null state, no envelope) ───
 
     [Fact]
-    public void Conformance_CreateTenant_Success()
-    {
+    public void Conformance_CreateTenant_Success() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new CreateTenant("acme", "Acme Corp", "A test tenant");
@@ -84,11 +76,10 @@ public sealed class TenantConformanceTests
     // ─── DisableTenant (state-only, no envelope) ───
 
     [Fact]
-    public void Conformance_DisableTenant_Success()
-    {
+    public void Conformance_DisableTenant_Success() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -106,12 +97,11 @@ public sealed class TenantConformanceTests
     // ─── EnableTenant (state-only, no envelope) ───
 
     [Fact]
-    public void Conformance_EnableTenant_Success()
-    {
+    public void Conformance_EnableTenant_Success() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -130,11 +120,10 @@ public sealed class TenantConformanceTests
     // ─── UpdateTenant (envelope-required) ───
 
     [Fact]
-    public void Conformance_UpdateTenant_Success_GlobalAdmin()
-    {
+    public void Conformance_UpdateTenant_Success_GlobalAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -150,12 +139,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_UpdateTenant_Success_NonAdmin_Contributor()
-    {
+    public void Conformance_UpdateTenant_Success_NonAdmin_Contributor() {
         // Arrange — contributor role should succeed for UpdateTenant
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
@@ -174,11 +162,10 @@ public sealed class TenantConformanceTests
     // ─── AddUserToTenant (envelope-required) ───
 
     [Fact]
-    public void Conformance_AddUserToTenant_Success_GlobalAdmin()
-    {
+    public void Conformance_AddUserToTenant_Success_GlobalAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -194,12 +181,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_AddUserToTenant_Success_NonAdmin_Owner()
-    {
+    public void Conformance_AddUserToTenant_Success_NonAdmin_Owner() {
         // Arrange — owner role with membership history should succeed
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
@@ -218,12 +204,11 @@ public sealed class TenantConformanceTests
     // ─── RemoveUserFromTenant (envelope-required) ───
 
     [Fact]
-    public void Conformance_RemoveUserFromTenant_Success_GlobalAdmin()
-    {
+    public void Conformance_RemoveUserFromTenant_Success_GlobalAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
@@ -240,13 +225,12 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_RemoveUserFromTenant_Success_NonAdmin_Owner()
-    {
+    public void Conformance_RemoveUserFromTenant_Success_NonAdmin_Owner() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
@@ -266,12 +250,11 @@ public sealed class TenantConformanceTests
     // ─── ChangeUserRole (envelope-required) ───
 
     [Fact]
-    public void Conformance_ChangeUserRole_Success_GlobalAdmin()
-    {
+    public void Conformance_ChangeUserRole_Success_GlobalAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantReader));
@@ -288,13 +271,12 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_ChangeUserRole_Success_NonAdmin_Owner()
-    {
+    public void Conformance_ChangeUserRole_Success_NonAdmin_Owner() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
@@ -314,11 +296,10 @@ public sealed class TenantConformanceTests
     // ─── SetTenantConfiguration (envelope-required) ───
 
     [Fact]
-    public void Conformance_SetTenantConfiguration_Success_GlobalAdmin()
-    {
+    public void Conformance_SetTenantConfiguration_Success_GlobalAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -334,12 +315,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_SetTenantConfiguration_Success_NonAdmin_Owner()
-    {
+    public void Conformance_SetTenantConfiguration_Success_NonAdmin_Owner() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
@@ -358,12 +338,11 @@ public sealed class TenantConformanceTests
     // ─── RemoveTenantConfiguration (envelope-required) ───
 
     [Fact]
-    public void Conformance_RemoveTenantConfiguration_Success_GlobalAdmin()
-    {
+    public void Conformance_RemoveTenantConfiguration_Success_GlobalAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
@@ -380,13 +359,12 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_RemoveTenantConfiguration_Success_NonAdmin_Owner()
-    {
+    public void Conformance_RemoveTenantConfiguration_Success_NonAdmin_Owner() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-        svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
@@ -408,8 +386,7 @@ public sealed class TenantConformanceTests
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void Conformance_BootstrapGlobalAdmin_Success()
-    {
+    public void Conformance_BootstrapGlobalAdmin_Success() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new BootstrapGlobalAdmin("admin1");
@@ -423,11 +400,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_SetGlobalAdministrator_Success()
-    {
+    public void Conformance_SetGlobalAdministrator_Success() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
 
         var gaState = new GlobalAdministratorsState();
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -443,12 +419,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Conformance_RemoveGlobalAdministrator_Success()
-    {
+    public void Conformance_RemoveGlobalAdministrator_Success() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-        svc.ProcessCommand(new SetGlobalAdministrator("admin2"));
+        _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        _ = svc.ProcessCommand(new SetGlobalAdministrator("admin2"));
 
         var gaState = new GlobalAdministratorsState();
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -469,11 +444,10 @@ public sealed class TenantConformanceTests
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void Rejection_CreateTenant_AlreadyExists()
-    {
+    public void Rejection_CreateTenant_AlreadyExists() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -489,8 +463,7 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_DisableTenant_NotFound()
-    {
+    public void Rejection_DisableTenant_NotFound() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new DisableTenant("nonexistent");
@@ -505,8 +478,7 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_EnableTenant_NotFound()
-    {
+    public void Rejection_EnableTenant_NotFound() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new EnableTenant("nonexistent");
@@ -521,12 +493,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_AddUserToTenant_Disabled()
-    {
+    public void Rejection_AddUserToTenant_Disabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -543,11 +514,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveUserFromTenant_NotMember()
-    {
+    public void Rejection_RemoveUserFromTenant_NotMember() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -563,11 +533,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_ChangeUserRole_NotMember()
-    {
+    public void Rejection_ChangeUserRole_NotMember() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -583,8 +552,7 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_UpdateTenant_NotFound()
-    {
+    public void Rejection_UpdateTenant_NotFound() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new UpdateTenant("nonexistent", "Name", null);
@@ -599,8 +567,7 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_SetTenantConfiguration_NotFound()
-    {
+    public void Rejection_SetTenantConfiguration_NotFound() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new SetTenantConfiguration("nonexistent", "key", "value");
@@ -615,8 +582,7 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveTenantConfiguration_NotFound()
-    {
+    public void Rejection_RemoveTenantConfiguration_NotFound() {
         // Arrange
         var svc = new InMemoryTenantService();
         var command = new RemoveTenantConfiguration("nonexistent", "key");
@@ -631,11 +597,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_BootstrapGlobalAdmin_AlreadyBootstrapped()
-    {
+    public void Rejection_BootstrapGlobalAdmin_AlreadyBootstrapped() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
 
         var gaState = new GlobalAdministratorsState();
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -651,11 +616,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveGlobalAdministrator_LastAdmin()
-    {
+    public void Rejection_RemoveGlobalAdministrator_LastAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
 
         var gaState = new GlobalAdministratorsState();
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -671,12 +635,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_AddUserToTenant_AlreadyMember()
-    {
+    public void Rejection_AddUserToTenant_AlreadyMember() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
@@ -693,11 +656,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_UpdateTenant_InsufficientPermissions()
-    {
+    public void Rejection_UpdateTenant_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -713,12 +675,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_AddUserToTenant_InsufficientPermissions()
-    {
+    public void Rejection_AddUserToTenant_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "owner", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "owner", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "owner", TenantRole.TenantOwner));
@@ -735,11 +696,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveUserFromTenant_InsufficientPermissions()
-    {
+    public void Rejection_RemoveUserFromTenant_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -755,11 +715,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_ChangeUserRole_InsufficientPermissions()
-    {
+    public void Rejection_ChangeUserRole_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -775,11 +734,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_SetTenantConfiguration_InsufficientPermissions()
-    {
+    public void Rejection_SetTenantConfiguration_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -795,11 +753,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveTenantConfiguration_InsufficientPermissions()
-    {
+    public void Rejection_RemoveTenantConfiguration_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -815,11 +772,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_SetTenantConfiguration_MaxKeyLengthExceeded()
-    {
+    public void Rejection_SetTenantConfiguration_MaxKeyLengthExceeded() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -835,11 +791,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_SetTenantConfiguration_MaxValueLengthExceeded()
-    {
+    public void Rejection_SetTenantConfiguration_MaxValueLengthExceeded() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -855,21 +810,19 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_SetTenantConfiguration_MaxConfigurationKeysExceeded()
-    {
+    public void Rejection_SetTenantConfiguration_MaxConfigurationKeysExceeded() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
-        for (int i = 0; i < 100; i++)
-        {
-            var key = $"key{i}";
-            var val = "val";
+        for (int i = 0; i < 100; i++) {
+            string key = $"key{i}";
+            string val = "val";
             var setCmd = new SetTenantConfiguration("acme", key, val);
-            var setEnv = TenantTestHelpers.CreateCommandEnvelope(setCmd, "acme", "admin", isGlobalAdmin: true);
-            svc.ProcessTenantCommand(setCmd, setEnv);
+            CommandEnvelope setEnv = TenantTestHelpers.CreateCommandEnvelope(setCmd, "acme", "admin", isGlobalAdmin: true);
+            _ = svc.ProcessTenantCommand(setCmd, setEnv);
             state.Apply(new TenantConfigurationSet("acme", key, val));
         }
 
@@ -885,11 +838,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_AddUserToTenant_RoleEscalation()
-    {
+    public void Rejection_AddUserToTenant_RoleEscalation() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
         TenantState state = CreateTenantState("acme", "Acme", null);
 
         var command = new AddUserToTenant("acme", "alice", (TenantRole)999);
@@ -904,12 +856,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_ChangeUserRole_RoleEscalation()
-    {
+    public void Rejection_ChangeUserRole_RoleEscalation() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
 
@@ -925,12 +876,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_UpdateTenant_Disabled()
-    {
+    public void Rejection_UpdateTenant_Disabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -947,12 +897,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveUserFromTenant_Disabled()
-    {
+    public void Rejection_RemoveUserFromTenant_Disabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -969,12 +918,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_ChangeUserRole_Disabled()
-    {
+    public void Rejection_ChangeUserRole_Disabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -991,12 +939,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_SetTenantConfiguration_Disabled()
-    {
+    public void Rejection_SetTenantConfiguration_Disabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -1013,12 +960,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void Rejection_RemoveTenantConfiguration_Disabled()
-    {
+    public void Rejection_RemoveTenantConfiguration_Disabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -1039,12 +985,11 @@ public sealed class TenantConformanceTests
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void NoOp_DisableTenant_AlreadyDisabled()
-    {
+    public void NoOp_DisableTenant_AlreadyDisabled() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new DisableTenant("acme"));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -1061,11 +1006,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void NoOp_EnableTenant_AlreadyActive()
-    {
+    public void NoOp_EnableTenant_AlreadyActive() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -1081,12 +1025,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void NoOp_SetTenantConfiguration_SameValue()
-    {
+    public void NoOp_SetTenantConfiguration_SameValue() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
@@ -1103,11 +1046,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void NoOp_RemoveTenantConfiguration_KeyNotPresent()
-    {
+    public void NoOp_RemoveTenantConfiguration_KeyNotPresent() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
 
         TenantState state = CreateTenantState("acme", "Acme", null);
 
@@ -1123,12 +1065,11 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void NoOp_ChangeUserRole_SameRole()
-    {
+    public void NoOp_ChangeUserRole_SameRole() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
 
         TenantState state = CreateTenantState("acme", "Acme", null);
         state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
@@ -1145,11 +1086,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void NoOp_SetGlobalAdministrator_AlreadyAdmin()
-    {
+    public void NoOp_SetGlobalAdministrator_AlreadyAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
 
         var gaState = new GlobalAdministratorsState();
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -1165,11 +1105,10 @@ public sealed class TenantConformanceTests
     }
 
     [Fact]
-    public void NoOp_RemoveGlobalAdministrator_NotAdmin()
-    {
+    public void NoOp_RemoveGlobalAdministrator_NotAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
-        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
+        _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
 
         var gaState = new GlobalAdministratorsState();
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
@@ -1192,8 +1131,7 @@ public sealed class TenantConformanceTests
     /// Creates a TenantState by applying a TenantCreated event manually.
     /// Used to build the manual aggregate state for side-by-side comparison.
     /// </summary>
-    private static TenantState CreateTenantState(string tenantId, string name, string? description)
-    {
+    private static TenantState CreateTenantState(string tenantId, string name, string? description) {
         var state = new TenantState();
         state.Apply(new TenantCreated(tenantId, name, description, DateTimeOffset.UtcNow));
         return state;
@@ -1203,15 +1141,13 @@ public sealed class TenantConformanceTests
     /// Asserts that two DomainResults have identical outcomes and event sequences.
     /// Special-cases events with DateTimeOffset fields to avoid timestamp flakiness.
     /// </summary>
-    private static void AssertEventsEqual(DomainResult expected, DomainResult actual)
-    {
+    private static void AssertEventsEqual(DomainResult expected, DomainResult actual) {
         expected.Events.Count.ShouldBe(actual.Events.Count);
         expected.IsSuccess.ShouldBe(actual.IsSuccess);
         expected.IsRejection.ShouldBe(actual.IsRejection);
         expected.IsNoOp.ShouldBe(actual.IsNoOp);
 
-        for (int i = 0; i < expected.Events.Count; i++)
-        {
+        for (int i = 0; i < expected.Events.Count; i++) {
             IEventPayload e1 = expected.Events[i];
             IEventPayload e2 = actual.Events[i];
             e1.GetType().ShouldBe(e2.GetType());
@@ -1219,10 +1155,8 @@ public sealed class TenantConformanceTests
             // For robust evaluation, we compare properties using reflection, skipping DateTimeOffset fields
             // which can differ by a few ticks between paths.
             PropertyInfo[] properties = e1.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (PropertyInfo prop in properties)
-            {
-                if (prop.PropertyType == typeof(DateTimeOffset) || prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTimeOffset?) || prop.PropertyType == typeof(DateTime?))
-                {
+            foreach (PropertyInfo prop in properties) {
+                if (prop.PropertyType == typeof(DateTimeOffset) || prop.PropertyType == typeof(DateTime) || prop.PropertyType == typeof(DateTimeOffset?) || prop.PropertyType == typeof(DateTime?)) {
                     continue; // Skip timestamp fields
                 }
 

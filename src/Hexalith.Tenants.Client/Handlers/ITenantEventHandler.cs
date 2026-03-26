@@ -7,8 +7,7 @@ namespace Hexalith.Tenants.Client.Handlers;
 /// </summary>
 /// <typeparam name="TEvent">The event payload type.</typeparam>
 public interface ITenantEventHandler<in TEvent>
-    where TEvent : IEventPayload
-{
+    where TEvent : IEventPayload {
     /// <summary>
     /// Handles the specified tenant event asynchronously.
     /// </summary>

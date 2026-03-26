@@ -11,14 +11,12 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Sample.Tests.Handlers;
 
-public class SampleLoggingEventHandlerTests
-{
+public class SampleLoggingEventHandlerTests {
     private static TenantEventContext CreateContext(string tenantId = "acme")
         => new(tenantId, "msg-1", 1, DateTimeOffset.UtcNow, "corr-1");
 
     [Fact]
-    public async Task HandleAsync_UserAddedToTenant_DoesNotThrow()
-    {
+    public async Task HandleAsync_UserAddedToTenant_DoesNotThrow() {
         // Arrange
         ILogger<SampleLoggingEventHandler> logger = Substitute.For<ILogger<SampleLoggingEventHandler>>();
         var handler = new SampleLoggingEventHandler(logger);
@@ -29,8 +27,7 @@ public class SampleLoggingEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_UserRemovedFromTenant_DoesNotThrow()
-    {
+    public async Task HandleAsync_UserRemovedFromTenant_DoesNotThrow() {
         // Arrange
         ILogger<SampleLoggingEventHandler> logger = Substitute.For<ILogger<SampleLoggingEventHandler>>();
         var handler = new SampleLoggingEventHandler(logger);
@@ -41,8 +38,7 @@ public class SampleLoggingEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_TenantDisabled_DoesNotThrow()
-    {
+    public async Task HandleAsync_TenantDisabled_DoesNotThrow() {
         // Arrange
         ILogger<SampleLoggingEventHandler> logger = Substitute.For<ILogger<SampleLoggingEventHandler>>();
         var handler = new SampleLoggingEventHandler(logger);
@@ -53,8 +49,7 @@ public class SampleLoggingEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_UserAddedToTenant_LogsInformation()
-    {
+    public async Task HandleAsync_UserAddedToTenant_LogsInformation() {
         // Arrange
         ILogger<SampleLoggingEventHandler> logger = Substitute.For<ILogger<SampleLoggingEventHandler>>();
         var handler = new SampleLoggingEventHandler(logger);
@@ -73,8 +68,7 @@ public class SampleLoggingEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_UserRemovedFromTenant_LogsWarning()
-    {
+    public async Task HandleAsync_UserRemovedFromTenant_LogsWarning() {
         // Arrange
         ILogger<SampleLoggingEventHandler> logger = Substitute.For<ILogger<SampleLoggingEventHandler>>();
         var handler = new SampleLoggingEventHandler(logger);
@@ -93,8 +87,7 @@ public class SampleLoggingEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_TenantDisabled_LogsWarning()
-    {
+    public async Task HandleAsync_TenantDisabled_LogsWarning() {
         // Arrange
         ILogger<SampleLoggingEventHandler> logger = Substitute.For<ILogger<SampleLoggingEventHandler>>();
         var handler = new SampleLoggingEventHandler(logger);
@@ -113,9 +106,7 @@ public class SampleLoggingEventHandlerTests
     }
 
     [Fact]
-    public void Constructor_NullLogger_ThrowsArgumentNullException()
-    {
+    public void Constructor_NullLogger_ThrowsArgumentNullException() =>
         // Act & Assert
         Should.Throw<ArgumentNullException>(() => new SampleLoggingEventHandler(null!));
-    }
 }

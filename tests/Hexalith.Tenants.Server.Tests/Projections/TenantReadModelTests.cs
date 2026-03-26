@@ -6,12 +6,10 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class TenantReadModelTests
-{
+public class TenantReadModelTests {
     // P1: Apply TenantCreated sets all properties
     [Fact]
-    public void Apply_TenantCreated_SetsAllProperties()
-    {
+    public void Apply_TenantCreated_SetsAllProperties() {
         var model = new TenantReadModel();
         var createdAt = DateTimeOffset.Parse("2026-01-15T10:30:00+00:00");
 
@@ -28,8 +26,7 @@ public class TenantReadModelTests
 
     // P2: Apply TenantUpdated updates name and description
     [Fact]
-    public void Apply_TenantUpdated_UpdatesNameAndDescription()
-    {
+    public void Apply_TenantUpdated_UpdatesNameAndDescription() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", "Original", DateTimeOffset.UtcNow));
 
@@ -41,8 +38,7 @@ public class TenantReadModelTests
 
     // P3: Apply TenantDisabled sets status
     [Fact]
-    public void Apply_TenantDisabled_SetsStatusToDisabled()
-    {
+    public void Apply_TenantDisabled_SetsStatusToDisabled() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
@@ -53,8 +49,7 @@ public class TenantReadModelTests
 
     // P4: Apply TenantEnabled sets status
     [Fact]
-    public void Apply_TenantEnabled_SetsStatusToActive()
-    {
+    public void Apply_TenantEnabled_SetsStatusToActive() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
@@ -66,8 +61,7 @@ public class TenantReadModelTests
 
     // P5: Apply UserAddedToTenant adds member
     [Fact]
-    public void Apply_UserAddedToTenant_AddsMember()
-    {
+    public void Apply_UserAddedToTenant_AddsMember() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
@@ -79,8 +73,7 @@ public class TenantReadModelTests
 
     // P6: Apply UserRemovedFromTenant removes member
     [Fact]
-    public void Apply_UserRemovedFromTenant_RemovesMember()
-    {
+    public void Apply_UserRemovedFromTenant_RemovesMember() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
@@ -92,8 +85,7 @@ public class TenantReadModelTests
 
     // P7: Apply UserRoleChanged updates role
     [Fact]
-    public void Apply_UserRoleChanged_UpdatesRole()
-    {
+    public void Apply_UserRoleChanged_UpdatesRole() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantReader));
@@ -105,8 +97,7 @@ public class TenantReadModelTests
 
     // P8: Apply TenantConfigurationSet adds config
     [Fact]
-    public void Apply_TenantConfigurationSet_AddsConfig()
-    {
+    public void Apply_TenantConfigurationSet_AddsConfig() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
@@ -118,8 +109,7 @@ public class TenantReadModelTests
 
     // P9: Apply TenantConfigurationRemoved removes config
     [Fact]
-    public void Apply_TenantConfigurationRemoved_RemovesConfig()
-    {
+    public void Apply_TenantConfigurationRemoved_RemovesConfig() {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
         model.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
@@ -131,8 +121,7 @@ public class TenantReadModelTests
 
     // P10: Apply multiple events in sequence — full lifecycle
     [Fact]
-    public void Apply_MultipleEventsInSequence_ReflectsAllMutations()
-    {
+    public void Apply_MultipleEventsInSequence_ReflectsAllMutations() {
         var model = new TenantReadModel();
         var createdAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
 
@@ -160,16 +149,14 @@ public class TenantReadModelTests
 
     // Null guard test
     [Fact]
-    public void Apply_NullTenantCreated_ThrowsArgumentNullException()
-    {
+    public void Apply_NullTenantCreated_ThrowsArgumentNullException() {
         var model = new TenantReadModel();
-        Should.Throw<ArgumentNullException>(() => model.Apply((TenantCreated)null!));
+        _ = Should.Throw<ArgumentNullException>(() => model.Apply((TenantCreated)null!));
     }
 
     // P20: Canary — TenantReadModel must have exactly 9 Apply methods
     [Fact]
-    public void TenantReadModel_HasExactly9ApplyMethods()
-    {
+    public void TenantReadModel_HasExactly9ApplyMethods() {
         var applyMethods = typeof(TenantReadModel)
             .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
             .Where(m => m.Name == "Apply" && m.ReturnType == typeof(void) && m.GetParameters().Length == 1)

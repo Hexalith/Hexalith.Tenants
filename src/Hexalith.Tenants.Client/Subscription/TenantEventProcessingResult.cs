@@ -3,8 +3,7 @@ namespace Hexalith.Tenants.Client.Subscription;
 /// <summary>
 /// Represents the outcome of processing a tenant event.
 /// </summary>
-public enum TenantEventProcessingResult
-{
+public enum TenantEventProcessingResult {
     /// <summary>
     /// The event was dispatched to at least one handler.
     /// </summary>

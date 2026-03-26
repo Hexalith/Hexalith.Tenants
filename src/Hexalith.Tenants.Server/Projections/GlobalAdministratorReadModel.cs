@@ -2,19 +2,16 @@ using Hexalith.Tenants.Contracts.Events;
 
 namespace Hexalith.Tenants.Server.Projections;
 
-public sealed class GlobalAdministratorReadModel
-{
-    public HashSet<string> Administrators { get; private set; } = new();
+public sealed class GlobalAdministratorReadModel {
+    public HashSet<string> Administrators { get; private set; } = [];
 
-    public void Apply(GlobalAdministratorSet e)
-    {
+    public void Apply(GlobalAdministratorSet e) {
         ArgumentNullException.ThrowIfNull(e);
-        Administrators.Add(e.UserId);
+        _ = Administrators.Add(e.UserId);
     }
 
-    public void Apply(GlobalAdministratorRemoved e)
-    {
+    public void Apply(GlobalAdministratorRemoved e) {
         ArgumentNullException.ThrowIfNull(e);
-        Administrators.Remove(e.UserId);
+        _ = Administrators.Remove(e.UserId);
     }
 }

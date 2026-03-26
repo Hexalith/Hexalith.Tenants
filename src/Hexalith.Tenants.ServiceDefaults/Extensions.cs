@@ -16,23 +16,20 @@ namespace Hexalith.Tenants.ServiceDefaults;
 /// Adds common Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
 /// This project should be referenced by each service project in your solution.
 /// </summary>
-public static class Extensions
-{
+public static class Extensions {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
     private const string ReadinessEndpointPath = "/ready";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
+        where TBuilder : IHostApplicationBuilder {
         _ = builder.ConfigureOpenTelemetry();
 
         _ = builder.AddDefaultHealthChecks();
 
         _ = builder.Services.AddServiceDiscovery();
 
-        _ = builder.Services.ConfigureHttpClientDefaults(http =>
-        {
+        _ = builder.Services.ConfigureHttpClientDefaults(http => {
             _ = http.AddStandardResilienceHandler();
             _ = http.AddServiceDiscovery();
         });
@@ -41,10 +38,8 @@ public static class Extensions
     }
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
-        _ = builder.Logging.AddOpenTelemetry(logging =>
-        {
+        where TBuilder : IHostApplicationBuilder {
+        _ = builder.Logging.AddOpenTelemetry(logging => {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
         });
@@ -75,12 +70,10 @@ public static class Extensions
     }
 
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
+        where TBuilder : IHostApplicationBuilder {
         bool useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
-        if (useOtlpExporter)
-        {
+        if (useOtlpExporter) {
             _ = builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
@@ -88,34 +81,29 @@ public static class Extensions
     }
 
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
+        where TBuilder : IHostApplicationBuilder {
         _ = builder.Services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
     }
 
-    internal static Task WriteHealthCheckJsonResponse(HttpContext httpContext, HealthReport healthReport)
-    {
+    internal static Task WriteHealthCheckJsonResponse(HttpContext httpContext, HealthReport healthReport) {
         httpContext.Response.ContentType = "application/json; charset=utf-8";
 
         using var stream = new MemoryStream();
-        using (var writer = new System.Text.Json.Utf8JsonWriter(stream, new System.Text.Json.JsonWriterOptions { Indented = true }))
-        {
+        using (var writer = new System.Text.Json.Utf8JsonWriter(stream, new System.Text.Json.JsonWriterOptions { Indented = true })) {
             writer.WriteStartObject();
             writer.WriteString("status", healthReport.Status.ToString());
             writer.WriteStartObject("results");
 
-            foreach (KeyValuePair<string, HealthReportEntry> entry in healthReport.Entries)
-            {
+            foreach (KeyValuePair<string, HealthReportEntry> entry in healthReport.Entries) {
                 writer.WriteStartObject(entry.Key);
                 writer.WriteString("status", entry.Value.Status.ToString());
                 writer.WriteString("description", entry.Value.Description);
                 writer.WriteString("duration", entry.Value.Duration.ToString());
                 writer.WriteStartObject("data");
-                foreach (KeyValuePair<string, object> dataEntry in entry.Value.Data)
-                {
+                foreach (KeyValuePair<string, object> dataEntry in entry.Value.Data) {
                     writer.WritePropertyName(dataEntry.Key);
                     System.Text.Json.JsonSerializer.Serialize(
                         writer,
@@ -135,43 +123,36 @@ public static class Extensions
             System.Text.Encoding.UTF8.GetString(stream.ToArray()));
     }
 
-    public static WebApplication MapDefaultEndpoints(this WebApplication app)
-    {
+    public static WebApplication MapDefaultEndpoints(this WebApplication app) {
         ArgumentNullException.ThrowIfNull(app);
 
-        var statusCodes = new Dictionary<HealthStatus, int>
-        {
+        var statusCodes = new Dictionary<HealthStatus, int> {
             [HealthStatus.Healthy] = StatusCodes.Status200OK,
             [HealthStatus.Degraded] = StatusCodes.Status200OK,
             [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
         };
 
-        var healthOptions = new HealthCheckOptions
-        {
+        var healthOptions = new HealthCheckOptions {
             ResultStatusCodes = statusCodes,
         };
 
-        if (app.Environment.IsDevelopment())
-        {
+        if (app.Environment.IsDevelopment()) {
             healthOptions.ResponseWriter = WriteHealthCheckJsonResponse;
         }
 
         _ = app.MapHealthChecks(HealthEndpointPath, healthOptions);
 
-        _ = app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-        {
+        _ = app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions {
             Predicate = r => r.Tags.Contains("live"),
             ResultStatusCodes = statusCodes,
         });
 
-        var readinessOptions = new HealthCheckOptions
-        {
+        var readinessOptions = new HealthCheckOptions {
             Predicate = r => r.Tags.Contains("ready"),
             ResultStatusCodes = statusCodes,
         };
 
-        if (app.Environment.IsDevelopment())
-        {
+        if (app.Environment.IsDevelopment()) {
             readinessOptions.ResponseWriter = WriteHealthCheckJsonResponse;
         }
 

@@ -12,11 +12,9 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.DomainProcessing;
 
-public class DomainServiceRequestHandlerTests
-{
+public class DomainServiceRequestHandlerTests {
     [Fact]
-    public async Task ProcessAsync_WhenFirstProcessorHasMismatchedState_UsesNextProcessor()
-    {
+    public async Task ProcessAsync_WhenFirstProcessorHasMismatchedState_UsesNextProcessor() {
         var first = new FakeDomainProcessor(
             _ => throw new InvalidOperationException(
                 "Unable to rehydrate aggregate 'TenantState' from event type 'GlobalAdministratorSet'. No matching Apply method found on state 'TenantState'."));
@@ -32,8 +30,7 @@ public class DomainServiceRequestHandlerTests
     }
 
     [Fact]
-    public async Task ProcessAsync_WhenRehydrationFailsForMalformedHistory_DoesNotTreatItAsMismatch()
-    {
+    public async Task ProcessAsync_WhenRehydrationFailsForMalformedHistory_DoesNotTreatItAsMismatch() {
         var first = new FakeDomainProcessor(
             _ => throw new InvalidOperationException(
                 "Unable to rehydrate aggregate state 'TenantState'. Historical event is missing required string property 'eventTypeName'."));
@@ -48,8 +45,7 @@ public class DomainServiceRequestHandlerTests
         second.CallCount.ShouldBe(0);
     }
 
-    private static DomainServiceRequest CreateRequest()
-    {
+    private static DomainServiceRequest CreateRequest() {
         var command = new CreateTenant("acme", "Acme Corp", null);
         var envelope = new CommandEnvelope(
             "01ARZ3NDEKTSV4RRFFQ69G5FAV",
@@ -66,12 +62,10 @@ public class DomainServiceRequestHandlerTests
         return new DomainServiceRequest(envelope, null);
     }
 
-    private sealed class FakeDomainProcessor(Func<DomainServiceRequest, Task<DomainResult>> handler) : IDomainProcessor
-    {
+    private sealed class FakeDomainProcessor(Func<DomainServiceRequest, Task<DomainResult>> handler) : IDomainProcessor {
         public int CallCount { get; private set; }
 
-        public Task<DomainResult> ProcessAsync(CommandEnvelope command, object? currentState)
-        {
+        public Task<DomainResult> ProcessAsync(CommandEnvelope command, object? currentState) {
             CallCount++;
             return handler(new DomainServiceRequest(command, currentState));
         }

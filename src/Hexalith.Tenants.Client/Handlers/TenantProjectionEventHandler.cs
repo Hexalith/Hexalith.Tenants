@@ -19,8 +19,7 @@ public class TenantProjectionEventHandler :
     ITenantEventHandler<UserRemovedFromTenant>,
     ITenantEventHandler<UserRoleChanged>,
     ITenantEventHandler<TenantConfigurationSet>,
-    ITenantEventHandler<TenantConfigurationRemoved>
-{
+    ITenantEventHandler<TenantConfigurationRemoved> {
     private readonly ITenantProjectionStore _store;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _tenantLocks = new(StringComparer.Ordinal);
 
@@ -28,8 +27,7 @@ public class TenantProjectionEventHandler :
     /// Initializes a new instance of the <see cref="TenantProjectionEventHandler"/> class.
     /// </summary>
     /// <param name="store">The tenant projection store.</param>
-    public TenantProjectionEventHandler(ITenantProjectionStore store)
-    {
+    public TenantProjectionEventHandler(ITenantProjectionStore store) {
         ArgumentNullException.ThrowIfNull(store);
         _store = store;
     }
@@ -39,8 +37,7 @@ public class TenantProjectionEventHandler :
         => ApplyAsync(
             @event,
             context,
-            static (state, tenantCreated) =>
-            {
+            static (state, tenantCreated) => {
                 state.Name = tenantCreated.Name;
                 state.Description = tenantCreated.Description;
                 state.Status = TenantStatus.Active;
@@ -52,8 +49,7 @@ public class TenantProjectionEventHandler :
         => ApplyAsync(
             @event,
             context,
-            static (state, tenantUpdated) =>
-            {
+            static (state, tenantUpdated) => {
                 state.Name = tenantUpdated.Name;
                 state.Description = tenantUpdated.Description;
             },
@@ -119,33 +115,26 @@ public class TenantProjectionEventHandler :
         TEvent @event,
         TenantEventContext context,
         Action<TenantLocalState, TEvent> apply,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(apply);
 
         SemaphoreSlim tenantLock = _tenantLocks.GetOrAdd(context.TenantId, static _ => new SemaphoreSlim(1, 1));
         await tenantLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
+        try {
             TenantLocalState state = await GetOrCreateStateAsync(context.TenantId, cancellationToken).ConfigureAwait(false);
             apply(state, @event);
             await _store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
         }
-        finally
-        {
-            tenantLock.Release();
+        finally {
+            _ = tenantLock.Release();
         }
     }
 
-    private async Task<TenantLocalState> GetOrCreateStateAsync(string tenantId, CancellationToken cancellationToken)
-    {
+    private async Task<TenantLocalState> GetOrCreateStateAsync(string tenantId, CancellationToken cancellationToken) {
         TenantLocalState? state = await _store.GetAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (state is null)
-        {
-            state = new TenantLocalState { TenantId = tenantId };
-        }
+        state ??= new TenantLocalState { TenantId = tenantId };
 
         return state;
     }

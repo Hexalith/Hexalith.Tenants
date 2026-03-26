@@ -8,18 +8,15 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Contracts.Tests;
 
-public class EventSerializationTests
-{
-    public static IEnumerable<object[]> EventPayloadTypes()
-    {
+public class EventSerializationTests {
+    public static IEnumerable<object[]> EventPayloadTypes() {
         Assembly contractsAssembly = typeof(Commands.CreateTenant).Assembly;
         IEnumerable<Type> eventTypes = contractsAssembly
             .GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
             .OrderBy(t => t.FullName);
 
-        foreach (Type eventType in eventTypes)
-        {
+        foreach (Type eventType in eventTypes) {
             IEventPayload instance = CreateTestInstance(eventType);
             yield return [eventType, instance];
         }
@@ -27,40 +24,34 @@ public class EventSerializationTests
 
     [Theory]
     [MemberData(nameof(EventPayloadTypes))]
-    public void Event_serialization_roundtrip_preserves_equality(Type eventType, IEventPayload expected)
-    {
+    public void Event_serialization_roundtrip_preserves_equality(Type eventType, IEventPayload expected) {
         string json = JsonSerializer.Serialize(expected, eventType);
         object? deserialized = JsonSerializer.Deserialize(json, eventType);
 
-        deserialized.ShouldNotBeNull();
+        _ = deserialized.ShouldNotBeNull();
         deserialized.ShouldBe(expected);
     }
 
-    private static IEventPayload CreateTestInstance(Type eventType)
-    {
+    private static IEventPayload CreateTestInstance(Type eventType) {
         ConstructorInfo? ctor = eventType.GetConstructors().FirstOrDefault();
-        ctor.ShouldNotBeNull($"Type {eventType.Name} has no public constructor");
+        _ = ctor.ShouldNotBeNull($"Type {eventType.Name} has no public constructor");
 
         ParameterInfo[] parameters = ctor.GetParameters();
         object?[] args = new object?[parameters.Length];
 
-        for (int i = 0; i < parameters.Length; i++)
-        {
+        for (int i = 0; i < parameters.Length; i++) {
             args[i] = GetTestValue(parameters[i]);
         }
 
         return (IEventPayload)ctor.Invoke(args);
     }
 
-    private static object? GetTestValue(ParameterInfo parameter)
-    {
+    private static object? GetTestValue(ParameterInfo parameter) {
         Type paramType = parameter.ParameterType;
         string name = parameter.Name ?? string.Empty;
 
-        if (paramType == typeof(string))
-        {
-            return name switch
-            {
+        if (paramType == typeof(string)) {
+            return name switch {
                 "TenantId" => "tenant-abc",
                 "UserId" => "user-xyz",
                 "Name" => "Test Tenant Name",
@@ -72,33 +63,27 @@ public class EventSerializationTests
             };
         }
 
-        if (paramType == typeof(DateTimeOffset))
-        {
+        if (paramType == typeof(DateTimeOffset)) {
             return DateTimeOffset.Parse("2026-01-15T10:30:00+00:00");
         }
 
-        if (paramType == typeof(TenantRole))
-        {
+        if (paramType == typeof(TenantRole)) {
             return TenantRole.TenantContributor;
         }
 
-        if (paramType == typeof(int))
-        {
-            return name switch
-            {
+        if (paramType == typeof(int)) {
+            return name switch {
                 "CurrentCount" => 42,
                 "MaxAllowed" => 100,
                 _ => 1,
             };
         }
 
-        if (Nullable.GetUnderlyingType(paramType) == typeof(TenantRole))
-        {
+        if (Nullable.GetUnderlyingType(paramType) == typeof(TenantRole)) {
             return TenantRole.TenantReader;
         }
 
-        if (Nullable.GetUnderlyingType(paramType) == typeof(string))
-        {
+        if (Nullable.GetUnderlyingType(paramType) == typeof(string)) {
             return "nullable-test-value";
         }
 

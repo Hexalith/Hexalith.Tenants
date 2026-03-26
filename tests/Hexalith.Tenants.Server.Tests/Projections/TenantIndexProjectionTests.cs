@@ -7,14 +7,12 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Projections;
 
-public class TenantIndexProjectionTests
-{
+public class TenantIndexProjectionTests {
     // IX19: NamingConventionEngine derives correct domain name
     // Convention strips "Projection" suffix, converts "TenantIndex" to "tenant-index".
     // Must NOT be "tenants" — that's TenantProjection's domain, and the scanner rejects duplicates.
     [Fact]
-    public void GetDomainName_TenantIndexProjection_ResolvesToTenantIndex()
-    {
+    public void GetDomainName_TenantIndexProjection_ResolvesToTenantIndex() {
         string domainName = NamingConventionEngine.GetDomainName(typeof(TenantIndexProjection));
 
         domainName.ShouldBe("tenant-index");
@@ -22,10 +20,9 @@ public class TenantIndexProjectionTests
 
     // IX14: Project returns TenantIndexReadModel from events
     [Fact]
-    public void Project_WithTenantCreatedAndUserAdded_ReturnsCorrectState()
-    {
+    public void Project_WithTenantCreatedAndUserAdded_ReturnsCorrectState() {
         var projection = new TenantIndexProjection();
-        var events = new object[]
+        object[] events = new object[]
         {
             new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow),
             new TenantCreated("beta", "Beta Inc", null, DateTimeOffset.UtcNow),
@@ -41,10 +38,9 @@ public class TenantIndexProjectionTests
 
     // IX15: Project handles all event types with correct final state
     [Fact]
-    public void Project_AllSevenEventTypes_ProducesCorrectFinalState()
-    {
+    public void Project_AllSevenEventTypes_ProducesCorrectFinalState() {
         var projection = new TenantIndexProjection();
-        var events = new object[]
+        object[] events = new object[]
         {
             new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.Parse("2026-01-01T00:00:00Z")),
             new TenantCreated("beta", "Beta Inc", "desc", DateTimeOffset.Parse("2026-01-02T00:00:00Z")),
@@ -78,8 +74,7 @@ public class TenantIndexProjectionTests
 
     // IX16: Project with empty event list returns default model
     [Fact]
-    public void Project_EmptyEventList_ReturnsDefaultModel()
-    {
+    public void Project_EmptyEventList_ReturnsDefaultModel() {
         var projection = new TenantIndexProjection();
 
         TenantIndexReadModel result = projection.Project(Array.Empty<object>());
@@ -90,10 +85,9 @@ public class TenantIndexProjectionTests
 
     // IX17: Project skips null events gracefully
     [Fact]
-    public void Project_WithNullEvents_SkipsNullsAndAppliesValid()
-    {
+    public void Project_WithNullEvents_SkipsNullsAndAppliesValid() {
         var projection = new TenantIndexProjection();
-        var events = new object?[]
+        object?[] events = new object?[]
         {
             new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow),
             null,
@@ -101,7 +95,7 @@ public class TenantIndexProjectionTests
             null,
         };
 
-        TenantIndexReadModel result = projection.Project((System.Collections.IEnumerable)events);
+        TenantIndexReadModel result = projection.Project(events);
 
         result.Tenants.ShouldContainKey("acme");
         result.UserTenants["user1"].ShouldContainKey("acme");

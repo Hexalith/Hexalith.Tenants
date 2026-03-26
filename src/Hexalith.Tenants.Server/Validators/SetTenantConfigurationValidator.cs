@@ -5,17 +5,15 @@ using Hexalith.Tenants.Server.Aggregates;
 
 namespace Hexalith.Tenants.Server.Validators;
 
-public class SetTenantConfigurationValidator : AbstractValidator<SetTenantConfiguration>
-{
-    public SetTenantConfigurationValidator()
-    {
-        RuleFor(x => x.TenantId).NotEmpty();
-        RuleFor(x => x.Key)
+public class SetTenantConfigurationValidator : AbstractValidator<SetTenantConfiguration> {
+    public SetTenantConfigurationValidator() {
+        _ = RuleFor(x => x.TenantId).NotEmpty();
+        _ = RuleFor(x => x.Key)
             .Cascade(CascadeMode.Stop)
             .NotNull()
             .MinimumLength(1)
             .MaximumLength(TenantAggregate.MaxKeyLength);
-        RuleFor(x => x.Value)
+        _ = RuleFor(x => x.Value)
             .Cascade(CascadeMode.Stop)
             .NotNull()
             .MaximumLength(TenantAggregate.MaxValueLength);

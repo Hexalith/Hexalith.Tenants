@@ -7,8 +7,7 @@ using Hexalith.Tenants.CommandApi.Telemetry;
 
 namespace Hexalith.Tenants.CommandApi.DomainProcessing;
 
-internal static class DomainProcessorMismatchMessages
-{
+internal static class DomainProcessorMismatchMessages {
     public const string MissingHandleMethod = "No Handle method found for command type";
 
     public const string MissingApplyMethodOnState = "No matching Apply method found on state";
@@ -16,33 +15,27 @@ internal static class DomainProcessorMismatchMessages
 
 internal sealed class DomainServiceRequestHandler(
     IEnumerable<IDomainProcessor> processors,
-    ILogger<DomainServiceRequestHandler> logger)
-{
-    public async Task<DomainServiceWireResult> ProcessAsync(DomainServiceRequest request, CancellationToken cancellationToken = default)
-    {
+    ILogger<DomainServiceRequestHandler> logger) {
+    public async Task<DomainServiceWireResult> ProcessAsync(DomainServiceRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         string commandType = request.Command.CommandType;
         Activity? activity = TenantActivitySource.Instance.StartActivity(
             TenantActivitySource.CommandProcess, ActivityKind.Internal);
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
         bool success = false;
 
-        activity?.SetTag(TenantActivitySource.TagCommandType, commandType);
-        activity?.SetTag(TenantActivitySource.TagTenantId, request.Command.TenantId);
+        _ = (activity?.SetTag(TenantActivitySource.TagCommandType, commandType));
+        _ = (activity?.SetTag(TenantActivitySource.TagTenantId, request.Command.TenantId));
 
-        try
-        {
-            foreach (IDomainProcessor processor in processors)
-            {
-                try
-                {
+        try {
+            foreach (IDomainProcessor processor in processors) {
+                try {
                     DomainResult result = await processor.ProcessAsync(request.Command, request.CurrentState).ConfigureAwait(false);
                     success = true;
                     return DomainServiceWireResult.FromDomainResult(result);
                 }
-                catch (InvalidOperationException ex) when (IsProcessorMismatch(ex))
-                {
+                catch (InvalidOperationException ex) when (IsProcessorMismatch(ex)) {
                     logger.LogDebug(
                         "Skipping processor {ProcessorType} for command type {CommandType}",
                         processor.GetType().Name,
@@ -52,15 +45,13 @@ internal sealed class DomainServiceRequestHandler(
 
             throw new InvalidOperationException($"No domain processor found for command type '{request.Command.CommandType}'.");
         }
-        catch (Exception ex)
-        {
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+        catch (Exception ex) {
+            _ = (activity?.SetStatus(ActivityStatusCode.Error, ex.Message));
             throw;
         }
-        finally
-        {
+        finally {
             stopwatch.Stop();
-            activity?.SetTag(TenantActivitySource.TagSuccess, success);
+            _ = (activity?.SetTag(TenantActivitySource.TagSuccess, success));
             TenantMetrics.RecordCommandDuration(stopwatch.Elapsed.TotalMilliseconds, commandType, success);
             activity?.Dispose();
         }

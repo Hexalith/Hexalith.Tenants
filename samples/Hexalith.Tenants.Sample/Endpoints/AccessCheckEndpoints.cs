@@ -6,17 +6,15 @@ namespace Hexalith.Tenants.Sample.Endpoints;
 /// <summary>
 /// Minimal API endpoints demonstrating projection-based access enforcement.
 /// </summary>
-public static class AccessCheckEndpoints
-{
+public static class AccessCheckEndpoints {
     /// <summary>
     /// Maps the access check endpoint that queries the local tenant projection.
     /// </summary>
     /// <param name="endpoints">The endpoint route builder.</param>
     /// <returns>The endpoint route builder for chaining.</returns>
-    public static IEndpointRouteBuilder MapAccessCheckEndpoints(this IEndpointRouteBuilder endpoints)
-    {
+    public static IEndpointRouteBuilder MapAccessCheckEndpoints(this IEndpointRouteBuilder endpoints) {
         ArgumentNullException.ThrowIfNull(endpoints);
-        endpoints.MapGet("/access/{tenantId}/{userId}", CheckAccessAsync);
+        _ = endpoints.MapGet("/access/{tenantId}/{userId}", CheckAccessAsync);
         return endpoints;
     }
 
@@ -27,27 +25,22 @@ public static class AccessCheckEndpoints
         string tenantId,
         string userId,
         ITenantProjectionStore store,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(store);
-        if (string.IsNullOrWhiteSpace(tenantId) || string.IsNullOrWhiteSpace(userId))
-        {
+        if (string.IsNullOrWhiteSpace(tenantId) || string.IsNullOrWhiteSpace(userId)) {
             return Results.BadRequest(new { Message = "tenantId and userId are required" });
         }
 
         TenantLocalState? state = await store.GetAsync(tenantId, cancellationToken).ConfigureAwait(false);
-        if (state is null)
-        {
+        if (state is null) {
             return Results.NotFound(new { TenantId = tenantId, Message = "Tenant not found in local projection" });
         }
 
-        if (state.Status == TenantStatus.Disabled)
-        {
+        if (state.Status == TenantStatus.Disabled) {
             return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "denied", Reason = "Tenant is disabled" });
         }
 
-        if (!state.Members.TryGetValue(userId, out TenantRole role))
-        {
+        if (!state.Members.TryGetValue(userId, out TenantRole role)) {
             return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "denied", Reason = "User is not a member" });
         }
 

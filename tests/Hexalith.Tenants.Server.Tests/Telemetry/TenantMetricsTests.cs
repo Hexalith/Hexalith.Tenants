@@ -7,65 +7,56 @@ using Shouldly;
 namespace Hexalith.Tenants.Server.Tests.Telemetry;
 
 [Collection("Telemetry")]
-public class TenantMetricsTests : IDisposable
-{
+public class TenantMetricsTests : IDisposable {
     private readonly MeterListener _listener;
     private readonly List<(string Name, double Value, KeyValuePair<string, object?>[] Tags)> _recordings = [];
 
-    public TenantMetricsTests()
-    {
-        _listener = new MeterListener();
-        _listener.InstrumentPublished = (instrument, listener) =>
-        {
-            if (instrument.Meter.Name == TenantMetrics.MeterName)
-            {
-                listener.EnableMeasurementEvents(instrument);
+    public TenantMetricsTests() {
+        _listener = new MeterListener {
+            InstrumentPublished = (instrument, listener) => {
+                if (instrument.Meter.Name == TenantMetrics.MeterName) {
+                    listener.EnableMeasurementEvents(instrument);
+                }
             }
         };
-        _listener.SetMeasurementEventCallback<double>((instrument, value, tags, _) =>
-        {
-            _recordings.Add((instrument.Name, value, tags.ToArray()));
-        });
+        _listener.SetMeasurementEventCallback<double>((instrument, value, tags, _) => _recordings.Add((instrument.Name, value, tags.ToArray())));
         _listener.Start();
     }
 
-    public void Dispose()
-    {
+    public void Dispose() {
         _listener.Dispose();
         GC.SuppressFinalize(this);
     }
 
     [Fact]
-    public void RecordCommandDuration_WithKnownType_ShouldRecordWithCorrectDimensions()
-    {
+    public void RecordCommandDuration_WithKnownType_ShouldRecordWithCorrectDimensions() {
         TenantMetrics.RecordCommandDuration(42.5, "CreateTenant", true);
         _listener.RecordObservableInstruments();
 
-        (string Name, double Value, KeyValuePair<string, object?>[] Tags) recording =
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
             FindRecording(
                 "tenants.command.duration",
                 tags => HasTag(tags, "command_type", "CreateTenant") && HasTag(tags, "success", true));
-        recording.Name.ShouldBe("tenants.command.duration");
-        recording.Value.ShouldBe(42.5);
+        Name.ShouldBe("tenants.command.duration");
+        Value.ShouldBe(42.5);
 
-        Dictionary<string, object?> tags = recording.Tags.ToDictionary(t => t.Key, t => t.Value);
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["command_type"].ShouldBe("CreateTenant");
         tags["success"].ShouldBe(true);
     }
 
     [Fact]
-    public void RecordCommandDuration_WithUnknownType_ShouldSanitizeToUnknown()
-    {
+    public void RecordCommandDuration_WithUnknownType_ShouldSanitizeToUnknown() {
         TenantMetrics.RecordCommandDuration(10.0, "MaliciousCommandType", false);
         _listener.RecordObservableInstruments();
 
-        (string Name, double Value, KeyValuePair<string, object?>[] Tags) recording =
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
             FindRecording(
                 "tenants.command.duration",
                 tags => HasTag(tags, "command_type", "unknown") && HasTag(tags, "success", false));
-        recording.Name.ShouldBe("tenants.command.duration");
+        Name.ShouldBe("tenants.command.duration");
 
-        Dictionary<string, object?> tags = recording.Tags.ToDictionary(t => t.Key, t => t.Value);
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["command_type"].ShouldBe("unknown");
         tags["success"].ShouldBe(false);
     }
@@ -83,48 +74,45 @@ public class TenantMetricsTests : IDisposable
     [InlineData("AddGlobalAdministrator")]
     [InlineData("RemoveGlobalAdministrator")]
     [InlineData("RegisterGlobalAdministrator")]
-    public void RecordCommandDuration_AllKnownTypes_ShouldPassThrough(string commandType)
-    {
+    public void RecordCommandDuration_AllKnownTypes_ShouldPassThrough(string commandType) {
         TenantMetrics.RecordCommandDuration(1.0, commandType, true);
         _listener.RecordObservableInstruments();
 
-        (string Name, double Value, KeyValuePair<string, object?>[] Tags) recording =
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
             FindRecording(
                 "tenants.command.duration",
                 tags => HasTag(tags, "command_type", commandType) && HasTag(tags, "success", true));
-        Dictionary<string, object?> tags = recording.Tags.ToDictionary(t => t.Key, t => t.Value);
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["command_type"].ShouldBe(commandType);
     }
 
     [Fact]
-    public void RecordQueryDuration_ShouldRecordWithQueryType()
-    {
+    public void RecordQueryDuration_ShouldRecordWithQueryType() {
         TenantMetrics.RecordQueryDuration(15.3, "get-tenant");
         _listener.RecordObservableInstruments();
 
-        (string Name, double Value, KeyValuePair<string, object?>[] Tags) recording =
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
             FindRecording(
                 "tenants.projection.query.duration",
                 tags => HasTag(tags, "query_type", "get-tenant"));
-        recording.Name.ShouldBe("tenants.projection.query.duration");
-        recording.Value.ShouldBe(15.3);
+        Name.ShouldBe("tenants.projection.query.duration");
+        Value.ShouldBe(15.3);
 
-        Dictionary<string, object?> tags = recording.Tags.ToDictionary(t => t.Key, t => t.Value);
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["query_type"].ShouldBe("get-tenant");
     }
 
     [Fact]
-    public void RecordCommandDuration_FailureCase_ShouldRecordSuccessFalse()
-    {
+    public void RecordCommandDuration_FailureCase_ShouldRecordSuccessFalse() {
         TenantMetrics.RecordCommandDuration(100.0, "DisableTenant", false);
         _listener.RecordObservableInstruments();
 
-        (string Name, double Value, KeyValuePair<string, object?>[] Tags) recording =
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
             FindRecording(
                 "tenants.command.duration",
                 tags => HasTag(tags, "command_type", "DisableTenant") && HasTag(tags, "success", false));
 
-        Dictionary<string, object?> tags = recording.Tags.ToDictionary(t => t.Key, t => t.Value);
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["success"].ShouldBe(false);
     }
 

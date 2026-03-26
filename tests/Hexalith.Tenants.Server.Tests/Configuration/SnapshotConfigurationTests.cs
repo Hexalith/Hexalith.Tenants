@@ -34,7 +34,7 @@ public class SnapshotConfigurationTests {
         configuration.GetSection("EventStore:Snapshots").Bind(options);
 
         // Act & Assert - Should not throw
-        Should.NotThrow(() => options.Validate());
+        Should.NotThrow(options.Validate);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class SnapshotConfigurationTests {
         configuration.GetSection("EventStore:Snapshots").Bind(options);
 
         // Act & Assert - No per-tenant-domain overrides should be set
-        options.TenantDomainIntervals.ShouldNotBeNull();
+        _ = options.TenantDomainIntervals.ShouldNotBeNull();
         options.TenantDomainIntervals.ShouldBeEmpty();
     }
 }
