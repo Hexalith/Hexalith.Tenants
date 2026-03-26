@@ -1,7 +1,7 @@
 using Dapr;
 using Dapr.Client;
 
-using Hexalith.Tenants.CommandApi.Health;
+using Hexalith.Tenants.Health;
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 

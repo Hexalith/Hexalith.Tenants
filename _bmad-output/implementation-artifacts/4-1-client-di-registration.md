@@ -33,7 +33,7 @@ So that my service is wired up for tenant event handling with minimal configurat
 
 - [x] Task 1: Create `HexalithTenantsOptions.cs` (AC: #1) — BUILD FIRST: extension method depends on this
     - [x] 1.1: Create `src/Hexalith.Tenants.Client/Configuration/HexalithTenantsOptions.cs` — options class for consuming service configuration
-    - [x] 1.2: Properties: `PubSubName` (string, default `"pubsub"`), `TopicName` (string, default `"system.tenants.events"`), `CommandApiAppId` (string, default `"commandapi"`)
+    - [x] 1.2: Properties: `PubSubName` (string, default `"pubsub"`), `TopicName` (string, default `"system.tenants.events"`), `Hexalith.TenantsAppId` (string, default `"commandapi"`)
     - [x] 1.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create `TenantServiceCollectionExtensions.cs` (AC: #1, #2, #3) — depends on Task 1
@@ -51,7 +51,7 @@ So that my service is wired up for tenant event handling with minimal configurat
     - [x] 3.3: Test: `AddHexalithTenants_BindsTenantsOptions` — verifies `HexalithTenantsOptions` is bound from config
     - [x] 3.4: Test: `AddHexalithTenants_IsIdempotent` — calling twice does not duplicate registrations
     - [x] 3.5: Test: `AddHexalithTenants_ReturnsSameServiceCollection` — fluent chaining works
-    - [x] 3.6: Test: `AddHexalithTenants_DefaultOptionsValues` — verify default PubSubName, TopicName, CommandApiAppId
+    - [x] 3.6: Test: `AddHexalithTenants_DefaultOptionsValues` — verify default PubSubName, TopicName, Hexalith.TenantsAppId
     - [x] 3.7: Test: `AddHexalithTenants_ThrowsOnNullServices` — null guard for parameterless overload
     - [x] 3.8: Test: `AddHexalithTenants_WithAction_ThrowsOnNullServices` — null guard for action overload
     - [x] 3.9: Test: `AddHexalithTenants_WithAction_ThrowsOnNullAction` — null guard for action parameter
@@ -81,7 +81,7 @@ All dependencies are ready. No new NuGet packages or project references are need
 
 ### Architecture: Thin DI Layer
 
-Architecture specifies: "Client → References Contracts only (thin DI layer)". This describes the _project reference_ layer — Client has no project reference to Server, CommandApi, or any other Hexalith project except Contracts. NuGet infrastructure packages (`Dapr.Client`, `Microsoft.Extensions.Configuration.Binder`, `Microsoft.Extensions.Hosting.Abstractions`) are already in the csproj from Story 1.1 and are not "references" in the architecture sense. The Client package is a NuGet package consumed by external services. It must be minimal — only DI extension methods and configuration options.
+Architecture specifies: "Client → References Contracts only (thin DI layer)". This describes the _project reference_ layer — Client has no project reference to Server, Hexalith.Tenants, or any other Hexalith project except Contracts. NuGet infrastructure packages (`Dapr.Client`, `Microsoft.Extensions.Configuration.Binder`, `Microsoft.Extensions.Hosting.Abstractions`) are already in the csproj from Story 1.1 and are not "references" in the architecture sense. The Client package is a NuGet package consumed by external services. It must be minimal — only DI extension methods and configuration options.
 
 Architecture directory structure prescribes exactly:
 
@@ -187,7 +187,7 @@ public class HexalithTenantsOptions
 
     public string TopicName { get; set; } = "system.tenants.events";
 
-    public string CommandApiAppId { get; set; } = "commandapi";
+    public string Hexalith.TenantsAppId { get; set; } = "commandapi";
 }
 ```
 
@@ -195,7 +195,7 @@ public class HexalithTenantsOptions
 
 - `PubSubName`: DAPR pub/sub component name. Default `"pubsub"` matches the DAPR component defined in the Aspire topology (`AddDaprPubSub("pubsub")`).
 - `TopicName`: The event topic. Architecture specifies `"system.tenants.events"` as the single topic for all tenant events.
-- `CommandApiAppId`: The DAPR app ID of the tenant CommandApi service. Default `"commandapi"` matches the Aspire AppHost configuration.
+- `Hexalith.TenantsAppId`: The DAPR app ID of the tenant Hexalith.Tenants service. Default `"commandapi"` matches the Aspire AppHost configuration.
 
 ### DaprClient Registration
 
@@ -267,7 +267,7 @@ This overload follows the EventStore pattern (`AddEventStore(Action<EventStoreOp
 - Create a separate marker/sentinel class for idempotency — use `IConfigureOptions<HexalithTenantsOptions>` as the sentinel (this is what `Configure<T>()` actually registers)
 - Check `typeof(HexalithTenantsOptions)` for idempotency — `Configure<T>()` registers `IConfigureOptions<T>`, not `T` directly
 - Use string-based type name comparison for DaprClient check — use `typeof(Dapr.Client.DaprClient)` for type safety
-- Modify CommandApi's Program.cs — this story is about consuming service DI, not the command API itself
+- Modify Hexalith.Tenants' Program.cs — this story is about consuming service DI, not the command API itself
 - Use `IHostApplicationBuilder` as the extension target — use `IServiceCollection` per EventStore convention
 
 ### Library & Framework Requirements
@@ -356,7 +356,7 @@ private static IServiceCollection CreateServiceCollectionWithConfig(
 | D2  | AddHexalithTenants binds options from config              | ServiceCollection + IConfiguration with `Tenants:PubSubName=mypubsub` | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "mypubsub"`                    | #1, #3 |
 | D3  | AddHexalithTenants is idempotent                          | Call twice on same ServiceCollection                                  | No duplicate registrations for `HexalithTenantsOptions`                              | #3     |
 | D4  | AddHexalithTenants returns same collection                | Any ServiceCollection                                                 | Return value is same reference as input                                              | #2     |
-| D5  | Default options have correct values                       | No config section                                                     | PubSubName="pubsub", TopicName="system.tenants.events", CommandApiAppId="commandapi" | #3     |
+| D5  | Default options have correct values                       | No config section                                                     | PubSubName="pubsub", TopicName="system.tenants.events", Hexalith.TenantsAppId="commandapi" | #3     |
 | D6  | AddHexalithTenants with configure action                  | Call overload with `o => o.PubSubName = "custom"`                     | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "custom"`                      | #1, #2 |
 | D7  | AddHexalithTenants skips DaprClient if already registered | Pre-register DaprClient, then call AddHexalithTenants                 | No duplicate DaprClient descriptors (check descriptor count)                         | #3     |
 | D8  | AddHexalithTenants works without IConfiguration           | Empty ServiceCollection (no IConfiguration)                           | Options registered with defaults, no exception                                       | #1     |
@@ -413,9 +413,9 @@ Should.Throw<ArgumentNullException>(() =>
 - CA1062 compliance is mandatory — all public method parameters must be null-checked
 - `TreatWarningsAsErrors = true` means any CA warnings are build failures
 
-**Story 2.4 (done) — CommandApi Bootstrap & Event Publishing:**
+**Story 2.4 (done) — Hexalith.Tenants Bootstrap & Event Publishing:**
 
-- Established the CommandApi `Program.cs` DI composition root pattern
+- Established Hexalith.Tenants `Program.cs` DI composition root pattern
 - Shows how `AddDaprClient()`, `AddEventStore()`, `AddEventStoreServer()` are composed
 - The Client DI method should be composable with these — consuming services may also use EventStore
 
@@ -429,7 +429,7 @@ Should.Throw<ArgumentNullException>(() =>
 
 Recent commits show:
 
-- `fd1b5d9 feat: Finalize CommandApi Bootstrap & Event Publishing` — Story 2.4 complete
+- `fd1b5d9 feat: Finalize Hexalith.Tenants Bootstrap & Event Publishing` — Story 2.4 complete
 - `9753e09 feat: Implement tenant configuration management` — Story 3.3 implementation
 - `79584b5 feat: Add InsufficientPermissionsRejection` — Story 3.2 contracts
 - `4216ccd feat: Implement RBAC for tenant management commands` — Story 3.2 implementation
@@ -483,7 +483,7 @@ All Epic 2 and 3 stories are done or in review. Epic 4 is the next phase, shifti
 - [Source: tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj] — Test project referencing Client + Testing
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Client/Registration/EventStoreServiceCollectionExtensions.cs] — DI extension method pattern to follow
 - [Source: src/Hexalith.Tenants.Aspire/HexalithTenantsExtensions.cs] — Aspire `AddHexalithTenants()` pattern (different extension point, same naming)
-- [Source: src/Hexalith.Tenants.CommandApi/Program.cs] — Current DI composition root showing how services are composed
+- [Source: src/Hexalith.Tenants/Program.cs] — Current DI composition root showing how services are composed
 - [Source: _bmad-output/implementation-artifacts/3-3-tenant-configuration-management.md] — Previous story patterns and learnings
 
 ## Dev Agent Record
@@ -500,7 +500,7 @@ Claude Opus 4.6 (1M context)
 
 ### Completion Notes List
 
-- Created `HexalithTenantsOptions` with defaults: PubSubName="pubsub", TopicName="system.tenants.events", CommandApiAppId="commandapi"
+- Created `HexalithTenantsOptions` with defaults: PubSubName="pubsub", TopicName="system.tenants.events", Hexalith.TenantsAppId="commandapi"
 - Created `TenantServiceCollectionExtensions` with two overloads: parameterless (config binding) and `Action<T>` (explicit config)
 - Refined registration flow after review: core registrations (`DaprClient` + options infrastructure) are always ensured, while `IConfigureOptions<HexalithTenantsOptions>` is used only to deduplicate the options configuration step
 - DaprClient registration via `AddDaprClient()` remains type-safe and is no longer skipped when options were configured earlier

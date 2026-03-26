@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-using Hexalith.Tenants.CommandApi.Telemetry;
+using Hexalith.Tenants.Telemetry;
 
 using Shouldly;
 

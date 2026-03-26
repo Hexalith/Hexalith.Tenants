@@ -13,10 +13,10 @@ public static class HexalithTenantsExtensions {
     /// <summary>
     /// Adds the Hexalith Tenants topology to the distributed application builder.
     /// This provisions DAPR state store (in-memory with actor support), DAPR pub/sub,
-    /// and wires the CommandApi service with a DAPR sidecar.
+    /// and wires the Tenants service with a DAPR sidecar.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
-    /// <param name="commandApi">The CommandApi project resource builder.</param>
+    /// <param name="tenants">The Tenants project resource builder.</param>
     /// <param name="daprConfigPath">
     /// Path to the Dapr sidecar configuration file (access control policies).
     /// When null, the sidecar starts without access control.
@@ -24,10 +24,10 @@ public static class HexalithTenantsExtensions {
     /// <returns>A <see cref="HexalithTenantsResources"/> containing the resource builders for further customization.</returns>
     public static HexalithTenantsResources AddHexalithTenants(
         this IDistributedApplicationBuilder builder,
-        IResourceBuilder<ProjectResource> commandApi,
+        IResourceBuilder<ProjectResource> tenants,
         string? daprConfigPath = null) {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(commandApi);
+        ArgumentNullException.ThrowIfNull(tenants);
 
         // Use AddDaprComponent instead of AddDaprStateStore so that WithMetadata
         // actually propagates into the generated YAML. AddDaprStateStore spawns a
@@ -37,18 +37,18 @@ public static class HexalithTenantsExtensions {
             .WithMetadata("actorStateStore", "true");
         IResourceBuilder<IDaprComponentResource> pubSub = builder.AddDaprPubSub("pubsub");
 
-        // Wire up CommandApi with DAPR sidecar and component references.
+        // Wire up Tenants service with DAPR sidecar and component references.
         // AppPort is intentionally omitted so the CommunityToolkit auto-detects
         // the app's actual port from the Aspire resource model.
-        _ = commandApi
+        _ = tenants
             .WithDaprSidecar(sidecar => sidecar
                 .WithOptions(new DaprSidecarOptions {
-                    AppId = "commandapi",
+                    AppId = "tenants",
                     Config = daprConfigPath,
                 })
                 .WithReference(stateStore)
                 .WithReference(pubSub));
 
-        return new HexalithTenantsResources(stateStore, pubSub, commandApi);
+        return new HexalithTenantsResources(stateStore, pubSub, tenants);
     }
 }

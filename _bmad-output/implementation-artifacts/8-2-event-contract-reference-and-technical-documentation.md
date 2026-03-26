@@ -31,12 +31,12 @@ So that I can design my integration correctly and handle edge cases with confide
 ## Tasks / Subtasks
 
 - [x] Task 0: PREREQUISITE — Verify enum serialization format (MUST complete before writing ANY JSON examples)
-  - [x] 0.1: **CRITICAL GATE**: Grep for `JsonStringEnumConverter` in EventStore submodule and CommandApi source to determine how `TenantRole` and `TenantStatus` enums serialize in event payloads. System.Text.Json serializes enums as **integers by default** unless `JsonStringEnumConverter` is configured. If string: use `"role": "TenantContributor"` in all JSON examples. If integer: use `"role": 1`. This determination affects EVERY JSON example in the entire document. Do NOT proceed to Task 3+ until this is resolved.
+  - [x] 0.1: **CRITICAL GATE**: Grep for `JsonStringEnumConverter` in EventStore submodule and Hexalith.Tenants source to determine how `TenantRole` and `TenantStatus` enums serialize in event payloads. System.Text.Json serializes enums as **integers by default** unless `JsonStringEnumConverter` is configured. If string: use `"role": "TenantContributor"` in all JSON examples. If integer: use `"role": 1`. This determination affects EVERY JSON example in the entire document. Do NOT proceed to Task 3+ until this is resolved.
 
 - [x] Task 1: Create `docs/event-contract-reference.md` — Overview and conventions (AC: #1)
   - [x] 1.1: Write document header with purpose statement: comprehensive reference for all tenant domain commands, events, and rejection events
   - [x] 1.2: Add a table of contents with anchor links to each major section (Enums, TenantAggregate, GlobalAdministratorAggregate, Rejections, Quick Reference, Idempotency). This doc will be long — developers land via search and need to jump to a specific event fast
-  - [x] 1.3: Document the event delivery model: all events published via DAPR pub/sub as CloudEvents 1.0 on topic `system.tenants.events`; consumers filter by event type. Also mention the dead letter topic `deadletter.tenants.events` — events that fail subscriber processing after retries are routed here; operators should monitor it for delivery failures. Note: commands are submitted via the CommandApi — link to [Quickstart Guide](quickstart.md) for command submission details; do NOT add curl examples for every command in this doc
+  - [x] 1.3: Document the event delivery model: all events published via DAPR pub/sub as CloudEvents 1.0 on topic `system.tenants.events`; consumers filter by event type. Also mention the dead letter topic `deadletter.tenants.events` — events that fail subscriber processing after retries are routed here; operators should monitor it for delivery failures. Note: commands are submitted via Hexalith.Tenants — link to [Quickstart Guide](quickstart.md) for command submission details; do NOT add curl examples for every command in this doc
   - [x] 1.4: Document the identity scheme: platform tenant = `system`, domain = `tenants`, aggregateId = managed tenant ID or `global-administrators`
   - [x] 1.5: Document the three-outcome model: Success (events produced), Rejection (rejection events produced), NoOp (idempotent, no events)
   - [x] 1.6: Document event envelope metadata: all events wrapped in EventStore's event envelope with `eventId`, `aggregateVersion`, `timestamp`, `correlationId`, `causationId`, `userId` — link to EventStore event envelope docs at `Hexalith.EventStore/docs/concepts/event-envelope.md` for full envelope schema
@@ -114,8 +114,8 @@ So that I can design my integration correctly and handle edge cases with confide
     - Subscribing services have NOT yet received/processed the event
     - During this window, a subscribing service's local projection still reflects the old state
   - [x] 7.2: Create a Mermaid `sequenceDiagram` (NOT ASCII art — Mermaid renders natively on GitHub and is maintainable) showing the **simplified** consumer-facing event propagation flow. Do NOT show the internal 5-step actor pipeline. Required participants and interactions:
-    - **Participants**: Client, CommandApi, Event Store, DAPR Pub/Sub, Service A, Service B
-    - **Flow**: Client sends command → CommandApi stores events atomically in Event Store → Client gets 202 Accepted → Event Store publishes async to DAPR Pub/Sub → Pub/Sub delivers to Service A and Service B → each service updates its local projection
+    - **Participants**: Client, Hexalith.Tenants, Event Store, DAPR Pub/Sub, Service A, Service B
+    - **Flow**: Client sends command → Hexalith.Tenants stores events atomically in Event Store → Client gets 202 Accepted → Event Store publishes async to DAPR Pub/Sub → Pub/Sub delivers to Service A and Service B → each service updates its local projection
     - **Key visual**: The diagram must clearly show the synchronous (atomic store + response) vs asynchronous (pub/sub delivery) boundary — this IS the timing window
     - Craft the Mermaid syntax to fit the document's narrative flow; do not copy a template verbatim
   - [x] 7.3: Document guidance for designing for eventual consistency:

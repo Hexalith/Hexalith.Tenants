@@ -26,7 +26,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
 
 7. **Given** the solution is built **When** a developer inspects `.editorconfig` **Then** it enforces EventStore conventions (file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation)
 
-8. **Given** the solution is built **When** a developer inspects project dependencies **Then** Contracts depends on EventStore.Contracts; Client depends on Contracts; Server depends on Contracts and EventStore.Server; Testing depends on Server and Contracts; CommandApi depends on Server, Contracts, and ServiceDefaults; Aspire has NO project references (only NuGet: Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr — matches EventStore's actual pattern, not the architecture prose); test projects reference their corresponding src projects plus xUnit, Shouldly, NSubstitute, and coverlet
+8. **Given** the solution is built **When** a developer inspects project dependencies **Then** Contracts depends on EventStore.Contracts; Client depends on Contracts; Server depends on Contracts and EventStore.Server; Testing depends on Server and Contracts; Hexalith.Tenants depends on Server, Contracts, and ServiceDefaults; Aspire has NO project references (only NuGet: Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr — matches EventStore's actual pattern, not the architecture prose); test projects reference their corresponding src projects plus xUnit, Shouldly, NSubstitute, and coverlet
 
 ## Tasks / Subtasks
 
@@ -43,24 +43,24 @@ so that I can begin implementing domain logic on a proven, consistent project st
   - [x] 2.2: Create `src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj` — empty shell, depends on EventStore.Contracts via ProjectReference
   - [x] 2.3: Create `src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj` — depends on Tenants.Contracts, Dapr.Client, Microsoft.Extensions packages. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Client.Tests" />`
   - [x] 2.4: Create `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` — depends on Tenants.Contracts, EventStore.Server via ProjectReference, Dapr packages, MediatR
-  - [x] 2.5: Create `src/Hexalith.Tenants.CommandApi/Hexalith.Tenants.CommandApi.csproj` — Web SDK, IsPackable=false, IsPublishable=true, depends on Server, Contracts, ServiceDefaults, Dapr.AspNetCore, MediatR, FluentValidation, JWT, OpenApi. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Server.Tests" />`
+  - [x] 2.5: Create `src/Hexalith.Tenants/Hexalith.Tenants.csproj` — Web SDK, IsPackable=false, IsPublishable=true, depends on Server, Contracts, ServiceDefaults, Dapr.AspNetCore, MediatR, FluentValidation, JWT, OpenApi. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Server.Tests" />`
   - [x] 2.6: Create `src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj` — depends on Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr
-  - [x] 2.7: Create `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` — Aspire.AppHost.Sdk, OutputType Exe, IsPackable=false, IsPublishable=true, depends on CommandApi, Sample, Aspire (IsAspireProjectResource=false)
+  - [x] 2.7: Create `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` — Aspire.AppHost.Sdk, OutputType Exe, IsPackable=false, IsPublishable=true, depends on Hexalith.Tenants, Sample, Aspire (IsAspireProjectResource=false)
   - [x] 2.8: Create `src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj` — IsPackable=false, IsAspireSharedProject=true, FrameworkReference Microsoft.AspNetCore.App, OpenTelemetry packages
   - [x] 2.9: Create `src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj` — depends on Tenants.Server, Tenants.Contracts, Shouldly, NSubstitute, xunit.assert
 - [x] Task 3: Create test project shells (AC: #1, #3, #8)
   - [x] 3.1: Create `tests/Directory.Build.props` — imports root props, sets IsPackable=false, IsPublishable=false, IsTestProject=true
   - [x] 3.2: Create `tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj` — depends on Tenants.Contracts, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
   - [x] 3.3: Create `tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj` — depends on Tenants.Client, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
-  - [x] 3.4: Create `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — depends on Tenants.CommandApi, Tenants.Server, Tenants.Testing, Sample (intentional: tests sample domain service registration patterns); FrameworkReference Microsoft.AspNetCore.App; xUnit, Shouldly, NSubstitute, YamlDotNet, coverlet. Include `<Using Include="Xunit" />`.
+  - [x] 3.4: Create `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — depends on Hexalith.Tenants, Tenants.Server, Tenants.Testing, Sample (intentional: tests sample domain service registration patterns); FrameworkReference Microsoft.AspNetCore.App; xUnit, Shouldly, NSubstitute, YamlDotNet, coverlet. Include `<Using Include="Xunit" />`.
   - [x] 3.5: Create `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj` — depends on Tenants.Testing, Tenants.Contracts, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
-  - [x] 3.6: Create `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` — depends on Tenants.CommandApi, Aspire.Hosting.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
+  - [x] 3.6: Create `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` — depends on Hexalith.Tenants, Aspire.Hosting.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
 - [x] Task 4: Create sample project shells (AC: #1, #8)
   - [x] 4.1: Create `samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj` — Web SDK, IsPackable=false, depends on Tenants.Client, Tenants.Contracts
   - [x] 4.2: Create `samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj` — PHYSICALLY under `samples/` but listed under `/samples/` folder in `.slnx`. Must explicitly set `IsTestProject=true`, `IsPackable=false` (does NOT inherit from `tests/Directory.Build.props`). Depends on Sample, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />`.
 - [x] Task 5: Add minimal source files for compilation (AC: #2)
   - [x] 5.1: Library SDK projects (Contracts, Client, Server, Testing, Aspire) compile empty — NO placeholder needed. Only Web SDK and Exe projects need entry points.
-  - [x] 5.2: Add `Program.cs` stub for CommandApi (minimal ASP.NET host: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
+  - [x] 5.2: Add `Program.cs` stub for Hexalith.Tenants (minimal ASP.NET host: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
   - [x] 5.3: Add `Program.cs` stub for AppHost (initial minimal Aspire host; later expanded in Story 1.2 with DAPR component wiring)
   - [x] 5.4: Add `Extensions.cs` stub for ServiceDefaults (initial placeholder extension method; later expanded in Story 1.2 with OpenTelemetry and health endpoint setup)
   - [x] 5.5: Add `Program.cs` stub for Sample (minimal web app: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
@@ -90,12 +90,12 @@ Hexalith.EventStore.Contracts <── Hexalith.Tenants.Contracts
 Hexalith.EventStore.Server <────────┘     └── (Dapr, MediatR)
                                      ├── Hexalith.Tenants.Testing
                                      │     └── (Shouldly, NSubstitute, xunit.assert)
-                                     ├── Hexalith.Tenants.CommandApi [Web SDK]
+                                     ├── Hexalith.Tenants [Web SDK]
                                      │     └── (Server, ServiceDefaults, Dapr, MediatR, FluentValidation, JWT, OpenApi)
                                      ├── Hexalith.Tenants.Aspire
                                      │     └── (Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr)
                                      ├── Hexalith.Tenants.AppHost [Aspire.AppHost.Sdk]
-                                     │     └── (CommandApi, Sample, Aspire)
+                                     │     └── (Hexalith.Tenants, Sample, Aspire)
                                      └── Hexalith.Tenants.ServiceDefaults
                                            └── (OpenTelemetry, Resilience, ServiceDiscovery)
 ```
@@ -117,7 +117,7 @@ Hexalith.EventStore.Server <────────┘     └── (Dapr, Med
 - Imports root props via `<Import Project="$([MSBuild]::GetPathOfFileAbove(...))" />`
 - Sets `IsPackable=false`, `IsPublishable=false`, `IsTestProject=true`
 
-**CommandApi pattern:** Uses `Microsoft.NET.Sdk.Web`, `IsPackable=false`, `IsPublishable=true`
+**Hexalith.Tenants pattern:** Uses `Microsoft.NET.Sdk.Web`, `IsPackable=false`, `IsPublishable=true`
 
 **AppHost pattern:** Uses `Aspire.AppHost.Sdk/13.1.2`, `OutputType=Exe`, `IsPackable=false`, `IsPublishable=true`, `UserSecretsId`
 
@@ -153,8 +153,8 @@ Hexalith.Tenants/
 │   │   └── Hexalith.Tenants.Client.csproj
 │   ├── Hexalith.Tenants.Server/
 │   │   └── Hexalith.Tenants.Server.csproj
-│   ├── Hexalith.Tenants.CommandApi/
-│   │   ├── Hexalith.Tenants.CommandApi.csproj
+│   ├── Hexalith.Tenants/
+│   │   ├── Hexalith.Tenants.csproj
 │   │   └── Program.cs
 │   ├── Hexalith.Tenants.Aspire/
 │   │   └── Hexalith.Tenants.Aspire.csproj
@@ -195,7 +195,7 @@ Hexalith.Tenants/
 - **DO** reference EventStore projects via `ProjectReference` with relative paths through the submodule (e.g., `..\..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj`)
 - **DO** ensure every src project without source files has at minimum an empty placeholder to avoid build warnings
 - **DO** match EventStore's NuGet package versions exactly from its `Directory.Packages.props`
-- **DO** set `InternalsVisibleTo` attributes matching the same pattern as EventStore (CommandApi → Server.Tests, Client → Client.Tests)
+- **DO** set `InternalsVisibleTo` attributes matching the same pattern as EventStore (Hexalith.Tenants → Server.Tests, Client → Client.Tests)
 
 ### NuGet Package Versions (from EventStore Directory.Packages.props)
 
@@ -290,7 +290,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - Task 3: Created tests/Directory.Build.props importing root props. All 5 test .csproj files with correct project references, xUnit, coverlet, and global `<Using Include="Xunit" />`.
 - Added one smoke test class per test project to prove test discovery and eliminate `No test is available` warnings during solution-level test runs.
 - Task 4: Created Sample and Sample.Tests under samples/. Sample.Tests explicitly sets IsTestProject=true, IsPackable=false since it doesn't inherit tests/Directory.Build.props.
-- Task 5: Added minimal Program.cs stubs for CommandApi and Sample. Story 1.2 later expanded AppHost and ServiceDefaults beyond the original scaffolding placeholders while preserving Story 1.1 buildability goals.
+- Task 5: Added minimal Program.cs stubs for Hexalith.Tenants and Sample. Story 1.2 later expanded AppHost and ServiceDefaults beyond the original scaffolding placeholders while preserving Story 1.1 buildability goals.
 - Task 6: `dotnet restore` — all 17 projects restored (15 Tenants + 2 EventStore). `dotnet build --configuration Release` — zero errors, zero warnings. `dotnet test` — 6 test projects discovered, 6 smoke tests executed, zero failures, zero warnings.
 
 ### File List
@@ -303,8 +303,8 @@ Claude Opus 4.6 (claude-opus-4-6)
 - src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (new)
 - src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (new)
 - src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj (new)
-- src/Hexalith.Tenants.CommandApi/Hexalith.Tenants.CommandApi.csproj (new)
-- src/Hexalith.Tenants.CommandApi/Program.cs (new)
+- src/Hexalith.Tenants/Hexalith.Tenants.csproj (new)
+- src/Hexalith.Tenants/Program.cs (new)
 - src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj (new)
 - src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj (new)
 - src/Hexalith.Tenants.AppHost/Program.cs (new)

@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 
 using Hexalith.EventStore.Server.Pipeline.Commands;
-using Hexalith.Tenants.CommandApi.Bootstrap;
-using Hexalith.Tenants.CommandApi.Configuration;
+using Hexalith.Tenants.Bootstrap;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 
 using MediatR;

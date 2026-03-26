@@ -12,7 +12,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Commands;
-using Hexalith.Tenants.CommandApi.Configuration;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 
 using Microsoft.AspNetCore.Authentication;

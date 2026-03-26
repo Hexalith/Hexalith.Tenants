@@ -415,7 +415,7 @@ src/
   Hexalith.Tenants.Contracts          # Domain types: commands, events, results, identities
   Hexalith.Tenants.Client             # Client abstractions and DI registration
   Hexalith.Tenants.Server             # Server-side domain aggregate, processors, DAPR
-  Hexalith.Tenants.CommandApi         # REST API gateway, auth, validation
+  Hexalith.Tenants         # REST API gateway, auth, validation
   Hexalith.Tenants.Aspire             # .NET Aspire hosting extensions
   Hexalith.Tenants.AppHost            # Aspire AppHost (DAPR topology orchestrator)
   Hexalith.Tenants.ServiceDefaults    # Shared service config, OpenTelemetry
@@ -436,7 +436,7 @@ samples/
 
 ### API Surface
 
-- **Command API:** REST endpoints for tenant commands via CommandApi project
+- **Command API:** REST endpoints for tenant commands via Hexalith.Tenants project
 - **Event contracts:** CloudEvents 1.0 published via DAPR pub/sub
 - **Read model queries:** ListTenants, GetTenant, GetTenantUsers via standard read model projections
 - **Client DI registration:** Consuming services register via minimal DI extension method

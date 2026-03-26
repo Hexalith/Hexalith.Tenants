@@ -175,7 +175,7 @@ This document provides the complete epic and story breakdown for Hexalith.Tenant
 - Cross-tenant index projections use ETag-based optimistic concurrency (`ConcurrencyMode.FirstWrite`) with retry logic (max 3 attempts) to prevent silent data loss on concurrent updates
 - Snapshot strategy: 50-event interval for tenant domain, default 100 for GlobalAdministratorAggregate
 - Bootstrap mechanism: Startup config via `appsettings.json` (`Tenants:BootstrapGlobalAdminUserId`), executed through full MediatR pipeline. GlobalAdministratorAggregate rejects if any GlobalAdministratorSet event exists
-- Query endpoints served from CommandApi as route groups (single deployable) -- `POST /api/commands` and `GET /api/tenants/*`
+- Query endpoints served from Hexalith.Tenants as route groups (single deployable) -- `POST /api/commands` and `GET /api/tenants/*`
 - JWT Bearer authentication via EventStore pipeline + domain RBAC in aggregate Handle methods (two authorization layers)
 - DAPR component YAML files in `dapr/components/` directory (statestore.yaml, pubsub.yaml, actors.yaml)
 - `system` tenant is a deployment prerequisite -- must be pre-configured in EventStore's domain service registration and identity provider JWT claims
@@ -378,7 +378,7 @@ So that local development with DAPR sidecars and observability is ready for doma
 
 **Given** the ServiceDefaults project exists
 **When** `dotnet build` is executed
-**Then** the ServiceDefaults project compiles successfully and is referenced by CommandApi
+**Then** the ServiceDefaults project compiles successfully and is referenced by Hexalith.Tenants
 
 ### Story 1.3: CI/CD Pipeline
 
@@ -591,7 +591,7 @@ Aggregate class — `Server/Aggregates/TenantAggregate.cs`:
 
 Testing pattern — same as Story 2.2: `aggregate.ProcessAsync(commandEnvelope, state)` with `CommandEnvelope` helper (see Architecture §D10 Testing Blueprint). All tests Tier 1.
 
-### Story 2.4: CommandApi, Bootstrap & Event Publishing
+### Story 2.4: Tenant Service, Bootstrap & Event Publishing
 
 As a platform operator,
 I want a deployable REST API that accepts tenant commands, bootstraps the global admin on startup, and publishes domain events via DAPR pub/sub,
@@ -599,15 +599,15 @@ So that the tenant service is operational end-to-end from command to event distr
 
 **Acceptance Criteria:**
 
-**Given** the CommandApi is deployed with DAPR sidecar
+**Given** Hexalith.Tenants is deployed with DAPR sidecar
 **When** a valid command is sent to `POST /api/commands`
 **Then** the command is processed through the MediatR pipeline (validation, authorization, aggregate Handle) and a success response is returned
 
-**Given** the CommandApi starts with `Tenants:BootstrapGlobalAdminUserId` configured in appsettings.json
+**Given** Hexalith.Tenants starts with `Tenants:BootstrapGlobalAdminUserId` configured in appsettings.json
 **When** no global administrators exist in the event store
 **Then** TenantBootstrapHostedService sends a BootstrapGlobalAdmin command through MediatR and the initial global admin is created
 
-**Given** the CommandApi starts on a multi-instance deployment where bootstrap has already completed
+**Given** Hexalith.Tenants starts on a multi-instance deployment where bootstrap has already completed
 **When** TenantBootstrapHostedService sends the BootstrapGlobalAdmin command
 **Then** the rejection is logged at Information level with "Global administrator already bootstrapped, skipping"
 
@@ -623,17 +623,17 @@ So that the tenant service is operational end-to-end from command to event distr
 **When** the error response is returned
 **Then** it follows RFC 7807 Problem Details format with type, title, detail, status, and correlationId fields
 
-**Given** the CommandApi is deployed with JWT authentication
+**Given** Hexalith.Tenants is deployed with JWT authentication
 **When** a request arrives without valid JWT credentials
 **Then** the request is rejected with 401 Unauthorized
 
-**Given** the CommandApi registers domain services via `AddEventStore()`
+**Given** Hexalith.Tenants registers domain services via `AddEventStore()`
 **When** the application starts
 **Then** `TenantAggregate` and `GlobalAdministratorsAggregate` are auto-discovered via assembly scanning and registered as domain processors
 
 **Given** the AggregateActor invokes domain processing via DAPR service-to-service call
 **When** a command reaches Step 4 of the actor pipeline
-**Then** CommandApi's `/process` endpoint receives the `DomainServiceRequest`, dispatches to `IDomainProcessor.ProcessAsync()`, and returns `DomainServiceWireResult` with events or rejections
+**Then** Hexalith.Tenants' `/process` endpoint receives the `DomainServiceRequest`, dispatches to `IDomainProcessor.ProcessAsync()`, and returns `DomainServiceWireResult` with events or rejections
 
 **Given** the full command pipeline is operational
 **When** Tier 2 integration tests run with DAPR slim init
@@ -641,7 +641,7 @@ So that the tenant service is operational end-to-end from command to event distr
 
 **Implementation Blueprint (Research-Validated 2026-03-15):**
 
-CommandApi `Program.cs` — DI registration and middleware:
+Hexalith.Tenants `Program.cs` — DI registration and middleware:
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -657,7 +657,7 @@ Key wiring details:
 - `AddEventStore()` triggers `AssemblyScanner` which discovers all `EventStoreAggregate<T>` subclasses and `EventStoreProjection<T>` subclasses in referenced assemblies
 - `UseEventStore()` resolves the 5-layer cascade configuration: conventions → global options → self-config → appsettings → explicit overrides
 - The `/process` endpoint is registered automatically by `UseEventStore()` — it maps to `IDomainProcessor.ProcessAsync()` which dispatches to the discovered aggregate's Handle method via reflection
-- `IDomainServiceResolver` maps aggregate types to the CommandApi's DAPR AppId for service-to-service invocation
+- `IDomainServiceResolver` maps aggregate types to the Hexalith.Tenants' DAPR AppId for service-to-service invocation
 - `TenantBootstrapHostedService`: reads `Tenants:BootstrapGlobalAdminUserId` from configuration, sends `BootstrapGlobalAdmin` through MediatR on startup. Logs rejection at Information level (idempotent on multi-instance)
 - `RejectionToHttpStatusMapper` middleware maps `IRejectionEvent` types to HTTP status codes per architecture §Format Patterns
 
@@ -1061,7 +1061,7 @@ So that I can start the full local development topology with a single `dotnet ru
 
 **Given** the Hexalith.Tenants.AppHost project exists
 **When** `dotnet run` is executed on the AppHost
-**Then** the Aspire dashboard launches and the tenant CommandApi is started with a DAPR sidecar configured for state store, pub/sub, and actors
+**Then** the Aspire dashboard launches and the Aspire dashboard launches with Hexalith.Tenants (AppId: tenants), EventStore server, and Keycloak, all started with DAPR sidecars configured for state store, pub/sub, and actors
 
 **Given** the AppHost is running
 **When** a developer sends a command to the tenant service via the Aspire dashboard or direct HTTP

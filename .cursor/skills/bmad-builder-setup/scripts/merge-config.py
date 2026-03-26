@@ -191,6 +191,36 @@ def extract_module_metadata(module_yaml: dict) -> dict:
     return meta
 
 
+def apply_result_templates(
+    module_yaml: dict, module_answers: dict, verbose: bool = False
+) -> dict:
+    """Apply result templates from module.yaml to transform raw answer values.
+
+    For each answer, if the corresponding variable definition in module.yaml has
+    a 'result' field, replaces {value} in that template with the answer. Skips
+    the template if the answer already contains '{project-root}' to prevent
+    double-prefixing.
+    """
+    transformed = {}
+    for key, value in module_answers.items():
+        var_def = module_yaml.get(key)
+        if (
+            isinstance(var_def, dict)
+            and "result" in var_def
+            and "{project-root}" not in str(value)
+        ):
+            template = var_def["result"]
+            transformed[key] = template.replace("{value}", str(value))
+            if verbose:
+                print(
+                    f"Applied result template for '{key}': {value} → {transformed[key]}",
+                    file=sys.stderr,
+                )
+        else:
+            transformed[key] = value
+    return transformed
+
+
 def merge_config(
     existing_config: dict,
     module_yaml: dict,
@@ -249,7 +279,9 @@ def merge_config(
 
     # Build module section: metadata + variable values
     module_section = extract_module_metadata(module_yaml)
-    module_answers = answers.get("module", {})
+    module_answers = apply_result_templates(
+        module_yaml, answers.get("module", {}), verbose
+    )
     module_section.update(module_answers)
 
     if verbose:

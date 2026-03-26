@@ -34,9 +34,9 @@ So that I can monitor service performance and availability in production.
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Create `TenantActivitySource` in CommandApi (AC: #1, #3)
-- [x] 1.1: Create `src/Hexalith.Tenants.CommandApi/Telemetry/TenantActivitySource.cs` — static class following `EventStoreActivitySource` pattern with `SourceName = "Hexalith.Tenants"`, span names for command processing (`Tenants.Command.Process`), and tag constants for `tenants.command_type`, `tenants.tenant_id`, `tenants.success`
-- [x] 1.2: Create `src/Hexalith.Tenants.CommandApi/Telemetry/TenantMetrics.cs` — static class using `System.Diagnostics.Metrics.Meter` with `MeterName = "Hexalith.Tenants"`. Two histogram instruments only (no separate counters — histograms natively track count, sum, and bucket distribution; any metrics backend can derive `rate(count[5m])` from the histogram): command latency histogram (`tenants.command.duration`, unit "ms") and projection query duration histogram (`tenants.projection.query.duration`, unit "ms"). Expose static `RecordCommandDuration` and `RecordQueryDuration` methods for clean call sites. Include a `private static readonly HashSet<string> s_knownCommandTypes` populated with the 12 tenant command type strings for metric dimension sanitization — unknown types fall back to `"unknown"`. Metric dimensions: `command_type` + `success` only (bounded cardinality). **NEVER** use `tenant_id` as a metric dimension — it is unbounded and belongs on trace spans only
+- [x] Task 1: Create `TenantActivitySource` in Hexalith.Tenants (AC: #1, #3)
+- [x] 1.1: Create `src/Hexalith.Tenants/Telemetry/TenantActivitySource.cs` — static class following `EventStoreActivitySource` pattern with `SourceName = "Hexalith.Tenants"`, span names for command processing (`Tenants.Command.Process`), and tag constants for `tenants.command_type`, `tenants.tenant_id`, `tenants.success`
+- [x] 1.2: Create `src/Hexalith.Tenants/Telemetry/TenantMetrics.cs` — static class using `System.Diagnostics.Metrics.Meter` with `MeterName = "Hexalith.Tenants"`. Two histogram instruments only (no separate counters — histograms natively track count, sum, and bucket distribution; any metrics backend can derive `rate(count[5m])` from the histogram): command latency histogram (`tenants.command.duration`, unit "ms") and projection query duration histogram (`tenants.projection.query.duration`, unit "ms"). Expose static `RecordCommandDuration` and `RecordQueryDuration` methods for clean call sites. Include a `private static readonly HashSet<string> s_knownCommandTypes` populated with the 12 tenant command type strings for metric dimension sanitization — unknown types fall back to `"unknown"`. Metric dimensions: `command_type` + `success` only (bounded cardinality). **NEVER** use `tenant_id` as a metric dimension — it is unbounded and belongs on trace spans only
 - [x] 1.3: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Instrument `DomainServiceRequestHandler` with command spans (AC: #1, #3)
@@ -53,12 +53,12 @@ So that I can monitor service performance and availability in production.
 - [x] 4.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 5: Add DAPR health checks for event store reachability (AC: #4, #5)
-- [x] 5.1: Create `src/Hexalith.Tenants.CommandApi/Health/DaprStateStoreHealthCheck.cs` — single health check that calls `DaprClient.GetStateAsync<string>("statestore", "health-probe")` to verify state store reachability. Returns `HealthCheckResult.Healthy()` on success, `HealthCheckResult.Unhealthy(...)` on any `Exception` (not just `DaprException` — also catches `TaskCanceledException`, `HttpRequestException`, etc. for robustness). A separate sidecar liveness check is unnecessary — the state store probe goes through the sidecar, so if the sidecar is down the probe fails too. One check, one signal, no redundancy
-- [x] 5.2: In `src/Hexalith.Tenants.CommandApi/Program.cs`, register the health check **AFTER** `builder.Services.AddDaprClient()` (the check depends on `DaprClient` via DI — registering before `AddDaprClient()` causes DI resolution failure). Use `failureStatus: HealthStatus.Degraded` to avoid startup flapping (during Aspire boot, the sidecar/state store may not be ready yet — Degraded returns 200 OK per the existing `MapDefaultEndpoints` status code mapping, preventing Aspire topology test flakes): `builder.Services.AddHealthChecks().AddCheck<DaprStateStoreHealthCheck>("dapr-statestore", failureStatus: HealthStatus.Degraded, tags: ["ready"])`. Tagged `["ready"]` for Kubernetes readiness probe — DAPR outages should stop traffic routing, NOT trigger pod restarts
+- [x] 5.1: Create `src/Hexalith.Tenants/Health/DaprStateStoreHealthCheck.cs` — single health check that calls `DaprClient.GetStateAsync<string>("statestore", "health-probe")` to verify state store reachability. Returns `HealthCheckResult.Healthy()` on success, `HealthCheckResult.Unhealthy(...)` on any `Exception` (not just `DaprException` — also catches `TaskCanceledException`, `HttpRequestException`, etc. for robustness). A separate sidecar liveness check is unnecessary — the state store probe goes through the sidecar, so if the sidecar is down the probe fails too. One check, one signal, no redundancy
+- [x] 5.2: In `src/Hexalith.Tenants/Program.cs`, register the health check **AFTER** `builder.Services.AddDaprClient()` (the check depends on `DaprClient` via DI — registering before `AddDaprClient()` causes DI resolution failure). Use `failureStatus: HealthStatus.Degraded` to avoid startup flapping (during Aspire boot, the sidecar/state store may not be ready yet — Degraded returns 200 OK per the existing `MapDefaultEndpoints` status code mapping, preventing Aspire topology test flakes): `builder.Services.AddHealthChecks().AddCheck<DaprStateStoreHealthCheck>("dapr-statestore", failureStatus: HealthStatus.Degraded, tags: ["ready"])`. Tagged `["ready"]` for Kubernetes readiness probe — DAPR outages should stop traffic routing, NOT trigger pod restarts
 - [x] 5.3: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 6: Create unit tests for telemetry instrumentation (AC: #1, #2)
-- [x] 6.1: Add `<ProjectReference>` from `tests/Hexalith.Tenants.Server.Tests/` to `src/Hexalith.Tenants.CommandApi/` if not already present — needed because `TenantActivitySource`, `TenantMetrics`, and `DomainServiceRequestHandler` are all in CommandApi (Server.Tests already has `InternalsVisibleTo` from CommandApi)
+- [x] 6.1: Add `<ProjectReference>` from `tests/Hexalith.Tenants.Server.Tests/` to `src/Hexalith.Tenants/` if not already present — needed because `TenantActivitySource`, `TenantMetrics`, and `DomainServiceRequestHandler` are all in Hexalith.Tenants (Server.Tests already has `InternalsVisibleTo` from Hexalith.Tenants)
 - [x] 6.2: Create `tests/Hexalith.Tenants.Server.Tests/Telemetry/TenantActivitySourceTests.cs` — verify activity source creates spans with expected names and tags when called directly. Use `ActivityListener` to capture activities in-process
 - [x] 6.3: Create `tests/Hexalith.Tenants.Server.Tests/Telemetry/TenantMetricsTests.cs` — verify metrics are recorded with expected dimensions using `System.Diagnostics.Metrics.MeterListener`
 - [x] 6.4: Create `tests/Hexalith.Tenants.Server.Tests/Telemetry/DomainServiceRequestHandlerTelemetryTests.cs` — **wiring test**: create a real `DomainServiceRequestHandler` with a mock `IDomainProcessor` (via NSubstitute), call `ProcessAsync()`, and assert via `ActivityListener` that the tenant command span was started with the correct tags. This verifies the handler actually invokes the telemetry, not just that the telemetry classes work in isolation
@@ -82,8 +82,8 @@ The architecture specifies: "OpenTelemetry via EventStore's telemetry infrastruc
 | ServiceDefaults with OpenTelemetry   | `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs`                 | Complete — configures OTLP, ASP.NET Core tracing, health endpoints                                           |
 | Health check endpoints               | ServiceDefaults `MapDefaultEndpoints()`                              | Complete — `/health`, `/alive`, `/ready` with JSON response in dev                                           |
 | EventStore ActivitySource            | `Hexalith.EventStore.Server.Telemetry.EventStoreActivitySource`      | Complete — `"Hexalith.EventStore"` source with pipeline spans                                                |
-| EventStore CommandApi ActivitySource | `Hexalith.EventStore.CommandApi.Telemetry.EventStoreActivitySources` | Complete — `"Hexalith.EventStore.CommandApi"` source                                                         |
-| Trace source registration            | ServiceDefaults `ConfigureOpenTelemetry()`                           | Already registers `"Hexalith.Tenants.CommandApi"`, `"Hexalith.Tenants"`, and `"Hexalith.EventStore"` sources |
+| EventStore Hexalith.Tenants ActivitySource | `Hexalith.EventStore.Hexalith.Tenants.Telemetry.EventStoreActivitySources` | Complete — `"Hexalith.EventStore.Hexalith.Tenants"` source                                                         |
+| Trace source registration            | ServiceDefaults `ConfigureOpenTelemetry()`                           | Already registers `"Hexalith.Tenants"`, `"Hexalith.Tenants"`, and `"Hexalith.EventStore"` sources |
 | Health check with JSON response      | ServiceDefaults `WriteHealthCheckJsonResponse()`                     | Complete — detailed JSON in dev, minimal in prod                                                             |
 
 ### EventStore ActivitySource Pattern (MUST Follow)
@@ -102,13 +102,13 @@ public static class EventStoreActivitySource
 }
 ```
 
-The `EventStoreActivitySources` in CommandApi (`Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Telemetry/EventStoreActivitySources.cs`) shows the CommandApi layer pattern:
+The `EventStoreActivitySources` in Hexalith.Tenants (`Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Telemetry/EventStoreActivitySources.cs`) shows Hexalith.Tenants layer pattern:
 
 ```csharp
 internal static class EventStoreActivitySources
 {
-    public const string Submit = "EventStore.CommandApi.Submit";
-    public static readonly ActivitySource CommandApi = new("Hexalith.EventStore.CommandApi");
+    public const string Submit = "EventStore.Hexalith.Tenants.Submit";
+    public static readonly ActivitySource Hexalith.Tenants = new("Hexalith.EventStore.Hexalith.Tenants");
 }
 ```
 
@@ -162,7 +162,7 @@ internal static class TenantMetrics
 
 ### DomainServiceRequestHandler Instrumentation
 
-The `DomainServiceRequestHandler` (`src/Hexalith.Tenants.CommandApi/DomainProcessing/DomainServiceRequestHandler.cs`) is the command entry point. It iterates over `IDomainProcessor` instances and delegates processing. Wrap the **entire** `foreach` loop (including the final exception) in an `Activity` span with independent `Stopwatch` timing:
+The `DomainServiceRequestHandler` (`src/Hexalith.Tenants/DomainProcessing/DomainServiceRequestHandler.cs`) is the command entry point. It iterates over `IDomainProcessor` instances and delegates processing. Wrap the **entire** `foreach` loop (including the final exception) in an `Activity` span with independent `Stopwatch` timing:
 
 ```csharp
 // NOTE: Structural guide — adapt to the actual handler structure.
@@ -233,7 +233,7 @@ Register with `["ready"]` tag so it appears on `/ready` endpoint (Kubernetes rea
 
 ### ServiceDefaults Modifications
 
-The `ConfigureOpenTelemetry()` method in `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs` already registers trace sources `"Hexalith.Tenants.CommandApi"` and `"Hexalith.Tenants"` (lines 60-62). **ONLY** add `.AddMeter("Hexalith.Tenants")` to the `.WithMetrics()` chain:
+The `ConfigureOpenTelemetry()` method in `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs` already registers trace sources `"Hexalith.Tenants"` and `"Hexalith.Tenants"` (lines 60-62). **ONLY** add `.AddMeter("Hexalith.Tenants")` to the `.WithMetrics()` chain:
 
 ```csharp
 .WithMetrics(metrics => metrics
@@ -257,7 +257,7 @@ NFR1 is measured by the new `tenants.command.duration` histogram. NFR2 is covere
 ### File Structure
 
 ```text
-src/Hexalith.Tenants.CommandApi/
+src/Hexalith.Tenants/
   ├── Telemetry/
   │   ├── TenantActivitySource.cs           # NEW — activity source for tenant spans
   │   └── TenantMetrics.cs                  # NEW — custom metrics (command + projection)
@@ -273,7 +273,7 @@ src/Hexalith.Tenants.ServiceDefaults/
   └── Extensions.cs                         # MODIFY — add .AddMeter("Hexalith.Tenants")
 
 tests/Hexalith.Tenants.Server.Tests/
-  ├── Hexalith.Tenants.Server.Tests.csproj  # MODIFY — add CommandApi project reference
+  ├── Hexalith.Tenants.Server.Tests.csproj  # MODIFY — add Hexalith.Tenants project reference
   ├── Telemetry/
   │   ├── TenantActivitySourceTests.cs                  # NEW — activity span tests
   │   ├── TenantMetricsTests.cs                         # NEW — metrics recording tests
@@ -286,7 +286,7 @@ tests/Hexalith.Tenants.Server.Tests/
 
 - **DO NOT** modify EventStore's `EventStoreActivitySource` or `EventStoreActivitySources` — those belong to the EventStore submodule
 - **DO NOT** change the existing trace sources registered in ServiceDefaults (lines 60-62) — they are correct
-- **DO NOT** add OpenTelemetry NuGet packages to CommandApi.csproj — the `System.Diagnostics.ActivitySource` and `System.Diagnostics.Metrics` APIs are built into .NET. The OpenTelemetry packages are only in ServiceDefaults for OTLP export configuration
+- **DO NOT** add OpenTelemetry NuGet packages to Hexalith.Tenants.csproj — the `System.Diagnostics.ActivitySource` and `System.Diagnostics.Metrics` APIs are built into .NET. The OpenTelemetry packages are only in ServiceDefaults for OTLP export configuration
 - **DO NOT** create a custom health check that directly calls Redis/EventStore bypassing DAPR — use `DaprClient.GetStateAsync()` which goes through the sidecar (the correct abstraction layer per DAPR architecture). Do NOT use `DaprClient.CheckHealthAsync()` alone — it only checks sidecar liveness, not state store reachability
 - **DO NOT** register the DAPR health check with `["live"]` tag — DAPR outages should not trigger pod restarts, only stop traffic routing (`["ready"]` tag)
 - **DO NOT** modify existing test files — add NEW test files only
@@ -318,7 +318,7 @@ tests/Hexalith.Tenants.Server.Tests/
 
 3. **Health check tests** (`DaprStateStoreHealthCheckTests`) — mock `DaprClient` with NSubstitute, verify the single health check returns correct `HealthCheckResult` for three scenarios: success → Healthy, `DaprException` → Unhealthy, `TaskCanceledException` → Unhealthy. Tier 1 (no DAPR sidecar needed).
 
-**Test placement:** `Server.Tests` project needs a `<ProjectReference>` to `CommandApi` since `TenantActivitySource`, `TenantMetrics`, `DomainServiceRequestHandler`, and the health checks are all in CommandApi. CommandApi already declares `InternalsVisibleTo` for `Hexalith.Tenants.Server.Tests`.
+**Test placement:** `Server.Tests` project needs a `<ProjectReference>` to `Hexalith.Tenants` since `TenantActivitySource`, `TenantMetrics`, `DomainServiceRequestHandler`, and the health checks are all in Hexalith.Tenants. Hexalith.Tenants already declares `InternalsVisibleTo` for `Hexalith.Tenants.Server.Tests`.
 
 **Regression baseline:** Story 7.1 ended at 391 Tier 1 tests. Task 7 should verify 391+N pass (N = new telemetry + health check tests).
 
@@ -327,13 +327,13 @@ tests/Hexalith.Tenants.Server.Tests/
 - No new projects created — all changes in existing projects
 - No new NuGet packages required — `System.Diagnostics.ActivitySource` and `System.Diagnostics.Metrics` are in .NET BCL
 - ServiceDefaults already has all required OpenTelemetry packages
-- CommandApi already has `InternalsVisibleTo` for Server.Tests and IntegrationTests
+- Hexalith.Tenants already has `InternalsVisibleTo` for Server.Tests and IntegrationTests
 
 ### Previous Story Intelligence (7.1)
 
 Story 7.1 established:
 
-- AppHost topology with CommandApi and Sample, both with DAPR sidecars
+- AppHost topology with Hexalith.Tenants and Sample, both with DAPR sidecars
 - Aspire topology smoke tests (3 tests) in IntegrationTests
 - 391 Tier 1 tests pass; 2 pre-existing Tier 3 failures (expected — DAPR infrastructure)
 - ServiceDefaults is fully functional with OpenTelemetry tracing, health endpoints, JSON console logging
@@ -370,10 +370,10 @@ Recent commits:
 - [Source: _bmad-output/planning-artifacts/architecture.md#Infrastructure & Deployment] — OpenTelemetry via EventStore's telemetry infrastructure
 - [Source: _bmad-output/planning-artifacts/architecture.md#Enforcement Guidelines] — Structured logging with semantic parameters
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Telemetry/EventStoreActivitySource.cs] — Reference pattern for ActivitySource
-- [Source: Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Telemetry/EventStoreActivitySources.cs] — Reference pattern for CommandApi telemetry
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Telemetry/EventStoreActivitySources.cs] — Reference pattern for Hexalith.Tenants telemetry
 - [Source: src/Hexalith.Tenants.ServiceDefaults/Extensions.cs] — Existing OpenTelemetry + health checks
-- [Source: src/Hexalith.Tenants.CommandApi/DomainProcessing/DomainServiceRequestHandler.cs] — Command processing entry point (instrumentation target)
-- [Source: src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs] — Projection query dispatch (instrumentation target)
+- [Source: src/Hexalith.Tenants/DomainProcessing/DomainServiceRequestHandler.cs] — Command processing entry point (instrumentation target)
+- [Source: src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs] — Projection query dispatch (instrumentation target)
 - [Source: _bmad-output/implementation-artifacts/7-1-aspire-hosting-and-apphost.md] — Previous story learnings
 
 ## Dev Agent Record
@@ -404,9 +404,9 @@ Claude Opus 4.6 (1M context)
 
 New files:
 
-- src/Hexalith.Tenants.CommandApi/Telemetry/TenantActivitySource.cs
-- src/Hexalith.Tenants.CommandApi/Telemetry/TenantMetrics.cs
-- src/Hexalith.Tenants.CommandApi/Health/DaprStateStoreHealthCheck.cs
+- src/Hexalith.Tenants/Telemetry/TenantActivitySource.cs
+- src/Hexalith.Tenants/Telemetry/TenantMetrics.cs
+- src/Hexalith.Tenants/Health/DaprStateStoreHealthCheck.cs
 - tests/Hexalith.Tenants.Server.Tests/Telemetry/TenantActivitySourceTests.cs
 - tests/Hexalith.Tenants.Server.Tests/Telemetry/TenantMetricsTests.cs
 - tests/Hexalith.Tenants.Server.Tests/Telemetry/DomainServiceRequestHandlerTelemetryTests.cs
@@ -415,9 +415,9 @@ New files:
 
 Modified files:
 
-- src/Hexalith.Tenants.CommandApi/DomainProcessing/DomainServiceRequestHandler.cs
-- src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs
-- src/Hexalith.Tenants.CommandApi/Program.cs
+- src/Hexalith.Tenants/DomainProcessing/DomainServiceRequestHandler.cs
+- src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs
+- src/Hexalith.Tenants/Program.cs
 - src/Hexalith.Tenants.ServiceDefaults/Extensions.cs
 - tests/Hexalith.Tenants.Server.Tests/Telemetry/TenantMetricsTests.cs
 

@@ -1,47 +1,47 @@
 installation:
-  version: 6.2.1
+  version: 6.2.2
   installDate: 2026-03-06T08:56:30.078Z
-  lastUpdated: 2026-03-24T11:32:10.738Z
+  lastUpdated: 2026-03-26T19:27:07.165Z
 modules:
   - name: core
-    version: 6.2.1
+    version: 6.2.2
     installDate: 2026-03-06T08:56:28.658Z
-    lastUpdated: 2026-03-24T11:32:08.971Z
+    lastUpdated: 2026-03-26T19:27:05.420Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmm
-    version: 6.2.1
+    version: 6.2.2
     installDate: 2026-03-06T08:56:18.208Z
-    lastUpdated: 2026-03-24T11:32:08.971Z
+    lastUpdated: 2026-03-26T19:27:05.420Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmb
     version: 1.1.0
     installDate: 2026-03-06T08:56:19.736Z
-    lastUpdated: 2026-03-24T11:32:09.413Z
+    lastUpdated: 2026-03-26T19:27:05.852Z
     source: external
     npmPackage: bmad-builder
     repoUrl: https://github.com/bmad-code-org/bmad-builder
   - name: cis
     version: 0.1.9
     installDate: 2026-03-06T08:56:22.115Z
-    lastUpdated: 2026-03-24T11:32:09.835Z
+    lastUpdated: 2026-03-26T19:27:06.276Z
     source: external
     npmPackage: bmad-creative-intelligence-suite
     repoUrl: https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite
   - name: tea
     version: 1.7.2
     installDate: 2026-03-06T08:56:24.509Z
-    lastUpdated: 2026-03-24T11:32:10.268Z
+    lastUpdated: 2026-03-26T19:27:06.700Z
     source: external
     npmPackage: bmad-method-test-architecture-enterprise
     repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
   - name: wds
-    version: 0.3.0
+    version: 0.3.1
     installDate: 2026-03-24T11:32:02.726Z
-    lastUpdated: 2026-03-24T11:32:10.738Z
+    lastUpdated: 2026-03-26T19:27:07.165Z
     source: external
     npmPackage: bmad-method-wds-expansion
     repoUrl: https://github.com/bmad-code-org/bmad-method-wds-expansion

@@ -74,7 +74,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 - Primary domain: Backend API / Event-sourced domain service
 - Complexity level: Medium-high
-- Estimated architectural components: ~12 (5 NuGet packages + CommandApi + AppHost + ServiceDefaults + test projects + sample)
+- Estimated architectural components: ~12 (5 NuGet packages + Hexalith.Tenants + AppHost + ServiceDefaults + test projects + sample)
 
 ### Technical Constraints & Dependencies
 
@@ -227,7 +227,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Three-tier test architecture (Unit → DAPR → Aspire E2E)
 
 **Code Organization:**
-- `src/` — 8 projects (Contracts, Client, Server, CommandApi, Aspire, AppHost, ServiceDefaults, Testing)
+- `src/` — 8 projects (Contracts, Client, Server, Hexalith.Tenants, Aspire, AppHost, ServiceDefaults, Testing)
 - `tests/` — 5 test projects (Contracts.Tests, Client.Tests, Server.Tests, Testing.Tests, IntegrationTests)
 - `samples/` — Sample consuming service + tests
 
@@ -244,7 +244,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 
 **Critical Decisions (Block Implementation):**
 1. Read model architecture → EventStoreProjection pattern with DAPR state store
-2. Query endpoints → Served from CommandApi (single deployable with route groups)
+2. Query endpoints → Served from Hexalith.Tenants (single deployable with route groups)
 3. Bootstrap mechanism → Startup configuration via appsettings.json, through full MediatR pipeline
 4. .NET SDK version → 10.0.103
 
@@ -276,7 +276,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
   - `TenantProjection : EventStoreProjection<TenantReadModel>` — per-tenant detail view (users, roles, config, status)
   - `GlobalAdministratorProjection : EventStoreProjection<GlobalAdministratorReadModel>` — global admin list
   - Cross-tenant index projections for ListTenants, GetUserTenants, and audit queries
-- Affects: Server, CommandApi, Testing
+- Affects: Server, Hexalith.Tenants, Testing
 
 **Cross-Tenant Index Projections (Party Mode Finding):**
 - Per-aggregate projections replay events for one aggregate instance. Cross-tenant indexes are materially different — they aggregate data across ALL tenant aggregate instances into a single queryable index
@@ -319,7 +319,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 **Authentication:**
 - Decision: JWT Bearer tokens via EventStore's authentication pipeline
 - Provided by EventStore: `Microsoft.AspNetCore.Authentication.JwtBearer` + `EventStoreClaimsTransformation`
-- Affects: CommandApi
+- Affects: Hexalith.Tenants
 
 **Authorization (Two Layers):**
 - Decision: Layer 1 = EventStore JWT-based API access authorization. Layer 2 = Tenant domain RBAC (TenantOwner/Contributor/Reader/GlobalAdmin) enforced in aggregate Handle methods
@@ -336,22 +336,22 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 
 **Bootstrap Mechanism (FR17-18):**
 - Decision: Startup configuration via appsettings.json, executed through the full MediatR pipeline
-- Rationale: CommandApi reads `Tenants:BootstrapGlobalAdminUserId` on startup and sends `BootstrapGlobalAdmin` command through MediatR (validation, authorization). GlobalAdministratorAggregate rejects if any GlobalAdministratorSet event exists. Zero-touch after first boot. Must go through full pipeline — aggregate rejection is the safety net, not a shortcut
-- Affects: CommandApi startup, GlobalAdministratorAggregate
+- Rationale: Hexalith.Tenants reads `Tenants:BootstrapGlobalAdminUserId` on startup and sends `BootstrapGlobalAdmin` command through MediatR (validation, authorization). GlobalAdministratorAggregate rejects if any GlobalAdministratorSet event exists. Zero-touch after first boot. Must go through full pipeline — aggregate rejection is the safety net, not a shortcut
+- Affects: Hexalith.Tenants startup, GlobalAdministratorAggregate
 
 ### API & Communication Patterns
 
 **Command API:**
 - Decision: REST via EventStore's CommandApi pattern (CommandsController)
 - Provided by EventStore: SubmitCommandRequest/Response, validation pipeline, error handling
-- Affects: CommandApi
+- Affects: Hexalith.Tenants
 
 **Query Endpoints (FR25-30):**
-- Decision: Served from CommandApi as route groups (single deployable)
-- Rationale: At admin-frequency scale (1K tenants), a separate QueryApi deployable adds operational complexity without scaling benefit. Route groups in CommandApi (e.g., `/api/commands/*` and `/api/tenants/*`) achieve code-level separation without deployment overhead. Separation into a standalone QueryApi can happen later if scaling demands it
+- Decision: Served from Hexalith.Tenants as route groups (single deployable)
+- Rationale: At admin-frequency scale (1K tenants), a separate QueryApi deployable adds operational complexity without scaling benefit. Route groups in Hexalith.Tenants (e.g., `/api/commands/*` and `/api/tenants/*`) achieve code-level separation without deployment overhead. Separation into a standalone QueryApi can happen later if scaling demands it
 - Party Mode Finding: Winston (Architect) identified that the operational cost of two DAPR-sidecared deployables outweighs CQRS purity at this scale
 - Shared startup logic extracted into ServiceDefaults to avoid drift if separation happens later
-- Affects: CommandApi project structure
+- Affects: Hexalith.Tenants project structure
 
 **D7 Revision (2026-03-15 — EventStore Upgrade Alignment): Dual-Layer Query Architecture**
 - Decision: Dual-layer query architecture
@@ -371,7 +371,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Decision: Eventual consistency with read-after-write mitigation (Option A)
 - Rationale: Projections are eventually consistent — a tenant created via `POST /api/commands` may not appear immediately in `GET /api/tenants`. Admin experience requires confirmation, not immediate list visibility
 - Pattern: Command response includes the aggregate ID. Client navigates to `GET /api/tenants/{id}` directly. If projection hasn't processed yet, UI shows "processing..." with short poll. No infrastructure changes required
-- Affects: CommandApi command response shape, consuming service documentation
+- Affects: Hexalith.Tenants command response shape, consuming service documentation
 - Note: FR25-30 in the PRD do not specify the consistency model for queries. This should be clarified in the PRD to prevent test assertions that assume immediate consistency
 
 **Error Handling:**
@@ -405,7 +405,7 @@ src/
   Hexalith.Tenants.Contracts         # Commands, events, results, identities
   Hexalith.Tenants.Client            # Client abstractions and DI registration
   Hexalith.Tenants.Server            # Aggregates, projections, DAPR integration
-  Hexalith.Tenants.CommandApi        # REST command + query gateway, auth, validation, bootstrap
+  Hexalith.Tenants        # REST command + query gateway, auth, validation, bootstrap
   Hexalith.Tenants.Aspire            # .NET Aspire hosting extensions
   Hexalith.Tenants.AppHost           # Aspire AppHost (DAPR topology orchestrator)
   Hexalith.Tenants.ServiceDefaults   # Shared service config, OpenTelemetry
@@ -424,14 +424,14 @@ samples/
 ```
 
 **Cross-Component Dependencies:**
-- CommandApi depends on: Server (aggregates + projections), Contracts, ServiceDefaults
+- Hexalith.Tenants depends on: Server (aggregates + projections), Contracts, ServiceDefaults
 - Server contains: Aggregates + Projections (both auto-discovered via assembly scanning)
 - Testing references: Server (same domain logic for fakes + in-memory projection for query testing)
-- AppHost orchestrates: CommandApi + DAPR sidecar (single topology)
+- AppHost orchestrates: Hexalith.Tenants + EventStore + Keycloak + DAPR sidecar (single topology)
 
 **Party Mode Review Summary:**
 Panel review (Architect, Dev, Test Architect) surfaced 8 findings, all accepted:
-1. QueryApi merged into CommandApi (single deployable, route groups)
+1. QueryApi merged into Hexalith.Tenants (single deployable, route groups)
 2. Cross-tenant index projections documented as distinct architectural concern
 3. GlobalAdmin snapshot uses default 100 (low event volume)
 4. Shared startup logic extracted into ServiceDefaults
@@ -482,6 +482,7 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 
 **DAPR Resource Naming:**
 - Convention-derived by EventStore's NamingConventionEngine
+- AppId: `tenants` (matches domain name)
 - State store: `tenants-eventstore` (domain name + suffix)
 - Topic: `tenants.events` (domain name + `.events`)
 - Dead letter: `deadletter.tenants.events`
@@ -505,8 +506,8 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
 | Audit event category enum (`AuditEventCategory`) | Contracts | D12: Referenced by query contracts |
 | Rejection events (`*Rejection`) | Contracts | Business rule violation events (IRejectionEvent) |
 | FluentValidation validators | Server | Command validation |
-| Controllers | CommandApi | REST endpoints |
-| API models (DTOs) | CommandApi | Request/response shapes if different from commands |
+| Controllers | Hexalith.Tenants | REST endpoints |
+| API models (DTOs) | Hexalith.Tenants | Request/response shapes if different from commands |
 | Client abstractions | Client | DI extension methods for consuming services |
 | In-memory fakes | Testing | Test infrastructure |
 | In-memory projection | Testing | Query testing infrastructure |
@@ -544,7 +545,7 @@ Post-completion validation review (Architect, Dev, PM, Test Architect) surfaced 
   "correlationId": "abc-123"
 }
 ```
-Follows RFC 7807 Problem Details format. Rejection events are mapped to HTTP status codes by a `RejectionToHttpStatusMapper` middleware in CommandApi. The `type` field uses the rejection event type name for programmatic error handling by consumers.
+Follows RFC 7807 Problem Details format. Rejection events are mapped to HTTP status codes by a `RejectionToHttpStatusMapper` middleware in Hexalith.Tenants. The `type` field uses the rejection event type name for programmatic error handling by consumers.
 
 ### Communication Patterns
 
@@ -742,8 +743,8 @@ Hexalith.Tenants/
 │   │       ├── SetTenantConfigurationValidator.cs
 │   │       └── ChangeUserRoleValidator.cs
 │   │
-│   ├── Hexalith.Tenants.CommandApi/       # Deployable: REST commands + queries
-│   │   ├── Hexalith.Tenants.CommandApi.csproj
+│   ├── Hexalith.Tenants/       # Deployable: REST commands + queries
+│   │   ├── Hexalith.Tenants.csproj
 │   │   ├── Program.cs
 │   │   ├── Controllers/
 │   │   │   └── TenantsQueryController.cs  # FR25-30 query endpoints
@@ -809,15 +810,15 @@ Hexalith.Tenants/
 ### Architectural Boundaries
 
 **API Boundaries:**
-- External: REST API via CommandApi (commands at `POST /api/commands`, queries at `GET /api/tenants/*`)
+- External: REST API via Hexalith.Tenants (commands at `POST /api/commands`, queries at `GET /api/tenants/*`)
 - Internal: MediatR pipeline for command dispatch, DAPR actor invocation for aggregate processing
-- Auth boundary: JWT validation at CommandApi entry point, domain RBAC in aggregate Handle methods
+- Auth boundary: JWT validation at Hexalith.Tenants entry point, domain RBAC in aggregate Handle methods
 
 **Component Boundaries:**
 - Contracts → Referenced by all other projects and consuming services (public API surface)
 - Client → References Contracts only (thin DI layer)
 - Server → References Contracts (domain logic, auto-discovered by EventStore)
-- CommandApi → References Server + Contracts + ServiceDefaults (deployable host)
+- Hexalith.Tenants → References Server + Contracts + ServiceDefaults (deployable host)
 - Testing → References Server + Contracts (same domain logic for fakes)
 - Aspire → References Contracts + Client (hosting extensions)
 
@@ -835,7 +836,7 @@ Hexalith.Tenants/
 | User-Role Management (FR6-12) | Contracts/Commands, Server/Aggregates | AddUserToTenant.cs → TenantAggregate.cs |
 | Global Administration (FR13-18) | Contracts/Commands, Server/Aggregates | BootstrapGlobalAdmin.cs → GlobalAdministratorAggregate.cs |
 | Tenant Configuration (FR19-24) | Contracts/Commands, Server/Aggregates | SetTenantConfiguration.cs → TenantAggregate.cs |
-| Tenant Discovery & Query (FR25-30) | Server/Projections, CommandApi/Controllers | TenantIndexProjection.cs → TenantsQueryController.cs |
+| Tenant Discovery & Query (FR25-30) | Server/Projections, Hexalith.Tenants/Controllers | TenantIndexProjection.cs → TenantsQueryController.cs |
 | Role Behavior (FR31-34) | Server/Aggregates | TenantAggregate.cs Handle methods |
 | Event-Driven Integration (FR35-42) | Contracts/Events, docs/ | TenantCreated.cs + event-contract-reference.md |
 | Developer Experience (FR43-49) | Client, Testing, Aspire | TenantServiceCollectionExtensions.cs, InMemoryTenantService.cs |
@@ -875,7 +876,7 @@ HTTP POST /api/v1/commands (JWT-authenticated)
 | 1 | **Idempotency check** — cached result by CausationId; resume for in-flight pipelines | Skip to cached result |
 | 2 | **Tenant validation** — validates TenantId matches actor ID (SEC-2). BEFORE state access | Reject with TenantMismatchException |
 | 3 | **State rehydration** — load snapshot + tail-only event replay → current state | Dead-letter on failure |
-| 4 | **Domain service invocation** — DAPR service-to-service call to CommandApi `/process` endpoint | Dead-letter on failure |
+| 4 | **Domain service invocation** — DAPR service-to-service call to Hexalith.Tenants `/process` endpoint | Dead-letter on failure |
 | 5 | **Event persistence + publication** — persist events atomically, snapshot if threshold met, publish via DAPR pub/sub | Drain reminder for failed publications |
 
 ```
@@ -888,7 +889,7 @@ Domain Service Invocation (Step 4 Detail):
           ├─ DomainServiceRequest = { CommandEnvelope, CurrentState }
           └─ DomainServiceWireResult → DomainResult (events or rejections)
 
-CommandApi /process endpoint:
+Hexalith.Tenants /process endpoint:
   DomainServiceRequest received
     └─ IDomainProcessor.ProcessAsync()
        └─ Reflection-based dispatch to Aggregate.Handle(Command, State?)
@@ -899,7 +900,7 @@ Terminal states: Completed (success), Rejected (domain rejection), PublishFailed
 
 **Query Flow:**
 ```
-Client → CommandApi (REST) → MediatR → QueryRouter → CachingProjectionActor → ReadModel
+Client → Hexalith.Tenants (REST) → MediatR → QueryRouter → CachingProjectionActor → ReadModel
 (ETag pre-check at controller level: If-None-Match → 304 Not Modified)
 ```
 
@@ -1045,7 +1046,7 @@ public record GetTenantAuditQuery(
 **Type locations:**
 - `GetTenantAuditQuery`, `AuditEventCategory` enum → Contracts
 - `TenantAuditProjection`, `TenantAuditReadModel` → Server
-- REST endpoint → CommandApi (`TenantsQueryController`)
+- REST endpoint → Hexalith.Tenants (`TenantsQueryController`)
 
 **Extends:** D4 (Data Architecture — Read Model) — adds a fourth projection alongside `TenantProjection`, `GlobalAdministratorProjection`, and `TenantIndexProjection`.
 
@@ -1076,7 +1077,7 @@ The User Search page displays memberships across multiple tenants and must recei
 
 **Fallback:** Automatic polling at 5s intervals when SignalR connection fails. Client uses `stale-while-revalidate` pattern — shows cached data immediately, refreshes silently on reconnect.
 
-**Affects:** CommandApi (SignalR hub configuration), ServiceDefaults (SignalR service registration), AppHost (SignalR resource in Aspire topology).
+**Affects:** Hexalith.Tenants (SignalR hub configuration), ServiceDefaults (SignalR service registration), AppHost (SignalR resource in Aspire topology).
 
 **Extends:** D4 Revision (2026-03-15) — promotes `IProjectionChangedBroadcaster` from optional to required; adds multi-tenant subscription pattern.
 

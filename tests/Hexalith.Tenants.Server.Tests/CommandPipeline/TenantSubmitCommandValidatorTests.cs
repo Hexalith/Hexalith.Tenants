@@ -1,7 +1,7 @@
 using System.Text.Json;
 
 using Hexalith.EventStore.Server.Pipeline.Commands;
-using Hexalith.Tenants.CommandApi.Validation;
+using Hexalith.Tenants.Validation;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Server.Validators;

@@ -111,7 +111,7 @@ So that consuming services and all other packages have a stable, shared API surf
 
 This is the **first domain logic story** — everything before this was scaffolding. The Contracts package is the stable public API surface consumed by all other packages (Client, Server, Testing) and by consuming services via NuGet. Every type defined here becomes a public contract that must remain backward-compatible post-v1.0.
 
-**Key mental model:** Commands are inputs (what a user wants to do). Events are outputs (what happened). Commands are NOT serialized into the event store — only events are. Commands flow through MediatR in the CommandApi; events flow through DAPR pub/sub to consuming services. This is why commands don't implement `IEventPayload` but events do.
+**Key mental model:** Commands are inputs (what a user wants to do). Events are outputs (what happened). Commands are NOT serialized into the event store — only events are. Commands flow through MediatR in Hexalith.Tenants; events flow through DAPR pub/sub to consuming services. This is why commands don't implement `IEventPayload` but events do.
 
 **GlobalAdmin vs Tenant scope:** Most types operate on a specific managed tenant (identified by `TenantId`). The GlobalAdmin commands (`BootstrapGlobalAdmin`, `SetGlobalAdministrator`, `RemoveGlobalAdministrator`) are platform-level — they operate on the singleton `global-administrators` aggregate under the `system` platform tenant. Their events still carry `TenantId` (set to `"system"` at runtime) for consistency with the architecture rule that ALL events must include `TenantId`.
 

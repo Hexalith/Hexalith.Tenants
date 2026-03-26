@@ -9,7 +9,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
-using Hexalith.Tenants.CommandApi.Configuration;
+using Hexalith.Tenants.Configuration;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;

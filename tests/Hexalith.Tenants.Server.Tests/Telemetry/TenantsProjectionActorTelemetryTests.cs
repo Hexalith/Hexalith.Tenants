@@ -7,8 +7,8 @@ using Dapr.Client;
 
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Queries;
-using Hexalith.Tenants.CommandApi.Actors;
-using Hexalith.Tenants.CommandApi.Telemetry;
+using Hexalith.Tenants.Actors;
+using Hexalith.Tenants.Telemetry;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Server.Projections;
 

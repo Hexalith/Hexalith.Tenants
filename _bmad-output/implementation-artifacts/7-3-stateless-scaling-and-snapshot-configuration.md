@@ -39,7 +39,7 @@ So that I can scale horizontally, restart without data loss, and maintain operat
 ## Tasks / Subtasks
 
 - [x] Task 1: Configure snapshot interval for tenant domain (AC: #2, #3)
-    - [x] 1.1: In `src/Hexalith.Tenants.CommandApi/appsettings.json`, add the `EventStore:Snapshots` section with `DomainIntervals` setting `tenants` to `50`. The `DefaultInterval` stays at `100` (EventStore's default in `SnapshotOptions`) — this covers GlobalAdministratorAggregate's low event volume. Do NOT set `TenantDomainIntervals` — the `system` tenant uses the same domain interval as any other tenant
+    - [x] 1.1: In `src/Hexalith.Tenants/appsettings.json`, add the `EventStore:Snapshots` section with `DomainIntervals` setting `tenants` to `50`. The `DefaultInterval` stays at `100` (EventStore's default in `SnapshotOptions`) — this covers GlobalAdministratorAggregate's low event volume. Do NOT set `TenantDomainIntervals` — the `system` tenant uses the same domain interval as any other tenant
     - [x] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create snapshot configuration unit test (AC: #2, #3)
@@ -89,7 +89,7 @@ This story validates three architectural properties that are **already implement
 | `FakeSnapshotManager` for testing          | `Hexalith.EventStore.Testing.Fakes.FakeSnapshotManager`             | Complete — in-memory implementation with assertion helpers               |
 | `FakeEventPublisher` for testing           | `Hexalith.EventStore.Testing.Fakes.FakeEventPublisher`              | Complete — used in `TenantsDaprTestFixture`                              |
 | DAPR resiliency YAML                       | `src/Hexalith.Tenants.AppHost/DaprComponents/resiliency.yaml`       | Complete — pub/sub circuit breaker, state store retry                    |
-| `TenantsDaprTestFixture`                   | `tests/Hexalith.Tenants.IntegrationTests/Fixtures/`                 | Complete — boots CommandApi with local daprd sidecar                     |
+| `TenantsDaprTestFixture`                   | `tests/Hexalith.Tenants.IntegrationTests/Fixtures/`                 | Complete — boots Hexalith.Tenants with local daprd sidecar                     |
 | Health check endpoints                     | `ServiceDefaults.MapDefaultEndpoints()`                             | Complete — `/health`, `/alive`, `/ready`                                 |
 | Telemetry instrumentation                  | Story 7.2                                                           | Complete — command spans, projection metrics, health checks              |
 
@@ -201,7 +201,7 @@ The DAPR resiliency YAML (`resiliency.yaml`) adds circuit breaker protection: `p
 ### File Structure
 
 ```
-src/Hexalith.Tenants.CommandApi/
+src/Hexalith.Tenants/
   └── appsettings.json                          # MODIFY — add EventStore:Snapshots section
 
 tests/Hexalith.Tenants.Server.Tests/
@@ -218,7 +218,7 @@ tests/Hexalith.Tenants.IntegrationTests/
 
 Story 7.2 established:
 
-- Telemetry instrumentation: `TenantActivitySource`, `TenantMetrics` in CommandApi
+- Telemetry instrumentation: `TenantActivitySource`, `TenantMetrics` in Hexalith.Tenants
 - Health check: `DaprStateStoreHealthCheck` with `["ready"]` tag, `failureStatus: HealthStatus.Degraded`
 - ServiceDefaults updated with `.AddMeter("Hexalith.Tenants")`
 - 422 Tier 1+2 tests pass (up from 391 in Story 7.1)
@@ -228,7 +228,7 @@ Story 7.2 established:
 
 Story 7.1 established:
 
-- AppHost topology with CommandApi and Sample, both with DAPR sidecars
+- AppHost topology with Hexalith.Tenants and Sample, both with DAPR sidecars
 - Aspire topology smoke tests (3 tests) in IntegrationTests
 - The Sample does NOT use ServiceDefaults
 
@@ -257,7 +257,7 @@ Recent commits:
 - No new NuGet packages required
 - No new projects created
 - Server.Tests may need `<Content>` item for `appsettings.json` if not already configured
-- IntegrationTests already references CommandApi and EventStore.Testing
+- IntegrationTests already references Hexalith.Tenants and EventStore.Testing
 
 ### References
 
@@ -302,7 +302,7 @@ Configuration-only story. Added snapshot interval config to appsettings.json. Cr
 
 ### File List
 
-- `src/Hexalith.Tenants.CommandApi/appsettings.json` — MODIFIED: added EventStore:Snapshots section with DomainIntervals["tenants"]=50
+- `src/Hexalith.Tenants/appsettings.json` — MODIFIED: added EventStore:Snapshots section with DomainIntervals["tenants"]=50
 - `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — MODIFIED: added Content item for appsettings.json
 - `tests/Hexalith.Tenants.Server.Tests/Configuration/SnapshotConfigurationTests.cs` — NEW: Tier 1 config binding tests (3 tests)
 - `tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs` — NEW: Tier 2 stateless restart verification (1 test)

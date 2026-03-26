@@ -19,12 +19,61 @@ if (!File.Exists(accessControlConfigPath)) {
         accessControlConfigPath);
 }
 
-// Add CommandApi project and wire DAPR topology via Aspire extension.
-IResourceBuilder<ProjectResource> commandApi = builder.AddProject<Projects.Hexalith_Tenants_CommandApi>("commandapi");
-HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(commandApi, accessControlConfigPath);
+// Keycloak identity provider for JWT authentication.
+// Enabled by default for local development with real OIDC token testing.
+// Set EnableKeycloak=false in environment or appsettings to run without Keycloak
+// (falls back to symmetric key auth via Authentication:JwtBearer:SigningKey).
+IResourceBuilder<KeycloakResource>? keycloak = null;
+ReferenceExpression? realmUrl = null;
+if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringComparison.OrdinalIgnoreCase)) {
+    keycloak = builder.AddKeycloak("keycloak", 8180);
+    EndpointReference keycloakEndpoint = keycloak.GetEndpoint("http");
+    realmUrl = ReferenceExpression.Create($"{keycloakEndpoint}/realms/hexalith");
+}
+
+// Add EventStore CommandApi (command gateway) with DAPR sidecar.
+// The EventStore receives commands from clients and dispatches to domain services
+// (including Tenants) via DAPR service invocation.
+IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore_CommandApi>("eventstore");
+
+// Add Tenants project and wire DAPR topology via Aspire extension.
+// The Tenants extension provisions shared DAPR state store and pub/sub components.
+IResourceBuilder<ProjectResource> tenants = builder.AddProject<Projects.Hexalith_Tenants>("tenants");
+HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(tenants, accessControlConfigPath);
+
+// Wire EventStore with DAPR sidecar sharing the same state store and pub/sub.
+_ = eventStore
+    .WithDaprSidecar(sidecar => sidecar
+        .WithOptions(new DaprSidecarOptions {
+            AppId = "commandapi",
+            Config = accessControlConfigPath,
+        })
+        .WithReference(tenantsResources.StateStore)
+        .WithReference(tenantsResources.PubSub));
+
+// Wire Keycloak auth to EventStore and Tenants if enabled.
+if (keycloak is not null && realmUrl is not null) {
+    _ = eventStore
+        .WithReference(keycloak)
+        .WaitFor(keycloak)
+        .WithEnvironment("Authentication__JwtBearer__Authority", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
+        .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+
+    _ = tenants
+        .WithReference(keycloak)
+        .WaitFor(keycloak)
+        .WithEnvironment("Authentication__JwtBearer__Authority", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
+        .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+}
 
 // Add Sample consuming service with DAPR sidecar for pub/sub event subscription.
-// The Sample is a subscriber only — it does NOT reference StateStore (only CommandApi needs actor state).
+// The Sample is a subscriber only — it does NOT reference StateStore (only Tenants needs actor state).
 _ = builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {

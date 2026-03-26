@@ -18,7 +18,7 @@ So that I can start the full local development topology with a single `dotnet ru
 
 2. **Given** the Hexalith.Tenants.AppHost project exists
    **When** `dotnet run` is executed on the AppHost
-   **Then** the Aspire dashboard launches and the tenant CommandApi is started with a DAPR sidecar configured for state store, pub/sub, and actors
+   **Then** the Aspire dashboard launches and the tenant Hexalith.Tenants is started with a DAPR sidecar configured for state store, pub/sub, and actors
 
 3. **Given** the AppHost is running
    **When** a developer sends a command to the tenant service via the Aspire dashboard or direct HTTP
@@ -34,16 +34,16 @@ So that I can start the full local development topology with a single `dotnet ru
     - [x] 1.1: In `src/Hexalith.Tenants.AppHost/Program.cs`, add the Sample project to the Aspire topology with `builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")` and wire it with a DAPR sidecar that references the PubSub component (the Sample is an event subscriber)
     - [x] 1.2: Add a health endpoint to the Sample project — in `samples/Hexalith.Tenants.Sample/Program.cs`, add `app.MapGet("/health", () => Results.Ok("healthy"));` before `app.Run()`. The Sample does not use ServiceDefaults (it's a lightweight consuming service), so it needs an explicit health endpoint for the Aspire topology test to verify it started successfully.
     - [x] 1.3: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
-    - [x] 1.4: Verify the AppHost correctly references both CommandApi and Sample in its topology
+    - [x] 1.4: Verify the AppHost correctly references both Hexalith.Tenants and Sample in its topology
 
 - [x] Task 2: Add AppHost reference to IntegrationTests project (unblocks Task 3)
     - [x] 2.1: Add `<ProjectReference Include="..\..\src\Hexalith.Tenants.AppHost\Hexalith.Tenants.AppHost.csproj" />` to `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` — required for `DistributedApplicationTestingBuilder.CreateAsync<Projects.Hexalith_Tenants_AppHost>()` to resolve the AppHost project
     - [x] 2.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 3: Create Aspire topology smoke test (AC: #2, #3, #4)
-    - [x] 3.1: Create `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs` — shared xUnit fixture that boots the AppHost via `DistributedApplicationTestingBuilder.CreateAsync<Projects.Hexalith_Tenants_AppHost>()`, creates HTTP clients for both CommandApi and Sample, and waits for both `/health` endpoints to return 200 OK. Use a **3-minute** startup timeout (DAPR actor placement service registration takes time). On timeout failure, capture basic resource diagnostics via the Aspire `DistributedApplication` API to aid CI debugging.
+    - [x] 3.1: Create `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs` — shared xUnit fixture that boots the AppHost via `DistributedApplicationTestingBuilder.CreateAsync<Projects.Hexalith_Tenants_AppHost>()`, creates HTTP clients for both Hexalith.Tenants and Sample, and waits for both `/health` endpoints to return 200 OK. Use a **3-minute** startup timeout (DAPR actor placement service registration takes time). On timeout failure, capture basic resource diagnostics via the Aspire `DistributedApplication` API to aid CI debugging.
     - [x] 3.2: Create `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyCollection.cs` — xUnit `[CollectionDefinition]` to share the fixture across Aspire topology tests
-    - [x] 3.3: Create `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` with tests for `CommandApi_resource_starts_and_is_healthy`, `Sample_resource_starts_and_is_healthy`, and `CommandApi_process_endpoint_dispatches_command`; the last test provides AppHost topology smoke coverage for AC #3 without over-claiming actor-state verification.
+    - [x] 3.3: Create `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` with tests for `Hexalith.Tenants_resource_starts_and_is_healthy`, `Sample_resource_starts_and_is_healthy`, and `Hexalith.Tenants_process_endpoint_dispatches_command`; the last test provides AppHost topology smoke coverage for AC #3 without over-claiming actor-state verification.
     - [x] 3.4: Mark all Aspire topology tests with `[Trait("Category", "Integration")]` for CI filtering (Tier 3 — require Docker for DAPR)
     - [x] 3.5: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
@@ -74,10 +74,10 @@ Most of the Aspire/AppHost infrastructure was scaffolded in Epic 1 (Stories 1.1 
 
 ### Gap: Sample Not in AppHost Topology
 
-The **only code change** needed is adding the Sample consuming service to the AppHost topology. Currently, the AppHost's `Program.cs` only adds CommandApi:
+The **only code change** needed is adding the Sample consuming service to the AppHost topology. Currently, the AppHost's `Program.cs` only adds Hexalith.Tenants:
 
 ```csharp
-IResourceBuilder<ProjectResource> commandApi = builder.AddProject<Projects.Hexalith_Tenants_CommandApi>("commandapi");
+IResourceBuilder<ProjectResource> commandApi = builder.AddProject<Projects.Hexalith_Tenants_Hexalith.Tenants>("commandapi");
 HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(commandApi, accessControlConfigPath);
 builder.Build().Run();
 ```
@@ -106,13 +106,13 @@ IResourceBuilder<ProjectResource> sample = builder.AddProject<Projects.Hexalith_
         .WithReference(tenantsResources.PubSub));
 ```
 
-The Sample should **NOT** reference `tenantsResources.StateStore` — it has zero direct infrastructure access (per D4). Only CommandApi needs the state store for actor state management.
+The Sample should **NOT** reference `tenantsResources.StateStore` — it has zero direct infrastructure access (per D4). Only Hexalith.Tenants needs the state store for actor state management.
 
 ### How the Aspire Topology Works
 
 ```
 AppHost (dotnet run)
-├── CommandApi ("commandapi")
+├── Hexalith.Tenants ("commandapi")
 │   └── DAPR Sidecar
 │       ├── StateStore (state.in-memory, actorStateStore=true)
 │       ├── PubSub (pubsub.in-memory)
@@ -128,7 +128,7 @@ AppHost (dotnet run)
 
 1. In-memory state store with `actorStateStore=true` metadata (uses `AddDaprComponent` not `AddDaprStateStore` — critical for metadata propagation)
 2. In-memory pub/sub via `AddDaprPubSub`
-3. CommandApi DAPR sidecar with `AppId = "commandapi"`, both component references, and optional access control config
+3. Hexalith.Tenants DAPR sidecar with `AppId = "commandapi"`, both component references, and optional access control config
 4. Returns `HexalithTenantsResources` record for further customization by the AppHost consumer
 
 ### Aspire Package Dependencies (Aspire.csproj)
@@ -145,7 +145,7 @@ This follows the EventStore Aspire package pattern exactly. The PRD lists "Contr
 ```xml
 <Project Sdk="Aspire.AppHost.Sdk/13.1.2">
   <ItemGroup>
-    <ProjectReference Include="..\Hexalith.Tenants.CommandApi\..." />
+    <ProjectReference Include="..\Hexalith.Tenants\..." />
     <ProjectReference Include="..\..\samples\Hexalith.Tenants.Sample\..." />
     <ProjectReference Include="..\Hexalith.Tenants.Aspire\..." IsAspireProjectResource="false" />
   </ItemGroup>
@@ -163,7 +163,7 @@ This follows the EventStore Aspire package pattern exactly. The PRD lists "Contr
 - `AddDefaultHealthChecks()` — self-check with "live" tag
 - `MapDefaultEndpoints()` — `/health`, `/alive`, `/ready` endpoints with JSON response in Development
 
-OpenTelemetry trace sources: `Hexalith.Tenants.CommandApi`, `Hexalith.Tenants` (custom application traces). Health check endpoint returns 503 for Unhealthy status, 200 for Healthy/Degraded.
+OpenTelemetry trace sources: `Hexalith.Tenants`, `Hexalith.Tenants` (custom application traces). Health check endpoint returns 503 for Unhealthy status, 200 for Healthy/Degraded.
 
 ### DAPR Component Configuration
 
@@ -200,7 +200,7 @@ HttpClient sampleClient = _app.CreateHttpClient("sample");
 **Key differences from EventStore pattern:**
 
 - No Keycloak (Tenants AppHost doesn't use it) — simpler fixture
-- Must verify **both** CommandApi and Sample resources start and are healthy
+- Must verify **both** Hexalith.Tenants and Sample resources start and are healthy
 - The `/process` endpoint test provides smoke coverage for AC #3 by verifying command dispatch through the hosted Aspire topology
 
 **IntegrationTests.csproj change required:** Add AppHost project reference:
@@ -230,7 +230,7 @@ The project already has `Aspire.Hosting.Testing` (13.1.1) — no new NuGet packa
 
 The existing test suite at `tests/Hexalith.Tenants.IntegrationTests/` validates the DAPR pipeline via manual sidecar:
 
-- `CommandApiRuntimeIntegrationTests.cs` — process endpoint dispatches commands, rejection returns problem details
+- `Hexalith.TenantsRuntimeIntegrationTests.cs` — process endpoint dispatches commands, rejection returns problem details
 - `DaprEndToEndTests.cs` — full actor pipeline (CreateTenant → events → state)
 - `TenantsDaprTestFixture.cs` — standalone DAPR sidecar test fixture with Redis
 
@@ -242,7 +242,7 @@ These tests are **Tier 3** (require `dapr init` + Docker/Redis). Do NOT modify t
 - `HexalithTenantsResources.cs` (`src/Hexalith.Tenants.Aspire/`) — resource record, ALREADY COMPLETE
 - `Extensions.cs` (`src/Hexalith.Tenants.ServiceDefaults/`) — OpenTelemetry + health checks, ALREADY COMPLETE
 - All 4 DaprComponents YAML files — ALREADY COMPLETE
-- `Program.cs` (`src/Hexalith.Tenants.CommandApi/`) — full command pipeline, ALREADY COMPLETE
+- `Program.cs` (`src/Hexalith.Tenants/`) — full command pipeline, ALREADY COMPLETE
 - `Program.cs` (`samples/Hexalith.Tenants.Sample/`) — event subscriber with `AddHexalithTenants()` DI, ALREADY COMPLETE
 
 ### Critical Anti-Patterns (DO NOT)
@@ -250,11 +250,11 @@ These tests are **Tier 3** (require `dapr init` + Docker/Redis). Do NOT modify t
 - **DO NOT** recreate or modify `HexalithTenantsExtensions.cs` or `HexalithTenantsResources.cs` — they are complete and match the EventStore pattern
 - **DO NOT** use `AddDaprStateStore` — use `AddDaprComponent("statestore", "state.in-memory")` with `.WithMetadata("actorStateStore", "true")` (the convenience method ignores metadata)
 - **DO NOT** hardcode `AppPort` in DAPR sidecar options — Aspire auto-detects from the resource model; hardcoding breaks Aspire Testing which randomizes ports
-- **DO NOT** add StateStore reference to the Sample's sidecar — only CommandApi accesses state store (actors)
+- **DO NOT** add StateStore reference to the Sample's sidecar — only Hexalith.Tenants accesses state store (actors)
 - **DO NOT** modify ServiceDefaults — OpenTelemetry instrumentation is Story 7.2's scope
 - **DO NOT** modify any DAPR component YAML files — they are already correct
-- **DO NOT** modify existing integration test files (`CommandApiRuntimeIntegrationTests.cs`, `DaprEndToEndTests.cs`, `TenantsDaprTestFixture.cs`, `TenantsQueryControllerIntegrationTests.cs`) — add NEW files only
-- **DO NOT** add DAPR or infrastructure dependencies to non-AppHost/CommandApi projects
+- **DO NOT** modify existing integration test files (`Hexalith.TenantsRuntimeIntegrationTests.cs`, `DaprEndToEndTests.cs`, `TenantsDaprTestFixture.cs`, `TenantsQueryControllerIntegrationTests.cs`) — add NEW files only
+- **DO NOT** add DAPR or infrastructure dependencies to non-AppHost/Hexalith.Tenants projects
 - **DO NOT** over-engineer the Aspire topology fixture — no Keycloak, no Docker CLI log capture. Keep it simple: boot + health check + dispose. Include basic timeout diagnostics (resource names, startup duration, last error) for CI debuggability, but do not replicate the EventStore fixture's full container log capture pipeline
 
 ### Code Style Requirements
@@ -270,7 +270,7 @@ These tests are **Tier 3** (require `dapr init` + Docker/Redis). Do NOT modify t
 
 ```
 src/Hexalith.Tenants.AppHost/
-  ├── Hexalith.Tenants.AppHost.csproj    # EXISTS — references CommandApi, Sample, Aspire
+  ├── Hexalith.Tenants.AppHost.csproj    # EXISTS — references Hexalith.Tenants, Sample, Aspire
   ├── Program.cs                          # EXISTS — MODIFY (add Sample to topology)
   └── DaprComponents/
       ├── accesscontrol.yaml              # EXISTS — no change
@@ -298,7 +298,7 @@ tests/Hexalith.Tenants.IntegrationTests/
   │   ├── TenantsDaprTestFixture.cs             # EXISTS — no change
   │   └── TenantsDaprTestCollection.cs          # EXISTS — no change
   ├── AspireTopologyTests.cs                     # NEW — Aspire smoke tests (3 tests)
-  ├── CommandApiRuntimeIntegrationTests.cs       # EXISTS — no change
+  ├── Hexalith.TenantsRuntimeIntegrationTests.cs       # EXISTS — no change
   ├── DaprEndToEndTests.cs                       # EXISTS — no change
   ├── TenantsQueryControllerIntegrationTests.cs  # EXISTS — no change
   └── ScaffoldingSmokeTests.cs                   # EXISTS — no change
@@ -350,7 +350,7 @@ Recent commits show:
 - [Source: _bmad-output/planning-artifacts/prd.md#FR43] — NuGet packages include Aspire
 - [Source: _bmad-output/planning-artifacts/prd.md#FR56] — Deploy alongside EventStore using DAPR configuration
 - [Source: _bmad-output/planning-artifacts/architecture.md#Infrastructure & Deployment] — DAPR sidecar + .NET Aspire AppHost orchestration
-- [Source: _bmad-output/planning-artifacts/architecture.md#Decision Impact Analysis] — AppHost orchestrates CommandApi + DAPR sidecar (single topology)
+- [Source: _bmad-output/planning-artifacts/architecture.md#Decision Impact Analysis] — AppHost orchestrates Hexalith.Tenants + DAPR sidecar (single topology)
 - [Source: _bmad-output/planning-artifacts/architecture.md#Complete Project Directory Structure] — Aspire + AppHost + ServiceDefaults projects
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreExtensions.cs] — Reference pattern for Aspire hosting extensions
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.AppHost/Program.cs] — Reference pattern for AppHost with Sample + Keycloak topology
@@ -380,7 +380,7 @@ Claude Opus 4.6 (1M context)
 
 - **Task 1**: Added Sample consuming service to AppHost topology. Sample gets a DAPR sidecar with PubSub reference (subscriber-only, no StateStore). Added `/health` endpoint to Sample for topology verification. Follows EventStore AppHost pattern exactly.
 - **Task 2**: Added AppHost project reference to IntegrationTests.csproj, enabling `DistributedApplicationTestingBuilder.CreateAsync<Projects.Hexalith_Tenants_AppHost>()`.
-- **Task 3**: Created 3 Aspire topology smoke tests (health checks for CommandApi and Sample, plus `/process` command-dispatch smoke coverage through the hosted topology). Shared fixture with 3-minute startup timeout, per-resource health polling, prerequisite checks, and timeout diagnostics. All marked `[Trait("Category", "Integration")]`.
+- **Task 3**: Created 3 Aspire topology smoke tests (health checks for Hexalith.Tenants and Sample, plus `/process` command-dispatch smoke coverage through the hosted topology). Shared fixture with 3-minute startup timeout, per-resource health polling, prerequisite checks, and timeout diagnostics. All marked `[Trait("Category", "Integration")]`.
 - **Task 4**: Verified Aspire package is NuGet-packable. `dotnet pack` succeeds. Package contains `HexalithTenantsExtensions` and `HexalithTenantsResources` types.
 - **Task 5**: Full solution builds with 0 warnings, 0 errors. All 391 Tier 1 tests pass.
 

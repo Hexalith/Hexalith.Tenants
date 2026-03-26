@@ -5,8 +5,8 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Handlers;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
-using Hexalith.Tenants.CommandApi.DomainProcessing;
-using Hexalith.Tenants.CommandApi.Telemetry;
+using Hexalith.Tenants.DomainProcessing;
+using Hexalith.Tenants.Telemetry;
 using Hexalith.Tenants.Contracts.Commands;
 
 using Microsoft.Extensions.Logging.Abstractions;

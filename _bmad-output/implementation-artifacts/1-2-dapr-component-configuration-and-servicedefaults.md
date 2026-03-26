@@ -28,9 +28,9 @@ so that local development with DAPR sidecars, observability, and health probes i
    - `AddDefaultHealthChecks()` method with a self-check liveness probe
    - `MapDefaultEndpoints()` method mapping `/health`, `/alive`, and `/ready` endpoints with health status codes
 
-6. **Given** the Aspire project exists **When** a developer inspects the Aspire extension **Then** it contains an `AddHexalithTenants()` extension method that creates DAPR state store, pub/sub, and sidecar configuration for the CommandApi project, returning a resources record for downstream use
+6. **Given** the Aspire project exists **When** a developer inspects the Aspire extension **Then** it contains an `AddHexalithTenants()` extension method that creates DAPR state store, pub/sub, and sidecar configuration for Hexalith.Tenants project, returning a resources record for downstream use
 
-7. **Given** the AppHost project exists **When** a developer inspects `Program.cs` **Then** it uses the Aspire extension to wire CommandApi with a DAPR sidecar, referencing the access control configuration and DAPR components
+7. **Given** the AppHost project exists **When** a developer inspects `Program.cs` **Then** it uses the Aspire extension to wire Hexalith.Tenants with a DAPR sidecar, referencing the access control configuration and DAPR components
 
 8. **Given** all changes are complete **When** `dotnet build Hexalith.Tenants.slnx --configuration Release` is executed **Then** all projects compile with zero errors
 
@@ -47,7 +47,7 @@ so that local development with DAPR sidecars, observability, and health probes i
 - [x] Task 1: Implement ServiceDefaults Extensions.cs (AC: #5)
   - [x] 1.1: Replace the placeholder `Extensions.cs` in `src/Hexalith.Tenants.ServiceDefaults/` with full implementation mirroring EventStore's pattern
   - [x] 1.2: Implement `AddServiceDefaults<TBuilder>()` — calls ConfigureOpenTelemetry, AddDefaultHealthChecks, AddServiceDiscovery, ConfigureHttpClientDefaults with standard resilience handler
-  - [x] 1.3: Implement `ConfigureOpenTelemetry<TBuilder>()` — structured logging with `AddOpenTelemetry` (IncludeFormattedMessage, IncludeScopes), JSON console logging with UTC timestamps, metrics (AspNetCore, Http, Runtime instrumentation), tracing with sources `Hexalith.Tenants.CommandApi` and `Hexalith.Tenants` plus app name, health endpoint filtering, OTLP exporter
+  - [x] 1.3: Implement `ConfigureOpenTelemetry<TBuilder>()` — structured logging with `AddOpenTelemetry` (IncludeFormattedMessage, IncludeScopes), JSON console logging with UTC timestamps, metrics (AspNetCore, Http, Runtime instrumentation), tracing with sources `Hexalith.Tenants` and `Hexalith.Tenants` plus app name, health endpoint filtering, OTLP exporter
   - [x] 1.4: Implement `AddDefaultHealthChecks<TBuilder>()` — self-check liveness probe tagged `"live"`
   - [x] 1.5: Implement `MapDefaultEndpoints()` — map `/health` (all checks), `/alive` (live-tagged), `/ready` (ready-tagged) with status code mapping (Healthy/Degraded → 200, Unhealthy → 503), JSON response writer in Development environment
   - [x] 1.6: Implement private `AddOpenTelemetryExporters<TBuilder>()` — OTLP exporter configuration conditional on `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable
@@ -65,14 +65,14 @@ so that local development with DAPR sidecars, observability, and health probes i
   - [x] 3.2: Extension takes `IResourceBuilder<ProjectResource> commandApi` and optional `string? daprConfigPath` parameters
   - [x] 3.3: Create DAPR state store via `AddDaprComponent("statestore", "state.in-memory")` with `actorStateStore: "true"` metadata
   - [x] 3.4: Create DAPR pub/sub via `AddDaprPubSub("pubsub")`
-  - [x] 3.5: Wire CommandApi with `WithDaprSidecar()` — AppId `"commandapi"`, Config from `daprConfigPath`, references to stateStore and pubSub
-  - [x] 3.6: Create `HexalithTenantsResources` record returning `StateStore`, `PubSub`, `CommandApi` resource builders
+  - [x] 3.5: Wire Hexalith.Tenants with `WithDaprSidecar()` — AppId `"tenants"`, Config from `daprConfigPath`, references to stateStore and pubSub
+  - [x] 3.6: Create `HexalithTenantsResources` record returning `StateStore`, `PubSub`, `Tenants` resource builders
   - [x] 3.7: Verify `dotnet build` passes for Aspire project
 
 - [x] Task 4: Update AppHost Program.cs (AC: #7)
   - [x] 4.1: Add `using` for `CommunityToolkit.Aspire.Hosting.Dapr` and `Hexalith.Tenants.Aspire`
   - [x] 4.2: Add access control config path resolution with fallback (runtime vs source directory) — mirror EventStore's AppHost pattern
-  - [x] 4.3: Add CommandApi project resource via `builder.AddProject<Projects.Hexalith_Tenants_CommandApi>("commandapi")`
+  - [x] 4.3: Add Hexalith.Tenants project resource via `builder.AddProject<Projects.Hexalith_Tenants_Hexalith.Tenants>("commandapi")`
   - [x] 4.4: Call `builder.AddHexalithTenants(commandApi, accessControlConfigPath)` to wire DAPR topology
   - [x] 4.5: Verify `dotnet build` passes for AppHost project
 
@@ -88,7 +88,7 @@ so that local development with DAPR sidecars, observability, and health probes i
 - **Mirror EventStore implementation patterns exactly** — the reference implementation is in the EventStore submodule at `Hexalith.EventStore/src/`, NOT the architecture prose. Where the architecture document and EventStore implementation diverge, follow EventStore's code.
 - **DAPR component location**: `src/Hexalith.Tenants.AppHost/DaprComponents/` (EventStore pattern), NOT `dapr/components/` (architecture prose). The architecture document's directory structure lists `dapr/components/` but EventStore places local dev components inside the AppHost project for Aspire integration. Follow the implementation.
 - **No `actors.yaml` file needed**: The architecture document lists `actors.yaml` for actor type configuration, but EventStore does NOT use a separate actors component file. Actor state is handled by setting `actorStateStore: "true"` on the state store component (AC 1). Actor type registration happens programmatically via `app.MapActorsHandlers()` in later stories (Epic 2). This is an architecture document error — document the deviation in the Change Log.
-- **ServiceDefaults is NOT referenced by AppHost** — only by web application projects (CommandApi, Sample). AppHost uses `Aspire.AppHost.Sdk` which conflicts with `FrameworkReference Microsoft.AspNetCore.App`. The dependency graph from Story 1.1 already enforces this — do not change it.
+- **ServiceDefaults is NOT referenced by AppHost** — only by web application projects (Hexalith.Tenants, Sample). AppHost uses `Aspire.AppHost.Sdk` which conflicts with `FrameworkReference Microsoft.AspNetCore.App`. The dependency graph from Story 1.1 already enforces this — do not change it.
 - **Aspire extension is self-contained for Story 1.2** — `AddHexalithTenants()` does NOT reference EventStore's Aspire extension. Cross-project Aspire wiring comes in later stories when EventStore runtime integration is needed.
 
 ### DAPR Component Patterns (from EventStore Reference)
@@ -174,7 +174,7 @@ The `Extensions.cs` file must contain these public methods:
 
 **Key implementation details:**
 - Namespace: `Hexalith.Tenants.ServiceDefaults`
-- Trace sources: `builder.Environment.ApplicationName`, `"Hexalith.Tenants.CommandApi"`, `"Hexalith.Tenants"`
+- Trace sources: `builder.Environment.ApplicationName`, `"Hexalith.Tenants"`, `"Hexalith.Tenants"`
 - Health endpoint paths: `/health`, `/alive`, `/ready` (constants)
 - Filter health endpoints from traces (no noise in telemetry)
 - JSON console logging with UTC timestamps
@@ -189,16 +189,16 @@ The `Extensions.cs` file must contain these public methods:
 - `AddHexalithTenants(this IDistributedApplicationBuilder builder, IResourceBuilder<ProjectResource> commandApi, string? daprConfigPath = null)`
 - Uses `AddDaprComponent("statestore", "state.in-memory")` with `.WithMetadata("actorStateStore", "true")` — NOT `AddDaprStateStore` (metadata propagation requires `AddDaprComponent`)
 - Uses `AddDaprPubSub("pubsub")` for pub/sub
-- Wires CommandApi with `WithDaprSidecar()` — AppId `"commandapi"`, Config from `daprConfigPath`, references stateStore and pubSub
+- Wires Hexalith.Tenants with `WithDaprSidecar()` — AppId `"tenants"`, Config from `daprConfigPath`, references stateStore and pubSub
 - AppPort intentionally OMITTED for Aspire Testing compatibility (Aspire randomizes ports)
-- Returns `HexalithTenantsResources` record with `StateStore`, `PubSub`, `CommandApi` resource builders
+- Returns `HexalithTenantsResources` record with `StateStore`, `PubSub`, `Tenants` resource builders
 
 **`HexalithTenantsResources.cs`:**
 ```csharp
 public record HexalithTenantsResources(
     IResourceBuilder<IDaprComponentResource> StateStore,
     IResourceBuilder<IDaprComponentResource> PubSub,
-    IResourceBuilder<ProjectResource> CommandApi);
+    IResourceBuilder<ProjectResource> Hexalith.Tenants);
 ```
 
 ### AppHost Program.cs Pattern (from EventStore Reference)
@@ -206,7 +206,7 @@ public record HexalithTenantsResources(
 - Resolve access control config path dynamically with fallback:
   1. Try `Path.Combine(Directory.GetCurrentDirectory(), "DaprComponents", "accesscontrol.yaml")`
   2. Fallback: `Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DaprComponents", "accesscontrol.yaml"))`
-- Add CommandApi project: `builder.AddProject<Projects.Hexalith_Tenants_CommandApi>("commandapi")`
+- Add Hexalith.Tenants project: `builder.AddProject<Projects.Hexalith_Tenants_Hexalith.Tenants>("commandapi")`
 - Wire DAPR topology: `builder.AddHexalithTenants(commandApi, accessControlConfigPath)`
 
 ### Library & Framework Requirements
@@ -325,7 +325,7 @@ c04fc8b Initial commit
 - **DO NOT** create `actors.yaml` — actor state is configured via `actorStateStore: "true"` on the state store component; actor types are registered programmatically in later stories
 - **DO NOT** deploy local dev access control config to production — it uses `defaultAction: allow`
 - **DO NOT** hard-code secrets in YAML — use `{env:VARIABLE_NAME}` pattern for all credentials
-- **DO NOT** reference ServiceDefaults from AppHost — only web app projects (CommandApi, Sample) use ServiceDefaults
+- **DO NOT** reference ServiceDefaults from AppHost — only web app projects (Hexalith.Tenants, Sample) use ServiceDefaults
 - **DO NOT** reference EventStore's Aspire extension from Tenants' Aspire extension in this story — cross-project wiring comes later
 - **DO NOT** omit `scopes` from DAPR component files — every component MUST be scoped to `commandapi` from day one
 - **DO NOT** add `appsettings.json`, `launchSettings.json`, domain logic, commands, events, or aggregates — those are future stories
@@ -375,7 +375,7 @@ None — clean implementation, no debugging required.
 - Task 1: ServiceDefaults Extensions.cs replaced placeholder with full implementation mirroring EventStore pattern. All 4 public methods + 1 private exporter method + internal JSON health writer. Allman braces per .editorconfig. Build verified zero errors.
 - Task 2: Created 4 DAPR component YAML files in `src/Hexalith.Tenants.AppHost/DaprComponents/` — statestore (Redis, actorStateStore, scoped), pubsub (Redis, dead-letter, scoped), accesscontrol (allow-by-default with production warning), resiliency (retry/timeout/CB for apps and components).
 - Task 3: Created Aspire extension — `HexalithTenantsExtensions.cs` with `AddHexalithTenants()` using `AddDaprComponent` (not `AddDaprStateStore` for metadata propagation), `AddDaprPubSub`, and `WithDaprSidecar` (no AppPort for Aspire Testing compatibility). `HexalithTenantsResources.cs` record for downstream use. Build verified zero errors.
-- Task 4: Updated AppHost Program.cs with access control config path resolution (CWD + BaseDirectory fallback), CommandApi project resource, and `AddHexalithTenants()` call. Build verified zero errors.
+- Task 4: Updated AppHost Program.cs with access control config path resolution (CWD + BaseDirectory fallback), Hexalith.Tenants project resource, and `AddHexalithTenants()` call. Build verified zero errors.
 - Task 5: Full verification — `dotnet build --configuration Release` zero errors across all projects. `dotnet test` discovers 6 test projects with zero failures. All 4 YAML files confirmed present.
 
 ### File List

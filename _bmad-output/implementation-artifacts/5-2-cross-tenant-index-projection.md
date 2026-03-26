@@ -272,7 +272,7 @@ The cross-tenant index is fed by at-least-once delivery infrastructure in Story 
 - Create subscription endpoints or event handlers — that's Story 5.3 scope
 - Add `IQueryContract` implementations — that's Story 5.3 scope
 - Modify existing source files — this story only creates new files in Server/Projections/ and Server.Tests/Projections/
-- Modify CommandApi Program.cs — assembly scanning handles projection discovery
+- Modify Hexalith.Tenants Program.cs — assembly scanning handles projection discovery
 - Add new NuGet packages — all dependencies available transitively
 - Implement DAPR state store read-modify-write logic — that's Story 5.3 hosting
 - Implement ETag retry loop — that's Story 5.3 hosting (AC4 applies to the hosting, not the read model definition)
@@ -503,7 +503,7 @@ Recent commits show Epic 4 completion and Story 5.1 story creation. The codebase
 - **DO NOT** create `TenantReadModel`, `TenantProjection`, or any Story 5.1 types — those are separate scope
 - **DO NOT** modify existing source files — this story only creates new files
 - **DO NOT** add new NuGet packages
-- **DO NOT** modify CommandApi Program.cs
+- **DO NOT** modify Hexalith.Tenants Program.cs
 - **DO NOT** use `init` setters — Apply methods mutate post-construction, requiring `private set`
 - **DO NOT** create shared base classes between index read model and per-tenant read model
 - **DO NOT** trust aggregate event ordering in Apply methods — fan-in means events from different aggregates may arrive out of order (use `TryGetValue` guards)

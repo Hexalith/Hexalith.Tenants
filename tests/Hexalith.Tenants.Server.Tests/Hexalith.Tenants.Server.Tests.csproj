@@ -8,11 +8,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="..\..\src\Hexalith.Tenants.CommandApi\appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />
+        <Content Include="..\..\src\Hexalith.Tenants\appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
+        <ProjectReference Include="..\..\src\Hexalith.Tenants\Hexalith.Tenants.csproj" />
         <ProjectReference Include="..\..\src\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
         <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
         <ProjectReference Include="..\..\samples\Hexalith.Tenants.Sample\Hexalith.Tenants.Sample.csproj" />

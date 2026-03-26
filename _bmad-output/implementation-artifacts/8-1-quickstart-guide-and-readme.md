@@ -50,13 +50,13 @@ So that I can evaluate the system quickly and confidently with clear guidance at
 - [x] Task 2: Create `docs/quickstart.md` — clone, build, and run section (AC: #3, #4)
     - [x] 2.1: Write clone instructions with `--recurse-submodules` flag (EventStore submodule required)
     - [x] 2.2: Write build verification step: `dotnet build Hexalith.Tenants.slnx --configuration Release`
-    - [x] 2.3: Write Aspire AppHost launch instructions: `dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` — explain that this starts the full topology (CommandApi + DAPR sidecar + Redis state store + Keycloak)
+    - [x] 2.3: Write Aspire AppHost launch instructions: `dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` — explain that this starts the full topology (Hexalith.Tenants + DAPR sidecar + Redis state store + Keycloak)
     - [x] 2.4: Note that first run takes longer due to NuGet restore and Docker image pulls
     - [x] 2.5: **Windows users**: Note that the clone with submodules creates deep nesting (`Hexalith.Tenants/Hexalith.EventStore/src/...`). If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone
 
 - [x] Task 3: Create `docs/quickstart.md` — first command section (AC: #3, #4)
     - [x] 3.1: Write JWT token acquisition step using Keycloak (follow EventStore quickstart pattern — `curl` for bash/Zsh, `Invoke-RestMethod` for PowerShell)
-    - [x] 3.2: Write Swagger UI instructions: open CommandApi URL from Aspire dashboard, append `/swagger`, authorize with JWT token
+    - [x] 3.2: Write Swagger UI instructions: open Hexalith.Tenants URL from Aspire dashboard, append `/swagger`, authorize with JWT token
     - [x] 3.3: **IMPORTANT — Bootstrap before CreateTenant.** The quickstart must establish the correct command sequence: (1) BootstrapGlobalAdmin first (to authorize the actor), then (2) CreateTenant. Without bootstrap, CreateTenant may fail authorization. Document sending BootstrapGlobalAdmin via Swagger UI as the first command (simpler for quickstart than config-file approach):
         ```json
         {
@@ -97,7 +97,7 @@ So that I can evaluate the system quickly and confidently with clear guidance at
 - [x] Task 5: Create `docs/quickstart.md` — troubleshooting section
     - [x] 5.1: Add a "Troubleshooting" section at the end of the quickstart covering common AppHost startup failures:
         - **Port conflict**: DAPR sidecar port 3500 already in use → stop other DAPR instances (`dapr stop --all`) or change the port in AppHost configuration
-        - **Docker resource limits**: Keycloak + Redis + DAPR + CommandApi can exceed default Docker Desktop memory allocation → increase Docker memory to 4GB+ in Docker Desktop settings
+        - **Docker resource limits**: Keycloak + Redis + DAPR + Hexalith.Tenants can exceed default Docker Desktop memory allocation → increase Docker memory to 4GB+ in Docker Desktop settings
         - **DAPR not initialized**: `dapr init` not run → run `dapr init` (full init, not `--slim`) for the Aspire topology
         - **Build fails on Windows with path-too-long**: Enable long paths with `git config --system core.longpaths true`
     - [x] 5.2: Add a "Common Errors" sub-section with expected error responses and what they mean:
@@ -135,17 +135,17 @@ The documentation must accurately reflect the current state of the implemented s
 
 | Component                    | Path                                                           | Relevance                                                                                                 |
 | ---------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| CommandApi Program.cs        | `src/Hexalith.Tenants.CommandApi/Program.cs`                   | Shows actual DI registration, middleware pipeline, and endpoint mapping — docs must match this            |
-| appsettings.json             | `src/Hexalith.Tenants.CommandApi/appsettings.json`             | Shows domain service registration (`system\|tenants\|v1`), snapshot config, auth config, bootstrap config |
-| appsettings.Development.json | `src/Hexalith.Tenants.CommandApi/appsettings.Development.json` | Shows dev JWT config (signing key, issuer, audience)                                                      |
-| AppHost                      | `src/Hexalith.Tenants.AppHost/`                                | Aspire topology — launches CommandApi + DAPR sidecar + dependencies                                       |
+| Hexalith.Tenants Program.cs        | `src/Hexalith.Tenants/Program.cs`                   | Shows actual DI registration, middleware pipeline, and endpoint mapping — docs must match this            |
+| appsettings.json             | `src/Hexalith.Tenants/appsettings.json`             | Shows domain service registration (`system\|tenants\|v1`), snapshot config, auth config, bootstrap config |
+| appsettings.Development.json | `src/Hexalith.Tenants/appsettings.Development.json` | Shows dev JWT config (signing key, issuer, audience)                                                      |
+| AppHost                      | `src/Hexalith.Tenants.AppHost/`                                | Aspire topology — launches Hexalith.Tenants + DAPR sidecar + dependencies                                       |
 | Sample consuming service     | `samples/Hexalith.Tenants.Sample/`                             | Reference implementation for event subscription                                                           |
 | Idempotent processing doc    | `docs/idempotent-event-processing.md`                          | Already written — link to it, do not duplicate content                                                    |
 | Client DI extension          | `src/Hexalith.Tenants.Client/`                                 | `AddHexalithTenants()` extension method for consuming services                                            |
 | CI workflow                  | `.github/workflows/ci.yml`                                     | Build status badge URL source                                                                             |
 | Release workflow             | `.github/workflows/release.yml`                                | NuGet publishing pipeline                                                                                 |
 | EventStore quickstart        | `Hexalith.EventStore/docs/getting-started/quickstart.md`       | Pattern to follow — Aspire AppHost launch, Keycloak JWT acquisition, Swagger UI command submission        |
-| Health check endpoint        | Built into CommandApi via `MapDefaultEndpoints()`              | Verify service is running                                                                                 |
+| Health check endpoint        | Built into Hexalith.Tenants via `MapDefaultEndpoints()`              | Verify service is running                                                                                 |
 
 ### Critical Patterns to Follow
 
@@ -198,7 +198,7 @@ The Swagger UI approach is simpler for a quickstart — use it as the primary pa
 
 These items have ambiguity that CANNOT be resolved from planning artifacts alone. The dev agent must inspect the running system or source code to get the correct answer:
 
-1. **Command endpoint path**: Is it `/api/v1/commands` or `/api/commands`? Grep for the actual route registration in EventStore's `CommandsController` or inspect Swagger UI after launching the AppHost. The story references `/api/v1/commands` from the EventStore quickstart, but verify this is the actual path for the Tenants CommandApi.
+1. **Command endpoint path**: Is it `/api/v1/commands` or `/api/commands`? Grep for the actual route registration in EventStore's `CommandsController` or inspect Swagger UI after launching the AppHost. The story references `/api/v1/commands` from the EventStore quickstart, but verify this is the actual path for the Tenants Hexalith.Tenants.
 
 2. **JWT token acquisition path**: The Tenants `appsettings.Development.json` uses `Issuer: "hexalith-dev"` and a hardcoded signing key, while the EventStore quickstart uses Keycloak on port 8180 with `Issuer: "hexalith"`. These configurations differ. Inspect `src/Hexalith.Tenants.AppHost/Program.cs` to determine:
     - Does the Tenants AppHost include Keycloak in its topology?
@@ -210,7 +210,7 @@ These items have ambiguity that CANNOT be resolved from planning artifacts alone
     - Submit BootstrapGlobalAdmin via Swagger UI with a valid JWT
     - If rejected by auth → switch the quickstart to the config-based approach (set `BootstrapGlobalAdminUserId` in appsettings.Development.json before starting)
 
-4. **Query endpoint URL**: Verify the exact route for tenant detail queries. Is it `GET /api/tenants/{tenantId}` or a different pattern? Grep for route group registration in the CommandApi source or check Swagger UI.
+4. **Query endpoint URL**: Verify the exact route for tenant detail queries. Is it `GET /api/tenants/{tenantId}` or a different pattern? Grep for route group registration in Hexalith.Tenants source or check Swagger UI.
 
 ### Anti-Patterns to Avoid
 
@@ -272,8 +272,8 @@ The documentation should reflect the fully implemented system state.
 - [Source: _bmad-output/planning-artifacts/architecture.md#Cross-Cutting Concerns] — `system` tenant context, identity mapping
 - [Source: _bmad-output/planning-artifacts/prd.md#FR59-FR60] — Quickstart guide requirements and prerequisite validation
 - [Source: Hexalith.EventStore/docs/getting-started/quickstart.md] — EventStore quickstart pattern to follow
-- [Source: src/Hexalith.Tenants.CommandApi/Program.cs] — Actual DI registration and pipeline
-- [Source: src/Hexalith.Tenants.CommandApi/appsettings.json] — Domain service registration and config structure
+- [Source: src/Hexalith.Tenants/Program.cs] — Actual DI registration and pipeline
+- [Source: src/Hexalith.Tenants/appsettings.json] — Domain service registration and config structure
 
 ## Dev Agent Record
 
@@ -283,8 +283,8 @@ Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
-- Verified command endpoint path: `POST /api/v1/commands` from `Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Controllers/CommandsController.cs:19`
-- Verified query endpoint: `GET /api/tenants/{tenantId}` from `src/Hexalith.Tenants.CommandApi/Controllers/TenantsQueryController.cs:19,60`
+- Verified command endpoint path: `POST /api/v1/commands` from `Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Controllers/CommandsController.cs:19`
+- Verified query endpoint: `GET /api/tenants/{tenantId}` from `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:19,60`
 - Verified Tenants AppHost does NOT include Keycloak — `AddHexalithTenants()` only provisions DAPR state store + pub/sub + sidecar
 - JWT auth uses dev signing key from `appsettings.Development.json` (issuer: `hexalith-dev`, audience: `hexalith-tenants`, HMAC-SHA256)
 - Claims transformation extracts `tenants` JWT claim array into `eventstore:tenant` claims via `EventStoreClaimsTransformation.cs`

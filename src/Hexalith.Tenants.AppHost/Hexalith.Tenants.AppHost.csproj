@@ -8,9 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
+    <PackageReference Include="Aspire.Hosting.Keycloak" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hexalith.Tenants\Hexalith.Tenants.csproj" />
     <ProjectReference Include="..\..\samples\Hexalith.Tenants.Sample\Hexalith.Tenants.Sample.csproj" />
     <ProjectReference Include="..\Hexalith.Tenants.Aspire\Hexalith.Tenants.Aspire.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\Hexalith.EventStore\src\Hexalith.EventStore.CommandApi\Hexalith.EventStore.CommandApi.csproj" />
   </ItemGroup>
 
 </Project>

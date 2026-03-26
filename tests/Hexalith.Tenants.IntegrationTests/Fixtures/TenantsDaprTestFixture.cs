@@ -10,7 +10,7 @@ using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
 using Hexalith.EventStore.Testing.Fakes;
-using Hexalith.Tenants.CommandApi.DomainProcessing;
+using Hexalith.Tenants.DomainProcessing;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Microsoft.AspNetCore.Builder;

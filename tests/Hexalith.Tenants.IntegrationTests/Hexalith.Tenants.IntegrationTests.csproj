@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <ProjectReference
-      Include="..\..\src\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
+      Include="..\..\src\Hexalith.Tenants\Hexalith.Tenants.csproj" />
     <ProjectReference
       Include="..\..\src\Hexalith.Tenants.AppHost\Hexalith.Tenants.AppHost.csproj" />
     <ProjectReference

@@ -54,7 +54,6 @@ public static class Extensions {
                 .AddMeter("Hexalith.Tenants"))
             .WithTracing(tracing => tracing
                 .AddSource(builder.Environment.ApplicationName)
-                .AddSource("Hexalith.Tenants.CommandApi")
                 .AddSource("Hexalith.Tenants")
                 .AddSource("Hexalith.EventStore")
                 .AddAspNetCoreInstrumentation(tracing =>

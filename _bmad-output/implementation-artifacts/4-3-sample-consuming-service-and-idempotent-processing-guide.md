@@ -73,7 +73,7 @@ So that I have a proven reference implementation to follow when integrating tena
 
 ### Scope: Sample Service + Documentation
 
-This story creates a reference implementation sample and idempotent processing documentation. Stories 4.1 and 4.2 built the Client infrastructure (DI, event handlers, projections, subscription endpoints). This story **uses** that infrastructure — it does NOT modify Client, Contracts, Server, or CommandApi source code.
+This story creates a reference implementation sample and idempotent processing documentation. Stories 4.1 and 4.2 built the Client infrastructure (DI, event handlers, projections, subscription endpoints). This story **uses** that infrastructure — it does NOT modify Client, Contracts, Server, or Hexalith.Tenants source code.
 
 **This story does NOT:**
 

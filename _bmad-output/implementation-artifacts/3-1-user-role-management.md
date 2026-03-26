@@ -51,8 +51,8 @@ So that I can control who has access to my tenant and what they can do.
 ## Tasks / Subtasks
 
 - [x] Task 0: Investigate FluentValidation pipeline integration (BLOCKING — do before Task 2)
-    - [x] 0.1: Read `Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs` — determine what `TRequest` it validates (is it `SubmitCommand` envelope or the inner domain command?)
-    - [x] 0.2: Search for any `CommandPayloadValidationBehavior` or inner-command validation in EventStore.CommandApi or EventStore.Server
+    - [x] 0.1: Read `Hexalith.EventStore.Hexalith.Tenants/Pipeline/ValidationBehavior.cs` — determine what `TRequest` it validates (is it `SubmitCommand` envelope or the inner domain command?)
+    - [x] 0.2: Search for any `CommandPayloadValidationBehavior` or inner-command validation in EventStore.Hexalith.Tenants or EventStore.Server
     - [ ] 0.3: If validators fire for domain commands → proceed with Task 2 as written
     - [x] 0.4: If validators do NOT fire for domain commands → document the gap, skip Task 2 (validators would be dead code), and ensure Handle methods provide full domain validation (already do). Open a follow-up item for adding pipeline-level domain command validation
 
@@ -66,7 +66,7 @@ So that I can control who has access to my tenant and what they can do.
     - [x] 2.1: Add `FluentValidation` package reference to `Hexalith.Tenants.Server.csproj`
     - [x] 2.2: Create `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs`
     - [x] 2.3: Create `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs`
-    - [x] 2.4: Register validators in `Program.cs` and add a tenant-specific `SubmitCommand` payload validator in CommandApi so inner command validation runs in the existing MediatR pipeline
+    - [x] 2.4: Register validators in `Program.cs` and add a tenant-specific `SubmitCommand` payload validator in Hexalith.Tenants so inner command validation runs in the existing MediatR pipeline
     - [x] 2.5: Verify solution builds
     - [x] 2.6: Use the typed validators from the `SubmitCommand` MediatR validation path so `AddUserToTenant` and `ChangeUserRole` payloads are validated before domain dispatch
 
@@ -102,10 +102,10 @@ This story adds the **user-role management Handle methods** to the existing `Ten
 **Recommended follow-up (file as separate tech-debt item):**
 
 - Add explicit numeric values to prevent future drift: `TenantOwner = 0, TenantContributor = 1, TenantReader = 2`
-- Enforce `[JsonRequired]` or `JsonSerializerOptions.RespectRequiredMembers = true` at the CommandApi level to reject payloads that omit `Role`
-- This is a CommandApi/serialization concern, not an aggregate concern
+- Enforce `[JsonRequired]` or `JsonSerializerOptions.RespectRequiredMembers = true` at Hexalith.Tenants level to reject payloads that omit `Role`
+- This is a Hexalith.Tenants/serialization concern, not an aggregate concern
 
-**This story adds:** 3 Handle methods, 2 typed validators, a tenant-specific `SubmitCommand` payload validator in CommandApi, the `ExistingRole` field on `UserAlreadyInTenantRejection`, and focused tests. No new projects.
+**This story adds:** 3 Handle methods, 2 typed validators, a tenant-specific `SubmitCommand` payload validator in Hexalith.Tenants, the `ExistingRole` field on `UserAlreadyInTenantRejection`, and focused tests. No new projects.
 
 ### Technical Requirements
 
@@ -208,14 +208,14 @@ FluentValidation 12.1.1 is already declared in `Directory.Packages.props` (centr
 
 **Validator registration needed in `Program.cs`:**
 
-`AddCommandApi()` (from EventStore.CommandApi) only registers EventStore's own validators via `AddValidatorsFromAssemblyContaining<SubmitCommandRequestValidator>()`. Tenant-specific validators must be separately registered:
+`AddHexalith.Tenants()` (from EventStore.Hexalith.Tenants) only registers EventStore's own validators via `AddValidatorsFromAssemblyContaining<SubmitCommandRequestValidator>()`. Tenant-specific validators must be separately registered:
 
 ```csharp
 // Add after existing AddEventStore() call in Program.cs
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 ```
 
-`AddValidatorsFromAssembly()` is an extension method from `FluentValidation.DependencyInjectionExtensions` — this is transitively available in CommandApi via the `EventStore.CommandApi` project reference. Add `using FluentValidation;` to `Program.cs` for the extension method to resolve.
+`AddValidatorsFromAssembly()` is an extension method from `FluentValidation.DependencyInjectionExtensions` — this is transitively available in Hexalith.Tenants via the `EventStore.Hexalith.Tenants` project reference. Add `using FluentValidation;` to `Program.cs` for the extension method to resolve.
 
 **All other dependencies already available (NO new packages):**
 
@@ -237,7 +237,7 @@ src/Hexalith.Tenants.Server/
     ├── AddUserToTenantValidator.cs    (CREATE)
     └── ChangeUserRoleValidator.cs     (CREATE)
 
-src/Hexalith.Tenants.CommandApi/
+src/Hexalith.Tenants/
 └── Program.cs                         (ADD validator registration line + using)
 
 tests/Hexalith.Tenants.Server.Tests/
@@ -413,10 +413,10 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - State property is `Users` (not `Members`) — `Dictionary<string, TenantRole>`
 - Test file `TenantAggregateTests.cs` has 12 existing tests + `CreateCommand<T>` helper
 
-**Story 2.4 (review) — CommandApi bootstrap:**
+**Story 2.4 (review) — Hexalith.Tenants bootstrap:**
 
-- Program.cs is fully wired: `AddCommandApi()`, `AddEventStoreServer()`, `AddEventStore(typeof(TenantAggregate).Assembly)`
-- `AddCommandApi()` sets up MediatR pipeline with ValidationBehavior but only registers EventStore's own validators
+- Program.cs is fully wired: `AddHexalith.Tenants()`, `AddEventStoreServer()`, `AddEventStore(typeof(TenantAggregate).Assembly)`
+- `AddHexalith.Tenants()` sets up MediatR pipeline with ValidationBehavior but only registers EventStore's own validators
 - Validator registration for Tenants assembly NOT yet done — must add `AddValidatorsFromAssembly()` in this story
 
 **Story 2.1 (done) — Contracts:**
@@ -475,7 +475,7 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - [Source: _bmad-output/implementation-artifacts/2-4-commandapi-bootstrap-and-event-publishing.md] — Program.cs wiring, validator registration gap
 - [Source: _bmad-output/planning-artifacts/architecture.md#Handle Method] — FR10 (role escalation) mapped to `Enum.IsDefined()` deserialization defense; architecture example uses `state.Members.ContainsKey` but actual implementation uses `state.Users` (architecture doc typo)
 - [Source: _bmad-output/planning-artifacts/prd.md#FR12] — Optimistic concurrency (AC #7) — infrastructure-guaranteed by EventStore actor model, no domain code needed
-- [Source: Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs] — Task 0: verify domain command validator integration
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Pipeline/ValidationBehavior.cs] — Task 0: verify domain command validator integration
 
 ## Change Log
 
@@ -484,7 +484,7 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - 2026-03-15: Task 3 — Added 16 unit tests covering all 3 Handle methods (success, rejection, NoOp paths). [Theory] with [InlineData] for all 3 TenantRole values. Switch arm ordering verified (disabled takes precedence over duplicate member).
 - 2026-03-15: Task 4 — Full solution build (0 warnings, 0 errors) and all 81 tests pass across 5 test projects with no regressions.
 - 2026-03-16: Senior developer review completed. Story moved back to in-progress after finding an unmet validation acceptance criterion and a duplicate-user rejection contract gap.
-- 2026-03-16: Fix follow-up — Added typed validators plus a tenant-specific `SubmitCommand` payload validator, registered validators in CommandApi, extended `UserAlreadyInTenantRejection` with `ExistingRole`, and added focused regression tests. Story returned to done.
+- 2026-03-16: Fix follow-up — Added typed validators plus a tenant-specific `SubmitCommand` payload validator, registered validators in Hexalith.Tenants, extended `UserAlreadyInTenantRejection` with `ExistingRole`, and added focused regression tests. Story returned to done.
 
 ## Dev Agent Record
 
@@ -500,7 +500,7 @@ GPT-5.4
 
 - Task 0: FluentValidation pipeline investigation complete. Direct typed validators do not run automatically on deserialized domain commands, so the fix adds a tenant-specific `SubmitCommand` validator that invokes typed validators from the actual MediatR pipeline.
 - Task 1: Added 3 Handle methods to TenantAggregate following established patterns (static, pure, DomainResult return). All methods include null state, disabled tenant, and domain-specific guards. ChangeUserRole returns NoOp for same-role (consistent with DisableTenant/EnableTenant idempotent patterns).
-- Task 2: Added `AddUserToTenantValidator`, `ChangeUserRoleValidator`, and `TenantSubmitCommandValidator`. Registered both Tenants assemblies for FluentValidation discovery in CommandApi.
+- Task 2: Added `AddUserToTenantValidator`, `ChangeUserRoleValidator`, and `TenantSubmitCommandValidator`. Registered both Tenants assemblies for FluentValidation discovery in Hexalith.Tenants.
 - Task 3: Added aggregate assertions for `ExistingRole`, 2 typed validator test files, and `TenantSubmitCommandValidatorTests`. Server.Tests now pass 62/62 and Contracts.Tests pass 25/25.
 - Task 4: Full Release build with 0 warnings/errors after fixes.
 
@@ -511,8 +511,8 @@ GPT-5.4
 - `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` — MODIFIED: Added `FluentValidation` package reference
 - `src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs` — NEW: Typed validator for AddUserToTenant payloads
 - `src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs` — NEW: Typed validator for ChangeUserRole payloads
-- `src/Hexalith.Tenants.CommandApi/Program.cs` — MODIFIED: Registered Tenants validators with FluentValidation discovery
-- `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — NEW: MediatR-pipeline validator that deserializes tenant command payloads and delegates to typed validators
+- `src/Hexalith.Tenants/Program.cs` — MODIFIED: Registered Tenants validators with FluentValidation discovery
+- `src/Hexalith.Tenants/Validation/TenantSubmitCommandValidator.cs` — NEW: MediatR-pipeline validator that deserializes tenant command payloads and delegates to typed validators
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — MODIFIED: Added `ExistingRole` assertion for duplicate-user rejection
 - `tests/Hexalith.Tenants.Server.Tests/Validators/AddUserToTenantValidatorTests.cs` — NEW: Validator tests for AddUserToTenant
 - `tests/Hexalith.Tenants.Server.Tests/Validators/ChangeUserRoleValidatorTests.cs` — NEW: Validator tests for ChangeUserRole
@@ -527,7 +527,7 @@ GPT-5.4
 ### Summary
 
 - Git working tree review: `git status --porcelain`, `git diff --name-only`, and `git diff --cached --name-only` were all empty. No uncommitted or staged file discrepancies were present during review.
-- Validation context reviewed: `Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs`
+- Validation context reviewed: `Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Pipeline/ValidationBehavior.cs`
 - Verification run:
     - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore` → 53/53 passed
     - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --no-restore` → 25/25 passed
@@ -535,8 +535,8 @@ GPT-5.4
 ### Resolution
 
 - Added `AddUserToTenantValidator` and `ChangeUserRoleValidator` in `Hexalith.Tenants.Server`.
-- Added `TenantSubmitCommandValidator` in `Hexalith.Tenants.CommandApi` so tenant payload validation now runs on `SubmitCommand` inside the existing MediatR pipeline.
-- Registered validator discovery for both the CommandApi and Server assemblies in `Program.cs`.
+- Added `TenantSubmitCommandValidator` in `Hexalith.Tenants` so tenant payload validation now runs on `SubmitCommand` inside the existing MediatR pipeline.
+- Registered validator discovery for both Hexalith.Tenants and Server assemblies in `Program.cs`.
 - Extended `UserAlreadyInTenantRejection` with `ExistingRole` and updated `TenantAggregate` plus aggregate tests accordingly.
 - Verification after fixes:
     - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` → 62/62 passed
@@ -547,8 +547,8 @@ GPT-5.4
 
 1. **[CRITICAL] AC #8 is not implemented, and Tasks 0.4 / 2.6 overstate completion**
    Story AC #8 requires FluentValidation in the MediatR pipeline for non-empty `TenantId`, non-empty `UserId`, and valid enum values (`_bmad-output/implementation-artifacts/3-1-user-role-management.md:43-45`). The story then claims validators were skipped because they would be dead code and that the Handle methods now provide full validation (`...md:57`, `...md:71`). However:
-    - `ValidationBehavior<TRequest, TResponse>` validates the outer MediatR request type, not the deserialized inner tenant command (`Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Pipeline/ValidationBehavior.cs:14-25`, `:36-43`).
-    - `src/Hexalith.Tenants.CommandApi/Program.cs:15-23` does not register any tenant-command validators.
+    - `ValidationBehavior<TRequest, TResponse>` validates the outer MediatR request type, not the deserialized inner tenant command (`Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Pipeline/ValidationBehavior.cs:14-25`, `:36-43`).
+    - `src/Hexalith.Tenants/Program.cs:15-23` does not register any tenant-command validators.
     - `src/Hexalith.Tenants.Server/` contains no `Validators/` folder, and `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` has no `FluentValidation` package reference.
     - The Handle methods only validate enum values and membership state; they do **not** reject empty identifiers before producing events or probing the dictionary (`src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:52-90`).
 

@@ -75,8 +75,8 @@ So that I can discover tenants, manage access, and produce compliance reports.
     - [x] 2.5: Create `src/Hexalith.Tenants.Contracts/Queries/PaginatedResult.cs` — generic paginated response wrapper
     - [x] 2.6: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [x] Task 3: Create TenantsProjectionActor in CommandApi (AC: #1-6)
-    - [x] 3.1: Create `src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs` inheriting `CachingProjectionActor`
+- [x] Task 3: Create TenantsProjectionActor in Hexalith.Tenants (AC: #1-6)
+    - [x] 3.1: Create `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs` inheriting `CachingProjectionActor`
     - [x] 3.2: Implement `ExecuteQueryAsync` — dispatch to per-query-type handler methods
     - [x] 3.3: Implement GetTenant handler — load TenantReadModel from projection, authorize, return TenantDetail
         - [x] 3.4: Implement ListTenants handler — load TenantIndexReadModel, authorize (filter by user membership or GlobalAdmin sees all), paginate, return `PaginatedResult<TenantSummary>` **[REQUIRES Story 5.2 complete — skip if TenantIndexReadModel does not exist]**
@@ -88,8 +88,8 @@ So that I can discover tenants, manage access, and produce compliance reports.
         - [x] 3.10: After each successful incremental Apply, explicitly notify projection invalidation for `"tenant-index"` because `Project()` is not the fan-in entry point
         - [x] 3.11: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
-- [x] Task 4: Create TenantsQueryController in CommandApi (AC: #1-5, #7)
-    - [x] 4.1: Create `src/Hexalith.Tenants.CommandApi/Controllers/TenantsQueryController.cs`
+- [x] Task 4: Create TenantsQueryController in Hexalith.Tenants (AC: #1-5, #7)
+    - [x] 4.1: Create `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`
     - [x] 4.2: Implement `GET /api/tenants` — translate to ListTenantsQuery via SubmitQueryRequest → MediatR
     - [x] 4.3: Implement `GET /api/tenants/{tenantId}` — translate to GetTenantQuery
     - [x] 4.4: Implement `GET /api/tenants/{tenantId}/users` — translate to GetTenantUsersQuery
@@ -105,7 +105,7 @@ So that I can discover tenants, manage access, and produce compliance reports.
 
 - [x] Task 6: Create unit tests (AC: #1-7, #9) — 29+ tests across 3 test files
     - [x] 6.1: Create `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryContractNamingTests.cs` — 5 reflection-based naming convention tests (Q1-Q5)
-    - [x] 6.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` — 19 actor logic tests with mocked DaprClient (Q6-Q21, Q25-Q27). NOTE: Actor lives in CommandApi but tests go in Server.Tests to avoid creating a new test project — Server.Tests.csproj needs a `ProjectReference` to CommandApi added
+    - [x] 6.2: Create `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` — 19 actor logic tests with mocked DaprClient (Q6-Q21, Q25-Q27). NOTE: Actor lives in Hexalith.Tenants but tests go in Server.Tests to avoid creating a new test project — Server.Tests.csproj needs a `ProjectReference` to Hexalith.Tenants added
     - [x] 6.3: Create `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryDtoSerializationTests.cs` — 3 DTO round-trip serialization tests (Q22-Q24)
         - [x] 6.4: Add focused cross-tenant hosting tests for ETag retry / conflict handling and `tenant-index` invalidation notification (Q28-Q29)
         - [x] 6.5: Verify all tests pass: `dotnet test Hexalith.Tenants.slnx` — all pass, no regressions
@@ -255,12 +255,12 @@ public sealed record PaginatedResult<T>(IReadOnlyList<T> Items, string? Cursor, 
 
 The projection actor is a DAPR actor that implements the query logic. It inherits `CachingProjectionActor` which provides automatic ETag-based caching.
 
-**Location:** `src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs`
+**Location:** `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
 
-**Why in CommandApi, not Server?** The projection actor depends on DAPR actor runtime (`ActorHost`, DAPR state store client) and is specific to the deployable host. Server contains domain-agnostic types (read models, projections). The actor is an infrastructure concern that wires projections to the query pipeline.
+**Why in Hexalith.Tenants, not Server?** The projection actor depends on DAPR actor runtime (`ActorHost`, DAPR state store client) and is specific to the deployable host. Server contains domain-agnostic types (read models, projections). The actor is an infrastructure concern that wires projections to the query pipeline.
 
 ```csharp
-// src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs
+// src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs
 using System.Text.Json;
 
 using Dapr.Actors.Runtime;
@@ -272,7 +272,7 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 
-namespace Hexalith.Tenants.CommandApi.Actors;
+namespace Hexalith.Tenants.Actors;
 
 public sealed partial class TenantsProjectionActor : CachingProjectionActor
 {
@@ -325,7 +325,7 @@ The existing `app.MapActorsHandlers()` maps DAPR actor HTTP endpoints — it alr
 
 ### TenantsQueryController — Thin REST Controller
 
-**Location:** `src/Hexalith.Tenants.CommandApi/Controllers/TenantsQueryController.cs`
+**Location:** `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`
 
 The controller translates clean REST endpoints into `SubmitQueryRequest` objects dispatched via MediatR. It does NOT contain query logic — just HTTP → MediatR mapping.
 
@@ -515,8 +515,8 @@ public IActionResult GetTenantAudit(string tenantId)
 **D2: DTOs go in Contracts/Queries/ folder.**
 Query response types (`TenantSummary`, `TenantDetail`, etc.) are part of the public contract — consuming services need them to deserialize query responses. Keeping them in Contracts alongside query contracts is the right location per architecture's component boundaries (Contracts → referenced by all projects).
 
-**D3: TenantsProjectionActor in CommandApi, not Server.**
-The projection actor depends on DAPR actor runtime infrastructure and is specific to the deployable host. Read models and projections (domain types) live in Server. The actor (infrastructure wiring) lives in CommandApi. This matches the architecture's component boundary: CommandApi references Server + Contracts + ServiceDefaults.
+**D3: TenantsProjectionActor in Hexalith.Tenants, not Server.**
+The projection actor depends on DAPR actor runtime infrastructure and is specific to the deployable host. Read models and projections (domain types) live in Server. The actor (infrastructure wiring) lives in Hexalith.Tenants. This matches the architecture's component boundary: Hexalith.Tenants references Server + Contracts + ServiceDefaults.
 
 **D4: Single projection actor type handles all query types.**
 All 5 query types are dispatched through one `TenantsProjectionActor` class using `envelope.QueryType` switch. The `QueryRouter` always routes to actor type `"ProjectionActor"` — there is exactly one actor type registered. Actor instances are distinguished by their actor ID (derived from QueryType + TenantId + EntityId). One actor instance per unique actor ID.
@@ -565,17 +565,17 @@ Story 5.1 D5 documented that `EventPersister` stores ALL events including reject
 | TenantMember                | Contracts       | Queries/     | TenantMember.cs (CREATE)             |
 | UserTenantMembership        | Contracts       | Queries/     | UserTenantMembership.cs (CREATE)     |
 | PaginatedResult<T>          | Contracts       | Queries/     | PaginatedResult.cs (CREATE)          |
-| TenantsProjectionActor      | CommandApi      | Actors/      | TenantsProjectionActor.cs (CREATE)   |
-| TenantsQueryController      | CommandApi      | Controllers/ | TenantsQueryController.cs (CREATE)   |
+| TenantsProjectionActor      | Hexalith.Tenants      | Actors/      | TenantsProjectionActor.cs (CREATE)   |
+| TenantsQueryController      | Hexalith.Tenants      | Controllers/ | TenantsQueryController.cs (CREATE)   |
 | Query contract naming tests | Contracts.Tests | Queries/     | QueryContractNamingTests.cs (CREATE) |
 
 **DO NOT:**
 
-- Create types outside the designated projects — query contracts in Contracts, actor in CommandApi
+- Create types outside the designated projects — query contracts in Contracts, actor in Hexalith.Tenants
 - Modify existing read models (`TenantReadModel`, `GlobalAdministratorReadModel`, `TenantIndexReadModel`) — those are Story 5.1/5.2 scope and already complete/in-progress
 - Modify existing projection classes (`TenantProjection`, `GlobalAdministratorProjection`) — those are Story 5.1 scope
 - Add new NuGet packages unless absolutely required — existing dependencies should suffice
-- Create a separate QueryApi project — architecture decision is single deployable (CommandApi serves both commands and queries)
+- Create a separate QueryApi project — architecture decision is single deployable (Hexalith.Tenants serves both commands and queries)
 - Add shared base classes between query contracts — each is an independent type
 - Put query logic in the REST controller — controller is a thin translation layer only
 - Create command-side authorization middleware for queries — query authorization is in the projection actor
@@ -588,10 +588,10 @@ Story 5.1 D5 documented that `EventPersister` stores ALL events including reject
 **No new NuGet packages expected.** All dependencies available:
 
 - `IQueryContract`, `IQueryResponse<T>`, `SubmitQueryRequest/Response` → `Hexalith.EventStore.Contracts` (referenced by Contracts)
-- `CachingProjectionActor`, `IProjectionActor`, `QueryEnvelope`, `QueryResult`, `IETagService` → `Hexalith.EventStore.Server` (referenced by CommandApi via EventStore.CommandApi)
-- `SubmitQuery`, `SubmitQueryResult` → `Hexalith.EventStore.Server.Pipeline.Queries` (referenced by CommandApi)
-- `DaprClient` → `Dapr.AspNetCore` (already in CommandApi.csproj)
-- `IMediator` → `MediatR` (already in CommandApi.csproj)
+- `CachingProjectionActor`, `IProjectionActor`, `QueryEnvelope`, `QueryResult`, `IETagService` → `Hexalith.EventStore.Server` (referenced by Hexalith.Tenants via EventStore.Hexalith.Tenants)
+- `SubmitQuery`, `SubmitQueryResult` → `Hexalith.EventStore.Server.Pipeline.Queries` (referenced by Hexalith.Tenants)
+- `DaprClient` → `Dapr.AspNetCore` (already in Hexalith.Tenants.csproj)
+- `IMediator` → `MediatR` (already in Hexalith.Tenants.csproj)
 - `[Authorize]`, `[ApiController]` → ASP.NET Core (already available)
 
 **Verify at implementation:** Check whether `Hexalith.Tenants.Contracts.csproj` has a reference to `Hexalith.EventStore.Contracts`. If not, you'll need to add a `ProjectReference` to enable `IQueryContract` implementation in Contracts/Queries/. Check:
@@ -622,7 +622,7 @@ src/Hexalith.Tenants.Contracts/
     ├── UserTenantMembership.cs         (CREATE)
     └── PaginatedResult.cs              (CREATE)
 
-src/Hexalith.Tenants.CommandApi/
+src/Hexalith.Tenants/
 ├── Actors/                              (CREATE directory)
 │   └── TenantsProjectionActor.cs       (CREATE)
 ├── Bootstrap/                           (EXISTS — no changes)
@@ -758,7 +758,7 @@ Established patterns:
 - Story 5.1 (review): `TenantReadModel`, `GlobalAdministratorReadModel`, projections — for per-tenant queries and GlobalAdmin authorization check
 - Story 5.2 (ready-for-dev): `TenantIndexReadModel`, `TenantIndexProjection` — for ListTenants and GetUserTenants queries. **If 5.2 is not yet implemented, defer cross-tenant queries**
 - Story 2.1 (done): Event contracts (for audit event replay if implementing FR29)
-- Story 2.4 (done): CommandApi bootstrap and event publishing (Program.cs structure)
+- Story 2.4 (done): Hexalith.Tenants bootstrap and event publishing (Program.cs structure)
 
 **No stories depend on this** — this is the final story in Epic 5.
 
@@ -793,8 +793,8 @@ ETag invalidation happens via `IProjectionChangeNotifier` when projections proce
 ### Project Structure Notes
 
 - Contracts/Queries/ folder is new — `Contracts.csproj` may need a `ProjectReference` to `EventStore.Contracts` for `IQueryContract`
-- CommandApi/Actors/ folder is new — for the `TenantsProjectionActor`
-- CommandApi/Controllers/ folder is new — for the `TenantsQueryController`
+- Hexalith.Tenants/Actors/ folder is new — for the `TenantsProjectionActor`
+- Hexalith.Tenants/Controllers/ folder is new — for the `TenantsQueryController`
 - Program.cs is the only existing file being modified — add actor registration
 - Server project is NOT modified — read models and projections already exist from Stories 5.1/5.2
 
@@ -807,15 +807,15 @@ ETag invalidation happens via `IProjectionChangeNotifier` when projections proce
 - [Source: _bmad-output/planning-artifacts/architecture.md#D4 Revision — EventStore Upgrade Alignment] — CachingProjectionActor for all projections, ETag management
 - [Source: _bmad-output/planning-artifacts/architecture.md#D8 Revision — Authorization Model Clarification] — Three-layer authorization, JWT + domain RBAC
 - [Source: _bmad-output/planning-artifacts/architecture.md#Query Consistency Model] — Eventual consistency with read-after-write mitigation
-- [Source: _bmad-output/planning-artifacts/architecture.md#Complete Project Directory Structure] — TenantsQueryController.cs in CommandApi/Controllers/
-- [Source: _bmad-output/planning-artifacts/architecture.md#FR-to-Structure Mapping] — FR25-30 → Server/Projections + CommandApi/Controllers
+- [Source: _bmad-output/planning-artifacts/architecture.md#Complete Project Directory Structure] — TenantsQueryController.cs in Hexalith.Tenants/Controllers/
+- [Source: _bmad-output/planning-artifacts/architecture.md#FR-to-Structure Mapping] — FR25-30 → Server/Projections + Hexalith.Tenants/Controllers
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Queries/IQueryContract.cs] — QueryType, Domain, ProjectionType static members
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/CachingProjectionActor.cs] — Abstract base with ETag caching, ExecuteQueryAsync
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/IProjectionActor.cs] — DAPR actor interface, 3-tier routing model
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/QueryEnvelope.cs] — Query envelope with TenantId, Domain, QueryType, UserId, EntityId
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Queries/QueryRouter.cs] — Routes to ProjectionActor type name
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Queries/QueryActorIdHelper.cs] — 3-tier actor ID derivation
-- [Source: Hexalith.EventStore/src/Hexalith.EventStore.CommandApi/Controllers/QueriesController.cs] — Generic query endpoint with ETag pre-check
+- [Source: Hexalith.EventStore/src/Hexalith.EventStore.Hexalith.Tenants/Controllers/QueriesController.cs] — Generic query endpoint with ETag pre-check
 - [Source: _bmad-output/implementation-artifacts/5-1-per-tenant-and-global-admin-projections.md] — TenantReadModel, GlobalAdministratorReadModel patterns
 - [Source: _bmad-output/implementation-artifacts/5-2-cross-tenant-index-projection.md] — TenantIndexReadModel, TenantIndexEntry patterns
 
@@ -861,11 +861,11 @@ Claude Opus 4.6 (1M context)
 - src/Hexalith.Tenants.Contracts/Queries/TenantMember.cs
 - src/Hexalith.Tenants.Contracts/Queries/UserTenantMembership.cs
 - src/Hexalith.Tenants.Contracts/Queries/PaginatedResult.cs
-- src/Hexalith.Tenants.CommandApi/Actors/TenantsProjectionActor.cs
-- src/Hexalith.Tenants.CommandApi/Controllers/TenantsQueryController.cs
+- src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs
+- src/Hexalith.Tenants/Controllers/TenantsQueryController.cs
 - tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryContractNamingTests.cs
 - tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryDtoSerializationTests.cs
 - tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs
 
 **Modified files:**
-- src/Hexalith.Tenants.CommandApi/Program.cs (added actor registration)
+- src/Hexalith.Tenants/Program.cs (added actor registration)

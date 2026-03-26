@@ -245,9 +245,9 @@ public sealed class GlobalAdministratorProjection : EventStoreProjection<GlobalA
 
 ### Assembly Scanning — No Manual Registration
 
-The `AddEventStore()` call in `Program.cs` triggers `AssemblyScanner` which discovers all `EventStoreProjection<T>` subclasses in referenced assemblies. Since `CommandApi` references `Server`, and `TenantProjection`/`GlobalAdministratorProjection` live in `Server`, they will be auto-discovered. **No changes to Program.cs or any DI registration are needed.**
+The `AddEventStore()` call in `Program.cs` triggers `AssemblyScanner` which discovers all `EventStoreProjection<T>` subclasses in referenced assemblies. Since `Hexalith.Tenants` references `Server`, and `TenantProjection`/`GlobalAdministratorProjection` live in `Server`, they will be auto-discovered. **No changes to Program.cs or any DI registration are needed.**
 
-Verify auto-discovery works by checking that `AssemblyScanner` finds the new projection types. If it doesn't, ensure the Server assembly is referenced by CommandApi (it already is — `CommandApi.csproj` references `Server.csproj`).
+Verify auto-discovery works by checking that `AssemblyScanner` finds the new projection types. If it doesn't, ensure the Server assembly is referenced by Hexalith.Tenants (it already is — `Hexalith.Tenants.csproj` references `Server.csproj`).
 
 ### Domain Name Convention Verification
 
@@ -316,7 +316,7 @@ Apply methods do not validate preconditions (e.g., `Apply(UserRoleChanged)` does
 - Modify existing source files — this story only creates new files in Server/Projections/ and Server.Tests/Projections/
 - Add `IQueryContract` implementations — that's Story 5.3 scope
 - Add query contracts to Contracts project — that's Story 5.3 scope
-- Modify CommandApi Program.cs — assembly scanning handles projection discovery automatically
+- Modify Hexalith.Tenants Program.cs — assembly scanning handles projection discovery automatically
 - Include `HasMembershipHistory` on TenantReadModel or `Bootstrapped` on GlobalAdministratorReadModel — these are aggregate-only concerns
 - Create CachingProjectionActor subclasses — that infrastructure is for the query pipeline (Story 5.3), not the projection definitions
 

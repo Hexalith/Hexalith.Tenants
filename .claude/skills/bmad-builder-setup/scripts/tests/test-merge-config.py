@@ -33,6 +33,7 @@ merge_config = merge_config_mod.merge_config
 load_legacy_values = merge_config_mod.load_legacy_values
 apply_legacy_defaults = merge_config_mod.apply_legacy_defaults
 cleanup_legacy_configs = merge_config_mod.cleanup_legacy_configs
+apply_result_templates = merge_config_mod.apply_result_templates
 
 
 SAMPLE_MODULE_YAML = {
@@ -139,6 +140,48 @@ class TestExtractUserSettings(unittest.TestCase):
         self.assertEqual(result, {})
 
 
+class TestApplyResultTemplates(unittest.TestCase):
+    def test_applies_template(self):
+        answers = {"bmad_builder_output_folder": "skills"}
+        result = apply_result_templates(SAMPLE_MODULE_YAML, answers)
+        self.assertEqual(result["bmad_builder_output_folder"], "{project-root}/skills")
+
+    def test_applies_multiple_templates(self):
+        answers = {
+            "bmad_builder_output_folder": "skills",
+            "bmad_builder_reports": "skills/reports",
+        }
+        result = apply_result_templates(SAMPLE_MODULE_YAML, answers)
+        self.assertEqual(result["bmad_builder_output_folder"], "{project-root}/skills")
+        self.assertEqual(result["bmad_builder_reports"], "{project-root}/skills/reports")
+
+    def test_skips_when_no_template(self):
+        """Variables without a result field are stored as-is."""
+        yaml_no_result = {
+            "code": "test",
+            "my_var": {"prompt": "Enter value", "default": "foo"},
+        }
+        answers = {"my_var": "bar"}
+        result = apply_result_templates(yaml_no_result, answers)
+        self.assertEqual(result["my_var"], "bar")
+
+    def test_skips_when_value_already_has_project_root(self):
+        """Prevent double-prefixing if value already contains {project-root}."""
+        answers = {"bmad_builder_output_folder": "{project-root}/skills"}
+        result = apply_result_templates(SAMPLE_MODULE_YAML, answers)
+        self.assertEqual(result["bmad_builder_output_folder"], "{project-root}/skills")
+
+    def test_empty_answers(self):
+        result = apply_result_templates(SAMPLE_MODULE_YAML, {})
+        self.assertEqual(result, {})
+
+    def test_unknown_key_passed_through(self):
+        """Keys not in module.yaml are passed through unchanged."""
+        answers = {"unknown_key": "some_value"}
+        result = apply_result_templates(SAMPLE_MODULE_YAML, answers)
+        self.assertEqual(result["unknown_key"], "some_value")
+
+
 class TestMergeConfig(unittest.TestCase):
     def test_fresh_install_with_core_and_module(self):
         answers = {
@@ -161,7 +204,7 @@ class TestMergeConfig(unittest.TestCase):
         self.assertEqual(result["document_output_language"], "English")
         self.assertEqual(result["output_folder"], "_bmad-output")
         self.assertEqual(result["bmb"]["name"], "BMad Builder")
-        self.assertEqual(result["bmb"]["bmad_builder_output_folder"], "_bmad-output/skills")
+        self.assertEqual(result["bmb"]["bmad_builder_output_folder"], "{project-root}/_bmad-output/skills")
 
     def test_update_strips_user_keys_preserves_shared(self):
         existing = {
@@ -206,7 +249,7 @@ class TestMergeConfig(unittest.TestCase):
         # Old variable is gone
         self.assertNotIn("old_variable", result["bmb"])
         # New value is present
-        self.assertEqual(result["bmb"]["bmad_builder_output_folder"], "new/path")
+        self.assertEqual(result["bmb"]["bmad_builder_output_folder"], "{project-root}/new/path")
         # Metadata is fresh from module.yaml
         self.assertEqual(result["bmb"]["name"], "BMad Builder")
 
@@ -329,7 +372,7 @@ class TestEndToEnd(unittest.TestCase):
             # Shared core keys written
             self.assertEqual(written["document_output_language"], "English")
             self.assertEqual(written["output_folder"], "_bmad-output")
-            self.assertEqual(written["bmb"]["bmad_builder_output_folder"], "_bmad-output/skills")
+            self.assertEqual(written["bmb"]["bmad_builder_output_folder"], "{project-root}/_bmad-output/skills")
 
     def test_update_round_trip(self):
         """Simulate install, then re-install with different values."""
@@ -358,7 +401,7 @@ class TestEndToEnd(unittest.TestCase):
 
             self.assertEqual(final["output_folder"], "/out")
             self.assertNotIn("user_name", final)
-            self.assertEqual(final["bmb"]["bmad_builder_output_folder"], "new/path")
+            self.assertEqual(final["bmb"]["bmad_builder_output_folder"], "{project-root}/new/path")
 
 
 class TestLoadLegacyValues(unittest.TestCase):
@@ -593,8 +636,8 @@ class TestLegacyEndToEnd(unittest.TestCase):
             # Shared core keys present
             self.assertEqual(final["document_output_language"], "French")
             self.assertEqual(final["output_folder"], "/legacy/out")
-            self.assertEqual(final["bmb"]["bmad_builder_output_folder"], "new/skills")
-            self.assertEqual(final["bmb"]["bmad_builder_reports"], "legacy/reports")
+            self.assertEqual(final["bmb"]["bmad_builder_output_folder"], "{project-root}/new/skills")
+            self.assertEqual(final["bmb"]["bmad_builder_reports"], "{project-root}/legacy/reports")
 
 
 if __name__ == "__main__":

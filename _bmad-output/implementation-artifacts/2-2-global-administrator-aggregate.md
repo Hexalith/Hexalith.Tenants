@@ -138,7 +138,7 @@ public class GlobalAdministratorsAggregate : EventStoreAggregate<GlobalAdministr
 - Three outcomes: `DomainResult.Success([events])`, `DomainResult.Rejection([rejections])`, `DomainResult.NoOp()`
 - `TenantId` on events is `"system"` — GlobalAdmin events belong to the platform tenant, not a managed tenant
 - `BootstrapGlobalAdmin` reuses `GlobalAdministratorSet` event — no separate `GlobalAdminBootstrapped` event type
-- `SetGlobalAdministrator` is idempotent — if user already in set, return `NoOp()`. Note: aggregate does NOT enforce authorization (e.g., "only existing admins can add admins") — authorization is enforced at the CommandApi layer via JWT/MediatR pipeline (Story 2.4). The aggregate only enforces domain invariants
+- `SetGlobalAdministrator` is idempotent — if user already in set, return `NoOp()`. Note: aggregate does NOT enforce authorization (e.g., "only existing admins can add admins") — authorization is enforced at Hexalith.Tenants layer via JWT/MediatR pipeline (Story 2.4). The aggregate only enforces domain invariants
 - `RemoveGlobalAdministrator` with null state → `NoOp()` (nothing to remove); user not in set → `NoOp()`; last admin → rejection; else → success
 
 **New Rejection Event — `LastGlobalAdministratorRejection.cs` (in Contracts):**
@@ -354,7 +354,7 @@ result.Events.Count.ShouldBe(0);
 
 - Server project is currently an empty shell (no .cs source files) — this story creates the first source files in `Aggregates/`
 - Server.csproj already has correct ProjectReferences: Contracts + EventStore.Server
-- Server.Tests.csproj already references Server, Contracts, Testing, CommandApi, and Sample — no changes needed
+- Server.Tests.csproj already references Server, Contracts, Testing, Hexalith.Tenants, and Sample — no changes needed
 - `Aggregates/` folder needs to be created under `src/Hexalith.Tenants.Server/` and `tests/Hexalith.Tenants.Server.Tests/`
 
 ### References

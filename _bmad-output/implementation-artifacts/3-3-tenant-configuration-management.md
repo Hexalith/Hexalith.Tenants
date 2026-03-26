@@ -54,7 +54,7 @@ So that consuming services can react to per-tenant settings like billing plans o
 
 - [x] Task 2: Create SetTenantConfigurationValidator (AC: #7)
     - [x] 2.1: Create `src/Hexalith.Tenants.Server/Validators/SetTenantConfigurationValidator.cs` with rules: TenantId NotEmpty, Key NotNull + MinimumLength(1) + MaximumLength(256), Value NotNull + MaximumLength(1024)
-    - [x] 2.2: Update `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` to add `SetTenantConfiguration` case in the switch — inject `IValidator<SetTenantConfiguration>` in constructor
+    - [x] 2.2: Update `src/Hexalith.Tenants/Validation/TenantSubmitCommandValidator.cs` to add `SetTenantConfiguration` case in the switch — inject `IValidator<SetTenantConfiguration>` in constructor
     - [x] 2.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 3: Create unit tests (AC: #8)
@@ -220,7 +220,7 @@ Switch arm ordering follows the established pattern: null → disabled → RBAC 
 **Modified files:**
 
 - `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — Add 2 Handle methods + 3 limit constants
-- `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — Add SetTenantConfiguration case
+- `src/Hexalith.Tenants/Validation/TenantSubmitCommandValidator.cs` — Add SetTenantConfiguration case
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Add ~22 configuration tests
 
 **No new contract types needed.** All contracts already exist from Story 2.1:
@@ -240,7 +240,7 @@ Switch arm ordering follows the established pattern: null → disabled → RBAC 
 | -------------------------------- | ---------- | ----------- | ------------------------------------------- |
 | Handle methods + limit constants | Server     | Aggregates/ | TenantAggregate.cs (MODIFY)                 |
 | SetTenantConfigurationValidator  | Server     | Validators/ | SetTenantConfigurationValidator.cs (CREATE) |
-| TenantSubmitCommandValidator     | CommandApi | Validation/ | TenantSubmitCommandValidator.cs (MODIFY)    |
+| TenantSubmitCommandValidator     | Hexalith.Tenants | Validation/ | TenantSubmitCommandValidator.cs (MODIFY)    |
 
 **DO NOT:**
 
@@ -277,7 +277,7 @@ src/Hexalith.Tenants.Server/
 └── Validators/
     └── SetTenantConfigurationValidator.cs       (CREATE)
 
-src/Hexalith.Tenants.CommandApi/
+src/Hexalith.Tenants/
 └── Validation/
     └── TenantSubmitCommandValidator.cs          (MODIFY: add SetTenantConfiguration case)
 
@@ -505,7 +505,7 @@ public class SetTenantConfigurationValidatorTests
 **Story 3.1 (done) — User-Role Management:**
 
 - Added FluentValidation to Server .csproj, created validator pattern in `Server/Validators/`
-- Created `TenantSubmitCommandValidator` in CommandApi for pipeline-level validation
+- Created `TenantSubmitCommandValidator` in Hexalith.Tenants for pipeline-level validation
 - `UserAlreadyInTenantRejection` was extended with `ExistingRole` field during review
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on all reference type parameters including `envelope`
 - Test pattern: `ProcessAsync(CommandEnvelope, state)`, NOT direct Handle method calls
@@ -581,7 +581,7 @@ Story 3.2 is now implemented (status: review). The 3-param Handle pattern, RBAC 
 - [Source: src/Hexalith.Tenants.Contracts/Events/Rejections/ConfigurationLimitExceededRejection.cs] — `record ConfigurationLimitExceededRejection(TenantId, LimitType, CurrentCount, MaxAllowed) : IRejectionEvent`
 - [Source: src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs] — Current 7 Handle methods, add 2 more
 - [Source: src/Hexalith.Tenants.Server/Aggregates/TenantState.cs] — Configuration dictionary + Apply methods already exist
-- [Source: src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs] — Pipeline validator pattern to extend
+- [Source: src/Hexalith.Tenants/Validation/TenantSubmitCommandValidator.cs] — Pipeline validator pattern to extend
 - [Source: src/Hexalith.Tenants.Server/Validators/AddUserToTenantValidator.cs] — Validator pattern to follow
 - [Source: _bmad-output/implementation-artifacts/3-2-role-behavior-enforcement.md] — RBAC pattern, 3-param Handle, InsufficientPermissionsRejection, permission matrix
 - [Source: _bmad-output/implementation-artifacts/3-1-user-role-management.md] — Validator creation, CA1062, TenantSubmitCommandValidator pattern
@@ -671,6 +671,6 @@ None — clean implementation with no blocking issues.
 **Modified files:**
 
 - `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` — Added 2 Handle methods + 3 limit constants
-- `src/Hexalith.Tenants.CommandApi/Validation/TenantSubmitCommandValidator.cs` — Added SetTenantConfiguration case + validator injection
+- `src/Hexalith.Tenants/Validation/TenantSubmitCommandValidator.cs` — Added SetTenantConfiguration case + validator injection
 - `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs` — Added 22 configuration test cases + 2 helper methods
 - `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/TenantSubmitCommandValidatorTests.cs` — Added SetTenantConfiguration pipeline test + updated constructor

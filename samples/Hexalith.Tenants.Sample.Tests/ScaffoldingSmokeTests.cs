@@ -1,6 +1,10 @@
 namespace Hexalith.Tenants.Sample.Tests;
 
-public class ScaffoldingSmokeTests {
+public class ScaffoldingSmokeTests
+{
     [Fact]
-    public void Test_project_is_discoverable() => Assert.True(true);
+    public void Test_project_is_discoverable()
+    {
+        Assert.True(true);
+    }
 }
