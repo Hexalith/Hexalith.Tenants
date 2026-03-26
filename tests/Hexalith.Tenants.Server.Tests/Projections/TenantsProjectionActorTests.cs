@@ -104,6 +104,9 @@ public class TenantsProjectionActorTests
         return JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
     }
 
+    private static T? DeserializePayload<T>(QueryResult result)
+        => result.GetPayload().Deserialize<T>(s_jsonOptions);
+
     private static TenantsProjectionActor CreateActor(DaprClient daprClient)
     {
         ActorHost host = ActorHost.CreateForTest<TenantsProjectionActor>(
@@ -158,7 +161,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant"));
 
         result.Success.ShouldBeTrue();
-        TenantDetail? detail = JsonSerializer.Deserialize<TenantDetail>(result.Payload, s_jsonOptions);
+        TenantDetail? detail = DeserializePayload<TenantDetail>(result);
         detail.ShouldNotBeNull();
         detail.TenantId.ShouldBe("tenant-1");
         detail.Name.ShouldBe("Test Tenant");
@@ -193,7 +196,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
-        TenantDetail? detail = JsonSerializer.Deserialize<TenantDetail>(result.Payload, s_jsonOptions);
+        TenantDetail? detail = DeserializePayload<TenantDetail>(result);
         detail.ShouldNotBeNull();
         detail.TenantId.ShouldBe("tenant-1");
     }
@@ -215,7 +218,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(2);
     }
@@ -234,7 +237,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(5);
     }
@@ -253,7 +256,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(3);
         page.HasMore.ShouldBeTrue();
@@ -274,12 +277,12 @@ public class TenantsProjectionActorTests
         // First page
         byte[] payload1 = CreatePaginationPayload(pageSize: 3);
         QueryResult result1 = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload1));
-        PaginatedResult<TenantSummary>? page1 = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result1.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page1 = DeserializePayload<PaginatedResult<TenantSummary>>(result1);
 
         // Second page with cursor
         byte[] payload2 = CreatePaginationPayload(cursor: page1!.Cursor, pageSize: 3);
         QueryResult result2 = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload2));
-        PaginatedResult<TenantSummary>? page2 = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result2.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page2 = DeserializePayload<PaginatedResult<TenantSummary>>(result2);
 
         page2.ShouldNotBeNull();
         page2.Items.Count.ShouldBe(3);
@@ -303,7 +306,7 @@ public class TenantsProjectionActorTests
         byte[] payload = CreatePaginationPayload(pageSize: 10);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(5);
         page.HasMore.ShouldBeFalse();
@@ -332,7 +335,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantMember>? page = JsonSerializer.Deserialize<PaginatedResult<TenantMember>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantMember>? page = DeserializePayload<PaginatedResult<TenantMember>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(5);
     }
@@ -359,7 +362,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-1", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<UserTenantMembership>? page = JsonSerializer.Deserialize<PaginatedResult<UserTenantMembership>>(result.Payload, s_jsonOptions);
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(3);
     }
@@ -395,7 +398,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "admin-1", aggregateId: "index", entityId: "user-2", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<UserTenantMembership>? page = JsonSerializer.Deserialize<PaginatedResult<UserTenantMembership>>(result.Payload, s_jsonOptions);
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(2);
     }
@@ -440,7 +443,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(0);
         page.HasMore.ShouldBeFalse();
@@ -478,7 +481,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         // Cursor "zzz" is after all tenant keys → empty result
         page.Items.Count.ShouldBe(0);
@@ -504,7 +507,7 @@ public class TenantsProjectionActorTests
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary>? page = JsonSerializer.Deserialize<PaginatedResult<TenantSummary>>(result.Payload, s_jsonOptions);
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(3);
         page.Items[0].TenantId.ShouldBe("C");

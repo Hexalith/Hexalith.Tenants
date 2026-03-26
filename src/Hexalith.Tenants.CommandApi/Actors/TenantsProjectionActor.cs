@@ -107,7 +107,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             model.CreatedAt);
 
         JsonElement payload = JsonSerializer.SerializeToElement(detail, s_queryJsonOptions);
-        return QueryResult.FromPayload(payload, "tenants");
+        return CreateSuccessResult(payload, "tenants");
     }
 
     private async Task<QueryResult> HandleListTenantsAsync(QueryEnvelope envelope)
@@ -120,7 +120,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
         {
             PaginatedResult<TenantSummary> empty = new([], null, false);
             JsonElement emptyPayload = JsonSerializer.SerializeToElement(empty, s_queryJsonOptions);
-            return QueryResult.FromPayload(emptyPayload, "tenant-index");
+            return CreateSuccessResult(emptyPayload, "tenant-index");
         }
 
         bool isGlobalAdmin = await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
@@ -146,7 +146,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status));
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
-        return QueryResult.FromPayload(payload, "tenant-index");
+        return CreateSuccessResult(payload, "tenant-index");
     }
 
     private async Task<QueryResult> HandleGetTenantUsersAsync(QueryEnvelope envelope)
@@ -175,7 +175,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             kvp => new TenantMember(kvp.Key, kvp.Value));
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
-        return QueryResult.FromPayload(payload, "tenants");
+        return CreateSuccessResult(payload, "tenants");
     }
 
     private async Task<QueryResult> HandleGetUserTenantsAsync(QueryEnvelope envelope)
@@ -198,7 +198,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
         {
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
             JsonElement emptyPayload = JsonSerializer.SerializeToElement(empty, s_queryJsonOptions);
-            return QueryResult.FromPayload(emptyPayload, "tenant-index");
+            return CreateSuccessResult(emptyPayload, "tenant-index");
         }
 
         (string? cursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
@@ -219,7 +219,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             });
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
-        return QueryResult.FromPayload(payload, "tenant-index");
+        return CreateSuccessResult(payload, "tenant-index");
     }
 
     private async Task<QueryResult> HandleGetTenantAuditAsync(QueryEnvelope envelope)
@@ -254,6 +254,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
 
         return adminModel is not null && adminModel.Administrators.Contains(userId);
     }
+
+    private static QueryResult CreateSuccessResult(JsonElement payload, string? projectionType)
+        => new(true, JsonSerializer.SerializeToUtf8Bytes(payload), ProjectionType: projectionType);
 
     private static HashSet<string> GetUserTenantIds(TenantIndexReadModel indexModel, string userId)
     {
