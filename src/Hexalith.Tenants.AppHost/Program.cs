@@ -33,4 +33,7 @@ _ = builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")
         })
         .WithReference(tenantsResources.PubSub));
 
-builder.Build().Run();
+await builder
+    .Build()
+    .RunAsync()
+    .ConfigureAwait(false);

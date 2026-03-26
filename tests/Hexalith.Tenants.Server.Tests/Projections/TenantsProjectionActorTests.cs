@@ -49,7 +49,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q8: GlobalAdmin can access any tenant ---
     [Fact]
-    public async Task GetTenant_global_admin_bypasses_membership() {
+    public async Task GetTenant_global_admin_bypasses_membershipAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
         SetupTenantState(daprClient, "tenant-1", model);
@@ -66,7 +66,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q21: GetTenant with non-existent tenantId ---
     [Fact]
-    public async Task GetTenant_non_existent_returns_error() {
+    public async Task GetTenant_non_existent_returns_errorAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         _ = daprClient.GetStateAsync<TenantReadModel>(
             TenantsProjectionActor.StateStoreName,
@@ -82,7 +82,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q7: Unauthorized user gets 403 for GetTenant ---
     [Fact]
-    public async Task GetTenant_unauthorized_user_returns_forbidden() {
+    public async Task GetTenant_unauthorized_user_returns_forbiddenAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
         SetupTenantState(daprClient, "tenant-1", model);
@@ -97,7 +97,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q18: GetTenantAudit returns 501 for GlobalAdmin ---
     [Fact]
-    public async Task GetTenantAudit_global_admin_returns_not_implemented() {
+    public async Task GetTenantAudit_global_admin_returns_not_implementedAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
 
@@ -110,7 +110,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q27: Non-admin hitting audit endpoint gets 403 not 501 ---
     [Fact]
-    public async Task GetTenantAudit_non_admin_returns_forbidden_not_501() {
+    public async Task GetTenantAudit_non_admin_returns_forbidden_not_501Async() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         SetupNoGlobalAdmin(daprClient);
 
@@ -124,7 +124,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q14: GetTenantUsers returns paginated member list ---
     [Fact]
-    public async Task GetTenantUsers_returns_paginated_members() {
+    public async Task GetTenantUsers_returns_paginated_membersAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         Dictionary<string, TenantRole> members = new() {
             ["user-1"] = TenantRole.TenantOwner,
@@ -149,7 +149,7 @@ public class TenantsProjectionActorTests {
 
     // --- Q17: GlobalAdmin can query any user's tenants ---
     [Fact]
-    public async Task GetUserTenants_global_admin_can_query_any_user() {
+    public async Task GetUserTenants_global_admin_can_query_any_userAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-002"] = TenantRole.TenantContributor },

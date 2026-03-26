@@ -55,6 +55,4 @@ app.MapSubscribeHandler();
 app.MapActorsHandlers();
 app.UseEventStore();
 
-app.Run();
-
-public partial class Program;
+await app.RunAsync().ConfigureAwait(false);

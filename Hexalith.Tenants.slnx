@@ -1,7 +1,22 @@
 <Solution>
   <Folder Name="/samples/">
-    <Project Path="samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj" />
     <Project Path="samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj" />
+    <Project Path="samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path=".gitmodules" />
+    <File Path="CHANGELOG.md" />
+    <File Path="CLAUDE.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+    <File Path="status.txt" />
   </Folder>
   
   <Folder Name="/src/">
@@ -15,6 +30,7 @@
     <Project Path="src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="tests/Directory.Build.props" />
     <Project Path="tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj" />
     <Project Path="tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj" />
     <Project Path="tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj" />

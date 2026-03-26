@@ -1,22 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);IDE1006</NoWarn>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\..\src\Hexalith.Tenants.CommandApi\appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="..\..\src\Hexalith.Tenants.CommandApi\appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
-    <ProjectReference Include="..\..\src\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
-    <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
-    <ProjectReference Include="..\..\samples\Hexalith.Tenants.Sample\Hexalith.Tenants.Sample.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Hexalith.Tenants.CommandApi\Hexalith.Tenants.CommandApi.csproj" />
+        <ProjectReference Include="..\..\src\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
+        <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
+        <ProjectReference Include="..\..\samples\Hexalith.Tenants.Sample\Hexalith.Tenants.Sample.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="YamlDotNet" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="YamlDotNet" />
+    </ItemGroup>
 
 </Project>
