@@ -107,7 +107,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             model.CreatedAt);
 
         JsonElement payload = JsonSerializer.SerializeToElement(detail, s_queryJsonOptions);
-        return new QueryResult(true, payload, ProjectionType: "tenants");
+        return QueryResult.FromPayload(payload, "tenants");
     }
 
     private async Task<QueryResult> HandleListTenantsAsync(QueryEnvelope envelope)
@@ -120,7 +120,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
         {
             PaginatedResult<TenantSummary> empty = new([], null, false);
             JsonElement emptyPayload = JsonSerializer.SerializeToElement(empty, s_queryJsonOptions);
-            return new QueryResult(true, emptyPayload, ProjectionType: "tenant-index");
+            return QueryResult.FromPayload(emptyPayload, "tenant-index");
         }
 
         bool isGlobalAdmin = await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
@@ -146,7 +146,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status));
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
-        return new QueryResult(true, payload, ProjectionType: "tenant-index");
+        return QueryResult.FromPayload(payload, "tenant-index");
     }
 
     private async Task<QueryResult> HandleGetTenantUsersAsync(QueryEnvelope envelope)
@@ -175,7 +175,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             kvp => new TenantMember(kvp.Key, kvp.Value));
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
-        return new QueryResult(true, payload, ProjectionType: "tenants");
+        return QueryResult.FromPayload(payload, "tenants");
     }
 
     private async Task<QueryResult> HandleGetUserTenantsAsync(QueryEnvelope envelope)
@@ -198,7 +198,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
         {
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
             JsonElement emptyPayload = JsonSerializer.SerializeToElement(empty, s_queryJsonOptions);
-            return new QueryResult(true, emptyPayload, ProjectionType: "tenant-index");
+            return QueryResult.FromPayload(emptyPayload, "tenant-index");
         }
 
         (string? cursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
@@ -219,7 +219,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor
             });
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
-        return new QueryResult(true, payload, ProjectionType: "tenant-index");
+        return QueryResult.FromPayload(payload, "tenant-index");
     }
 
     private async Task<QueryResult> HandleGetTenantAuditAsync(QueryEnvelope envelope)
