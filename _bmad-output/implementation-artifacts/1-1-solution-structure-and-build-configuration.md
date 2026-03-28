@@ -31,43 +31,43 @@ so that I can begin implementing domain logic on a proven, consistent project st
 ## Tasks / Subtasks
 
 - [x] Task 0: Verify prerequisites (AC: all)
-  - [x] 0.1: Verify EventStore submodule is initialized — run `git submodule update --init --recursive` and confirm `Hexalith.EventStore/src/` contains project directories
-  - [x] 0.2: Verify .NET SDK version available — run `dotnet --version`. Architecture specifies 10.0.103; if unavailable, use latest 10.0.x patch and document deviation in Dev Agent Record.
+    - [x] 0.1: Verify EventStore submodule is initialized — run `git submodule update --init --recursive` and confirm `Hexalith.EventStore/src/` contains project directories
+    - [x] 0.2: Verify .NET SDK version available — run `dotnet --version`. Architecture specifies 10.0.103; if unavailable, use latest 10.0.x patch and document deviation in Dev Agent Record.
 - [x] Task 1: Create root build configuration files (AC: #4, #5, #6, #7)
-  - [x] 1.1: Create `global.json` with SDK 10.0.103 and `rollForward: latestPatch`. If SDK 10.0.103 is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
-  - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, MinVer configuration)
-  - [x] 1.3: Create `Directory.Packages.props` with centralized package versions — copy ALL packages from EventStore's `Directory.Packages.props` matching versions exactly (including Aspire.Hosting.*, Testcontainers, etc.). Tenants inherits the full ecosystem; unused packages cause no harm in centralized management and will be needed in later stories.
-  - [x] 1.4: Create `.editorconfig` matching EventStore's conventions exactly (copy from EventStore)
+    - [x] 1.1: Create `global.json` with SDK 10.0.103 and `rollForward: latestPatch`. If SDK 10.0.103 is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
+    - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, MinVer configuration)
+    - [x] 1.3: Create `Directory.Packages.props` with centralized package versions — copy ALL packages from EventStore's `Directory.Packages.props` matching versions exactly (including Aspire.Hosting.\*, Testcontainers, etc.). Tenants inherits the full ecosystem; unused packages cause no harm in centralized management and will be needed in later stories.
+    - [x] 1.4: Create `.editorconfig` matching EventStore's conventions exactly (copy from EventStore)
 - [x] Task 2: Create solution file and source project shells (AC: #1, #8)
-  - [x] 2.1: Create `Hexalith.Tenants.slnx` with all 15 projects organized in /src/, /tests/, /samples/ folders
-  - [x] 2.2: Create `src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj` — empty shell, depends on EventStore.Contracts via ProjectReference
-  - [x] 2.3: Create `src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj` — depends on Tenants.Contracts, Dapr.Client, Microsoft.Extensions packages. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Client.Tests" />`
-  - [x] 2.4: Create `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` — depends on Tenants.Contracts, EventStore.Server via ProjectReference, Dapr packages, MediatR
-  - [x] 2.5: Create `src/Hexalith.Tenants.CommandApi/Hexalith.Tenants.CommandApi.csproj` — Web SDK, IsPackable=false, IsPublishable=true, depends on Server, Contracts, ServiceDefaults, Dapr.AspNetCore, MediatR, FluentValidation, JWT, OpenApi. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Server.Tests" />`
-  - [x] 2.6: Create `src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj` — depends on Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr
-  - [x] 2.7: Create `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` — Aspire.AppHost.Sdk, OutputType Exe, IsPackable=false, IsPublishable=true, depends on CommandApi, Sample, Aspire (IsAspireProjectResource=false)
-  - [x] 2.8: Create `src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj` — IsPackable=false, IsAspireSharedProject=true, FrameworkReference Microsoft.AspNetCore.App, OpenTelemetry packages
-  - [x] 2.9: Create `src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj` — depends on Tenants.Server, Tenants.Contracts, Shouldly, NSubstitute, xunit.assert
+    - [x] 2.1: Create `Hexalith.Tenants.slnx` with all 15 projects organized in /src/, /tests/, /samples/ folders
+    - [x] 2.2: Create `src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj` — empty shell, depends on EventStore.Contracts via ProjectReference
+    - [x] 2.3: Create `src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj` — depends on Tenants.Contracts, Dapr.Client, Microsoft.Extensions packages. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Client.Tests" />`
+    - [x] 2.4: Create `src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj` — depends on Tenants.Contracts, EventStore.Server via ProjectReference, Dapr packages, MediatR
+    - [x] 2.5: Create `src/Hexalith.Tenants.CommandApi/Hexalith.Tenants.CommandApi.csproj` — Web SDK, IsPackable=false, IsPublishable=true, depends on Server, Contracts, ServiceDefaults, Dapr.AspNetCore, MediatR, FluentValidation, JWT, OpenApi. Add `<InternalsVisibleTo Include="Hexalith.Tenants.Server.Tests" />`
+    - [x] 2.6: Create `src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj` — depends on Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr
+    - [x] 2.7: Create `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` — Aspire.AppHost.Sdk, OutputType Exe, IsPackable=false, IsPublishable=true, depends on CommandApi, Sample, Aspire (IsAspireProjectResource=false)
+    - [x] 2.8: Create `src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj` — IsPackable=false, IsAspireSharedProject=true, FrameworkReference Microsoft.AspNetCore.App, OpenTelemetry packages
+    - [x] 2.9: Create `src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj` — depends on Tenants.Server, Tenants.Contracts, Shouldly, NSubstitute, xunit.assert
 - [x] Task 3: Create test project shells (AC: #1, #3, #8)
-  - [x] 3.1: Create `tests/Directory.Build.props` — imports root props, sets IsPackable=false, IsPublishable=false, IsTestProject=true
-  - [x] 3.2: Create `tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj` — depends on Tenants.Contracts, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
-  - [x] 3.3: Create `tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj` — depends on Tenants.Client, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
-  - [x] 3.4: Create `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — depends on Tenants.CommandApi, Tenants.Server, Tenants.Testing, Sample (intentional: tests sample domain service registration patterns); FrameworkReference Microsoft.AspNetCore.App; xUnit, Shouldly, NSubstitute, YamlDotNet, coverlet. Include `<Using Include="Xunit" />`.
-  - [x] 3.5: Create `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj` — depends on Tenants.Testing, Tenants.Contracts, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
-  - [x] 3.6: Create `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` — depends on Tenants.CommandApi, Aspire.Hosting.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
+    - [x] 3.1: Create `tests/Directory.Build.props` — imports root props, sets IsPackable=false, IsPublishable=false, IsTestProject=true
+    - [x] 3.2: Create `tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj` — depends on Tenants.Contracts, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
+    - [x] 3.3: Create `tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj` — depends on Tenants.Client, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
+    - [x] 3.4: Create `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` — depends on Tenants.CommandApi, Tenants.Server, Tenants.Testing, Sample (intentional: tests sample domain service registration patterns); FrameworkReference Microsoft.AspNetCore.App; xUnit, Shouldly, NSubstitute, YamlDotNet, coverlet. Include `<Using Include="Xunit" />`.
+    - [x] 3.5: Create `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj` — depends on Tenants.Testing, Tenants.Contracts, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
+    - [x] 3.6: Create `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` — depends on Tenants.CommandApi, Aspire.Hosting.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />` global using.
 - [x] Task 4: Create sample project shells (AC: #1, #8)
-  - [x] 4.1: Create `samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj` — Web SDK, IsPackable=false, depends on Tenants.Client, Tenants.Contracts
-  - [x] 4.2: Create `samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj` — PHYSICALLY under `samples/` but listed under `/samples/` folder in `.slnx`. Must explicitly set `IsTestProject=true`, `IsPackable=false` (does NOT inherit from `tests/Directory.Build.props`). Depends on Sample, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />`.
+    - [x] 4.1: Create `samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj` — Web SDK, IsPackable=false, depends on Tenants.Client, Tenants.Contracts
+    - [x] 4.2: Create `samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj` — PHYSICALLY under `samples/` but listed under `/samples/` folder in `.slnx`. Must explicitly set `IsTestProject=true`, `IsPackable=false` (does NOT inherit from `tests/Directory.Build.props`). Depends on Sample, Tenants.Testing, xUnit packages, coverlet. Include `<Using Include="Xunit" />`.
 - [x] Task 5: Add minimal source files for compilation (AC: #2)
-  - [x] 5.1: Library SDK projects (Contracts, Client, Server, Testing, Aspire) compile empty — NO placeholder needed. Only Web SDK and Exe projects need entry points.
-  - [x] 5.2: Add `Program.cs` stub for CommandApi (minimal ASP.NET host: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
-  - [x] 5.3: Add `Program.cs` stub for AppHost (initial minimal Aspire host; later expanded in Story 1.2 with DAPR component wiring)
-  - [x] 5.4: Add `Extensions.cs` stub for ServiceDefaults (initial placeholder extension method; later expanded in Story 1.2 with OpenTelemetry and health endpoint setup)
-  - [x] 5.5: Add `Program.cs` stub for Sample (minimal web app: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
+    - [x] 5.1: Library SDK projects (Contracts, Client, Server, Testing, Aspire) compile empty — NO placeholder needed. Only Web SDK and Exe projects need entry points.
+    - [x] 5.2: Add `Program.cs` stub for CommandApi (minimal ASP.NET host: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
+    - [x] 5.3: Add `Program.cs` stub for AppHost (initial minimal Aspire host; later expanded in Story 1.2 with DAPR component wiring)
+    - [x] 5.4: Add `Extensions.cs` stub for ServiceDefaults (initial placeholder extension method; later expanded in Story 1.2 with OpenTelemetry and health endpoint setup)
+    - [x] 5.5: Add `Program.cs` stub for Sample (minimal web app: `var builder = WebApplication.CreateBuilder(args); var app = builder.Build(); app.Run();`)
 - [x] Task 6: Verify build and test (AC: #2, #3)
-  - [x] 6.1: Run `dotnet restore Hexalith.Tenants.slnx` — verify all packages resolve
-  - [x] 6.2: Run `dotnet build Hexalith.Tenants.slnx --configuration Release` — verify zero errors
-  - [x] 6.3: Run `dotnet test Hexalith.Tenants.slnx` — verify 6 test projects discovered, one smoke test per project executed, and zero failures
+    - [x] 6.1: Run `dotnet restore Hexalith.Tenants.slnx` — verify all packages resolve
+    - [x] 6.2: Run `dotnet build Hexalith.Tenants.slnx --configuration Release` — verify zero errors
+    - [x] 6.3: Run `dotnet test Hexalith.Tenants.slnx` — verify 6 test projects discovered, one smoke test per project executed, and zero failures
 
 ## Dev Notes
 
@@ -103,6 +103,7 @@ Hexalith.EventStore.Server <────────┘     └── (Dapr, Med
 ### SDK Patterns from EventStore Reference
 
 **Directory.Build.props pattern:**
+
 - `TargetFramework`: `net10.0`
 - `Nullable`: `enable`
 - `ImplicitUsings`: `enable`
@@ -114,6 +115,7 @@ Hexalith.EventStore.Server <────────┘     └── (Dapr, Med
 - README pack item for packable projects
 
 **Test Directory.Build.props:**
+
 - Imports root props via `<Import Project="$([MSBuild]::GetPathOfFileAbove(...))" />`
 - Sets `IsPackable=false`, `IsPublishable=false`, `IsTestProject=true`
 
@@ -128,6 +130,7 @@ Hexalith.EventStore.Server <────────┘     └── (Dapr, Med
 ### .editorconfig Conventions
 
 Copy directly from `Hexalith.EventStore/.editorconfig`:
+
 - File-scoped namespaces (`csharp_style_namespace_declarations = file_scoped:warning`)
 - Allman braces (`csharp_new_line_before_open_brace = all:warning`)
 - `_camelCase` private fields
@@ -199,42 +202,42 @@ Hexalith.Tenants/
 
 ### NuGet Package Versions (from EventStore Directory.Packages.props)
 
-| Category | Package | Version |
-|----------|---------|---------|
-| Build | MinVer | 7.0.0 |
-| DAPR | Dapr.Client | 1.16.1 |
-| DAPR | Dapr.AspNetCore | 1.16.1 |
-| DAPR | Dapr.Actors | 1.16.1 |
-| DAPR | Dapr.Actors.AspNetCore | 1.16.1 |
-| Aspire | Aspire.Hosting | 13.1.2 |
-| Aspire | Aspire.Hosting.Testing | 13.1.1 |
-| Aspire | CommunityToolkit.Aspire.Hosting.Dapr | 13.0.0 |
-| Aspire ServiceDefaults | Microsoft.Extensions.Http.Resilience | 10.3.0 |
-| Aspire ServiceDefaults | Microsoft.Extensions.ServiceDiscovery | 10.3.0 |
-| Aspire ServiceDefaults | OpenTelemetry.Exporter.OpenTelemetryProtocol | 1.15.0 |
-| Aspire ServiceDefaults | OpenTelemetry.Extensions.Hosting | 1.15.0 |
-| Aspire ServiceDefaults | OpenTelemetry.Instrumentation.AspNetCore | 1.15.0 |
-| Aspire ServiceDefaults | OpenTelemetry.Instrumentation.Http | 1.15.0 |
-| Aspire ServiceDefaults | OpenTelemetry.Instrumentation.Runtime | 1.15.0 |
-| Microsoft.Extensions | Microsoft.Extensions.Configuration.Binder | 10.0.0 |
-| Microsoft.Extensions | Microsoft.Extensions.Hosting.Abstractions | 10.0.0 |
-| Microsoft.Extensions | Microsoft.Extensions.Hosting | 10.0.0 |
-| Application | MediatR | 14.0.0 |
-| Application | Microsoft.AspNetCore.Authentication.JwtBearer | 10.0.0 |
-| Application | Microsoft.AspNetCore.OpenApi | 10.0.3 |
-| Application | Swashbuckle.AspNetCore.SwaggerUI | 10.1.2 |
-| Application | FluentValidation | 12.1.1 |
-| Application | FluentValidation.DependencyInjectionExtensions | 12.1.1 |
-| Testing | coverlet.collector | 6.0.4 |
-| Testing | Microsoft.AspNetCore.Mvc.Testing | 10.0.0 |
-| Testing | Microsoft.NET.Test.Sdk | 18.0.1 |
-| Testing | xunit | 2.9.3 |
-| Testing | xunit.assert | 2.9.3 |
-| Testing | xunit.runner.visualstudio | 3.1.5 |
-| Testing | Shouldly | 4.3.0 |
-| Testing | NSubstitute | 5.3.0 |
-| Testing | Testcontainers | 4.10.0 |
-| Testing | YamlDotNet | 16.3.0 |
+| Category               | Package                                        | Version |
+| ---------------------- | ---------------------------------------------- | ------- |
+| Build                  | MinVer                                         | 7.0.0   |
+| DAPR                   | Dapr.Client                                    | 1.16.1  |
+| DAPR                   | Dapr.AspNetCore                                | 1.16.1  |
+| DAPR                   | Dapr.Actors                                    | 1.16.1  |
+| DAPR                   | Dapr.Actors.AspNetCore                         | 1.16.1  |
+| Aspire                 | Aspire.Hosting                                 | 13.1.2  |
+| Aspire                 | Aspire.Hosting.Testing                         | 13.1.1  |
+| Aspire                 | CommunityToolkit.Aspire.Hosting.Dapr           | 13.0.0  |
+| Aspire ServiceDefaults | Microsoft.Extensions.Http.Resilience           | 10.3.0  |
+| Aspire ServiceDefaults | Microsoft.Extensions.ServiceDiscovery          | 10.3.0  |
+| Aspire ServiceDefaults | OpenTelemetry.Exporter.OpenTelemetryProtocol   | 1.15.0  |
+| Aspire ServiceDefaults | OpenTelemetry.Extensions.Hosting               | 1.15.0  |
+| Aspire ServiceDefaults | OpenTelemetry.Instrumentation.AspNetCore       | 1.15.0  |
+| Aspire ServiceDefaults | OpenTelemetry.Instrumentation.Http             | 1.15.0  |
+| Aspire ServiceDefaults | OpenTelemetry.Instrumentation.Runtime          | 1.15.0  |
+| Microsoft.Extensions   | Microsoft.Extensions.Configuration.Binder      | 10.0.0  |
+| Microsoft.Extensions   | Microsoft.Extensions.Hosting.Abstractions      | 10.0.0  |
+| Microsoft.Extensions   | Microsoft.Extensions.Hosting                   | 10.0.0  |
+| Application            | MediatR                                        | 14.0.0  |
+| Application            | Microsoft.AspNetCore.Authentication.JwtBearer  | 10.0.0  |
+| Application            | Microsoft.AspNetCore.OpenApi                   | 10.0.3  |
+| Application            | Swashbuckle.AspNetCore.SwaggerUI               | 10.1.2  |
+| Application            | FluentValidation                               | 12.1.1  |
+| Application            | FluentValidation.DependencyInjectionExtensions | 12.1.1  |
+| Testing                | coverlet.collector                             | 6.0.4   |
+| Testing                | Microsoft.AspNetCore.Mvc.Testing               | 10.0.0  |
+| Testing                | Microsoft.NET.Test.Sdk                         | 18.0.1  |
+| Testing                | xunit                                          | 2.9.3   |
+| Testing                | xunit.assert                                   | 2.9.3   |
+| Testing                | xunit.runner.visualstudio                      | 3.1.5   |
+| Testing                | Shouldly                                       | 4.3.0   |
+| Testing                | NSubstitute                                    | 5.3.0   |
+| Testing                | Testcontainers                                 | 4.10.0  |
+| Testing                | YamlDotNet                                     | 16.3.0  |
 
 ### Project Structure Notes
 
@@ -267,10 +270,10 @@ Hexalith.Tenants/
 - **Review Outcome**: Approved after fixes.
 - **Reviewer Model**: GPT-5.4.
 - **Issues Fixed**:
-  - Added one smoke test to each of the 6 test projects so `dotnet test` executes real tests instead of emitting `No test is available` warnings.
-  - Corrected Story 1.1 verification language to reflect 6 discovered test projects with smoke tests and zero failures.
-  - Documented that `src/Hexalith.Tenants.AppHost/Program.cs` and `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs` were later expanded by Story 1.2 and no longer match the original minimal stub wording.
-  - Reconciled the Story 1.1 planning text with the implemented solution by correcting the epic-level acceptance criterion to 6 test projects.
+    - Added one smoke test to each of the 6 test projects so `dotnet test` executes real tests instead of emitting `No test is available` warnings.
+    - Corrected Story 1.1 verification language to reflect 6 discovered test projects with smoke tests and zero failures.
+    - Documented that `src/Hexalith.Tenants.AppHost/Program.cs` and `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs` were later expanded by Story 1.2 and no longer match the original minimal stub wording.
+    - Reconciled the Story 1.1 planning text with the implemented solution by correcting the epic-level acceptance criterion to 6 test projects.
 - **Story Status**: Confirmed as `done` after review fixes.
 - **Sprint Status**: Confirmed as `done`.
 
