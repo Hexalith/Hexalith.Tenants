@@ -45,7 +45,7 @@ HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(tenants, 
 _ = eventStore
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {
-            AppId = "commandapi",
+            AppId = "eventstore",
             Config = accessControlConfigPath,
         })
         .WithReference(tenantsResources.StateStore)
