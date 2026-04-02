@@ -1,8 +1,9 @@
 using FluentValidation;
 
 using Hexalith.EventStore.Client.Registration;
-using Hexalith.EventStore.CommandApi.Extensions;
-using Hexalith.EventStore.CommandApi.Middleware;
+using Hexalith.EventStore.Middleware;
+
+using EventStoreWebExtensions = Hexalith.EventStore.Extensions.EventStoreServiceCollectionExtensions;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.Tenants.Actors;
@@ -25,7 +26,7 @@ builder.Services.AddHealthChecks()
         "dapr-statestore",
         failureStatus: HealthStatus.Degraded,
         tags: ["ready"]);
-builder.Services.AddCommandApi();
+EventStoreWebExtensions.AddEventStore(builder.Services);
 builder.Services.AddEventStoreServer(builder.Configuration);
 builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);

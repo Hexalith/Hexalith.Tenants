@@ -396,13 +396,13 @@ So that every PR is validated automatically and tagged releases publish NuGet pa
 **When** all tests pass
 **Then** the workflow reports success and code coverage is collected via coverlet
 
-**Given** a developer pushes a tag matching `v*` (e.g., `v0.1.0`)
-**When** the release workflow (`release.yml`) triggers
-**Then** it executes the full test suite, packs all 5 NuGet packages (Contracts, Client, Server, Testing, Aspire), validates the expected package count (5), and pushes to NuGet.org
+**Given** a developer merges a PR with Conventional Commit messages to `main`
+**When** the release workflow (`release.yml`) triggers via semantic-release
+**Then** it determines the next SemVer version from commit history, runs the full test suite, builds and packs all 5 NuGet packages (Contracts, Client, Server, Testing, Aspire), publishes to NuGet.org, creates a GitHub Release with assets, and commits an updated CHANGELOG.md
 
 **Given** the release workflow runs
-**When** the package count does not match the expected 5
-**Then** the workflow fails before pushing to NuGet.org
+**When** no releasable commits are found (e.g., only `chore:` or `docs:` commits)
+**Then** semantic-release skips the release and the workflow succeeds without publishing
 
 ## Epic 2: Core Tenant Management & Global Administration
 

@@ -17,6 +17,36 @@ winget install BurntSushi.ripgrep
   - Example: `grep -rn "pattern" src/` instead of `Grep("pattern")`
 - **Read tool**: Works normally, continue using it
 
+## Commit Messages
+
+All commit messages **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is required for semantic-release to determine version bumps and generate changelogs.
+
+Format: `<type>(<optional scope>): <description>`
+
+- `feat:` — New feature (triggers **minor** version bump)
+- `fix:` — Bug fix (triggers **patch** version bump)
+- `docs:` — Documentation only
+- `refactor:` — Code change that neither fixes a bug nor adds a feature
+- `test:` — Adding or updating tests
+- `chore:` — Build process, CI, or tooling changes
+- `perf:` — Performance improvement
+
+For breaking changes, add `BREAKING CHANGE:` in the commit body or append `!` after the type (e.g., `feat!:`). This triggers a **major** version bump.
+
+Examples:
+```
+feat(contracts): add TenantConfigurationSet command
+fix(server): prevent duplicate user addition to tenant
+docs: update quickstart with DAPR init prerequisites
+chore(ci): replace MinVer with semantic-release
+feat!: rename TenantAggregate state shape
+```
+
+## CI/CD
+
+- **CI:** GitHub Actions on push/PR to main — restore, build (Release), Tier 1+2 tests
+- **Release:** Triggered on merge to main via semantic-release — determines version from Conventional Commits, tests, pack, publish 5 NuGet packages, creates GitHub Release, updates CHANGELOG.md
+
 ## Project Structure
 
 - **Project**: Hexalith.Tenants (.NET/C#)

@@ -49,14 +49,43 @@ dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.cspro
 - `refactor/<description>` — Code refactoring
 - `test/<description>` — Test additions or changes
 
+## Commit Message Conventions
+
+All commits **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is required — semantic-release uses commit messages to determine version bumps and generate changelogs automatically.
+
+Format: `<type>(<optional scope>): <description>`
+
+| Type | Purpose | Version Bump |
+|------|---------|-------------|
+| `feat:` | New feature | Minor |
+| `fix:` | Bug fix | Patch |
+| `docs:` | Documentation only | None |
+| `refactor:` | Code change (no feature/fix) | None |
+| `test:` | Adding or updating tests | None |
+| `chore:` | Build process, CI, tooling | None |
+| `perf:` | Performance improvement | Patch |
+
+For breaking changes, add `BREAKING CHANGE:` in the commit body or append `!` after the type (e.g., `feat!:`). This triggers a **major** version bump.
+
+Examples:
+
+```
+feat(contracts): add TenantConfigurationSet command
+fix(server): prevent duplicate user addition to tenant
+docs: update quickstart with DAPR init prerequisites
+chore(ci): replace MinVer with semantic-release
+feat!: rename TenantAggregate state shape
+```
+
 ## Pull Request Process
 
 1. Create a branch from `main` using the naming conventions above
-2. Make changes and commit with descriptive messages
+2. Make changes and commit using Conventional Commits format
 3. Ensure all Tier 1 and Tier 2 tests pass locally before submitting
 4. Open a PR against `main` with a description of changes
 5. CI will run automatically — PR must pass before merge
 6. PRs require at least one approval
+7. On merge to `main`, semantic-release automatically determines the version, publishes NuGet packages, and creates a GitHub Release
 
 ## Test Requirements
 

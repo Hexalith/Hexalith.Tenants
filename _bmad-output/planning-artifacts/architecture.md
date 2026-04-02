@@ -219,7 +219,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Modern XML solution format (`Hexalith.Tenants.slnx`)
 - `Directory.Build.props` for shared project properties
 - `Directory.Packages.props` for centralized NuGet package management
-- MinVer for git tag-based SemVer (prefix `v`)
+- semantic-release for automated SemVer from Conventional Commits (on merge to main, tag prefix `v`)
 
 **Testing Framework:**
 - xUnit 2.9.3, Shouldly 4.3.0 (fluent assertions), NSubstitute 5.3.0
@@ -662,7 +662,7 @@ Hexalith.Tenants/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                         # Build + Tier 1+2 tests on push/PR
-│       └── release.yml                    # Tag-triggered: tests + pack + NuGet push
+│       └── release.yml                    # Merge-triggered: semantic-release + tests + pack + NuGet push
 ├── global.json                            # SDK 10.0.103, rollForward: latestPatch
 ├── Directory.Build.props                  # Shared project properties, NuGet metadata
 ├── Directory.Packages.props               # Centralized NuGet package versions

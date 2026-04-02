@@ -406,7 +406,7 @@ Hexalith.Tenants is a .NET developer tool distributed as NuGet packages and a de
 | `Hexalith.Tenants.Testing` | In-memory fakes for integration testing | Contracts, Server (same domain logic) |
 | `Hexalith.Tenants.Aspire` | .NET Aspire hosting extensions | Contracts, Client |
 
-**Package quality standards:** Source Link, deterministic builds, XML documentation, MinVer (git tag-based SemVer, prefix `v`), centralized package management via `Directory.Packages.props`, CI validates expected package count before NuGet push.
+**Package quality standards:** Source Link, deterministic builds, XML documentation, semantic-release (Conventional Commits, automated SemVer on merge to main), centralized package management via `Directory.Packages.props`, CI validates expected package count before NuGet push.
 
 ### Solution & Project Structure
 

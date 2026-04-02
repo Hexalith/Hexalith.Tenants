@@ -32,10 +32,10 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
     realmUrl = ReferenceExpression.Create($"{keycloakEndpoint}/realms/hexalith");
 }
 
-// Add EventStore CommandApi (command gateway) with DAPR sidecar.
+// Add EventStore (command gateway) with DAPR sidecar.
 // The EventStore receives commands from clients and dispatches to domain services
 // (including Tenants) via DAPR service invocation.
-IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore_CommandApi>("eventstore");
+IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore>("eventstore");
 
 // Add Tenants project and wire DAPR topology via Aspire extension.
 // The Tenants extension provisions shared DAPR state store and pub/sub components.
