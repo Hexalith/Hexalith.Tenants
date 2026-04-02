@@ -1,3 +1,3 @@
 {
-  "appHostPath": "../Hexalith.EventStore/src/Hexalith.EventStore.AppHost/Hexalith.EventStore.AppHost.csproj"
+  "appHostPath": "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"
 }

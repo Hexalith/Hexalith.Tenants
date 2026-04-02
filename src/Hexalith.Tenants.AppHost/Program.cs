@@ -65,12 +65,14 @@ _ = adminServer
         .WithReference(tenantsResources.StateStore));
 
 // Wire Admin.UI with Admin.Server reference for HTTP API calls.
-// Admin.UI does not use DAPR directly — it communicates exclusively via
-// HTTP REST API to Admin.Server.
+// Also pass the EventStore endpoint so the SignalR client can connect
+// for real-time projection change signals.
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
+EndpointReference eventStoreHttps = eventStore.GetEndpoint("https");
 _ = adminUI
     .WithReference(adminServer)
     .WaitFor(adminServer)
+    .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
     .WithExternalHttpEndpoints();
 
 // Wire Keycloak auth to EventStore, Tenants, Admin.Server, and Admin.UI if enabled.
