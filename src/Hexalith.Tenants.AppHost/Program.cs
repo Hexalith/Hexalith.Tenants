@@ -4,20 +4,10 @@ using Hexalith.Tenants.Aspire;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
-// Resolve DAPR access control configuration path.
+// Resolve DAPR access control configuration paths.
 // Both runtime (bin) and source directory are checked for compatibility.
-string accessControlConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "DaprComponents", "accesscontrol.yaml");
-if (!File.Exists(accessControlConfigPath)) {
-    accessControlConfigPath = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DaprComponents", "accesscontrol.yaml"));
-}
-
-if (!File.Exists(accessControlConfigPath)) {
-    throw new FileNotFoundException(
-        "DAPR access control configuration not found. "
-        + "Ensure accesscontrol.yaml exists in the DaprComponents directory.",
-        accessControlConfigPath);
-}
+string accessControlConfigPath = ResolveDaprConfigPath("accesscontrol.yaml");
+string adminServerAccessControlConfigPath = ResolveDaprConfigPath("accesscontrol.eventstore-admin.yaml");
 
 // Keycloak identity provider for JWT authentication.
 // Enabled by default for local development with real OIDC token testing.
@@ -35,7 +25,14 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
 // Add EventStore (command gateway) with DAPR sidecar.
 // The EventStore receives commands from clients and dispatches to domain services
 // (including Tenants) via DAPR service invocation.
+// DaprHttpPort is fixed (3501) so Admin.Server can query the EventStore
+// sidecar's metadata endpoint for actor type discovery.
+const int EventStoreDaprHttpPort = 3501;
 IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore>("eventstore");
+
+// Add EventStore Admin Server and Admin UI for event store inspection.
+IResourceBuilder<ProjectResource> adminServer = builder.AddProject<Projects.Hexalith_EventStore_Admin_Server_Host>("eventstore-admin");
+IResourceBuilder<ProjectResource> adminUI = builder.AddProject<Projects.Hexalith_EventStore_Admin_UI>("eventstore-admin-ui");
 
 // Add Tenants project and wire DAPR topology via Aspire extension.
 // The Tenants extension provisions shared DAPR state store and pub/sub components.
@@ -47,12 +44,36 @@ _ = eventStore
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {
             AppId = "eventstore",
+            DaprHttpPort = EventStoreDaprHttpPort,
             Config = accessControlConfigPath,
         })
         .WithReference(tenantsResources.StateStore)
         .WithReference(tenantsResources.PubSub));
 
-// Wire Keycloak auth to EventStore and Tenants if enabled.
+// Wire Admin.Server with DAPR sidecar.
+// Admin.Server needs state store for direct reads (health, admin indexes)
+// and service invocation to EventStore for write delegation.
+// It does not publish or subscribe directly, so it does not reference pub/sub.
+_ = adminServer
+    .WithReference(eventStore)
+    .WithEnvironment("AdminServer__EventStoreDaprHttpEndpoint", "http://localhost:" + EventStoreDaprHttpPort)
+    .WithDaprSidecar(sidecar => sidecar
+        .WithOptions(new DaprSidecarOptions {
+            AppId = "eventstore-admin",
+            Config = adminServerAccessControlConfigPath,
+        })
+        .WithReference(tenantsResources.StateStore));
+
+// Wire Admin.UI with Admin.Server reference for HTTP API calls.
+// Admin.UI does not use DAPR directly — it communicates exclusively via
+// HTTP REST API to Admin.Server.
+EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
+_ = adminUI
+    .WithReference(adminServer)
+    .WaitFor(adminServer)
+    .WithExternalHttpEndpoints();
+
+// Wire Keycloak auth to EventStore, Tenants, Admin.Server, and Admin.UI if enabled.
 if (keycloak is not null && realmUrl is not null) {
     _ = eventStore
         .WithReference(keycloak)
@@ -71,6 +92,27 @@ if (keycloak is not null && realmUrl is not null) {
         .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
         .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
         .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+
+    _ = adminServer
+        .WithReference(keycloak)
+        .WaitFor(keycloak)
+        .WithEnvironment("Authentication__JwtBearer__Authority", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
+        .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+
+    _ = adminUI
+        .WithReference(keycloak)
+        .WaitFor(keycloak)
+        .WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"))
+        .WithEnvironment("EventStore__Authentication__Authority", realmUrl)
+        .WithEnvironment("EventStore__Authentication__ClientId", "hexalith-eventstore")
+        .WithEnvironment("EventStore__Authentication__Username", "admin-user")
+        .WithEnvironment("EventStore__Authentication__Password", "admin-pass");
+}
+else {
+    _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));
 }
 
 // FrontShell — React/Vite frontend (pnpm monorepo).
@@ -115,3 +157,20 @@ await builder
     .Build()
     .RunAsync()
     .ConfigureAwait(false);
+
+static string ResolveDaprConfigPath(string fileName) {
+    string configPath = Path.Combine(Directory.GetCurrentDirectory(), "DaprComponents", fileName);
+    if (!File.Exists(configPath)) {
+        configPath = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DaprComponents", fileName));
+    }
+
+    if (!File.Exists(configPath)) {
+        throw new FileNotFoundException(
+            "DAPR access control configuration not found. "
+            + $"Ensure {fileName} exists in the DaprComponents directory.",
+            configPath);
+    }
+
+    return configPath;
+}

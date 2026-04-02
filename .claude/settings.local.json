@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue create --repo Hexalith/Hexalith.Tenants --title 'feat\\(ci\\): Add container image build and publish to CI/CD pipeline' --assignee QuentinDV --body ':*)"
+    ]
+  }
+}
