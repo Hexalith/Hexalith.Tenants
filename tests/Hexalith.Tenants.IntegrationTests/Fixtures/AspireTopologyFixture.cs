@@ -54,7 +54,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
         "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
 
     /// <inheritdoc/>
-    public async Task InitializeAsync() {
+    public async ValueTask InitializeAsync() {
         _startupStopwatch.Start();
 
         // 3-minute timeout: DAPR actor placement service registration takes time.
@@ -106,7 +106,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     }
 
     /// <inheritdoc/>
-    public async Task DisposeAsync() {
+    public async ValueTask DisposeAsync() {
         _commandApiClient?.Dispose();
         _tenantsClient?.Dispose();
         _sampleClient?.Dispose();

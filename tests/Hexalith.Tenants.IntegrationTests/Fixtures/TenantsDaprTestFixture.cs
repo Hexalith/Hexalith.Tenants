@@ -69,7 +69,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     public Exception? LastProcessException { get; private set; }
 
     /// <inheritdoc/>
-    public async Task InitializeAsync() {
+    public async ValueTask InitializeAsync() {
         KillOrphanedDaprdProcesses();
 
         int[] ports = GetAvailablePorts(6);
@@ -104,7 +104,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     }
 
     /// <inheritdoc/>
-    public async Task DisposeAsync() {
+    public async ValueTask DisposeAsync() {
         if (_testHost is not null) {
             await _testHost.StopAsync().ConfigureAwait(false);
             await _testHost.DisposeAsync().ConfigureAwait(false);

@@ -7,13 +7,13 @@
         <IsPackable>false</IsPackable>
         <IsPublishable>false</IsPublishable>
         <IsTestProject>true</IsTestProject>
-        <NoWarn>$(NoWarn);IDE1006</NoWarn>
+        <NoWarn>$(NoWarn);IDE1006;CA2007</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="coverlet.collector" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.v3" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="Shouldly" />
         <PackageReference Include="NSubstitute" />
