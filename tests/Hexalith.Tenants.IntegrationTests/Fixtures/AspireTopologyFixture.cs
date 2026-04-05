@@ -61,14 +61,14 @@ public class AspireTopologyFixture : IAsyncLifetime {
             await _app.StartAsync(startupCts.Token).ConfigureAwait(false);
 
             // Create HTTP clients for both resources.
-            _commandApiClient = _app.CreateHttpClient("commandapi");
+            _commandApiClient = _app.CreateHttpClient("eventstore");
             _commandApiClient.Timeout = TimeSpan.FromSeconds(60);
 
             _sampleClient = _app.CreateHttpClient("sample");
             _sampleClient.Timeout = TimeSpan.FromSeconds(30);
 
             // Wait for CommandApi /health to return 200 OK.
-            await WaitForHealthAsync(_commandApiClient, "commandapi", CommandApiHealthTimeout, CancellationToken.None).ConfigureAwait(false);
+            await WaitForHealthAsync(_commandApiClient, "eventstore", CommandApiHealthTimeout, CancellationToken.None).ConfigureAwait(false);
 
             // Wait for Sample /health to return 200 OK.
             await WaitForHealthAsync(_sampleClient, "sample", SampleHealthTimeout, CancellationToken.None).ConfigureAwait(false);
@@ -165,7 +165,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     }
 
     private void SetHealthDiagnostics(string resourceName, HttpStatusCode? status, string? error) {
-        if (string.Equals(resourceName, "commandapi", StringComparison.Ordinal)) {
+        if (string.Equals(resourceName, "eventstore", StringComparison.Ordinal)) {
             _commandApiLastStatus = status;
             _commandApiLastError = error;
             return;
@@ -176,7 +176,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     }
 
     private string GetHealthDiagnostic(string resourceName)
-        => string.Equals(resourceName, "commandapi", StringComparison.Ordinal)
+        => string.Equals(resourceName, "eventstore", StringComparison.Ordinal)
             ? $"Last status: {_commandApiLastStatus?.ToString() ?? "n/a"}, Last error: {_commandApiLastError ?? "n/a"}"
             : $"Last status: {_sampleLastStatus?.ToString() ?? "n/a"}, Last error: {_sampleLastError ?? "n/a"}";
 
@@ -188,7 +188,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
 
             return $"Resources expected: commandapi, sample. "
                 + $"Startup duration: {_startupStopwatch.Elapsed}. "
-                + $"commandapi => {GetHealthDiagnostic("commandapi")}. "
+                + $"commandapi => {GetHealthDiagnostic("eventstore")}. "
                 + $"sample => {GetHealthDiagnostic("sample")}.";
         }
         catch (Exception ex) {
