@@ -22,10 +22,13 @@ public class AspireTopologyFixture : IAsyncLifetime {
     private DistributedApplication? _app;
     private IDistributedApplicationTestingBuilder? _builder;
     private HttpClient? _commandApiClient;
+    private HttpClient? _tenantsClient;
     private HttpClient? _sampleClient;
     private readonly Stopwatch _startupStopwatch = new();
     private HttpStatusCode? _commandApiLastStatus;
     private string? _commandApiLastError;
+    private HttpStatusCode? _tenantsLastStatus;
+    private string? _tenantsLastError;
     private HttpStatusCode? _sampleLastStatus;
     private string? _sampleLastError;
 
@@ -34,6 +37,13 @@ public class AspireTopologyFixture : IAsyncLifetime {
     /// Available after <see cref="InitializeAsync"/> completes.
     /// </summary>
     public HttpClient CommandApiClient => _commandApiClient ?? throw new InvalidOperationException(
+        "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+
+    /// <summary>
+    /// Gets the HTTP client for the Tenants domain service (exposes /process endpoint).
+    /// Available after <see cref="InitializeAsync"/> completes.
+    /// </summary>
+    public HttpClient TenantsClient => _tenantsClient ?? throw new InvalidOperationException(
         "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
 
     /// <summary>
@@ -60,15 +70,21 @@ public class AspireTopologyFixture : IAsyncLifetime {
             _app = await _builder.BuildAsync().ConfigureAwait(false);
             await _app.StartAsync(startupCts.Token).ConfigureAwait(false);
 
-            // Create HTTP clients for both resources.
+            // Create HTTP clients for all resources.
             _commandApiClient = _app.CreateHttpClient("eventstore");
             _commandApiClient.Timeout = TimeSpan.FromSeconds(60);
+
+            _tenantsClient = _app.CreateHttpClient("tenants");
+            _tenantsClient.Timeout = TimeSpan.FromSeconds(60);
 
             _sampleClient = _app.CreateHttpClient("sample");
             _sampleClient.Timeout = TimeSpan.FromSeconds(30);
 
-            // Wait for CommandApi /health to return 200 OK.
+            // Wait for EventStore /health to return 200 OK.
             await WaitForHealthAsync(_commandApiClient, "eventstore", CommandApiHealthTimeout, CancellationToken.None).ConfigureAwait(false);
+
+            // Wait for Tenants /health to return 200 OK.
+            await WaitForHealthAsync(_tenantsClient, "tenants", CommandApiHealthTimeout, CancellationToken.None).ConfigureAwait(false);
 
             // Wait for Sample /health to return 200 OK.
             await WaitForHealthAsync(_sampleClient, "sample", SampleHealthTimeout, CancellationToken.None).ConfigureAwait(false);
@@ -92,6 +108,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     /// <inheritdoc/>
     public async Task DisposeAsync() {
         _commandApiClient?.Dispose();
+        _tenantsClient?.Dispose();
         _sampleClient?.Dispose();
 
         if (_app is not null) {
@@ -171,14 +188,22 @@ public class AspireTopologyFixture : IAsyncLifetime {
             return;
         }
 
+        if (string.Equals(resourceName, "tenants", StringComparison.Ordinal)) {
+            _tenantsLastStatus = status;
+            _tenantsLastError = error;
+            return;
+        }
+
         _sampleLastStatus = status;
         _sampleLastError = error;
     }
 
     private string GetHealthDiagnostic(string resourceName)
-        => string.Equals(resourceName, "eventstore", StringComparison.Ordinal)
-            ? $"Last status: {_commandApiLastStatus?.ToString() ?? "n/a"}, Last error: {_commandApiLastError ?? "n/a"}"
-            : $"Last status: {_sampleLastStatus?.ToString() ?? "n/a"}, Last error: {_sampleLastError ?? "n/a"}";
+        => resourceName switch {
+            "eventstore" => $"Last status: {_commandApiLastStatus?.ToString() ?? "n/a"}, Last error: {_commandApiLastError ?? "n/a"}",
+            "tenants" => $"Last status: {_tenantsLastStatus?.ToString() ?? "n/a"}, Last error: {_tenantsLastError ?? "n/a"}",
+            _ => $"Last status: {_sampleLastStatus?.ToString() ?? "n/a"}, Last error: {_sampleLastError ?? "n/a"}",
+        };
 
     private string BuildTimeoutDiagnostics() {
         try {
@@ -186,9 +211,10 @@ public class AspireTopologyFixture : IAsyncLifetime {
                 return "Application did not start (builder or build phase failed).";
             }
 
-            return $"Resources expected: commandapi, sample. "
+            return $"Resources expected: eventstore, tenants, sample. "
                 + $"Startup duration: {_startupStopwatch.Elapsed}. "
-                + $"commandapi => {GetHealthDiagnostic("eventstore")}. "
+                + $"eventstore => {GetHealthDiagnostic("eventstore")}. "
+                + $"tenants => {GetHealthDiagnostic("tenants")}. "
                 + $"sample => {GetHealthDiagnostic("sample")}.";
         }
         catch (Exception ex) {
