@@ -67,7 +67,9 @@ public class DaprEndToEndTests {
 
         // Assert
         _ = result.ShouldNotBeNull();
-        result.Accepted.ShouldBeTrue($"DisableTenant should be accepted but got error: {result.ErrorMessage}");
+        result.Accepted.ShouldBeTrue(
+            $"DisableTenant should be accepted but got error: {result.ErrorMessage}"
+            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
         result.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
 
         string expectedTopic = disableCmd.AggregateIdentity.PubSubTopic;
@@ -87,7 +89,9 @@ public class DaprEndToEndTests {
 
         CommandEnvelope disableCmd = CreateTenantCommand(new DisableTenant(tenantId));
         CommandProcessingResult disableResult = await proxy.ProcessCommandAsync(disableCmd);
-        disableResult.Accepted.ShouldBeTrue("Setup: DisableTenant must succeed");
+        disableResult.Accepted.ShouldBeTrue(
+            $"Setup: DisableTenant must succeed. Error: {disableResult.ErrorMessage}"
+            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
 
         // Act — enable the tenant
         CommandEnvelope enableCmd = CreateTenantCommand(new EnableTenant(tenantId));

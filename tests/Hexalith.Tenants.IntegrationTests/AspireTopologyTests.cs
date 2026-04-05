@@ -32,6 +32,13 @@ public class AspireTopologyTests {
     }
 
     [Fact]
+    public async Task Tenants_resource_starts_and_is_healthy() {
+        using HttpResponseMessage response = await _fixture.TenantsClient.GetAsync("/health");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Sample_resource_starts_and_is_healthy() {
         using HttpResponseMessage response = await _fixture.SampleClient.GetAsync("/health");
 
@@ -55,7 +62,7 @@ public class AspireTopologyTests {
                 null),
             null);
 
-        using HttpResponseMessage response = await _fixture.CommandApiClient.PostAsJsonAsync("/process", request);
+        using HttpResponseMessage response = await _fixture.TenantsClient.PostAsJsonAsync("/process", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
