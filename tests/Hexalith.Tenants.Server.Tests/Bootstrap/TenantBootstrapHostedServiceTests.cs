@@ -46,7 +46,8 @@ public class TenantBootstrapHostedServiceTests {
         // Assert
         _ = await mediator.Received(1).Send(
             Arg.Is<SubmitCommand>(cmd =>
-                cmd.Tenant == "system"
+                cmd != null
+                && cmd.Tenant == "system"
                 && cmd.Domain == "tenants"
                 && cmd.AggregateId == "global-administrators"
                 && cmd.CommandType == "BootstrapGlobalAdmin"
