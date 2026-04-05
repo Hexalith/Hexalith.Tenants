@@ -25,9 +25,6 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
 // Add EventStore (command gateway) with DAPR sidecar.
 // The EventStore receives commands from clients and dispatches to domain services
 // (including Tenants) via DAPR service invocation.
-// DaprHttpPort is fixed (3501) so Admin.Server can query the EventStore
-// sidecar's metadata endpoint for actor type discovery.
-const int EventStoreDaprHttpPort = 3501;
 IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore>("eventstore");
 
 // Add EventStore Admin Server and Admin UI for event store inspection.
@@ -40,11 +37,12 @@ IResourceBuilder<ProjectResource> tenants = builder.AddProject<Projects.Hexalith
 HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(tenants, accessControlConfigPath);
 
 // Wire EventStore with DAPR sidecar sharing the same state store and pub/sub.
+// DaprHttpPort is intentionally omitted (dynamic) to avoid port conflicts
+// from orphaned daprd.exe processes when VS debug sessions are stopped abruptly.
 _ = eventStore
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {
             AppId = "eventstore",
-            DaprHttpPort = EventStoreDaprHttpPort,
             Config = accessControlConfigPath,
         })
         .WithReference(tenantsResources.StateStore)
@@ -54,9 +52,11 @@ _ = eventStore
 // Admin.Server needs state store for direct reads (health, admin indexes)
 // and service invocation to EventStore for write delegation.
 // It does not publish or subscribe directly, so it does not reference pub/sub.
+// WaitFor(eventStore) ensures Admin.Server starts only after EventStore is healthy,
+// preventing startup failures in VS debug mode where timing is slower.
 _ = adminServer
     .WithReference(eventStore)
-    .WithEnvironment("AdminServer__EventStoreDaprHttpEndpoint", "http://localhost:" + EventStoreDaprHttpPort)
+    .WaitFor(eventStore)
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {
             AppId = "eventstore-admin",
