@@ -1,3 +1,5 @@
+using Dapr.Client;
+
 using FluentValidation;
 
 using Hexalith.EventStore.Client.Registration;
@@ -6,10 +8,12 @@ using Hexalith.EventStore.Middleware;
 using EventStoreWebExtensions = Hexalith.EventStore.Extensions.EventStoreServiceCollectionExtensions;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Configuration;
+using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.DomainProcessing;
+using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Health;
 using Hexalith.Tenants.Validation;
 using Hexalith.Tenants.Server.Aggregates;
@@ -52,6 +56,8 @@ app.MapPost("/process", async (
     DomainServiceRequestHandler handler,
     CancellationToken cancellationToken) =>
     Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
+app.MapPost("/project", async (ProjectionRequest request, DaprClient daprClient)
+    => Results.Ok(await new TenantProjectionHandler(daprClient).ProjectAsync(request).ConfigureAwait(false)));
 app.MapSubscribeHandler();
 app.MapActorsHandlers();
 app.UseEventStore();

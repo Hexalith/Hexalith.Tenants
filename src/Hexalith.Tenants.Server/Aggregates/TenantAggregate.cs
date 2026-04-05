@@ -17,11 +17,13 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
 
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
 
-    public static DomainResult Handle(CreateTenant command, TenantState? state) {
+    public static DomainResult Handle(CreateTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
         return state is not null
-            ? DomainResult.Rejection([new TenantAlreadyExistsRejection(command.TenantId)])
-            : DomainResult.Success([new TenantCreated(command.TenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
+            ? DomainResult.Rejection([new TenantAlreadyExistsRejection(tenantId)])
+            : DomainResult.Success([new TenantCreated(tenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
     }
 
     public static DomainResult Handle(UpdateTenant command, TenantState? state, CommandEnvelope envelope) {

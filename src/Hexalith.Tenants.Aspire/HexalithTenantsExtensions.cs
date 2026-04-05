@@ -32,9 +32,13 @@ public static class HexalithTenantsExtensions {
         // Use AddDaprComponent instead of AddDaprStateStore so that WithMetadata
         // actually propagates into the generated YAML. AddDaprStateStore spawns a
         // separate in-memory provider process whose lifecycle hook ignores metadata.
+        // Redis-backed state store is required so that all DAPR sidecars
+        // (eventstore, tenants) share the same state — in-memory stores are
+        // per-sidecar and cause command status polling to fail.
         IResourceBuilder<IDaprComponentResource> stateStore = builder
-            .AddDaprComponent("statestore", "state.in-memory")
-            .WithMetadata("actorStateStore", "true");
+            .AddDaprComponent("statestore", "state.redis")
+            .WithMetadata("actorStateStore", "true")
+            .WithMetadata("redisHost", "localhost:6379");
         IResourceBuilder<IDaprComponentResource> pubSub = builder.AddDaprPubSub("pubsub");
 
         // Wire up Tenants service with DAPR sidecar and component references.
