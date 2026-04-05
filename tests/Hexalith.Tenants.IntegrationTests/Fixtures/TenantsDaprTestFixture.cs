@@ -65,6 +65,9 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     /// <summary>Gets the in-memory command status store for tracking command lifecycle.</summary>
     public InMemoryCommandStatusStore CommandStatusStore { get; } = new();
 
+    /// <summary>Gets the last exception thrown by the /process endpoint, for test diagnostics.</summary>
+    public Exception? LastProcessException { get; private set; }
+
     /// <inheritdoc/>
     public async Task InitializeAsync() {
         KillOrphanedDaprdProcesses();
@@ -213,6 +216,8 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                     return Microsoft.AspNetCore.Http.Results.Ok(result);
                 }
                 catch (Exception ex) {
+                    LastProcessException = ex;
+                    Console.Error.WriteLine($"[DAPR-TEST] /process 500 for {request.Command.CommandType}: {ex}");
                     logger.LogError(ex, "Domain processing failed for command type {CommandType}", request.Command.CommandType);
                     return Microsoft.AspNetCore.Http.Results.Problem(
                         detail: ex.ToString(),

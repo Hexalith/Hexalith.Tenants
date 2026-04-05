@@ -63,7 +63,8 @@ public class StatelessRestartTests {
         // If state were lost, DisableTenant would fail because the aggregate wouldn't know the tenant exists.
         _ = disableResult.ShouldNotBeNull();
         disableResult.Accepted.ShouldBeTrue(
-            $"DisableTenant should be accepted after actor reactivation but got: {disableResult.ErrorMessage}");
+            $"DisableTenant should be accepted after actor reactivation but got: {disableResult.ErrorMessage}"
+            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
         disableResult.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
     }
 
