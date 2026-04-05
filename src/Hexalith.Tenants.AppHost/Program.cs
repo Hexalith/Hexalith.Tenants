@@ -5,9 +5,9 @@ using Hexalith.Tenants.Aspire;
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
 // Resolve DAPR access control configuration paths.
-// Both runtime (bin) and source directory are checked for compatibility.
-string accessControlConfigPath = ResolveDaprConfigPath("accesscontrol.yaml");
-string adminServerAccessControlConfigPath = ResolveDaprConfigPath("accesscontrol.eventstore-admin.yaml");
+// Uses builder.AppHostDirectory to work under both `dotnet run` and Aspire testing.
+string accessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.yaml");
+string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.eventstore-admin.yaml");
 
 // Keycloak identity provider for JWT authentication.
 // Enabled by default for local development with real OIDC token testing.
@@ -160,19 +160,21 @@ await builder
     .RunAsync()
     .ConfigureAwait(false);
 
-static string ResolveDaprConfigPath(string fileName) {
-    string configPath = Path.Combine(Directory.GetCurrentDirectory(), "DaprComponents", fileName);
-    if (!File.Exists(configPath)) {
-        configPath = Path.GetFullPath(
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DaprComponents", fileName));
+static string ResolveDaprConfigPath(string appHostDirectory, string fileName) {
+    // Primary: resolve relative to AppHost project directory (works for dotnet run and Aspire testing)
+    string configPath = Path.Combine(appHostDirectory, "DaprComponents", fileName);
+    if (File.Exists(configPath)) {
+        return configPath;
     }
 
-    if (!File.Exists(configPath)) {
-        throw new FileNotFoundException(
-            "DAPR access control configuration not found. "
-            + $"Ensure {fileName} exists in the DaprComponents directory.",
-            configPath);
+    // Fallback: working directory (backwards compat for direct launch)
+    configPath = Path.Combine(Directory.GetCurrentDirectory(), "DaprComponents", fileName);
+    if (File.Exists(configPath)) {
+        return configPath;
     }
 
-    return configPath;
+    throw new FileNotFoundException(
+        "DAPR access control configuration not found. "
+        + $"Ensure {fileName} exists in the DaprComponents directory.",
+        configPath);
 }
