@@ -50,8 +50,9 @@ public sealed class InMemoryTenantService {
     /// <summary>Processes a CreateTenant command.</summary>
     public DomainResult ProcessCommand(CreateTenant command) {
         ArgumentNullException.ThrowIfNull(command);
+        CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, "system", false);
         TenantState? state = GetOrDefaultTenantState(command.TenantId);
-        DomainResult result = TenantAggregate.Handle(command, state);
+        DomainResult result = TenantAggregate.Handle(command, state, envelope);
         ApplyTenantEvents(command.TenantId, result);
         return result;
     }
@@ -186,7 +187,7 @@ public sealed class InMemoryTenantService {
         TenantState? state = GetOrDefaultTenantState(aggregateId);
 
         DomainResult result = command switch {
-            CreateTenant c => TenantAggregate.Handle(c, state),
+            CreateTenant c => TenantAggregate.Handle(c, state, envelope),
             DisableTenant c => TenantAggregate.Handle(c, state),
             EnableTenant c => TenantAggregate.Handle(c, state),
             UpdateTenant c => TenantAggregate.Handle(c, state, envelope),

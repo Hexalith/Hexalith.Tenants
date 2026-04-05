@@ -65,7 +65,7 @@ public sealed class TenantConformanceTests {
         CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
 
         // Act — aggregate path
-        DomainResult aggregateResult = TenantAggregate.Handle(command, null);
+        DomainResult aggregateResult = TenantAggregate.Handle(command, null, envelope);
         // Act — service path
         DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
 
@@ -455,7 +455,7 @@ public sealed class TenantConformanceTests {
         CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
 
         // Act
-        DomainResult aggregateResult = TenantAggregate.Handle(command, state);
+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
         DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
 
         // Assert

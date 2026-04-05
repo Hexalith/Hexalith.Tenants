@@ -117,7 +117,7 @@ public class TenantsQueryControllerIntegrationTests {
 
         IQueryRouter router = Substitute.For<IQueryRouter>();
         _ = router.RouteQueryAsync(
-                Arg.Is<SubmitQuery>(q => string.Equals(q.QueryType, queryType, StringComparison.Ordinal)),
+                Arg.Is<SubmitQuery>(q => q != null && string.Equals(q.QueryType, queryType, StringComparison.Ordinal)),
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return router;
