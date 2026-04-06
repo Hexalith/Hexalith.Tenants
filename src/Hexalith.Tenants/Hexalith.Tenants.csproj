@@ -15,7 +15,7 @@
     <ProjectReference Include="..\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
     <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
     <ProjectReference Include="..\Hexalith.Tenants.ServiceDefaults\Hexalith.Tenants.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\..\Hexalith.EventStore\src\Hexalith.EventStore\Hexalith.EventStore.csproj" />
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
