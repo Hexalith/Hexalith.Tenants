@@ -46,7 +46,7 @@ public partial class TenantBootstrapHostedService(
 
             Log.BootstrapCommandSent(logger, userId);
         }
-        catch (OperationCanceledException) {
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
         catch (DomainCommandRejectedException ex)

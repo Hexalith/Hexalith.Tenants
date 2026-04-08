@@ -1,5 +1,5 @@
 # generated: 2026-03-07
-# last_updated: 2026-03-26
+# last_updated: 2026-04-08 (SCP-2026-04-08: bootstrap crash fix — OperationCanceledException filter)
 # project: Hexalith.Tenants
 # project_key: NOKEY
 # tracking_system: file-system
