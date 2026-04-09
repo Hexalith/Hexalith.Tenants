@@ -3,11 +3,8 @@ using Dapr.Client;
 using FluentValidation;
 
 using Hexalith.EventStore.Client.Registration;
-using Hexalith.EventStore.Middleware;
 
-using EventStoreWebExtensions = Hexalith.EventStore.Extensions.EventStoreServiceCollectionExtensions;
 using Hexalith.EventStore.Contracts.Commands;
-using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Bootstrap;
@@ -30,8 +27,9 @@ builder.Services.AddHealthChecks()
         "dapr-statestore",
         failureStatus: HealthStatus.Degraded,
         tags: ["ready"]);
-EventStoreWebExtensions.AddEventStore(builder.Services);
-builder.Services.AddEventStoreServer(builder.Configuration);
+// Domain service only — do NOT register AddEventStoreServer or server-side EventStore extensions here.
+// AggregateActor must only be hosted by the EventStore, not domain services.
+// The bootstrap service sends commands to EventStore via DAPR HTTP.
 builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
@@ -39,16 +37,14 @@ builder.Services.AddHostedService<TenantBootstrapHostedService>();
 builder.Services.AddScoped<DomainServiceRequestHandler>();
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
+builder.Services.AddProblemDetails();
+builder.Services.AddControllers();
 builder.Services.AddActors(options => options.Actors.RegisterActor<TenantsProjectionActor>());
 
 WebApplication app = builder.Build();
 
-app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
-app.UseAuthentication();
-app.UseRateLimiter();
-app.UseAuthorization();
 app.UseCloudEvents();
 app.MapControllers();
 app.MapPost("/process", async (
@@ -60,6 +56,5 @@ app.MapPost("/project", async (ProjectionRequest request, DaprClient daprClient)
     => Results.Ok(await new TenantProjectionHandler(daprClient).ProjectAsync(request).ConfigureAwait(false)));
 app.MapSubscribeHandler();
 app.MapActorsHandlers();
-app.UseEventStore();
 
 await app.RunAsync().ConfigureAwait(false);

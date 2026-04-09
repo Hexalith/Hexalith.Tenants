@@ -1,11 +1,12 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 
-using Hexalith.EventStore.Server.Pipeline.Commands;
+using Dapr.Client;
+
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
-using Hexalith.Tenants.Contracts.Events.Rejections;
-
-using MediatR;
+using Hexalith.Tenants.Contracts.Identity;
 
 using Microsoft.Extensions.Options;
 
@@ -15,6 +16,9 @@ public partial class TenantBootstrapHostedService(
     IServiceScopeFactory scopeFactory,
     IOptions<TenantBootstrapOptions> options,
     ILogger<TenantBootstrapHostedService> logger) : IHostedService {
+    private const string EventStoreAppId = "eventstore";
+    private const string CommandEndpoint = "api/v1/commands";
+
     public async Task StartAsync(CancellationToken cancellationToken) {
         string? userId = options.Value.BootstrapGlobalAdminUserId;
 
@@ -26,32 +30,42 @@ public partial class TenantBootstrapHostedService(
         try {
             AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
             await using (scope.ConfigureAwait(false)) {
-                IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                DaprClient daprClient = scope.ServiceProvider.GetRequiredService<DaprClient>();
+                IHttpClientFactory httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
 
                 var command = new BootstrapGlobalAdmin(userId);
-                byte[] payload = JsonSerializer.SerializeToUtf8Bytes(command);
+                JsonElement payloadElement = JsonSerializer.SerializeToElement(command);
 
-                var submitCommand = new SubmitCommand(
-                    MessageId: Guid.NewGuid().ToString(),
-                    Tenant: "system",
-                    Domain: "tenants",
-                    AggregateId: "global-administrators",
-                    CommandType: nameof(BootstrapGlobalAdmin),
-                    Payload: payload,
-                    CorrelationId: Guid.NewGuid().ToString(),
-                    UserId: userId);
+                object commandBody = new {
+                    messageId = Guid.NewGuid().ToString(),
+                    tenant = TenantIdentity.DefaultTenantId,
+                    domain = TenantIdentity.Domain,
+                    aggregateId = "global-administrators",
+                    commandType = nameof(BootstrapGlobalAdmin),
+                    payload = payloadElement,
+                    correlationId = Guid.NewGuid().ToString(),
+                };
 
-                _ = await mediator.Send(submitCommand, cancellationToken).ConfigureAwait(false);
+                using HttpRequestMessage httpRequest = daprClient.CreateInvokeMethodRequest(
+                    HttpMethod.Post,
+                    EventStoreAppId,
+                    CommandEndpoint);
+                httpRequest.Content = JsonContent.Create(commandBody);
+
+                HttpClient httpClient = httpClientFactory.CreateClient();
+                using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
+
+                if (httpResponse.StatusCode == HttpStatusCode.Accepted) {
+                    Log.BootstrapCommandSent(logger, userId);
+                    return;
+                }
+
+                string errorBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode, errorBody);
             }
-
-            Log.BootstrapCommandSent(logger, userId);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
-        }
-        catch (DomainCommandRejectedException ex)
-            when (ex.RejectionType.EndsWith(nameof(GlobalAdminAlreadyBootstrappedRejection), StringComparison.Ordinal)) {
-            Log.BootstrapAlreadyCompleted(logger);
         }
         catch (Exception ex) {
             Log.BootstrapFailed(logger, ex);
@@ -76,8 +90,8 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2003,
             Level = LogLevel.Information,
-            Message = "Global administrator already bootstrapped, skipping")]
-        public static partial void BootstrapAlreadyCompleted(ILogger logger);
+            Message = "Bootstrap unexpected response: StatusCode={StatusCode}, Body={Body}")]
+        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode, string body);
 
         [LoggerMessage(
             EventId = 2002,
