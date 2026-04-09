@@ -4,9 +4,9 @@ using Hexalith.Tenants.Contracts.Events;
 namespace Hexalith.Tenants.Server.Projections;
 
 public sealed class TenantIndexReadModel {
-    public Dictionary<string, TenantIndexEntry> Tenants { get; private set; } = [];
+    public Dictionary<string, TenantIndexEntry> Tenants { get; set; } = [];
 
-    public Dictionary<string, Dictionary<string, TenantRole>> UserTenants { get; private set; } = [];
+    public Dictionary<string, Dictionary<string, TenantRole>> UserTenants { get; set; } = [];
 
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);

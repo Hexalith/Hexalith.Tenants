@@ -4,14 +4,14 @@ using Hexalith.Tenants.Contracts.Events;
 namespace Hexalith.Tenants.Server.Aggregates;
 
 public sealed class TenantState {
-    public string TenantId { get; private set; } = string.Empty;
-    public string Name { get; private set; } = string.Empty;
-    public string? Description { get; private set; }
-    public TenantStatus Status { get; private set; }
-    public Dictionary<string, TenantRole> Users { get; private set; } = [];
-    public bool HasMembershipHistory { get; private set; }
-    public Dictionary<string, string> Configuration { get; private set; } = [];
-    public DateTimeOffset CreatedAt { get; private set; }
+    public string TenantId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public TenantStatus Status { get; set; }
+    public Dictionary<string, TenantRole> Users { get; set; } = [];
+    public bool HasMembershipHistory { get; set; }
+    public Dictionary<string, string> Configuration { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; }
 
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);

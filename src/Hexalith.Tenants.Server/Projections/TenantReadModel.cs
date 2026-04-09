@@ -4,13 +4,13 @@ using Hexalith.Tenants.Contracts.Events;
 namespace Hexalith.Tenants.Server.Projections;
 
 public sealed class TenantReadModel {
-    public string TenantId { get; private set; } = string.Empty;
-    public string Name { get; private set; } = string.Empty;
-    public string? Description { get; private set; }
-    public TenantStatus Status { get; private set; }
-    public Dictionary<string, TenantRole> Members { get; private set; } = [];
-    public Dictionary<string, string> Configuration { get; private set; } = [];
-    public DateTimeOffset CreatedAt { get; private set; }
+    public string TenantId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public TenantStatus Status { get; set; }
+    public Dictionary<string, TenantRole> Members { get; set; } = [];
+    public Dictionary<string, string> Configuration { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; }
 
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);
