@@ -7,7 +7,7 @@
         <IsPackable>false</IsPackable>
         <IsPublishable>false</IsPublishable>
         <IsTestProject>true</IsTestProject>
-        <NoWarn>$(NoWarn);IDE1006;CA2007</NoWarn>
+        <NoWarn>$(NoWarn);IDE1006;CA2007;xUnit1051</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
