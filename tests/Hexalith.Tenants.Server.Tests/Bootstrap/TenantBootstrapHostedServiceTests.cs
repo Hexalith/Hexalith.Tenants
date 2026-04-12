@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
+using System.Net;
+using System.Text.Json;
 
-using Hexalith.EventStore.Server.Pipeline.Commands;
+using Dapr.Client;
+
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
-using Hexalith.Tenants.Contracts.Events.Rejections;
-
-using MediatR;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,37 +22,32 @@ public class TenantBootstrapHostedServiceTests {
     [Fact]
     public async Task StartAsync_with_configured_userId_sends_BootstrapGlobalAdmin_command() {
         // Arrange
-        IMediator mediator = Substitute.For<IMediator>();
-        _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new SubmitCommandResult("test-correlation"));
+        string? capturedBody = null;
+        var handler = new TestHttpMessageHandler(async (request, _) => {
+            capturedBody = await request.Content!.ReadAsStringAsync();
+            return new HttpResponseMessage(HttpStatusCode.Accepted);
+        });
 
-        ServiceCollection services = new();
-        _ = services.AddSingleton(mediator);
-        ServiceProvider provider = services.BuildServiceProvider();
-
-        IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
-        var service = new TenantBootstrapHostedService(
-            scopeFactory,
-            options,
-            NullLogger<TenantBootstrapHostedService>.Instance);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        var service = new TenantBootstrapHostedService(scopeFactory, options, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
 
-        // Assert
-        _ = await mediator.Received(1).Send(
-            Arg.Is<SubmitCommand>(cmd =>
-                cmd != null
-                && cmd.Tenant == "system"
-                && cmd.Domain == "tenants"
-                && cmd.AggregateId == "global-administrators"
-                && cmd.CommandType == "BootstrapGlobalAdmin"
-                && cmd.UserId == "admin-user-1"),
-            Arg.Any<CancellationToken>());
+        // Assert — verify the HTTP request contained the correct command payload
+        capturedBody.ShouldNotBeNull();
+        using JsonDocument doc = JsonDocument.Parse(capturedBody);
+        JsonElement root = doc.RootElement;
+        root.GetProperty("tenant").GetString().ShouldBe("system");
+        root.GetProperty("domain").GetString().ShouldBe("tenants");
+        root.GetProperty("aggregateId").GetString().ShouldBe("global-administrators");
+        root.GetProperty("commandType").GetString().ShouldBe("BootstrapGlobalAdmin");
+        logger.Messages.ShouldContain(m => m.Contains("admin-user-1", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -61,12 +56,13 @@ public class TenantBootstrapHostedServiceTests {
     [InlineData("   ")]
     public async Task StartAsync_with_empty_userId_skips_bootstrap(string? userId) {
         // Arrange
-        IMediator mediator = Substitute.For<IMediator>();
-        ServiceCollection services = new();
-        _ = services.AddSingleton(mediator);
-        ServiceProvider provider = services.BuildServiceProvider();
+        bool httpCalled = false;
+        var handler = new TestHttpMessageHandler((_, _) => {
+            httpCalled = true;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
 
-        IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = userId,
         });
@@ -79,24 +75,17 @@ public class TenantBootstrapHostedServiceTests {
         // Act
         await service.StartAsync(CancellationToken.None);
 
-        // Assert — no command sent
-        _ = await mediator.DidNotReceive().Send(
-            Arg.Any<SubmitCommand>(),
-            Arg.Any<CancellationToken>());
+        // Assert — no HTTP request sent
+        httpCalled.ShouldBeFalse();
     }
 
     [Fact]
     public async Task StartAsync_handles_infrastructure_exception_without_crashing() {
-        // Arrange
-        IMediator mediator = Substitute.For<IMediator>();
-        _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
-            .Returns<SubmitCommandResult>(_ => throw new InvalidOperationException("DAPR sidecar not ready"));
+        // Arrange — handler simulates a network-level failure
+        var handler = new TestHttpMessageHandler((_, _)
+            => throw new HttpRequestException("DAPR sidecar not ready"));
 
-        ServiceCollection services = new();
-        _ = services.AddSingleton(mediator);
-        ServiceProvider provider = services.BuildServiceProvider();
-
-        IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
@@ -112,21 +101,14 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_when_bootstrap_already_completed_logs_skip_message() {
-        // Arrange — mediator throws DomainCommandRejectedException (real pipeline behavior)
-        IMediator mediator = Substitute.For<IMediator>();
-        _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
-            .Returns<SubmitCommandResult>(_ => throw new DomainCommandRejectedException(
-                "rejected-correlation",
-                "system",
-                typeof(GlobalAdminAlreadyBootstrappedRejection).FullName!,
-                "Global administrator already bootstrapped"));
+    public async Task StartAsync_when_non_accepted_response_logs_unexpected_response() {
+        // Arrange — EventStore returns 409 Conflict (e.g., global admin already bootstrapped)
+        var handler = new TestHttpMessageHandler((_, _)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict) {
+                Content = new StringContent("{\"detail\":\"Global administrator already bootstrapped\"}"),
+            }));
 
-        ServiceCollection services = new();
-        _ = services.AddSingleton(mediator);
-        ServiceProvider provider = services.BuildServiceProvider();
-
-        IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
@@ -137,25 +119,25 @@ public class TenantBootstrapHostedServiceTests {
         // Act
         await service.StartAsync(CancellationToken.None);
 
-        // Assert
-        logger.Messages.ShouldContain(message => message.Contains("Global administrator already bootstrapped, skipping", StringComparison.Ordinal));
+        // Assert — logs the unexpected response with status code
+        logger.Messages.ShouldContain(m => m.Contains("409", StringComparison.Ordinal));
     }
 
     [Fact]
     public async Task StartAsync_when_cancelled_propagates_OperationCanceledException() {
-        // Arrange
-        IMediator mediator = Substitute.For<IMediator>();
-        _ = mediator.Send(Arg.Any<SubmitCommand>(), Arg.Any<CancellationToken>())
-            .Returns<SubmitCommandResult>(_ => throw new OperationCanceledException("Shutdown"));
+        // Arrange — handler honours cancellation
+        var handler = new TestHttpMessageHandler((_, ct) => {
+            ct.ThrowIfCancellationRequested();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
 
-        ServiceCollection services = new();
-        _ = services.AddSingleton(mediator);
-        ServiceProvider provider = services.BuildServiceProvider();
-
-        IServiceScopeFactory scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
         var service = new TenantBootstrapHostedService(
             scopeFactory,
@@ -164,7 +146,28 @@ public class TenantBootstrapHostedServiceTests {
 
         // Act & Assert — should propagate directly, not be swallowed
         _ = await Should.ThrowAsync<OperationCanceledException>(
-            () => service.StartAsync(CancellationToken.None));
+            () => service.StartAsync(cts.Token));
+    }
+
+    private static IServiceScopeFactory CreateScopeFactory(TestHttpMessageHandler handler) {
+        ServiceCollection services = new();
+        services.AddDaprClient();
+
+        IHttpClientFactory httpClientFactory = Substitute.For<IHttpClientFactory>();
+        httpClientFactory.CreateClient(Arg.Any<string>()).Returns(new HttpClient(handler));
+        _ = services.AddSingleton(httpClientFactory);
+
+        ServiceProvider provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<IServiceScopeFactory>();
+    }
+
+    private sealed class TestHttpMessageHandler(
+        Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler)
+        : HttpMessageHandler {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => handler(request, cancellationToken);
     }
 
     private sealed class TestLogger<T> : ILogger<T> {
