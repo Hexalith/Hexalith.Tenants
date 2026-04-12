@@ -155,6 +155,8 @@ public class SnapshotPerformanceTests {
         }
     }
 
+    private static readonly Dictionary<string, string> s_globalAdminExtensions = new() { ["actor:globalAdmin"] = "true" };
+
     private static CommandEnvelope CreateTenantCommand<T>(T command) where T : notnull
         => new(
             Guid.NewGuid().ToString(),
@@ -166,5 +168,5 @@ public class SnapshotPerformanceTests {
             Guid.NewGuid().ToString(),
             null,
             "test-user",
-            null);
+            s_globalAdminExtensions);
 }
