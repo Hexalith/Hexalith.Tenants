@@ -48,14 +48,6 @@ jobs:
           dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
           dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
 
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@v2
-        with:
-          version: '1.17.1'
-
-      - name: Initialize Dapr
-        run: dapr init
-
       - name: Integration Tests (Tier 2)
         run: >
           dotnet test
@@ -95,14 +87,6 @@ jobs:
 
       - name: Restore and Build
         run: dotnet build --configuration Release
-
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@v2
-        with:
-          version: '1.17.1'
-
-      - name: Initialize Dapr
-        run: dapr init # Full init (not --slim) for Aspire topology
 
       - name: Aspire Contract Tests (Tier 3, non-Performance)
         run: >
@@ -150,14 +134,6 @@ jobs:
 
       - name: Restore and Build
         run: dotnet build --configuration Release
-
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@v2
-        with:
-          version: '1.17.1'
-
-      - name: Initialize Dapr
-        run: dapr init
 
       - name: Performance Tests (Tier 3, nightly only)
         run: >

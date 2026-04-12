@@ -39,14 +39,6 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@v2
-        with:
-          version: '1.17.4'
-
-      - name: Initialize Dapr
-        run: dapr init
-
       - name: Run All Tests (Tier 1 + 2 + 3)
         run: |
           dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=contracts-results.trx" --collect:"XPlat Code Coverage"
