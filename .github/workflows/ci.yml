@@ -51,7 +51,7 @@ jobs:
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
         with:
-          version: '1.17.4'
+          version: '1.17.1'
 
       - name: Initialize Dapr
         run: dapr init
@@ -99,7 +99,7 @@ jobs:
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
         with:
-          version: '1.17.4'
+          version: '1.17.1'
 
       - name: Initialize Dapr
         run: dapr init # Full init (not --slim) for Aspire topology
@@ -154,7 +154,7 @@ jobs:
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@v2
         with:
-          version: '1.17.4'
+          version: '1.17.1'
 
       - name: Initialize Dapr
         run: dapr init
