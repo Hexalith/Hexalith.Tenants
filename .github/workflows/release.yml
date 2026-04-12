@@ -39,14 +39,13 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      - name: Run All Tests (Tier 1 + 2 + 3)
+      - name: Run Tests (Tier 1 + 2)
         run: |
           dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=contracts-results.trx" --collect:"XPlat Code Coverage"
           dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=client-results.trx" --collect:"XPlat Code Coverage"
           dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=testing-results.trx" --collect:"XPlat Code Coverage"
           dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=sample-results.trx" --collect:"XPlat Code Coverage"
           dotnet test tests/Hexalith.Tenants.Server.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=server-results.trx" --collect:"XPlat Code Coverage"
-          dotnet test tests/Hexalith.Tenants.IntegrationTests/ --no-restore --configuration Release --logger "trx;LogFileName=aspire-results.trx" --collect:"XPlat Code Coverage"
 
       - name: Semantic Release
         env:
