@@ -117,34 +117,6 @@ else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));
 }
 
-// FrontShell — React/Vite frontend (pnpm monorepo).
-// Workspace packages (shell-api, cqrs-client, ui) export from dist/ and must be built
-// before Vite can start. Install then build from the monorepo root with proper ordering.
-IResourceBuilder<ExecutableResource> frontshellInstall = builder
-    .AddExecutable("frontshell-install", "pnpm", "../../Hexalith.FrontShell", "install");
-
-IResourceBuilder<ExecutableResource> frontshellBuild = builder
-    .AddExecutable("frontshell-build", "pnpm", "../../Hexalith.FrontShell", "run", "build")
-    .WaitForCompletion(frontshellInstall);
-
-// Points to the shell app inside the Hexalith.FrontShell submodule.
-// Aspire injects services__eventstore__* env vars via WithReference.
-// The Vite middleware in vite.config.ts reads these to generate /config.json dynamically.
-var frontshell = builder.AddViteApp("frontshell", "../../Hexalith.FrontShell/apps/shell")
-    .WithPnpm(installArgs: ["--dir", "../.."])
-    .WaitForCompletion(frontshellBuild)
-    .WithReference(eventStore)
-    .WithExternalHttpEndpoints();
-
-// Pass OIDC config so the Vite middleware can generate config.json with correct URLs.
-if (keycloak is not null && realmUrl is not null) {
-    _ = frontshell
-        .WithReference(keycloak)
-        .WaitFor(keycloak)
-        .WithEnvironment("OIDC_AUTHORITY", realmUrl)
-        .WithEnvironment("OIDC_CLIENT_ID", "hexalith-frontshell");
-}
-
 // Add Sample consuming service with DAPR sidecar for pub/sub event subscription.
 // The Sample is a subscriber only — it does NOT reference StateStore (only Tenants needs actor state).
 _ = builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")
