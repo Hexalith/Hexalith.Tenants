@@ -2,9 +2,6 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-  <ItemGroup Label="Build">
-    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.2.1" />
-  </ItemGroup>
   <ItemGroup Label="Dapr">
     <PackageVersion Include="Dapr.Client" Version="1.17.7" />
     <PackageVersion Include="Dapr.AspNetCore" Version="1.17.7" />

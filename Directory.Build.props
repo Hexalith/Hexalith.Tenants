@@ -2,9 +2,11 @@
     <PropertyGroup>
         <!-- Auto-detect Hexalith.EventStore location:
              1. Tenants is a submodule inside Hexalith.EventStore
-             2. Tenants and EventStore are sibling submodules in an app repo
-             3. EventStore is a submodule inside Tenants (standalone) -->
+             2. EventStore is a submodule inside Tenants (standalone) — prioritized over sibling
+             3. Tenants and EventStore are sibling submodules in an app repo
+             4. Fallback: assume submodule inside Tenants -->
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..</HexalithEventStoreRoot>
+        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)Hexalith.EventStore</HexalithEventStoreRoot>
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.EventStore</HexalithEventStoreRoot>
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == ''">$(MSBuildThisFileDirectory)Hexalith.EventStore</HexalithEventStoreRoot>
     </PropertyGroup>
