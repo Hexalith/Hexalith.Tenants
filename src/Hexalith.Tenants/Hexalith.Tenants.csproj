@@ -1,9 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>      
+  <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
-      <LangVersion>latest</LangVersion>
+    <LangVersion>latest</LangVersion>
+    <EnableContainer>true</EnableContainer>
+    <ContainerRepository>tenants</ContainerRepository>
+    <!-- Tenants.csproj references Hexalith.EventStore.csproj (web host) which causes
+         duplicate appsettings.json during publish. Tenants' own appsettings take
+         precedence. TODO: refactor to reference only Hexalith.EventStore library
+         projects, not the web host. -->
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
   <ItemGroup>
