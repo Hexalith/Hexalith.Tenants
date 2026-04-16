@@ -16,11 +16,11 @@ using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.DomainProcessing;
-using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Health;
-using Hexalith.Tenants.Validation;
+using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
+using Hexalith.Tenants.Validation;
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

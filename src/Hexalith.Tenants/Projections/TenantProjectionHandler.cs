@@ -71,39 +71,57 @@ public sealed class TenantProjectionHandler(DaprClient daprClient) {
 
         if (name.EndsWith(nameof(TenantCreated), StringComparison.Ordinal)) {
             TenantCreated? e = JsonSerializer.Deserialize<TenantCreated>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantUpdated), StringComparison.Ordinal)) {
             TenantUpdated? e = JsonSerializer.Deserialize<TenantUpdated>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantDisabled), StringComparison.Ordinal)) {
             TenantDisabled? e = JsonSerializer.Deserialize<TenantDisabled>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantEnabled), StringComparison.Ordinal)) {
             TenantEnabled? e = JsonSerializer.Deserialize<TenantEnabled>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(UserAddedToTenant), StringComparison.Ordinal)) {
             UserAddedToTenant? e = JsonSerializer.Deserialize<UserAddedToTenant>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(UserRemovedFromTenant), StringComparison.Ordinal)) {
             UserRemovedFromTenant? e = JsonSerializer.Deserialize<UserRemovedFromTenant>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(UserRoleChanged), StringComparison.Ordinal)) {
             UserRoleChanged? e = JsonSerializer.Deserialize<UserRoleChanged>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantConfigurationSet), StringComparison.Ordinal)) {
             TenantConfigurationSet? e = JsonSerializer.Deserialize<TenantConfigurationSet>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantConfigurationRemoved), StringComparison.Ordinal)) {
             TenantConfigurationRemoved? e = JsonSerializer.Deserialize<TenantConfigurationRemoved>(payload, s_options);
-            if (e is not null) state.Apply(e);
+            if (e is not null) {
+                state.Apply(e);
+            }
         }
     }
 
@@ -117,31 +135,45 @@ public sealed class TenantProjectionHandler(DaprClient daprClient) {
 
         if (name.EndsWith(nameof(TenantCreated), StringComparison.Ordinal)) {
             TenantCreated? e = JsonSerializer.Deserialize<TenantCreated>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantUpdated), StringComparison.Ordinal)) {
             TenantUpdated? e = JsonSerializer.Deserialize<TenantUpdated>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantDisabled), StringComparison.Ordinal)) {
             TenantDisabled? e = JsonSerializer.Deserialize<TenantDisabled>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(TenantEnabled), StringComparison.Ordinal)) {
             TenantEnabled? e = JsonSerializer.Deserialize<TenantEnabled>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(UserAddedToTenant), StringComparison.Ordinal)) {
             UserAddedToTenant? e = JsonSerializer.Deserialize<UserAddedToTenant>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(UserRemovedFromTenant), StringComparison.Ordinal)) {
             UserRemovedFromTenant? e = JsonSerializer.Deserialize<UserRemovedFromTenant>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
         else if (name.EndsWith(nameof(UserRoleChanged), StringComparison.Ordinal)) {
             UserRoleChanged? e = JsonSerializer.Deserialize<UserRoleChanged>(payload, s_options);
-            if (e is not null) indexModel.Apply(e);
+            if (e is not null) {
+                indexModel.Apply(e);
+            }
         }
     }
 }

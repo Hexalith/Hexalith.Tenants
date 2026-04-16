@@ -11,13 +11,10 @@ internal static class TenantMetrics {
     /// <summary>The meter name registered with OpenTelemetry.</summary>
     public const string MeterName = "Hexalith.Tenants";
 
-    private static readonly Meter _meter = new(MeterName);
-
     private static readonly Histogram<double> _commandDuration =
-        _meter.CreateHistogram<double>("tenants.command.duration", "ms", "Tenant command processing duration");
+        _meter?.CreateHistogram<double>("tenants.command.duration", "ms", "Tenant command processing duration") ?? throw new NullReferenceException();
 
-    private static readonly HashSet<string> _knownCommandTypes = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> _knownCommandTypes = new([
         "CreateTenant",
         "UpdateTenantInformation",
         "DisableTenant",
@@ -30,16 +27,18 @@ internal static class TenantMetrics {
         "AddGlobalAdministrator",
         "RemoveGlobalAdministrator",
         "RegisterGlobalAdministrator",
-    };
+    ], StringComparer.Ordinal);
 
-    private static readonly HashSet<string> _knownQueryTypes = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> _knownQueryTypes =
+    new([
         "get-tenant",
         "list-tenants",
         "get-tenant-users",
         "get-user-tenants",
         "get-tenant-audit",
-    };
+    ], StringComparer.Ordinal);
+
+    private static readonly Meter _meter = new(MeterName);
 
     private static readonly Histogram<double> _projectionQueryDuration =
         _meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
