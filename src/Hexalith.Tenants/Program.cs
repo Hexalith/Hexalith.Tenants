@@ -54,6 +54,10 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.TryAddScoped<IQueryRouter, QueryRouter>();
 builder.Services.TryAddSingleton<ICommandRouter, CommandRouter>();
 
+// IETagService is required by TenantsProjectionActor (inherits CachingProjectionActor).
+// Registered directly (not via AddEventStoreServer) to avoid hosting AggregateActor/ETagActor here.
+builder.Services.TryAddScoped<IETagService, DaprETagService>();
+
 // Command status and archive stores required by SubmitCommandHandler
 builder.Services.Configure<CommandStatusOptions>(
     builder.Configuration.GetSection("EventStore:CommandStatus"));

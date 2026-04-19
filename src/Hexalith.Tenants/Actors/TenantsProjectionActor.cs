@@ -7,6 +7,7 @@ using Dapr.Client;
 
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Queries;
+using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
@@ -18,7 +19,7 @@ namespace Hexalith.Tenants.Actors;
 /// Projection actor that serves tenant query endpoints with authorization checks.
 /// Inherits ETag-based caching from <see cref="CachingProjectionActor"/>.
 /// </summary>
-[Actor(TypeName = "ProjectionActor")]
+[Actor(TypeName = TenantProjectionRouting.ActorTypeName)]
 public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     internal const string GlobalAdminProjectionKey = "projection:global-administrators:singleton";
     internal const string StateStoreName = "statestore";

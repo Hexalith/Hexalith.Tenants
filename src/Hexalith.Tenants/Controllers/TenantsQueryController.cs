@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Hexalith.EventStore.Server.Pipeline.Queries;
+using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Queries;
 
 using MediatR;
@@ -45,7 +46,8 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             Payload: payloadBytes,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
-            EntityId: userId);
+            EntityId: userId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -77,7 +79,8 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             Payload: [],
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
-            EntityId: tenantId);
+            EntityId: tenantId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -116,7 +119,8 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             Payload: payloadBytes,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
-            EntityId: tenantId);
+            EntityId: tenantId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -154,7 +158,8 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             Payload: payloadBytes,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: authenticatedUserId,
-            EntityId: userId);
+            EntityId: userId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -192,7 +197,8 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             Payload: payloadBytes,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
-            EntityId: tenantId);
+            EntityId: tenantId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);

@@ -11,8 +11,13 @@ internal static class TenantMetrics {
     /// <summary>The meter name registered with OpenTelemetry.</summary>
     public const string MeterName = "Hexalith.Tenants";
 
+    private static readonly Meter _meter = new(MeterName);
+
     private static readonly Histogram<double> _commandDuration =
-        _meter?.CreateHistogram<double>("tenants.command.duration", "ms", "Tenant command processing duration") ?? throw new NullReferenceException();
+        _meter.CreateHistogram<double>("tenants.command.duration", "ms", "Tenant command processing duration");
+
+    private static readonly Histogram<double> _projectionQueryDuration =
+        _meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
 
     private static readonly HashSet<string> _knownCommandTypes = new([
         "CreateTenant",
@@ -37,11 +42,6 @@ internal static class TenantMetrics {
         "get-user-tenants",
         "get-tenant-audit",
     ], StringComparer.Ordinal);
-
-    private static readonly Meter _meter = new(MeterName);
-
-    private static readonly Histogram<double> _projectionQueryDuration =
-        _meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
 
     /// <summary>
     /// Records the duration of a tenant command processing operation.
