@@ -20,38 +20,7 @@ namespace Hexalith.Tenants.Controllers;
 [Route("api/tenants")]
 [Tags("Tenants")]
 public sealed class TenantsQueryController(IMediator mediator) : ControllerBase {
-    /// <summary>
-    /// Lists tenants visible to the authenticated user with cursor-based pagination.
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ListTenants(
-        [FromQuery] string? cursor = null,
-        [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default) {
-        string? userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(userId)) {
-            return Unauthorized();
-        }
-
-        pageSize = ClampPageSize(pageSize);
-        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
-
-        var query = new SubmitQuery(
-            Tenant: "system",
-            Domain: ListTenantsQuery.Domain,
-            AggregateId: "index",
-            QueryType: ListTenantsQuery.QueryType,
-            Payload: payloadBytes,
-            CorrelationId: Guid.NewGuid().ToString(),
-            UserId: userId,
-            EntityId: userId,
-            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
-
-        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
-        return Ok(result.Payload);
-    }
+    private static readonly System.Text.RegularExpressions.Regex s_identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
     /// Gets full details for a specific tenant.
@@ -77,6 +46,45 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             AggregateId: tenantId,
             QueryType: GetTenantQuery.QueryType,
             Payload: [],
+            CorrelationId: Guid.NewGuid().ToString(),
+            UserId: userId,
+            EntityId: tenantId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+
+        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
+        return Ok(result.Payload);
+    }
+
+    /// <summary>
+    /// Tenant audit endpoint (MVP: returns 501 Not Implemented).
+    /// </summary>
+    [HttpGet("{tenantId}/audit")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status501NotImplemented)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetTenantAudit(
+        string tenantId,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        CancellationToken cancellationToken = default) {
+        if (!IsValidIdentifier(tenantId)) {
+            return BadRequest();
+        }
+
+        string? userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(userId)) {
+            return Unauthorized();
+        }
+
+        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { from, to });
+
+        var query = new SubmitQuery(
+            Tenant: "system",
+            Domain: GetTenantAuditQuery.Domain,
+            AggregateId: tenantId,
+            QueryType: GetTenantAuditQuery.QueryType,
+            Payload: payloadBytes,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
             EntityId: tenantId,
@@ -166,49 +174,41 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     }
 
     /// <summary>
-    /// Tenant audit endpoint (MVP: returns 501 Not Implemented).
+    /// Lists tenants visible to the authenticated user with cursor-based pagination.
     /// </summary>
-    [HttpGet("{tenantId}/audit")]
+    [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetTenantAudit(
-        string tenantId,
-        [FromQuery] DateTimeOffset? from = null,
-        [FromQuery] DateTimeOffset? to = null,
+    public async Task<IActionResult> ListTenants(
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default) {
-        if (!IsValidIdentifier(tenantId)) {
-            return BadRequest();
-        }
-
         string? userId = User.FindFirst("sub")?.Value;
         if (string.IsNullOrWhiteSpace(userId)) {
             return Unauthorized();
         }
 
-        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { from, to });
+        pageSize = ClampPageSize(pageSize);
+        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
         var query = new SubmitQuery(
             Tenant: "system",
-            Domain: GetTenantAuditQuery.Domain,
-            AggregateId: tenantId,
-            QueryType: GetTenantAuditQuery.QueryType,
+            Domain: ListTenantsQuery.Domain,
+            AggregateId: "index",
+            QueryType: ListTenantsQuery.QueryType,
             Payload: payloadBytes,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
-            EntityId: tenantId,
+            EntityId: userId,
             ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
     }
 
-    private static readonly System.Text.RegularExpressions.Regex s_identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
-
-    private static bool IsValidIdentifier(string? value)
-        => !string.IsNullOrWhiteSpace(value) && s_identifierRegex.IsMatch(value);
-
     private static int ClampPageSize(int pageSize)
         => pageSize <= 0 ? 20 : pageSize > 100 ? 100 : pageSize;
+
+    private static bool IsValidIdentifier(string? value)
+            => !string.IsNullOrWhiteSpace(value) && s_identifierRegex.IsMatch(value);
 }
