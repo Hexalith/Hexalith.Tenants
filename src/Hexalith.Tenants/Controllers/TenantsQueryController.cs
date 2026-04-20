@@ -20,7 +20,7 @@ namespace Hexalith.Tenants.Controllers;
 [Route("api/tenants")]
 [Tags("Tenants")]
 public sealed class TenantsQueryController(IMediator mediator) : ControllerBase {
-    private static readonly System.Text.RegularExpressions.Regex s_identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+    private static readonly System.Text.RegularExpressions.Regex _identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
     /// Gets full details for a specific tenant.
@@ -30,7 +30,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTenant(string tenantId, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> GetTenantAsync(string tenantId, CancellationToken cancellationToken = default) {
         if (!IsValidIdentifier(tenantId)) {
             return BadRequest();
         }
@@ -49,7 +49,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
             EntityId: tenantId,
-            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+            ProjectionType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -63,7 +63,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetTenantAudit(
+    public async Task<IActionResult> GetTenantAuditAsync(
         string tenantId,
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null,
@@ -88,7 +88,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
             EntityId: tenantId,
-            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+            ProjectionType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -102,7 +102,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTenantUsers(
+    public async Task<IActionResult> GetTenantUsersAsync(
         string tenantId,
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 20,
@@ -128,7 +128,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
             EntityId: tenantId,
-            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+            ProjectionType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -141,7 +141,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetUserTenants(
+    public async Task<IActionResult> GetUserTenantsAsync(
         string userId,
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 20,
@@ -167,7 +167,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: authenticatedUserId,
             EntityId: userId,
-            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+            ProjectionType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -179,7 +179,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ListTenants(
+    public async Task<IActionResult> ListTenantsAsync(
         [FromQuery] string? cursor = null,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default) {
@@ -200,7 +200,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: userId,
             EntityId: userId,
-            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+            ProjectionType: TenantProjectionRouting.ActorTypeName);
 
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
@@ -210,5 +210,5 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
         => pageSize <= 0 ? 20 : pageSize > 100 ? 100 : pageSize;
 
     private static bool IsValidIdentifier(string? value)
-            => !string.IsNullOrWhiteSpace(value) && s_identifierRegex.IsMatch(value);
+            => !string.IsNullOrWhiteSpace(value) && _identifierRegex.IsMatch(value);
 }
