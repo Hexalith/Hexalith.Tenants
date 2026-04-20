@@ -183,6 +183,12 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         // Configure pub/sub name for event publisher
         builder.Configuration["EventStore:Publisher:PubSubName"] = "pubsub";
 
+        // Speed up drain recovery for tests (default is 30s initial / 60s period).
+        // Keeps DrainRecovery_PublishesPendingEvents_WhenPubSubRecovers deterministic
+        // within its 90s poll budget even if the first reminder tick races ClearFailure().
+        builder.Configuration["EventStore:Drain:InitialDrainDelay"] = "00:00:05";
+        builder.Configuration["EventStore:Drain:DrainPeriod"] = "00:00:05";
+
         _ = builder.WebHost.ConfigureKestrel(serverOptions =>
             serverOptions.ListenLocalhost(_appPort, listenOptions =>
                 listenOptions.Protocols = HttpProtocols.Http1));
