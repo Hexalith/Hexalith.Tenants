@@ -75,7 +75,8 @@ builder.Services.AddExceptionHandler<QueryNotFoundExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryExecutionFailedExceptionHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(Hexalith.EventStore.Controllers.CommandsController).Assembly);
 builder.Services.AddActors(options => options.Actors.RegisterActor<TenantsProjectionActor>());
 
 WebApplication app = builder.Build();
