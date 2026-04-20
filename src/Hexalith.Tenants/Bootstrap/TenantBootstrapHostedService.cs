@@ -14,18 +14,28 @@ namespace Hexalith.Tenants.Bootstrap;
 public partial class TenantBootstrapHostedService(
     IServiceScopeFactory scopeFactory,
     IOptions<TenantBootstrapOptions> options,
+    IHostApplicationLifetime lifetime,
     ILogger<TenantBootstrapHostedService> logger) : IHostedService {
     private const string EventStoreAppId = "eventstore";
     private const string CommandEndpoint = "api/v1/commands";
 
-    public async Task StartAsync(CancellationToken cancellationToken) {
+    public Task StartAsync(CancellationToken cancellationToken) {
         string? userId = options.Value.BootstrapGlobalAdminUserId;
 
         if (string.IsNullOrWhiteSpace(userId)) {
             Log.BootstrapSkipped(logger);
-            return;
+            return Task.CompletedTask;
         }
 
+        // Defer until Kestrel is accepting requests — EventStore will invoke /process on
+        // this service to handle the command, which requires the web host to be listening.
+        _ = lifetime.ApplicationStarted.Register(() =>
+            _ = Task.Run(() => RunBootstrapAsync(userId, cancellationToken), cancellationToken));
+
+        return Task.CompletedTask;
+    }
+
+    private async Task RunBootstrapAsync(string userId, CancellationToken cancellationToken) {
         try {
             AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
             await using (scope.ConfigureAwait(false)) {
@@ -60,6 +70,16 @@ public partial class TenantBootstrapHostedService(
                 }
 
                 string errorBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+                // Bootstrap is idempotent at the domain level. A 409 with the
+                // GlobalAdminAlreadyBootstrappedRejection type means the global admin was
+                // already registered (typical on every restart after the first successful run).
+                if (httpResponse.StatusCode == HttpStatusCode.Conflict
+                    && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
+                    Log.BootstrapAlreadyDone(logger, userId);
+                    return;
+                }
+
                 Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode, errorBody);
             }
         }
@@ -97,5 +117,11 @@ public partial class TenantBootstrapHostedService(
             Level = LogLevel.Warning,
             Message = "Bootstrap failed — the global administrator may not have been created. The service will retry on next restart")]
         public static partial void BootstrapFailed(ILogger logger, Exception ex);
+
+        [LoggerMessage(
+            EventId = 2004,
+            Level = LogLevel.Information,
+            Message = "Bootstrap skipped: global administrator {UserId} is already registered")]
+        public static partial void BootstrapAlreadyDone(ILogger logger, string userId);
     }
 }
