@@ -1,5 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 
 namespace Hexalith.Tenants.Server.Aggregates;
 
@@ -63,4 +64,46 @@ public sealed class TenantState {
         ArgumentNullException.ThrowIfNull(e);
         _ = Configuration.Remove(e.Key);
     }
+
+    public void Apply(ConfigurationLimitExceededRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(InsufficientPermissionsRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(RoleEscalationRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(TenantAlreadyExistsRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(TenantDisabledRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(TenantNotFoundRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(UserAlreadyInTenantRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(UserNotInTenantRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    private void MarkReplayOnlyEventHandled() => _ = TenantId;
 }

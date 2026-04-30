@@ -1,4 +1,5 @@
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 
 namespace Hexalith.Tenants.Server.Aggregates;
 
@@ -16,4 +17,16 @@ public sealed class GlobalAdministratorsState {
         ArgumentNullException.ThrowIfNull(e);
         _ = Administrators.Remove(e.UserId);
     }
+
+    public void Apply(GlobalAdminAlreadyBootstrappedRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(LastGlobalAdministratorRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    private void MarkReplayOnlyEventHandled() => _ = Bootstrapped;
 }

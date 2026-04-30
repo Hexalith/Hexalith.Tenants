@@ -27,6 +27,28 @@ public class GlobalAdministratorsAggregateTests {
             "test-user",
             null);
 
+    private static EventEnvelope CreateEventEnvelope<T>(T payload, long sequence)
+        where T : notnull
+        => new(
+            new EventMetadata(
+                Guid.NewGuid().ToString(),
+                "global-administrators",
+                "GlobalAdministrators",
+                "system",
+                "tenants",
+                sequence,
+                sequence,
+                DateTimeOffset.UtcNow,
+                Guid.NewGuid().ToString(),
+                Guid.NewGuid().ToString(),
+                "test-user",
+                "v1",
+                typeof(T).FullName ?? typeof(T).Name,
+                1,
+                "json"),
+            JsonSerializer.SerializeToUtf8Bytes(payload),
+            null);
+
     // Test 1: Bootstrap with no prior state → Success (AC #1)
     [Fact]
     public async Task Bootstrap_with_no_prior_state_produces_GlobalAdministratorSet() {
@@ -202,5 +224,26 @@ public class GlobalAdministratorsAggregateTests {
         state.Administrators.ShouldNotContain("admin-1");
         state.Administrators.ShouldContain("admin-2");
         state.Bootstrapped.ShouldBeTrue(); // Bootstrapped stays true
+    }
+
+    [Fact]
+    public async Task Rehydrate_replays_persisted_rejection_events_without_mutating_state() {
+        var aggregate = new GlobalAdministratorsAggregate();
+        var currentState = new DomainServiceCurrentState(
+            SnapshotState: null,
+            Events: [
+                CreateEventEnvelope(new GlobalAdministratorSet("system", "admin-1"), 1),
+                CreateEventEnvelope(new GlobalAdminAlreadyBootstrappedRejection("system"), 2),
+            ],
+            LastSnapshotSequence: 0,
+            CurrentSequence: 2);
+
+        CommandEnvelope cmd = CreateCommand(new SetGlobalAdministrator("admin-2"));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState);
+
+        result.IsSuccess.ShouldBeTrue();
+        GlobalAdministratorSet evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        evt.UserId.ShouldBe("admin-2");
     }
 }

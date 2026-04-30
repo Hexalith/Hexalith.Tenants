@@ -8,6 +8,7 @@ using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -29,15 +30,18 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, logger);
+        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => capturedBody is not null);
 
         // Assert — verify the HTTP request contained the correct command payload
         capturedBody.ShouldNotBeNull();
@@ -63,6 +67,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = userId,
         });
@@ -70,6 +75,7 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 
         // Act
@@ -86,6 +92,7 @@ public class TenantBootstrapHostedServiceTests {
             => throw new HttpRequestException("DAPR sidecar not ready"));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
@@ -93,11 +100,13 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 
         // Act & Assert — should not throw
         await Should.NotThrowAsync(
             () => service.StartAsync(CancellationToken.None));
+        lifetime.StartApplication();
     }
 
     [Fact]
@@ -109,29 +118,35 @@ public class TenantBootstrapHostedServiceTests {
             }));
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, logger);
+        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Messages.Any(m => m.Contains("409", StringComparison.Ordinal)));
 
         // Assert — logs the unexpected response with status code
         logger.Messages.ShouldContain(m => m.Contains("409", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task StartAsync_when_cancelled_propagates_OperationCanceledException() {
+    public async Task StartAsync_when_cancelled_before_application_start_does_not_send_command() {
         // Arrange — handler honours cancellation
+        bool httpCalled = false;
         var handler = new TestHttpMessageHandler((_, ct) => {
+            httpCalled = true;
             ct.ThrowIfCancellationRequested();
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
 
         IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
         IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
@@ -142,11 +157,23 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 
-        // Act & Assert — should propagate directly, not be swallowed
-        _ = await Should.ThrowAsync<OperationCanceledException>(
-            () => service.StartAsync(cts.Token));
+        // Act
+        await service.StartAsync(cts.Token);
+        lifetime.StartApplication();
+        await Task.Delay(50);
+
+        // Assert
+        httpCalled.ShouldBeFalse();
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition) {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        while (!condition()) {
+            await Task.Delay(10, cts.Token);
+        }
     }
 
     private static IServiceScopeFactory CreateScopeFactory(TestHttpMessageHandler handler) {
@@ -168,6 +195,28 @@ public class TenantBootstrapHostedServiceTests {
             HttpRequestMessage request,
             CancellationToken cancellationToken)
             => handler(request, cancellationToken);
+    }
+
+    private sealed class TestHostApplicationLifetime : IHostApplicationLifetime, IDisposable {
+        private readonly CancellationTokenSource _started = new();
+        private readonly CancellationTokenSource _stopping = new();
+        private readonly CancellationTokenSource _stopped = new();
+
+        public CancellationToken ApplicationStarted => _started.Token;
+
+        public CancellationToken ApplicationStopping => _stopping.Token;
+
+        public CancellationToken ApplicationStopped => _stopped.Token;
+
+        public void StopApplication() => _stopping.Cancel();
+
+        public void StartApplication() => _started.Cancel();
+
+        public void Dispose() {
+            _started.Dispose();
+            _stopping.Dispose();
+            _stopped.Dispose();
+        }
     }
 
     private sealed class TestLogger<T> : ILogger<T> {
