@@ -8,6 +8,14 @@ using Hexalith.Tenants.Server.Projections;
 
 namespace Hexalith.Tenants.Projections;
 
+/// <summary>
+/// Handles tenant projection requests using the full event history supplied by EventStore.
+/// </summary>
+/// <remarks>
+/// The per-aggregate <see cref="TenantReadModel"/> rebuild from a fresh state is correct
+/// under the full-replay projection contract. The index-side state-store read-and-merge
+/// path is independent and orthogonal.
+/// </remarks>
 public sealed class TenantProjectionHandler(DaprClient daprClient) {
     private const string StateStoreName = "statestore";
     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
