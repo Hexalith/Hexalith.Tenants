@@ -1,5 +1,6 @@
 using System.Diagnostics;
 
+using Hexalith.EventStore.Client.Aggregates;
 using Hexalith.EventStore.Client.Handlers;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
@@ -9,8 +10,6 @@ namespace Hexalith.Tenants.DomainProcessing;
 
 internal static class DomainProcessorMismatchMessages {
     public const string MissingHandleMethod = "No Handle method found for command type";
-
-    public const string MissingApplyMethodOnState = "No matching Apply method found on state";
 }
 
 internal sealed class DomainServiceRequestHandler(
@@ -35,6 +34,12 @@ internal sealed class DomainServiceRequestHandler(
                     success = true;
                     return DomainServiceWireResult.FromDomainResult(result);
                 }
+                catch (MissingApplyMethodException) {
+                    logger.LogDebug(
+                        "Skipping processor {ProcessorType} for command type {CommandType}: state cannot apply event in stream",
+                        processor.GetType().Name,
+                        request.Command.CommandType);
+                }
                 catch (InvalidOperationException ex) when (IsProcessorMismatch(ex)) {
                     logger.LogDebug(
                         "Skipping processor {ProcessorType} for command type {CommandType}",
@@ -58,6 +63,5 @@ internal sealed class DomainServiceRequestHandler(
     }
 
     private static bool IsProcessorMismatch(InvalidOperationException ex)
-        => ex.Message.Contains(DomainProcessorMismatchMessages.MissingHandleMethod, StringComparison.Ordinal)
-        || ex.Message.Contains(DomainProcessorMismatchMessages.MissingApplyMethodOnState, StringComparison.Ordinal);
+        => ex.Message.Contains(DomainProcessorMismatchMessages.MissingHandleMethod, StringComparison.Ordinal);
 }
