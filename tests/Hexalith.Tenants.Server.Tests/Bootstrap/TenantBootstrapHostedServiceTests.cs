@@ -48,7 +48,11 @@ public class TenantBootstrapHostedServiceTests {
         using JsonDocument doc = JsonDocument.Parse(capturedBody);
         JsonElement root = doc.RootElement;
         root.GetProperty("tenant").GetString().ShouldBe("system");
-        root.GetProperty("domain").GetString().ShouldBe("tenants");
+        // Bootstrap targets the global-administrators aggregate via its dedicated domain so
+        // the resulting projection request arrives at /project with
+        // ProjectionRequest.Domain == "global-administrators" and routes to
+        // GlobalAdministratorProjectionHandler (story tenant-management-debug-cluster-fix ST3).
+        root.GetProperty("domain").GetString().ShouldBe("global-administrators");
         root.GetProperty("aggregateId").GetString().ShouldBe("global-administrators");
         root.GetProperty("commandType").GetString().ShouldBe("BootstrapGlobalAdmin");
         logger.Messages.ShouldContain(m => m.Contains("admin-user-1", StringComparison.Ordinal));

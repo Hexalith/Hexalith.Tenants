@@ -48,8 +48,8 @@ public partial class TenantBootstrapHostedService(
                 object commandBody = new {
                     messageId = Guid.NewGuid().ToString(),
                     tenant = TenantIdentity.DefaultTenantId,
-                    domain = TenantIdentity.Domain,
-                    aggregateId = "global-administrators",
+                    domain = TenantIdentity.GlobalAdministratorsDomain,
+                    aggregateId = TenantIdentity.GlobalAdministratorsAggregateId,
                     commandType = nameof(BootstrapGlobalAdmin),
                     payload = payloadElement,
                     correlationId = Guid.NewGuid().ToString(),

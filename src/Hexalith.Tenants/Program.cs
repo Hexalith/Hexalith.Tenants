@@ -92,7 +92,7 @@ app.MapPost("/process", async (
     CancellationToken cancellationToken) =>
     Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
 app.MapPost("/project", async (ProjectionRequest request, DaprClient daprClient)
-    => Results.Ok(await new TenantProjectionHandler(daprClient).ProjectAsync(request).ConfigureAwait(false)));
+    => await new ProjectionDispatcher(daprClient).DispatchAsync(request).ConfigureAwait(false));
 app.MapSubscribeHandler();
 app.MapActorsHandlers();
 
