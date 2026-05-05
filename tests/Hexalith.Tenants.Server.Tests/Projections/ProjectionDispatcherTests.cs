@@ -91,6 +91,53 @@ public class ProjectionDispatcherTests {
     }
 
     [Theory]
+    [InlineData("tenant-a", "global-administrators")]
+    [InlineData("system", "tenant-a")]
+    public async Task DispatchAsync_GlobalAdministratorsDomain_WithInvalidIdentity_Returns400AndDoesNotWriteStateAsync(
+        string tenant,
+        string aggregateId) {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ProjectionRequest request = new(
+            tenant,
+            "global-administrators",
+            aggregateId,
+            [CreateEventDto(new GlobalAdministratorSet("system", "admin-user"))]);
+
+        IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+
+        await daprClient.DidNotReceive().SaveStateAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<object?>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+        ProblemHttpResult problem = result.ShouldBeOfType<ProblemHttpResult>();
+        problem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task GlobalAdministratorProjectionHandler_InvalidIdentity_ThrowsBeforeStateWriteAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ProjectionRequest request = new(
+            "tenant-a",
+            "global-administrators",
+            "global-administrators",
+            [CreateEventDto(new GlobalAdministratorSet("system", "admin-user"))]);
+
+        _ = await Should.ThrowAsync<ArgumentException>(
+            () => new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request));
+
+        await daprClient.DidNotReceive().SaveStateAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<object?>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
     [InlineData("counter")]
     [InlineData("orders")]
     [InlineData("")]

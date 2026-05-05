@@ -19,6 +19,8 @@ namespace Hexalith.Tenants.Projections;
 public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) {
     public const string StateStoreName = "statestore";
     public const string GlobalAdministratorsProjectionKey = "projection:global-administrators:singleton";
+    public const string GlobalAdministratorsAggregateId = "global-administrators";
+    public const string SystemTenantId = "system";
 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
@@ -26,6 +28,11 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
 
     public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request) {
         ArgumentNullException.ThrowIfNull(request);
+        if (!IsValidGlobalAdministratorIdentity(request)) {
+            throw new ArgumentException(
+                "Global-administrator projections must use tenant 'system' and aggregate 'global-administrators'.",
+                nameof(request));
+        }
 
         GlobalAdministratorReadModel state = new();
         foreach (ProjectionEventDto? evt in request.Events ?? []) {
@@ -45,6 +52,10 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
             "global-administrators",
             JsonSerializer.SerializeToElement(state));
     }
+
+    internal static bool IsValidGlobalAdministratorIdentity(ProjectionRequest request)
+        => string.Equals(request.TenantId, SystemTenantId, StringComparison.Ordinal)
+            && string.Equals(request.AggregateId, GlobalAdministratorsAggregateId, StringComparison.Ordinal);
 
     private static void ApplyEvent(GlobalAdministratorReadModel state, ProjectionEventDto evt) {
         string name = evt.EventTypeName;

@@ -25,6 +25,13 @@ public sealed class ProjectionDispatcher(DaprClient daprClient) {
                 return Results.Ok(tenantsResponse);
 
             case GlobalAdministratorsDomain:
+                if (!GlobalAdministratorProjectionHandler.IsValidGlobalAdministratorIdentity(request)) {
+                    return Results.Problem(
+                        detail: "Global-administrator projections must use tenant 'system' and aggregate 'global-administrators'.",
+                        statusCode: StatusCodes.Status400BadRequest,
+                        title: "Invalid global administrator projection identity");
+                }
+
                 ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(daprClient)
                     .ProjectAsync(request).ConfigureAwait(false);
                 return Results.Ok(globalAdminResponse);

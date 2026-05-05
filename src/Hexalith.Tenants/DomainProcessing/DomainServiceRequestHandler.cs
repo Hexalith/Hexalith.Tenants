@@ -27,6 +27,8 @@ internal sealed class DomainServiceRequestHandler(
         _ = (activity?.SetTag(TenantActivitySource.TagCommandType, commandType));
         _ = (activity?.SetTag(TenantActivitySource.TagTenantId, request.Command.TenantId));
 
+        MissingApplyMethodException? firstMissingApply = null;
+
         try {
             foreach (IDomainProcessor processor in processors) {
                 try {
@@ -34,7 +36,8 @@ internal sealed class DomainServiceRequestHandler(
                     success = true;
                     return DomainServiceWireResult.FromDomainResult(result);
                 }
-                catch (MissingApplyMethodException) {
+                catch (MissingApplyMethodException ex) {
+                    firstMissingApply ??= ex;
                     logger.LogDebug(
                         "Skipping processor {ProcessorType} for command type {CommandType}: state cannot apply event in stream",
                         processor.GetType().Name,
@@ -46,6 +49,10 @@ internal sealed class DomainServiceRequestHandler(
                         processor.GetType().Name,
                         request.Command.CommandType);
                 }
+            }
+
+            if (firstMissingApply is not null) {
+                throw firstMissingApply;
             }
 
             throw new InvalidOperationException($"No domain processor found for command type '{request.Command.CommandType}'.");

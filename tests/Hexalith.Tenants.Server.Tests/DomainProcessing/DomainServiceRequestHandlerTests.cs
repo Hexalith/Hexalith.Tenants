@@ -50,6 +50,23 @@ public class DomainServiceRequestHandlerTests {
     }
 
     [Fact]
+    public async Task ProcessAsync_WhenOnlyProcessorThrowsMissingApply_RethrowsOriginalException() {
+        var expected = new MissingApplyMethodException(
+            typeof(TenantState),
+            nameof(GlobalAdministratorSet),
+            "message-1",
+            "acme");
+        var first = new FakeDomainProcessor(_ => throw expected);
+        var handler = new DomainServiceRequestHandler([first], NullLogger<DomainServiceRequestHandler>.Instance);
+
+        MissingApplyMethodException ex = await Should.ThrowAsync<MissingApplyMethodException>(
+            () => handler.ProcessAsync(CreateRequest()));
+
+        ex.ShouldBeSameAs(expected);
+        first.CallCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task ProcessAsync_WhenRehydrationFailsForMalformedHistory_DoesNotTreatItAsMismatch() {
         var first = new FakeDomainProcessor(
             _ => throw new InvalidOperationException(
