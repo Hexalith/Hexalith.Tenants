@@ -1,4 +1,6 @@
 # generated: 2026-03-07
+# last_updated: 2026-05-12 (Epic 8 retrospective completed)
+# last_updated: 2026-05-12 (Epic 6 retrospective completed)
 # last_updated: 2026-05-12 (SCP-2026-05-12: DAPR integration test prerequisite gating)
 # last_updated: 2026-05-12 (Epic 5 retrospective completed)
 # last_updated: 2026-05-12 (Epic 4 retrospective completed)
@@ -109,7 +111,7 @@ development_status:
   epic-6: done
   6-1-in-memory-tenant-service-and-test-helpers: done
   6-2-in-memory-projection-and-conformance-tests: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
 
   # Epic 7: Deployment & Observability
   epic-7: done
@@ -123,4 +125,4 @@ development_status:
   8-1-quickstart-guide-and-readme: done
   8-2-event-contract-reference-and-technical-documentation: done
   8-3-aha-moment-demo-and-project-documentation: done
-  epic-8-retrospective: optional
+  epic-8-retrospective: done
