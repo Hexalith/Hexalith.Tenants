@@ -1,0 +1,6 @@
+[mcp_servers.aspire]
+args = [
+    "mcp",
+    "start",
+]
+command = "aspire"

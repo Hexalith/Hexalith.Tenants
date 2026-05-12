@@ -1,4 +1,6 @@
 # generated: 2026-03-07
+# last_updated: 2026-05-12 (SCP-2026-05-12: post-epic-1 foundation readiness gates)
+# last_updated: 2026-05-12 (Epic 1 retrospective completed)
 # last_updated: 2026-05-04 (SCP-2026-05-04: post-epic-2 dispatcher matcher + post-epic-5 JWT auth wiring carry-forwards)
 # last_updated: 2026-04-08 (SCP-2026-04-08: bootstrap crash fix — OperationCanceledException filter)
 # project: Hexalith.Tenants
@@ -36,7 +38,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-07
-last_updated: 2026-05-04
+last_updated: 2026-05-12
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -48,7 +50,12 @@ development_status:
   1-1-solution-structure-and-build-configuration: done
   1-2-dapr-component-configuration-and-servicedefaults: done
   1-3-ci-cd-pipeline: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
+
+  # Post-Epic-1 Foundation Readiness Correction (SCP-2026-05-12)
+  # R1-A1: Restore/test gate blocked by EventStore OpenTelemetry vulnerability warnings;
+  # CI/release/story artifacts need foundation alignment before further dependency-heavy work.
+  post-epic-1-r1a1-foundation-readiness-gates: ready-for-dev
 
   # Epic 2: Core Tenant Management & Global Administration
   epic-2: done
