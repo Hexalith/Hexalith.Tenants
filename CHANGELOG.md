@@ -1,3 +1,21 @@
+# [1.1.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.0.0...v1.1.0) (2026-05-12)
+
+
+### Bug Fixes
+
+* **domain-processing:** match MissingApplyMethodException for processor fall-through ([0fecb6c](https://github.com/Hexalith/Hexalith.Tenants/commit/0fecb6c051399f9cf7c724d713c9a0f2b4678e72))
+* handle replayed tenant rejection events ([1609a57](https://github.com/Hexalith/Hexalith.Tenants/commit/1609a579bfe44e7dba233e9774efe5be8c459bc0))
+* **projections:** add live global-administrator projection handler and /project domain dispatch ([ac63d48](https://github.com/Hexalith/Hexalith.Tenants/commit/ac63d483553627bef1cc4f09f239b917b49f942d))
+* **projections:** harden global admin projection dispatch ([5469a6b](https://github.com/Hexalith/Hexalith.Tenants/commit/5469a6b74e87944c23e3bbeeb5928646b187301e))
+* **tenants:** defer bootstrap until host started and handle idempotent conflict ([c7a8365](https://github.com/Hexalith/Hexalith.Tenants/commit/c7a83657a6dec441307462d5dfd5456cef8b554b))
+* **tests:** shorten drain delays to stabilise DrainRecovery test ([6e85635](https://github.com/Hexalith/Hexalith.Tenants/commit/6e856356f2766f6748194d9a7b6eaac29655eba0))
+* update subproject commit reference in Hexalith.EventStore ([0a74c4d](https://github.com/Hexalith/Hexalith.Tenants/commit/0a74c4d3c3ac64db23fcbe3dcf7d408b793c79e4))
+
+
+### Features
+
+* add post-epic-1 foundation readiness gates and update sprint status ([05c9d77](https://github.com/Hexalith/Hexalith.Tenants/commit/05c9d7753163d737a3fc1213e625deea3cfe6207))
+
 # 1.0.0 (2026-04-20)
 
 
