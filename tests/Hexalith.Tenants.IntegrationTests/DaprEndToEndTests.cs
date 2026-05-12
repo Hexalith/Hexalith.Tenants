@@ -25,8 +25,10 @@ public class DaprEndToEndTests {
 
     public DaprEndToEndTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
-    [Fact]
+    [DaprFact]
     public async Task CreateTenant_succeeds_end_to_end_with_events_published() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string tenantId = $"t-create-{Guid.NewGuid():N}";
@@ -50,8 +52,10 @@ public class DaprEndToEndTests {
         _fixture.EventPublisher.GetEventsForTopic(expectedTopic).ShouldNotBeEmpty();
     }
 
-    [Fact]
+    [DaprFact]
     public async Task DisableTenant_succeeds_end_to_end_with_events_published() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — create tenant first, then disable it
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string tenantId = $"t-disable-{Guid.NewGuid():N}";
@@ -76,8 +80,10 @@ public class DaprEndToEndTests {
         _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
     }
 
-    [Fact]
+    [DaprFact]
     public async Task EnableTenant_succeeds_end_to_end_with_events_published() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — create tenant, disable it, then enable it
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string tenantId = $"t-enable-{Guid.NewGuid():N}";
@@ -106,8 +112,10 @@ public class DaprEndToEndTests {
         _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
     }
 
-    [Fact]
+    [DaprFact]
     public async Task BootstrapGlobalAdmin_succeeds_end_to_end_with_events_published() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
 
@@ -134,8 +142,10 @@ public class DaprEndToEndTests {
         _fixture.EventPublisher.GetEventsForTopic(expectedTopic).ShouldNotBeEmpty();
     }
 
-    [Fact]
+    [DaprFact]
     public async Task BootstrapGlobalAdmin_duplicate_produces_rejection() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — bootstrap once, then try again
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string uniqueAggId = $"global-administrators-{Guid.NewGuid():N}";

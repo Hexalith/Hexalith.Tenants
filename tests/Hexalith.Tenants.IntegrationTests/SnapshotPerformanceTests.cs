@@ -37,8 +37,10 @@ public class SnapshotPerformanceTests {
 
     public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
-    [Fact]
+    [DaprFact]
     public async Task ColdStartRehydration_CompletesWithin30Seconds_With500KEvents() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — seed 1,000 tenant aggregates with 500 events each
         var actorProxyFactory = new ActorProxyFactory(
             new ActorProxyOptions { HttpEndpoint = _fixture.DaprHttpEndpoint });

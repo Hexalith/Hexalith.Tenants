@@ -28,8 +28,10 @@ public class GracefulDegradationTests {
 
     public GracefulDegradationTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
-    [Fact]
+    [DaprFact]
     public async Task Command_Succeeds_AndEventsPersisted_WhenPubSubUnavailable() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — configure FakeEventPublisher to simulate pub/sub outage
         _fixture.EventPublisher.SetupFailure("Pub/sub unavailable — simulated outage");
 
@@ -62,8 +64,10 @@ public class GracefulDegradationTests {
         }
     }
 
-    [Fact]
+    [DaprFact]
     public async Task DrainRecovery_PublishesPendingEvents_WhenPubSubRecovers() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — configure pub/sub outage
         _fixture.EventPublisher.SetupFailure("Pub/sub unavailable — drain recovery test");
 

@@ -3,8 +3,12 @@
     "aspire": {
       "command": "aspire",
       "args": [
+        "agent",
         "mcp",
-        "start"
+        "--nologo",
+        "--non-interactive",
+        "--log-level",
+        "Error"
       ]
     }
   }

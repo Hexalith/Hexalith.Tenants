@@ -51,10 +51,20 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     private readonly StringBuilder _daprStderr = new();
 
     /// <summary>Gets the Dapr HTTP endpoint for actor proxy clients.</summary>
-    public string DaprHttpEndpoint => $"http://localhost:{_daprHttpPort}";
+    public string DaprHttpEndpoint {
+        get {
+            SkipIfUnavailable();
+            return $"http://localhost:{_daprHttpPort}";
+        }
+    }
 
     /// <summary>Gets the application HTTP endpoint (used to force actor deactivation in tests).</summary>
-    public string AppEndpoint => $"http://localhost:{_appPort}";
+    public string AppEndpoint {
+        get {
+            SkipIfUnavailable();
+            return $"http://localhost:{_appPort}";
+        }
+    }
 
     /// <summary>Gets the fake event publisher for capturing published events.</summary>
     public FakeEventPublisher EventPublisher { get; } = new();
@@ -67,6 +77,16 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
     /// <summary>Gets the last exception thrown by the /process endpoint, for test diagnostics.</summary>
     public Exception? LastProcessException { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether local DAPR prerequisites were available during fixture startup.
+    /// </summary>
+    public bool PrerequisitesAvailable { get; private set; } = true;
+
+    /// <summary>
+    /// Gets the skip reason when local DAPR prerequisites are unavailable.
+    /// </summary>
+    public string? SkipReason { get; private set; }
 
     /// <inheritdoc/>
     public async ValueTask InitializeAsync() {
@@ -85,7 +105,12 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", _daprHttpPort.ToString());
         Environment.SetEnvironmentVariable("DAPR_GRPC_PORT", _daprGrpcPort.ToString());
 
-        await VerifyPrerequisitesAsync().ConfigureAwait(false);
+        IReadOnlyList<string> prerequisiteFailures = await GetPrerequisiteFailuresAsync().ConfigureAwait(false);
+        if (prerequisiteFailures.Count > 0) {
+            PrerequisitesAvailable = false;
+            SkipReason = BuildPrerequisiteFailureMessage(prerequisiteFailures);
+            return;
+        }
 
         _componentsDir = CreateComponentFiles();
 
@@ -101,6 +126,15 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         await Task.Delay(2000).ConfigureAwait(false);
 
         await VerifyAppListeningAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Skips the current test when local DAPR prerequisites were not available during fixture startup.
+    /// </summary>
+    public void SkipIfUnavailable() {
+        if (!PrerequisitesAvailable) {
+            Assert.Skip(SkipReason ?? DaprTestPrerequisites.SkipReason);
+        }
     }
 
     /// <inheritdoc/>
@@ -130,7 +164,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         Environment.SetEnvironmentVariable("DAPR_GRPC_PORT", _previousDaprGrpcPort);
     }
 
-    private static async Task VerifyPrerequisitesAsync() {
+    private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
         var failures = new List<string>();
 
         if (!await IsPortReachableAsync("localhost", RedisPort).ConfigureAwait(false)) {
@@ -145,12 +179,12 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
             failures.Add($"Dapr scheduler service is not reachable on localhost:{SchedulerPort}");
         }
 
-        if (failures.Count > 0) {
-            throw new InvalidOperationException(
-                $"Dapr infrastructure pre-flight check failed. Have you run 'dapr init'?\n" +
-                string.Join("\n", failures.Select(f => $"  - {f}")));
-        }
+        return failures;
     }
+
+    private static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
+        => "Dapr infrastructure pre-flight check failed. Have you run 'dapr init'?" + Environment.NewLine
+            + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}"));
 
     private static async Task<bool> IsPortReachableAsync(string host, int port) {
         try {

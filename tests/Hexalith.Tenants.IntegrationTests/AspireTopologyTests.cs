@@ -24,29 +24,37 @@ public class AspireTopologyTests {
 
     public AspireTopologyTests(AspireTopologyFixture fixture) => _fixture = fixture;
 
-    [Fact]
+    [DaprFact]
     public async Task CommandApi_resource_starts_and_is_healthy() {
+        _fixture.SkipIfUnavailable();
+
         using HttpResponseMessage response = await _fixture.CommandApiClient.GetAsync("/health");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Fact]
+    [DaprFact]
     public async Task Tenants_resource_starts_and_is_healthy() {
+        _fixture.SkipIfUnavailable();
+
         using HttpResponseMessage response = await _fixture.TenantsClient.GetAsync("/health");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Fact]
+    [DaprFact]
     public async Task Sample_resource_starts_and_is_healthy() {
+        _fixture.SkipIfUnavailable();
+
         using HttpResponseMessage response = await _fixture.SampleClient.GetAsync("/health");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Fact]
+    [DaprFact]
     public async Task CommandApi_process_endpoint_dispatches_command() {
+        _fixture.SkipIfUnavailable();
+
         string tenantId = $"aspire-test-{Guid.NewGuid():N}";
         var request = new DomainServiceRequest(
             new CommandEnvelope(

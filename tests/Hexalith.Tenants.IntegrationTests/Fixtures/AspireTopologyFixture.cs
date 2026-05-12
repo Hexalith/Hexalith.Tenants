@@ -36,22 +36,47 @@ public class AspireTopologyFixture : IAsyncLifetime {
     /// Gets the HTTP client for the CommandApi service.
     /// Available after <see cref="InitializeAsync"/> completes.
     /// </summary>
-    public HttpClient CommandApiClient => _commandApiClient ?? throw new InvalidOperationException(
-        "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+    public HttpClient CommandApiClient {
+        get {
+            SkipIfUnavailable();
+            return _commandApiClient ?? throw new InvalidOperationException(
+                "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+        }
+    }
 
     /// <summary>
     /// Gets the HTTP client for the Tenants domain service (exposes /process endpoint).
     /// Available after <see cref="InitializeAsync"/> completes.
     /// </summary>
-    public HttpClient TenantsClient => _tenantsClient ?? throw new InvalidOperationException(
-        "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+    public HttpClient TenantsClient {
+        get {
+            SkipIfUnavailable();
+            return _tenantsClient ?? throw new InvalidOperationException(
+                "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+        }
+    }
 
     /// <summary>
     /// Gets the HTTP client for the Sample service.
     /// Available after <see cref="InitializeAsync"/> completes.
     /// </summary>
-    public HttpClient SampleClient => _sampleClient ?? throw new InvalidOperationException(
-        "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+    public HttpClient SampleClient {
+        get {
+            SkipIfUnavailable();
+            return _sampleClient ?? throw new InvalidOperationException(
+                "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether local DAPR prerequisites were available during fixture startup.
+    /// </summary>
+    public bool PrerequisitesAvailable { get; private set; } = true;
+
+    /// <summary>
+    /// Gets the skip reason when local DAPR prerequisites are unavailable.
+    /// </summary>
+    public string? SkipReason { get; private set; }
 
     /// <inheritdoc/>
     public async ValueTask InitializeAsync() {
@@ -61,7 +86,13 @@ public class AspireTopologyFixture : IAsyncLifetime {
         using var startupCts = new CancellationTokenSource(StartupTimeout);
 
         try {
-            await VerifyPrerequisitesAsync().ConfigureAwait(false);
+            IReadOnlyList<string> prerequisiteFailures = await GetPrerequisiteFailuresAsync().ConfigureAwait(false);
+            if (prerequisiteFailures.Count > 0) {
+                PrerequisitesAvailable = false;
+                SkipReason = BuildPrerequisiteFailureMessage(prerequisiteFailures);
+                _startupStopwatch.Stop();
+                return;
+            }
 
             _builder = await DistributedApplicationTestingBuilder
                 .CreateAsync<Projects.Hexalith_Tenants_AppHost>()
@@ -103,6 +134,15 @@ public class AspireTopologyFixture : IAsyncLifetime {
         }
 
         _startupStopwatch.Stop();
+    }
+
+    /// <summary>
+    /// Skips the current test when local DAPR prerequisites were not available during fixture startup.
+    /// </summary>
+    public void SkipIfUnavailable() {
+        if (!PrerequisitesAvailable) {
+            Assert.Skip(SkipReason ?? DaprTestPrerequisites.SkipReason);
+        }
     }
 
     /// <inheritdoc/>
@@ -151,7 +191,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
             $"Resource '{resourceName}' did not become healthy within {timeout}. {GetHealthDiagnostic(resourceName)}");
     }
 
-    private static async Task VerifyPrerequisitesAsync() {
+    private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
         var failures = new List<string>();
 
         if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
@@ -162,12 +202,12 @@ public class AspireTopologyFixture : IAsyncLifetime {
             failures.Add($"Dapr scheduler service is not reachable on localhost:{SchedulerPort}");
         }
 
-        if (failures.Count > 0) {
-            throw new InvalidOperationException(
-                "Aspire topology prerequisites are missing. Have you run 'dapr init'?" + Environment.NewLine
-                + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}")));
-        }
+        return failures;
     }
+
+    private static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
+        => "Aspire topology prerequisites are missing. Have you run 'dapr init'?" + Environment.NewLine
+            + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}"));
 
     private static async Task<bool> IsPortReachableAsync(string host, int port) {
         try {

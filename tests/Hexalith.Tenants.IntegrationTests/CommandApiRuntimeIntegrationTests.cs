@@ -84,7 +84,7 @@ public class CommandApiRuntimeIntegrationTests {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
 
         JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
-        var request = new SubmitCommandRequest(
+        var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             Guid.NewGuid().ToString(),
             "system",
             "tenants",

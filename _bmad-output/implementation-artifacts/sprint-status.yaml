@@ -1,5 +1,10 @@
 # generated: 2026-03-07
+# last_updated: 2026-05-12 (SCP-2026-05-12: DAPR integration test prerequisite gating)
+# last_updated: 2026-05-12 (Epic 5 retrospective completed)
+# last_updated: 2026-05-12 (Epic 4 retrospective completed)
+# last_updated: 2026-05-12 (Epic 3 retrospective completed)
 # last_updated: 2026-05-12 (SCP-2026-05-12: post-epic-1 foundation readiness gates)
+# last_updated: 2026-05-12 (Epic 2 retrospective completed)
 # last_updated: 2026-05-12 (Epic 1 retrospective completed)
 # last_updated: 2026-05-04 (SCP-2026-05-04: post-epic-2 dispatcher matcher + post-epic-5 JWT auth wiring carry-forwards)
 # last_updated: 2026-04-08 (SCP-2026-04-08: bootstrap crash fix — OperationCanceledException filter)
@@ -63,7 +68,7 @@ development_status:
   2-2-global-administrator-aggregate: done
   2-3-tenant-aggregate-lifecycle: done
   2-4-tenant-service-bootstrap-and-event-publishing: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # Post-Epic-2 Defect Carry-Forward (SCP-2026-05-04 §B)
   # R2-A1: DomainServiceRequestHandler fall-through matcher missed MissingApplyMethodException.
@@ -74,21 +79,26 @@ development_status:
   3-1-user-role-management: done
   3-2-role-behavior-enforcement: done
   3-3-tenant-configuration-management: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
+
+  # Post-Epic-3 Verification Correction (SCP-2026-05-12)
+  # R3-A4: DAPR-backed integration tests should skip when local Redis/placement/scheduler prerequisites
+  # are unavailable, instead of failing during fixture initialization.
+  post-epic-3-r3a4-dapr-integration-test-prerequisite-gating: done
 
   # Epic 4: Event-Driven Integration & Consuming Service Support
   epic-4: done
   4-1-client-di-registration: done
   4-2-event-subscription-and-local-projection-pattern: done
   4-3-sample-consuming-service-and-idempotent-processing-guide: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # Epic 5: Tenant Discovery & Query
   epic-5: done
   5-1-per-tenant-and-global-admin-projections: done
   5-2-cross-tenant-index-projection: done
   5-3-query-endpoints-and-authorization: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 
   # Post-Epic-5 Defect Carry-Forward (SCP-2026-05-04 §A)
   # R5-A1: Tenants Program.cs missing AddJwtAuthentication / UseAuthentication wiring;

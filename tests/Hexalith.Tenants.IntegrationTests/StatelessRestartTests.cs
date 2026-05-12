@@ -27,8 +27,10 @@ public class StatelessRestartTests {
 
     public StatelessRestartTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
-    [Fact]
+    [DaprFact]
     public async Task TenantState_IsReconstructedFromEventStore_AfterActorReactivation() {
+        _fixture.SkipIfUnavailable();
+
         // Arrange — create a tenant
         var actorProxyFactory = new ActorProxyFactory(
             new ActorProxyOptions { HttpEndpoint = _fixture.DaprHttpEndpoint });
