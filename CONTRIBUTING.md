@@ -12,11 +12,12 @@ Thank you for your interest in contributing to Hexalith.Tenants! This guide cove
 
 ### Clone the Repository
 
-Clone with submodules — the `Hexalith.EventStore` submodule is required:
+Clone the repository, then initialize root-level submodules only:
 
 ```bash
-git clone --recurse-submodules https://github.com/Hexalith/Hexalith.Tenants.git
+git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
+git submodule update --init Hexalith.EventStore Hexalith.Commons
 ```
 
 > **Windows users:** If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
@@ -121,11 +122,12 @@ dotnet format Hexalith.Tenants.slnx
 
 ## Submodule Management
 
-This repository uses `Hexalith.EventStore` as a git submodule.
+This repository uses root-level `Hexalith.EventStore` and `Hexalith.Commons` git submodules.
 
-- **Initial clone:** Use `git clone --recurse-submodules` (covered in Getting Started)
-- **After pulling main:** Run `git submodule update --init --recursive` to sync the submodule
-- **When the submodule reference changes in a PR:** Run `git submodule update` to update your local copy
+- **Initial clone:** Run `git submodule update --init Hexalith.EventStore Hexalith.Commons` after cloning
+- **After pulling main:** Run `git submodule update --init Hexalith.EventStore Hexalith.Commons` to sync root-level submodules
+- **When a root-level submodule reference changes in a PR:** Run `git submodule update Hexalith.EventStore Hexalith.Commons` to update your local copy
+- **Nested submodules:** Do not use recursive submodule initialization unless a maintainer explicitly asks for nested submodules
 
 > **Important:** Do NOT modify files inside `Hexalith.EventStore/` directly. Changes to the submodule must go through the [EventStore repository](https://github.com/Hexalith/Hexalith.EventStore).
 

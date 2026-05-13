@@ -82,7 +82,7 @@ scripts/
 
 ### Development Workflow
 
-1. Fork and clone with `--recurse-submodules` (the `Hexalith.EventStore` submodule is required)
+1. Fork and clone, then initialize root-level submodules: `git submodule update --init Hexalith.EventStore Hexalith.Commons`
 2. Create a feature branch from `main`
 3. Make changes following the code style defined in [`.editorconfig`](.editorconfig)
 4. Ensure all tests pass: `dotnet test Hexalith.Tenants.slnx`

@@ -58,14 +58,15 @@ For local development, the Aspire AppHost topology handles the `system` tenant c
 
 ## Clone and Build
 
-Clone the repository with submodules (the EventStore submodule is required):
+Clone the repository, then initialize the root-level submodules:
 
 ```bash
-git clone --recurse-submodules https://github.com/Hexalith/Hexalith.Tenants.git
+git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
+git submodule update --init Hexalith.EventStore Hexalith.Commons
 ```
 
-> **Windows users:** The clone with submodules creates deep nesting (`Hexalith.Tenants/Hexalith.EventStore/src/...`). If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
+> **Windows users:** The repository contains submodule paths such as `Hexalith.Tenants/Hexalith.EventStore/src/...`. If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
 
 Verify the build:
 

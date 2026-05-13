@@ -1,4 +1,6 @@
 # generated: 2026-03-07
+# last_updated: 2026-05-13 (post-epic-5-r5a1 JWT auth wiring code review complete; story → done)
+# last_updated: 2026-05-13 (post-epic-1 foundation readiness gates completed)
 # last_updated: 2026-05-12 (Epic 8 retrospective completed)
 # last_updated: 2026-05-12 (Epic 6 retrospective completed)
 # last_updated: 2026-05-12 (SCP-2026-05-12: DAPR integration test prerequisite gating)
@@ -45,7 +47,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-07
-last_updated: 2026-05-12
+last_updated: 2026-05-13
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -62,7 +64,7 @@ development_status:
   # Post-Epic-1 Foundation Readiness Correction (SCP-2026-05-12)
   # R1-A1: Restore/test gate blocked by EventStore OpenTelemetry vulnerability warnings;
   # CI/release/story artifacts need foundation alignment before further dependency-heavy work.
-  post-epic-1-r1a1-foundation-readiness-gates: ready-for-dev
+  post-epic-1-r1a1-foundation-readiness-gates: done
 
   # Epic 2: Core Tenant Management & Global Administration
   epic-2: done
@@ -105,7 +107,7 @@ development_status:
   # Post-Epic-5 Defect Carry-Forward (SCP-2026-05-04 §A)
   # R5-A1: Tenants Program.cs missing AddJwtAuthentication / UseAuthentication wiring;
   # all /api/tenants/* requests returning 500.
-  post-epic-5-r5a1-tenants-jwt-auth-wiring: ready-for-dev
+  post-epic-5-r5a1-tenants-jwt-auth-wiring: done
 
   # Epic 6: Testing Package
   epic-6: done

@@ -2,6 +2,7 @@ using Dapr.Client;
 
 using FluentValidation;
 
+using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
 using Hexalith.EventStore.Contracts.Commands;
@@ -22,8 +23,10 @@ using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
 using Hexalith.Tenants.Validation;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +72,16 @@ builder.Services.Configure<ExtensionMetadataOptions>(
     builder.Configuration.GetSection("EventStore:ExtensionMetadata"));
 builder.Services.TryAddSingleton<ExtensionMetadataSanitizer>();
 
+// JWT bearer authentication for controllers imported from EventStore and Tenants query routes.
+builder.Services.AddOptions<EventStoreAuthenticationOptions>()
+    .BindConfiguration("Authentication:JwtBearer")
+    .ValidateOnStart();
+builder.Services.TryAddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateEventStoreAuthenticationOptions>();
+builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureJwtBearerOptions>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+builder.Services.AddAuthorization();
+
 // Exception handlers — map domain exceptions to RFC 7807 HTTP responses (order: specific before generic)
 builder.Services.AddExceptionHandler<DomainCommandRejectedExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryNotFoundExceptionHandler>();
@@ -85,6 +98,8 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 app.UseCloudEvents();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.MapPost("/process", async (
     DomainServiceRequest request,
