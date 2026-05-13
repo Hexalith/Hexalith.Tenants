@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.1.0...v1.2.0) (2026-05-13)
+
+
+### Features
+
+* **tenants:** wire JWT bearer authentication and harden release pipeline ([92e9307](https://github.com/Hexalith/Hexalith.Tenants/commit/92e9307c39ea40d0afa35ae81b59fa452485c485))
+
 # [1.1.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.0.0...v1.1.0) (2026-05-12)
 
 
