@@ -1,6 +1,6 @@
 # Post-Epic-5 R5-A2: GetUserTenants Scoped Authorization
 
-Status: review
+Status: done
 
 ## Story
 
@@ -245,9 +245,40 @@ GPT-5 Codex
 - `_bmad-output/implementation-artifacts/post-epic-5-r5a2-get-user-tenants-scoped-authorization.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
+### Review Findings
+
+_BMAD adversarial code review — 2026-05-14. Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor. All 8 acceptance criteria are met by the Acceptance Auditor's trace; findings below are second-order risks and policy questions._
+
+- [x] [Review][Patch] Close empty-page timing oracle on cross-user lookups [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:228-243, tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs:216-240] — Applied. Moved the `isSelfLookup`/`canViewAllTargetTenants` computation (and therefore the `IsGlobalAdminAsync` Dapr lookup for non-self lookups) above the early-return for missing target users. Both the "target missing from `UserTenants`" branch and the "target present but no owned overlap" branch now incur the same admin Dapr round-trip, making the empty-page response timing-comparable across the two paths. Self-lookup still short-circuits the admin check (no oracle exposure, since the requester is the target). Added a `.Received(1)` assertion on `GetUserTenants_missing_target_user_returns_empty_page` as a regression guard. 265/265 server tests pass.
+- [x] [Review][Defer] Cursor stability under concurrent role mutation [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:148-156] — deferred, pre-existing pagination model. If a requester's `TenantOwner` role on a cursor tenant is revoked between page fetches, `Paginate`'s lexicographic `Where(key > cursor)` may skip a newly-visible tenant or advance past a now-hidden one. Same property as `list-tenants`; widened only because cross-user lookups now go through filtered pagination.
+- [x] [Review][Defer] No defense-in-depth `envelope.UserId` non-empty check at actor layer [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:228] — deferred, project-wide pattern. Controller-layer authentication is the primary guard. Consistent with `HandleGetTenantAsync`, `HandleGetTenantUsersAsync`, `HandleListTenantsAsync` — none guard against empty `envelope.UserId`. Track as a broader actor-surface hardening item.
+- [x] [Review][Defer] `TenantStatus.Disabled` tenants are surfaced via TenantOwner-scoped lookup [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:258-263] — deferred, spec silent. Self and admin lookups already return `Disabled` tenants; this story preserves that. Confirm with product whether the new TenantOwner-scoped path should filter inactive/disabled tenants.
+- [x] [Review][Defer] Demotion race: admin check now runs *after* the index load (reordered from pre-diff) [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:231-243] — deferred, eventual consistency. A just-demoted admin still sees full target memberships in the brief window between the two Dapr reads. Negligible operational risk.
+- [x] [Review][Defer] Orphan membership in `UserTenants` but missing from `Tenants` map yields blank-name response entry [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:258-263] — deferred, pre-existing fallback (`entry?.Name ?? string.Empty`). `TenantIndexReadModel.Apply` guards drop orphan adds today, so this is defensive.
+- [x] [Review][Defer] Self-lookup with stale projection may surface revoked memberships briefly [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:242-248] — deferred, read-model eventual consistency. Pre-existing.
+- [x] [Review][Defer] `StringComparer.Ordinal` is the project-wide comparison for tenant/user IDs [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:113,135,146,242] — deferred, consistent throughout the actor. Canonicalization (e.g., lowercasing `sub`) is expected at the auth boundary; track as a project-wide consistency item, not a per-story patch.
+
+#### Dismissed during triage (with rationale)
+
+- "Auth model silently broadened — any TenantOwner can enumerate other users' memberships" — false positive. This is the stated intent of the story (AC #3-#5) and the explicit D11 architecture decision; Acceptance Auditor confirmed all anti-patterns avoided.
+- "GetVisibleUserTenants returns the raw `targetUserTenants` dictionary as IEnumerable — caller may mutate" — false positive. Helper is private with a single internal caller; matches the shape of other `Paginate` sites in the same actor; no downstream contract surface.
+- "Non-owner cross-user test no longer asserts authorization — only asserts empty page" — false positive. The new test seeds `user-1` as `TenantReader` of `tenant-001` (overlap with `user-2`), so an implementation that filtered by *any* role overlap rather than `TenantOwner` would return `Items.Count = 1` and fail the assertion. The test does detect the regression it must detect.
+- "Removed test leaves no negative authorization test" — false positive. AC #5 explicitly requires the empty-page behavior; the negative case is `GetUserTenants_non_owner_querying_other_user_returns_empty_page`.
+- "Pagination test cursor brittle to dictionary ordering" — false positive. `Paginate` applies explicit `OrderBy(keySelector, StringComparer.Ordinal)` at `TenantsProjectionActor.cs:146`; the cursor assertion is deterministic.
+- "HashSet recomputed per call" — acknowledged by Blind Hunter as non-defect; query-scoped allocation is acceptable.
+- "Telemetry test `using Hexalith.EventStore.Contracts.Queries` looks dead" — intentional. `QueryEnvelope`/`QueryResult` migrated namespaces and the test references them; documented in Completion Notes.
+- "isSelfLookup short-circuits the admin call" — explicitly correct and faster than pre-diff.
+- "isSelfLookup case-sensitive Ordinal compare on user IDs" — folded into the broader Ordinal defer above.
+- "Owner querying self via `entityId=self` short-circuit", "requesterOwnedTenantIds built when no overlap", "requesterTenants live dict / deferred enumeration" — Edge Case Hunter explicitly marked as non-findings.
+- "targetUserId may be empty string" — controller guarantees non-empty `UserId`; an empty key in `UserTenants` would be a projection bug, not a query bug.
+- "Helper introduces an abstraction the spec flagged as optional" — Acceptance Auditor concluded the helper is warranted and matches the allowed shape (`IEnumerable<KeyValuePair<string, TenantRole>>`).
+- "File List mentions Telemetry test file with only cosmetic change" — listed for traceability; not a violation.
+
 ### Change Log
 
 - 2026-05-14: Implemented D11 TenantOwner-scoped `GetUserTenantsQuery` authorization filtering, added actor regression coverage, and moved story to review.
+- 2026-05-14: BMAD adversarial code review — 1 decision-needed (timing-oracle policy), 0 patches, 7 deferred (pre-existing or out-of-scope), 13 dismissed.
+- 2026-05-14: Applied review patch — closed empty-page timing oracle by moving the admin lookup ahead of the early-return for missing target users; added regression assertion. Story → done.
 
 ## Story Completion Status
 

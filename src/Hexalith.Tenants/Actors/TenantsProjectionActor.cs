@@ -232,6 +232,13 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             .GetStateAsync<TenantIndexReadModel>(StateStoreName, TenantIndexProjectionKey)
             .ConfigureAwait(false);
 
+        // Run the admin check before any early return so cross-user lookups have comparable
+        // response timing whether the target user is missing from the index or present-but-filtered-out.
+        // This complements D11 response-body uniformity by closing a timing-based user-enumeration oracle.
+        bool isSelfLookup = string.Equals(targetUserId, envelope.UserId, StringComparison.Ordinal);
+        bool canViewAllTargetTenants = isSelfLookup
+            || await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
+
         if (indexModel is null
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
@@ -239,8 +246,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return CreateSuccessResult(emptyPayload, "tenant-index");
         }
 
-        bool isSelfLookup = string.Equals(targetUserId, envelope.UserId, StringComparison.Ordinal);
-        bool canViewAllTargetTenants = isSelfLookup || await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
         IEnumerable<KeyValuePair<string, TenantRole>> visibleUserTenants = GetVisibleUserTenants(
             indexModel,
             envelope.UserId,

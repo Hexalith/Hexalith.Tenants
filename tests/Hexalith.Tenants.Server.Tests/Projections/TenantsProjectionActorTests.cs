@@ -230,6 +230,13 @@ public class TenantsProjectionActorTests {
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(0);
         page.HasMore.ShouldBeFalse();
+
+        // Timing-uniformity guarantee: cross-user lookups must perform the admin check
+        // even when the target user is missing, so that the empty-page response from this
+        // branch is timing-indistinguishable from the filtered-no-overlap branch.
+        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.GlobalAdminProjectionKey);
     }
 
     [Fact]
