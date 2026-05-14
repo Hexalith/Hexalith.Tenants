@@ -1,4 +1,5 @@
 # generated: 2026-03-07
+# last_updated: 2026-05-13 (SCP-2026-05-13: implementation readiness alignment; R5-A2/R5-A3 added)
 # last_updated: 2026-05-13 (post-epic-5-r5a1 JWT auth wiring code review complete; story → done)
 # last_updated: 2026-05-13 (post-epic-1 foundation readiness gates completed)
 # last_updated: 2026-05-12 (Epic 8 retrospective completed)
@@ -108,6 +109,17 @@ development_status:
   # R5-A1: Tenants Program.cs missing AddJwtAuthentication / UseAuthentication wiring;
   # all /api/tenants/* requests returning 500.
   post-epic-5-r5a1-tenants-jwt-auth-wiring: done
+
+  # Post-Epic-5 Authorization Correction (SCP-2026-05-13)
+  # R5-A2: GetUserTenants currently supports self and GlobalAdmin lookup only.
+  # Add D11 TenantOwner scoped lookup so owners can query users only within tenants they own,
+  # while preventing visibility into other tenants.
+  post-epic-5-r5a2-get-user-tenants-scoped-authorization: backlog
+
+  # Post-Epic-5 Audit Projection Correction (SCP-2026-05-13)
+  # R5-A3: Story 5.3 created GetTenantAuditQuery and endpoint but intentionally returns 501.
+  # Implement or explicitly settle D12 TenantAuditProjection / TenantAuditReadModel so FR29 is truthful.
+  post-epic-5-r5a3-tenant-audit-projection-query: backlog
 
   # Epic 6: Testing Package
   epic-6: done

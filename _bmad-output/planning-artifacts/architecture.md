@@ -309,6 +309,8 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 - Configuration: `appsettings.json` → `EventStore:Snapshots:DomainIntervals:tenants = 50`
 - Provided by EventStore: SnapshotManager with per-domain configurable intervals (min 10, default 100)
 
+**Implementation status note (2026-05-13):** Story 7.3 configured the tenant domain snapshot interval at 50 events and retained the default 100-event interval for GlobalAdministrator. This satisfies the Phase 1 baseline snapshot configuration. Future Phase 3 snapshot work refers only to advanced optimization beyond this baseline.
+
 **Event Serialization:**
 - Decision: System.Text.Json (EventStore standard)
 - Rationale: EventStore uses System.Text.Json throughout (aggregate rehydration, projection replay, event envelope serialization). No alternative to evaluate
@@ -967,6 +969,8 @@ All tests are Tier 1 (unit) — no DAPR, no actors, no mocking.
 ## UX-Driven Architecture Amendments (2026-03-25)
 
 _Amendments based on the UX Design Specification (ux-design-specification.md, completed 2026-03-24). The UX spec introduces frontend screens, interaction patterns, and data requirements that surface gaps in the original architecture. Each amendment references the original decision it extends._
+
+**Scope clarification (2026-05-13):** D11 and D12 are backend MVP-relevant because they affect PRD FR28/FR29 and NFR5. D13-D17 are Phase 2 Admin UI / FrontShell reference-module concerns unless a future scope decision promotes the UI to MVP. Backend implementation must not treat D13-D17 as Phase 1 release blockers, but Phase 2 UI stories must explicitly sequence these dependencies.
 
 ### D11: User Search Authorization Scoping
 

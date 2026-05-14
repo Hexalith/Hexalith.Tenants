@@ -105,6 +105,8 @@ The MVP must satisfy two validation goals simultaneously:
 
 Event contracts may evolve with breaking changes during pre-1.0 development. Event contract stability (zero breaking changes) is a v1.0 release milestone.
 
+**MVP scope clarification (2026-05-13):** Phase 1 remains a backend/package/documentation MVP. It includes tenant domain behavior, query endpoints, audit-query capability, packages, tests, deployment, observability, and adoption documentation. The Hexalith.Tenants Admin UI / FrontShell reference module is Phase 2 unless explicitly promoted by a future scope decision.
+
 **Core User Journeys Supported:**
 - Journey 1 (Alex — Evaluate & Adopt): Full quickstart path from NuGet install to first tenant command
 - Journey 2 (Alex — Testing): In-memory fakes with production-parity domain logic
@@ -140,7 +142,7 @@ Priority-ordered:
 
 1. **EventStore tenant authorization plugin** — Pipeline-level command authorization using local projection of tenant-user-role mappings. Closes the cross-aggregate timing window identified in Journey 4. Deployment-level opt-in via `services.AddTenantAuthorization()`
 2. **Keycloak JWT projection sync** — Synchronize tenant roles to JWT claims for token-based authorization
-3. **Admin UI / dashboard** — Visual management interface for tenants, users, and configuration
+3. **Admin UI / FrontShell reference module** — Visual management interface for tenants, users, configuration, audit, role-aware workflows, and real-time projection feedback, guided by `ux-design-specification.md`
 4. **Custom/extensible roles** — Tenant-defined roles beyond Owner/Contributor/Reader
 5. **Bulk tenant provisioning** — Batch import/migration tooling for onboarding at scale (Priya's Journey 6 gap)
 6. **F# consumption support** — Validated F#-friendly API surface for contracts and client packages
@@ -156,7 +158,7 @@ Priority-ordered:
 - Multi-deployment tenant migration via event replay
 - Per-tenant service registry (controlling which domain services are available per tenant)
 - Cross-deployment tenant federation
-- Event store snapshots for faster state reconstruction at scale
+- Advanced snapshot optimization beyond the baseline EventStore snapshot configuration
 
 ### Risk Mitigation Strategy
 
@@ -598,7 +600,7 @@ The tenant service owns a centralized read model projection for tenant discovery
 
 - NFR11: The system supports up to 1,000 tenants with up to 500 users per tenant without performance degradation beyond stated latency targets, verified by load tests seeding the target volume and asserting NFR1-NFR3 latency targets hold
 - NFR12: The tenant service is stateless — horizontal scaling achieved by adding service instances
-- NFR13: State reconstruction from the event store on startup completes within 30 seconds for up to 1,000 tenants with an assumed average of 500 events per tenant (500,000 total events), verified by a startup benchmark test that seeds the target event volume and measures time to ready state. Event store snapshots are a Phase 3 optimization if this target is exceeded at scale
+- NFR13: State reconstruction from the event store on startup completes within 30 seconds for up to 1,000 tenants with an assumed average of 500 events per tenant (500,000 total events), verified by a startup benchmark test that seeds the target event volume and measures time to ready state. Baseline EventStore snapshot configuration is part of Phase 1 reliability/performance work; advanced snapshot tuning beyond the baseline configuration is a Phase 3 optimization if this target is exceeded at scale.
 
 ### Integration
 

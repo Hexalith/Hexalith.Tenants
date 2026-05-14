@@ -31,6 +31,8 @@ As the reference module, every screen, component composition, and interaction pa
 
 The design inherits and builds upon the FrontShell UX Design Specification's design system (`@hexalith/ui`), emotional design goals (visual coherence, causal clarity, signal clarity), and component library (Radix Primitives + custom design tokens). This document focuses on Tenants-specific screens, flows, interactions, and domain UX patterns.
 
+> **Scope note (2026-05-13):** This UX specification remains the authoritative design input for the Phase 2 Admin UI / FrontShell reference module. It is not a Phase 1 backend MVP release blocker unless the Admin UI scope is explicitly promoted. Backend requirements that originated from UX and affect FR28/FR29/NFR5 are tracked separately through D11/D12 correction work.
+
 ### Target Users
 
 | Persona | Role | Primary Interaction | Design Priority |
