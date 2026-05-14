@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.3.0...v1.4.0) (2026-05-14)
+
+
+### Features
+
+* **audit:** Implement tenant audit functionality with filtering and pagination ([32bb865](https://github.com/Hexalith/Hexalith.Tenants/commit/32bb865fb38f4de65c3315b12f3c1632e38dd6fc))
+
 # [1.3.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.2.1...v1.3.0) (2026-05-14)
 
 
