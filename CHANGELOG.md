@@ -1,3 +1,17 @@
+# [1.3.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.2.1...v1.3.0) (2026-05-14)
+
+
+### Features
+
+* add Hexalith.AI.Tools and Hexalith.FrontComposer submodules ([a048709](https://github.com/Hexalith/Hexalith.Tenants/commit/a048709b246b3005393d0dc876d9b6b238f77281))
+* add predev preflight output files for tracking hardening results ([cd27f5a](https://github.com/Hexalith/Hexalith.Tenants/commit/cd27f5ab189184df8b35e61dfce175130ab3dd75))
+* Add Sprint Change Proposal for Implementation Readiness Alignment ([7ae697b](https://github.com/Hexalith/Hexalith.Tenants/commit/7ae697ba8175e7252a1b059233ccb58c68734f2a))
+* finalize GetUserTenants scoped authorization with timing-uniformity patch and update related tests ([938d370](https://github.com/Hexalith/Hexalith.Tenants/commit/938d370bae64acc0c9995bb95430914f3ea0a050))
+* implement GetUserTenants scoped authorization and update sprint status ([7232151](https://github.com/Hexalith/Hexalith.Tenants/commit/7232151d33adb2345bc52b6e351e6a1a3c25286b))
+* implement Tenant Audit Projection and Query with updated acceptance criteria and tasks ([a916c86](https://github.com/Hexalith/Hexalith.Tenants/commit/a916c862cb04391d0c63914802056c88e3df1662))
+* implement TenantOwner scoped filtering in GetUserTenantsQuery and update related tests ([a968729](https://github.com/Hexalith/Hexalith.Tenants/commit/a968729c16e54de19b593767bc0f976ae1044a61))
+* update predev preflight output with latest results and add new preflight file ([a7fd29c](https://github.com/Hexalith/Hexalith.Tenants/commit/a7fd29c80d949e4b4a0eca94476a9edbc7f2c61e))
+
 ## [1.2.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.2.0...v1.2.1) (2026-05-13)
 
 
