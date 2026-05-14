@@ -1,6 +1,6 @@
 # Post-Epic-5 R5-A2: GetUserTenants Scoped Authorization
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -21,31 +21,31 @@ so that I can manage my tenant's users without seeing cross-tenant access data.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Update `GetUserTenantsQuery` authorization filtering (AC: #1-7)
-  - [ ] 1.1 Replace the early non-admin cross-user `Forbidden` branch in `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`.
-  - [ ] 1.2 Load `TenantIndexReadModel` before deciding non-admin cross-user scope, because requester ownership is stored in the index.
-  - [ ] 1.3 Preserve self lookup: if `targetUserId == envelope.UserId`, return the target user's full membership dictionary.
-  - [ ] 1.4 Preserve GlobalAdministrator lookup using `IsGlobalAdminAsync(envelope.UserId)`: admins see the target user's full membership dictionary.
-  - [ ] 1.5 Add TenantOwner scoped lookup: build requester-owned tenant IDs from `indexModel.UserTenants[envelope.UserId]` where role is `TenantRole.TenantOwner`, then keep only target-user memberships whose tenant ID is in that owned set.
-  - [ ] 1.6 Return an empty successful page for non-admin cross-user lookups with no owned-tenant overlap; do not return 403 after the user is authenticated and the query reaches actor logic.
-  - [ ] 1.7 Keep current response projection to `UserTenantMembership(TenantId, Name, Status, Role)` and existing default behavior when a tenant entry is absent from `indexModel.Tenants`.
+- [x] Task 1: Update `GetUserTenantsQuery` authorization filtering (AC: #1-7)
+  - [x] 1.1 Replace the early non-admin cross-user `Forbidden` branch in `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`.
+  - [x] 1.2 Load `TenantIndexReadModel` before deciding non-admin cross-user scope, because requester ownership is stored in the index.
+  - [x] 1.3 Preserve self lookup: if `targetUserId == envelope.UserId`, return the target user's full membership dictionary.
+  - [x] 1.4 Preserve GlobalAdministrator lookup using `IsGlobalAdminAsync(envelope.UserId)`: admins see the target user's full membership dictionary.
+  - [x] 1.5 Add TenantOwner scoped lookup: build requester-owned tenant IDs from `indexModel.UserTenants[envelope.UserId]` where role is `TenantRole.TenantOwner`, then keep only target-user memberships whose tenant ID is in that owned set.
+  - [x] 1.6 Return an empty successful page for non-admin cross-user lookups with no owned-tenant overlap; do not return 403 after the user is authenticated and the query reaches actor logic.
+  - [x] 1.7 Keep current response projection to `UserTenantMembership(TenantId, Name, Status, Role)` and existing default behavior when a tenant entry is absent from `indexModel.Tenants`.
 
-- [ ] Task 2: Update actor tests for D11 cases (AC: #1-8)
-  - [ ] 2.1 Keep or strengthen `GetUserTenants_own_user_returns_memberships`.
-  - [ ] 2.2 Keep `GetUserTenants_global_admin_can_query_any_user`.
-  - [ ] 2.3 Replace `GetUserTenants_non_admin_querying_other_user_returns_forbidden` with an ordinary non-owner cross-user test that expects a successful empty page.
-  - [ ] 2.4 Add TenantOwner partial visibility test: requester owns Tenant A, target has Tenant A and Tenant B, result contains only Tenant A.
-  - [ ] 2.5 Add TenantOwner no-overlap test: requester owns Tenant A, target has Tenant B only, result is empty and successful.
-  - [ ] 2.6 Add pagination-after-filtering test using a target user with multiple memberships and requester ownership over only a subset.
+- [x] Task 2: Update actor tests for D11 cases (AC: #1-8)
+  - [x] 2.1 Keep or strengthen `GetUserTenants_own_user_returns_memberships`.
+  - [x] 2.2 Keep `GetUserTenants_global_admin_can_query_any_user`.
+  - [x] 2.3 Replace `GetUserTenants_non_admin_querying_other_user_returns_forbidden` with an ordinary non-owner cross-user test that expects a successful empty page.
+  - [x] 2.4 Add TenantOwner partial visibility test: requester owns Tenant A, target has Tenant A and Tenant B, result contains only Tenant A.
+  - [x] 2.5 Add TenantOwner no-overlap test: requester owns Tenant A, target has Tenant B only, result is empty and successful.
+  - [x] 2.6 Add pagination-after-filtering test using a target user with multiple memberships and requester ownership over only a subset.
 
-- [ ] Task 3: Add integration coverage if the existing test fixture can seed index state cheaply (AC: #3-5, #8)
-  - [ ] 3.1 Prefer focused actor tests as the required regression guard.
-  - [ ] 3.2 Add or extend `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` only if the fixture already exposes a stable way to seed the cross-tenant index without live DAPR fragility.
-  - [ ] 3.3 If integration setup would require broad infrastructure work, document that actor tests are the Tier 1 guard and leave Tier 2/Tier 3 expansion to the DAPR-backed security suite.
+- [x] Task 3: Add integration coverage if the existing test fixture can seed index state cheaply (AC: #3-5, #8)
+  - [x] 3.1 Prefer focused actor tests as the required regression guard.
+  - [x] 3.2 Add or extend `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` only if the fixture already exposes a stable way to seed the cross-tenant index without live DAPR fragility.
+  - [x] 3.3 If integration setup would require broad infrastructure work, document that actor tests are the Tier 1 guard and leave Tier 2/Tier 3 expansion to the DAPR-backed security suite.
 
-- [ ] Task 4: Verify focused tests (AC: #8)
-  - [ ] 4.1 Run `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests`.
-  - [ ] 4.2 If integration tests were changed, run the focused integration test filter for `TenantsQueryControllerIntegrationTests`.
+- [x] Task 4: Verify focused tests (AC: #8)
+  - [x] 4.1 Run `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests`.
+  - [x] 4.2 If integration tests were changed, run the focused integration test filter for `TenantsQueryControllerIntegrationTests`.
 
 ## Dev Notes
 
@@ -206,14 +206,49 @@ This is a narrow backend correction. It should not introduce new projects, packa
 
 ### Agent Model Used
 
-TBD by dev agent.
+GPT-5 Codex
 
 ### Debug Log References
 
+- Red phase: `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` failed on five new D11 cross-user visibility tests before production changes.
+- Green phase: focused actor tests passed after filtering change: 23 passed.
+- Regression: `dotnet test .\tests\Hexalith.Tenants.Contracts.Tests\Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-restore` passed: 34 passed.
+- Regression: `dotnet test .\tests\Hexalith.Tenants.Client.Tests\Hexalith.Tenants.Client.Tests.csproj --configuration Release --no-restore` passed: 48 passed.
+- Regression: `dotnet test .\tests\Hexalith.Tenants.Testing.Tests\Hexalith.Tenants.Testing.Tests.csproj --configuration Release --no-restore` passed: 89 passed.
+- Regression: `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore` passed: 265 passed.
+- Integration smoke: `dotnet test .\tests\Hexalith.Tenants.IntegrationTests\Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests` passed: 13 passed.
+- Full solution regression: `dotnet test .\Hexalith.Tenants.slnx --configuration Release --no-restore` timed out after 5 minutes before producing test results.
+- Full integration project: `dotnet test .\tests\Hexalith.Tenants.IntegrationTests\Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-restore` timed out after 3 minutes before producing test results.
+
+### Implementation Plan
+
+- Replace the early cross-user non-admin `Forbidden` branch with a query-side visibility calculation based on the tenant index.
+- Preserve full target-user membership visibility for self lookup and GlobalAdministrator lookup.
+- For other cross-user requests, compute requester-owned tenant IDs from `TenantIndexReadModel.UserTenants` where the requester role is exactly `TenantRole.TenantOwner`, filter the target user's memberships to those tenant IDs, then paginate.
+- Use actor tests as the Tier 1 guard because the existing controller integration fixture mocks `IQueryRouter` and does not seed actor projection state cheaply.
+
 ### Completion Notes List
+
+- Implemented TenantOwner-scoped `GetUserTenantsQuery` filtering in `TenantsProjectionActor`.
+- Non-admin cross-user lookups now return successful empty pages when the requester owns none of the target user's tenants, avoiding cross-tenant data leakage and membership existence leakage.
+- Self lookup and GlobalAdministrator lookup continue to return all target-user memberships.
+- Pagination now runs after authorization filtering for TenantOwner cross-user lookup.
+- Replaced the old forbidden cross-user test with an empty-page expectation and added D11 actor coverage for missing target memberships, TenantOwner partial visibility, no-overlap empty result, ordinary non-owner empty result, and pagination after filtering.
+- Did not add actor-state integration coverage because `TenantsQueryControllerIntegrationTests` uses a mocked `IQueryRouter`; broad DAPR-backed state seeding belongs to the existing higher-tier security/infrastructure suite.
+- Added missing `Hexalith.EventStore.Contracts.Queries` imports to server test files so `QueryEnvelope` and `QueryResult` compile against the current contracts namespace.
 
 ### File List
 
+- `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Telemetry/TenantsProjectionActorTelemetryTests.cs`
+- `_bmad-output/implementation-artifacts/post-epic-5-r5a2-get-user-tenants-scoped-authorization.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Change Log
+
+- 2026-05-14: Implemented D11 TenantOwner-scoped `GetUserTenantsQuery` authorization filtering, added actor regression coverage, and moved story to review.
+
 ## Story Completion Status
 
-Ultimate context engine analysis completed - comprehensive developer guide created.
+Story implementation complete and ready for review.

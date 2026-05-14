@@ -116,6 +116,27 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         return [];
     }
 
+    private static IEnumerable<KeyValuePair<string, TenantRole>> GetVisibleUserTenants(
+        TenantIndexReadModel indexModel,
+        string requesterUserId,
+        Dictionary<string, TenantRole> targetUserTenants,
+        bool canViewAllTargetTenants) {
+        if (canViewAllTargetTenants) {
+            return targetUserTenants;
+        }
+
+        if (!indexModel.UserTenants.TryGetValue(requesterUserId, out Dictionary<string, TenantRole>? requesterTenants)) {
+            return [];
+        }
+
+        HashSet<string> requesterOwnedTenantIds = requesterTenants
+            .Where(kvp => kvp.Value == TenantRole.TenantOwner)
+            .Select(kvp => kvp.Key)
+            .ToHashSet(StringComparer.Ordinal);
+
+        return targetUserTenants.Where(kvp => requesterOwnedTenantIds.Contains(kvp.Key));
+    }
+
     private static PaginatedResult<TResult> Paginate<TSource, TResult>(
         IEnumerable<KeyValuePair<string, TSource>> items,
         string? cursor,
@@ -207,12 +228,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     private async Task<QueryResult> HandleGetUserTenantsAsync(QueryEnvelope envelope) {
         string targetUserId = string.IsNullOrWhiteSpace(envelope.EntityId) ? envelope.UserId : envelope.EntityId;
 
-        // Non-admin can only query own tenants
-        if (!string.Equals(targetUserId, envelope.UserId, StringComparison.Ordinal)
-            && !await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false)) {
-            return new QueryResult(false, default, ErrorMessage: "Forbidden");
-        }
-
         TenantIndexReadModel? indexModel = await _daprClient
             .GetStateAsync<TenantIndexReadModel>(StateStoreName, TenantIndexProjectionKey)
             .ConfigureAwait(false);
@@ -224,10 +239,18 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return CreateSuccessResult(emptyPayload, "tenant-index");
         }
 
+        bool isSelfLookup = string.Equals(targetUserId, envelope.UserId, StringComparison.Ordinal);
+        bool canViewAllTargetTenants = isSelfLookup || await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
+        IEnumerable<KeyValuePair<string, TenantRole>> visibleUserTenants = GetVisibleUserTenants(
+            indexModel,
+            envelope.UserId,
+            userTenants,
+            canViewAllTargetTenants);
+
         (string? cursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
 
         PaginatedResult<UserTenantMembership> result = Paginate(
-            userTenants,
+            visibleUserTenants,
             cursor,
             pageSize,
             kvp => kvp.Key,
