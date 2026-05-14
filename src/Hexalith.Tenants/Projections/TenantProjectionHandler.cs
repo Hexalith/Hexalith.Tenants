@@ -18,6 +18,7 @@ namespace Hexalith.Tenants.Projections;
 /// </remarks>
 public sealed class TenantProjectionHandler(DaprClient daprClient) {
     private const string StateStoreName = "statestore";
+    private const string TenantAuditProjectionKeyPrefix = "audit:";
     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
     private const string TenantProjectionKeyPrefix = "projection:tenants:";
 
@@ -43,6 +44,12 @@ public sealed class TenantProjectionHandler(DaprClient daprClient) {
             StateStoreName,
             TenantProjectionKeyPrefix + request.AggregateId,
             state).ConfigureAwait(false);
+
+        TenantAuditReadModel auditModel = TenantAuditProjection.ProjectAuditEvents(request.Events ?? []);
+        await daprClient.SaveStateAsync(
+            StateStoreName,
+            TenantAuditProjectionKeyPrefix + request.AggregateId,
+            auditModel).ConfigureAwait(false);
 
         // Update tenant index projection
         TenantIndexReadModel? indexModel = await daprClient

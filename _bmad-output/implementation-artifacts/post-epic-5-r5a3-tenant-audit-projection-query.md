@@ -1,6 +1,6 @@
 # Post-Epic-5 R5-A3: Tenant Audit Projection and Query
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,62 +20,62 @@ so that I can produce operational and compliance evidence from the tenant event 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Settle audit metadata truthfully before implementing response shape (AC: #1, #7)
-  - [ ] 1.1 Inspect `Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Projections/ProjectionEventDto.cs` and `Hexalith.EventStore/src/Hexalith.EventStore.Server/Projections/ProjectionUpdateOrchestrator.cs`.
-  - [ ] 1.2 Verify whether projection requests expose a true event ID and actor user ID. Current evidence: they do not.
-  - [ ] 1.3 Do not fabricate `actorId` or `eventId` from payload fields. If `MessageId` and `UserId` remain unavailable, either make an explicit additive EventStore contract change or revise the acceptance/product artifacts before marking this story complete.
-  - [ ] 1.4 If changing EventStore projection metadata, keep it additive and backward-compatible: add optional/wire-compatible members to `ProjectionEventDto`, map from persisted `EventEnvelope.MessageId` and `EventEnvelope.UserId`, and update EventStore tests in the submodule in its own commit/branch flow.
+- [x] Task 1: Settle audit metadata truthfully before implementing response shape (AC: #1, #7)
+  - [x] 1.1 Inspect `Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Projections/ProjectionEventDto.cs` and `Hexalith.EventStore/src/Hexalith.EventStore.Server/Projections/ProjectionUpdateOrchestrator.cs`.
+  - [x] 1.2 Verify whether projection requests expose a true event ID and actor user ID. Current evidence: they do not.
+  - [x] 1.3 Do not fabricate `actorId` or `eventId` from payload fields. If `MessageId` and `UserId` remain unavailable, either make an explicit additive EventStore contract change or revise the acceptance/product artifacts before marking this story complete.
+  - [x] 1.4 If changing EventStore projection metadata, keep it additive and backward-compatible: add optional/wire-compatible members to `ProjectionEventDto`, map from persisted `EventEnvelope.MessageId` and `EventEnvelope.UserId`, and update EventStore tests in the submodule in its own commit/branch flow.
 
-- [ ] Task 2: Add audit query contracts and DTOs in Contracts (AC: #1-6)
-  - [ ] 2.1 Add `src/Hexalith.Tenants.Contracts/Enums/AuditEventCategory.cs` with `Access` and `Administrative`.
-  - [ ] 2.2 Add `src/Hexalith.Tenants.Contracts/Queries/TenantAuditEntry.cs` as an immutable response DTO containing `EventId`, `EventType`, `AuditEventCategory Category`, `ActorId`, `Timestamp`, `TenantId`, and `IReadOnlyDictionary<string,string> NarrativePayload`.
-  - [ ] 2.3 Update `GetTenantAuditQuery` XML docs so it no longer describes MVP 501 behavior.
-  - [ ] 2.4 Keep `GetTenantAuditQuery` as the existing static-member `IQueryContract` class unless the local query contract pattern has changed. Do not replace it with the architecture sketch record unless the rest of the repository supports typed query payload records.
+- [x] Task 2: Add audit query contracts and DTOs in Contracts (AC: #1-6)
+  - [x] 2.1 Add `src/Hexalith.Tenants.Contracts/Enums/AuditEventCategory.cs` with `Access` and `Administrative`.
+  - [x] 2.2 Add `src/Hexalith.Tenants.Contracts/Queries/TenantAuditEntry.cs` as an immutable response DTO containing `EventId`, `EventType`, `AuditEventCategory Category`, `ActorId`, `Timestamp`, `TenantId`, and `IReadOnlyDictionary<string,string> NarrativePayload`.
+  - [x] 2.3 Update `GetTenantAuditQuery` XML docs so it no longer describes MVP 501 behavior.
+  - [x] 2.4 Keep `GetTenantAuditQuery` as the existing static-member `IQueryContract` class unless the local query contract pattern has changed. Do not replace it with the architecture sketch record unless the rest of the repository supports typed query payload records.
 
-- [ ] Task 3: Add audit read model and projection in Server (AC: #1, #4-6)
-  - [ ] 3.1 Add `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`.
-  - [ ] 3.2 Add `src/Hexalith.Tenants.Server/Projections/TenantAuditProjection.cs`.
-  - [ ] 3.3 Store audit entries per managed tenant with deterministic ordering by timestamp, then event identity. Prefer `audit:{tenantId}` state keys as specified by D12.
-  - [ ] 3.4 Classify `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `GlobalAdministratorSet`, and `GlobalAdministratorRemoved` as `Access`.
-  - [ ] 3.5 Classify `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, and `TenantConfigurationRemoved` as `Administrative`.
-  - [ ] 3.6 Build `NarrativePayload` from stable payload fields only, such as target `userId`, `role`, `oldRole`, `newRole`, `key`, tenant `name`, status timestamps, or config key. Do not include secrets, raw payload JSON, bearer tokens, or user-controllable display names as trusted identity.
+- [x] Task 3: Add audit read model and projection in Server (AC: #1, #4-6)
+  - [x] 3.1 Add `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`.
+  - [x] 3.2 Add `src/Hexalith.Tenants.Server/Projections/TenantAuditProjection.cs`.
+  - [x] 3.3 Store audit entries per managed tenant with deterministic ordering by timestamp, then event identity. Prefer `audit:{tenantId}` state keys as specified by D12.
+  - [x] 3.4 Classify `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `GlobalAdministratorSet`, and `GlobalAdministratorRemoved` as `Access`.
+  - [x] 3.5 Classify `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, and `TenantConfigurationRemoved` as `Administrative`.
+  - [x] 3.6 Build `NarrativePayload` from stable payload fields only, such as target `userId`, `role`, `oldRole`, `newRole`, `key`, tenant `name`, status timestamps, or config key. Do not include secrets, raw payload JSON, bearer tokens, or user-controllable display names as trusted identity.
 
-- [ ] Task 4: Wire audit projection updates through the existing projection endpoint (AC: #1)
-  - [ ] 4.1 Update `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs` so tenant projection requests also update the per-tenant audit state for the same `ProjectionRequest.Events`.
-  - [ ] 4.2 Preserve current per-tenant `TenantReadModel` rebuild behavior and existing `TenantIndexReadModel` update behavior.
-  - [ ] 4.3 Keep `ProjectionDispatcher` domain routing fail-closed. Do not add a new public projection endpoint or duplicate projection dispatcher.
-  - [ ] 4.4 If global-administrator events must appear in tenant audit results, define their tenant mapping explicitly. Current `GlobalAdministratorProjectionHandler` validates `TenantId == "system"` and `AggregateId == "global-administrators"`, so those events are not naturally per-managed-tenant audit rows.
+- [x] Task 4: Wire audit projection updates through the existing projection endpoint (AC: #1)
+  - [x] 4.1 Update `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs` so tenant projection requests also update the per-tenant audit state for the same `ProjectionRequest.Events`.
+  - [x] 4.2 Preserve current per-tenant `TenantReadModel` rebuild behavior and existing `TenantIndexReadModel` update behavior.
+  - [x] 4.3 Keep `ProjectionDispatcher` domain routing fail-closed. Do not add a new public projection endpoint or duplicate projection dispatcher.
+  - [x] 4.4 If global-administrator events must appear in tenant audit results, define their tenant mapping explicitly. Current `GlobalAdministratorProjectionHandler` validates `TenantId == "system"` and `AggregateId == "global-administrators"`, so those events are not naturally per-managed-tenant audit rows.
 
-- [ ] Task 5: Implement `get-tenant-audit` actor query behavior (AC: #2-6)
-  - [ ] 5.1 Replace the not-implemented result in `TenantsProjectionActor.HandleGetTenantAuditAsync`.
-  - [ ] 5.2 Preserve the first check: non-GlobalAdministrators must receive `Forbidden` before any audit state lookup.
-  - [ ] 5.3 Parse audit payload from `TenantsQueryController`: `from`, `to`, `category`, `cursor`, and `pageSize`.
-  - [ ] 5.4 Load `TenantAuditReadModel` from `statestore` key `audit:{tenantId}`.
-  - [ ] 5.5 Apply inclusive date range filtering with `DateTimeOffset` values. Treat missing bounds as open-ended.
-  - [ ] 5.6 Apply optional category filtering. Invalid category values should fail clearly at the API boundary or fall back only if the repository already uses that pattern for query payload parsing.
-  - [ ] 5.7 Paginate after filtering using stable timestamp/event ordering. Do not paginate before filtering.
-  - [ ] 5.8 Return `PaginatedResult<TenantAuditEntry>` serialized with camelCase and string enums, matching existing query serialization options.
+- [x] Task 5: Implement `get-tenant-audit` actor query behavior (AC: #2-6)
+  - [x] 5.1 Replace the not-implemented result in `TenantsProjectionActor.HandleGetTenantAuditAsync`.
+  - [x] 5.2 Preserve the first check: non-GlobalAdministrators must receive `Forbidden` before any audit state lookup.
+  - [x] 5.3 Parse audit payload from `TenantsQueryController`: `from`, `to`, `category`, `cursor`, and `pageSize`.
+  - [x] 5.4 Load `TenantAuditReadModel` from `statestore` key `audit:{tenantId}`.
+  - [x] 5.5 Apply inclusive date range filtering with `DateTimeOffset` values. Treat missing bounds as open-ended.
+  - [x] 5.6 Apply optional category filtering. Invalid category values should fail clearly at the API boundary or fall back only if the repository already uses that pattern for query payload parsing.
+  - [x] 5.7 Paginate after filtering using stable timestamp/event ordering. Do not paginate before filtering.
+  - [x] 5.8 Return `PaginatedResult<TenantAuditEntry>` serialized with camelCase and string enums, matching existing query serialization options.
 
-- [ ] Task 6: Update REST endpoint payload and behavior (AC: #2-6)
-  - [ ] 6.1 Update `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs` to accept `category`, `cursor`, and `pageSize` for `/api/tenants/{tenantId}/audit`.
-  - [ ] 6.2 Clamp audit `pageSize` to FR29 defaults and limits: default 100, maximum 1000. This differs from existing list endpoints, which currently clamp to 20/100.
-  - [ ] 6.3 Keep the controller thin: it should validate route/query shape, serialize the query payload, set `UserId` from `sub`, and dispatch `SubmitQuery`.
-  - [ ] 6.4 Rely on `SubmitQueryHandler` to map actor failures to HTTP status via `QueryExecutionFailedException`; do not return successful `Ok` responses for forbidden or not-implemented results.
+- [x] Task 6: Update REST endpoint payload and behavior (AC: #2-6)
+  - [x] 6.1 Update `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs` to accept `category`, `cursor`, and `pageSize` for `/api/tenants/{tenantId}/audit`.
+  - [x] 6.2 Clamp audit `pageSize` to FR29 defaults and limits: default 100, maximum 1000. This differs from existing list endpoints, which currently clamp to 20/100.
+  - [x] 6.3 Keep the controller thin: it should validate route/query shape, serialize the query payload, set `UserId` from `sub`, and dispatch `SubmitQuery`.
+  - [x] 6.4 Rely on `SubmitQueryHandler` to map actor failures to HTTP status via `QueryExecutionFailedException`; do not return successful `Ok` responses for forbidden or not-implemented results.
 
-- [ ] Task 7: Add focused tests (AC: #1-7)
-  - [ ] 7.1 Add `TenantAuditReadModelTests` for all classified event types, narrative payload fields, empty state, ordering, and unknown event handling.
-  - [ ] 7.2 Add `TenantAuditProjectionTests` for projection naming and full-event-list projection behavior.
-  - [ ] 7.3 Update `TenantsProjectionActorTests`: replace `GetTenantAudit_global_admin_returns_not_implementedAsync` with successful audit query tests.
-  - [ ] 7.4 Keep and strengthen `GetTenantAudit_non_admin_returns_forbidden_not_501Async`.
-  - [ ] 7.5 Add actor tests for date range filtering, category filtering, cursor pagination, invalid/missing state empty result, and page size clamping if clamping lives below the controller.
-  - [ ] 7.6 Add or update contract serialization tests for `TenantAuditEntry` and `AuditEventCategory`.
-  - [ ] 7.7 Add controller-level or integration coverage only if the existing fixture can run it without live DAPR fragility. Actor and read-model tests are the Tier 1 guard.
+- [x] Task 7: Add focused tests (AC: #1-7)
+  - [x] 7.1 Add `TenantAuditReadModelTests` for all classified event types, narrative payload fields, empty state, ordering, and unknown event handling.
+  - [x] 7.2 Add `TenantAuditProjectionTests` for projection naming and full-event-list projection behavior.
+  - [x] 7.3 Update `TenantsProjectionActorTests`: replace `GetTenantAudit_global_admin_returns_not_implementedAsync` with successful audit query tests.
+  - [x] 7.4 Keep and strengthen `GetTenantAudit_non_admin_returns_forbidden_not_501Async`.
+  - [x] 7.5 Add actor tests for date range filtering, category filtering, cursor pagination, invalid/missing state empty result, and page size clamping if clamping lives below the controller.
+  - [x] 7.6 Add or update contract serialization tests for `TenantAuditEntry` and `AuditEventCategory`.
+  - [x] 7.7 Add controller-level or integration coverage only if the existing fixture can run it without live DAPR fragility. Actor and read-model tests are the Tier 1 guard.
 
-- [ ] Task 8: Verify focused build and tests (AC: #7)
-  - [ ] 8.1 Run `dotnet test .\tests\Hexalith.Tenants.Contracts.Tests\Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Queries`.
-  - [ ] 8.2 Run `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantAudit`.
-  - [ ] 8.3 Run `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests`.
-  - [ ] 8.4 If EventStore projection DTO changes are required, run the relevant EventStore projection contract/server tests inside `Hexalith.EventStore` and document them in the Dev Agent Record.
+- [x] Task 8: Verify focused build and tests (AC: #7)
+  - [x] 8.1 Run `dotnet test .\tests\Hexalith.Tenants.Contracts.Tests\Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~Queries`.
+  - [x] 8.2 Run `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantAudit`.
+  - [x] 8.3 Run `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests`.
+  - [x] 8.4 If EventStore projection DTO changes are required, run the relevant EventStore projection contract/server tests inside `Hexalith.EventStore` and document them in the Dev Agent Record.
 
 ## Dev Notes
 
@@ -290,14 +290,51 @@ No external package or library upgrade is required. Use the repository's current
 
 ### Agent Model Used
 
-TBD by dev agent.
+GPT-5 Codex.
 
 ### Debug Log References
 
+- 2026-05-14: Verified `ProjectionEventDto` lacked true `MessageId` and actor `UserId`; added optional additive EventStore DTO fields and mapped from `EventEnvelope`.
+- 2026-05-14: Avoided fabricated audit metadata. `TenantAuditReadModel` skips projection events without true `MessageId` or `UserId`.
+- 2026-05-14: Avoided duplicate EventStore projection discovery by keeping `TenantAuditProjection` as a tenant-handler projection helper rather than a second discoverable `tenants` projection.
+- 2026-05-14: Full `dotnet test --configuration Release --no-restore` timed out at 5 minutes. Project-level validation was run serially instead.
+- 2026-05-14: Full integration project failed only in nightly `Category=Performance` test `SnapshotPerformanceTests.ColdStartRehydration_CompletesWithin30Seconds_With500KEvents`, which hits `ConfigurationLimitExceededRejection` while seeding event 301. Main-lane integration tests with `Category!=Performance` passed.
+
 ### Completion Notes List
+
+- Added audit query contract DTOs and category enum with string-enum serialization coverage.
+- Added per-tenant `TenantAuditReadModel` and projection helper that classify access vs administrative events, build bounded narrative payloads, and maintain timestamp/event-id ordering.
+- Wired `TenantProjectionHandler` to save `audit:{tenantId}` from the same projection request while preserving existing tenant and tenant-index updates.
+- Replaced the audit query 501 path with GlobalAdministrator-only audit reads, inclusive date filtering, category filtering, stable cursor pagination, missing-state empty results, and FR29 page-size limits.
+- Updated the REST endpoint to accept `from`, `to`, `category`, `cursor`, and `pageSize`, validate category values, clamp audit page size to default 100 / max 1000, and continue using authenticated `sub`.
+- Added EventStore projection metadata mapping for true event IDs and actor IDs.
+- Global administrator events remain classified by the read model but are not silently fanned out to every tenant; the existing global administrator projection path remains separate.
 
 ### File List
 
+- `Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Projections/ProjectionEventDto.cs`
+- `Hexalith.EventStore/src/Hexalith.EventStore.Server/Projections/ProjectionUpdateOrchestrator.cs`
+- `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Projections/ProjectionUpdateOrchestratorTests.cs`
+- `src/Hexalith.Tenants.Contracts/Enums/AuditEventCategory.cs`
+- `src/Hexalith.Tenants.Contracts/Queries/GetTenantAuditQuery.cs`
+- `src/Hexalith.Tenants.Contracts/Queries/TenantAuditEntry.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantAuditProjection.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`
+- `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
+- `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`
+- `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryDtoSerializationTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditProjectionTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditReadModelTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Change Log
+
+- 2026-05-14: Implemented tenant audit projection/query behavior and additive EventStore projection metadata support.
+
 ## Story Completion Status
 
-Ultimate context engine analysis completed - comprehensive developer guide created.
+Implementation complete; ready for review. Main-lane validation passed. Nightly performance integration test has an unrelated existing seed-data/domain-limit failure documented above.

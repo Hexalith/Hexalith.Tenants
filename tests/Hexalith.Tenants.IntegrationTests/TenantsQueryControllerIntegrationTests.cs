@@ -212,30 +212,22 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
-    public async Task GetTenantAudit_returns_501_problem_details_when_projection_reports_not_implemented() {
+    public async Task GetTenantAudit_returns_400_when_category_is_invalid() {
         IQueryRouter router = CreateRouter(
             "get-tenant-audit",
-            new QueryRouterResult(false, null, false, "Audit queries are not yet implemented (FR29). Planned for a future release."));
+            new QueryRouterResult(true, JsonSerializer.SerializeToElement(new { items = Array.Empty<object>() }), false, ProjectionType: "tenants"));
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
         using HttpClient client = CreateAuthenticatedClient(factory);
 
-        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/audit");
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/audit?category=invalid");
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotImplemented);
-        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
-
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Status.ShouldBe(501);
-        details.Title.ShouldBe("Not Implemented");
-        _ = details.Detail.ShouldNotBeNull();
-        details.Detail.ShouldContain("not yet implemented", Case.Insensitive);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task GetTenantAudit_returns_payload_when_query_succeeds() {
-        JsonElement payload = JsonSerializer.SerializeToElement(new { entries = Array.Empty<object>() });
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
         IQueryRouter router = CreateRouter(
             "get-tenant-audit",
             new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
@@ -247,7 +239,7 @@ public class TenantsQueryControllerIntegrationTests {
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
-        result.TryGetProperty("entries", out _).ShouldBeTrue();
+        result.TryGetProperty("items", out _).ShouldBeTrue();
     }
 
     private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<TenantBootstrapOptions> factory) {

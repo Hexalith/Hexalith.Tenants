@@ -87,4 +87,33 @@ public class QueryDtoSerializationTests {
 
         memberJson.ShouldContain("\"TenantOwner\"");
     }
+
+    [Fact]
+    public void TenantAuditEntry_round_trip_preserves_metadata_and_payload() {
+        TenantAuditEntry original = new(
+            EventId: "evt-001",
+            EventType: "TenantCreated",
+            Category: AuditEventCategory.Administrative,
+            ActorId: "admin-1",
+            Timestamp: new DateTimeOffset(2026, 5, 14, 10, 30, 0, TimeSpan.Zero),
+            TenantId: "tenant-1",
+            NarrativePayload: new Dictionary<string, string> {
+                ["name"] = "Acme",
+                ["createdAt"] = "2026-05-14T10:30:00.0000000+00:00",
+            });
+
+        string json = JsonSerializer.Serialize(original, JsonOptions);
+        TenantAuditEntry? deserialized = JsonSerializer.Deserialize<TenantAuditEntry>(json, JsonOptions);
+
+        _ = deserialized.ShouldNotBeNull();
+        deserialized.EventId.ShouldBe(original.EventId);
+        deserialized.EventType.ShouldBe(original.EventType);
+        deserialized.Category.ShouldBe(AuditEventCategory.Administrative);
+        deserialized.ActorId.ShouldBe(original.ActorId);
+        deserialized.Timestamp.ShouldBe(original.Timestamp);
+        deserialized.TenantId.ShouldBe(original.TenantId);
+        deserialized.NarrativePayload["name"].ShouldBe("Acme");
+        json.ShouldContain("\"Administrative\"");
+        json.ShouldNotContain("\":1");
+    }
 }

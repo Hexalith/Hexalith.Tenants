@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.Tenants.Contracts;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 
 using MediatR;
@@ -56,20 +57,32 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
     }
 
     /// <summary>
-    /// Tenant audit endpoint (MVP: returns 501 Not Implemented).
+    /// Gets tenant audit entries for a date range and optional category.
     /// </summary>
     [HttpGet("{tenantId}/audit")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status501NotImplemented)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetTenantAuditAsync(
         string tenantId,
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null,
+        [FromQuery] string? category = null,
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 100,
         CancellationToken cancellationToken = default) {
         if (!IsValidIdentifier(tenantId)) {
             return BadRequest();
+        }
+
+        AuditEventCategory? auditCategory = null;
+        if (!string.IsNullOrWhiteSpace(category)) {
+            if (!Enum.TryParse(category, ignoreCase: true, out AuditEventCategory parsed)) {
+                return BadRequest();
+            }
+
+            auditCategory = parsed;
         }
 
         string? userId = User.FindFirst("sub")?.Value;
@@ -77,7 +90,8 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             return Unauthorized();
         }
 
-        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { from, to });
+        pageSize = ClampAuditPageSize(pageSize);
+        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { from, to, category = auditCategory?.ToString(), cursor, pageSize });
 
         var query = new SubmitQuery(
             Tenant: "system",
@@ -208,6 +222,9 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
 
     private static int ClampPageSize(int pageSize)
         => pageSize <= 0 ? 20 : pageSize > 100 ? 100 : pageSize;
+
+    private static int ClampAuditPageSize(int pageSize)
+        => pageSize <= 0 ? 100 : pageSize > 1000 ? 1000 : pageSize;
 
     private static bool IsValidIdentifier(string? value)
             => !string.IsNullOrWhiteSpace(value) && _identifierRegex.IsMatch(value);

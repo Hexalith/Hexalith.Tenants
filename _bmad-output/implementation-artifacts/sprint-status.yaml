@@ -1,4 +1,6 @@
 # generated: 2026-03-07
+# last_updated: 2026-05-14 (post-epic-5-r5a3 implementation complete; story -> review)
+# last_updated: 2026-05-14 (post-epic-5-r5a3 development started; story -> in-progress)
 # last_updated: 2026-05-14 (post-epic-5-r5a2 code review complete + timing-uniformity patch applied; story -> done)
 # last_updated: 2026-05-14 (post-epic-5-r5a2 implementation complete; story -> review)
 # last_updated: 2026-05-14 (post-epic-5-r5a2 development started; story -> in-progress)
@@ -124,7 +126,7 @@ development_status:
   # Post-Epic-5 Audit Projection Correction (SCP-2026-05-13)
   # R5-A3: Story 5.3 created GetTenantAuditQuery and endpoint but intentionally returns 501.
   # Implement or explicitly settle D12 TenantAuditProjection / TenantAuditReadModel so FR29 is truthful.
-  post-epic-5-r5a3-tenant-audit-projection-query: ready-for-dev
+  post-epic-5-r5a3-tenant-audit-projection-query: review
 
   # Epic 6: Testing Package
   epic-6: done

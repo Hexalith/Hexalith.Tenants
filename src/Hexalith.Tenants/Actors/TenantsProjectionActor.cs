@@ -24,6 +24,7 @@ namespace Hexalith.Tenants.Actors;
 public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     internal const string GlobalAdminProjectionKey = "projection:global-administrators:singleton";
     internal const string StateStoreName = "statestore";
+    internal const string TenantAuditProjectionKeyPrefix = "audit:";
     internal const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
     internal const string TenantProjectionKeyPrefix = "projection:tenants:";
 
@@ -106,6 +107,89 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         catch (JsonException) {
             return (null, 20);
         }
+    }
+
+    private static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload) {
+        if (payload is null || payload.Length == 0) {
+            return new(null, null, null, null, 100, null);
+        }
+
+        try {
+            using var doc = JsonDocument.Parse(payload);
+            JsonElement root = doc.RootElement;
+
+            DateTimeOffset? from = TryGetDateTimeOffset(root, "from");
+            DateTimeOffset? to = TryGetDateTimeOffset(root, "to");
+            string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String
+                ? cursorEl.GetString()
+                : null;
+            int pageSize = root.TryGetProperty("pageSize", out JsonElement pageSizeEl) && pageSizeEl.ValueKind == JsonValueKind.Number
+                ? pageSizeEl.GetInt32()
+                : 100;
+
+            if (pageSize <= 0) {
+                pageSize = 100;
+            }
+
+            if (pageSize > 1000) {
+                pageSize = 1000;
+            }
+
+            AuditEventCategory? category = null;
+            string? errorMessage = null;
+            if (root.TryGetProperty("category", out JsonElement categoryEl)
+                && categoryEl.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(categoryEl.GetString())) {
+                string categoryValue = categoryEl.GetString()!;
+                if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed)) {
+                    category = parsed;
+                }
+                else {
+                    errorMessage = $"Invalid audit category: {categoryValue}";
+                }
+            }
+
+            return new(from, to, category, cursor, pageSize, errorMessage);
+        }
+        catch (JsonException) {
+            return new(null, null, null, null, 100, "Invalid audit query payload.");
+        }
+    }
+
+    private static string GetAuditCursor(TenantAuditEntry entry) =>
+        string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"{entry.Timestamp.UtcDateTime.Ticks:D20}:{entry.EventId}");
+
+    private static PaginatedResult<TenantAuditEntry> PaginateAuditEntries(
+        IEnumerable<TenantAuditEntry> entries,
+        string? cursor,
+        int pageSize) {
+        IEnumerable<TenantAuditEntry> ordered = entries
+            .OrderBy(e => e.Timestamp)
+            .ThenBy(e => e.EventId, StringComparer.Ordinal);
+
+        if (cursor is not null) {
+            ordered = ordered.Where(e => string.Compare(GetAuditCursor(e), cursor, StringComparison.Ordinal) > 0);
+        }
+
+        var page = ordered.Take(pageSize + 1).ToList();
+        bool hasMore = page.Count > pageSize;
+        if (hasMore) {
+            page.RemoveAt(page.Count - 1);
+        }
+
+        string? nextCursor = hasMore ? GetAuditCursor(page[^1]) : null;
+        return new PaginatedResult<TenantAuditEntry>(page, nextCursor, hasMore);
+    }
+
+    private static DateTimeOffset? TryGetDateTimeOffset(JsonElement root, string propertyName) {
+        if (!root.TryGetProperty(propertyName, out JsonElement element)
+            || element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
+            return null;
+        }
+
+        return element.TryGetDateTimeOffset(out DateTimeOffset value) ? value : null;
     }
 
     private static HashSet<string> GetUserTenantIds(TenantIndexReadModel indexModel, string userId) {
@@ -193,10 +277,31 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 
-        return new QueryResult(
-            false,
-            default,
-            ErrorMessage: "Audit queries are not yet implemented (FR29). Planned for a future release.");
+        TenantAuditQueryPayload query = DeserializeAuditPayload(envelope.Payload);
+        if (query.ErrorMessage is not null) {
+            return new QueryResult(false, default, ErrorMessage: query.ErrorMessage);
+        }
+
+        TenantAuditReadModel? model = await _daprClient
+            .GetStateAsync<TenantAuditReadModel>(StateStoreName, TenantAuditProjectionKeyPrefix + envelope.AggregateId)
+            .ConfigureAwait(false);
+
+        IEnumerable<TenantAuditEntry> entries = model?.Entries ?? [];
+        if (query.From is not null) {
+            entries = entries.Where(e => e.Timestamp >= query.From.Value);
+        }
+
+        if (query.To is not null) {
+            entries = entries.Where(e => e.Timestamp <= query.To.Value);
+        }
+
+        if (query.Category is not null) {
+            entries = entries.Where(e => e.Category == query.Category.Value);
+        }
+
+        PaginatedResult<TenantAuditEntry> result = PaginateAuditEntries(entries, query.Cursor, query.PageSize);
+        JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
+        return CreateSuccessResult(payload, "tenants");
     }
 
     private async Task<QueryResult> HandleGetTenantUsersAsync(QueryEnvelope envelope) {
@@ -322,4 +427,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         return adminModel is not null && adminModel.Administrators.Contains(userId);
     }
+
+    private sealed record TenantAuditQueryPayload(
+        DateTimeOffset? From,
+        DateTimeOffset? To,
+        AuditEventCategory? Category,
+        string? Cursor,
+        int PageSize,
+        string? ErrorMessage);
 }
