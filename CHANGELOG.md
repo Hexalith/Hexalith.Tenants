@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.5.0...v1.6.0) (2026-05-16)
+
+
+### Features
+
+* Implement stable cursor pagination under role and membership changes ([fdc6e9e](https://github.com/Hexalith/Hexalith.Tenants/commit/fdc6e9e1152f96cec2a53cebbb244a505332f004))
+
 # [1.5.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.4.1...v1.5.0) (2026-05-16)
 
 
