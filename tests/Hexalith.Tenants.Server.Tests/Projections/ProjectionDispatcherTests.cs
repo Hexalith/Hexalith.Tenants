@@ -185,7 +185,9 @@ public class ProjectionDispatcherTests {
             "json",
             1L,
             DateTimeOffset.UtcNow,
-            "corr-1");
+            "corr-1",
+            MessageId: "evt-test",
+            UserId: "actor-test");
     }
 
 }

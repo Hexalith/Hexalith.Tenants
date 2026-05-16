@@ -6,6 +6,13 @@
 - Deferred items include SignalR three-phase UI confirmation, FrontShell `pendingIds`, concurrent command support, toast batching, `<AuditTimeline>`, `<ConsequencePreview>`, FrontShell design tokens, and UI `blockedBy` sequencing.
 - Backend MVP work must still satisfy D11 query-side authorization and D12 audit query requirements because those map to PRD FR28/FR29 and NFR5.
 
+## Deferred from: code review of post-epic-5-r5a3-tenant-audit-projection-query (2026-05-15)
+
+- Concurrent `SaveStateAsync` writes have no etag/optimistic-concurrency on `audit:{tenantId}`, `projection:tenants:{tenantId}`, or `projection:tenant-index:singleton`. Inherited last-writer-wins pattern. Worth a project-wide concurrency story for all read-model writes.
+- Cursor format `Ticks:EventId` (audit) and `key` (other paginated endpoints) is plain-text and trivially forgeable. Cursor opaqueness / HMAC signing is a cross-cutting concern across `list-tenants`, `get-tenant-users`, `get-user-tenants`, and `get-tenant-audit`.
+- `pageSize` clamping duplicated in `TenantsQueryController.ClampAuditPageSize` (default 100 / max 1000) and `TenantsProjectionActor.DeserializeAuditPayload` (identical bounds). Defensive consistency; harmonize via shared constant only on next refactor of these clamps.
+- CancellationToken not threaded through `HandleGetTenantAuditAsync` / `TenantProjectionHandler.ProjectAsync`. Long-running audit reads/writes cannot be cancelled. Requires modifying `CachingProjectionActor.ExecuteQueryAsync` signature in the EventStore submodule and the `ProjectionDispatcher` minimal-API endpoint. Cross-cutting submodule refactor; track as a hardening item across all `Handle*` methods in `TenantsProjectionActor` and both projection handlers.
+
 ## Deferred from: code review of post-epic-5-r5a2-get-user-tenants-scoped-authorization (2026-05-14)
 
 - Cursor stability under concurrent role mutation — cross-user queries now go through filtered pagination; if a requester's `TenantOwner` role on a cursor tenant is revoked between page fetches, `Paginate`'s lexicographic `Where(key > cursor)` may skip a newly-visible tenant or advance past a now-hidden one. Same property exists in `list-tenants`. Track with the broader read-model cursor stability story.

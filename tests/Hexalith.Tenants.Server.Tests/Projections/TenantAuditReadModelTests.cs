@@ -69,14 +69,27 @@ public class TenantAuditReadModelTests {
     }
 
     [Fact]
-    public void Apply_orders_entries_by_timestamp_then_event_id() {
+    public void SortEntries_orders_entries_by_timestamp_then_event_id() {
         var model = new TenantAuditReadModel();
 
         model.Apply(CreateEvent(new TenantCreated("tenant-1", "Third", null, Timestamp.AddMinutes(1)), "evt-c", timestamp: Timestamp.AddMinutes(1)));
         model.Apply(CreateEvent(new TenantCreated("tenant-1", "Second", null, Timestamp), "evt-b", timestamp: Timestamp));
         model.Apply(CreateEvent(new TenantCreated("tenant-1", "First", null, Timestamp), "evt-a", timestamp: Timestamp));
 
+        model.SortEntries();
+
         model.Entries.Select(e => e.EventId).ShouldBe(["evt-a", "evt-b", "evt-c"]);
+    }
+
+    [Fact]
+    public void Apply_preserves_insertion_order_until_SortEntries_is_called() {
+        var model = new TenantAuditReadModel();
+
+        model.Apply(CreateEvent(new TenantCreated("tenant-1", "Third", null, Timestamp.AddMinutes(1)), "evt-c", timestamp: Timestamp.AddMinutes(1)));
+        model.Apply(CreateEvent(new TenantCreated("tenant-1", "Second", null, Timestamp), "evt-b", timestamp: Timestamp));
+        model.Apply(CreateEvent(new TenantCreated("tenant-1", "First", null, Timestamp), "evt-a", timestamp: Timestamp));
+
+        model.Entries.Select(e => e.EventId).ShouldBe(["evt-c", "evt-b", "evt-a"]);
     }
 
     [Fact]
@@ -98,12 +111,20 @@ public class TenantAuditReadModelTests {
     }
 
     [Fact]
-    public void Apply_skips_events_without_true_event_or_actor_metadata() {
+    public void Apply_throws_when_message_id_is_missing() {
         var model = new TenantAuditReadModel();
+        ProjectionEventDto evt = CreateEvent(new TenantCreated("tenant-1", "Acme", null, Timestamp), messageId: null);
 
-        model.Apply(CreateEvent(new TenantCreated("tenant-1", "Acme", null, Timestamp), messageId: null));
-        model.Apply(CreateEvent(new TenantCreated("tenant-1", "Acme", null, Timestamp), messageId: "evt-2", userId: null));
+        _ = Should.Throw<InvalidOperationException>(() => model.Apply(evt));
+        model.Entries.ShouldBeEmpty();
+    }
 
+    [Fact]
+    public void Apply_throws_when_user_id_is_missing() {
+        var model = new TenantAuditReadModel();
+        ProjectionEventDto evt = CreateEvent(new TenantCreated("tenant-1", "Acme", null, Timestamp), messageId: "evt-2", userId: null);
+
+        _ = Should.Throw<InvalidOperationException>(() => model.Apply(evt));
         model.Entries.ShouldBeEmpty();
     }
 

@@ -21,7 +21,7 @@ ProjectAssetsFile=<PATH>obj/project.assets.json
 RootNamespace=Hexalith.Tenants
 RunAnalyzers=
 RunAnalyzersDuringLiveAnalysis=
-SolutionPath=<PATH>../../../Hexalith.EventStore.slnx
+SolutionPath=<PATH>../../Hexalith.Tenants.slnx
 TargetFrameworkIdentifier=.NETCoreApp
 TargetPath=<PATH>bin/Debug/net10.0/Hexalith.Tenants.dll
 TargetRefPath=<PATH>obj/Debug/net10.0/ref/Hexalith.Tenants.dll
@@ -76,7 +76,7 @@ Telemetry/
 Validation/TenantSubmitCommandValidator.cs
 
 [metadataReferences]
-../../../src/
+../../Hexalith.EventStore/src/
  Hexalith.EventStore.Admin.Abstractions/obj/Debug/net10.0/ref/Hexalith.EventStore.Admin.Abstractions.dll
  Hexalith.EventStore.Client/obj/Debug/net10.0/ref/Hexalith.EventStore.Client.dll
  Hexalith.EventStore.Contracts/obj/Debug/net10.0/ref/Hexalith.EventStore.Contracts.dll
@@ -485,14 +485,12 @@ Validation/TenantSubmitCommandValidator.cs
   Microsoft.Gen.Metrics.dll
 
 [analyzerConfigFiles]
-../../
- ../.editorconfig
- .editorconfig
+../../.editorconfig
 <DOTNET>/sdk/10.0.108/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
 obj/Debug/net10.0/Hexalith.Tenants.GeneratedMSBuildEditorConfig.editorconfig
 
 [additionalFiles]
-../../../src/
+../../Hexalith.EventStore/src/
  Hexalith.EventStore.Admin.Abstractions/bin/Debug/net10.0/Hexalith.EventStore.Admin.Abstractions.xml
  Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.xml
  Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.xml

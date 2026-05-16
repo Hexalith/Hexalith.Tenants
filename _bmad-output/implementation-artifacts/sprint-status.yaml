@@ -1,4 +1,9 @@
-# generated: 2026-03-07
+# generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-16 (SCP-2026-05-16 implementation readiness grooming applied)
+# last_updated: 2026-05-15 (SCP-2026-05-15 story readiness cleanup implemented; post-readiness notes added)
+# last_updated: 2026-05-15 (Epic 7 retrospective completed)
+# last_updated: 2026-05-15 (post-epic-5-r5a3 code review complete + 9 patches applied; story -> done)
 # last_updated: 2026-05-14 (post-epic-5-r5a3 implementation complete; story -> review)
 # last_updated: 2026-05-14 (post-epic-5-r5a3 development started; story -> in-progress)
 # last_updated: 2026-05-14 (post-epic-5-r5a2 code review complete + timing-uniformity patch applied; story -> done)
@@ -7,7 +12,7 @@
 # last_updated: 2026-05-14 (post-epic-5-r5a3 story context created; story -> ready-for-dev)
 # last_updated: 2026-05-14 (post-epic-5-r5a2 story context created; story -> ready-for-dev)
 # last_updated: 2026-05-13 (SCP-2026-05-13: implementation readiness alignment; R5-A2/R5-A3 added)
-# last_updated: 2026-05-13 (post-epic-5-r5a1 JWT auth wiring code review complete; story → done)
+# last_updated: 2026-05-13 (post-epic-5-r5a1 JWT auth wiring code review complete; story -> done)
 # last_updated: 2026-05-13 (post-epic-1 foundation readiness gates completed)
 # last_updated: 2026-05-12 (Epic 8 retrospective completed)
 # last_updated: 2026-05-12 (Epic 6 retrospective completed)
@@ -19,7 +24,7 @@
 # last_updated: 2026-05-12 (Epic 2 retrospective completed)
 # last_updated: 2026-05-12 (Epic 1 retrospective completed)
 # last_updated: 2026-05-04 (SCP-2026-05-04: post-epic-2 dispatcher matcher + post-epic-5 JWT auth wiring carry-forwards)
-# last_updated: 2026-04-08 (SCP-2026-04-08: bootstrap crash fix — OperationCanceledException filter)
+# last_updated: 2026-04-08 (SCP-2026-04-08: bootstrap crash fix - OperationCanceledException filter)
 # project: Hexalith.Tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -51,11 +56,11 @@
 # ===============
 # - Epic transitions to 'in-progress' automatically when first story is created
 # - Stories can be worked in parallel if team capacity allows
-# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-03-07
-last_updated: 2026-05-14
+generated: 2026-05-16T09:57:23+02:00
+last_updated: 2026-05-16T09:57:23+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -82,7 +87,7 @@ development_status:
   2-4-tenant-service-bootstrap-and-event-publishing: done
   epic-2-retrospective: done
 
-  # Post-Epic-2 Defect Carry-Forward (SCP-2026-05-04 §B)
+  # Post-Epic-2 Defect Carry-Forward (SCP-2026-05-04 B)
   # R2-A1: DomainServiceRequestHandler fall-through matcher missed MissingApplyMethodException.
   post-epic-2-r2a1-domain-processor-mismatch-matcher: done
 
@@ -112,7 +117,7 @@ development_status:
   5-3-query-endpoints-and-authorization: done
   epic-5-retrospective: done
 
-  # Post-Epic-5 Defect Carry-Forward (SCP-2026-05-04 §A)
+  # Post-Epic-5 Defect Carry-Forward (SCP-2026-05-04 A)
   # R5-A1: Tenants Program.cs missing AddJwtAuthentication / UseAuthentication wiring;
   # all /api/tenants/* requests returning 500.
   post-epic-5-r5a1-tenants-jwt-auth-wiring: done
@@ -126,7 +131,7 @@ development_status:
   # Post-Epic-5 Audit Projection Correction (SCP-2026-05-13)
   # R5-A3: Story 5.3 created GetTenantAuditQuery and endpoint but intentionally returns 501.
   # Implement or explicitly settle D12 TenantAuditProjection / TenantAuditReadModel so FR29 is truthful.
-  post-epic-5-r5a3-tenant-audit-projection-query: review
+  post-epic-5-r5a3-tenant-audit-projection-query: done
 
   # Epic 6: Testing Package
   epic-6: done
@@ -139,7 +144,7 @@ development_status:
   7-1-aspire-hosting-and-apphost: done
   7-2-opentelemetry-instrumentation-and-health-checks: done
   7-3-stateless-scaling-and-snapshot-configuration: done
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # Epic 8: Documentation & Adoption
   epic-8: done
@@ -147,3 +152,46 @@ development_status:
   8-2-event-contract-reference-and-technical-documentation: done
   8-3-aha-moment-demo-and-project-documentation: done
   epic-8-retrospective: done
+
+  # Post-Readiness Story Quality Correction (SCP-2026-05-15)
+  # Adds planning/story-slicing guardrails to completed stories without reopening source implementation.
+  post-readiness-story-quality-correction: done
+
+  # Post-Readiness Implementation Grooming (SCP-2026-05-16)
+  # Settles Story 9.3 query policy, splits Story 10.3 into EventStore prerequisite
+  # and Tenants integration work, records Story 2.4 decomposition boundaries, and
+  # keeps Epic 12 as Phase 2 planning/readiness scope.
+  post-readiness-2026-05-16-implementation-readiness-grooming: done
+
+  # Epic 9: Trustworthy Tenant Query Operations
+  epic-9: backlog
+  9-1-opaque-signed-query-cursors: backlog
+  9-2-stable-cursor-pagination-under-role-and-membership-changes: backlog
+  9-3-query-policy-for-disabled-tenants-and-orphan-memberships: backlog
+  9-4-actor-layer-query-guardrails: backlog
+  9-5-shared-pagination-bounds-and-cursor-utilities: backlog
+  epic-9-retrospective: optional
+
+  # Epic 10: Durable Projection Write Safety
+  epic-10: backlog
+  10-1-optimistic-concurrency-for-tenant-read-model-writes: backlog
+  10-2-audit-projection-write-safety: backlog
+  10-3a-eventstore-projection-cancellation-api-prerequisite: backlog
+  10-3b-cancellation-token-threading-for-tenant-projection-queries: backlog
+  10-4-projection-write-conformance-and-recovery-tests: backlog
+  epic-10-retrospective: optional
+
+  # Epic 11: Production Authorization Readiness
+  epic-11: backlog
+  11-1-production-jwt-configuration-validation: backlog
+  11-2-eventstore-tenant-claim-contract: backlog
+  11-3-deployment-auth-readiness-documentation-and-smoke-tests: backlog
+  epic-11-retrospective: optional
+
+  # Epic 12: Phase 2 Admin UI Dependency Sequencing
+  epic-12: backlog
+  12-1-frontshell-dependency-map-for-tenants-ui: backlog
+  12-2-audit-timeline-and-consequence-preview-readiness: backlog
+  12-3-three-phase-command-feedback-sequencing: backlog
+  12-4-phase-2-ui-story-backlog-with-explicit-blockedby: backlog
+  epic-12-retrospective: optional

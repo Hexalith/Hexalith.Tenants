@@ -36,6 +36,27 @@ So that I can scale horizontally, restart without data loss, and maintain operat
    **When** a cold-start actor rehydration is measured
    **Then** state reconstruction completes within 30 seconds (NFR13) -- this test runs on nightly CI schedule, not on every PR
 
+## Post-Readiness Note (2026-05-15)
+
+Story 7.3 is oversized and should not be used as a model for future story slicing. For evidence review and future maintenance, treat it as three logical packages:
+
+**7.3A Snapshot Configuration and Restart Reconstruction**
+
+- Owns AC 1, AC 2, and AC 3.
+- Evidence: appsettings snapshot interval, SnapshotConfigurationTests, stateless restart verification.
+
+**7.3B Pub/Sub Outage Graceful Degradation**
+
+- Owns AC 4 and AC 5.
+- Evidence: graceful degradation integration tests and drain recovery verification.
+
+**7.3C Snapshot Performance Benchmark**
+
+- Owns AC 6.
+- Evidence: performance test scaffold and nightly CI schedule/gate.
+
+Future reliability/performance stories must carry one independently testable outcome unless a single runtime change cannot be verified safely in isolation.
+
 ## Tasks / Subtasks
 
 - [x] Task 1: Configure snapshot interval for tenant domain (AC: #2, #3)

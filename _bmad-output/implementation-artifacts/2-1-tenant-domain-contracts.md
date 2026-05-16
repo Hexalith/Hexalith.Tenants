@@ -10,6 +10,10 @@ As a developer,
 I want all tenant commands, events, enums, and identity types defined in the Contracts package,
 So that consuming services and all other packages have a stable, shared API surface to reference.
 
+## Post-Readiness Note (2026-05-15)
+
+This story intentionally established the full pre-1.0 public contract baseline. User-role and configuration command/event records are contract declarations only in Story 2.1; their executable aggregate behavior remains owned by Epic 3 Stories 3.1 and 3.3. Future contract-baseline stories must state this explicitly and must not expose unimplemented operations through runtime endpoints until the owning behavior story is complete.
+
 ## Acceptance Criteria
 
 1. **Given** the Contracts project exists **When** a developer inspects the Commands folder **Then** it contains all 12 command records: CreateTenant, UpdateTenant, DisableTenant, EnableTenant, AddUserToTenant, RemoveUserFromTenant, ChangeUserRole, SetTenantConfiguration, RemoveTenantConfiguration, BootstrapGlobalAdmin, SetGlobalAdministrator, RemoveGlobalAdministrator
@@ -29,6 +33,12 @@ So that consuming services and all other packages have a stable, shared API surf
 8. **Given** the Contracts project exists **When** a developer inspects the Events/Rejections folder **Then** it contains all 8 rejection event records implementing `IRejectionEvent`: TenantAlreadyExistsRejection, TenantNotFoundRejection, TenantDisabledRejection, UserAlreadyInTenantRejection, UserNotInTenantRejection, RoleEscalationRejection, ConfigurationLimitExceededRejection, GlobalAdminAlreadyBootstrappedRejection
 
 9. **Given** all rejection event types exist **When** each rejection event is serialized to JSON via System.Text.Json and deserialized back **Then** deep equality holds for all fields (covered by same serialization round-trip test as AC #5, since IRejectionEvent extends IEventPayload)
+
+### Acceptance Criteria Addendum (2026-05-15)
+
+10. **Given** a command or event belongs to a later behavior story **When** Story 2.1 is reviewed **Then** the story identifies it as a contract-only declaration and links to the owning behavior story.
+
+11. **Given** a declared command has no completed behavior story **When** runtime endpoints are reviewed **Then** the command is not documented as a usable operation.
 
 ## Tasks / Subtasks
 

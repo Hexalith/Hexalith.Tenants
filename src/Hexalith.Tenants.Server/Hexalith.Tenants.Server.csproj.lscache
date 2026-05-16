@@ -21,7 +21,7 @@ ProjectAssetsFile=<PATH>obj/project.assets.json
 RootNamespace=Hexalith.Tenants.Server
 RunAnalyzers=
 RunAnalyzersDuringLiveAnalysis=
-SolutionPath=<PATH>../../../Hexalith.EventStore.slnx
+SolutionPath=<PATH>../../Hexalith.Tenants.slnx
 TargetFrameworkIdentifier=.NETCoreApp
 TargetPath=<PATH>bin/Debug/net10.0/Hexalith.Tenants.Server.dll
 TargetRefPath=<PATH>obj/Debug/net10.0/ref/Hexalith.Tenants.Server.dll
@@ -80,7 +80,7 @@ Validators/
  SetTenantConfigurationValidator.cs
 
 [metadataReferences]
-../../../src/
+../../Hexalith.EventStore/src/
  Hexalith.EventStore.Client/obj/Debug/net10.0/ref/Hexalith.EventStore.Client.dll
  Hexalith.EventStore.Contracts/obj/Debug/net10.0/ref/Hexalith.EventStore.Contracts.dll
  Hexalith.EventStore.Server/obj/Debug/net10.0/ref/Hexalith.EventStore.Server.dll
@@ -436,8 +436,6 @@ Validators/
  Microsoft.CodeAnalysis.NetAnalyzers.dll
 
 [analyzerConfigFiles]
-../../
- ../.editorconfig
- .editorconfig
+../../.editorconfig
 <DOTNET>/sdk/10.0.108/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
 obj/Debug/net10.0/Hexalith.Tenants.Server.GeneratedMSBuildEditorConfig.editorconfig

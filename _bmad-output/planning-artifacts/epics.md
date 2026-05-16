@@ -6,9 +6,17 @@ stepsCompleted:
     - step-04-final-validation
 status: complete
 completedAt: "2026-03-07"
+lastUpdated: "2026-05-15"
+followUpStepsCompleted:
+    - step-01-validate-prerequisites
+    - step-02-design-epics
+    - step-03-create-stories
+    - step-04-final-validation
 inputDocuments:
     - prd.md
     - architecture.md
+    - ux-design-specification.md
+    - ../implementation-artifacts/deferred-work.md
 ---
 
 # Hexalith.Tenants - Epic Breakdown
@@ -592,6 +600,16 @@ Aggregate class — `Server/Aggregates/TenantAggregate.cs`:
 Testing pattern — same as Story 2.2: `aggregate.ProcessAsync(commandEnvelope, state)` with `CommandEnvelope` helper (see Architecture §D10 Testing Blueprint). All tests Tier 1.
 
 ### Story 2.4: Tenant Service, Bootstrap & Event Publishing
+
+> **Post-readiness correction (2026-05-16):** Story 2.4 is already complete and remains the historical implementation story, but it is too broad to use as a future sprint-slicing model. For evidence review, maintenance, and any future rework, treat it as five logical work packages:
+>
+> - **2.4A Command API and EventStore processing endpoint wiring:** REST command endpoint, MediatR pipeline, aggregate auto-discovery, and `/process` domain dispatch.
+> - **2.4B Bootstrap hosted service and multi-instance idempotency:** startup configuration, first global administrator creation, and information-level already-bootstrapped handling.
+> - **2.4C DAPR pub/sub publication and recovery behavior:** CloudEvents publication, pub/sub unavailable behavior, source-of-truth persistence, and catch-up/drain expectations.
+> - **2.4D API error and authentication response mapping:** RFC 7807 rejection mapping, correlation ID propagation, and 401 handling for unauthenticated requests.
+> - **2.4E Tier 2 command pipeline verification:** DAPR slim-init integration coverage for command processing, bootstrap, event publication, and `/process` dispatch.
+>
+> Future stories with this breadth must be split before sprint execution unless the Product Owner explicitly accepts a single-story integration spike.
 
 As a platform operator,
 I want a deployable REST API that accepts tenant commands, bootstraps the global admin on startup, and publishes domain events via DAPR pub/sub,
@@ -1210,3 +1228,532 @@ So that I can see the value of event-sourced tenant management in under 2 minute
 **Given** CONTRIBUTING.md exists
 **When** a developer reads it
 **Then** it includes: development setup instructions, branch naming conventions (`feat/`, `fix/`, `docs/`), PR process, test requirements (Tier 1+2 must pass), and code style reference (`.editorconfig`)
+
+## Follow-Up Correction Epics (2026-05-15)
+
+These epics preserve the completed MVP epic plan above and organize deferred hardening work from `deferred-work.md` into user-value-focused follow-up areas.
+
+### Epic 9: Trustworthy Tenant Query Operations
+
+Operators and developers can rely on tenant query endpoints for secure, stable, tenant-isolated pagination and audit lookups.
+
+**FRs covered:** FR25, FR26, FR27, FR28, FR29, FR30, FR31, FR34
+
+**NFRs reinforced:** NFR2, NFR5, NFR10
+
+### Story 9.1: Opaque Signed Query Cursors
+
+As a platform operator,
+I want paginated query cursors to be opaque and tamper-resistant,
+So that clients cannot forge cursor positions or infer internal projection keys across tenant query endpoints.
+
+**Acceptance Criteria:**
+
+**Given** a paginated tenant query returns a continuation cursor
+**When** the response is serialized
+**Then** the cursor is opaque and does not expose raw timestamps, event IDs, tenant keys, or projection keys.
+
+**Given** a client submits a valid signed cursor
+**When** the matching endpoint processes the next page request
+**Then** pagination resumes from the same logical position as the previous plain cursor behavior.
+
+**Given** a client submits a tampered cursor
+**When** the endpoint validates the cursor
+**Then** the request is rejected with a safe `400 Bad Request` ProblemDetails response and no query state is leaked.
+
+**Given** cursor signing is enabled
+**When** `list-tenants`, `get-tenant-users`, `get-user-tenants`, and `get-tenant-audit` return paginated results
+**Then** each endpoint uses the same cursor codec/signing policy.
+
+**Given** cursor validation fails
+**When** logs are emitted
+**Then** logs include correlation metadata but do not include secrets, raw signing material, or full cursor payloads.
+
+**Given** focused query tests run
+**When** valid, malformed, and tampered cursors are exercised
+**Then** the tests verify success for valid cursors and safe rejection for invalid cursors across all affected paginated endpoints.
+
+### Story 9.2: Stable Cursor Pagination Under Role and Membership Changes
+
+As a tenant operator,
+I want paginated tenant query results to remain predictable when roles or memberships change between page requests,
+So that users do not silently skip or gain visibility into tenants because projection state changed mid-pagination.
+
+**Acceptance Criteria:**
+
+**Given** a user is paging through `get-user-tenants` results
+**When** their role on a tenant is revoked between page requests
+**Then** the next page does not reveal tenants the requester is no longer allowed to see.
+
+**Given** a user is paging through `get-user-tenants` results
+**When** a newly visible tenant would sort before or at the submitted cursor position
+**Then** the endpoint behavior is documented and tested so the result is predictable rather than accidental.
+
+**Given** `list-tenants` and `get-user-tenants` both use cursor-based pagination
+**When** role or tenant state changes occur between page fetches
+**Then** both endpoints follow the same documented cursor stability policy where applicable.
+
+**Given** a cursor references an item that is no longer visible to the requester
+**When** the endpoint processes the request
+**Then** it safely advances or rejects according to the chosen policy without leaking the hidden item.
+
+**Given** focused tests simulate concurrent membership and role mutation
+**When** paginated queries continue from a prior cursor
+**Then** tests verify no cross-tenant data leak and document any accepted eventual-consistency behavior.
+
+### Story 9.3: Query Policy for Disabled Tenants and Orphan Memberships
+
+> **Policy decision (2026-05-16):** Disabled tenants are included in query responses when the caller is otherwise authorized to see the tenant or membership. The response must include tenant status so clients can distinguish disabled access from active access. Disabled status does not imply command capability; state-changing commands against disabled tenants remain rejected by the aggregate.
+>
+> Orphan memberships are filtered from normal user-facing query responses, never returned with blank or synthesized tenant names. The endpoint logs an observable projection-repair warning with correlation metadata and preserves immutable audit/event history for investigation. A global administrator audit flow may surface the inconsistency only through an explicit diagnostic or repair view, not through ordinary membership list results.
+>
+> Eventual consistency after membership removal is accepted and documented: a self-lookup can briefly show the prior membership until projection catch-up completes, but this query result grants no write capability and must be covered by tests or explicit documentation notes.
+
+As a platform operator,
+I want tenant query endpoints to apply explicit policies for disabled tenants and inconsistent projection entries,
+So that query results are predictable, explainable, and do not accidentally expose stale or misleading tenant access.
+
+**Acceptance Criteria:**
+
+**Given** a tenant has `TenantStatus.Disabled`
+**When** `get-user-tenants` is queried by self, tenant owner, or global administrator
+**Then** the response includes the disabled tenant when the caller is otherwise authorized to see the tenant or membership.
+
+**Given** a disabled tenant appears in `get-user-tenants` or related query output
+**When** the response is serialized
+**Then** the response clearly includes `TenantStatus.Disabled` so clients can distinguish disabled access from active access and avoid implying command capability.
+
+**Given** a `UserTenants` projection references a tenant missing from the tenant index/read model
+**When** the query response is built
+**Then** normal user-facing query responses filter the orphan membership, log an observable projection-repair warning with correlation metadata, and never return an unexplained blank or synthesized tenant name.
+
+**Given** projection eventual consistency creates a stale self-lookup result after user removal
+**When** the removed user queries their memberships briefly after removal
+**Then** the accepted temporary visibility window is documented and covered by tests or explicit notes, and the stale query result does not grant write capability.
+
+### Story 9.4: Actor-Layer Query Guardrails
+
+As a platform operator,
+I want projection actors to reject malformed or unauthenticated query envelopes defensively,
+So that authorization assumptions remain protected even if a controller or caller bypasses the normal API boundary.
+
+**Acceptance Criteria:**
+
+**Given** a query envelope reaches `TenantsProjectionActor` with an empty or missing `UserId`
+**When** the actor handles any role-sensitive query
+**Then** the actor rejects the query with a safe authorization failure instead of relying only on controller-layer checks.
+
+**Given** a role-sensitive query is executed through the normal controller path
+**When** the authenticated user ID is present
+**Then** existing successful query behavior remains unchanged.
+
+**Given** a query envelope contains a user ID that is not authorized for the requested tenant data
+**When** the actor evaluates the query
+**Then** no tenant data is returned outside the caller's allowed scope.
+
+**Given** actor-layer guardrails reject a query
+**When** the failure is logged
+**Then** logs include correlation metadata but do not expose tenant membership details or sensitive payload data.
+
+**Given** focused actor tests run
+**When** empty-user, missing-user, unauthorized-user, and valid-user query paths are exercised
+**Then** tests verify defense-in-depth behavior without weakening existing controller authorization tests.
+
+### Story 9.5: Shared Pagination Bounds and Cursor Utilities
+
+As a developer maintaining tenant query endpoints,
+I want pagination bounds and cursor handling to be centralized,
+So that tenant query behavior stays consistent as endpoints evolve.
+
+**Acceptance Criteria:**
+
+**Given** tenant query endpoints clamp page sizes
+**When** `list-tenants`, `get-tenant-users`, `get-user-tenants`, and `get-tenant-audit` apply defaults and maximums
+**Then** the shared policy uses one source of truth for default and maximum page size values.
+
+**Given** `get-tenant-audit` currently has duplicate page-size clamping in controller and actor code
+**When** the duplication is refactored
+**Then** both layers continue to enforce the same default `100` and maximum `1000` behavior unless a deliberate policy change is documented.
+
+**Given** cursor encoding/decoding is required by multiple endpoints
+**When** cursor utilities are introduced or refactored
+**Then** endpoint-specific ordering details remain explicit and testable rather than hidden behind unclear generic code.
+
+**Given** invalid page sizes or cursors are submitted
+**When** the endpoint validates request parameters
+**Then** responses remain safe and consistent with existing API error patterns.
+
+**Given** focused tests run
+**When** page size defaults, maximum clamping, invalid inputs, and endpoint-specific cursor behavior are exercised
+**Then** tests verify consistent behavior across all affected query endpoints.
+
+### Epic 10: Durable Projection Write Safety
+
+The tenant read models preserve projection correctness under concurrent event delivery and long-running operations.
+
+**FRs covered:** FR25, FR26, FR27, FR28, FR29, FR30, FR53
+
+**NFRs reinforced:** NFR5, NFR17, NFR20, NFR23
+
+### Story 10.1: Optimistic Concurrency for Tenant Read-Model Writes
+
+As a platform operator,
+I want tenant read-model writes to use optimistic concurrency,
+So that concurrent projection updates do not silently overwrite tenant query state.
+
+**Acceptance Criteria:**
+
+**Given** multiple tenant events update `projection:tenants:{tenantId}` concurrently
+**When** the projection writes read-model state
+**Then** updates use an optimistic concurrency or ETag-aware write path instead of last-writer-wins state replacement.
+
+**Given** multiple tenant events update `projection:tenant-index:singleton` concurrently
+**When** the shared tenant index is modified
+**Then** conflicting writes are retried or safely rejected according to a documented retry policy.
+
+**Given** a concurrency conflict occurs during read-model persistence
+**When** the retry policy is applied
+**Then** the final read model includes all successfully processed events without silently dropping one update.
+
+**Given** the retry limit is exceeded
+**When** the projection cannot safely persist state
+**Then** the failure is observable through logs/metrics and does not report a successful projection update.
+
+**Given** focused tests simulate concurrent read-model writes
+**When** tenant projection and tenant index updates race
+**Then** tests verify no silent data loss and document the selected retry behavior.
+
+### Story 10.2: Audit Projection Write Safety
+
+As a global administrator,
+I want tenant audit projection writes to preserve every access-change event,
+So that audit reports remain complete even when many tenant membership changes are processed at the same time.
+
+**Acceptance Criteria:**
+
+**Given** multiple access-change events are applied to `audit:{tenantId}` concurrently
+**When** `TenantAuditProjection` persists audit read-model state
+**Then** the write path prevents silent last-writer-wins loss of audit entries.
+
+**Given** audit events for the same tenant arrive close together
+**When** the projection updates the audit timeline
+**Then** each event remains queryable by date range and pagination cursor after processing completes.
+
+**Given** a concurrency conflict occurs while saving audit state
+**When** the projection retries or reloads state
+**Then** the final audit read model preserves all events that were successfully processed.
+
+**Given** audit write safety cannot be guaranteed after retry exhaustion
+**When** the projection reports failure
+**Then** the failure is observable and does not falsely mark the projection update as complete.
+
+**Given** focused audit projection tests run
+**When** concurrent add/remove/change-role events are projected
+**Then** tests verify that audit entry count and ordering remain correct.
+
+### Story 10.3A: EventStore Projection Cancellation API Prerequisite
+
+As a platform framework maintainer,
+I want EventStore projection query and projection dispatch contracts to expose cancellation-aware signatures,
+So that tenant query and projection code can observe abandoned requests without inventing Tenants-only infrastructure.
+
+**Dependency status (2026-05-16):** Hexalith.EventStore currently lacks cancellation-aware signatures on the key projection contracts used by Tenants: `IProjectionActor.QueryAsync(QueryEnvelope envelope)`, `CachingProjectionActor.ExecuteQueryAsync(QueryEnvelope envelope)`, and synchronous `EventStoreProjection<TReadModel>.Project(...)` / `ProjectFromJson(...)`. Tenants cancellation call-site work is blocked until this prerequisite is completed in the `Hexalith.EventStore` submodule or an approved compatible API already exists.
+
+**Acceptance Criteria:**
+
+**Given** `IProjectionActor.QueryAsync` is the public DAPR actor projection query contract
+**When** cancellation support is added
+**Then** the contract or an approved companion path accepts and propagates a `CancellationToken` without breaking existing callers unexpectedly.
+
+**Given** `CachingProjectionActor` executes projection query logic
+**When** derived actors implement query handlers
+**Then** `ExecuteQueryAsync` or its approved replacement receives cancellation and can pass it to downstream reads.
+
+**Given** projection read/write infrastructure uses DAPR state APIs
+**When** projection state is read or written
+**Then** DAPR calls receive the propagated cancellation token where supported.
+
+**Given** the EventStore API change is merged or otherwise available to Tenants
+**When** Story 10.3B starts
+**Then** the Tenants story names the exact EventStore APIs and version/submodule commit it depends on.
+
+### Story 10.3B: Cancellation Token Threading for Tenant Projection Queries
+
+As a platform operator,
+I want long-running tenant projection queries and projection writes to observe request cancellation,
+So that abandoned requests do not keep consuming compute or block projection processing unnecessarily.
+
+**Blocked by:** Story 10.3A, unless grooming confirms an existing EventStore cancellation-aware projection path and records the exact APIs before implementation.
+
+**Acceptance Criteria:**
+
+**Given** a request to a paginated tenant query is cancelled by the client
+**When** the cancellation reaches the query endpoint
+**Then** cancellation is propagated through the projection dispatch path instead of being dropped.
+
+**Given** `HandleGetTenantAuditAsync` performs a long-running audit read
+**When** the caller cancels the request
+**Then** the read observes the cancellation token and stops without returning partial successful data.
+
+**Given** `TenantProjectionHandler.ProjectAsync` performs projection work
+**When** the hosting pipeline supplies cancellation
+**Then** projection reads/writes observe the provided token through the EventStore APIs named by Story 10.3A.
+
+**Given** focused tests run
+**When** cancellation is triggered before and during projection query handling
+**Then** tests verify cancellation is observed and does not corrupt read-model state.
+
+### Story 10.4: Projection Write Conformance and Recovery Tests
+
+As a developer maintaining tenant projections,
+I want focused conformance and recovery tests for projection persistence behavior,
+So that future projection changes cannot reintroduce silent write loss, ordering errors, or recovery gaps.
+
+**Acceptance Criteria:**
+
+**Given** tenant read-model projections use a selected concurrency/retry policy
+**When** conformance tests run against tenant detail, tenant index, and audit projection writes
+**Then** each projection proves it preserves all successfully processed events under concurrent updates.
+
+**Given** projection writes encounter transient persistence conflicts
+**When** retry behavior is exercised in tests
+**Then** tests verify the projection eventually succeeds or reports a safe observable failure.
+
+**Given** projection writes fail after retry exhaustion
+**When** recovery behavior is tested
+**Then** the failure path does not claim success and leaves enough diagnostic information to replay or repair safely.
+
+**Given** projection event ordering matters for cursor and audit behavior
+**When** tests project mixed lifecycle, membership, configuration, and audit events
+**Then** resulting read models preserve deterministic ordering for query responses.
+
+**Given** future projection implementations are added
+**When** they opt into the tenant projection conformance test suite
+**Then** the same concurrency and recovery expectations can be reused without duplicating test logic.
+
+### Epic 11: Production Authorization Readiness
+
+Platform operators can deploy Hexalith.Tenants with validated JWT configuration and predictable rate-limit partitioning.
+
+**FRs covered:** FR15, FR31, FR32, FR33, FR34, FR48, FR56
+
+**NFRs reinforced:** NFR5, NFR22
+
+### Story 11.1: Production JWT Configuration Validation
+
+As a platform operator,
+I want production JWT configuration to be validated before deployment,
+So that Hexalith.Tenants does not fail at startup or accept unsafe authentication settings unexpectedly.
+
+**Acceptance Criteria:**
+
+**Given** production `appsettings.json` contains empty JWT `Authority` and `SigningKey` placeholders
+**When** the service starts without AppHost or environment overrides
+**Then** startup fails with a clear configuration validation error.
+
+**Given** production JWT settings are supplied through environment variables, AppHost, or deployment configuration
+**When** the service starts
+**Then** `EventStoreAuthenticationOptions` validation succeeds without requiring secrets in committed appsettings files.
+
+**Given** development mode uses symmetric-key JWT validation
+**When** `appsettings.Development.json` or local overrides are loaded
+**Then** dev authentication remains usable without weakening production validation.
+
+**Given** authentication configuration fails validation
+**When** logs are emitted
+**Then** logs identify the missing configuration key but do not expose signing keys or token material.
+
+**Given** focused configuration tests run
+**When** production-valid, production-invalid, and development-valid configurations are bound
+**Then** tests verify startup validation behavior for each mode.
+
+### Story 11.2: EventStore Tenant Claim Contract
+
+As a platform operator,
+I want the production identity provider to emit the tenant claim expected by EventStore infrastructure,
+So that authenticated requests are partitioned and authorized consistently instead of falling into a shared anonymous bucket.
+
+**Acceptance Criteria:**
+
+**Given** Hexalith.Tenants is deployed with a production IdP
+**When** an authenticated token is issued
+**Then** the token includes the configured `eventstore:tenant` claim value required by EventStore tenant validation and rate-limit partitioning.
+
+**Given** an authenticated token is missing the `eventstore:tenant` claim
+**When** a request reaches the API
+**Then** the behavior is explicit and tested: reject the token or route it through a documented fallback, rather than silently sharing an `"anonymous"` rate-limit bucket.
+
+**Given** test JWTs and `TestAuthHandler` assert tenant claim behavior
+**When** production claim-contract tests are reviewed
+**Then** test assumptions match the documented IdP claim contract.
+
+**Given** a deployment operator configures Keycloak or another IdP
+**When** they follow the deployment documentation
+**Then** the required claim mapping is documented with the exact claim name, value expectations, and verification steps.
+
+**Given** focused auth tests run
+**When** tokens include, omit, or vary the tenant claim
+**Then** tests verify the selected production behavior and rate-limit partitioning assumptions.
+
+### Story 11.3: Deployment Auth Readiness Documentation and Smoke Tests
+
+As a platform operator,
+I want deployment documentation and smoke tests that prove production authentication is wired correctly,
+So that auth misconfiguration is caught before users hit runtime failures.
+
+**Acceptance Criteria:**
+
+**Given** deployment documentation is updated
+**When** an operator prepares Hexalith.Tenants for production
+**Then** the docs list required JWT settings, required IdP claims, environment variable names, and AppHost/deployment override expectations.
+
+**Given** an operator follows the readiness checklist
+**When** they verify a deployment
+**Then** the checklist includes token issuer, audience, `eventstore:tenant`, HTTPS metadata, signing/authority source, and rate-limit partitioning checks.
+
+**Given** production-like smoke tests run
+**When** valid and invalid tokens are used against protected tenant endpoints
+**Then** valid tokens succeed only within their allowed scope and invalid/misconfigured tokens fail safely.
+
+**Given** the service is deployed with missing or invalid auth overrides
+**When** the smoke test or startup validation runs
+**Then** the failure points to the missing deployment input rather than producing ambiguous runtime errors.
+
+**Given** local development docs remain available
+**When** developers use dev-mode JWTs
+**Then** the docs clearly separate development token generation from production IdP configuration.
+
+### Epic 12: Phase 2 Admin UI Dependency Sequencing
+
+> **Scope note (2026-05-16):** Epic 12 is a Phase 2 planning/readiness and dependency-governance epic. It is not Phase 1 backend implementation scope and should not be counted as shipped Admin UI product behavior. When Phase 2 UI work is ready to implement, convert the outputs of these stories into concrete UI implementation stories with explicit `blockedBy` dependencies.
+
+Admin UI delivery can proceed without hidden FrontShell blockers by sequencing cross-project dependencies explicitly.
+
+**FRs covered:** FR25, FR26, FR27, FR28, FR29, FR31, FR34
+
+**NFRs reinforced:** NFR24
+
+### Story 12.1: FrontShell Dependency Map for Tenants UI
+
+As a product owner planning Phase 2 Admin UI work,
+I want each Tenants UI screen mapped to its required FrontShell components, hooks, and tokens,
+So that UI implementation starts only when required cross-project dependencies are known and sequenced.
+
+**Acceptance Criteria:**
+
+**Given** the Tenants UX specification lists Phase 2 screens
+**When** the dependency map is created
+**Then** each screen maps to the FrontShell components, hooks, tokens, and Storybook references it requires.
+
+**Given** a screen depends on `<AuditTimeline>`, `<ConsequencePreview>`, `useCommand pendingIds`, concurrent command support, toast batching, layout variants, or design tokens
+**When** the dependency map is reviewed
+**Then** the dependency is captured with the owning project, expected deliverable, and readiness status.
+
+**Given** a Tenants UI story is drafted
+**When** it consumes a FrontShell deliverable
+**Then** the story references the corresponding dependency rather than silently assuming it exists.
+
+**Given** a dependency is not yet available
+**When** a Tenants UI story would require it
+**Then** the story is blocked or scoped to a fallback explicitly approved by product and UX.
+
+**Given** the dependency map is complete
+**When** Phase 2 planning starts
+**Then** backend MVP stories remain unblocked and UI dependencies are not promoted into Phase 1 scope accidentally.
+
+### Story 12.2: Audit Timeline and Consequence Preview Readiness
+
+As a UX/product owner planning the Tenants Admin UI,
+I want audit and consequence-preview component dependencies resolved before dependent screens are scheduled,
+So that high-risk access-management workflows have the right interaction patterns available when implementation begins.
+
+**Acceptance Criteria:**
+
+**Given** the Audit Trail screen or tenant detail audit tab is planned
+**When** the story is created
+**Then** it declares a dependency on the `<AuditTimeline>` FrontShell component or an explicitly approved fallback.
+
+**Given** a remove-user, disable-tenant, or remove-global-admin workflow is planned
+**When** the story is created
+**Then** it declares a dependency on `<ConsequencePreview>` or an explicitly approved fallback.
+
+**Given** `<AuditTimeline>` is required for MVP flat timeline mode
+**When** readiness is assessed
+**Then** the flat timeline behavior, accessibility expectations, loading states, and 500-event performance target are defined.
+
+**Given** grouped-by-session audit mode is not required for the first UI slice
+**When** backlog sequencing is reviewed
+**Then** grouped mode is marked as fast-follow and does not block the flat timeline story.
+
+**Given** consequence previews use already-loaded projection data
+**When** remove/disable workflows are designed
+**Then** stories confirm no dedicated backend consequence endpoint is required unless product explicitly changes scope.
+
+### Story 12.3: Three-Phase Command Feedback Sequencing
+
+As an admin UI user,
+I want command actions to show clear optimistic, confirming, and confirmed states,
+So that I can trust whether tenant changes have been accepted, projected, and reflected in the interface.
+
+**Acceptance Criteria:**
+
+**Given** a Tenants UI story includes row-level or form-level commands
+**When** the story is planned
+**Then** it declares dependencies on `useCommand pendingIds`, concurrent command support, SignalR projection confirmation, and toast batching where those behaviors are required.
+
+**Given** a user submits a tenant command from the UI
+**When** the command is accepted but projection confirmation has not arrived
+**Then** the UI story specifies the optimistic and confirming visual states without blocking unrelated user activity.
+
+**Given** projection confirmation arrives through SignalR
+**When** the matching pending command is confirmed
+**Then** the UI story specifies how row state, cache/projection data, and toast feedback settle into the confirmed state.
+
+**Given** SignalR is disconnected or delayed
+**When** confirmation does not arrive within the expected threshold
+**Then** the story specifies a degraded feedback pattern that warns the user without losing their action context.
+
+**Given** multiple command confirmations arrive within a short burst
+**When** toast feedback is shown
+**Then** the story uses consolidated/batched toast behavior to avoid overwhelming the user.
+
+### Story 12.4: Phase 2 UI Story Backlog with Explicit `blockedBy`
+
+As a product owner planning Phase 2 Admin UI delivery,
+I want every Tenants UI story to declare its FrontShell and backend dependencies explicitly,
+So that implementation sequencing is transparent and stories do not hide unavailable prerequisites.
+
+**Acceptance Criteria:**
+
+**Given** Phase 2 Tenants UI stories are created
+**When** a story depends on a FrontShell deliverable
+**Then** the story includes an explicit `blockedBy` entry naming the owning FrontShell story or dependency artifact.
+
+**Given** a UI story depends only on completed backend/query functionality
+**When** the story is reviewed
+**Then** it references the completed backend story or endpoint rather than creating a duplicate backend requirement.
+
+**Given** a UI story requires a backend capability that is not complete
+**When** the backlog is reviewed
+**Then** the backend dependency is called out separately and the UI story is not marked ready for development.
+
+**Given** Phase 2 stories are prioritized
+**When** the backlog is ordered
+**Then** dependency-free or dependency-ready stories appear before blocked stories, unless product explicitly accepts the sequencing risk.
+
+**Given** story readiness is checked
+**When** a UI story has unresolved `blockedBy` entries
+**Then** the story remains blocked or planning-only and cannot be assigned as implementation-ready.
+
+### Follow-Up FR Coverage Map
+
+- FR15: Epic 11 - production authorization and global admin deployment readiness
+- FR25: Epic 9, Epic 10, Epic 12 - list tenants query hardening, projection correctness, UI sequencing
+- FR26: Epic 9, Epic 10, Epic 12 - tenant detail query hardening and UI dependency alignment
+- FR27: Epic 9, Epic 10, Epic 12 - tenant users query hardening and UI dependency alignment
+- FR28: Epic 9, Epic 10, Epic 12 - user tenants scoped lookup correctness and UI incident-response support
+- FR29: Epic 9, Epic 10, Epic 12 - audit query cursor/security correctness and audit UI sequencing
+- FR30: Epic 9, Epic 10 - cursor pagination security, stability, and projection correctness
+- FR31-FR34: Epic 9, Epic 11, Epic 12 - role-aware query behavior, deployment auth, UI role behavior
+- FR48, FR56: Epic 11 - deployable service auth configuration readiness
+- FR53: Epic 10 - projection durability and source-of-truth behavior

@@ -52,6 +52,24 @@ So that the tenant service is operational end-to-end from command to event distr
     **When** Tier 2 integration tests run with DAPR slim init
     **Then** CreateTenant, DisableTenant, EnableTenant, and BootstrapGlobalAdmin commands succeed end-to-end with events published
 
+### Acceptance Criteria Addendum (2026-05-15)
+
+11. **Given** Story 2.4 depends on DAPR package behavior **When** the story is reviewed **Then** `Directory.Packages.props` and related DAPR package references are verified to use the intended compatible version set.
+
+12. **Given** a dependency version alignment issue is discovered **When** the story is completed **Then** the exact version alignment is recorded in completion notes and build/test validation.
+
+### Post-Readiness Decomposition Note (2026-05-16)
+
+Story 2.4 is complete and should not be renumbered retroactively, but the May 16 implementation-readiness assessment found that it is too broad to use as a future sprint-execution model. For evidence review, maintenance, and any future rework, treat the completed story as five logical work packages:
+
+- **2.4A Command API and EventStore processing endpoint wiring:** AC 1, AC 8, AC 9; owns REST command endpoint, MediatR pipeline, aggregate auto-discovery, and `/process` domain dispatch.
+- **2.4B Bootstrap hosted service and multi-instance idempotency:** AC 2, AC 3; owns startup configuration, first global administrator creation, and information-level already-bootstrapped handling.
+- **2.4C DAPR pub/sub publication and recovery behavior:** AC 4, AC 5, AC 11, AC 12; owns CloudEvents publication, DAPR version alignment, pub/sub-unavailable behavior, source-of-truth persistence, and catch-up/drain expectations.
+- **2.4D API error and authentication response mapping:** AC 6, AC 7; owns RFC 7807 rejection mapping, correlation ID propagation, and 401 handling for unauthenticated requests.
+- **2.4E Tier 2 command pipeline verification:** AC 10; owns DAPR slim-init integration coverage for command processing, bootstrap, event publication, and `/process` dispatch.
+
+Future stories with this breadth must be split before sprint execution unless the Product Owner explicitly accepts a single-story integration spike.
+
 ## Tasks / Subtasks
 
 - [x] Task 1: Add EventStore.Hexalith.Tenants project reference and wire Program.cs (AC: #1, #7, #8, #9)

@@ -212,6 +212,29 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
+    public async Task GetTenantAudit_returns_403_problem_details_when_caller_is_not_global_admin() {
+        // Task 7.4: keep+strengthen the integration assertion that non-admin gets 403, not 501,
+        // and does not reveal audit data. The actor returns ErrorMessage="Forbidden" for
+        // non-GlobalAdmin callers; the controller pipeline must map this to a 403 problem+json.
+        IQueryRouter router = CreateRouter(
+            "get-tenant-audit",
+            new QueryRouterResult(false, null, false, "Forbidden"));
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/audit");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(403);
+        details.Title.ShouldBe("Forbidden");
+    }
+
+    [Fact]
     public async Task GetTenantAudit_returns_400_when_category_is_invalid() {
         IQueryRouter router = CreateRouter(
             "get-tenant-audit",

@@ -109,6 +109,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         }
     }
 
+    private static readonly System.Text.RegularExpressions.Regex s_auditCursorRegex =
+        new(@"^\d{20}:.+$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload) {
         if (payload is null || payload.Length == 0) {
             return new(null, null, null, null, 100, null);
@@ -147,6 +150,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 else {
                     errorMessage = $"Invalid audit category: {categoryValue}";
                 }
+            }
+
+            if (errorMessage is null && from is not null && to is not null && from > to) {
+                errorMessage = "Invalid audit query payload: 'from' must not be after 'to'.";
+            }
+
+            if (errorMessage is null && !string.IsNullOrEmpty(cursor) && !s_auditCursorRegex.IsMatch(cursor)) {
+                errorMessage = "Invalid audit query payload: malformed cursor.";
             }
 
             return new(from, to, category, cursor, pageSize, errorMessage);
@@ -277,6 +288,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 
+        // QueryEnvelope.ctor enforces non-empty AggregateId, so the "audit:" shared-key vector
+        // raised in review is unreachable through any constructor path.
+
         TenantAuditQueryPayload query = DeserializeAuditPayload(envelope.Payload);
         if (query.ErrorMessage is not null) {
             return new QueryResult(false, default, ErrorMessage: query.ErrorMessage);
@@ -286,7 +300,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             .GetStateAsync<TenantAuditReadModel>(StateStoreName, TenantAuditProjectionKeyPrefix + envelope.AggregateId)
             .ConfigureAwait(false);
 
-        IEnumerable<TenantAuditEntry> entries = model?.Entries ?? [];
+        // NFR5 defense-in-depth: a projection bug must not leak rows from another tenant.
+        IEnumerable<TenantAuditEntry> entries = (model?.Entries ?? [])
+            .Where(e => string.Equals(e.TenantId, envelope.AggregateId, StringComparison.Ordinal));
         if (query.From is not null) {
             entries = entries.Where(e => e.Timestamp >= query.From.Value);
         }

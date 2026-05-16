@@ -21,7 +21,8 @@ public sealed class TenantAuditReadModel {
         ArgumentNullException.ThrowIfNull(evt);
 
         if (string.IsNullOrWhiteSpace(evt.MessageId) || string.IsNullOrWhiteSpace(evt.UserId)) {
-            return;
+            throw new InvalidOperationException(
+                "Audit projection received an event without MessageId or UserId. The orchestrator additive contract guarantees both fields; this indicates an upstream bug.");
         }
 
         TenantAuditEntry? entry = CreateEntry(evt);
@@ -30,6 +31,9 @@ public sealed class TenantAuditReadModel {
         }
 
         Entries.Add(entry);
+    }
+
+    public void SortEntries() {
         Entries = Entries
             .OrderBy(e => e.Timestamp)
             .ThenBy(e => e.EventId, StringComparer.Ordinal)
@@ -144,6 +148,7 @@ public sealed class TenantAuditReadModel {
             TenantConfigurationRemoved e => e.TenantId,
             GlobalAdministratorSet e => e.TenantId,
             GlobalAdministratorRemoved e => e.TenantId,
-            _ => string.Empty,
+            _ => throw new InvalidOperationException(
+                $"GetTenantId received an unsupported payload type '{payload.GetType().Name}'. CreateEntry and GetTenantId must stay in lockstep with the classification switch."),
         };
 }

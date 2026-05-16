@@ -201,6 +201,61 @@ public class TenantsProjectionActorTests {
     }
 
     [Fact]
+    public async Task GetTenantAudit_rejects_from_greater_than_toAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        DateTimeOffset start = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        byte[] payload = CreateAuditPayload(from: start.AddDays(1), to: start);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1", payload: payload));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage!.ShouldContain("'from' must not be after 'to'");
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_rejects_malformed_cursorAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        byte[] payload = CreateAuditPayload(cursor: "not-a-valid-cursor");
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1", payload: payload));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage!.ShouldContain("malformed cursor");
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_drops_entries_with_mismatched_tenantIdAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        // NFR5 defense-in-depth: an entry persisted under audit:tenant-1 with a different
+        // payload.TenantId must not leak to the caller. Simulates a hypothetical projection bug.
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        TenantAuditEntry foreign = new(
+            "evt-foreign",
+            "TenantUpdated",
+            AuditEventCategory.Administrative,
+            "actor-1",
+            timestamp,
+            "other-tenant",
+            new Dictionary<string, string> { ["key"] = "value" });
+        SetupAuditState(daprClient, "tenant-1", new TenantAuditReadModel {
+            Entries = [CreateAuditEntry("evt-own", "TenantCreated", AuditEventCategory.Administrative, timestamp.AddMinutes(-1)), foreign],
+        });
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantAuditEntry>? page = DeserializePayload<PaginatedResult<TenantAuditEntry>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Select(e => e.EventId).ShouldBe(["evt-own"]);
+    }
+
+    [Fact]
     public async Task GetTenantAudit_invalid_category_returns_errorAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));

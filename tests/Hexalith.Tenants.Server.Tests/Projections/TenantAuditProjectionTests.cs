@@ -11,8 +11,52 @@ namespace Hexalith.Tenants.Server.Tests.Projections;
 
 public class TenantAuditProjectionTests {
     [Fact]
-    public void TenantAuditProjection_is_not_eventstore_discoverable_projection() {
-        typeof(TenantAuditProjection).BaseType.ShouldBe(typeof(object));
+    public void TenantAuditProjection_is_static_helper_not_discoverable_projection() {
+        Type type = typeof(TenantAuditProjection);
+
+        // EventStore projection discovery picks up instantiable classes; a static helper
+        // must remain abstract+sealed (the IL shape of `static class`) so it cannot be
+        // accidentally registered as a domain projection.
+        (type.IsAbstract && type.IsSealed).ShouldBeTrue();
+        type.GetInterfaces().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Project_continues_when_one_event_has_malformed_payload() {
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionEventDto malformed = new(
+            typeof(TenantCreated).FullName!,
+            System.Text.Encoding.UTF8.GetBytes("{not valid json"),
+            "json",
+            1,
+            timestamp,
+            "corr-1",
+            "evt-malformed",
+            "actor-1");
+        ProjectionEventDto[] events = [
+            malformed,
+            CreateEvent(new TenantUpdated("tenant-1", "Acme Updated", null), "evt-good", timestamp.AddMinutes(1)),
+        ];
+
+        TenantAuditReadModel result = TenantAuditProjection.ProjectAuditEvents(events);
+
+        result.Entries.Single().EventId.ShouldBe("evt-good");
+    }
+
+    [Fact]
+    public void Project_propagates_invariant_violation_when_metadata_missing() {
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionEventDto bad = new(
+            typeof(TenantCreated).FullName!,
+            JsonSerializer.SerializeToUtf8Bytes(new TenantCreated("tenant-1", "Acme", null, timestamp), typeof(TenantCreated)),
+            "json",
+            1,
+            timestamp,
+            "corr-1",
+            MessageId: null,
+            UserId: "actor-1");
+
+        _ = Should.Throw<InvalidOperationException>(() => TenantAuditProjection.ProjectAuditEvents([bad]));
     }
 
     [Fact]

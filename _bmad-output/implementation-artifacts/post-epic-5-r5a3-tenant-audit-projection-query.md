@@ -1,6 +1,6 @@
 # Post-Epic-5 R5-A3: Tenant Audit Projection and Query
 
-Status: review
+Status: done
 
 ## Story
 
@@ -338,3 +338,33 @@ GPT-5 Codex.
 ## Story Completion Status
 
 Implementation complete; ready for review. Main-lane validation passed. Nightly performance integration test has an unrelated existing seed-data/domain-limit failure documented above.
+
+### Review Findings
+
+Adversarial parallel review run 2026-05-15 (Blind Hunter / Edge Case Hunter / Acceptance Auditor). After dedup + verification, 1 decision-needed, 10 patches, 3 defers, ~16 dismissed.
+
+- [x] [Review][Patch] (resolved from decision-needed → invariant violation) `TenantAuditReadModel.Apply` must treat missing `MessageId` or `UserId` as an invariant violation. Replace the silent early-return with `throw new InvalidOperationException(...)` and invert `Apply_skips_events_without_true_event_or_actor_metadata` to assert the throw. The orchestrator additive contract now guarantees both fields; any null is a real upstream bug and must surface. Patch #1 (wrap Apply in try/catch) must NOT swallow `InvalidOperationException` — only `JsonException` on malformed payloads. [`src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs:23-25`]
+
+- [x] [Review][Patch] Audit `Apply` aborts the entire projection rebuild on a single malformed/empty payload — `Deserialize` throws `InvalidOperationException` / `JsonException`, escapes `ProjectAuditEvents`, escapes `ProjectAsync`, and the tenant audit state is never written. Wrap per-event apply in `try/catch (Exception ex when ex is JsonException or InvalidOperationException)`, log, and continue with the next event. [`src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs:125-127`]
+
+- [x] [Review][Patch] O(n²) per-event re-sort in `TenantAuditReadModel.Apply` — `Entries.OrderBy(...).ToList()` runs on every applied event. Under the full-replay contract a tenant with N events sorts N times. Either sort once after the full batch in `TenantAuditProjection.ProjectAuditEvents`, or remove the in-`Apply` sort and rely on `PaginateAuditEntries`' existing `OrderBy.ThenBy`. NFR2 (50ms p95) is at risk at scale. [`src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs:33-37`]
+
+- [x] [Review][Patch] Audit query accepts `from > to` and silently returns an empty 200 page — masks client bugs and yields misleading "no audit activity" responses. Add `from > to` validation to `DeserializeAuditPayload` and surface as `ErrorMessage`. [`src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:112-157`]
+
+- [x] [Review][Dismissed-on-verification] `HandleGetTenantAuditAsync` does not guard against empty/whitespace `envelope.AggregateId` — verified during patch application: `QueryEnvelope` constructor enforces non-empty `aggregateId` via `ArgumentException.ThrowIfNullOrWhiteSpace`, so the "audit:" shared-key vector is unreachable through any envelope construction (including JSON deserialization). Defensive check removed as dead code; a one-line comment in `HandleGetTenantAuditAsync` documents the ctor invariant. [`src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:282-283`]
+
+- [x] [Review][Patch] Missing defensive `entry.TenantId == envelope.AggregateId` filter on returned audit entries — current code trusts the per-key projection scoping completely. Add the filter so a future projection bug cannot leak cross-tenant rows. NFR5 defense-in-depth. [`src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:289-300`]
+
+- [x] [Review][Patch] Integration test for non-admin → 403 on `/audit` was replaced rather than kept — Task 7.4 explicitly says "Keep and strengthen `GetTenantAudit_non_admin_returns_forbidden_not_501Async`". The actor-level test still exists, but the integration boundary now lacks coverage of AC#3 (forbidden, no data leak). Re-add the integration assertion alongside the new invalid-category test. [`tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs:212-228`]
+
+- [x] [Review][Patch] Tautological projection test — `TenantAuditProjection_is_not_eventstore_discoverable_projection` asserts `typeof(TenantAuditProjection).BaseType == typeof(object)`, which is true of every C# static class regardless of EventStore discoverability. Replace with an assertion that the class implements no `IProjection`/discovery interface and is not annotated for discovery. [`tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditProjectionTests.cs:611-613`]
+
+- [x] [Review][Defer] Audit query path does not thread a cancellation token to `_daprClient.GetStateAsync` / `SaveStateAsync`. Requires modifying `CachingProjectionActor.ExecuteQueryAsync` signature in the EventStore submodule and the `ProjectionDispatcher` minimal-API endpoint. Cross-cutting submodule refactor outside R5-A3 scope. [`src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:285-287`, `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:43-52`] — deferred, cross-submodule refactor
+
+- [x] [Review][Patch] Malformed `cursor` silently returns an empty page — `PaginateAuditEntries` filters by `string.Compare(GetAuditCursor(e), cursor, Ordinal) > 0`. An arbitrary string like `?cursor=zzz` filters everything out and the caller cannot distinguish "no data" from "invalid cursor." Validate cursor matches `^\d{20}:.+$` in `DeserializeAuditPayload` and emit `ErrorMessage` on failure. [`src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:172-174`]
+
+- [x] [Review][Patch] `GetTenantId` returns `string.Empty` for an unrecognized payload type — if `CreateEntry` is ever reached for an event whose payload isn't in the switch, the audit entry is silently persisted with `TenantId = ""`. Remove the fallback (throw) or add a debug assertion; both `CreateEntry` and `GetTenantId` must stay in lockstep with the classification switch. [`src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs:134-148`]
+
+- [x] [Review][Defer] Concurrent `SaveStateAsync` writes have no etag/optimistic-concurrency — inherited last-writer-wins pattern shared with `TenantProjectionKeyPrefix` and `TenantIndexProjectionKey`. Worth a project-wide concurrency story, not a per-feature patch. [`src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:43-72`] — deferred, pre-existing
+- [x] [Review][Defer] Cursor format is plain-text `Ticks:EventId` and trivially forgeable — same property holds for `Paginate` cursors used by `list-tenants`, `get-tenant-users`, `get-user-tenants`. Cursor opaqueness/HMAC is a cross-cutting concern. [`src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:159-162`] — deferred, pre-existing
+- [x] [Review][Defer] `pageSize` clamping duplicated in controller and actor with identical bounds (default 100, max 1000) — defensive consistency rather than a behavior bug; harmonize via a shared constant only if a future refactor touches these clamps. [`src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:226-227`, `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:130-136`] — deferred, pre-existing

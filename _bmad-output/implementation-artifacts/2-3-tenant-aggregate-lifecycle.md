@@ -10,6 +10,10 @@ As a global administrator,
 I want to create, update, disable, and enable tenants,
 So that I can manage the tenant lifecycle for all consuming services.
 
+## Post-Readiness Note (2026-05-15)
+
+Story 2.3 is accepted as an aggregate replay foundation story for `TenantState`, not as ownership of user-role or configuration behavior. The non-lifecycle Apply methods exist so a tenant aggregate can replay its full event stream once Epic 3 events exist. The Handle methods, validation, authorization, duplicate checks, and configuration limits remain owned by Stories 3.1 and 3.3.
+
 ## Acceptance Criteria
 
 1. **Given** no tenant exists with the specified ID **When** a CreateTenant command is processed with a valid tenant ID and name **Then** a TenantCreated event is produced with TenantId, Name, Description, and CreatedAt
@@ -29,6 +33,12 @@ So that I can manage the tenant lifecycle for all consuming services.
 8. **Given** the TenantAggregate Handle methods **When** tested as static pure functions with no infrastructure **Then** all Handle and Apply methods for lifecycle commands execute correctly as Tier 1 unit tests with 100% branch coverage on validation logic
 
 9. _(Deferred to Story 2.4)_ **Given** a CreateTenant command is submitted **When** FluentValidation runs in the MediatR pipeline **Then** the command is validated for required fields — this AC is about MediatR pipeline validation, not aggregate domain logic
+
+### Acceptance Criteria Addendum (2026-05-15)
+
+10. **Given** Story 2.3 includes non-lifecycle Apply methods **When** the story is reviewed **Then** it verifies only replay/state mutation behavior for historical events and does not claim user-role or configuration command behavior.
+
+11. **Given** Epic 3 owns user-role and configuration commands **When** Stories 3.1 and 3.3 are reviewed **Then** they verify the corresponding Handle methods and business rules.
 
 ## Tasks / Subtasks
 

@@ -13,18 +13,18 @@ primary
 lastDtbSucceeded
 
 [properties]
-AssemblyName=Hexalith.Tenants.Aspire
+AssemblyName=Hexalith.Tenants.AppHost
 CommandLineArgsForDesignTimeEvaluation=-langversion:latest -define:TRACE
 CompilerGeneratedFilesOutputPath=
 MaxSupportedLangVersion=14.0
 ProjectAssetsFile=<PATH>obj/project.assets.json
-RootNamespace=Hexalith.Tenants.Aspire
+RootNamespace=Hexalith.Tenants.AppHost
 RunAnalyzers=
 RunAnalyzersDuringLiveAnalysis=
 SolutionPath=<PATH>../../Hexalith.Tenants.slnx
 TargetFrameworkIdentifier=.NETCoreApp
-TargetPath=<PATH>bin/Debug/net10.0/Hexalith.Tenants.Aspire.dll
-TargetRefPath=<PATH>obj/Debug/net10.0/ref/Hexalith.Tenants.Aspire.dll
+TargetPath=<PATH>bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll
+TargetRefPath=<PATH>obj/Debug/net10.0/ref/Hexalith.Tenants.AppHost.dll
 TemporaryDependencyNodeTargetIdentifier=net10.0
 
 [commandLineArguments]
@@ -44,9 +44,9 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 /debug:portable
 /filealign:512
 /optimize-
-/out:obj\Debug\net10.0\Hexalith.Tenants.Aspire.dll
-/refout:obj\Debug\net10.0\refint\Hexalith.Tenants.Aspire.dll
-/target:library
+/out:obj\Debug\net10.0\Hexalith.Tenants.AppHost.dll
+/refout:obj\Debug\net10.0\refint\Hexalith.Tenants.AppHost.dll
+/target:exe
 /warnaserror+
 /utf8output
 /deterministic+
@@ -54,14 +54,21 @@ TemporaryDependencyNodeTargetIdentifier=net10.0
 /warnaserror+:NU1605,SYSLIB0011
 
 [sourceFiles]
-HexalithTenantsExtensions.cs
-HexalithTenantsResources.cs
 obj/Debug/net10.0/
  .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
- Hexalith.Tenants.Aspire.AssemblyInfo.cs
- Hexalith.Tenants.Aspire.GlobalUsings.g.cs
+ Aspire/references/
+  Hexalith_EventStore.ProjectMetadata.g.cs
+  Hexalith_EventStore_Admin_Server_Host.ProjectMetadata.g.cs
+  Hexalith_EventStore_Admin_UI.ProjectMetadata.g.cs
+  Hexalith_Tenants.ProjectMetadata.g.cs
+  Hexalith_Tenants_Sample.ProjectMetadata.g.cs
+  _AppHost.ProjectMetadata.g.cs
+ Hexalith.Tenants.AppHost.AssemblyInfo.cs
+ Hexalith.Tenants.AppHost.GlobalUsings.g.cs
+Program.cs
 
 [metadataReferences]
+../Hexalith.Tenants.Aspire/obj/Debug/net10.0/ref/Hexalith.Tenants.Aspire.dll
 <DOTNET>/packs/Microsoft.AspNetCore.App.Ref/10.0.8/ref/net10.0/
  Microsoft.AspNetCore.Antiforgery.dll
  Microsoft.AspNetCore.Authentication.Abstractions.dll
@@ -372,6 +379,8 @@ obj/Debug/net10.0/
  System.Xml.XPath.XDocument.dll
  WindowsBase.dll
 <NUGET>/
+ aspire.hosting.apphost/13.2.2/lib/net10.0/Aspire.Hosting.AppHost.dll
+ aspire.hosting.keycloak/13.2.2-preview.1.26207.2/lib/net8.0/Aspire.Hosting.Keycloak.dll
  aspire.hosting/13.3.2/lib/net8.0/Aspire.Hosting.dll
  aspnetcore.healthchecks.uris/9.0.0/lib/net8.0/HealthChecks.Uris.dll
  communitytoolkit.aspire.hosting.dapr/13.0.0/lib/net10.0/CommunityToolkit.Aspire.Hosting.Dapr.dll
@@ -422,9 +431,11 @@ obj/Debug/net10.0/
 <DOTNET>/sdk/10.0.108/Sdks/Microsoft.NET.Sdk/analyzers/
  Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
  Microsoft.CodeAnalysis.NetAnalyzers.dll
-<NUGET>/modelcontextprotocol.core/1.0.0/analyzers/dotnet/cs/ModelContextProtocol.Analyzers.dll
+<NUGET>/
+ aspire.hosting.apphost/13.2.2/analyzers/dotnet/cs/Aspire.Hosting.Analyzers.dll
+ modelcontextprotocol.core/1.0.0/analyzers/dotnet/cs/ModelContextProtocol.Analyzers.dll
 
 [analyzerConfigFiles]
 ../../.editorconfig
 <DOTNET>/sdk/10.0.108/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
-obj/Debug/net10.0/Hexalith.Tenants.Aspire.GeneratedMSBuildEditorConfig.editorconfig
+obj/Debug/net10.0/Hexalith.Tenants.AppHost.GeneratedMSBuildEditorConfig.editorconfig

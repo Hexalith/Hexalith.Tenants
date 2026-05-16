@@ -21,7 +21,7 @@ ProjectAssetsFile=<PATH>obj/project.assets.json
 RootNamespace=Hexalith.Tenants.Contracts
 RunAnalyzers=
 RunAnalyzersDuringLiveAnalysis=
-SolutionPath=<PATH>../../../Hexalith.EventStore.slnx
+SolutionPath=<PATH>../../Hexalith.Tenants.slnx
 TargetFrameworkIdentifier=.NETCoreApp
 TargetPath=<PATH>bin/Debug/net10.0/Hexalith.Tenants.Contracts.dll
 TargetRefPath=<PATH>obj/Debug/net10.0/ref/Hexalith.Tenants.Contracts.dll
@@ -114,7 +114,7 @@ Queries/
 TenantProjectionRouting.cs
 
 [metadataReferences]
-../../../src/Hexalith.EventStore.Contracts/obj/Debug/net10.0/ref/Hexalith.EventStore.Contracts.dll
+../../Hexalith.EventStore/src/Hexalith.EventStore.Contracts/obj/Debug/net10.0/ref/Hexalith.EventStore.Contracts.dll
 <DOTNET>/packs/Microsoft.NETCore.App.Ref/10.0.8/ref/net10.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll
@@ -325,8 +325,6 @@ TenantProjectionRouting.cs
  microsoft.extensions.options/10.0.3/analyzers/dotnet/roslyn4.4/cs/Microsoft.Extensions.Options.SourceGeneration.dll
 
 [analyzerConfigFiles]
-../../
- ../.editorconfig
- .editorconfig
+../../.editorconfig
 <DOTNET>/sdk/10.0.108/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_10_default.globalconfig
 obj/Debug/net10.0/Hexalith.Tenants.Contracts.GeneratedMSBuildEditorConfig.editorconfig

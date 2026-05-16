@@ -10,6 +10,10 @@ As a developer or decision-maker evaluating Hexalith.Tenants,
 I want a compelling demo showing reactive cross-service access revocation and complete project documentation,
 So that I can see the value of event-sourced tenant management in under 2 minutes and understand how to contribute.
 
+## Planning Note (2026-05-15)
+
+If similar adoption work is planned again, split demo/adoption collateral from repository contributor documentation when they have different owners, review criteria, or release timing. Demo work should own user-facing evaluation flow. Repository documentation should own contributor setup, changelog, PR, branch, and test policy.
+
 ## Acceptance Criteria
 
 1. **Given** the "aha moment" demo artifact exists (reproducible script + step-by-step walkthrough)
