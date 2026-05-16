@@ -11,6 +11,7 @@ using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
 
@@ -39,8 +40,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         ActorHost host,
         IETagService eTagService,
         DaprClient daprClient,
+        ITenantQueryCursorCodec cursorCodec,
         ILogger<TenantsProjectionActor> logger)
-        : base(host, eTagService, logger) => _daprClient = daprClient;
+        : base(host, eTagService, logger) {
+        _daprClient = daprClient;
+        _cursorCodec = cursorCodec;
+    }
+
+    private readonly ITenantQueryCursorCodec _cursorCodec;
 
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope) {
@@ -109,9 +116,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         }
     }
 
-    private static readonly System.Text.RegularExpressions.Regex s_auditCursorRegex =
-        new(@"^\d{20}:.+$", System.Text.RegularExpressions.RegexOptions.Compiled);
-
     private static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload) {
         if (payload is null || payload.Length == 0) {
             return new(null, null, null, null, 100, null);
@@ -156,10 +160,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 errorMessage = "Invalid audit query payload: 'from' must not be after 'to'.";
             }
 
-            if (errorMessage is null && !string.IsNullOrEmpty(cursor) && !s_auditCursorRegex.IsMatch(cursor)) {
-                errorMessage = "Invalid audit query payload: malformed cursor.";
-            }
-
             return new(from, to, category, cursor, pageSize, errorMessage);
         }
         catch (JsonException) {
@@ -202,6 +202,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         return element.TryGetDateTimeOffset(out DateTimeOffset value) ? value : null;
     }
+
+    private static QueryResult InvalidCursorResult() => new(false, default, ErrorMessage: "Invalid cursor.");
 
     private static HashSet<string> GetUserTenantIds(TenantIndexReadModel indexModel, string userId) {
         if (indexModel.UserTenants.TryGetValue(userId, out Dictionary<string, TenantRole>? tenants)) {
@@ -255,6 +257,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         return new PaginatedResult<TResult>(results, nextCursor, hasMore);
     }
+
+    private PaginatedResult<TResult> ProtectCursor<TResult>(
+        PaginatedResult<TResult> result,
+        string queryType,
+        string scope)
+        => result.Cursor is null ? result : result with { Cursor = _cursorCodec.Encode(queryType, scope, result.Cursor) };
 
     private async Task<QueryResult> HandleGetTenantAsync(QueryEnvelope envelope) {
         TenantReadModel? model = await _daprClient
@@ -315,7 +323,15 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             entries = entries.Where(e => e.Category == query.Category.Value);
         }
 
-        PaginatedResult<TenantAuditEntry> result = PaginateAuditEntries(entries, query.Cursor, query.PageSize);
+        string scope = TenantQueryCursorScopes.GetTenantAudit(envelope.AggregateId, query.From, query.To, query.Category);
+        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor)) {
+            return InvalidCursorResult();
+        }
+
+        PaginatedResult<TenantAuditEntry> result = ProtectCursor(
+            PaginateAuditEntries(entries, cursor, query.PageSize),
+            GetTenantAuditQuery.QueryType,
+            scope);
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenants");
     }
@@ -333,14 +349,21 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 
-        (string? cursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        string scope = TenantQueryCursorScopes.GetTenantUsers(envelope.AggregateId);
+        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor)) {
+            return InvalidCursorResult();
+        }
 
-        PaginatedResult<TenantMember> result = Paginate(
-            model.Members,
-            cursor,
-            pageSize,
-            kvp => kvp.Key,
-            kvp => new TenantMember(kvp.Key, kvp.Value));
+        PaginatedResult<TenantMember> result = ProtectCursor(
+            Paginate(
+                model.Members,
+                cursor,
+                pageSize,
+                kvp => kvp.Key,
+                kvp => new TenantMember(kvp.Key, kvp.Value)),
+            GetTenantUsersQuery.QueryType,
+            scope);
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenants");
@@ -373,21 +396,28 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             userTenants,
             canViewAllTargetTenants);
 
-        (string? cursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        string scope = TenantQueryCursorScopes.GetUserTenants(targetUserId);
+        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor)) {
+            return InvalidCursorResult();
+        }
 
-        PaginatedResult<UserTenantMembership> result = Paginate(
-            visibleUserTenants,
-            cursor,
-            pageSize,
-            kvp => kvp.Key,
-            kvp => {
-                TenantIndexEntry? entry = indexModel.Tenants.GetValueOrDefault(kvp.Key);
-                return new UserTenantMembership(
-                    kvp.Key,
-                    entry?.Name ?? string.Empty,
-                    entry?.Status ?? TenantStatus.Active,
-                    kvp.Value);
-            });
+        PaginatedResult<UserTenantMembership> result = ProtectCursor(
+            Paginate(
+                visibleUserTenants,
+                cursor,
+                pageSize,
+                kvp => kvp.Key,
+                kvp => {
+                    TenantIndexEntry? entry = indexModel.Tenants.GetValueOrDefault(kvp.Key);
+                    return new UserTenantMembership(
+                        kvp.Key,
+                        entry?.Name ?? string.Empty,
+                        entry?.Status ?? TenantStatus.Active,
+                        kvp.Value);
+                }),
+            GetUserTenantsQuery.QueryType,
+            scope);
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenant-index");
@@ -415,14 +445,21 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             tenants = indexModel.Tenants.Where(t => userTenantIds.Contains(t.Key));
         }
 
-        (string? cursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
+        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor)) {
+            return InvalidCursorResult();
+        }
 
-        PaginatedResult<TenantSummary> result = Paginate(
-            tenants,
-            cursor,
-            pageSize,
-            kvp => kvp.Key,
-            kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status));
+        PaginatedResult<TenantSummary> result = ProtectCursor(
+            Paginate(
+                tenants,
+                cursor,
+                pageSize,
+                kvp => kvp.Key,
+                kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status)),
+            ListTenantsQuery.QueryType,
+            scope);
 
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenant-index");

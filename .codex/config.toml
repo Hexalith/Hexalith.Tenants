@@ -1,6 +1,10 @@
 [mcp_servers.aspire]
 args = [
+    "agent",
     "mcp",
-    "start",
+    "--nologo",
+    "--non-interactive",
+    "--log-level",
+    "Error",
 ]
 command = "aspire"

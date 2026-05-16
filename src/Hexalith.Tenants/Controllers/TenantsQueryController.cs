@@ -1,9 +1,11 @@
 using System.Text.Json;
 
+using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Queries;
 
 using MediatR;
 
@@ -20,7 +22,10 @@ namespace Hexalith.Tenants.Controllers;
 [Authorize]
 [Route("api/tenants")]
 [Tags("Tenants")]
-public sealed class TenantsQueryController(IMediator mediator) : ControllerBase {
+public sealed partial class TenantsQueryController(
+    IMediator mediator,
+    ITenantQueryCursorCodec cursorCodec,
+    ILogger<TenantsQueryController> logger) : ControllerBase {
     private static readonly System.Text.RegularExpressions.Regex _identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
@@ -91,6 +96,18 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
         }
 
         pageSize = ClampAuditPageSize(pageSize);
+        string correlationId = Guid.NewGuid().ToString();
+        string scope = TenantQueryCursorScopes.GetTenantAudit(tenantId, from, to, auditCategory);
+        IActionResult? cursorValidation = ValidateSubmittedCursor(
+            cursor,
+            GetTenantAuditQuery.QueryType,
+            scope,
+            "get-tenant-audit",
+            correlationId);
+        if (cursorValidation is not null) {
+            return cursorValidation;
+        }
+
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { from, to, category = auditCategory?.ToString(), cursor, pageSize });
 
         var query = new SubmitQuery(
@@ -99,7 +116,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             AggregateId: tenantId,
             QueryType: GetTenantAuditQuery.QueryType,
             Payload: payloadBytes,
-            CorrelationId: Guid.NewGuid().ToString(),
+            CorrelationId: correlationId,
             UserId: userId,
             EntityId: tenantId,
             ProjectionType: TenantProjectionRouting.ActorTypeName);
@@ -131,6 +148,17 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
         }
 
         pageSize = ClampPageSize(pageSize);
+        string correlationId = Guid.NewGuid().ToString();
+        IActionResult? cursorValidation = ValidateSubmittedCursor(
+            cursor,
+            GetTenantUsersQuery.QueryType,
+            TenantQueryCursorScopes.GetTenantUsers(tenantId),
+            "get-tenant-users",
+            correlationId);
+        if (cursorValidation is not null) {
+            return cursorValidation;
+        }
+
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
         var query = new SubmitQuery(
@@ -139,7 +167,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             AggregateId: tenantId,
             QueryType: GetTenantUsersQuery.QueryType,
             Payload: payloadBytes,
-            CorrelationId: Guid.NewGuid().ToString(),
+            CorrelationId: correlationId,
             UserId: userId,
             EntityId: tenantId,
             ProjectionType: TenantProjectionRouting.ActorTypeName);
@@ -170,6 +198,17 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
         }
 
         pageSize = ClampPageSize(pageSize);
+        string correlationId = Guid.NewGuid().ToString();
+        IActionResult? cursorValidation = ValidateSubmittedCursor(
+            cursor,
+            GetUserTenantsQuery.QueryType,
+            TenantQueryCursorScopes.GetUserTenants(userId),
+            "get-user-tenants",
+            correlationId);
+        if (cursorValidation is not null) {
+            return cursorValidation;
+        }
+
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
         var query = new SubmitQuery(
@@ -178,7 +217,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             AggregateId: "index",
             QueryType: GetUserTenantsQuery.QueryType,
             Payload: payloadBytes,
-            CorrelationId: Guid.NewGuid().ToString(),
+            CorrelationId: correlationId,
             UserId: authenticatedUserId,
             EntityId: userId,
             ProjectionType: TenantProjectionRouting.ActorTypeName);
@@ -203,6 +242,17 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
         }
 
         pageSize = ClampPageSize(pageSize);
+        string correlationId = Guid.NewGuid().ToString();
+        IActionResult? cursorValidation = ValidateSubmittedCursor(
+            cursor,
+            ListTenantsQuery.QueryType,
+            TenantQueryCursorScopes.ListTenants(userId),
+            "list-tenants",
+            correlationId);
+        if (cursorValidation is not null) {
+            return cursorValidation;
+        }
+
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
         var query = new SubmitQuery(
@@ -211,7 +261,7 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
             AggregateId: "index",
             QueryType: ListTenantsQuery.QueryType,
             Payload: payloadBytes,
-            CorrelationId: Guid.NewGuid().ToString(),
+            CorrelationId: correlationId,
             UserId: userId,
             EntityId: userId,
             ProjectionType: TenantProjectionRouting.ActorTypeName);
@@ -228,4 +278,41 @@ public sealed class TenantsQueryController(IMediator mediator) : ControllerBase 
 
     private static bool IsValidIdentifier(string? value)
             => !string.IsNullOrWhiteSpace(value) && _identifierRegex.IsMatch(value);
+
+    private IActionResult? ValidateSubmittedCursor(
+        string? cursor,
+        string queryType,
+        string scope,
+        string endpoint,
+        string correlationId) {
+        if (cursorCodec.TryDecode(cursor, queryType, scope, out _)) {
+            return null;
+        }
+
+        Log.InvalidCursorRejected(logger, correlationId, queryType, endpoint);
+        var problemDetails = new ProblemDetails {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Bad Request",
+            Detail = "Invalid cursor.",
+            Instance = HttpContext.Request.Path,
+            Extensions =
+            {
+                [GatewayProblemDetailsExtensions.CorrelationId] = correlationId,
+                [GatewayProblemDetailsExtensions.ReasonCode] = "invalid-cursor",
+            },
+        };
+
+        return new ObjectResult(problemDetails) {
+            StatusCode = StatusCodes.Status400BadRequest,
+            ContentTypes = { "application/problem+json" },
+        };
+    }
+
+    private static partial class Log {
+        [LoggerMessage(
+            EventId = 1901,
+            Level = LogLevel.Warning,
+            Message = "Invalid tenant query cursor rejected: CorrelationId={CorrelationId}, QueryType={QueryType}, Endpoint={Endpoint}, Stage=TenantQueryCursorValidation")]
+        public static partial void InvalidCursorRejected(ILogger logger, string correlationId, string queryType, string endpoint);
+    }
 }

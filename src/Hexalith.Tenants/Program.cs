@@ -19,6 +19,7 @@ using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.DomainProcessing;
 using Hexalith.Tenants.Health;
 using Hexalith.Tenants.Projections;
+using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
 using Hexalith.Tenants.Validation;
@@ -48,6 +49,7 @@ builder.Services.AddScoped<DomainServiceRequestHandler>();
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
 builder.Services.AddProblemDetails();
+builder.Services.AddDataProtection();
 
 // MediatR pipeline — registers SubmitQueryHandler and SubmitCommandHandler for controller dispatch
 builder.Services.AddMediatR(cfg =>
@@ -60,6 +62,7 @@ builder.Services.TryAddSingleton<ICommandRouter, CommandRouter>();
 // IETagService is required by TenantsProjectionActor (inherits CachingProjectionActor).
 // Registered directly (not via AddEventStoreServer) to avoid hosting AggregateActor/ETagActor here.
 builder.Services.TryAddScoped<IETagService, DaprETagService>();
+builder.Services.TryAddSingleton<ITenantQueryCursorCodec, TenantQueryCursorCodec>();
 
 // Command status and archive stores required by SubmitCommandHandler
 builder.Services.Configure<CommandStatusOptions>(

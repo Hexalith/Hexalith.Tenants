@@ -10,6 +10,9 @@
         "--log-level",
         "Error"
       ]
+    },
+    "fluent-ui-blazor": {
+      "command": "fluentui-mcp"
     }
   }
 }

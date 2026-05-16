@@ -248,6 +248,30 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    [Theory]
+    [InlineData("/api/tenants?cursor=not-a-protected-cursor")]
+    [InlineData("/api/tenants/tenant-1/users?cursor=not-a-protected-cursor")]
+    [InlineData("/api/users/user-2/tenants?cursor=not-a-protected-cursor")]
+    [InlineData("/api/tenants/tenant-1/audit?cursor=not-a-protected-cursor")]
+    public async Task Paginated_queries_return_400_problem_details_when_cursor_is_invalid(string path) {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(path);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions.ContainsKey("correlationId").ShouldBeTrue();
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+    }
+
     [Fact]
     public async Task GetTenantAudit_returns_payload_when_query_succeeds() {
         JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });

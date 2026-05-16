@@ -1,4 +1,6 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-16 (9-2 stable cursor pagination story context created; story -> ready-for-dev)
+# last_updated: 2026-05-16 (9-1 opaque signed query cursors implemented; full-suite validation blocked by unrelated integration/perf failures; story remains in-progress)
 # last_updated: 2026-05-16T09:57:23+02:00
 # last_updated: 2026-05-16 (SCP-2026-05-16 implementation readiness grooming applied)
 # last_updated: 2026-05-15 (SCP-2026-05-15 story readiness cleanup implemented; post-readiness notes added)
@@ -60,7 +62,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-16T09:57:23+02:00
+last_updated: 2026-05-16T12:45:00+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -164,9 +166,9 @@ development_status:
   post-readiness-2026-05-16-implementation-readiness-grooming: done
 
   # Epic 9: Trustworthy Tenant Query Operations
-  epic-9: backlog
-  9-1-opaque-signed-query-cursors: backlog
-  9-2-stable-cursor-pagination-under-role-and-membership-changes: backlog
+  epic-9: in-progress
+  9-1-opaque-signed-query-cursors: in-progress
+  9-2-stable-cursor-pagination-under-role-and-membership-changes: ready-for-dev
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: backlog
   9-4-actor-layer-query-guardrails: backlog
   9-5-shared-pagination-bounds-and-cursor-utilities: backlog

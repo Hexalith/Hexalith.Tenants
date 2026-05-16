@@ -9,10 +9,12 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Actors;
-using Hexalith.Tenants.Telemetry;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -167,7 +169,8 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
             new ActorTestOptions { ActorId = new ActorId("test-actor") });
         IETagService eTagService = Substitute.For<IETagService>();
         ILogger<TenantsProjectionActor> logger = NullLogger<TenantsProjectionActor>.Instance;
-        return new TenantsProjectionActor(host, eTagService, daprClient, logger);
+        ITenantQueryCursorCodec cursorCodec = new TenantQueryCursorCodec(new EphemeralDataProtectionProvider());
+        return new TenantsProjectionActor(host, eTagService, daprClient, cursorCodec, logger);
     }
 
     private static void SetupTenantState(DaprClient daprClient, string tenantId, TenantReadModel model) => daprClient.GetStateAsync<TenantReadModel>(
