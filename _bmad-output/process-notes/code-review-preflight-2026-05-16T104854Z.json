@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "produced_by": "jobs/preflight-code-review.py",
-  "timestamp": "2026-05-16T10:53:14Z",
+  "timestamp": "2026-05-16T10:48:54Z",
   "repo": "D:\\Hexalith.Tenants",
   "result": "fail",
   "bootstrap_actions": [],
@@ -50,29 +50,26 @@
       "id": 6,
       "name": "status-artifact consistency",
       "story_keys_checked": 49,
-      "result": "pass",
-      "details": "no blocking review-status drift across 49 story keys; 3 non-blocking drift(s) reported",
-      "non_blocking_drifts": [
+      "result": "fail",
+      "details": "3 status-artifact drift(s) found",
+      "drifts": [
         {
           "key": "post-epic-3-r3a4-dapr-integration-test-prerequisite-gating",
           "status": "done",
           "artifact": "absent",
-          "expected": "present",
-          "severity": "info"
+          "expected": "present"
         },
         {
           "key": "post-readiness-story-quality-correction",
           "status": "done",
           "artifact": "absent",
-          "expected": "present",
-          "severity": "info"
+          "expected": "present"
         },
         {
           "key": "post-readiness-2026-05-16-implementation-readiness-grooming",
           "status": "done",
           "artifact": "absent",
-          "expected": "present",
-          "severity": "info"
+          "expected": "present"
         }
       ]
     },
@@ -93,11 +90,11 @@
         ":(exclude)_bmad-output/process-notes/preflight-latest.json"
       ],
       "exit_code": 0,
-      "stdout": " M Hexalith.AI.Tools\n",
+      "stdout": "",
       "stderr": "",
-      "dirty_path_count": 1,
-      "result": "fail",
-      "details": "1 dirty path(s)"
+      "dirty_path_count": 0,
+      "result": "pass",
+      "details": "0 dirty paths"
     }
   ],
   "note_to_llm": "This file was produced by jobs/preflight-code-review.py. The recurring code-review job (jobs/story-code-review.md) MUST quote the contents of this file verbatim when reporting pre-flight results — do NOT re-run the checks yourself, paraphrase them, or summarize them in your own words. Check #5 (bmad-code-review skill discoverability) is not covered by this script and remains your responsibility to verify after reading this file."

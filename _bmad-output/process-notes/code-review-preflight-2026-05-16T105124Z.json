@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "produced_by": "jobs/preflight-code-review.py",
-  "timestamp": "2026-05-16T10:53:14Z",
+  "timestamp": "2026-05-16T10:51:24Z",
   "repo": "D:\\Hexalith.Tenants",
   "result": "fail",
   "bootstrap_actions": [],
@@ -51,30 +51,7 @@
       "name": "status-artifact consistency",
       "story_keys_checked": 49,
       "result": "pass",
-      "details": "no blocking review-status drift across 49 story keys; 3 non-blocking drift(s) reported",
-      "non_blocking_drifts": [
-        {
-          "key": "post-epic-3-r3a4-dapr-integration-test-prerequisite-gating",
-          "status": "done",
-          "artifact": "absent",
-          "expected": "present",
-          "severity": "info"
-        },
-        {
-          "key": "post-readiness-story-quality-correction",
-          "status": "done",
-          "artifact": "absent",
-          "expected": "present",
-          "severity": "info"
-        },
-        {
-          "key": "post-readiness-2026-05-16-implementation-readiness-grooming",
-          "status": "done",
-          "artifact": "absent",
-          "expected": "present",
-          "severity": "info"
-        }
-      ]
+      "details": "no drift across 49 story keys"
     },
     {
       "id": 7,
@@ -93,11 +70,11 @@
         ":(exclude)_bmad-output/process-notes/preflight-latest.json"
       ],
       "exit_code": 0,
-      "stdout": " M Hexalith.AI.Tools\n",
+      "stdout": "?? _bmad-output/implementation-artifacts/post-epic-3-r3a4-dapr-integration-test-prerequisite-gating.md\n?? _bmad-output/implementation-artifacts/post-readiness-2026-05-16-implementation-readiness-grooming.md\n?? _bmad-output/implementation-artifacts/post-readiness-story-quality-correction.md\n",
       "stderr": "",
-      "dirty_path_count": 1,
+      "dirty_path_count": 3,
       "result": "fail",
-      "details": "1 dirty path(s)"
+      "details": "3 dirty path(s)"
     }
   ],
   "note_to_llm": "This file was produced by jobs/preflight-code-review.py. The recurring code-review job (jobs/story-code-review.md) MUST quote the contents of this file verbatim when reporting pre-flight results — do NOT re-run the checks yourself, paraphrase them, or summarize them in your own words. Check #5 (bmad-code-review skill discoverability) is not covered by this script and remains your responsibility to verify after reading this file."
