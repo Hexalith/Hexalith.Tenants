@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.4.1...v1.5.0) (2026-05-16)
+
+
+### Features
+
+* **preflight:** add predev preflight results for 2026-05-16 ([f43dc69](https://github.com/Hexalith/Hexalith.Tenants/commit/f43dc69243ee6d7129ccf7cea3eb693cc44098bd))
+
 ## [1.4.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.4.0...v1.4.1) (2026-05-16)
 
 
