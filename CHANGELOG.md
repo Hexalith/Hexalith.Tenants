@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.6.0...v1.7.0) (2026-05-16)
+
+
+### Features
+
+* **preflight:** update preflight results and add new checks for code review ([5506e60](https://github.com/Hexalith/Hexalith.Tenants/commit/5506e604d426284b0f6c0dee0012cdb8c84c9f7b))
+
 # [1.6.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.5.0...v1.6.0) (2026-05-16)
 
 
