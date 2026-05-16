@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.4.0...v1.4.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **server:** harden tenant audit projection queries ([d625185](https://github.com/Hexalith/Hexalith.Tenants/commit/d6251857dcf7f7c245cfb430c49aaedf7d4ee3c2))
+
 # [1.4.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.3.0...v1.4.0) (2026-05-14)
 
 
