@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.3...v1.8.0) (2026-05-17)
+
+
+### Features
+
+* Implement tenant query cursor encoding and validation ([107edaa](https://github.com/Hexalith/Hexalith.Tenants/commit/107edaade2217c6cca1c3e14ed202a637fe2aaf4))
+
 ## [1.7.3](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.2...v1.7.3) (2026-05-17)
 
 
