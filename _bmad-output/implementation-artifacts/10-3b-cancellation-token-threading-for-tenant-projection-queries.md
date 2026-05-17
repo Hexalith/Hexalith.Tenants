@@ -20,6 +20,8 @@ so that abandoned requests do not keep consuming compute or block projection pro
 6. Given cancellation is added to tenant query/projection code, when non-cancelled callers execute the same query and projection flows, then existing authorization, cursor, pagination, audit filtering, ETag cache, and projection write-safety behavior remains unchanged.
 7. Given cancellation occurs, when logs, metrics, or traces are emitted, then safe structured context distinguishes cancellation from forbidden, not-found, invalid-cursor, serialization, actor invocation, ETag conflict, and retry-exhaustion failures without logging payload bodies, tenant names, configuration values, cursor payloads, or user-controllable display names.
 8. Given Story 10.3A has not yet recorded the approved EventStore cancellation-aware signatures and submodule commit, when a developer begins Story 10.3B, then implementation stops before Tenants code changes and does not introduce a Tenants-local EventStore bypass, overload shim, DTO change, route change, cursor/auth/query visibility change, audit schema change, state key change, or package dependency change.
+9. Given a cancelled request also has an existing cheap validation or authorization failure with defined precedence, when tenant query handling begins, then cancellation checkpoints are placed after those existing guards but before state I/O or expensive processing so malformed-user, forbidden, cursor, and visibility behavior does not drift.
+10. Given cancellation is observed during multi-key projection writes, when any state write has already completed before the cancellation point, then the story does not claim cross-key atomic rollback; replay/idempotency from Stories 10.1 and 10.2 remains the recovery mechanism and tests only assert no additional writes occur after the observed cancellation boundary.
 
 ## Tasks / Subtasks
 
@@ -34,11 +36,13 @@ so that abandoned requests do not keep consuming compute or block projection pro
   - [ ] Update `HandleGetTenantAsync`, `HandleListTenantsAsync`, `HandleGetTenantUsersAsync`, `HandleGetUserTenantsAsync`, and `HandleGetTenantAuditAsync` to accept the token and pass it to DAPR `GetStateAsync` calls.
   - [ ] Check the token before expensive in-memory filtering, sorting, pagination, and audit result serialization where the operation may process a large read model.
   - [ ] Preserve malformed-user precedence: role-sensitive queries with missing or whitespace `UserId` must still return forbidden before cursor validation or state reads.
+  - [ ] Place pre-state cancellation checkpoints after existing cheap request-shape, authorization, and identity guards whose precedence is already asserted by Stories 9.3 and 9.4; do not let a pre-cancelled token mask malformed-user or forbidden outcomes that currently return before state access.
   - [ ] Preserve invalid cursor behavior for non-cancelled requests.
 - [ ] Thread cancellation through tenant projection write handling once EventStore exposes the token. (AC: 3, 5, 6)
   - [ ] Update `TenantProjectionHandler.ProjectAsync(...)` to accept the token only through the EventStore-approved projection contract.
   - [ ] Pass the token to DAPR state reads and saves for `projection:tenants:{tenantId}`, `projection:tenant-index:singleton`, and `audit:{tenantId}` where those paths are present after Stories 10.1 and 10.2.
   - [ ] Preserve guarded ETag retry semantics from Stories 10.1 and 10.2; cancellation must abort retry loops, not convert cancellation into a conflict, retry exhaustion, or successful projection response.
+  - [ ] Do not introduce a cross-key transaction claim while adding cancellation. If cancellation occurs after one guarded state save and before another, rely on replay/idempotency and assert only that the implementation stops before the next awaited read/write boundary.
   - [ ] If the current projection handler still uses plain `SaveStateAsync`/`GetStateAsync`, coordinate with the 10.1 and 10.2 implementation state before editing so cancellation does not mask existing write-safety work.
 - [ ] Keep cancellation taxonomy explicit. (AC: 5, 7)
   - [ ] Let cancellation surface as `OperationCanceledException` or the EventStore-approved cancellation result shape.
@@ -48,9 +52,12 @@ so that abandoned requests do not keep consuming compute or block projection pro
 - [ ] Add focused deterministic tests. (AC: 1-7)
   - [ ] Add or extend `TenantsProjectionActorTests` with pre-cancelled and mid-flow cancellation coverage for query state reads.
   - [ ] Inject cancellation deterministically with pre-cancelled tokens, controlled fake EventStore boundaries, or cancellation triggered at known awaited points; do not depend on sleeps or scheduler timing.
+  - [ ] Capture the received `CancellationToken` in fakes/substitutes and assert token identity or cancellation state at each supported EventStore, DAPR state, and projection helper boundary named by the 10.3A handoff.
   - [ ] Verify cancellation before DAPR state access prevents state reads for at least one role-sensitive query and one audit query.
+  - [ ] Verify a pre-cancelled malformed-user or forbidden request preserves the existing cheap-validation result before state access when that precedence is already externally observable.
   - [ ] Verify cancellation during audit/list pagination does not return a partial successful page.
   - [ ] Add or extend `TenantProjectionHandlerTests` to prove projection state reads/writes receive the same token and abort cleanly when cancelled.
+  - [ ] Verify projection cancellation after a completed first save does not attempt later saves in the same operation and does not weaken replay/idempotency expectations from Stories 10.1 and 10.2.
   - [ ] Assert cancellation is not reported as a successful empty payload, forbidden, invalid cursor, tenant not found, generic actor failure, ETag conflict, or retry exhaustion.
   - [ ] Verify non-cancelled requests still pass existing authorization, cursor, pagination, audit, and projection result assertions.
   - [ ] Use deterministic fakes or substitutes; do not rely on timing sleeps, live DAPR, Redis, Aspire, or real network calls.
@@ -90,6 +97,8 @@ so that abandoned requests do not keep consuming compute or block projection pro
 - Add token parameters narrowly and mechanically after the EventStore API shape is known. Avoid broad helper abstractions unless Stories 10.1/10.2 already introduced an internal projection state adapter that should receive the token.
 - Prefer `CancellationToken.ThrowIfCancellationRequested()` before expensive in-memory loops and before starting retry attempts. For DAPR calls, pass the token to overloads that support it.
 - Place cancellation checkpoints before state access, expensive filtering/sorting/pagination, retry attempts, and multi-item audit/projection processing; avoid noisy checks between trivial synchronous operations.
+- Keep cheap validation precedence explicit. Cancellation must not become an accidental shortcut that changes malformed-user, forbidden, invalid-cursor, or tenant-visibility outcomes already hardened by Stories 9.3 and 9.4; checkpoints should still occur before DAPR state I/O and expensive processing.
+- Treat multi-key projection writes as checkpoint-aware, not atomic. If cancellation is observed after a prior guarded save has completed, do not compensate, delete, or rewrite state; rely on the existing replay/idempotency contracts and stop before later awaited operations.
 - Do not catch `OperationCanceledException` and convert it into a successful `QueryResult`, projection `ProjectionResponse`, or ordinary adapter failure.
 - Preserve `ConfigureAwait(false)` conventions in the existing async code.
 - If an EventStore compatibility wrapper uses `CancellationToken.None` for legacy callers, tests must prove no-token callers keep existing behavior.
@@ -172,3 +181,27 @@ GPT-5 Codex
   - Integration-level validation with live DAPR, Redis, Aspire, actor hosting, or network behavior remains outside this deterministic story-hardening pass.
   - Broader cancellation propagation across unrelated tenant services remains out of scope.
 - Final recommendation: needs-story-update
+
+## Advanced Elicitation
+
+- Date/time: 2026-05-17T20:02:43+02:00
+- Selected story key: 10-3b-cancellation-token-threading-for-tenant-projection-queries
+- Command/skill invocation used: `/bmad-advanced-elicitation 10-3b-cancellation-token-threading-for-tenant-projection-queries`
+- Batch 1 method names: Tree of Thoughts; Red Team vs Blue Team; Failure Mode Analysis; Socratic Questioning; Critique and Refine
+- Reshuffled Batch 2 method names: Self-Consistency Validation; Pre-mortem Analysis; Code Review Gauntlet; First Principles Analysis; Occam's Razor Application
+- Findings summary:
+  - The story already had the correct 10.3A dependency gate, but cancellation precedence could still accidentally mask existing cheap validation and authorization behavior.
+  - Tests needed stronger evidence that the exact cancellation token reaches each supported EventStore, DAPR state, and projection helper boundary.
+  - Projection-write cancellation needed explicit non-atomic, replay/idempotency-aware behavior so developers do not infer cross-key rollback semantics.
+  - The implementation should remain checkpoint-aware and narrow rather than introducing broad abstractions or Tenants-only cancellation conventions.
+- Changes applied:
+  - Added ACs for preserving existing cheap-validation precedence before cancellation checkpoints and for non-atomic multi-key projection write cancellation.
+  - Tightened query tasks to place cancellation after existing cheap guards but before state I/O and expensive work.
+  - Added projection-write guidance to rely on replay/idempotency after a completed save and stop before later awaited operations.
+  - Expanded deterministic test guidance for token identity propagation, pre-cancelled malformed-user/forbidden precedence, and no-further-save behavior after observed cancellation.
+  - Added implementation notes for validation precedence and checkpoint-aware multi-key writes.
+- Findings deferred:
+  - Exact EventStore cancellation-aware signatures and supported boundaries remain governed by Story 10.3A.
+  - Exact projection helper or state adapter call sites remain dependent on the completed 10.1 and 10.2 implementation shape.
+  - Any stronger cross-key transactional guarantee remains out of scope for this story.
+- Final recommendation: ready-for-dev
