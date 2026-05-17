@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.0...v1.7.1) (2026-05-17)
+
+
+### Bug Fixes
+
+* **bmad:** restore missing completed story artifacts ([3fdac06](https://github.com/Hexalith/Hexalith.Tenants/commit/3fdac06e91fd52ee25b62a86f9e25959ccaf14f9))
+
 # [1.7.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.6.0...v1.7.0) (2026-05-16)
 
 
