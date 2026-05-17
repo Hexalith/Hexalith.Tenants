@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "produced_by": "jobs/preflight-predev-hardening.py",
-  "timestamp": "2026-05-17T08:17:21Z",
+  "timestamp": "2026-05-17T08:09:30Z",
   "repo": "D:\\Hexalith.Tenants",
-  "result": "pass",
+  "result": "fail",
   "bootstrap_actions": [],
   "checks": [
     {
@@ -12,7 +12,7 @@
       "path": "D:\\Hexalith.Tenants\\_bmad-output\\implementation-artifacts\\sprint-status.yaml",
       "result": "pass",
       "details": "PARSE OK",
-      "file_size_bytes": 9601,
+      "file_size_bytes": 9794,
       "line_count": 199,
       "top_level_keys": [
         "development_status",
@@ -43,8 +43,28 @@
       "id": 4,
       "name": "status-artifact consistency",
       "story_keys_checked": 49,
-      "result": "pass",
-      "details": "no drift across 49 story keys"
+      "result": "fail",
+      "details": "3 status-artifact drift(s) found",
+      "drifts": [
+        {
+          "key": "post-epic-3-r3a4-dapr-integration-test-prerequisite-gating",
+          "status": "done",
+          "artifact": "absent",
+          "expected": "present"
+        },
+        {
+          "key": "post-readiness-story-quality-correction",
+          "status": "done",
+          "artifact": "absent",
+          "expected": "present"
+        },
+        {
+          "key": "post-readiness-2026-05-16-implementation-readiness-grooming",
+          "status": "done",
+          "artifact": "absent",
+          "expected": "present"
+        }
+      ]
     },
     {
       "id": 5,
