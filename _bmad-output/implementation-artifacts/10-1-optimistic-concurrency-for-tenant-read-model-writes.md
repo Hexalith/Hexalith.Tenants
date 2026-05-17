@@ -21,6 +21,9 @@ so that concurrent projection updates do not silently overwrite tenant query sta
 7. Given the singleton tenant index write conflicts, when retry logic reloads the index, then incoming events are not dropped or double-counted and existing indexed tenants from the latest state are preserved.
 8. Given state is missing or newly created, when the optimistic helper writes it, then `ConcurrencyMode.FirstWrite` is used only for the missing-state/no-ETag path; existing state writes use the loaded ETag.
 9. Given retry exhaustion occurs, when the operation fails, then it returns or throws through the existing projection failure path and emits safe structured log fields for state store, key category, attempts, max attempts, operation context, and conflict/exhaustion reason without logging tenant payloads or event contents.
+10. Given one guarded write succeeds and a later required guarded write exhausts retries, when `ProjectAsync` completes, then it must fail through the existing projection failure path and must not imply cross-key atomicity or report a fully successful projection.
+11. Given a retry is attempted for any state key, when the helper reloads state, then the ETag used for a guarded save must be the ETag returned for that same state store/key read and must never be reused across tenant read-model, singleton index, or audit keys.
+12. Given missing or null state is loaded during any attempt, when a default read model is created, then the default instance is fresh for that attempt before applying the incoming event batch exactly once.
 
 ## Tasks / Subtasks
 
@@ -38,8 +41,10 @@ so that concurrent projection updates do not silently overwrite tenant query sta
   - [ ] Use a bounded retry policy, aligned with architecture guidance of max 3 attempts for cross-tenant index conflicts.
   - [ ] On each retry, reload the current state, discard the stale mutated instance from the previous attempt, and re-apply the incoming events exactly once so the final model includes both previously persisted changes and this request's events.
   - [ ] For missing-state creation, use first-write semantics only for the missing-state/no-ETag path; for existing state, save with the ETag returned by the read.
+  - [ ] Scope every ETag to the exact state store and key it came from; do not cache or reuse ETags across the tenant read model, singleton index, or audit state keys.
+  - [ ] Retry only confirmed optimistic-concurrency conflicts from guarded-save results; ordinary Dapr/state-store exceptions should fail through the existing projection failure path instead of being converted into conflict retries unless existing infrastructure policy already does that.
   - [ ] When retry exhaustion occurs, log a structured warning/error with state store, key category, attempt count, max attempts, operation context, conflict/exhaustion reason, and correlation ID/message IDs where available.
-  - [ ] Do not log tenant names, configuration values, cursor payloads, event payload bodies, or user-controllable display names.
+  - [ ] Do not log tenant names, tenant aggregate IDs, full state keys, configuration values, cursor payloads, event payload bodies, or user-controllable display names; prefer state key category plus correlation/message identifiers already considered safe in the codebase.
 - [ ] Preserve read model semantics while adding concurrency. (AC: 1-4)
   - [ ] Keep per-tenant projection state keyed by `projection:tenants:{aggregateId}` and shared index state keyed by `projection:tenant-index:singleton`.
   - [ ] Keep `TenantReadModel.Apply(...)` and `TenantIndexReadModel.Apply(...)` as the single mutation rules; do not duplicate projection logic in the helper.
@@ -51,6 +56,8 @@ so that concurrent projection updates do not silently overwrite tenant query sta
   - [ ] Add or extend tests for the singleton tenant index where two event batches target the same shared state key and the retry path preserves both updates.
   - [ ] Add a retry-exhaustion test proving `ProjectAsync` does not return success when guarded persistence cannot be confirmed.
   - [ ] Assert the state options use `ConcurrencyMode.FirstWrite` for missing-state guarded writes and the loaded ETag path for existing-state guarded writes.
+  - [ ] Assert retry attempt counting is exact, including the max-attempt boundary, so the implementation cannot accidentally perform an unbounded retry loop or one fewer retry than documented.
+  - [ ] Add a partial-success test where the per-tenant read-model write succeeds but the singleton index guarded write exhausts retries; assert the projection fails observably rather than returning a successful `ProjectionResponse`.
   - [ ] Assert no silent data loss or double-counting after simulated conflicts by checking final tenant read model and tenant index contents, not only method success.
   - [ ] Keep tests deterministic and in-memory; do not require a live DAPR sidecar or Redis for this story.
 - [ ] Keep scope boundaries explicit. (AC: 1-5)
@@ -67,6 +74,7 @@ so that concurrent projection updates do not silently overwrite tenant query sta
 - Dapr Client 1.17.9 includes `GetStateAndETagAsync<TValue>`, `TrySaveStateAsync<TValue>(..., etag, ...)`, `StateEntry<TValue>.TrySaveAsync(...)`, `StateOptions.Concurrency`, and `ConcurrencyMode.FirstWrite`. Use those APIs before inventing a custom ETag abstraction. [Source: `Directory.Packages.props`; `%USERPROFILE%/.nuget/packages/dapr.client/1.17.9/lib/net10.0/Dapr.Client.xml`]
 - Use max 3 attempts for the shared tenant index conflict policy, matching the architecture guidance for `projection:tenant-index:singleton`. Apply the same limit to the per-tenant read model unless implementation proves a narrower policy is needed and documents it. [Source: `_bmad-output/planning-artifacts/epics.md#Technical Assumptions`; `_bmad-output/planning-artifacts/epics.md#Story 10.1`]
 - Retry means "reload current state and re-apply the incoming projection events", not "retry the stale write." For the singleton index this is essential because every tenant batch may merge into the same model. [Source: `_bmad-output/planning-artifacts/epics.md#Story 10.1`; `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`]
+- Dapr ETag writes are per state entry. This story should not claim cross-key transactionality between `projection:tenants:{tenantId}` and `projection:tenant-index:singleton`; instead, it must fail observably when any required guarded write cannot be confirmed so the existing projection retry path can handle the incomplete operation. [Source: `Dapr.Client` state API shape; `_bmad-output/planning-artifacts/epics.md#Story 10.1`]
 - If all retries fail, the projection must fail observably and must not return a successful `ProjectionResponse`. That lets EventStore/DAPR infrastructure retry or surface failure instead of hiding data loss. [Source: `_bmad-output/planning-artifacts/epics.md#Story 10.1`]
 
 ### Current Code State
@@ -82,6 +90,7 @@ so that concurrent projection updates do not silently overwrite tenant query sta
 
 - Prefer a small helper next to `TenantProjectionHandler`, for example an internal projection persistence helper in `src/Hexalith.Tenants/Projections/`, so write-safety code is testable without expanding public surface area.
 - Keep helper inputs explicit: state store name, state key, max attempts, load function/default factory, merge/apply function, and optional correlation/log context. Avoid a generic framework that hides which model is being merged.
+- Ensure default factories create a fresh read model for each attempt. Reusing a default or mutated instance across attempts can duplicate the incoming batch or persist stale state after a conflict.
 - For per-tenant `TenantReadModel`, verify before coding whether `ProjectionRequest.Events` supplies complete aggregate history or deltas. If it supplies full history, rebuilding the tenant read model from scratch and saving it under an ETag guard is acceptable. If it supplies deltas, reload-and-merge is required. Record the verified contract in focused test names.
 - For `TenantIndexReadModel`, load the current model and apply only the incoming events to a freshly loaded instance before each guarded save attempt, because the singleton state accumulates events from all tenant aggregates and must not double-count a stale mutated instance.
 - If direct `DaprClient` testing is brittle, introduce a tiny internal projection state adapter around `GetStateAndETagAsync`, `TrySaveStateAsync`/`StateEntry<T>.TrySaveAsync`, and first-write options. Keep it internal to the projection path and do not create a reusable package-level Dapr abstraction.
@@ -110,6 +119,7 @@ so that concurrent projection updates do not silently overwrite tenant query sta
   - second guarded save returns `true`;
   - saved model contains model B plus the incoming events.
 - Test retry exhaustion with max attempts reached and assert `ProjectAsync` throws or returns a failure according to the selected implementation. Do not accept silent success.
+- Test the partial-success boundary explicitly: if a prior required guarded write succeeded but a later required guarded write exhausts retries, `ProjectAsync` still fails and logs safe context without pretending the whole projection completed.
 - Test per-tenant write protection enough to prove missing-state `ConcurrencyMode.FirstWrite`, existing-state ETag saves, and existing-key conflicts are used.
 - Test retry exhaustion preserves previously successful state and exposes failure to the caller instead of reporting success.
 - Run at minimum:
@@ -175,3 +185,25 @@ GPT-5 Codex
   - Audit write concurrency remains Story 10.2 scope.
   - Broader reusable Dapr concurrency abstractions, EventStore changes, query cache ETag changes, and event replay contract changes remain out of scope.
 - Final recommendation: needs-story-update
+
+## Advanced Elicitation
+
+- Date: 2026-05-17T16:03:15+02:00
+- Selected story key: `10-1-optimistic-concurrency-for-tenant-read-model-writes`
+- Command/skill invocation used: `/bmad-advanced-elicitation 10-1-optimistic-concurrency-for-tenant-read-model-writes`
+- Batch 1 method names: Red Team vs Blue Team; Failure Mode Analysis; Architecture Decision Records; Code Review Gauntlet; Self-Consistency Validation.
+- Reshuffled Batch 2 method names: Pre-mortem Analysis; First Principles Analysis; Comparative Analysis Matrix; Security Audit Personas; Occam's Razor Application.
+- Findings summary:
+  - The story already had strong retry/reload guidance, but it could still be misread as providing cross-key atomicity across the tenant read model and singleton index.
+  - The highest remaining failure modes were partial success being reported as success, ETags being reused across keys, stale/default instances leaking across attempts, and observability logging full tenant keys or aggregate identifiers.
+  - Test guidance needed one more boundary around max-attempt counting and a deterministic partial-success scenario.
+- Changes applied:
+  - Added acceptance criteria for partial-success failure semantics, per-key ETag scoping, and fresh default instances per retry attempt.
+  - Tightened retry-policy tasks to retry only confirmed guarded-save conflicts, scope ETags to their state key, and avoid logging tenant aggregate IDs or full state keys.
+  - Added deterministic tests for exact max-attempt behavior and the boundary where tenant state persistence succeeds but singleton index persistence exhausts retries.
+  - Clarified in Dev Notes that Dapr ETags are per state entry and that this story must fail observably instead of claiming cross-key transactionality.
+- Findings deferred:
+  - The exact throw-versus-failed-result behavior remains an implementation decision governed by the existing `TenantProjectionHandler.ProjectAsync` contract.
+  - Any broader transactional outbox, multi-key transaction, or compensating-write design remains out of scope for this story.
+  - Audit write safety remains Story 10.2 scope.
+- Final recommendation: ready-for-dev
