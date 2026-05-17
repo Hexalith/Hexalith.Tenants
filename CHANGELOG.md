@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.1...v1.7.2) (2026-05-17)
+
+
+### Bug Fixes
+
+* **preflight:** update pre-dev preflight results to reflect successful checks ([68fdae6](https://github.com/Hexalith/Hexalith.Tenants/commit/68fdae60bfc03fce44532b9ab9ae20a6a0c200d0))
+
 ## [1.7.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.0...v1.7.1) (2026-05-17)
 
 
