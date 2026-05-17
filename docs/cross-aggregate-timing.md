@@ -14,6 +14,8 @@ When a tenant command is processed (e.g., `RemoveUserFromTenant`), the event is 
 
 Under normal load, the propagation window is typically **50–200ms**. Under pub/sub backpressure or network latency, it can extend to low seconds.
 
+Tenant query projections have the same eventual-consistency window. After `UserRemovedFromTenant` is accepted by the aggregate, a `get-user-tenants` self-lookup can briefly return the previous membership until the tenant index projection processes the removal event. That stale query result is read-only visibility: it does not grant command capability, does not override aggregate authorization, and does not allow writes against a disabled tenant or removed membership.
+
 ## Event Propagation Flow
 
 The following diagram shows the consumer-facing event propagation flow. The synchronous boundary (atomic store + response) and asynchronous boundary (pub/sub delivery) define the timing window.

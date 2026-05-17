@@ -420,6 +420,21 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             envelope.UserId,
             userTenants,
             canViewAllTargetTenants);
+        List<KeyValuePair<string, TenantRole>> existingVisibleUserTenants = [];
+        foreach (KeyValuePair<string, TenantRole> visibleUserTenant in visibleUserTenants) {
+            if (indexModel.Tenants.ContainsKey(visibleUserTenant.Key)) {
+                existingVisibleUserTenants.Add(visibleUserTenant);
+                continue;
+            }
+
+            Log.OrphanUserTenantMembershipFiltered(
+                _logger,
+                envelope.CorrelationId,
+                GetUserTenantsQuery.QueryType,
+                envelope.UserId,
+                targetUserId,
+                visibleUserTenant.Key);
+        }
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.GetUserTenants(targetUserId);
@@ -429,16 +444,16 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         PaginatedResult<UserTenantMembership> result = ProtectCursor(
             Paginate(
-                visibleUserTenants,
+                existingVisibleUserTenants,
                 cursor,
                 pageSize,
                 kvp => kvp.Key,
                 kvp => {
-                    TenantIndexEntry? entry = indexModel.Tenants.GetValueOrDefault(kvp.Key);
+                    TenantIndexEntry entry = indexModel.Tenants[kvp.Key];
                     return new UserTenantMembership(
                         kvp.Key,
-                        entry?.Name ?? string.Empty,
-                        entry?.Status ?? TenantStatus.Active,
+                        entry.Name,
+                        entry.Status,
                         kvp.Value);
                 }),
             GetUserTenantsQuery.QueryType,
@@ -526,5 +541,17 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             string tenantId,
             string userId,
             string failureReason);
+
+        [LoggerMessage(
+            EventId = 1903,
+            Level = LogLevel.Warning,
+            Message = "Filtered orphan tenant membership from query result: CorrelationId={CorrelationId}, QueryType={QueryType}, RequesterUserId={RequesterUserId}, TargetUserId={TargetUserId}, OrphanTenantId={OrphanTenantId}, Stage=TenantsProjectionActor")]
+        public static partial void OrphanUserTenantMembershipFiltered(
+            ILogger logger,
+            string correlationId,
+            string queryType,
+            string requesterUserId,
+            string targetUserId,
+            string orphanTenantId);
     }
 }

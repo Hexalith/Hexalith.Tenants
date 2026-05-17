@@ -1,6 +1,6 @@
 # Story 9.3: Query Policy for Disabled Tenants and Orphan Memberships
 
-Status: ready-for-dev
+Status: review
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -21,35 +21,35 @@ so that query results are predictable, explainable, and do not accidentally expo
 
 ## Tasks / Subtasks
 
-- [ ] Lock the disabled-tenant query policy in actor behavior and tests. (AC: 1, 2)
-  - [ ] Preserve the current projection rule that `TenantDisabled` updates `TenantIndexEntry.Status` and does not remove the tenant from `TenantIndexReadModel.Tenants`.
-  - [ ] Ensure `get-user-tenants` returns disabled tenants for self lookup, tenant-owner scoped cross-user lookup, and global-admin lookup when the caller is otherwise authorized.
-  - [ ] Ensure any related list output that already exposes `TenantSummary` or `UserTenantMembership` serializes the existing `Status` value as `Disabled`.
-  - [ ] Do not treat disabled status as authorization failure for queries. Disabled tenants still reject commands at aggregate/domain level; this story must not weaken that command invariant.
-- [ ] Filter orphan memberships before creating user-facing query DTOs. (AC: 3)
-  - [ ] In `TenantsProjectionActor.HandleGetUserTenantsAsync`, do not construct `UserTenantMembership` from a `UserTenants` entry when `indexModel.Tenants` has no matching `TenantIndexEntry`.
-  - [ ] Remove the current fallback behavior that emits `Name = string.Empty` and `Status = TenantStatus.Active` for missing tenant entries.
-  - [ ] Apply filtering before keyset ordering, `pageSize + 1` selection, and signed cursor generation so orphan entries do not consume page slots or cursor positions.
-  - [ ] Treat cursor continuation against the current filtered candidate set: if the cursor's prior anchor tenant is now orphaned or otherwise filtered out, do not materialize it, expose it, or derive a next cursor from it.
-  - [ ] Preserve the existing authorization filter order: self/global-admin visibility and tenant-owner scoped overlap must still be determined before pagination, and cross-user timing-uniformity behavior from R5-A2 must remain intact.
-- [ ] Add observable projection-repair warning logs for filtered orphan memberships. (AC: 4)
-  - [ ] Add a source-generated `LoggerMessage` warning on `TenantsProjectionActor` or a local logging helper with fields for correlation ID, query type, requester user ID, target user ID, orphan tenant ID, and stage.
-  - [ ] Treat repair observability as internal telemetry/logging only unless an existing trace/activity tag convention is already available; do not add response metadata, DTO fields, routes, or a diagnostic orphan view in this story.
-  - [ ] Do not log protected cursor payloads, signing material, or full serialized query payloads.
-  - [ ] Follow existing repository privacy/logging conventions for identifier values; tests should assert warning category, level, event identity, and correlation linkage without requiring tenant names or serialized query payloads in logs.
-  - [ ] Keep the warning informational enough for operators to repair projections, but do not expose the orphan tenant through the response body.
-- [ ] Document and test accepted eventual consistency after membership removal. (AC: 5)
-  - [ ] Add or update a concise note in `docs/cross-aggregate-timing.md` explaining that tenant query projections are eventually consistent after `UserRemovedFromTenant`; a stale self-lookup may briefly show the old membership until projection catch-up completes.
-  - [ ] State explicitly that this query visibility does not grant write capability and does not override aggregate command authorization.
-  - [ ] Add focused tests or comments proving the actor cannot infer unprocessed removals from current projection state and therefore returns exactly the current read model after normal authorization filtering.
-- [ ] Add focused tests for disabled tenants, orphan filtering, and no-regression query behavior. (AC: 1-5)
-  - [ ] Add actor tests in `TenantsProjectionActorTests` for disabled tenant inclusion in `get-user-tenants` self, tenant-owner scoped, and global-admin paths.
-  - [ ] Add actor tests where `UserTenants[targetUser]` contains valid, orphan, and valid tenant IDs across a deterministic keyset boundary; assert the response omits the orphan, contains no blank/synthesized name item, does not page around it incorrectly, and emits the repair warning.
-  - [ ] Add a global-admin ordinary `get-user-tenants` orphan test to prove diagnostic exposure is not added to normal membership list results.
-  - [ ] Use explicit sortable tenant IDs and fixed timestamps/test data so orphan filtering and cursor assertions never rely on dictionary enumeration order or wall-clock timing.
-  - [ ] Add a stale self-lookup regression guard that documents query-only eventual consistency after removal and proves no write authorization behavior is inferred from the stale query result.
-  - [ ] Keep existing signed cursor tests green; if pagination expectations change because filtering now happens before pagination, update tests to assert the new policy directly.
-  - [ ] Keep existing 401/403/404/400 ProblemDetails behavior green.
+- [x] Lock the disabled-tenant query policy in actor behavior and tests. (AC: 1, 2)
+  - [x] Preserve the current projection rule that `TenantDisabled` updates `TenantIndexEntry.Status` and does not remove the tenant from `TenantIndexReadModel.Tenants`.
+  - [x] Ensure `get-user-tenants` returns disabled tenants for self lookup, tenant-owner scoped cross-user lookup, and global-admin lookup when the caller is otherwise authorized.
+  - [x] Ensure any related list output that already exposes `TenantSummary` or `UserTenantMembership` serializes the existing `Status` value as `Disabled`.
+  - [x] Do not treat disabled status as authorization failure for queries. Disabled tenants still reject commands at aggregate/domain level; this story must not weaken that command invariant.
+- [x] Filter orphan memberships before creating user-facing query DTOs. (AC: 3)
+  - [x] In `TenantsProjectionActor.HandleGetUserTenantsAsync`, do not construct `UserTenantMembership` from a `UserTenants` entry when `indexModel.Tenants` has no matching `TenantIndexEntry`.
+  - [x] Remove the current fallback behavior that emits `Name = string.Empty` and `Status = TenantStatus.Active` for missing tenant entries.
+  - [x] Apply filtering before keyset ordering, `pageSize + 1` selection, and signed cursor generation so orphan entries do not consume page slots or cursor positions.
+  - [x] Treat cursor continuation against the current filtered candidate set: if the cursor's prior anchor tenant is now orphaned or otherwise filtered out, do not materialize it, expose it, or derive a next cursor from it.
+  - [x] Preserve the existing authorization filter order: self/global-admin visibility and tenant-owner scoped overlap must still be determined before pagination, and cross-user timing-uniformity behavior from R5-A2 must remain intact.
+- [x] Add observable projection-repair warning logs for filtered orphan memberships. (AC: 4)
+  - [x] Add a source-generated `LoggerMessage` warning on `TenantsProjectionActor` or a local logging helper with fields for correlation ID, query type, requester user ID, target user ID, orphan tenant ID, and stage.
+  - [x] Treat repair observability as internal telemetry/logging only unless an existing trace/activity tag convention is already available; do not add response metadata, DTO fields, routes, or a diagnostic orphan view in this story.
+  - [x] Do not log protected cursor payloads, signing material, or full serialized query payloads.
+  - [x] Follow existing repository privacy/logging conventions for identifier values; tests should assert warning category, level, event identity, and correlation linkage without requiring tenant names or serialized query payloads in logs.
+  - [x] Keep the warning informational enough for operators to repair projections, but do not expose the orphan tenant through the response body.
+- [x] Document and test accepted eventual consistency after membership removal. (AC: 5)
+  - [x] Add or update a concise note in `docs/cross-aggregate-timing.md` explaining that tenant query projections are eventually consistent after `UserRemovedFromTenant`; a stale self-lookup may briefly show the old membership until projection catch-up completes.
+  - [x] State explicitly that this query visibility does not grant write capability and does not override aggregate command authorization.
+  - [x] Add focused tests or comments proving the actor cannot infer unprocessed removals from current projection state and therefore returns exactly the current read model after normal authorization filtering.
+- [x] Add focused tests for disabled tenants, orphan filtering, and no-regression query behavior. (AC: 1-5)
+  - [x] Add actor tests in `TenantsProjectionActorTests` for disabled tenant inclusion in `get-user-tenants` self, tenant-owner scoped, and global-admin paths.
+  - [x] Add actor tests where `UserTenants[targetUser]` contains valid, orphan, and valid tenant IDs across a deterministic keyset boundary; assert the response omits the orphan, contains no blank/synthesized name item, does not page around it incorrectly, and emits the repair warning.
+  - [x] Add a global-admin ordinary `get-user-tenants` orphan test to prove diagnostic exposure is not added to normal membership list results.
+  - [x] Use explicit sortable tenant IDs and fixed timestamps/test data so orphan filtering and cursor assertions never rely on dictionary enumeration order or wall-clock timing.
+  - [x] Add a stale self-lookup regression guard that documents query-only eventual consistency after removal and proves no write authorization behavior is inferred from the stale query result.
+  - [x] Keep existing signed cursor tests green; if pagination expectations change because filtering now happens before pagination, update tests to assert the new policy directly.
+  - [x] Keep existing 401/403/404/400 ProblemDetails behavior green.
 
 ## Dev Notes
 
@@ -125,9 +125,29 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-05-17: Red phase confirmed orphan policy failures before implementation. `GetUserTenants_filters_orphan_memberships_before_pagination_and_logs_warningAsync` returned `tenant-002-orphan`; `GetUserTenants_all_orphan_page_returns_empty_without_cursorAsync` returned a synthesized empty-name active membership.
+- 2026-05-17: `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` passed: 45/45.
+- 2026-05-17: `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests` passed: 18/18.
+- 2026-05-17: `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore` built and ran non-DAPR suites successfully, but failed in environment-backed integration fixtures: Redis `MISCONF` blocks DAPR pubsub writes and Docker/Aspire container runtime is unhealthy. Observed passing suites in that run: Sample 17/17, Contracts 35/35, Server 319/319, Client 48/48, Testing 89/89, Integration 21/34 before fixture failures.
+
 ### Completion Notes List
 
+- Disabled tenants remain query-visible for otherwise authorized self, tenant-owner scoped cross-user, and global-admin `get-user-tenants` lookups, and returned memberships preserve `TenantStatus.Disabled`.
+- `HandleGetUserTenantsAsync` now filters visible memberships against `TenantIndexReadModel.Tenants` before pagination and cursor protection, removing the empty-name/active fallback for orphan tenant IDs.
+- Filtered orphan memberships emit internal structured warning logs with correlation ID, query type, requester user ID, target user ID, orphan tenant ID, and `TenantsProjectionActor` stage; no public orphan DTO fields, response metadata, or diagnostic route were added.
+- Documented the accepted eventual-consistency window after `UserRemovedFromTenant` and added a stale self-lookup regression guard proving the query returns current projection state only.
+
 ### File List
+
+- `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs`
+- `docs/cross-aggregate-timing.md`
+- `_bmad-output/implementation-artifacts/9-3-query-policy-for-disabled-tenants-and-orphan-memberships.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Change Log
+
+- 2026-05-17: Implemented Story 9.3 disabled tenant and orphan membership query policy; moved story to review with focused actor/query validation passing and full-suite infrastructure blockers documented.
 
 ## Party-Mode Review
 
