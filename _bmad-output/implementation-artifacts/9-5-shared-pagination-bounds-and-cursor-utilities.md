@@ -20,6 +20,9 @@ so that tenant query behavior stays consistent as endpoints evolve.
 6. Given this story is a refactor, when oversized page sizes are submitted, then endpoints continue to clamp to the current effective maximum and do not start returning validation errors for values previously accepted.
 7. Given malformed pagination payloads reach the actor, when standard tenant queries receive malformed JSON, then they preserve the existing first-page fallback using default page size `20`; when audit receives malformed JSON, then it preserves the existing unsuccessful result with `"Invalid audit query payload."`.
 8. Given cursor utility code is shared, when cursors are encoded or decoded, then the shared code centralizes serialization, signing validation, and scope checks only; each endpoint and actor call site remains responsible for its explicit ordering fields and logical cursor position.
+9. Given signed cursors may have been issued before this refactor, when those cursors are decoded after the shared utility changes, then valid existing cursors continue to work and invalid existing cursors continue to fail with the same invalid-cursor behavior.
+10. Given pagination parsing can fail before query execution, when parsing fails in controller or actor paths, then the failure path must not write projection state, emit decoded cursor details, or log serialized pagination payload bodies.
+11. Given this story introduces shared helpers, when implementation is complete, then helper APIs remain internal to the server project and no public route, DTO, response envelope, or package dependency changes are introduced.
 
 ## Tasks / Subtasks
 
@@ -39,12 +42,14 @@ so that tenant query behavior stays consistent as endpoints evolve.
   - [ ] Keep `TenantQueryCursorScopes` as the single place for scope strings used by controller validation and actor decoding.
   - [ ] Do not rename existing scope strings (`user:{userId}`, `tenant:{tenantId}`, `target-user:{targetUserId}`, and audit filter scope) because existing signed cursors rely on exact query type and scope matching.
   - [ ] Keep signed cursor payload shape, signing format, query type matching, scope matching, error behavior, and public response fields unchanged.
+  - [ ] Add at least one regression assertion that a cursor encoded with the existing query type, scope, and logical position shape can still be decoded through the refactored path. (AC: 9)
   - [ ] If helper names are changed, update both controller and actor call sites in the same patch so cursor validation stays symmetric.
   - [ ] Do not introduce a generic cursor abstraction that obscures which logical position each endpoint stores.
 - [ ] Preserve invalid cursor and invalid audit payload error behavior. (AC: 4)
   - [ ] Keep controller-level invalid cursor responses as HTTP 400 ProblemDetails with reason code `invalid-cursor`.
   - [ ] Keep actor-level malformed cursor results as `new QueryResult(false, default, ErrorMessage: "Invalid cursor.")` so existing EventStore query error mapping remains unchanged.
   - [ ] Keep invalid audit category and `from > to` handling explicit in audit parsing.
+  - [ ] Confirm malformed or invalid parse paths are read-only with respect to DAPR actor state and do not call state save operations. (AC: 10)
   - [ ] Do not log protected cursor payloads, signing material, decoded positions, or serialized payload bodies.
 - [ ] Add focused unit tests for bounds and cursor helper behavior. (AC: 1-5)
   - [ ] Add tests that prove standard paginated endpoints use default `20`, clamp `<= 0` to `20`, and cap values above `100`.
@@ -55,6 +60,7 @@ so that tenant query behavior stays consistent as endpoints evolve.
 - [ ] Keep implementation scope tight. (AC: 1-5)
   - [ ] Do not change endpoint routes, public query DTO shapes, `PaginatedResult<T>`, or `QueryEnvelope`.
   - [ ] Do not change page-size policy values unless a separate product decision updates the epic.
+  - [ ] Keep new pagination policy and parsing helpers `internal`; do not expose them from contract assemblies or make them part of API documentation. (AC: 11)
   - [ ] Do not introduce generic pagination middleware, base controller behavior, or shared query-envelope changes.
   - [ ] Do not modify the `Hexalith.EventStore` submodule.
   - [ ] Do not add package dependencies or update package versions for this story.
@@ -98,6 +104,14 @@ so that tenant query behavior stays consistent as endpoints evolve.
 - Do not remove controller validation. It gives clients a safe 400 before dispatch and protects observability from unnecessary actor calls.
 - Keep `TenantQueryCursorCodec` and `TenantQueryCursorScopes` mechanical: serialization, signing validation, query type, and scope matching. They must not infer endpoint ordering or choose the logical cursor position.
 - Keep comments sparse. Use names such as `StandardDefaultPageSize`, `StandardMaximumPageSize`, `AuditDefaultPageSize`, and `AuditMaximumPageSize` so policy intent is visible without extra prose.
+
+### Elicitation Clarifications
+
+- Treat compatibility as the primary success measure. The refactor is complete only when existing standard and audit pagination behavior can be proven unchanged at the controller boundary, actor boundary, and cursor codec boundary.
+- Prefer extracting constants and clamp methods before payload parsing. This keeps the first change mechanically reviewable and makes later parsing centralization easier to compare against existing behavior.
+- Keep JSON parse-failure branches side-effect free. Standard malformed payload fallback and audit malformed payload rejection should happen before any projection state mutation and without logging protected payload content.
+- Do not broaden cursor helper responsibilities to choose scopes, infer authorization context, derive endpoint ordering, or normalize audit and standard pagination semantics.
+- If an edge case currently behaves inconsistently but is not covered by this story's acceptance criteria, document it as deferred work instead of changing behavior inside this refactor.
 
 ### Files Likely To Update
 
@@ -180,3 +194,24 @@ GPT-5 Codex
   - Exact helper shape remains an implementation decision as long as it stays internal, has one source of truth, and preserves endpoint behavior.
   - Controller integration test expansion remains conditional on implementation touching API serialization, status mapping, or `ProblemDetails` construction.
 - Final recommendation: needs-story-update
+
+## Advanced Elicitation
+
+- Date: 2026-05-17T14:34:34+02:00
+- Selected story key: `9-5-shared-pagination-bounds-and-cursor-utilities`
+- Command/skill invocation used: `/bmad-advanced-elicitation 9-5-shared-pagination-bounds-and-cursor-utilities`
+- Batch 1 method names: Red Team vs Blue Team; Failure Mode Analysis; Self-Consistency Validation; First Principles Analysis; Critique and Refine
+- Reshuffled Batch 2 method names: Pre-mortem Analysis; Security Audit Personas; Architecture Decision Records; Occam's Razor Application; Active Recall Testing
+- Findings summary:
+  - Compatibility needs explicit coverage for cursors issued before the refactor, not just newly encoded cursors.
+  - Parse-failure branches need a stated no-state-write and no-sensitive-logging constraint so shared helpers cannot accidentally add side effects.
+  - Helper boundaries should remain internal and server-local; exposing a public pagination abstraction would exceed the story's refactor scope.
+  - The implementation should preserve current divergent standard-vs-audit malformed payload behavior even where a more uniform helper might look cleaner.
+- Changes applied:
+  - Added acceptance criteria for existing cursor compatibility, read-only parse failures, and internal-only helper scope.
+  - Added task guidance for cursor compatibility regression coverage and DAPR state save avoidance on parse failures.
+  - Added elicitation clarifications covering extraction order, side-effect-free parsing, cursor helper boundaries, and deferred edge-case handling.
+- Findings deferred:
+  - Exact helper type names and file placement remain implementation decisions as long as helper APIs stay internal and behavior-compatible.
+  - Any cleanup of inconsistent but pre-existing edge behavior remains deferred unless it is already covered by this story's acceptance criteria.
+- Final recommendation: ready-for-dev
