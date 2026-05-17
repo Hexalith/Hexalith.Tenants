@@ -21,12 +21,16 @@ so that tenant query and projection code can observe abandoned requests without 
 7. Given the EventStore API change is merged or otherwise available to Tenants, when Story 10.3B starts, then the Tenants story names the exact EventStore APIs and submodule commit it depends on.
 8. Given focused EventStore tests run, when cancellation is triggered before actor query routing, during query execution, and before DAPR state access, then tests verify cancellation is observed and no successful query/projection result is reported after cancellation.
 9. Given existing query adapter failures have established result shapes, when cancellation is observed, then cancellation remains distinguishable from not-found actors, unsuccessful projection results, missing payloads, serialization failures, and actor invocation failures.
+10. Given DAPR actor proxy/runtime compatibility is the highest-risk decision, when the API shape is selected, then the implementation records concrete evidence for the selected actor-boundary behavior: a compile/runtime test, an official API constraint, or a source-compatible fallback boundary.
+11. Given projection actor caching may return without executing the derived query handler, when a cancellation token is already cancelled at any supported in-actor boundary, then cancellation takes precedence over cache hits and ETag lookups rather than returning a stale successful result.
+12. Given `QueryRouter.RouteQueryAsync` currently preserves `OperationCanceledException`, when cancellation is introduced deeper in the route, then router exception handling continues to rethrow cancellation and never converts it to `ActorException`, `MissingPayload`, or another adapter failure reason.
 
 ## Tasks / Subtasks
 
 - [ ] Confirm the viable EventStore cancellation API shape before editing contracts. (AC: 1, 3, 5, 6)
   - [ ] Inspect Dapr actor constraints for `IProjectionActor` method signatures before adding `CancellationToken` directly to an actor interface.
   - [ ] Choose one approved path: cancellation-aware overloads, a companion internal dispatch path, an actor invocation option that carries cancellation, or an explicit documented reason actor boundary cancellation cannot be represented directly.
+  - [ ] Prove the chosen path before broad edits with the smallest possible EventStore compile/runtime check; do not assume optional `CancellationToken` parameters on a DAPR actor interface behave as request-abort cancellation.
   - [ ] Record the chosen contract path before broad edits, including whether `IProjectionActor.QueryAsync`, `CachingProjectionActor.QueryAsync`, `CachingProjectionActor.ExecuteQueryAsync`, router/proxy dispatch, or replay helpers change.
   - [ ] Preserve existing callers with non-cancellation overloads/default token behavior unless a deliberate breaking change is approved and implemented across EventStore and dependent tests.
   - [ ] Keep `IProjectionActor.QueryAsync(QueryEnvelope envelope)` callable unless the EventStore maintainers explicitly accept a breaking actor contract change.
@@ -35,6 +39,7 @@ so that tenant query and projection code can observe abandoned requests without 
   - [ ] Update `QueryRouter.RouteQueryAsync(...)` so the existing route-level token remains meaningful through the projection actor invocation path.
   - [ ] Update `CachingProjectionActor.QueryAsync(...)` and `ExecuteQueryAsync(...)` or their approved replacements so derived projection actors can observe cancellation.
   - [ ] If the public actor boundary cannot carry cancellation, define the supported boundary explicitly: pre-dispatch cancellation before proxy invocation, a cancellation-aware internal execution path, or another approved compatibility path.
+  - [ ] Ensure cancellation checks occur before ETag lookup, before cache-hit return, and before storing a successful query result wherever the selected API makes a token available inside the actor.
   - [ ] Update `EventReplayProjectionActor` and `FakeProjectionActor` to compile against the selected API shape and preserve existing behavior with default cancellation.
   - [ ] Keep query adapter failure behavior unchanged for not-found actors, unsuccessful results, missing payloads, serialization failures, and actor invocation failures.
   - [ ] Ensure legacy no-token calls route to `CancellationToken.None` or the selected equivalent compatibility behavior.
@@ -48,19 +53,23 @@ so that tenant query and projection code can observe abandoned requests without 
   - [ ] Inventory each touched DAPR state API and record whether a native cancellation parameter is available; document unsupported calls as cancellation boundaries.
   - [ ] Preserve fail-open/fail-closed decisions already present in EventStore query cache, projection replay, and query router code.
   - [ ] Ensure cancellation surfaces as cancellation, not as a successful empty result or generic projection adapter failure.
+  - [ ] Verify router and actor exception filters still rethrow `OperationCanceledException` before generic actor invocation failure handling.
 - [ ] Add focused EventStore tests. (AC: 1-8)
   - [ ] Add or update `Hexalith.EventStore.Contracts`/`Server` tests for the selected cancellation-aware query contract shape.
   - [ ] Extend `QueryRouterTests` to verify a pre-cancelled token is observed before successful actor query completion.
   - [ ] Add a router/proxy test proving a pre-cancelled token avoids proxy invocation where the selected boundary supports that behavior.
   - [ ] Extend `CachingProjectionActor` or derived actor tests so `ExecuteQueryAsync` receives and honors cancellation, if the selected API exposes the token there.
+  - [ ] Add a cache-hit precedence test proving an already-cancelled supported token does not return cached payload bytes or mutate cache state.
   - [ ] Extend `FakeProjectionActorTests` so testing fakes remain source-compatible and can simulate cancellation.
   - [ ] Add compatibility coverage proving legacy no-token callers still compile and use default non-cancelled behavior.
   - [ ] Add cancellation taxonomy coverage proving cancellation is not converted into existing adapter failure categories.
+  - [ ] Add an exception-flow test proving `OperationCanceledException` is rethrown and not logged/returned as `ActorException`.
   - [ ] Use deterministic fakes that record invocation count and received token identity; avoid timing sleeps.
   - [ ] Add replay helper tests only if `EventStoreProjection<TReadModel>` gains cancellation-aware overloads.
   - [ ] Keep tests deterministic; do not use sleeps, live DAPR sidecars, Redis, Aspire, or real network calls.
 - [ ] Prepare the Tenants handoff evidence. (AC: 7)
   - [ ] Record the exact EventStore APIs/signatures changed and the EventStore submodule commit that contains them.
+  - [ ] Include the actor-boundary evidence and any unsupported cancellation boundary in the handoff so Story 10.3B does not rely on an unproven transport path.
   - [ ] Note the expected Tenants follow-up call sites for Story 10.3B: `TenantsProjectionActor.ExecuteQueryAsync`, its `Handle*Async` query methods, and projection read/write paths in `TenantProjectionHandler` only where EventStore APIs expose cancellation.
   - [ ] State any synchronous replay or actor-boundary limitations that Story 10.3B must respect.
   - [ ] Do not start Story 10.3B implementation in this prerequisite story.
@@ -90,10 +99,12 @@ so that tenant query and projection code can observe abandoned requests without 
 ### Implementation Guardrails
 
 - Treat the Dapr actor boundary as the main design risk. Do not assume adding a `CancellationToken` parameter to `IProjectionActor.QueryAsync` is valid until verified against the Dapr actor proxy/runtime constraints used by this repo.
+- If the selected DAPR actor method shape carries a `CancellationToken` as a normal serialized argument instead of transport cancellation, document that limitation and keep request-abort cancellation at the router/pre-dispatch or approved internal boundary.
 - Prefer source-compatible API evolution first: overloads, optional/default token parameters where valid, or internal companion dispatch methods. If a breaking actor contract change is necessary, update all EventStore actors, fakes, tests, and downstream compile points in the same implementation.
 - The minimum product outcome is a documented, source-compatible EventStore cancellation path that Story 10.3B can consume. If direct actor-method token transport is invalid, the story still succeeds only when the chosen boundary is explicit and tested.
 - Keep cancellation semantics explicit:
   - pre-cancelled tokens should prevent work before query dispatch or state I/O;
+  - supported in-actor cancellation should win over cache hits and successful cache writes;
   - cancellation during execution should propagate as `OperationCanceledException` or the established cancellation path;
   - cancellation must not be converted into `QueryResult.Success == true`, empty successful payloads, generic "actor exception" failures, or cache hits that ignore the token.
 - Preserve the existing query adapter failure taxonomy for non-cancellation failures: actor not found, actor response mismatch, unsuccessful projection result, missing payload, serialization failure, and actor invocation failure.
@@ -123,6 +134,7 @@ so that tenant query and projection code can observe abandoned requests without 
   - `dotnet build Hexalith.EventStore/Hexalith.EventStore.slnx --configuration Debug --no-restore`
   - `dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore` after the parent repository points to the updated EventStore submodule.
 - Keep cancellation tests deterministic with pre-cancelled tokens or controllable fakes; do not rely on timing sleeps, live DAPR, Redis, Aspire, or network delays.
+- Prefer pre-cancelled tokens and controllable fakes over race-based cancellation tests; do not depend on scheduler timing to prove cancellation propagation.
 - Verify existing non-cancellation callers still compile and still receive the same success/failure behavior.
 
 ### Previous Story Intelligence
@@ -174,4 +186,27 @@ GPT-5 Codex
   - Exact actor contract shape: direct actor overload, optional/default token, companion interface, internal dispatch path, or documented actor-boundary limitation.
   - Whether synchronous replay helpers gain cancellation-aware overloads or remain documented synchronous boundaries.
   - Exact behavior for DAPR state APIs that do not expose native cancellation parameters.
+- Final recommendation: ready-for-dev
+
+## Advanced Elicitation
+
+- Date/time: 2026-05-17T19:04:40+02:00
+- Selected story key: 10-3a-eventstore-projection-cancellation-api-prerequisite
+- Command/skill invocation used: `/bmad-advanced-elicitation 10-3a-eventstore-projection-cancellation-api-prerequisite`
+- Batch 1 method names: Tree of Thoughts; Red Team vs Blue Team; Architecture Decision Records; Failure Mode Analysis; Socratic Questioning
+- Reshuffled Batch 2 method names: Self-Consistency Validation; Pre-mortem Analysis; Code Review Gauntlet; First Principles Analysis; Occam's Razor Application
+- Findings summary:
+  - The story was already correctly scoped to EventStore, but implementation could still over-assume DAPR actor cancellation transport.
+  - Cancellation semantics needed clearer precedence over cache hits, ETag lookup, and router exception taxonomy.
+  - Deterministic tests needed to prove boundary behavior without scheduler timing or live sidecars.
+  - Story 10.3B handoff needed explicit actor-boundary evidence so Tenants does not depend on an unproven API path.
+- Changes applied:
+  - Added ACs requiring concrete actor-boundary evidence, cancellation-over-cache precedence, and preservation of `OperationCanceledException` rethrow behavior.
+  - Tightened tasks for smallest-possible DAPR compatibility proof before broad API edits.
+  - Added cache-hit precedence, exception-flow, and deterministic cancellation test requirements.
+  - Added handoff guidance to record unsupported boundaries and exact evidence for Story 10.3B.
+- Findings deferred:
+  - Exact EventStore API shape remains a development decision pending DAPR actor compatibility proof.
+  - Whether pure replay helpers receive cancellation-aware overloads remains deferred to implementation analysis.
+  - Exact DAPR state API token support remains deferred to the required inventory in the story.
 - Final recommendation: ready-for-dev
