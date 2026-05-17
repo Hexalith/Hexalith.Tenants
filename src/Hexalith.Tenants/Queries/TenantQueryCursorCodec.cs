@@ -28,8 +28,14 @@ public interface ITenantQueryCursorCodec {
     /// <param name="queryType">Expected query type.</param>
     /// <param name="scope">Expected endpoint scope.</param>
     /// <param name="position">Decoded logical position when validation succeeds.</param>
+    /// <param name="failureReason">
+    /// Short, log-safe reason code when validation fails (e.g. <c>"malformed"</c>,
+    /// <c>"wrong-query-type"</c>, <c>"wrong-scope"</c>, <c>"wrong-version"</c>,
+    /// <c>"empty-position"</c>, <c>"too-large"</c>, <c>"tamper-or-key-rotation"</c>).
+    /// <see langword="null"/> on success or when <paramref name="cursor"/> is empty.
+    /// </param>
     /// <returns><see langword="true"/> when the cursor is empty or valid; otherwise <see langword="false"/>.</returns>
-    bool TryDecode(string? cursor, string queryType, string scope, out string? position);
+    bool TryDecode(string? cursor, string queryType, string scope, out string? position, out string? failureReason);
 }
 
 /// <summary>
@@ -40,6 +46,10 @@ public sealed class TenantQueryCursorCodec(IDataProtectionProvider dataProtectio
     internal const string Purpose = "Hexalith.Tenants.QueryCursor.v1";
     private const int CurrentVersion = 1;
 
+    // Protected tokens are short (a few hundred bytes for the expected payload shape). 4 KB is well
+    // above the realistic ceiling and bounds memory/CPU spent on Unprotect for attacker-supplied input.
+    private const int MaxCursorLength = 4096;
+
     private static readonly JsonSerializerOptions s_jsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -47,6 +57,7 @@ public sealed class TenantQueryCursorCodec(IDataProtectionProvider dataProtectio
 
     private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector(Purpose);
 
+    /// <inheritdoc/>
     public string Encode(string queryType, string scope, string position) {
         ArgumentException.ThrowIfNullOrWhiteSpace(queryType);
         ArgumentException.ThrowIfNullOrWhiteSpace(scope);
@@ -62,36 +73,60 @@ public sealed class TenantQueryCursorCodec(IDataProtectionProvider dataProtectio
         return _protector.Protect(JsonSerializer.Serialize(payload, s_jsonOptions));
     }
 
-    public bool TryDecode(string? cursor, string queryType, string scope, out string? position) {
+    /// <inheritdoc/>
+    public bool TryDecode(string? cursor, string queryType, string scope, out string? position, out string? failureReason) {
         ArgumentException.ThrowIfNullOrWhiteSpace(queryType);
         ArgumentException.ThrowIfNullOrWhiteSpace(scope);
 
         position = null;
+        failureReason = null;
         if (string.IsNullOrWhiteSpace(cursor)) {
             return true;
+        }
+
+        if (cursor.Length > MaxCursorLength) {
+            failureReason = "too-large";
+            return false;
         }
 
         try {
             string json = _protector.Unprotect(cursor);
             TenantQueryCursorPayload? payload = JsonSerializer.Deserialize<TenantQueryCursorPayload>(json, s_jsonOptions);
-            if (payload is null
-                || payload.Version != CurrentVersion
-                || !string.Equals(payload.QueryType, queryType, StringComparison.Ordinal)
-                || !string.Equals(payload.Scope, scope, StringComparison.Ordinal)
-                || string.IsNullOrWhiteSpace(payload.Position)) {
+            if (payload is null) {
+                failureReason = "malformed";
+                return false;
+            }
+
+            if (payload.Version != CurrentVersion) {
+                failureReason = "wrong-version";
+                return false;
+            }
+
+            if (!string.Equals(payload.QueryType, queryType, StringComparison.Ordinal)) {
+                failureReason = "wrong-query-type";
+                return false;
+            }
+
+            if (!string.Equals(payload.Scope, scope, StringComparison.Ordinal)) {
+                failureReason = "wrong-scope";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.Position)) {
+                failureReason = "empty-position";
                 return false;
             }
 
             position = payload.Position;
             return true;
         }
-        catch (ArgumentException) {
-            return false;
-        }
         catch (CryptographicException) {
+            // Unprotect failure: payload was tampered with, produced for a different protector, or signed with a rotated-out key.
+            failureReason = "tamper-or-key-rotation";
             return false;
         }
         catch (JsonException) {
+            failureReason = "malformed";
             return false;
         }
     }

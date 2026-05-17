@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 using Hexalith.EventStore.Contracts.Problems;
@@ -52,7 +53,7 @@ public sealed partial class TenantsQueryController(
             AggregateId: tenantId,
             QueryType: GetTenantQuery.QueryType,
             Payload: [],
-            CorrelationId: Guid.NewGuid().ToString(),
+            CorrelationId: GetCorrelationId(),
             UserId: userId,
             EntityId: tenantId,
             ProjectionType: TenantProjectionRouting.ActorTypeName);
@@ -95,15 +96,23 @@ public sealed partial class TenantsQueryController(
             return Unauthorized();
         }
 
+        // Reject invalid windows before doing any cursor work so clients see the actual validation
+        // error rather than a misleading generic "Invalid cursor" 400.
+        if (from is not null && to is not null && from > to) {
+            return BadRequest();
+        }
+
         pageSize = ClampAuditPageSize(pageSize);
-        string correlationId = Guid.NewGuid().ToString();
+        string correlationId = GetCorrelationId();
         string scope = TenantQueryCursorScopes.GetTenantAudit(tenantId, from, to, auditCategory);
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
             GetTenantAuditQuery.QueryType,
             scope,
             "get-tenant-audit",
-            correlationId);
+            correlationId,
+            tenantId,
+            userId);
         if (cursorValidation is not null) {
             return cursorValidation;
         }
@@ -148,13 +157,15 @@ public sealed partial class TenantsQueryController(
         }
 
         pageSize = ClampPageSize(pageSize);
-        string correlationId = Guid.NewGuid().ToString();
+        string correlationId = GetCorrelationId();
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
             GetTenantUsersQuery.QueryType,
             TenantQueryCursorScopes.GetTenantUsers(tenantId),
             "get-tenant-users",
-            correlationId);
+            correlationId,
+            tenantId,
+            userId);
         if (cursorValidation is not null) {
             return cursorValidation;
         }
@@ -198,13 +209,15 @@ public sealed partial class TenantsQueryController(
         }
 
         pageSize = ClampPageSize(pageSize);
-        string correlationId = Guid.NewGuid().ToString();
+        string correlationId = GetCorrelationId();
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
             GetUserTenantsQuery.QueryType,
             TenantQueryCursorScopes.GetUserTenants(userId),
             "get-user-tenants",
-            correlationId);
+            correlationId,
+            tenantId: string.Empty,
+            authenticatedUserId);
         if (cursorValidation is not null) {
             return cursorValidation;
         }
@@ -242,13 +255,15 @@ public sealed partial class TenantsQueryController(
         }
 
         pageSize = ClampPageSize(pageSize);
-        string correlationId = Guid.NewGuid().ToString();
+        string correlationId = GetCorrelationId();
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
             ListTenantsQuery.QueryType,
             TenantQueryCursorScopes.ListTenants(userId),
             "list-tenants",
-            correlationId);
+            correlationId,
+            tenantId: string.Empty,
+            userId);
         if (cursorValidation is not null) {
             return cursorValidation;
         }
@@ -279,17 +294,29 @@ public sealed partial class TenantsQueryController(
     private static bool IsValidIdentifier(string? value)
             => !string.IsNullOrWhiteSpace(value) && _identifierRegex.IsMatch(value);
 
+    private string GetCorrelationId()
+        => Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+
     private IActionResult? ValidateSubmittedCursor(
         string? cursor,
         string queryType,
         string scope,
         string endpoint,
-        string correlationId) {
-        if (cursorCodec.TryDecode(cursor, queryType, scope, out _)) {
+        string correlationId,
+        string tenantId,
+        string userId) {
+        if (cursorCodec.TryDecode(cursor, queryType, scope, out _, out string? failureReason)) {
             return null;
         }
 
-        Log.InvalidCursorRejected(logger, correlationId, queryType, endpoint);
+        Log.InvalidCursorRejected(
+            logger,
+            correlationId,
+            queryType,
+            endpoint,
+            tenantId,
+            userId,
+            failureReason ?? "unknown");
         var problemDetails = new ProblemDetails {
             Status = StatusCodes.Status400BadRequest,
             Title = "Bad Request",
@@ -312,7 +339,14 @@ public sealed partial class TenantsQueryController(
         [LoggerMessage(
             EventId = 1901,
             Level = LogLevel.Warning,
-            Message = "Invalid tenant query cursor rejected: CorrelationId={CorrelationId}, QueryType={QueryType}, Endpoint={Endpoint}, Stage=TenantQueryCursorValidation")]
-        public static partial void InvalidCursorRejected(ILogger logger, string correlationId, string queryType, string endpoint);
+            Message = "Invalid tenant query cursor rejected: CorrelationId={CorrelationId}, QueryType={QueryType}, Endpoint={Endpoint}, TenantId={TenantId}, UserId={UserId}, FailureReason={FailureReason}, Stage=TenantQueryCursorValidation")]
+        public static partial void InvalidCursorRejected(
+            ILogger logger,
+            string correlationId,
+            string queryType,
+            string endpoint,
+            string tenantId,
+            string userId,
+            string failureReason);
     }
 }

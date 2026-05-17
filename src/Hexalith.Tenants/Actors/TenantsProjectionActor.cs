@@ -35,6 +35,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     };
 
     private readonly DaprClient _daprClient;
+    private readonly ITenantQueryCursorCodec _cursorCodec;
 
     public TenantsProjectionActor(
         ActorHost host,
@@ -46,8 +47,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         _daprClient = daprClient;
         _cursorCodec = cursorCodec;
     }
-
-    private readonly ITenantQueryCursorCodec _cursorCodec;
 
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope) {
@@ -97,9 +96,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 ? cursorEl.GetString()
                 : null;
 
-            int pageSize = root.TryGetProperty("pageSize", out JsonElement pageSizeEl) && pageSizeEl.ValueKind == JsonValueKind.Number
-                ? pageSizeEl.GetInt32()
-                : 20;
+            int pageSize = 20;
+            if (root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
+                && pageSizeEl.ValueKind == JsonValueKind.Number
+                && pageSizeEl.TryGetInt32(out int parsedPageSize)) {
+                pageSize = parsedPageSize;
+            }
 
             if (pageSize <= 0) {
                 pageSize = 20;
@@ -130,9 +132,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String
                 ? cursorEl.GetString()
                 : null;
-            int pageSize = root.TryGetProperty("pageSize", out JsonElement pageSizeEl) && pageSizeEl.ValueKind == JsonValueKind.Number
-                ? pageSizeEl.GetInt32()
-                : 100;
+            int pageSize = 100;
+            if (root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
+                && pageSizeEl.ValueKind == JsonValueKind.Number
+                && pageSizeEl.TryGetInt32(out int parsedPageSize)) {
+                pageSize = parsedPageSize;
+            }
 
             if (pageSize <= 0) {
                 pageSize = 100;
@@ -324,7 +329,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         }
 
         string scope = TenantQueryCursorScopes.GetTenantAudit(envelope.AggregateId, query.From, query.To, query.Category);
-        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor)) {
+        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out _)) {
             return InvalidCursorResult();
         }
 
@@ -351,7 +356,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.GetTenantUsers(envelope.AggregateId);
-        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor)) {
+        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out _)) {
             return InvalidCursorResult();
         }
 
@@ -398,7 +403,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.GetUserTenants(targetUserId);
-        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor)) {
+        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out _)) {
             return InvalidCursorResult();
         }
 
@@ -447,7 +452,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
-        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor)) {
+        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out _)) {
             return InvalidCursorResult();
         }
 

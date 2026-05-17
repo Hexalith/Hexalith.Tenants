@@ -264,12 +264,22 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(400);
         details.Detail.ShouldBe("Invalid cursor.");
         details.Extensions.ContainsKey("correlationId").ShouldBeTrue();
         details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+
+        // AC3: no query state must leak in the rejection body — only ProblemDetails fields.
+        using JsonDocument bodyDocument = JsonDocument.Parse(body);
+        JsonElement root = bodyDocument.RootElement;
+        root.TryGetProperty("items", out _).ShouldBeFalse();
+        root.TryGetProperty("hasMore", out _).ShouldBeFalse();
+
+        // The router must not be invoked when the cursor is rejected at the controller boundary.
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
 
     [Fact]

@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: code review of 9-1-opaque-signed-query-cursors (2026-05-17)
+
+- `EphemeralDataProtectionProvider` is created per test helper in `TenantsProjectionActorTests`. This masks cross-instance Data Protection key drift that the production DI registration would expose. Track with the integration test work that exercises the production DI registration end-to-end.
+- `pageSize` is not bound into the cursor scope or protected payload. A client can request `pageSize=20` for page 1, then submit the issued cursor with `pageSize=100` for page 2. Spec is silent on this contract; revisit if it becomes a tenant API concern.
+- `TenantAuditEntry.EventId` null/empty/whitespace would throw `ArgumentException` inside `TenantQueryCursorCodec.Encode` and surface as a 500. EventStore-emitted audit entries are guaranteed to have IDs today; add a defensive skip in `ProtectCursor` if that invariant ever weakens.
+- **Data Protection key persistence** — `AddDataProtection()` in `src/Hexalith.Tenants/Program.cs` only sets `SetApplicationName` after the 2026-05-17 patch. In multi-replica / containerized deployments, cursors minted by one instance cannot be unprotected by another and pod restarts invalidate outstanding cursors. Configure a shared key ring (Azure Blob + Key Vault / Redis / Dapr secret store) as part of Epic 11 (Production Authorization Readiness) — this is deployment hardening, not story 9.1 scope.
+- **Cursor `IssuedAt` expiry policy** — `TenantQueryCursorPayload.IssuedAt` is encoded but `TryDecode` does not enforce a max-age or future-skew bound. Adding expiry needs a product call on cursor lifetime (e.g. 24h max age, ±5 min skew). Track as a hardening follow-up; do not change the protected payload format ad-hoc.
+
 ## Deferred from: implementation readiness correction (2026-05-13)
 
 - D13-D17 UX-driven architecture amendments are Phase 2 Admin UI / FrontShell reference-module work unless explicitly promoted by a future scope decision.

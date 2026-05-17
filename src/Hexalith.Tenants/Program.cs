@@ -25,6 +25,7 @@ using Hexalith.Tenants.ServiceDefaults;
 using Hexalith.Tenants.Validation;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -49,7 +50,16 @@ builder.Services.AddScoped<DomainServiceRequestHandler>();
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
 builder.Services.AddProblemDetails();
-builder.Services.AddDataProtection();
+
+// Data Protection backs the opaque query cursor codec (TenantQueryCursorCodec). SetApplicationName
+// anchors the key ring to a stable application identity so the keyring path/purpose chain is not
+// influenced by IHostEnvironment.ApplicationName drift across host variants.
+// DEFERRED (Epic 11 — Production Authorization Readiness): configure a shared, persisted key ring
+// (Azure Blob + Key Vault / Redis / Dapr secret store) so cursors issued by one replica can be
+// unprotected by another and survive pod restarts. Without persistence, every restart/rollout
+// invalidates outstanding cursors and multi-replica deployments will see intermittent 400s.
+builder.Services.AddDataProtection()
+    .SetApplicationName("Hexalith.Tenants");
 
 // MediatR pipeline — registers SubmitQueryHandler and SubmitCommandHandler for controller dispatch
 builder.Services.AddMediatR(cfg =>
