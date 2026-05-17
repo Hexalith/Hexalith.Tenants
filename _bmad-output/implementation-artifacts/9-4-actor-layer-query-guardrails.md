@@ -16,7 +16,7 @@ so that authorization assumptions remain protected even if a controller or calle
 2. Given a role-sensitive query is executed through the normal controller path, when the authenticated user ID is present, then existing successful query behavior remains unchanged.
 3. Given a malformed role-sensitive query envelope is rejected because `UserId` is null, empty, or whitespace-only, when the actor evaluates the guardrail, then the rejection occurs before authorization lookup, cursor parsing, tenant lookup, membership lookup, audit projection access, or any other projection state read where the current test seams can observe that ordering.
 4. Given a query envelope contains a present but unauthorized user ID, when the actor evaluates the query, then existing authorization behavior is preserved and no tenant data is returned outside the caller's allowed scope.
-5. Given actor-layer guardrails reject a query, when the failure is logged, then logs include only safe structured context such as correlation ID when present, query type, aggregate ID when already available, and a fixed stage, and do not expose tenant membership details, cursor values, authorization decision internals, or sensitive payload data.
+5. Given actor-layer guardrails reject a query, when the failure is logged, then logs include only safe structured context such as correlation ID when present, query type, failure reason, and a fixed stage, and do not expose tenant IDs, user IDs, aggregate IDs that identify tenant data, member IDs, tenant membership details, cursor values, authorization decision internals, audit content, or sensitive payload data.
 6. Given an unknown query type reaches the actor with a malformed `UserId`, when the actor evaluates the envelope, then unknown query behavior remains unchanged by this story.
 7. Given focused actor tests run, when null-user, empty-user, whitespace-user, unauthorized-user, valid-user, valid-cursor, invalid-cursor, and unknown-query paths are exercised where current fixtures support them, then tests verify defense-in-depth behavior without weakening existing controller authorization tests.
 
@@ -28,10 +28,10 @@ so that authorization assumptions remain protected even if a controller or calle
   - [ ] Return `new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden)` or the existing equivalent `"Forbidden"` value so `SubmitQueryHandler` maps the failure to the established safe 403 ProblemDetails path.
   - [ ] Keep unknown query-type behavior unchanged; this story is not a query-type taxonomy refactor.
 - [ ] Add safe actor warning logging for rejected malformed-auth query envelopes. (AC: 4)
-  - [ ] Add a source-generated `LoggerMessage` warning on `TenantsProjectionActor` with correlation ID, query type, aggregate ID, and a fixed stage such as `TenantQueryEnvelopeAuthorization`.
+  - [ ] Add a source-generated `LoggerMessage` warning on `TenantsProjectionActor` with correlation ID when present, query type, failure reason, and a fixed stage such as `TenantQueryEnvelopeAuthorization`.
   - [ ] Treat missing correlation metadata as loggable safe context, not as a new failure path.
   - [ ] Do not parse query payloads solely to enrich guardrail logs.
-  - [ ] Do not log `Payload`, cursor text, protected cursor payloads, signing material, `UserTenants`, membership lists, or target-user membership details.
+  - [ ] Do not log tenant IDs, user IDs, aggregate IDs that identify tenant data, member IDs, `Payload`, cursor text, protected cursor payloads, signing material, `UserTenants`, membership lists, audit rows, or target-user membership details.
   - [ ] Keep the message generic, for example "Tenant query envelope rejected before authorization because authenticated user id was missing."
 - [ ] Preserve existing valid-user and unauthorized-user behavior. (AC: 2, 3)
   - [ ] Do not move or weaken `IsAuthorizedForTenantAsync`, `IsGlobalAdminAsync`, `GetUserTenantIds`, or `GetVisibleUserTenants`.
@@ -45,6 +45,7 @@ so that authorization assumptions remain protected even if a controller or calle
   - [ ] Assert the actor does not call DAPR state reads or membership/global-admin lookup paths for rejected malformed-user envelopes where the current actor fixture exposes those calls, so the guardrail happens before projection state access.
   - [ ] Add a focused regression test that an unknown query type with a malformed `UserId` still follows the existing unknown-query result path.
   - [ ] Add focused valid-cursor and invalid-cursor regression coverage for guarded query types that already have cheap actor-test seams, especially `list-tenants`, so Story 9.1 and Story 9.2 cursor semantics are not changed for valid callers.
+  - [ ] For valid-path coverage, assert the existing result shape and key fields remain unchanged where fixtures provide a stable expected model, not only that the query succeeds.
   - [ ] Keep existing unauthorized-but-present-user tests green, such as `GetTenant_unauthorized_user_returns_forbiddenAsync`, `GetTenantAudit_non_admin_returns_forbidden_not_501Async`, non-owner `get-user-tenants`, and non-admin `list-tenants` filtering tests.
   - [ ] Add or update a logger-capture test only if the repository already has a lightweight test logger pattern; otherwise keep logging verification to "does not throw and returns Forbidden" to avoid adding test-only infrastructure.
 - [ ] Keep controller and public contract scope tight. (AC: 2, 5)
@@ -78,6 +79,7 @@ so that authorization assumptions remain protected even if a controller or calle
 - Add a small private helper such as `IsRoleSensitiveQuery(string? queryType)` only if it keeps the switch readable. Do not introduce a broad authorization framework for this story.
 - Keep activity and metrics behavior coherent: rejected known role-sensitive queries should still record the query type duration, but should not require projection state access.
 - Do not log `envelope.ToString()` for this guard. It redacts payload bytes but still contains user and entity identifiers; use explicit structured fields instead.
+- Prefer logging query type, fixed stage, failure reason, and correlation metadata only; if `AggregateId` represents tenant data in the guarded query path, do not include it in the malformed-identity log.
 - Do not modify `Hexalith.EventStore` for this story. If `Forbidden` mapping is insufficient in a future EventStore version, record that as a deferred dependency rather than expanding scope here.
 - Future role-sensitive query types need an explicit opt-in/default guardrail policy in a later planning pass; this story intentionally protects the five actor-routed query types listed above and keeps unknown query behavior unchanged.
 
@@ -148,3 +150,23 @@ GPT-5 Codex
   - Future role-sensitive query types need a later opt-in/default guardrail policy; this story intentionally keeps unknown query behavior unchanged.
   - No separate adopter-facing localization or accessibility work is needed because the behavior is actor-layer only.
 - Final recommendation: ready-for-dev
+
+## Party-Mode Review Follow-Up
+
+- Date: 2026-05-17T12:04:31+02:00
+- Selected story key: 9-4-actor-layer-query-guardrails
+- Command/skill invocation used: `/bmad-party-mode 9-4-actor-layer-query-guardrails; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect), John (Product Manager)
+- Findings summary:
+  - Independent reviewers agreed the story needed explicit null, empty, and whitespace `UserId` handling, guard ordering before state/cursor/payload work, unchanged controller behavior, and narrow `Forbidden` failure semantics.
+  - Current story text already contained those guard-ordering and query-scope clarifications from the earlier 2026-05-17 party-mode trace.
+  - Reviewers flagged malformed-identity logging as still too permissive if aggregate IDs can identify tenant data.
+  - Reviewers also asked valid-path tests to assert preserved behavior, not only successful completion.
+- Changes applied:
+  - Tightened safe logging acceptance criteria and task wording to omit tenant/user/member identifiers, audit content, and tenant-identifying aggregate IDs from malformed-identity logs.
+  - Added valid-path testing guidance to assert existing result shape and key fields where stable fixtures exist.
+- Findings deferred:
+  - Whether future role-sensitive query types should be guarded by a shared default-deny policy remains a later planning decision.
+  - Whether `get-user-tenants` needs additional actor-layer role or target-user authorization beyond existing behavior remains outside this malformed-identity guardrail story.
+  - Whether EventStore should map malformed internal envelopes to a different public status remains outside this story.
+- Final recommendation: needs-story-update
