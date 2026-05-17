@@ -245,6 +245,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         int pageSize,
         Func<KeyValuePair<string, TSource>, string> keySelector,
         Func<KeyValuePair<string, TSource>, TResult> resultSelector) {
+        // Callers must pass the current authorized/visible set. The cursor is only an ordinal
+        // exclusive lower bound, so hidden or missing anchors are never looked up or disclosed.
         IEnumerable<KeyValuePair<string, TSource>> ordered = items.OrderBy(keySelector, StringComparer.Ordinal);
 
         if (cursor is not null) {

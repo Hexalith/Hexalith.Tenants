@@ -1,4 +1,7 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-17 (10-2 audit projection write safety story context created; story -> ready-for-dev)
+# last_updated: 2026-05-17 (9-2 stable cursor pagination implemented; story -> review)
+# last_updated: 2026-05-17 (9-2 stable cursor pagination development started; story -> in-progress)
 # last_updated: 2026-05-17 (9-1 opaque signed query cursors code review complete + 11 patches applied; story -> done)
 # last_updated: 2026-05-17 (9-1 opaque signed query cursors completed; story -> review)
 # last_updated: 2026-05-17 (10-1 optimistic concurrency for tenant read-model writes story context created; story -> ready-for-dev)
@@ -174,7 +177,7 @@ development_status:
   # Epic 9: Trustworthy Tenant Query Operations
   epic-9: in-progress
   9-1-opaque-signed-query-cursors: done
-  9-2-stable-cursor-pagination-under-role-and-membership-changes: ready-for-dev
+  9-2-stable-cursor-pagination-under-role-and-membership-changes: review
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: ready-for-dev
   9-4-actor-layer-query-guardrails: ready-for-dev
   9-5-shared-pagination-bounds-and-cursor-utilities: ready-for-dev
@@ -183,7 +186,7 @@ development_status:
   # Epic 10: Durable Projection Write Safety
   epic-10: in-progress
   10-1-optimistic-concurrency-for-tenant-read-model-writes: ready-for-dev
-  10-2-audit-projection-write-safety: backlog
+  10-2-audit-projection-write-safety: ready-for-dev
   10-3a-eventstore-projection-cancellation-api-prerequisite: backlog
   10-3b-cancellation-token-threading-for-tenant-projection-queries: backlog
   10-4-projection-write-conformance-and-recovery-tests: backlog

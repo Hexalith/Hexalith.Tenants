@@ -1,6 +1,6 @@
 # Story 9.2: Stable Cursor Pagination Under Role and Membership Changes
 
-Status: ready-for-dev
+Status: review
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -20,32 +20,32 @@ so that users do not silently skip or gain visibility into tenants because proje
 
 ## Tasks / Subtasks
 
-- [ ] Document and enforce the tenant query cursor stability policy. (AC: 1-4)
-  - [ ] Treat the decoded cursor position as an exclusive lower bound over stable ordinal tenant IDs or user IDs after the current request's authorization filter has been applied.
-  - [ ] Use the same ordinal comparison semantics for sorting and cursor advancement; do not mix `StringComparer.Ordinal` ordering with culture-sensitive cursor comparisons.
-  - [ ] Do not implement snapshot cursors in this story; each page reflects the latest projected read model visible to the requester at the time of that request.
-  - [ ] If a tenant becomes newly visible and sorts before or equal to the cursor, do not backfill it into later pages; document this accepted current-state behavior, including role transitions such as admin demotion or newly granted memberships.
-  - [ ] If a tenant or membership becomes hidden after the cursor was issued, never return it on a later page; continue with visible items whose stable keys sort after the decoded position.
-  - [ ] If the cursor anchor no longer exists or is no longer visible, do not disclose that fact; continue using the opaque decoded position as a lower bound and reject only when cursor validation itself fails.
-- [ ] Update `TenantsProjectionActor` pagination behavior only where needed. (AC: 1-4)
-  - [ ] Preserve existing ordering for `list-tenants`, `get-tenant-users`, and `get-user-tenants`: `StringComparer.Ordinal` on the key selected by the endpoint.
-  - [ ] Keep authorization filtering before pagination for `list-tenants` non-admin users and `get-user-tenants` tenant-owner scoped cross-user lookups.
-  - [ ] Keep the R5-A2 timing-uniformity guard: cross-user `get-user-tenants` lookups still run the global-admin check before early empty responses.
-  - [ ] Reuse the Story 9.1 cursor codec/scope path if it is complete; do not introduce a second cursor format or a parallel signing abstraction.
-  - [ ] Keep `get-tenant-audit` ordering by timestamp then event ID; include it in tests only if shared pagination utility changes could affect it.
-- [ ] Add focused mutation-between-pages tests. (AC: 1-5)
-  - [ ] Add `get-user-tenants` self-lookup test where a tenant visible on the next page is removed between page requests and is not returned.
-  - [ ] Add `get-user-tenants` test where a newly visible tenant sorts before or at the cursor and is not backfilled into the next page.
-  - [ ] Add `get-user-tenants` test where a newly visible tenant sorts after the cursor and may appear on the next page under current-state keyset semantics.
-  - [ ] Add `get-user-tenants` tenant-owner cross-user test where owner visibility changes between pages and only currently owned overlapping tenants are returned.
-  - [ ] Keep separate owner cross-user tests for target-user membership changes and requesting-owner visibility changes so each authorization axis is proven independently.
-  - [ ] Add `list-tenants` non-admin test where membership changes between pages and the next page applies current membership filtering.
-  - [ ] Ensure mutation tests request page one, capture the signed cursor, mutate the read model, and request page two with that exact cursor.
-  - [ ] Preserve or update existing cursor tests such as `ListTenants_cursor_skips_deleted_tenant` so the behavior is described as "cursor anchor missing/hidden continues from lower bound", not as a deletion feature.
-- [ ] Update documentation or test names/comments to make the policy visible. (AC: 2, 3, 5)
-  - [ ] Prefer concise comments near the tests and/or a short docs note if an existing tenant query documentation file covers pagination.
-  - [ ] State that the API offers stable keyset continuation, not repeatable-read snapshots across page requests.
-  - [ ] State that authorization is re-evaluated on every page request and revoked visibility wins over cursor continuity.
+- [x] Document and enforce the tenant query cursor stability policy. (AC: 1-4)
+  - [x] Treat the decoded cursor position as an exclusive lower bound over stable ordinal tenant IDs or user IDs after the current request's authorization filter has been applied.
+  - [x] Use the same ordinal comparison semantics for sorting and cursor advancement; do not mix `StringComparer.Ordinal` ordering with culture-sensitive cursor comparisons.
+  - [x] Do not implement snapshot cursors in this story; each page reflects the latest projected read model visible to the requester at the time of that request.
+  - [x] If a tenant becomes newly visible and sorts before or equal to the cursor, do not backfill it into later pages; document this accepted current-state behavior, including role transitions such as admin demotion or newly granted memberships.
+  - [x] If a tenant or membership becomes hidden after the cursor was issued, never return it on a later page; continue with visible items whose stable keys sort after the decoded position.
+  - [x] If the cursor anchor no longer exists or is no longer visible, do not disclose that fact; continue using the opaque decoded position as a lower bound and reject only when cursor validation itself fails.
+- [x] Update `TenantsProjectionActor` pagination behavior only where needed. (AC: 1-4)
+  - [x] Preserve existing ordering for `list-tenants`, `get-tenant-users`, and `get-user-tenants`: `StringComparer.Ordinal` on the key selected by the endpoint.
+  - [x] Keep authorization filtering before pagination for `list-tenants` non-admin users and `get-user-tenants` tenant-owner scoped cross-user lookups.
+  - [x] Keep the R5-A2 timing-uniformity guard: cross-user `get-user-tenants` lookups still run the global-admin check before early empty responses.
+  - [x] Reuse the Story 9.1 cursor codec/scope path if it is complete; do not introduce a second cursor format or a parallel signing abstraction.
+  - [x] Keep `get-tenant-audit` ordering by timestamp then event ID; include it in tests only if shared pagination utility changes could affect it.
+- [x] Add focused mutation-between-pages tests. (AC: 1-5)
+  - [x] Add `get-user-tenants` self-lookup test where a tenant visible on the next page is removed between page requests and is not returned.
+  - [x] Add `get-user-tenants` test where a newly visible tenant sorts before or at the cursor and is not backfilled into the next page.
+  - [x] Add `get-user-tenants` test where a newly visible tenant sorts after the cursor and may appear on the next page under current-state keyset semantics.
+  - [x] Add `get-user-tenants` tenant-owner cross-user test where owner visibility changes between pages and only currently owned overlapping tenants are returned.
+  - [x] Keep separate owner cross-user tests for target-user membership changes and requesting-owner visibility changes so each authorization axis is proven independently.
+  - [x] Add `list-tenants` non-admin test where membership changes between pages and the next page applies current membership filtering.
+  - [x] Ensure mutation tests request page one, capture the signed cursor, mutate the read model, and request page two with that exact cursor.
+  - [x] Preserve or update existing cursor tests such as `ListTenants_cursor_skips_deleted_tenant` so the behavior is described as "cursor anchor missing/hidden continues from lower bound", not as a deletion feature.
+- [x] Update documentation or test names/comments to make the policy visible. (AC: 2, 3, 5)
+  - [x] Prefer concise comments near the tests and/or a short docs note if an existing tenant query documentation file covers pagination.
+  - [x] State that the API offers stable keyset continuation, not repeatable-read snapshots across page requests.
+  - [x] State that authorization is re-evaluated on every page request and revoked visibility wins over cursor continuity.
 
 ## Dev Notes
 
@@ -120,9 +120,29 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-05-17: Verified Story 9.1 cursor codec is active in `TenantsProjectionActor`; no second cursor format introduced.
+- 2026-05-17: `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-restore` passed: 312 passed, 0 failed.
+- 2026-05-17: `dotnet test Hexalith.Tenants.slnx --configuration Release --no-restore` attempted; non-integration projects and server tests passed, integration lane failed on Docker/Aspire runtime health plus pre-existing DAPR command-response configuration failures unrelated to Story 9.2.
+- 2026-05-17: `docker info --format '{{json .ServerVersion}}'` timed out with Docker Desktop pipe/API 500, matching the Aspire topology fixture failures.
+
 ### Completion Notes List
 
+- Added actor-level policy documentation that pagination callers must pass the current authorized/visible set and that cursors are ordinal exclusive lower bounds, with no hidden-anchor lookup or disclosure.
+- Confirmed existing `Paginate` behavior already uses `StringComparer.Ordinal` ordering and `StringComparison.Ordinal` cursor advancement after endpoint-specific authorization filtering.
+- Added focused signed-cursor mutation tests for `get-user-tenants` self lookup, newly visible tenants before and after the cursor, target-user membership removal, requester owner demotion, and non-admin `list-tenants` membership removal.
+- Renamed the deleted-anchor test to describe the general missing-anchor lower-bound policy rather than a deletion-only behavior.
+- No query contract, public API, cursor codec, audit ordering, or EventStore submodule changes were required.
+
 ### File List
+
+- `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs`
+- `_bmad-output/implementation-artifacts/9-2-stable-cursor-pagination-under-role-and-membership-changes.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Change Log
+
+- 2026-05-17: Implemented Story 9.2 cursor stability evidence and moved story to review.
 
 ## Party-Mode Review
 

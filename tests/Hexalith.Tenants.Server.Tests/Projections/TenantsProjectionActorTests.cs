@@ -529,9 +529,236 @@ public class TenantsProjectionActorTests {
         secondPage.HasMore.ShouldBeFalse();
     }
 
-    // --- Q26: Cursor pointing to deleted tenant skips gracefully ---
     [Fact]
-    public async Task ListTenants_cursor_skips_deleted_tenant() {
+    public async Task GetUserTenants_self_lookup_removed_next_page_tenant_is_not_returnedAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["user-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.TenantContributor,
+                ["tenant-003"] = TenantRole.TenantOwner,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<UserTenantMembership>? firstPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        firstPage.HasMore.ShouldBeTrue();
+
+        indexModel.Apply(new Contracts.Events.UserRemovedFromTenant("tenant-002", "user-1"));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? secondPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-003"]);
+        secondPage.Items.ShouldAllBe(i => i.TenantId != "tenant-002");
+        secondPage.HasMore.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_self_lookup_newly_visible_tenant_before_cursor_is_not_backfilledAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["user-1"] = new() {
+                ["tenant-002"] = TenantRole.TenantReader,
+                ["tenant-003"] = TenantRole.TenantContributor,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<UserTenantMembership>? firstPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-002"]);
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        firstPage.HasMore.ShouldBeTrue();
+
+        indexModel.Apply(new Contracts.Events.UserAddedToTenant("tenant-001", "user-1", TenantRole.TenantReader));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? secondPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-003"]);
+        secondPage.Items.ShouldAllBe(i => i.TenantId != "tenant-001");
+    }
+
+    [Fact]
+    public async Task GetUserTenants_self_lookup_newly_visible_tenant_after_cursor_may_appearAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["user-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-003"] = TenantRole.TenantContributor,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<UserTenantMembership>? firstPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        firstPage.HasMore.ShouldBeTrue();
+
+        indexModel.Apply(new Contracts.Events.UserAddedToTenant("tenant-002", "user-1", TenantRole.TenantReader));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? secondPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-002", "tenant-003"]);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_tenant_owner_target_membership_removed_between_pages_is_filteredAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["owner-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantOwner,
+                ["tenant-002"] = TenantRole.TenantOwner,
+                ["tenant-003"] = TenantRole.TenantOwner,
+            },
+            ["user-2"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.TenantReader,
+                ["tenant-003"] = TenantRole.TenantReader,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "user-2",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<UserTenantMembership>? firstPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        firstPage.HasMore.ShouldBeTrue();
+
+        indexModel.Apply(new Contracts.Events.UserRemovedFromTenant("tenant-002", "user-2"));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "user-2",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? secondPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-003"]);
+        secondPage.Items.ShouldAllBe(i => i.TenantId != "tenant-002");
+    }
+
+    [Fact]
+    public async Task GetUserTenants_tenant_owner_requester_demoted_between_pages_is_filteredAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["owner-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantOwner,
+                ["tenant-002"] = TenantRole.TenantOwner,
+                ["tenant-003"] = TenantRole.TenantOwner,
+            },
+            ["user-2"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.TenantReader,
+                ["tenant-003"] = TenantRole.TenantReader,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "user-2",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<UserTenantMembership>? firstPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        firstPage.HasMore.ShouldBeTrue();
+
+        indexModel.Apply(new Contracts.Events.UserRoleChanged(
+            "tenant-002",
+            "owner-1",
+            TenantRole.TenantOwner,
+            TenantRole.TenantReader));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "user-2",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? secondPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-003"]);
+        secondPage.Items.ShouldAllBe(i => i.TenantId != "tenant-002");
+    }
+
+    // --- Q26: Cursor anchor missing/hidden continues from lower bound ---
+    [Fact]
+    public async Task ListTenants_cursor_anchor_missing_continues_from_lower_boundAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         // Create tenants A, C, D, E (B missing - simulates deletion)
         TenantIndexReadModel indexModel = new();
@@ -555,6 +782,48 @@ public class TenantsProjectionActorTests {
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(3);
         page.Items[0].TenantId.ShouldBe("C");
+    }
+
+    [Fact]
+    public async Task ListTenants_non_admin_membership_removed_between_pages_is_filteredAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["user-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.TenantContributor,
+                ["tenant-003"] = TenantRole.TenantOwner,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<TenantSummary>? firstPage = DeserializePayload<PaginatedResult<TenantSummary>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        firstPage.HasMore.ShouldBeTrue();
+
+        indexModel.Apply(new Contracts.Events.UserRemovedFromTenant("tenant-002", "user-1"));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? secondPage = DeserializePayload<PaginatedResult<TenantSummary>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-003"]);
+        secondPage.Items.ShouldAllBe(i => i.TenantId != "tenant-002");
+        secondPage.HasMore.ShouldBeFalse();
     }
 
     // --- Q20: Empty TenantIndexReadModel returns empty paginated result ---
