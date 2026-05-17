@@ -70,3 +70,4 @@
 2026-05-17T18:09:12+02:00	party-mode-review	10-3b-cancellation-token-threading-for-tenant-projection-queries	ok	recorded party-mode trace; clarified 10.3A dependency gate, cancellation taxonomy, deterministic tests, and no Tenants-only bypass
 2026-05-17T19:04:40+02:00	advanced-elicitation	10-3a-eventstore-projection-cancellation-api-prerequisite	ok	recorded advanced elicitation trace; clarified actor-boundary proof, cache precedence, exception taxonomy, and Tenants handoff evidence
 2026-05-17T20:02:43+02:00	advanced-elicitation	10-3b-cancellation-token-threading-for-tenant-projection-queries	ok	recorded advanced elicitation trace; clarified validation precedence, token propagation evidence, and non-atomic projection cancellation
+2026-05-17T21:02:48+02:00	none	-	none	ready buffer full; all ready stories already have party-mode and advanced-elicitation traces; active 9-4 soft warning from preflight 2026-05-17T19:02:10Z
