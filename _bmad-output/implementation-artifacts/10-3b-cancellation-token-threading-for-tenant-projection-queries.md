@@ -19,6 +19,7 @@ so that abandoned requests do not keep consuming compute or block projection pro
 5. Given cancellation is observed before query state access, during query execution, or before projection persistence, when focused tests run, then tests prove no successful query/projection result is reported after cancellation and no read-model state is corrupted.
 6. Given cancellation is added to tenant query/projection code, when non-cancelled callers execute the same query and projection flows, then existing authorization, cursor, pagination, audit filtering, ETag cache, and projection write-safety behavior remains unchanged.
 7. Given cancellation occurs, when logs, metrics, or traces are emitted, then safe structured context distinguishes cancellation from forbidden, not-found, invalid-cursor, serialization, actor invocation, ETag conflict, and retry-exhaustion failures without logging payload bodies, tenant names, configuration values, cursor payloads, or user-controllable display names.
+8. Given Story 10.3A has not yet recorded the approved EventStore cancellation-aware signatures and submodule commit, when a developer begins Story 10.3B, then implementation stops before Tenants code changes and does not introduce a Tenants-local EventStore bypass, overload shim, DTO change, route change, cursor/auth/query visibility change, audit schema change, state key change, or package dependency change.
 
 ## Tasks / Subtasks
 
@@ -26,6 +27,7 @@ so that abandoned requests do not keep consuming compute or block projection pro
   - [ ] Confirm the `Hexalith.EventStore` submodule commit that contains the approved cancellation-aware projection API.
   - [ ] Record the exact EventStore signatures available to Tenants, including the query actor/dispatch path and projection handler path.
   - [ ] If EventStore still only exposes `IProjectionActor.QueryAsync(QueryEnvelope envelope)`, `CachingProjectionActor.ExecuteQueryAsync(QueryEnvelope envelope)`, and `TenantProjectionHandler.ProjectAsync(ProjectionRequest request)`-style no-token paths, stop implementation and return this story for prerequisite completion instead of inventing a Tenants-only bypass.
+  - [ ] Do not wrap synchronous EventStore APIs, shadow EventStore overloads locally, invoke DAPR/state clients outside the approved projection path, or add a Tenants-only cancellation adapter to bypass the 10.3A contract decision.
   - [ ] Do not initialize or update nested submodules recursively while checking the dependency.
 - [ ] Thread cancellation through tenant projection query execution once EventStore exposes the token. (AC: 1, 2, 5, 6)
   - [ ] Update `TenantsProjectionActor.ExecuteQueryAsync(...)` to accept and pass the token according to the EventStore API shape from Story 10.3A.
@@ -41,12 +43,15 @@ so that abandoned requests do not keep consuming compute or block projection pro
 - [ ] Keep cancellation taxonomy explicit. (AC: 5, 7)
   - [ ] Let cancellation surface as `OperationCanceledException` or the EventStore-approved cancellation result shape.
   - [ ] Do not map cancellation to `QueryResult.Success == true`, empty successful payloads, `Forbidden`, `Invalid cursor`, `Tenant not found`, generic actor failure, ETag conflict, or retry exhaustion.
+  - [ ] Follow the EventStore-approved cancellation result shape exactly once Story 10.3A defines it; do not invent a Tenants-local convention for best-effort, immediate, checkpoint-aware, or retry-abort behavior.
   - [ ] Add safe source-generated logs or metrics only when they follow existing repository patterns and do not leak tenant/user payload data.
 - [ ] Add focused deterministic tests. (AC: 1-7)
   - [ ] Add or extend `TenantsProjectionActorTests` with pre-cancelled and mid-flow cancellation coverage for query state reads.
+  - [ ] Inject cancellation deterministically with pre-cancelled tokens, controlled fake EventStore boundaries, or cancellation triggered at known awaited points; do not depend on sleeps or scheduler timing.
   - [ ] Verify cancellation before DAPR state access prevents state reads for at least one role-sensitive query and one audit query.
   - [ ] Verify cancellation during audit/list pagination does not return a partial successful page.
   - [ ] Add or extend `TenantProjectionHandlerTests` to prove projection state reads/writes receive the same token and abort cleanly when cancelled.
+  - [ ] Assert cancellation is not reported as a successful empty payload, forbidden, invalid cursor, tenant not found, generic actor failure, ETag conflict, or retry exhaustion.
   - [ ] Verify non-cancelled requests still pass existing authorization, cursor, pagination, audit, and projection result assertions.
   - [ ] Use deterministic fakes or substitutes; do not rely on timing sleeps, live DAPR, Redis, Aspire, or real network calls.
 - [ ] Keep scope boundaries explicit. (AC: 4, 6)
@@ -65,6 +70,7 @@ so that abandoned requests do not keep consuming compute or block projection pro
   - `Hexalith.EventStore.Server/Queries/QueryRouter.cs`: `RouteQueryAsync(SubmitQuery query, CancellationToken cancellationToken = default)` receives a token before actor dispatch, but the actor call remains `proxy.QueryAsync(envelope)` in the current prerequisite analysis.
   - `Hexalith.EventStore.Client/Aggregates/EventStoreProjection.cs`: projection replay helpers are synchronous in the 10.3A analysis.
 - Do not begin Tenants implementation until the completed 10.3A work names the exact API shape Story 10.3B should consume. If 10.3A concludes that a boundary cannot carry cancellation directly, implement only the supported Tenants-side cancellation boundaries and document the limitation in tests.
+- Treat the 10.3A handoff as a hard sequencing gate, not a suggestion. The handoff must name the exact EventStore submodule commit, changed API signatures, supported cancellation result/exception shape, and any actor-boundary or synchronous replay limitations before Tenants code is changed.
 
 ### Current Code State
 
@@ -83,6 +89,7 @@ so that abandoned requests do not keep consuming compute or block projection pro
 
 - Add token parameters narrowly and mechanically after the EventStore API shape is known. Avoid broad helper abstractions unless Stories 10.1/10.2 already introduced an internal projection state adapter that should receive the token.
 - Prefer `CancellationToken.ThrowIfCancellationRequested()` before expensive in-memory loops and before starting retry attempts. For DAPR calls, pass the token to overloads that support it.
+- Place cancellation checkpoints before state access, expensive filtering/sorting/pagination, retry attempts, and multi-item audit/projection processing; avoid noisy checks between trivial synchronous operations.
 - Do not catch `OperationCanceledException` and convert it into a successful `QueryResult`, projection `ProjectionResponse`, or ordinary adapter failure.
 - Preserve `ConfigureAwait(false)` conventions in the existing async code.
 - If an EventStore compatibility wrapper uses `CancellationToken.None` for legacy callers, tests must prove no-token callers keep existing behavior.
@@ -141,3 +148,27 @@ GPT-5 Codex
 ### Completion Notes List
 
 ### File List
+
+## Party-Mode Review
+
+- Date/time: 2026-05-17T18:09:12+02:00
+- Selected story key: 10-3b-cancellation-token-threading-for-tenant-projection-queries
+- Command/skill invocation used: `/bmad-party-mode 10-3b-cancellation-token-threading-for-tenant-projection-queries; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect and Quality Advisor), John (Product Manager)
+- Findings summary:
+  - Reviewers agreed the story is product-relevant and correctly scoped, but implementation must remain gated on Story 10.3A's concrete EventStore cancellation API handoff.
+  - The primary architecture risk is a Tenants-local workaround that bypasses EventStore query/projection contracts, shadows overloads, or changes cursor, authorization, audit, state-key, or write-safety behavior.
+  - The primary test risk is cancellation being swallowed as a successful empty result or misclassified as forbidden, invalid cursor, not found, actor failure, ETag conflict, or retry exhaustion.
+  - Deterministic tests should use pre-cancelled tokens, fake EventStore boundaries, and cancellation at known await points rather than sleeps, live DAPR, Redis, Aspire, or network timing.
+- Changes applied:
+  - Added an acceptance criterion making the 10.3A EventStore commit/signature handoff a hard sequencing gate before Tenants code changes.
+  - Tightened prerequisite tasks to forbid Tenants-only EventStore bypasses, local overload shims, synchronous API wrapping, and direct state-client work outside the approved projection path.
+  - Clarified cancellation taxonomy so Tenants follows the EventStore-approved result/exception shape instead of inventing local best-effort, checkpoint, or retry-abort semantics.
+  - Expanded deterministic test guidance for pre-cancelled and mid-flow cancellation, fake EventStore boundaries, non-cancelled regressions, and cancellation-not-domain-error assertions.
+  - Added implementation guidance for checkpoint placement before state access, expensive loops, retry attempts, and multi-item processing without adding noisy checks between trivial synchronous operations.
+- Findings deferred:
+  - Exact EventStore cancellation-aware API names, signatures, overload compatibility, and submodule commit remain Story 10.3A decisions.
+  - Exact cancellation result shape, exception behavior, and retry interaction remain governed by the 10.3A handoff or a later architecture decision.
+  - Integration-level validation with live DAPR, Redis, Aspire, actor hosting, or network behavior remains outside this deterministic story-hardening pass.
+  - Broader cancellation propagation across unrelated tenant services remains out of scope.
+- Final recommendation: needs-story-update

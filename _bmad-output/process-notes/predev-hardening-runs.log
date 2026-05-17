@@ -67,3 +67,4 @@
 2026-05-17T15:04:46+02:00	create-story	10-3b-cancellation-token-threading-for-tenant-projection-queries	ok	created cancellation token threading story context; preflight active-dev-story soft warning for 9-4
 2026-05-17T16:03:15+02:00	advanced-elicitation	10-1-optimistic-concurrency-for-tenant-read-model-writes	ok	recorded advanced elicitation trace; clarified partial-success failure, per-key ETag scope, fresh retry defaults, and safe observability
 2026-05-17T17:03:41+02:00	advanced-elicitation	10-2-audit-projection-write-safety	ok	recorded advanced elicitation trace; clarified partial-success replay, duplicate EventId conflicts, and invariant-failure no-save boundary
+2026-05-17T18:09:12+02:00	party-mode-review	10-3b-cancellation-token-threading-for-tenant-projection-queries	ok	recorded party-mode trace; clarified 10.3A dependency gate, cancellation taxonomy, deterministic tests, and no Tenants-only bypass
