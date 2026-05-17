@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-17 (10-1 optimistic concurrency for tenant read-model writes story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-5 shared pagination bounds and cursor utilities story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-4 actor-layer query guardrails story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy story context created; story -> ready-for-dev)
@@ -65,7 +66,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-17T11:19:32+02:00
+last_updated: 2026-05-17T11:28:16+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -178,8 +179,8 @@ development_status:
   epic-9-retrospective: optional
 
   # Epic 10: Durable Projection Write Safety
-  epic-10: backlog
-  10-1-optimistic-concurrency-for-tenant-read-model-writes: backlog
+  epic-10: in-progress
+  10-1-optimistic-concurrency-for-tenant-read-model-writes: ready-for-dev
   10-2-audit-projection-write-safety: backlog
   10-3a-eventstore-projection-cancellation-api-prerequisite: backlog
   10-3b-cancellation-token-threading-for-tenant-projection-queries: backlog
