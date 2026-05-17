@@ -19,6 +19,7 @@ so that authorization assumptions remain protected even if a controller or calle
 5. Given actor-layer guardrails reject a query, when the failure is logged, then logs include only safe structured context such as correlation ID when present, query type, failure reason, and a fixed stage, and do not expose tenant IDs, user IDs, aggregate IDs that identify tenant data, member IDs, tenant membership details, cursor values, authorization decision internals, audit content, or sensitive payload data.
 6. Given an unknown query type reaches the actor with a malformed `UserId`, when the actor evaluates the envelope, then unknown query behavior remains unchanged by this story.
 7. Given focused actor tests run, when null-user, empty-user, whitespace-user, unauthorized-user, valid-user, valid-cursor, invalid-cursor, and unknown-query paths are exercised where current fixtures support them, then tests verify defense-in-depth behavior without weakening existing controller authorization tests.
+8. Given a known role-sensitive query has both a malformed `UserId` and malformed pagination, cursor, audit, or query payload data, when the actor evaluates the envelope, then the malformed-user guard returns the safe `Forbidden` authorization failure before any invalid-cursor, invalid-payload, or projection-state behavior can be observed.
 
 ## Tasks / Subtasks
 
@@ -43,6 +44,7 @@ so that authorization assumptions remain protected even if a controller or calle
   - [ ] Keep the null-forgiving test construction intentional and visible so the tests exercise malformed deserialized/internal envelopes rather than public constructor validation.
   - [ ] Assert malformed-user cases return unsuccessful `QueryResult` with `ErrorMessage` equal to `QueryAdapterFailureReason.Forbidden` or `"Forbidden"` and do not return payload bytes.
   - [ ] Assert the actor does not call DAPR state reads or membership/global-admin lookup paths for rejected malformed-user envelopes where the current actor fixture exposes those calls, so the guardrail happens before projection state access.
+  - [ ] Add at least one precedence test where a guarded query contains both a malformed `UserId` and an otherwise invalid cursor or malformed payload, and assert the result is the safe `Forbidden` failure rather than `"Invalid cursor."`, `"Invalid audit query payload."`, unknown parsing output, or a state-derived failure.
   - [ ] Add a focused regression test that an unknown query type with a malformed `UserId` still follows the existing unknown-query result path.
   - [ ] Add focused valid-cursor and invalid-cursor regression coverage for guarded query types that already have cheap actor-test seams, especially `list-tenants`, so Story 9.1 and Story 9.2 cursor semantics are not changed for valid callers.
   - [ ] For valid-path coverage, assert the existing result shape and key fields remain unchanged where fixtures provide a stable expected model, not only that the query succeeds.
@@ -82,6 +84,7 @@ so that authorization assumptions remain protected even if a controller or calle
 - Prefer logging query type, fixed stage, failure reason, and correlation metadata only; if `AggregateId` represents tenant data in the guarded query path, do not include it in the malformed-identity log.
 - Do not modify `Hexalith.EventStore` for this story. If `Forbidden` mapping is insufficient in a future EventStore version, record that as a deferred dependency rather than expanding scope here.
 - Future role-sensitive query types need an explicit opt-in/default guardrail policy in a later planning pass; this story intentionally protects the five actor-routed query types listed above and keeps unknown query behavior unchanged.
+- The malformed-user guard owns failure precedence for known role-sensitive query types. If an envelope is both unauthenticated and otherwise malformed, the actor should return `Forbidden` before cursor decoding, audit payload validation, pagination payload parsing, or state access so direct actor callers cannot use malformed identity requests to probe other validation behavior.
 
 ### Files Likely To Update
 
@@ -96,6 +99,7 @@ so that authorization assumptions remain protected even if a controller or calle
 - For malformed-user tests, create the envelope normally and then apply `with { UserId = "" }`, `with { UserId = " " }`, and `with { UserId = null! }` so tests exercise actor defense rather than constructor validation.
 - Verify rejected malformed-user envelopes return `Success == false`, no payload, and `ErrorMessage == QueryAdapterFailureReason.Forbidden` or `"Forbidden"`.
 - For state-read short-circuit coverage, use `DidNotReceive()` on the DAPR substitute for the state keys associated with the selected query. Keep these assertions focused so they do not make tests brittle around unrelated DAPR calls.
+- For failure-precedence coverage, combine a malformed `UserId` with a deliberately invalid cursor or malformed audit/standard pagination payload on a known role-sensitive query and assert the actor does not surface cursor or payload errors before the identity guard.
 - Run at minimum:
   - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests`
   - If controller behavior changes unexpectedly, also run `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests`
@@ -166,7 +170,28 @@ GPT-5 Codex
   - Tightened safe logging acceptance criteria and task wording to omit tenant/user/member identifiers, audit content, and tenant-identifying aggregate IDs from malformed-identity logs.
   - Added valid-path testing guidance to assert existing result shape and key fields where stable fixtures exist.
 - Findings deferred:
-  - Whether future role-sensitive query types should be guarded by a shared default-deny policy remains a later planning decision.
-  - Whether `get-user-tenants` needs additional actor-layer role or target-user authorization beyond existing behavior remains outside this malformed-identity guardrail story.
-  - Whether EventStore should map malformed internal envelopes to a different public status remains outside this story.
+- Whether future role-sensitive query types should be guarded by a shared default-deny policy remains a later planning decision.
+- Whether `get-user-tenants` needs additional actor-layer role or target-user authorization beyond existing behavior remains outside this malformed-identity guardrail story.
+- Whether EventStore should map malformed internal envelopes to a different public status remains outside this story.
 - Final recommendation: needs-story-update
+
+## Advanced Elicitation
+
+- Date: 2026-05-17T14:14:53+02:00
+- Selected story key: 9-4-actor-layer-query-guardrails
+- Command/skill invocation used: `/bmad-advanced-elicitation 9-4-actor-layer-query-guardrails`
+- Batch 1 methods: Security Audit Personas; Failure Mode Analysis; Self-Consistency Validation; Socratic Questioning; Critique and Refine
+- Reshuffled Batch 2 methods: Pre-mortem Analysis; Occam's Razor Application; 5 Whys Deep Dive; Expert Panel Review; Challenge from Critical Perspective
+- Findings summary:
+  - The story already scoped the guarded query set and safe logging rules, but direct actor callers could still exploit ambiguous failure precedence if invalid cursor or payload validation happened before malformed-identity rejection.
+  - Tests needed one explicit mixed-failure case so implementers preserve the intended ordering rather than only proving each failure mode separately.
+  - Unknown-query preservation and normal controller authentication behavior should remain outside this actor-layer guardrail change.
+- Changes applied:
+  - Added AC8 to make malformed-user rejection the first observable result for known role-sensitive queries, even when the same envelope also contains invalid cursor, pagination, audit, or query payload data.
+  - Added task and testing guidance for a focused failure-precedence regression test that expects `Forbidden` instead of cursor, audit-payload, parsing, or state-derived errors.
+  - Added a defense-in-depth policy note clarifying that the actor must not use unauthenticated direct envelopes to probe validation or state behavior.
+- Findings deferred:
+  - Whether future role-sensitive query types should default to guarded behavior remains a later architecture decision.
+  - Whether EventStore should introduce a distinct malformed-envelope public mapping remains outside this story.
+  - Exact logging event names and test logger mechanics remain implementation details within existing repository conventions.
+- Final recommendation: ready-for-dev
