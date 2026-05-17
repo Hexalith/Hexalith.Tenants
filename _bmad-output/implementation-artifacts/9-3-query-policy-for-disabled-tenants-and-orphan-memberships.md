@@ -17,6 +17,7 @@ so that query results are predictable, explainable, and do not accidentally expo
 3. Given a `UserTenants` projection references a tenant missing from the tenant index/read model, when the query response is built, then normal user-facing query responses filter the orphan membership before keyset ordering, page-size selection, and signed cursor generation.
 4. Given an orphan membership is filtered from a normal query response, when the anomaly is observed, then the actor emits internal projection-repair telemetry or structured warning logs with correlation metadata and never adds a public DTO field, diagnostic route, or orphan list.
 5. Given projection eventual consistency creates a stale self-lookup result after user removal, when the removed user queries their memberships briefly after removal, then the accepted temporary visibility window is documented and covered by tests or explicit notes, and the stale query result does not grant write capability.
+6. Given all currently visible memberships on a requested page are filtered as orphans, when pagination completes, then the response is an empty page with no synthesized tenant item and no cursor derived from an orphan entry.
 
 ## Tasks / Subtasks
 
@@ -29,11 +30,13 @@ so that query results are predictable, explainable, and do not accidentally expo
   - [ ] In `TenantsProjectionActor.HandleGetUserTenantsAsync`, do not construct `UserTenantMembership` from a `UserTenants` entry when `indexModel.Tenants` has no matching `TenantIndexEntry`.
   - [ ] Remove the current fallback behavior that emits `Name = string.Empty` and `Status = TenantStatus.Active` for missing tenant entries.
   - [ ] Apply filtering before keyset ordering, `pageSize + 1` selection, and signed cursor generation so orphan entries do not consume page slots or cursor positions.
+  - [ ] Treat cursor continuation against the current filtered candidate set: if the cursor's prior anchor tenant is now orphaned or otherwise filtered out, do not materialize it, expose it, or derive a next cursor from it.
   - [ ] Preserve the existing authorization filter order: self/global-admin visibility and tenant-owner scoped overlap must still be determined before pagination, and cross-user timing-uniformity behavior from R5-A2 must remain intact.
 - [ ] Add observable projection-repair warning logs for filtered orphan memberships. (AC: 4)
   - [ ] Add a source-generated `LoggerMessage` warning on `TenantsProjectionActor` or a local logging helper with fields for correlation ID, query type, requester user ID, target user ID, orphan tenant ID, and stage.
   - [ ] Treat repair observability as internal telemetry/logging only unless an existing trace/activity tag convention is already available; do not add response metadata, DTO fields, routes, or a diagnostic orphan view in this story.
   - [ ] Do not log protected cursor payloads, signing material, or full serialized query payloads.
+  - [ ] Follow existing repository privacy/logging conventions for identifier values; tests should assert warning category, level, event identity, and correlation linkage without requiring tenant names or serialized query payloads in logs.
   - [ ] Keep the warning informational enough for operators to repair projections, but do not expose the orphan tenant through the response body.
 - [ ] Document and test accepted eventual consistency after membership removal. (AC: 5)
   - [ ] Add or update a concise note in `docs/cross-aggregate-timing.md` explaining that tenant query projections are eventually consistent after `UserRemovedFromTenant`; a stale self-lookup may briefly show the old membership until projection catch-up completes.
@@ -54,6 +57,7 @@ so that query results are predictable, explainable, and do not accidentally expo
 
 - Disabled tenants are included in query responses when the caller is otherwise authorized to see the tenant or membership. Query responses must include `TenantStatus.Disabled`; clients must not infer command capability from query visibility. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`; `_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-16.md#Story 9.3`]
 - Orphan memberships are filtered from normal user-facing query responses before keyset ordering, page-size selection, and signed cursor generation. Do not return blank names, synthesized names, or default `TenantStatus.Active` for a tenant ID that is missing from `TenantIndexReadModel.Tenants`. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`]
+- "Related query output" in the acceptance criteria means existing query responses that already serialize `TenantSummary` or `UserTenantMembership`; this story must not create new public query surfaces to expose disabled or orphan state.
 - A global administrator diagnostic or repair view may surface orphan projection inconsistencies later, but this story must not add that view, must not expose the inconsistency through ordinary `get-user-tenants` results, and must keep repair observability in internal telemetry or structured warning logs. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`]
 - Projection eventual consistency after user removal is accepted: a self-lookup can briefly show the prior membership until the tenant index projection processes `UserRemovedFromTenant`. This query result grants no write capability. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`; `docs/cross-aggregate-timing.md#Timing Window`]
 
@@ -69,6 +73,7 @@ so that query results are predictable, explainable, and do not accidentally expo
 ### Implementation Guardrails
 
 - Filter orphan `get-user-tenants` entries before calling `Paginate`. If filtering happens inside the result selector or after `Take(pageSize + 1)`, an orphan can still consume a page slot, shorten pages incorrectly, or force confusing cursor behavior.
+- Preserve Story 9.2 current-state pagination semantics: the cursor is a lower-bound continuation over the current authorized and orphan-filtered set, not proof that the prior anchor item must still exist in the response.
 - Do not delete or mutate `UserTenants` while serving the query. The query path should report the anomaly through logging only; projection repair is a separate operational concern.
 - Use `envelope.CorrelationId` for the repair warning. Query envelopes already carry correlation metadata from `TenantsQueryController`.
 - Treat warning metadata as internal observability. Optional activity/trace tags are acceptable if they follow existing conventions, but this story must not add or change public response metadata.
@@ -91,6 +96,8 @@ so that query results are predictable, explainable, and do not accidentally expo
 - Use the existing `CreateTenantIndexModel`, `SetupTenantIndexState`, and `CreateActor` helpers in `TenantsProjectionActorTests`.
 - For disabled tests, create tenants with `TenantCreated`, apply `TenantDisabled`, add user memberships, then assert returned `TenantSummary` or `UserTenantMembership` carries `TenantStatus.Disabled`.
 - For orphan tests, create a `TenantIndexReadModel` with `UserTenants` entries whose tenant IDs include valid, orphan, and valid items across the cursor boundary while `Tenants` omits the orphan. Assert the response omits that tenant, does not contain an item with an empty name/default active status, and generates the next cursor from the filtered candidate set.
+- Add an all-orphan page case that proves an empty filtered result has no synthesized membership and no next cursor derived from an orphan.
+- Add a cursor-anchor-disappeared case, if supported by existing cursor test helpers, that proves continuation is evaluated against the current filtered set without exposing or recreating the missing anchor.
 - For warning-log tests, prefer a focused test logger/list logger pattern already used in the repository if available; otherwise add a small local test logger in the test file rather than introducing a logging package.
 - For stale self-lookup tests, keep query visibility and command/write authorization separate; this story documents the query projection window and must not add command behavior.
 - Run at minimum:
@@ -145,3 +152,25 @@ GPT-5 Codex
   - Whether a first-class diagnostic orphan view is needed later.
   - Exact warning metadata field names and any raw-vs-redacted tenant ID decision, to follow existing logging/privacy conventions during implementation.
 - Final recommendation: needs-story-update
+
+## Advanced Elicitation
+
+- Date: 2026-05-17T12:57:06+02:00
+- Selected story key: 9-3-query-policy-for-disabled-tenants-and-orphan-memberships
+- Command/skill invocation used: `/bmad-advanced-elicitation 9-3-query-policy-for-disabled-tenants-and-orphan-memberships`
+- Batch 1 methods: Red Team vs Blue Team; Failure Mode Analysis; Self-Consistency Validation; Socratic Questioning; Critique and Refine
+- Reshuffled Batch 2 methods: Security Audit Personas; Pre-mortem Analysis; Occam's Razor Application; 5 Whys Deep Dive; Expert Panel Review
+- Findings summary:
+  - Cursor handling needed an explicit current-state lower-bound rule when prior anchors are now orphaned or filtered.
+  - The story needed an all-orphan page expectation so implementers do not accidentally derive page occupancy or next cursors from hidden data.
+  - "Related query output" was broad enough to invite accidental new public diagnostic surfaces.
+  - Logging guidance needed a privacy-aware testable contract without deciding raw-versus-redacted identifier policy in the story.
+- Changes applied:
+  - Added AC6 for all-orphan filtered pages.
+  - Clarified orphan filtering before continuation, page-size selection, and cursor generation, including disappeared cursor anchors.
+  - Scoped related query output to existing DTO-bearing responses only.
+  - Added privacy-aware structured logging guidance and focused test expectations for empty filtered pages and disappeared cursor anchors.
+- Findings deferred:
+  - Exact raw-versus-redacted identifier policy for orphan warning fields remains implementation-time alignment with existing repository logging conventions.
+  - Automated projection repair, metrics, and diagnostic orphan views remain out of scope for this story.
+- Final recommendation: ready-for-dev
