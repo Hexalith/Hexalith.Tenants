@@ -1,3 +1,11 @@
+# [1.10.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.9.0...v1.10.0) (2026-05-17)
+
+
+### Features
+
+* create EventStore projection cancellation API prerequisite story context ([6bef5c9](https://github.com/Hexalith/Hexalith.Tenants/commit/6bef5c99842278acc1512c76ffffafe4d2920d33))
+* implement query policy for disabled tenants and orphan memberships ([3f9e368](https://github.com/Hexalith/Hexalith.Tenants/commit/3f9e368499585e7d51dfacf3fe3df7aba7e9d30e))
+
 # [1.9.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.8.0...v1.9.0) (2026-05-17)
 
 
