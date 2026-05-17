@@ -14,8 +14,9 @@ so that query results are predictable, explainable, and do not accidentally expo
 
 1. Given a tenant has `TenantStatus.Disabled`, when `get-user-tenants` is queried by self, tenant owner, or global administrator, then the response includes the disabled tenant when the caller is otherwise authorized to see the tenant or membership.
 2. Given a disabled tenant appears in `get-user-tenants` or related query output, when the response is serialized, then the response clearly includes `TenantStatus.Disabled` so clients can distinguish disabled access from active access and avoid implying command capability.
-3. Given a `UserTenants` projection references a tenant missing from the tenant index/read model, when the query response is built, then normal user-facing query responses filter the orphan membership, log an observable projection-repair warning with correlation metadata, and never return an unexplained blank or synthesized tenant name.
-4. Given projection eventual consistency creates a stale self-lookup result after user removal, when the removed user queries their memberships briefly after removal, then the accepted temporary visibility window is documented and covered by tests or explicit notes, and the stale query result does not grant write capability.
+3. Given a `UserTenants` projection references a tenant missing from the tenant index/read model, when the query response is built, then normal user-facing query responses filter the orphan membership before keyset ordering, page-size selection, and signed cursor generation.
+4. Given an orphan membership is filtered from a normal query response, when the anomaly is observed, then the actor emits internal projection-repair telemetry or structured warning logs with correlation metadata and never adds a public DTO field, diagnostic route, or orphan list.
+5. Given projection eventual consistency creates a stale self-lookup result after user removal, when the removed user queries their memberships briefly after removal, then the accepted temporary visibility window is documented and covered by tests or explicit notes, and the stale query result does not grant write capability.
 
 ## Tasks / Subtasks
 
@@ -27,20 +28,23 @@ so that query results are predictable, explainable, and do not accidentally expo
 - [ ] Filter orphan memberships before creating user-facing query DTOs. (AC: 3)
   - [ ] In `TenantsProjectionActor.HandleGetUserTenantsAsync`, do not construct `UserTenantMembership` from a `UserTenants` entry when `indexModel.Tenants` has no matching `TenantIndexEntry`.
   - [ ] Remove the current fallback behavior that emits `Name = string.Empty` and `Status = TenantStatus.Active` for missing tenant entries.
-  - [ ] Apply filtering before pagination so orphan entries do not consume page slots or cursor positions.
+  - [ ] Apply filtering before keyset ordering, `pageSize + 1` selection, and signed cursor generation so orphan entries do not consume page slots or cursor positions.
   - [ ] Preserve the existing authorization filter order: self/global-admin visibility and tenant-owner scoped overlap must still be determined before pagination, and cross-user timing-uniformity behavior from R5-A2 must remain intact.
-- [ ] Add observable projection-repair warning logs for filtered orphan memberships. (AC: 3)
+- [ ] Add observable projection-repair warning logs for filtered orphan memberships. (AC: 4)
   - [ ] Add a source-generated `LoggerMessage` warning on `TenantsProjectionActor` or a local logging helper with fields for correlation ID, query type, requester user ID, target user ID, orphan tenant ID, and stage.
+  - [ ] Treat repair observability as internal telemetry/logging only unless an existing trace/activity tag convention is already available; do not add response metadata, DTO fields, routes, or a diagnostic orphan view in this story.
   - [ ] Do not log protected cursor payloads, signing material, or full serialized query payloads.
   - [ ] Keep the warning informational enough for operators to repair projections, but do not expose the orphan tenant through the response body.
-- [ ] Document and test accepted eventual consistency after membership removal. (AC: 4)
+- [ ] Document and test accepted eventual consistency after membership removal. (AC: 5)
   - [ ] Add or update a concise note in `docs/cross-aggregate-timing.md` explaining that tenant query projections are eventually consistent after `UserRemovedFromTenant`; a stale self-lookup may briefly show the old membership until projection catch-up completes.
   - [ ] State explicitly that this query visibility does not grant write capability and does not override aggregate command authorization.
   - [ ] Add focused tests or comments proving the actor cannot infer unprocessed removals from current projection state and therefore returns exactly the current read model after normal authorization filtering.
-- [ ] Add focused tests for disabled tenants, orphan filtering, and no-regression query behavior. (AC: 1-4)
+- [ ] Add focused tests for disabled tenants, orphan filtering, and no-regression query behavior. (AC: 1-5)
   - [ ] Add actor tests in `TenantsProjectionActorTests` for disabled tenant inclusion in `get-user-tenants` self, tenant-owner scoped, and global-admin paths.
-  - [ ] Add an actor test where `UserTenants[targetUser][orphan-tenant]` exists but `Tenants` lacks `orphan-tenant`; assert the response omits it, contains no blank/synthesized name item, does not page around it incorrectly, and emits the repair warning.
+  - [ ] Add actor tests where `UserTenants[targetUser]` contains valid, orphan, and valid tenant IDs across a deterministic keyset boundary; assert the response omits the orphan, contains no blank/synthesized name item, does not page around it incorrectly, and emits the repair warning.
   - [ ] Add a global-admin ordinary `get-user-tenants` orphan test to prove diagnostic exposure is not added to normal membership list results.
+  - [ ] Use explicit sortable tenant IDs and fixed timestamps/test data so orphan filtering and cursor assertions never rely on dictionary enumeration order or wall-clock timing.
+  - [ ] Add a stale self-lookup regression guard that documents query-only eventual consistency after removal and proves no write authorization behavior is inferred from the stale query result.
   - [ ] Keep existing signed cursor tests green; if pagination expectations change because filtering now happens before pagination, update tests to assert the new policy directly.
   - [ ] Keep existing 401/403/404/400 ProblemDetails behavior green.
 
@@ -49,8 +53,8 @@ so that query results are predictable, explainable, and do not accidentally expo
 ### Policy To Implement
 
 - Disabled tenants are included in query responses when the caller is otherwise authorized to see the tenant or membership. Query responses must include `TenantStatus.Disabled`; clients must not infer command capability from query visibility. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`; `_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-16.md#Story 9.3`]
-- Orphan memberships are filtered from normal user-facing query responses. Do not return blank names, synthesized names, or default `TenantStatus.Active` for a tenant ID that is missing from `TenantIndexReadModel.Tenants`. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`]
-- A global administrator diagnostic or repair view may surface orphan projection inconsistencies later, but this story must not add that view and must not expose the inconsistency through ordinary `get-user-tenants` results. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`]
+- Orphan memberships are filtered from normal user-facing query responses before keyset ordering, page-size selection, and signed cursor generation. Do not return blank names, synthesized names, or default `TenantStatus.Active` for a tenant ID that is missing from `TenantIndexReadModel.Tenants`. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`]
+- A global administrator diagnostic or repair view may surface orphan projection inconsistencies later, but this story must not add that view, must not expose the inconsistency through ordinary `get-user-tenants` results, and must keep repair observability in internal telemetry or structured warning logs. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`]
 - Projection eventual consistency after user removal is accepted: a self-lookup can briefly show the prior membership until the tenant index projection processes `UserRemovedFromTenant`. This query result grants no write capability. [Source: `_bmad-output/planning-artifacts/epics.md#Story 9.3`; `docs/cross-aggregate-timing.md#Timing Window`]
 
 ### Current Code State
@@ -64,9 +68,10 @@ so that query results are predictable, explainable, and do not accidentally expo
 
 ### Implementation Guardrails
 
-- Filter orphan `get-user-tenants` entries before calling `Paginate`. If filtering happens inside the result selector, an orphan can still consume a page slot or force confusing cursor behavior.
+- Filter orphan `get-user-tenants` entries before calling `Paginate`. If filtering happens inside the result selector or after `Take(pageSize + 1)`, an orphan can still consume a page slot, shorten pages incorrectly, or force confusing cursor behavior.
 - Do not delete or mutate `UserTenants` while serving the query. The query path should report the anomaly through logging only; projection repair is a separate operational concern.
 - Use `envelope.CorrelationId` for the repair warning. Query envelopes already carry correlation metadata from `TenantsQueryController`.
+- Treat warning metadata as internal observability. Optional activity/trace tags are acceptable if they follow existing conventions, but this story must not add or change public response metadata.
 - Preserve timing-uniformity safeguards: cross-user `get-user-tenants` still performs the global-admin check before early empty responses for missing target users.
 - Do not change `PaginatedResult<T>` shape, public query DTO constructors, endpoint routes, or cursor scope strings.
 - Do not add new command behavior for disabled tenants. Existing aggregate and conformance tests own command rejection for disabled tenants. [Source: `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`; `tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs`]
@@ -85,8 +90,9 @@ so that query results are predictable, explainable, and do not accidentally expo
 - Use xUnit and Shouldly, matching existing test style.
 - Use the existing `CreateTenantIndexModel`, `SetupTenantIndexState`, and `CreateActor` helpers in `TenantsProjectionActorTests`.
 - For disabled tests, create tenants with `TenantCreated`, apply `TenantDisabled`, add user memberships, then assert returned `TenantSummary` or `UserTenantMembership` carries `TenantStatus.Disabled`.
-- For orphan tests, create a `TenantIndexReadModel` with a `UserTenants` entry whose tenant ID is not present in `Tenants`. Assert the response omits that tenant and does not contain an item with an empty name/default active status.
+- For orphan tests, create a `TenantIndexReadModel` with `UserTenants` entries whose tenant IDs include valid, orphan, and valid items across the cursor boundary while `Tenants` omits the orphan. Assert the response omits that tenant, does not contain an item with an empty name/default active status, and generates the next cursor from the filtered candidate set.
 - For warning-log tests, prefer a focused test logger/list logger pattern already used in the repository if available; otherwise add a small local test logger in the test file rather than introducing a logging package.
+- For stale self-lookup tests, keep query visibility and command/write authorization separate; this story documents the query projection window and must not add command behavior.
 - Run at minimum:
   - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests`
   - `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests` if controller or serialization coverage changes.
@@ -115,3 +121,27 @@ GPT-5 Codex
 ### Completion Notes List
 
 ### File List
+
+## Party-Mode Review
+
+- Date: 2026-05-17T11:40:38+02:00
+- Selected story key: 9-3-query-policy-for-disabled-tenants-and-orphan-memberships
+- Command/skill invocation used: `/bmad-party-mode 9-3-query-policy-for-disabled-tenants-and-orphan-memberships; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect), John (Product Manager)
+- Findings summary:
+  - Orphan `UserTenants` entries must be filtered before keyset ordering, `pageSize + 1` selection, and signed cursor generation so Story 9.1 cursor safety and Story 9.2 current-state keyset semantics are preserved.
+  - Projection-repair observability must stay internal to structured logs or existing telemetry conventions; the story must not introduce public DTO fields, response metadata, diagnostic routes, or an orphan list.
+  - Disabled tenants must remain visible only after the caller passes the existing self, global-admin, or tenant-owner visibility policy, and returned DTOs must preserve `TenantStatus.Disabled`.
+  - The current missing-tenant fallback to empty name plus `TenantStatus.Active` is an implementation trap and must be removed.
+  - Tests need deterministic sortable keys, pre-pagination orphan filtering coverage, structured repair-warning assertions, and a stale-read/no-write regression guard.
+- Changes applied:
+  - Split orphan filtering and repair observability into separate acceptance criteria.
+  - Tightened tasks and policy notes for pre-pagination/pre-cursor orphan filtering.
+  - Clarified repair warning metadata as internal telemetry/logging only.
+  - Expanded testing requirements for deterministic keyset boundaries, disabled-status visibility, stale query-only eventual consistency, and no public diagnostic exposure.
+- Findings deferred:
+  - Whether projection repair should later become automatic, manual, or operator-triggered.
+  - Whether orphan warnings should become metrics in addition to structured logs.
+  - Whether a first-class diagnostic orphan view is needed later.
+  - Exact warning metadata field names and any raw-vs-redacted tenant ID decision, to follow existing logging/privacy conventions during implementation.
+- Final recommendation: needs-story-update
