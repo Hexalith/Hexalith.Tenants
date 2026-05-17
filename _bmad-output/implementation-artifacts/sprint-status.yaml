@@ -188,7 +188,7 @@ development_status:
   epic-10: in-progress
   10-1-optimistic-concurrency-for-tenant-read-model-writes: ready-for-dev
   10-2-audit-projection-write-safety: ready-for-dev
-  10-3a-eventstore-projection-cancellation-api-prerequisite: backlog
+  10-3a-eventstore-projection-cancellation-api-prerequisite: ready-for-dev
   10-3b-cancellation-token-threading-for-tenant-projection-queries: backlog
   10-4-projection-write-conformance-and-recovery-tests: backlog
   epic-10-retrospective: optional
