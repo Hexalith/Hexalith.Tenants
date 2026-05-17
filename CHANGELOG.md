@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.2...v1.7.3) (2026-05-17)
+
+
+### Bug Fixes
+
+* update Aspire package versions and preflight results ([f0cb359](https://github.com/Hexalith/Hexalith.Tenants/commit/f0cb3596e3129a83dca1189dfc69a0b615473c50))
+
 ## [1.7.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.1...v1.7.2) (2026-05-17)
 
 
