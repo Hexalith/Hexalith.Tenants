@@ -179,7 +179,8 @@ public class TenantsProjectionActorTests {
             CreateAuditEntry("evt-a", "TenantCreated", AuditEventCategory.Administrative, timestamp),
             CreateAuditEntry("evt-c", "UserAddedToTenant", AuditEventCategory.Access, timestamp.AddMinutes(1))));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -192,6 +193,13 @@ public class TenantsProjectionActorTests {
         _ = firstPage.Cursor.ShouldNotBeNull();
         firstPage.Cursor.ShouldNotContain("evt-a");
         firstPage.Cursor.ShouldNotContain("000000");
+
+        // Round-trip: the protected cursor must decode through the codec back to the audit-cursor
+        // inner format (Ticks:D20:EventId), proving opacity is cryptographic and not just substring-coincidence.
+        string expectedScope = TenantQueryCursorScopes.GetTenantAudit("tenant-1", null, null, AuditEventCategory.Administrative);
+        cursorCodec.TryDecode(firstPage.Cursor, GetTenantAuditQuery.QueryType, expectedScope, out string? decodedAuditPosition, out _).ShouldBeTrue();
+        _ = decodedAuditPosition.ShouldNotBeNull();
+        decodedAuditPosition.ShouldEndWith(":evt-a");
 
         QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
@@ -333,7 +341,8 @@ public class TenantsProjectionActorTests {
         SetupTenantState(daprClient, "tenant-1", model);
         SetupNoGlobalAdmin(daprClient);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",
             payload: CreatePaginationPayload(pageSize: 1)));
@@ -343,6 +352,12 @@ public class TenantsProjectionActorTests {
         firstPage.Items.Select(i => i.UserId).ShouldBe(["user-1"]);
         _ = firstPage.Cursor.ShouldNotBeNull();
         firstPage.Cursor.ShouldNotContain("user-1");
+
+        // Round-trip: protected cursor must decode through the codec back to the exact inner key
+        // ("user-1"), proving the wire cursor is cryptographically opaque rather than substring-obfuscated.
+        string expectedScope = TenantQueryCursorScopes.GetTenantUsers("tenant-1");
+        cursorCodec.TryDecode(firstPage.Cursor, GetTenantUsersQuery.QueryType, expectedScope, out string? decodedUserKey, out _).ShouldBeTrue();
+        decodedUserKey.ShouldBe("user-1");
 
         QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",

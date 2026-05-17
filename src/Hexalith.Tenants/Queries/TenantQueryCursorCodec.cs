@@ -142,17 +142,17 @@ public sealed class TenantQueryCursorCodec(IDataProtectionProvider dataProtectio
 internal static class TenantQueryCursorScopes {
     public static string ListTenants(string userId) {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
-        return $"user:{userId}";
+        return $"user:{EscapeSegment(userId)}";
     }
 
     public static string GetTenantUsers(string tenantId) {
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
-        return $"tenant:{tenantId}";
+        return $"tenant:{EscapeSegment(tenantId)}";
     }
 
     public static string GetUserTenants(string targetUserId) {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetUserId);
-        return $"target-user:{targetUserId}";
+        return $"target-user:{EscapeSegment(targetUserId)}";
     }
 
     public static string GetTenantAudit(
@@ -163,8 +163,18 @@ internal static class TenantQueryCursorScopes {
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         return string.Create(
             System.Globalization.CultureInfo.InvariantCulture,
-            $"tenant:{tenantId}|from:{FormatInstant(from)}|to:{FormatInstant(to)}|category:{category?.ToString() ?? string.Empty}");
+            $"tenant:{EscapeSegment(tenantId)}|from:{FormatInstant(from)}|to:{FormatInstant(to)}|category:{EscapeSegment(category?.ToString())}");
     }
+
+    // The cursor scope uses '|' as a segment separator and ':' as a key/value separator.
+    // Escape both inside caller-supplied segments so an attacker-controlled id cannot collide
+    // with another tenant's scope by injecting '|' or ':'.
+    private static string EscapeSegment(string? value)
+        => string.IsNullOrEmpty(value)
+            ? string.Empty
+            : value.Replace("\\", "\\\\", StringComparison.Ordinal)
+                   .Replace("|", "\\p", StringComparison.Ordinal)
+                   .Replace(":", "\\c", StringComparison.Ordinal);
 
     private static string FormatInstant(DateTimeOffset? value)
         => value?.UtcDateTime.ToString("O", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;

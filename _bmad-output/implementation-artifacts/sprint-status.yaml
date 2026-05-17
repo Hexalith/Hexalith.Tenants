@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-17 (9-2 stable cursor pagination code review complete + 4 patches applied; story -> done)
 # last_updated: 2026-05-17 (10-2 audit projection write safety story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-2 stable cursor pagination implemented; story -> review)
 # last_updated: 2026-05-17 (9-2 stable cursor pagination development started; story -> in-progress)
@@ -177,7 +178,7 @@ development_status:
   # Epic 9: Trustworthy Tenant Query Operations
   epic-9: in-progress
   9-1-opaque-signed-query-cursors: done
-  9-2-stable-cursor-pagination-under-role-and-membership-changes: review
+  9-2-stable-cursor-pagination-under-role-and-membership-changes: done
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: ready-for-dev
   9-4-actor-layer-query-guardrails: ready-for-dev
   9-5-shared-pagination-bounds-and-cursor-utilities: ready-for-dev

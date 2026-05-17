@@ -36,6 +36,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
     private readonly DaprClient _daprClient;
     private readonly ITenantQueryCursorCodec _cursorCodec;
+    private readonly ILogger<TenantsProjectionActor> _logger;
 
     public TenantsProjectionActor(
         ActorHost host,
@@ -46,6 +47,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         : base(host, eTagService, logger) {
         _daprClient = daprClient;
         _cursorCodec = cursorCodec;
+        _logger = logger;
     }
 
     /// <inheritdoc/>
@@ -208,7 +210,21 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         return element.TryGetDateTimeOffset(out DateTimeOffset value) ? value : null;
     }
 
-    private static QueryResult InvalidCursorResult() => new(false, default, ErrorMessage: "Invalid cursor.");
+    private QueryResult InvalidCursorResult(
+        string queryType,
+        string endpoint,
+        string tenantId,
+        string userId,
+        string? failureReason) {
+        Log.InvalidCursorRejected(
+            _logger,
+            queryType,
+            endpoint,
+            tenantId,
+            userId,
+            failureReason ?? "unknown");
+        return new(false, default, ErrorMessage: "Invalid cursor.");
+    }
 
     private static HashSet<string> GetUserTenantIds(TenantIndexReadModel indexModel, string userId) {
         if (indexModel.UserTenants.TryGetValue(userId, out Dictionary<string, TenantRole>? tenants)) {
@@ -269,7 +285,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         PaginatedResult<TResult> result,
         string queryType,
         string scope)
-        => result.Cursor is null ? result : result with { Cursor = _cursorCodec.Encode(queryType, scope, result.Cursor) };
+        => string.IsNullOrWhiteSpace(result.Cursor)
+            ? result
+            : result with { Cursor = _cursorCodec.Encode(queryType, scope, result.Cursor) };
 
     private async Task<QueryResult> HandleGetTenantAsync(QueryEnvelope envelope) {
         TenantReadModel? model = await _daprClient
@@ -331,8 +349,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         }
 
         string scope = TenantQueryCursorScopes.GetTenantAudit(envelope.AggregateId, query.From, query.To, query.Category);
-        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out _)) {
-            return InvalidCursorResult();
+        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         PaginatedResult<TenantAuditEntry> result = ProtectCursor(
@@ -358,8 +376,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.GetTenantUsers(envelope.AggregateId);
-        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out _)) {
-            return InvalidCursorResult();
+        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(GetTenantUsersQuery.QueryType, "get-tenant-users", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         PaginatedResult<TenantMember> result = ProtectCursor(
@@ -405,8 +423,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.GetUserTenants(targetUserId);
-        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out _)) {
-            return InvalidCursorResult();
+        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(GetUserTenantsQuery.QueryType, "get-user-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         PaginatedResult<UserTenantMembership> result = ProtectCursor(
@@ -454,8 +472,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
-        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out _)) {
-            return InvalidCursorResult();
+        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(ListTenantsQuery.QueryType, "list-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         PaginatedResult<TenantSummary> result = ProtectCursor(
@@ -495,4 +513,18 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         string? Cursor,
         int PageSize,
         string? ErrorMessage);
+
+    private static partial class Log {
+        [LoggerMessage(
+            EventId = 1902,
+            Level = LogLevel.Warning,
+            Message = "Invalid tenant query cursor rejected at actor: QueryType={QueryType}, Endpoint={Endpoint}, TenantId={TenantId}, UserId={UserId}, FailureReason={FailureReason}, Stage=TenantsProjectionActor")]
+        public static partial void InvalidCursorRejected(
+            ILogger logger,
+            string queryType,
+            string endpoint,
+            string tenantId,
+            string userId,
+            string failureReason);
+    }
 }

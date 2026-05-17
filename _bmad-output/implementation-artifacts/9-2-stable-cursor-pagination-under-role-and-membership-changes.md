@@ -1,6 +1,6 @@
 # Story 9.2: Stable Cursor Pagination Under Role and Membership Changes
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -136,13 +136,16 @@ GPT-5 Codex
 ### File List
 
 - `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
+- `src/Hexalith.Tenants/Queries/TenantQueryCursorCodec.cs`
 - `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs`
 - `_bmad-output/implementation-artifacts/9-2-stable-cursor-pagination-under-role-and-membership-changes.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
 
 ### Change Log
 
 - 2026-05-17: Implemented Story 9.2 cursor stability evidence and moved story to review.
+- 2026-05-17: Code review (`/bmad-code-review 9.2`) completed — Acceptance Auditor cleared all 5 ACs; applied 4 review patches: actor-layer cursor `failureReason` logging (EventId 1902), `ProtectCursor` whitespace guard, scope-segment escaping in `TenantQueryCursorScopes`, and round-trip decode assertions on the cursor opacity tests. 312/312 server tests pass. 3 items deferred to Stories 9.4/9.5/11.
 
 ## Party-Mode Review
 
@@ -166,3 +169,19 @@ GPT-5 Codex
   - Disabled-tenant and orphan-membership policy remains Story 9.3.
   - Shared pagination utility cleanup remains Story 9.5 unless directly needed for Story 9.2 tests.
 - Final recommendation: needs-story-update
+
+### Review Findings
+
+Date: 2026-05-17 (bmad-code-review run, diff range fdc6e9e^..a2010bf restricted to TenantsProjectionActor.cs + TenantsProjectionActorTests.cs)
+
+Layers run: Blind Hunter (no context), Edge Case Hunter (diff + read-only project), Acceptance Auditor (full spec). Acceptance Auditor reported **no AC violations** — all five ACs are evidenced by the diff and no out-of-scope changes were introduced.
+
+- [x] [Review][Patch] (was Decision D1) Scope helper `GetTenantAudit` uses `|` as a delimiter — collision risk if tenant IDs ever contain `|` [src/Hexalith.Tenants/Queries/TenantQueryCursorCodec.cs:158-167] — Resolved 2026-05-17 by escaping `|`, `:`, and `\` in caller-supplied segments (option a: in-place escape). All four scope helpers (`ListTenants`, `GetTenantUsers`, `GetUserTenants`, `GetTenantAudit`) now route segment values through `EscapeSegment`.
+- [x] [Review][Patch] Capture and log cursor `failureReason` instead of discarding it [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:334,361,408,457] — Resolved 2026-05-17. Added `_logger` field, `LoggerMessage` source-gen partial `Log.InvalidCursorRejected` (EventId 1902, Warning), and a per-handler `InvalidCursorResult(queryType, endpoint, tenantId, userId, failureReason)` helper. All four sites now capture `out string? failureReason` and emit structured logs while preserving the opaque client-facing `"Invalid cursor."` message.
+- [x] [Review][Patch] `ProtectCursor` will throw `ArgumentException` if a future bug ever produces an empty/whitespace inner cursor [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:268-272] — Resolved 2026-05-17 by changing the null-guard to `string.IsNullOrWhiteSpace(result.Cursor)`.
+- [x] [Review][Patch] Cursor opacity assertions test substring absence, not cryptographic opacity [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs] — Resolved 2026-05-17. `GetTenantAudit_paginates_after_filtering_with_stable_cursor` and `GetTenantUsers_signed_cursor_resumes_from_same_logical_position` now build an explicit `cursorCodec`, call `TryDecode(...).ShouldBeTrue()`, and assert the decoded inner position matches the expected key (`":evt-a"` suffix for audit, `"user-1"` for users).
+- [x] [Review][Defer] `pageSize` parsing silently clamps and silently defaults on non-int32 values [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:99-119,135-148] — deferred, pre-existing (not changed by this diff); belongs to Story 9.5 (shared pagination bounds and cursor utilities).
+- [x] [Review][Defer] Tests use `EphemeralDataProtectionProvider`; production cross-replica/multi-host Data Protection key sharing for the cursor codec is unverified [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs `CreateCursorCodec`] — deferred, Story 9.1 cursor-codec design territory; Story 11 (Production Authorization Readiness) likely owns the DP key persistence configuration.
+- [x] [Review][Defer] No actor-layer integration test for expired / wrong-scope / replayed signed cursor [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs] — deferred, Story 9.1 owns codec-level coverage (story is `done`); Story 9.4 (actor-layer query guardrails) is the better home for actor-level negative cursor cases.
+
+Dismissed as noise (9): null-check for DI-injected codec; removed `s_auditCursorRegex` (codec is the only emitter of audit cursors so internal format is invariant); `Paginate` comment as load-bearing invariant (style); ordinal-ordering encoded in test names (it IS the AC3 contract); `indexModel.Apply` shared-snapshot pattern (NSubstitute returns same ref; structurally equivalent to production projection update); audit cursor with purged event (spec explicitly de-scopes audit tests unless shared-utility changes affect them); `ProtectCursor` instance vs `Paginate` static nesting (style); opaque client-facing error (intentional non-disclosure); audit scope mismatch silent rejection (by design — filter change must invalidate cursor; telemetry covered by patch above).
