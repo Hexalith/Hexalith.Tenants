@@ -1,5 +1,9 @@
 # Deferred Work
 
+## Deferred from: code review of 9-3-query-policy-for-disabled-tenants-and-orphan-memberships (2026-05-17)
+
+- `EntityId` whitespace silently coerces to self-lookup — `string.IsNullOrWhiteSpace(envelope.EntityId)` at `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:398` routes whitespace target IDs to self-lookup. With Story 9.3 orphan warnings this can mislabel cross-user intent as self-lookup in repair telemetry. Pre-existing behavior; track as a separate input-hardening item rather than expanding Story 9.3 scope.
+
 ## Deferred from: code review of 9-1-opaque-signed-query-cursors (2026-05-17)
 
 - `EphemeralDataProtectionProvider` is created per test helper in `TenantsProjectionActorTests`. This masks cross-instance Data Protection key drift that the production DI registration would expose. Track with the integration test work that exercises the production DI registration end-to-end.

@@ -1,6 +1,6 @@
 # Story 9.3: Query Policy for Disabled Tenants and Orphan Memberships
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -194,3 +194,12 @@ GPT-5 Codex
   - Exact raw-versus-redacted identifier policy for orphan warning fields remains implementation-time alignment with existing repository logging conventions.
   - Automated projection repair, metrics, and diagnostic orphan views remain out of scope for this story.
 - Final recommendation: ready-for-dev
+
+### Review Findings
+
+- [x] [Review][Patch] In-actor dedup for orphan warnings — added `_loggedOrphanMemberships` HashSet at `TenantsProjectionActor` instance scope; the 1903 Warning is emitted only on first occurrence per `(targetUserId, orphanTenantId)` per actor lifetime. Locked in by `GetUserTenants_repeated_orphan_query_logs_warning_onceAsync`. (Resolved from decision-needed; user chose in-actor dedup.) [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs]
+- [x] [Review][Patch] Orphan warning fires after cursor validation — orphan IDs are collected during the filter pass, then `_cursorCodec.TryDecode` runs, and only after it succeeds are warnings emitted. Invalid-cursor requests no longer produce 1903 warnings, closing the repair-log amplification vector. [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs]
+- [x] [Review][Patch] Cursor-anchor-disappeared regression test added — `GetUserTenants_cursor_anchor_now_orphan_advances_without_materializing_itAsync` exercises page 1 → orphan the anchor → page 2 with protected cursor, asserting continuation against the filtered set, no synthesized item, and the 1903 warning carrying the disappeared anchor's tenant ID. [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs]
+- [x] [Review][Patch] Structured-state log assertions — `ListLogger` now captures the source-generated state pairs; orphan-warning tests assert exact `CorrelationId`, `QueryType`, `RequesterUserId`, `TargetUserId`, `OrphanTenantId` field values instead of substring matching the formatted message. [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs]
+- [x] [Review][Patch] Single tenant-index lookup per visible membership — orphan filter now uses `TryGetValue` and carries the resolved `TenantIndexEntry` forward via a `(Entry, Role)` tuple into `Paginate`; the indexer call inside the result selector is gone. [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs]
+- [x] [Review][Defer] `EntityId` whitespace silently coerces to self-lookup — `string.IsNullOrWhiteSpace(envelope.EntityId)` routes whitespace target IDs to self, which can mislabel orphan warnings and obscure cross-user intent. Pre-existing at `TenantsProjectionActor.cs:398`, not introduced by Story 9.3 — track as a separate hardening item. [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:398] — deferred, pre-existing

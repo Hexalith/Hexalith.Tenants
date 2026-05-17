@@ -486,11 +486,11 @@ public class TenantsProjectionActorTests {
 
         LogEntry warning = logger.Entries.Single(e => e.Level == LogLevel.Warning);
         warning.EventId.Id.ShouldBe(1903);
-        warning.Message.ShouldContain(correlationId);
-        warning.Message.ShouldContain("tenant-002-orphan");
-        warning.Message.ShouldContain("get-user-tenants");
-        warning.Message.ShouldContain("user-1");
-        warning.Message.ShouldContain("TenantsProjectionActor");
+        warning.State["CorrelationId"].ShouldBe(correlationId);
+        warning.State["QueryType"].ShouldBe("get-user-tenants");
+        warning.State["RequesterUserId"].ShouldBe("user-1");
+        warning.State["TargetUserId"].ShouldBe("user-1");
+        warning.State["OrphanTenantId"].ShouldBe("tenant-002-orphan");
     }
 
     [Fact]
@@ -521,7 +521,10 @@ public class TenantsProjectionActorTests {
         page.Items.ShouldAllBe(i => i.TenantId != "tenant-002-orphan");
         page.GetType().GetProperty("Orphans").ShouldBeNull();
         page.GetType().GetProperty("Diagnostics").ShouldBeNull();
-        logger.Entries.Count(e => e.Level == LogLevel.Warning && e.EventId.Id == 1903).ShouldBe(1);
+        LogEntry adminWarning = logger.Entries.Single(e => e.Level == LogLevel.Warning && e.EventId.Id == 1903);
+        adminWarning.State["RequesterUserId"].ShouldBe("admin-1");
+        adminWarning.State["TargetUserId"].ShouldBe("user-2");
+        adminWarning.State["OrphanTenantId"].ShouldBe("tenant-002-orphan");
     }
 
     [Fact]
@@ -568,6 +571,86 @@ public class TenantsProjectionActorTests {
         _ = page.ShouldNotBeNull();
         page.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
         page.Items[0].Role.ShouldBe(TenantRole.TenantReader);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_cursor_anchor_now_orphan_advances_without_materializing_itAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3);
+        indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
+            ["tenant-001"] = TenantRole.TenantReader,
+            ["tenant-002"] = TenantRole.TenantContributor,
+            ["tenant-003"] = TenantRole.TenantOwner,
+        };
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+        var logger = new ListLogger<TenantsProjectionActor>();
+
+        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        firstResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? firstPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        firstPage.Cursor.ShouldNotBeNullOrWhiteSpace();
+        logger.Entries.ShouldNotContain(e => e.EventId.Id == 1903);
+
+        // The cursor anchor (tenant-001) disappears from the tenant index between pages.
+        _ = indexModel.Tenants.Remove("tenant-001");
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 1),
+            correlationId: "correlation-anchor-orphan"));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? secondPage = DeserializePayload<PaginatedResult<UserTenantMembership>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-002"]);
+        secondPage.Items.ShouldAllBe(i => i.TenantId != "tenant-001");
+        secondPage.Items.ShouldAllBe(i => !string.IsNullOrWhiteSpace(i.Name));
+        secondPage.HasMore.ShouldBeTrue();
+
+        LogEntry anchorWarning = logger.Entries.Single(e => e.Level == LogLevel.Warning && e.EventId.Id == 1903);
+        anchorWarning.State["OrphanTenantId"].ShouldBe("tenant-001");
+        anchorWarning.State["TargetUserId"].ShouldBe("user-1");
+        anchorWarning.State["CorrelationId"].ShouldBe("correlation-anchor-orphan");
+    }
+
+    [Fact]
+    public async Task GetUserTenants_repeated_orphan_query_logs_warning_onceAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
+        indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
+            ["tenant-001"] = TenantRole.TenantReader,
+            ["tenant-002-orphan"] = TenantRole.TenantContributor,
+        };
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+        var logger = new ListLogger<TenantsProjectionActor>();
+
+        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        QueryEnvelope envelope = CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1",
+            payload: CreatePaginationPayload(pageSize: 10));
+
+        _ = await actor.QueryAsync(envelope);
+        _ = await actor.QueryAsync(envelope);
+        _ = await actor.QueryAsync(envelope);
+
+        logger.Entries.Count(e => e.Level == LogLevel.Warning && e.EventId.Id == 1903).ShouldBe(1);
     }
 
     // --- Q16: Non-owner cross-user lookup returns empty page ---
@@ -1309,7 +1392,11 @@ public class TenantsProjectionActorTests {
             TenantsProjectionActor.TenantAuditProjectionKeyPrefix + tenantId)
             .Returns(Task.FromResult(model)!);
 
-    private sealed record LogEntry(LogLevel Level, EventId EventId, string Message);
+    private sealed record LogEntry(
+        LogLevel Level,
+        EventId EventId,
+        string Message,
+        IReadOnlyDictionary<string, object?> State);
 
     private sealed class ListLogger<T> : ILogger<T> {
         public List<LogEntry> Entries { get; } = [];
@@ -1326,7 +1413,14 @@ public class TenantsProjectionActorTests {
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter) {
-            Entries.Add(new(logLevel, eventId, formatter(state, exception)));
+            Dictionary<string, object?> stateMap = new(StringComparer.Ordinal);
+            if (state is IEnumerable<KeyValuePair<string, object?>> pairs) {
+                foreach (KeyValuePair<string, object?> pair in pairs) {
+                    stateMap[pair.Key] = pair.Value;
+                }
+            }
+
+            Entries.Add(new(logLevel, eventId, formatter(state, exception), stateMap));
         }
     }
 }

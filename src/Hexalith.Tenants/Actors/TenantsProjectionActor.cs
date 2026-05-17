@@ -38,6 +38,10 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     private readonly ITenantQueryCursorCodec _cursorCodec;
     private readonly ILogger<TenantsProjectionActor> _logger;
 
+    // Per-actor-lifetime dedup so a persistent orphan does not re-emit a Warning on every poll.
+    // Cleared when the actor is deactivated by Dapr.
+    private readonly HashSet<(string TargetUserId, string OrphanTenantId)> _loggedOrphanMemberships = [];
+
     public TenantsProjectionActor(
         ActorHost host,
         IETagService eTagService,
@@ -420,20 +424,19 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             envelope.UserId,
             userTenants,
             canViewAllTargetTenants);
-        List<KeyValuePair<string, TenantRole>> existingVisibleUserTenants = [];
+
+        // Resolve each visible membership against the tenant index once. Existing tenants carry
+        // their entry forward to the pagination selector; missing tenants are collected so they
+        // can be logged after cursor validation passes.
+        List<KeyValuePair<string, (TenantIndexEntry Entry, TenantRole Role)>> existingVisibleUserTenants = [];
+        List<string> orphanTenantIds = [];
         foreach (KeyValuePair<string, TenantRole> visibleUserTenant in visibleUserTenants) {
-            if (indexModel.Tenants.ContainsKey(visibleUserTenant.Key)) {
-                existingVisibleUserTenants.Add(visibleUserTenant);
+            if (indexModel.Tenants.TryGetValue(visibleUserTenant.Key, out TenantIndexEntry? entry)) {
+                existingVisibleUserTenants.Add(new(visibleUserTenant.Key, (entry, visibleUserTenant.Value)));
                 continue;
             }
 
-            Log.OrphanUserTenantMembershipFiltered(
-                _logger,
-                envelope.CorrelationId,
-                GetUserTenantsQuery.QueryType,
-                envelope.UserId,
-                targetUserId,
-                visibleUserTenant.Key);
+            orphanTenantIds.Add(visibleUserTenant.Key);
         }
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
@@ -442,20 +445,31 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return InvalidCursorResult(GetUserTenantsQuery.QueryType, "get-user-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
+        // Emit repair warnings only after the request is otherwise valid, and only once per
+        // (target user, orphan tenant) per actor lifetime so repeated polling does not flood logs.
+        foreach (string orphanTenantId in orphanTenantIds) {
+            if (_loggedOrphanMemberships.Add((targetUserId, orphanTenantId))) {
+                Log.OrphanUserTenantMembershipFiltered(
+                    _logger,
+                    envelope.CorrelationId,
+                    GetUserTenantsQuery.QueryType,
+                    envelope.UserId,
+                    targetUserId,
+                    orphanTenantId);
+            }
+        }
+
         PaginatedResult<UserTenantMembership> result = ProtectCursor(
             Paginate(
                 existingVisibleUserTenants,
                 cursor,
                 pageSize,
                 kvp => kvp.Key,
-                kvp => {
-                    TenantIndexEntry entry = indexModel.Tenants[kvp.Key];
-                    return new UserTenantMembership(
-                        kvp.Key,
-                        entry.Name,
-                        entry.Status,
-                        kvp.Value);
-                }),
+                kvp => new UserTenantMembership(
+                    kvp.Key,
+                    kvp.Value.Entry.Name,
+                    kvp.Value.Entry.Status,
+                    kvp.Value.Role)),
             GetUserTenantsQuery.QueryType,
             scope);
 

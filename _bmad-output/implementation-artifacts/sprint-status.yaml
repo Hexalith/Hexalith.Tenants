@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy code review complete + 5 patches applied; story -> done)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy implemented; story -> review)
 # last_updated: 2026-05-17 (9-2 stable cursor pagination code review complete + 4 patches applied; story -> done)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy development started; story -> in-progress)
@@ -74,7 +75,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-17
+last_updated: 2026-05-17T00:00:00+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -181,7 +182,7 @@ development_status:
   epic-9: in-progress
   9-1-opaque-signed-query-cursors: done
   9-2-stable-cursor-pagination-under-role-and-membership-changes: done
-  9-3-query-policy-for-disabled-tenants-and-orphan-memberships: review
+  9-3-query-policy-for-disabled-tenants-and-orphan-memberships: done
   9-4-actor-layer-query-guardrails: ready-for-dev
   9-5-shared-pagination-bounds-and-cursor-utilities: ready-for-dev
   epic-9-retrospective: optional
