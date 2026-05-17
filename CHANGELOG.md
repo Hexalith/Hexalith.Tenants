@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.8.0...v1.9.0) (2026-05-17)
+
+
+### Features
+
+* Update sprint status and implement audit projection write safety ([a2010bf](https://github.com/Hexalith/Hexalith.Tenants/commit/a2010bf084d107c9e56b3b4b25e608559c72a4bb))
+
 # [1.8.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.7.3...v1.8.0) (2026-05-17)
 
 
