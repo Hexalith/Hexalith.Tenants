@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-17 (10-3b cancellation token threading story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy code review complete + 5 patches applied; story -> done)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy implemented; story -> review)
 # last_updated: 2026-05-17 (9-2 stable cursor pagination code review complete + 4 patches applied; story -> done)
@@ -75,7 +76,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-17T00:00:00+02:00
+last_updated: 2026-05-17T15:04:46+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -192,7 +193,7 @@ development_status:
   10-1-optimistic-concurrency-for-tenant-read-model-writes: ready-for-dev
   10-2-audit-projection-write-safety: ready-for-dev
   10-3a-eventstore-projection-cancellation-api-prerequisite: ready-for-dev
-  10-3b-cancellation-token-threading-for-tenant-projection-queries: backlog
+  10-3b-cancellation-token-threading-for-tenant-projection-queries: ready-for-dev
   10-4-projection-write-conformance-and-recovery-tests: backlog
   epic-10-retrospective: optional
 
