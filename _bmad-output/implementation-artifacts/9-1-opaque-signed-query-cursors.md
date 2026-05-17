@@ -135,6 +135,9 @@ GPT-5 Codex
 - `dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore` passed with 0 warnings.
 - `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore --filter FullyQualifiedName!~AspireTopologyTests&FullyQualifiedName!~SnapshotPerformanceTests` passed: 522 tests.
 - `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore` did not satisfy the full DoD gate because unrelated integration tests failed: Aspire topology fixture requires a newer Aspire AppHost runtime/package, and `SnapshotPerformanceTests.ColdStartRehydration_CompletesWithin30Seconds_With500KEvents` hit `ConfigurationLimitExceededRejection` while seeding event 301.
+- 2026-05-17 revalidation: `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore` still does not satisfy the full DoD gate. The same unrelated failures remain: four `AspireTopologyTests` fail because Aspire requires `Aspire.Hosting.AppHost` at least `13.3.2`, and `SnapshotPerformanceTests.ColdStartRehydration_CompletesWithin30Seconds_With500KEvents` fails with `ConfigurationLimitExceededRejection` while seeding event 301.
+- 2026-05-17 revalidation: `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-build` passed: 304 tests.
+- 2026-05-17 revalidation: `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests` passed: 18 tests.
 
 ### Completion Notes List
 
@@ -143,6 +146,7 @@ GPT-5 Codex
 - Added controller-boundary cursor validation for all paginated query endpoints with generic `400 Bad Request` ProblemDetails responses and source-generated warning logs that omit cursor payloads and signing material.
 - Updated query projection, telemetry, codec, and controller integration tests for signed cursor round trips, opaque cursor assertions, tamper/malformed rejection, and existing authorization behavior.
 - Implementation is complete, but story status remains `in-progress` because the unfiltered full solution test pass has unrelated failing integration/performance gates.
+- 2026-05-17 revalidation confirmed focused cursor/query test coverage remains green; story status remains `in-progress` because the mandatory unfiltered regression suite is still blocked by unrelated Aspire topology and snapshot performance failures.
 
 ### File List
 
