@@ -21,6 +21,9 @@ so that audit reports remain complete even when many tenant membership changes a
 7. Given malformed JSON payloads appear in the incoming audit event batch, when retry/reload behavior is exercised, then malformed payloads are still skipped exactly as today while valid audit events are preserved.
 8. Given missing `MessageId` or `UserId` invariant failures occur while constructing audit entries, when guarded persistence is introduced, then those invariant failures still fail through the existing projection failure path and are not masked as successful writes or ordinary ETag conflicts.
 9. Given retry exhaustion is logged or traced, when operators inspect the failure, then safe structured context includes state store, audit key category, tenant ID or aggregate ID when allowed by existing logging policy, audit event ID/type when available, attempt count, max attempts, conflict/exhaustion reason, and correlation or trace ID when available, without logging event payload bodies, tenant names, membership details, cursor payloads, configuration values, or user-controllable display names.
+10. Given an audit guarded save succeeds but a later required projection write fails, when `ProjectAsync` returns or throws, then it still reports the overall projection failure and does not imply cross-key atomicity; if the same audit events are replayed later, `EventId` idempotency prevents duplicate audit records.
+11. Given the reloaded audit state already contains an entry with the same `EventId` as an incoming audit entry but different audit details, when merge logic runs, then the persisted entry is treated as authoritative for that `EventId`, no overwrite occurs, and any diagnostic context remains payload-free.
+12. Given an incoming batch contains valid audit events followed by a missing `MessageId` or `UserId` invariant failure, when guarded persistence is introduced, then incoming audit entries are constructed or validated before any guarded audit save is attempted so no partial audit timeline update is committed for that failed batch.
 
 ## Tasks / Subtasks
 
@@ -34,14 +37,17 @@ so that audit reports remain complete even when many tenant membership changes a
 - [ ] Preserve audit projection semantics while adding retry behavior. (AC: 1, 2, 3, 5)
   - [ ] Keep `TenantAuditProjection.ProjectAuditEvents(...)` and `TenantAuditReadModel.Apply(...)` as the single audit entry construction rules.
   - [ ] Keep malformed JSON payload handling unchanged: malformed payloads are skipped, while missing `MessageId` or `UserId` invariant violations still propagate.
+  - [ ] Construct or validate the incoming audit entries before attempting a guarded save so invariant failures cannot leave a partially merged audit model in state.
   - [ ] Preserve stable audit ordering by `Timestamp` and then `EventId`.
   - [ ] Do not change `TenantAuditEntry`, `GetTenantAuditQuery`, query routes, cursor encoding, authorization, or response DTOs for this story.
 - [ ] Define conflict retry semantics for audit state. (AC: 1, 3, 4)
   - [ ] On conflict, discard the stale mutated audit instance, reload current audit state and ETag, rebuild or merge the incoming audit entries exactly once for that attempt, sort entries, and retry the guarded save.
   - [ ] If the EventStore projection request provides full aggregate history, avoid duplicating audit entries already present in the reloaded audit state; identify entries by `EventId`.
   - [ ] If the projection request provides a delta batch, merge incoming entries into the reloaded audit state without dropping or double-counting existing entries.
+  - [ ] If a duplicate `EventId` already exists in persisted audit state, preserve the persisted entry and do not overwrite it with incoming audit details from a replayed or conflicting batch.
   - [ ] Use max 3 attempts, matching Story 10.1, unless implementation proves audit needs a narrower limit and documents why in code/tests.
   - [ ] On retry exhaustion, fail the projection operation through the existing failure path and emit safe structured logs.
+  - [ ] If audit persistence succeeds but a later required projection write fails, keep the overall projection operation failed and rely on audit `EventId` idempotency for replay rather than claiming cross-key transactionality.
   - [ ] Preserve enough safe failure context for existing replay/retry diagnostics; do not add new recovery commands or admin repair tooling.
 - [ ] Add focused deterministic tests for audit write safety. (AC: 1-5)
   - [ ] Extend `TenantProjectionHandlerTests` or add audit-specific projection handler tests using a deterministic fake/adapter for Dapr state reads, ETags, and save outcomes.
@@ -52,7 +58,9 @@ so that audit reports remain complete even when many tenant membership changes a
   - [ ] Verify read/save attempt counts for conflict-then-success and retry-exhaustion sequences.
   - [ ] Verify retry exhaustion does not return a successful `ProjectionResponse` or otherwise report a saved projection update.
   - [ ] Verify malformed incoming payloads remain skipped during conflict/retry while valid incoming events are preserved.
-  - [ ] Verify invariant failures such as missing `MessageId` or `UserId` are not converted into successful partial writes or ordinary ETag conflicts.
+  - [ ] Verify invariant failures such as missing `MessageId` or `UserId` are not converted into successful partial writes, attempted guarded saves, or ordinary ETag conflicts.
+  - [ ] Verify a duplicate `EventId` with different incoming audit details preserves the persisted audit entry and does not overwrite it.
+  - [ ] Verify a replay after an earlier audit save plus later projection failure does not duplicate audit entries.
   - [ ] Add a focused regression that audit records preserved through conflict recovery remain visible through existing date-range and pagination-cursor query behavior.
   - [ ] Keep `TenantAuditProjectionTests` and `TenantAuditReadModelTests` focused on pure audit classification/sorting behavior unless small assertions are needed to support merge tests.
 - [ ] Keep scope boundaries explicit. (AC: 1-5)
@@ -60,6 +68,7 @@ so that audit reports remain complete even when many tenant membership changes a
   - [ ] Do not add package dependencies or package versions.
   - [ ] Do not change query actor cache ETags, signed cursor behavior, page bounds, or tenant visibility policy.
   - [ ] Do not add distributed locks, queue redesign, schema migrations, new admin UI, recovery commands, diagnostic query endpoints, or EventStore behavior changes.
+  - [ ] Do not claim or implement cross-key transactionality between tenant read-model, audit, and singleton-index state entries.
   - [ ] Leave Story 10.3A/10.3B cancellation-token threading and Story 10.4 reusable conformance coverage for their dedicated stories.
 
 ## Dev Notes
@@ -71,6 +80,9 @@ so that audit reports remain complete even when many tenant membership changes a
 - Audit retry must be reload-and-merge, not retry-the-same-stale-instance. The reloaded audit model may already contain entries persisted by another writer, and the incoming entries must be added exactly once. [Source: `_bmad-output/planning-artifacts/epics.md#Story 10.2`; `_bmad-output/implementation-artifacts/10-1-optimistic-concurrency-for-tenant-read-model-writes.md`]
 - Use max 3 attempts for audit guarded writes to match Story 10.1. If implementation proves a narrower audit-specific limit is needed, document that in code and focused tests rather than leaving the behavior implicit.
 - Audit merge idempotency is based on `TenantAuditEntry.EventId`. If a duplicate `EventId` is already present after reload, preserve the persisted entry and do not append a second copy. Distinct events with the same timestamp must all remain present and sorted by `Timestamp` then `EventId`.
+- Treat persisted audit entries as authoritative for duplicate `EventId` collisions, even if a replayed incoming entry would deserialize to different audit details. Do not overwrite persisted audit details during merge; safe diagnostics may identify duplicate/conflict categories without logging payload bodies or membership details.
+- Build or validate the incoming audit model before attempting a guarded audit save. Malformed payloads may still be skipped according to existing `TenantAuditProjection` behavior, but `MessageId`/`UserId` invariant failures must abort before any partial merged audit state is saved.
+- Audit write safety does not create cross-key atomicity. If audit state is saved and a later required tenant read-model or singleton-index write fails, `ProjectAsync` must still fail through the existing projection failure path; replayed audit entries must remain idempotent by `EventId`.
 - Retry exhaustion should fail through the existing `TenantProjectionHandler.ProjectAsync` failure contract. Exact throw-versus-failed-result mechanics remain an implementation decision, but silent success is not acceptable.
 - Retry exhaustion must be observable and must not return a successful projection update. Use safe structured fields such as state store, key category, attempt count, max attempts, operation context, and conflict/exhaustion reason; do not log tenant payloads, user-controllable names, configuration values, cursor payloads, or event payload bodies. [Source: `_bmad-output/planning-artifacts/prd.md#FR54-FR58`; `Hexalith.EventStore/_bmad-output/project-context.md#Code Quality & Style Rules`]
 
@@ -116,7 +128,9 @@ so that audit reports remain complete even when many tenant membership changes a
 - Include a mixed-batch case where one incoming event is already persisted and two are new.
 - Include same-timestamp events with different IDs to prove ordering by `Timestamp` then `EventId`.
 - Include a malformed incoming payload in a conflict/retry sequence and assert it remains skipped.
-- Include an invariant-failure case for missing `MessageId` or `UserId` and assert it fails through the existing projection failure path.
+- Include an invariant-failure case for missing `MessageId` or `UserId` and assert it fails through the existing projection failure path before any guarded audit save is attempted.
+- Include a duplicate `EventId` conflict where the persisted entry differs from the incoming replayed entry, and assert the persisted entry remains authoritative.
+- Include a replay scenario after audit persistence succeeded but a later projection write failed, and assert replay does not duplicate audit records.
 - Include a retry-exhaustion test that asserts the projection does not report success.
 - Run at minimum:
   - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantProjectionHandlerTests`
@@ -180,3 +194,26 @@ GPT-5 Codex
   - Exact logging event names, levels, and optional metrics/traces remain implementation decisions within existing observability patterns.
   - Any automatic projection repair, manual recovery command, diagnostic query endpoint, distributed locking, queue redesign, schema migration, or EventStore change remains out of scope.
 - Final recommendation: needs-story-update
+
+## Advanced Elicitation
+
+- Date: 2026-05-17T17:03:41+02:00
+- Selected story key: `10-2-audit-projection-write-safety`
+- Command/skill invocation used: `/bmad-advanced-elicitation 10-2-audit-projection-write-safety`
+- Batch 1 method names: Red Team vs Blue Team; Failure Mode Analysis; Architecture Decision Records; Code Review Gauntlet; Self-Consistency Validation.
+- Reshuffled Batch 2 method names: Pre-mortem Analysis; First Principles Analysis; Comparative Analysis Matrix; Security Audit Personas; Occam's Razor Application.
+- Findings summary:
+  - The story already captured guarded ETag retry and idempotent merge behavior, but could still be implemented as if audit persistence made the whole projection operation atomic.
+  - A replay after an audit save followed by a later projection failure needed explicit idempotency expectations so duplicate audit records are not introduced.
+  - Duplicate `EventId` collisions with conflicting details needed a deterministic rule that persisted audit entries remain authoritative.
+  - Invariant failures after valid audit events needed a stronger no-partial-save boundary before guarded persistence is attempted.
+- Changes applied:
+  - Added acceptance criteria for cross-key partial-success failure semantics, duplicate `EventId` conflict handling, and invariant-failure no-save behavior.
+  - Tightened retry tasks to preserve persisted entries for duplicate `EventId` values and avoid claiming cross-key transactionality.
+  - Expanded deterministic test guidance for no guarded save on invariant failures, persisted-entry-authoritative duplicate conflicts, and replay after later projection failure.
+  - Added dev-note guidance to build or validate incoming audit entries before saving and to keep diagnostics payload-free.
+- Findings deferred:
+  - Exact throw-versus-failed-result mechanics still belong to the existing `TenantProjectionHandler.ProjectAsync` contract.
+  - Any transactional outbox, multi-key transaction, compensating write, automatic repair command, or diagnostic query endpoint remains out of scope.
+  - Exact structured logging event names, levels, and optional metric dimensions remain implementation decisions inside existing observability conventions.
+- Final recommendation: ready-for-dev
