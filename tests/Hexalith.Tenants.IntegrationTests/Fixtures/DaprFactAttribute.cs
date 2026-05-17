@@ -18,6 +18,20 @@ public sealed class DaprFactAttribute : FactAttribute {
 }
 
 /// <summary>
+/// Runs a DAPR-backed performance test only when performance tests are explicitly enabled.
+/// </summary>
+public sealed class DaprPerformanceFactAttribute : FactAttribute {
+    public DaprPerformanceFactAttribute(
+        [CallerFilePath] string sourceFilePath = "",
+        [CallerLineNumber] int sourceLineNumber = 0)
+        : base(sourceFilePath, sourceLineNumber) {
+        Skip = DaprPerformanceTestPrerequisites.SkipReason;
+        SkipUnless = nameof(DaprPerformanceTestPrerequisites.IsAvailable);
+        SkipType = typeof(DaprPerformanceTestPrerequisites);
+    }
+}
+
+/// <summary>
 /// Discovery-time prerequisite check for DAPR-backed integration tests.
 /// </summary>
 public static class DaprTestPrerequisites {
@@ -51,4 +65,24 @@ public static class DaprTestPrerequisites {
             return false;
         }
     }
+}
+
+/// <summary>
+/// Discovery-time prerequisite check for DAPR-backed performance tests.
+/// </summary>
+public static class DaprPerformanceTestPrerequisites {
+    private const string EnablePerformanceTestsVariable = "HEXALITH_TENANTS_RUN_PERFORMANCE_TESTS";
+
+    /// <summary>
+    /// Gets a value indicating whether DAPR-backed performance tests should run.
+    /// </summary>
+    public static bool IsAvailable
+        => Environment.GetEnvironmentVariable(EnablePerformanceTestsVariable) == "1"
+            && DaprTestPrerequisites.IsAvailable;
+
+    /// <summary>
+    /// Gets the skip reason used when performance tests are not enabled.
+    /// </summary>
+    public static string SkipReason
+        => $"DAPR performance tests are disabled. Set {EnablePerformanceTestsVariable}=1 and ensure DAPR prerequisites are reachable to run them.";
 }

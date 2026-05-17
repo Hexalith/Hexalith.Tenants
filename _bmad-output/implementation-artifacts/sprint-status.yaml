@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-17 (9-1 opaque signed query cursors completed; story -> review)
 # last_updated: 2026-05-17 (10-1 optimistic concurrency for tenant read-model writes story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-5 shared pagination bounds and cursor utilities story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-4 actor-layer query guardrails story context created; story -> ready-for-dev)
@@ -66,7 +67,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-17T11:28:16+02:00
+last_updated: 2026-05-17T11:34:05+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -171,7 +172,7 @@ development_status:
 
   # Epic 9: Trustworthy Tenant Query Operations
   epic-9: in-progress
-  9-1-opaque-signed-query-cursors: in-progress
+  9-1-opaque-signed-query-cursors: review
   9-2-stable-cursor-pagination-under-role-and-membership-changes: ready-for-dev
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: ready-for-dev
   9-4-actor-layer-query-guardrails: ready-for-dev

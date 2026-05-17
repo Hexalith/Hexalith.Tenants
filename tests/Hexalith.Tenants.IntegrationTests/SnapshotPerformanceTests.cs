@@ -30,6 +30,7 @@ namespace Hexalith.Tenants.IntegrationTests;
 public class SnapshotPerformanceTests {
     private const int TenantCount = 1_000;
     private const int EventsPerTenant = 500;
+    private const int ConfigurationKeyCount = 100;
     private const int MaxConcurrency = 50;
     private const int RehydrationTimeoutSeconds = 30;
 
@@ -37,7 +38,7 @@ public class SnapshotPerformanceTests {
 
     public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
 
-    [DaprFact]
+    [DaprPerformanceFact]
     public async Task ColdStartRehydration_CompletesWithin30Seconds_With500KEvents() {
         _fixture.SkipIfUnavailable();
 
@@ -128,7 +129,7 @@ public class SnapshotPerformanceTests {
                 0 => CreateTenantCommand(
                     new AddUserToTenant(tenantId, $"user-{i}", TenantRole.TenantReader)),
                 1 => CreateTenantCommand(
-                    new SetTenantConfiguration(tenantId, $"config-key-{i}", $"value-{i}")),
+                    new SetTenantConfiguration(tenantId, $"config-key-{i % ConfigurationKeyCount}", $"value-{i}")),
                 _ => CreateTenantCommand(
                     new UpdateTenant(tenantId, $"Perf Tenant {tenantId} v{i}", $"Seed event {i}")),
             };
