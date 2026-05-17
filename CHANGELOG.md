@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.10.0...v1.11.0) (2026-05-17)
+
+
+### Features
+
+* finalize query policy for disabled tenants and orphan memberships; apply review findings and update status to done ([92604f9](https://github.com/Hexalith/Hexalith.Tenants/commit/92604f99ff224e9cb6b652e50377afde9b91f6f0))
+
 # [1.10.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.9.0...v1.10.0) (2026-05-17)
 
 
