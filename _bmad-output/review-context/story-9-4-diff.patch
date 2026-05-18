@@ -1,0 +1,229 @@
+diff --git a/src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs b/src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs
+index c69fd8e..36da2ab 100644
+--- a/src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs
++++ b/src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs
+@@ -28,6 +28,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
+     internal const string TenantAuditProjectionKeyPrefix = "audit:";
+     internal const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
+     internal const string TenantProjectionKeyPrefix = "projection:tenants:";
++    private const string TenantQueryEnvelopeAuthorizationStage = "TenantQueryEnvelopeAuthorization";
+ 
+     private static readonly JsonSerializerOptions s_queryJsonOptions = new() {
+         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+@@ -65,6 +66,16 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
+         _ = (activity?.SetTag(TenantActivitySource.TagQueryType, envelope.QueryType));
+ 
+         try {
++            if (IsRoleSensitiveQuery(envelope.QueryType) && string.IsNullOrWhiteSpace(envelope.UserId)) {
++                Log.MissingAuthenticatedUserRejected(
++                    _logger,
++                    envelope.CorrelationId,
++                    envelope.QueryType,
++                    QueryAdapterFailureReason.Forbidden,
++                    TenantQueryEnvelopeAuthorizationStage);
++                return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
++            }
++
+             QueryResult result = envelope.QueryType switch {
+                 "get-tenant" => await HandleGetTenantAsync(envelope).ConfigureAwait(false),
+                 "list-tenants" => await HandleListTenantsAsync(envelope).ConfigureAwait(false),
+@@ -89,6 +100,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
+     private static QueryResult CreateSuccessResult(JsonElement payload, string? projectionType)
+         => new(true, JsonSerializer.SerializeToUtf8Bytes(payload), ProjectionType: projectionType);
+ 
++    private static bool IsRoleSensitiveQuery(string? queryType)
++        => queryType is
++            "get-tenant" or
++            "list-tenants" or
++            "get-tenant-users" or
++            "get-user-tenants" or
++            "get-tenant-audit";
++
+     private static (string? Cursor, int PageSize) DeserializePaginationPayload(byte[]? payload) {
+         if (payload is null || payload.Length == 0) {
+             return (null, 20);
+@@ -567,5 +586,16 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
+             string requesterUserId,
+             string targetUserId,
+             string orphanTenantId);
++
++        [LoggerMessage(
++            EventId = 1904,
++            Level = LogLevel.Warning,
++            Message = "Tenant query envelope rejected before authorization because authenticated user id was missing: CorrelationId={CorrelationId}, QueryType={QueryType}, FailureReason={FailureReason}, Stage={Stage}")]
++        public static partial void MissingAuthenticatedUserRejected(
++            ILogger logger,
++            string? correlationId,
++            string? queryType,
++            string failureReason,
++            string stage);
+     }
+ }
+diff --git a/tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs b/tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs
+index e6434c9..e07c64f 100644
+--- a/tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs
++++ b/tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs
+@@ -32,6 +32,109 @@ public class TenantsProjectionActorTests {
+ 
+     // --- Test Fixtures ---
+ 
++    [Theory]
++    [InlineData("get-tenant", null)]
++    [InlineData("get-tenant", "")]
++    [InlineData("get-tenant", "   ")]
++    [InlineData("list-tenants", null)]
++    [InlineData("list-tenants", "")]
++    [InlineData("list-tenants", "   ")]
++    [InlineData("get-tenant-users", null)]
++    [InlineData("get-tenant-users", "")]
++    [InlineData("get-tenant-users", "   ")]
++    [InlineData("get-user-tenants", null)]
++    [InlineData("get-user-tenants", "")]
++    [InlineData("get-user-tenants", "   ")]
++    [InlineData("get-tenant-audit", null)]
++    [InlineData("get-tenant-audit", "")]
++    [InlineData("get-tenant-audit", "   ")]
++    public async Task RoleSensitiveQuery_with_malformed_user_returns_forbidden_before_state_accessAsync(
++        string queryType,
++        string? malformedUserId) {
++        DaprClient daprClient = Substitute.For<DaprClient>();
++        var logger = new ListLogger<TenantsProjectionActor>();
++
++        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
++        QueryEnvelope envelope = CreateEnvelope(queryType, aggregateId: GetAggregateIdForQuery(queryType), entityId: GetEntityIdForQuery(queryType))
++            with {
++                // Intentional: malformed deserialized/internal envelopes can bypass the public constructor guard.
++                UserId = malformedUserId!,
++            };
++
++        QueryResult result = await actor.QueryAsync(envelope);
++
++        result.Success.ShouldBeFalse();
++        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
++        result.PayloadBytes.ShouldBeNull();
++        await AssertNoProjectionStateReadAsync(daprClient, queryType, envelope.AggregateId);
++        logger.Entries.Count(e => e.EventId.Id == 1904).ShouldBe(1);
++    }
++
++    [Fact]
++    public async Task RoleSensitiveQuery_with_malformed_user_logs_only_safe_contextAsync() {
++        DaprClient daprClient = Substitute.For<DaprClient>();
++        var logger = new ListLogger<TenantsProjectionActor>();
++
++        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
++        QueryEnvelope envelope = CreateEnvelope("get-tenant", correlationId: "correlation-missing-user")
++            with {
++                UserId = null!,
++            };
++
++        QueryResult result = await actor.QueryAsync(envelope);
++
++        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
++        LogEntry warning = logger.Entries.Single(e => e.EventId.Id == 1904);
++        warning.Level.ShouldBe(LogLevel.Warning);
++        warning.State["CorrelationId"].ShouldBe("correlation-missing-user");
++        warning.State["QueryType"].ShouldBe("get-tenant");
++        warning.State["FailureReason"].ShouldBe(QueryAdapterFailureReason.Forbidden);
++        warning.State["Stage"].ShouldBe("TenantQueryEnvelopeAuthorization");
++        warning.State.Keys.ShouldNotContain("TenantId");
++        warning.State.Keys.ShouldNotContain("UserId");
++        warning.State.Keys.ShouldNotContain("AggregateId");
++        warning.State.Keys.ShouldNotContain("EntityId");
++        warning.State.Keys.ShouldNotContain("Payload");
++        warning.Message.ShouldNotContain("tenant-1");
++        warning.Message.ShouldNotContain("user-1");
++    }
++
++    [Fact]
++    public async Task ListTenants_with_malformed_user_and_invalid_cursor_returns_forbidden_before_cursor_validationAsync() {
++        DaprClient daprClient = Substitute.For<DaprClient>();
++        SetupTenantIndexState(daprClient, CreateTenantIndexModel(1));
++        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
++
++        TenantsProjectionActor actor = CreateActor(daprClient);
++        QueryEnvelope envelope = CreateEnvelope(
++            "list-tenants",
++            userId: "admin-1",
++            aggregateId: "index",
++            payload: CreatePaginationPayload(cursor: "not-a-valid-cursor"))
++            with {
++                UserId = "",
++            };
++
++        QueryResult result = await actor.QueryAsync(envelope);
++
++        result.Success.ShouldBeFalse();
++        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
++        result.ErrorMessage.ShouldNotBe("Invalid cursor.");
++        await AssertNoProjectionStateReadAsync(daprClient, "list-tenants", "index");
++    }
++
++    [Fact]
++    public async Task Unknown_query_with_malformed_user_keeps_unknown_query_resultAsync() {
++        DaprClient daprClient = Substitute.For<DaprClient>();
++
++        TenantsProjectionActor actor = CreateActor(daprClient);
++        QueryResult result = await actor.QueryAsync(CreateEnvelope("unknown-query") with { UserId = null! });
++
++        result.Success.ShouldBeFalse();
++        result.ErrorMessage!.ShouldContain("Unknown query type");
++        result.ErrorMessage.ShouldNotBe(QueryAdapterFailureReason.Forbidden);
++    }
++
+     // --- Q6: Authorized user can get tenant details ---
+     [Fact]
+     public async Task GetTenant_authorized_user_returns_tenant_detailAsync() {
+@@ -1295,6 +1398,53 @@ public class TenantsProjectionActorTests {
+             userId: userId,
+             entityId: entityId);
+ 
++    private static string GetAggregateIdForQuery(string queryType)
++        => queryType is "list-tenants" or "get-user-tenants" ? "index" : "tenant-1";
++
++    private static string? GetEntityIdForQuery(string queryType)
++        => queryType == "get-user-tenants" ? "user-1" : null;
++
++    private static async Task AssertNoProjectionStateReadAsync(
++        DaprClient daprClient,
++        string queryType,
++        string aggregateId) {
++        switch (queryType) {
++            case "get-tenant":
++                _ = await daprClient.DidNotReceive().GetStateAsync<TenantReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.TenantProjectionKeyPrefix + aggregateId);
++                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.GlobalAdminProjectionKey);
++                break;
++            case "list-tenants":
++            case "get-user-tenants":
++                _ = await daprClient.DidNotReceive().GetStateAsync<TenantIndexReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.TenantIndexProjectionKey);
++                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.GlobalAdminProjectionKey);
++                break;
++            case "get-tenant-users":
++                _ = await daprClient.DidNotReceive().GetStateAsync<TenantReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.TenantProjectionKeyPrefix + aggregateId);
++                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.GlobalAdminProjectionKey);
++                break;
++            case "get-tenant-audit":
++                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.GlobalAdminProjectionKey);
++                _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
++                    TenantsProjectionActor.StateStoreName,
++                    TenantsProjectionActor.TenantAuditProjectionKeyPrefix + aggregateId);
++                break;
++        }
++    }
++
+     private static GlobalAdministratorReadModel CreateGlobalAdminModel(params string[] adminUserIds) {
+         GlobalAdministratorReadModel model = new();
+         foreach (string userId in adminUserIds) {

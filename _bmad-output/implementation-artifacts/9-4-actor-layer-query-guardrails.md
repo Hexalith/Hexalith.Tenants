@@ -1,6 +1,6 @@
 # Story 9.4: Actor-Layer Query Guardrails
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -221,3 +221,20 @@ GPT-5 Codex
   - Whether EventStore should introduce a distinct malformed-envelope public mapping remains outside this story.
   - Exact logging event names and test logger mechanics remain implementation details within existing repository conventions.
 - Final recommendation: ready-for-dev
+
+## Code Review
+
+- Date: 2026-05-18
+- Reviewer: `/bmad-code-review` (Blind Hunter, Edge Case Hunter, Acceptance Auditor)
+- Implementation commit: `1275e8d` (note: commit title "Add preflight check results for multiple timestamps with failures" is misleading — the commit also carries the Story 9.4 actor + test code)
+- Diff scope: `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs` (+30), `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` (+150)
+- AC conformance: AC1–AC8 all MET (AC8 met by code ordering and by the `list-tenants` invalid-cursor precedence test; spec wording "or" satisfied with a single variant).
+- Scope discipline: no changes to `Hexalith.EventStore`, `QueryEnvelope` constructor, `TenantsQueryController`, or any package version — confirmed by diff scope.
+
+### Review Findings
+
+- [x] [Review][Patch] `AssertNoProjectionStateReadAsync` switch lacks a `default` arm — silently asserts nothing if a future test passes an unrecognized query type. Added `default: throw new ArgumentOutOfRangeException(...)` so coverage regressions are caught. [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs:~1529] — applied 2026-05-18
+- [x] [Review][Defer] ETag service lookup precedes the actor-layer guard [src/Hexalith.Tenants/Actors/CachingProjectionActor.cs] — deferred, pre-existing
+- [x] [Review][Defer] In-memory `_payloadCache` lookup precedes the actor-layer guard [src/Hexalith.Tenants/Actors/CachingProjectionActor.cs] — deferred, pre-existing
+- [x] [Review][Defer] CorrelationId / QueryType log injection vector via CRLF in text sinks [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:LoggerMessage] — deferred, pre-existing
+- [x] [Review][Defer] AC8 precedence test only covers `list-tenants` invalid-cursor; add audit-payload and standard-pagination payload precedence variants for stronger safety net [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs] — deferred, pre-existing

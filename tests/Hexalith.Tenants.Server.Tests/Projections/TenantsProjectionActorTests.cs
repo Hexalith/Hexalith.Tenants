@@ -1526,6 +1526,8 @@ public class TenantsProjectionActorTests {
                     TenantsProjectionActor.StateStoreName,
                     TenantsProjectionActor.TenantAuditProjectionKeyPrefix + aggregateId);
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(queryType), queryType, "Unhandled role-sensitive query type — add a state-read short-circuit case.");
         }
     }
 
