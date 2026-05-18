@@ -20,21 +20,27 @@ so that future projection changes cannot reintroduce silent write loss, ordering
 6. Given a guarded save succeeds for one state key and a later key fails or is replayed, when recovery tests inspect the outcome, then tests assert no cross-key transactionality is claimed between tenant detail, tenant index, and audit writes, and replay/idempotency from Stories 10.1 and 10.2 prevents duplicate or lost entries.
 7. Given the projection write helper or adapter exposes retry attempt boundaries, when deterministic tests simulate conflict-then-success and retry exhaustion, then exact read/save attempt counts, max-attempt behavior, and no-stale-instance reuse are verified through observable test seams such as write delegate invocations, loaded projection versions, persisted state, diagnostics, and exception/result shape.
 8. Given audit entries are replayed or merged after conflict recovery, when duplicate `EventId` values are present, then tests assert the already persisted entry remains authoritative even if incoming payload content differs, the duplicate is suppressed because persisted state already contains it, and distinct same-timestamp events stay ordered by `Timestamp` then `EventId`.
+9. Given prerequisite Stories 10.1 and 10.2 are verified, when this conformance story starts implementation, then the Dev Agent Record captures the exact evidence used: story implementation status or commit references, helper/adapter API names, retry limit, failure contract, and any accepted diagnostic contract.
+10. Given deterministic state-store scripts drive conflict and recovery behavior, when tests execute, then scripted read/save outcomes are scoped by state key and attempt so an unexpected key, write order, stale model reuse, or extra write fails the test instead of being absorbed by a global sequence.
+11. Given diagnostics are asserted in recovery tests, when failures are captured, then assertions prefer structured fields and safe categories over brittle full-message matching unless Stories 10.1 or 10.2 define exact message text as part of the accepted contract.
 
 ## Tasks / Subtasks
 
 - [ ] Confirm implementation prerequisites before writing conformance tests. (AC: 1, 2)
   - [ ] Verify Story 10.1 has implemented guarded write behavior for `projection:tenants:{tenantId}` and `projection:tenant-index:singleton`.
   - [ ] Verify Story 10.2 has implemented guarded write behavior and idempotent merge behavior for `audit:{tenantId}`.
+  - [ ] Record prerequisite evidence in the Dev Agent Record before adding conformance coverage: implementation status or commit references for Stories 10.1 and 10.2, helper/adapter API names, retry limit, failure shape, and accepted diagnostic expectations.
   - [ ] If either story is not merged, implemented, or documented with a stable accepted projection persistence contract, stop before adding speculative tests and return this story to backlog or blocked with the missing prerequisite named.
+  - [ ] Do not create a partial conformance fixture, speculative helper surface, or skipped test suite when prerequisites are absent; leave a clear blocker instead.
   - [ ] Record the concrete helper/adapter API and retry policy under test in test names or comments where the behavior would otherwise be ambiguous.
 - [ ] Build a reusable projection write conformance fixture in the test project. (AC: 1, 5, 7)
   - [ ] Place test-only conformance helpers under `tests/Hexalith.Tenants.Server.Tests/Projections/` or a nearby test-support folder already used by this project.
   - [ ] Keep the fixture internal to tests; do not add production abstractions solely for conformance reuse unless Stories 10.1 or 10.2 already introduced the internal adapter being tested.
   - [ ] Model deterministic state-store reads, ETags, guarded-save results, and thrown infrastructure failures without live DAPR, Redis, Aspire, sleeps, or real parallelism.
   - [ ] Let each projection scenario declare state key category, initial state, externally updated reload state, incoming event batch, expected saved state, conflict count, write ordering, and expected attempt counts.
+  - [ ] Scope scripted outcomes by state key and attempt number; fail fast on unexpected state keys, unexpected read/save order, extra writes after terminal failure, or attempts that reuse stale loaded state.
   - [ ] Define attempt counting before assertions, including whether the initial try counts as attempt 1 for conflict-then-success and retry exhaustion cases.
-  - [ ] Make failure assertions reusable: no successful `ProjectionResponse`, safe diagnostic context, no event payload, serialized event body, tenant display name, user-facing label, cursor payload, or membership detail in captured logs, and no extra writes after the terminal failure.
+  - [ ] Make failure assertions reusable: no successful `ProjectionResponse`, safe structured diagnostic context, no event payload, serialized event body, tenant display name, user-facing label, cursor payload, or membership detail in captured logs, and no extra writes after the terminal failure.
 - [ ] Add tenant detail conformance tests. (AC: 1, 2, 3, 4, 7)
   - [ ] Cover conflict-then-success for `projection:tenants:{tenantId}` and assert the final `TenantReadModel` contains the incoming lifecycle, membership, and configuration events exactly once.
   - [ ] Cover existing-state ETag saves and missing-state first-write behavior as implemented by Story 10.1.
@@ -67,6 +73,7 @@ so that future projection changes cannot reintroduce silent write loss, ordering
 - This story is a conformance and recovery test story. It should not be implemented before Stories 10.1 and 10.2 have landed because the selected write policy, helper shape, retry limit, and failure contract are established there. [Source: `_bmad-output/implementation-artifacts/10-1-optimistic-concurrency-for-tenant-read-model-writes.md`; `_bmad-output/implementation-artifacts/10-2-audit-projection-write-safety.md`]
 - If 10.1 or 10.2 is still active, implementation may proceed only when the final projection persistence contract is explicitly documented and accepted; otherwise, avoid writing tests that reverse-engineer in-progress code. [Source: `2026-05-18 party-mode review`]
 - If implementation starts while `TenantProjectionHandler.ProjectAsync` still uses plain `SaveStateAsync` for tenant detail, audit, or tenant index writes, stop and report the missing prerequisite instead of writing tests against speculative behavior. [Source: `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`]
+- The prerequisite evidence should be explicit enough for review: identify the 10.1/10.2 implementation status or commits, the helper/adapter names under test, max-attempt behavior, retry-exhaustion failure shape, and any diagnostic fields that are contractually stable.
 - Story 10.3B cancellation can be tested separately. This story may assert no extra writes after terminal failure or replay boundaries, but it should not add cancellation behavior unless 10.3B has already completed and the existing helper API naturally exposes it. [Source: `_bmad-output/implementation-artifacts/10-3b-cancellation-token-threading-for-tenant-projection-queries.md`]
 
 ### Current Code State
@@ -88,7 +95,9 @@ so that future projection changes cannot reintroduce silent write loss, ordering
 ### Implementation Guardrails
 
 - Prefer testing the real internal projection write helper or DAPR state adapter introduced by Stories 10.1/10.2. If it is internal, use the repository's existing test-access pattern or the narrowest `InternalsVisibleTo` change; do not make production APIs public for test convenience.
+- The conformance fixture should control state-store outcomes and observe production behavior; it must not reimplement the retry/merge algorithm in test code and then assert against its own duplicate logic.
 - Build deterministic scripted state interactions. A conflict should be a controlled guarded-save `false` or implemented helper conflict result, followed by a reload with a new ETag and a newer state.
+- Key scripts must be per-key, not a single global queue, so tenant detail, tenant index, and audit tests catch wrong-key writes, wrong ordering, stale reloads, and extra post-failure operations.
 - For retry success tests, assert both behavior and interaction counts: exact reads, saves, retry attempts, and final saved model content.
 - For retry exhaustion tests, assert no successful projection result is returned and any captured diagnostic context uses safe categories rather than full state keys, tenant names, tenant display names, user-facing labels, serialized event bodies, payload fields, cursor payloads, or membership details.
 - For partial-success tests, assert the operation fails after a later key failure and that replay/idempotency prevents duplicate audit entries or tenant index loss. Do not require rollback of already saved state.
@@ -156,3 +165,27 @@ GPT-5 Codex
 ### Review Round
 
 - 2026-05-18T14:22:38+02:00 - `bmad-party-mode 10-4-projection-write-conformance-and-recovery-tests; review;` completed with Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect), and John (Product Manager). Findings summary: story is valuable but depended on active 10.1/10.2 persistence contracts, needed clearer observable retry/attempt-count seams, sharper duplicate `EventId` persisted-authoritative wording, explicit safe-diagnostics exclusions, and stronger no-cross-key-transaction scope boundaries. Changes applied: tightened ACs and tasks for stable prerequisite contracts, deterministic fixture capabilities, attempt-count definition, diagnostic redaction, duplicate `EventId` mismatch handling, production-change limits, and non-goals. Findings deferred: whether duplicate `EventId` mismatch should emit warning diagnostics, whether diagnostic redaction belongs in a reusable helper, whether attempt counts are a shared fixture contract or per-test assertion, and whether audit ordering should be asserted by persisted sequence, event sequence, or invocation order when Stories 10.1/10.2 do not decide it. Final recommendation: ready-for-dev after applied clarifications, gated by 10.1/10.2 stable implementation contracts.
+
+## Advanced Elicitation
+
+- Date/time: 2026-05-18T18:05:07+02:00
+- Selected story key: 10-4-projection-write-conformance-and-recovery-tests
+- Command/skill invocation used: `/bmad-advanced-elicitation 10-4-projection-write-conformance-and-recovery-tests`
+- Batch 1 method names: Pre-mortem Analysis; Failure Mode Analysis; Red Team vs Blue Team; Code Review Gauntlet; First Principles Analysis.
+- Reshuffled Batch 2 method names: Self-Consistency Validation; Comparative Analysis Matrix; Security Audit Personas; Occam's Razor Application; Architecture Decision Records.
+- Findings summary:
+  - The story already had the right dependency gate, but implementation could still start speculative tests without recording concrete 10.1/10.2 contract evidence.
+  - A single global scripted state sequence could let wrong-key writes, stale model reuse, or unexpected write order pass accidentally.
+  - Diagnostic assertions needed to avoid brittle full-message matching while still proving payload, tenant-name, cursor, and membership-detail redaction.
+  - The conformance fixture needed an explicit boundary: it should drive state outcomes and observe production behavior, not duplicate the retry or merge algorithm under test.
+- Changes applied:
+  - Added acceptance criteria and tasks requiring Dev Agent Record evidence for prerequisite story status or commits, helper/adapter APIs, retry limits, failure shape, and stable diagnostics.
+  - Tightened prerequisite handling so missing 10.1/10.2 contracts block implementation instead of creating partial fixtures or skipped speculative tests.
+  - Added per-key and per-attempt scripting requirements for deterministic state-store fixtures, including fail-fast behavior for unexpected keys, ordering, stale reloads, extra writes, and terminal failures.
+  - Clarified that diagnostics should be asserted through safe structured fields/categories unless an exact message is part of the accepted contract.
+  - Added implementation guidance to test the real production helper/adapter behavior instead of reimplementing retry/merge logic inside the fixture.
+- Findings deferred:
+  - Exact prerequisite commit hashes, helper names, retry-exhaustion exception/result shape, and diagnostic fields remain implementation-time evidence from completed Stories 10.1 and 10.2.
+  - Whether `InternalsVisibleTo` is required remains deferred until the actual helper/adapter visibility is known.
+  - Exact test file split between `TenantProjectionHandlerTests`, `ProjectionWriteConformanceTests`, and fixture files remains a developer decision once production helper shape is available.
+- Final recommendation: ready-for-dev, gated by documented 10.1/10.2 implementation contracts.
