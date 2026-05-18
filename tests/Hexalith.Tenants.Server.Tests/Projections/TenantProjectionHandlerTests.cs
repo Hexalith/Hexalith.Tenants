@@ -2,7 +2,6 @@ using System.Text.Json;
 
 using Dapr.Client;
 
-using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
@@ -167,10 +166,9 @@ public class TenantProjectionHandlerTests {
         auditSave.StoreName.ShouldBe(StateStoreName);
         auditSave.Value.ShouldBeOfType<TenantAuditReadModel>();
         TenantAuditReadModel model = (TenantAuditReadModel)auditSave.Value;
-        (model != null
-                && model.Entries.Count == 1
-                && model.Entries[0].EventId == "evt-1"
-                && model.Entries[0].ActorId == "actor-1").ShouldBeTrue();
+        model.Entries.Count.ShouldBe(1);
+        model.Entries[0].EventId.ShouldBe("evt-1");
+        model.Entries[0].ActorId.ShouldBe("actor-1");
     }
 
     private static TenantProjectionHandler CreateHandler(ScriptedTenantProjectionStateStore stateStore) =>

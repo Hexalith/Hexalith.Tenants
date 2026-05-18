@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 10-1-optimistic-concurrency-for-tenant-read-model-writes (2026-05-18, 2nd pass)
+
+- Per-tenant `correlationId` log field uses `events.FirstOrDefault(... !IsNullOrWhiteSpace(CorrelationId)...)` in `TenantProjectionWritePolicy.cs:40`. For full-history replays that span multiple correlation chains, "the first one we find" can misattribute the conflict/exhaustion log entry to an unrelated correlation. Operationally minor; observability follow-up.
+- AC9 (logs do not leak tenant payloads/keys/aggregate IDs) is satisfied by source-generated template inspection only. No negative test captures emitted log records and asserts the absence of disallowed fields. Spec marks log-content assertions optional; track as a logging-coverage hardening item.
+- AC10 partial-success and AC12 fresh-default-per-attempt are demonstrated by code shape and indirect assertions but not by positive test claims (e.g., `TrySaveAttempts.First(... key == TenantProjectionKey).Value` is the populated tenant model; `ReferenceEquals(attemptN.Value, attemptN-1.Value).ShouldBeFalse()`). Add when the test file is next touched.
+- `AspireTopologyFixture.IsDockerHealthy` outer bare `catch` masks Docker auth/permission errors. Current behavior is "no Docker → skip", which is desired for CI/dev parity; track only if the skip rate ever becomes opaque to debug.
+- `TenantsDaprTestFixture.DisposeAsync` is invoked from `InitializeAsync` failure path with partial state (`_testHost`, `_daprProcess`, redirected `DAPR_HTTP_PORT`/`DAPR_GRPC_PORT` env vars). The `_disposed` flag mitigates double-dispose but partial-field cleanup remains a reentrancy hazard if the failure path is extended.
+- `TenantsDaprTestFixture.IsDaprInfrastructureStartupFailure` substring matcher does not cover future daprd error wording changes (e.g., post-1.17.x). Non-matching errors bubble as test failures rather than skips, which is the safer default but can mask environment drift.
+- Carry-forward from 1st pass: retry backoff/jitter, `MaxAttempts >= 1` defensive validation, CancellationToken threading (Story 10.3A/10.3B), audit projection write safety (Story 10.2), `AggregateId` non-empty validation, singleton-index N-way starvation, DaprClient transport exception classification — all still applicable and unchanged.
+
 ## Deferred from: code review of 10-1-optimistic-concurrency-for-tenant-read-model-writes (2026-05-18)
 
 - Add retry backoff/jitter between guarded-save attempts in `TenantProjectionWritePolicy.SaveWithOptimisticConcurrencyAsync` to dampen index-singleton dogpiles under sustained N-way contention. Spec mandates only `MaxAttempts = 3`; immediate retry is compliant but operationally aggressive. Track as a write-path operational follow-up.

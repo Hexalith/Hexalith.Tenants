@@ -73,8 +73,17 @@ public static class DaprTestPrerequisites {
             stream.Write(ping);
 
             Span<byte> buffer = stackalloc byte[16];
-            int read = stream.Read(buffer);
-            return read > 0 && Encoding.ASCII.GetString(buffer[..read]).StartsWith("+PONG", StringComparison.Ordinal);
+            int total = 0;
+            while (total < 5) {
+                int chunk = stream.Read(buffer[total..]);
+                if (chunk <= 0) {
+                    break;
+                }
+
+                total += chunk;
+            }
+
+            return total >= 5 && Encoding.ASCII.GetString(buffer[..total]).StartsWith("+PONG", StringComparison.Ordinal);
         }
         catch {
             return false;

@@ -1,8 +1,8 @@
 # Story 10.1: Optimistic Concurrency for Tenant Read-Model Writes
 
-Status: review
+Status: done
 
-Completion note: Ultimate context engine analysis completed - comprehensive developer guide created. Implementation and validation complete 2026-05-18; story ready for review.
+Completion note: Ultimate context engine analysis completed - comprehensive developer guide created. Implementation and validation complete 2026-05-18; 2nd-pass code review complete with 5 patches applied (D1 idempotency-contract comment, unused using removal, tautological audit assertion split, Redis PING loop-read, daprd substring matcher tightening). All decision-needed items resolved; remaining findings deferred to Story 10.2/10.3 or operational follow-ups. Story moved to `done`.
 
 ## Story
 
@@ -288,3 +288,45 @@ The following were raised by reviewers but dismissed as non-actionable:
 - Log-content assertions in tests — explicitly marked optional in spec testing requirements.
 - `InternalsVisibleTo("Hexalith.Tenants.Server.Tests")` — verified present in `src/Hexalith.Tenants/Hexalith.Tenants.csproj:17`.
 - `TenantProjectionHandler` public ctor overload + `ProjectionDispatcher` default-parameter `ILoggerFactory?` — backward-compatible additions; the existing type was already public.
+
+## Code Review (2nd Pass)
+
+- Date: 2026-05-18
+- Selected story key: `10-1-optimistic-concurrency-for-tenant-read-model-writes`
+- Command/skill invocation used: `/bmad-code-review 10.1` (second pass)
+- Diff source: Path-filtered range `7092c3d..02dc5f9` covering both Story 10.1 commits (`aa4d03b` main implementation + `02dc5f9` integration-test prerequisite gating); 11 files, +700/−65 lines, 1019-line diff.
+- Review layers run: Blind Hunter (diff only), Edge Case Hunter (diff + project read), Acceptance Auditor (diff + spec + AC coverage matrix). All three returned non-empty findings.
+- Coverage matrix: AC1–AC8 fully met; AC9 partial (no negative log-content test); AC10 fully met; AC11 fully met; AC12 partial (no explicit per-attempt fresh-instance assertion).
+- Triage: 0 decision-needed (D1 resolved as patch), 5 patch, 7 defer, ~20 dismissed (many re-raised from 1st pass and re-dismissed).
+
+### Review Findings (2nd Pass)
+
+- [x] [Review][Patch] Document the `applyEvent` idempotency contract at the policy [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:48] — applied 2026-05-18: added a multi-line code comment above `TValue state = read.Value ?? defaultFactory();` explaining that the reload-and-merge branch works under both full-history and delta replay contracts and places an idempotency contract on `applyEvent`. Resolves D1 from the decision-needed bucket. No behavior change.
+- [x] [Review][Patch] Remove unused `using Hexalith.Tenants.Contracts.Enums;` [tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs:5] — applied 2026-05-18: removed the unused namespace import.
+- [x] [Review][Patch] Replace tautological compound `ShouldBeTrue()` assertion with explicit `ShouldBe` calls [tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs:170-173] — applied 2026-05-18: split into three explicit `ShouldBe` calls (`model.Entries.Count.ShouldBe(1)`, `model.Entries[0].EventId.ShouldBe("evt-1")`, `model.Entries[0].ActorId.ShouldBe("actor-1")`). Dead `model != null` clause removed (cast would have thrown).
+- [x] [Review][Patch] Loop-read Redis `+PONG` reply to handle TCP fragmentation [tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprFactAttribute.cs:75-77; tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs:227-230] — applied 2026-05-18: both probes now loop `Read`/`ReadAsync` until at least 5 bytes (the length of `+PONG`) have been received before checking the prefix. Healthy Redis is no longer flagged unresponsive when the reply arrives in two TCP chunks.
+- [x] [Review][Patch] Tighten `IsDaprInfrastructureStartupFailure` substring match [tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs:239-242] — applied 2026-05-18: the bare `"statestore"` substring now requires a co-occurring `"init timeout"` token. `"daprd exited"`, `"Dapr sidecar did not become healthy"`, and `"state.redis"` remain unchanged. Reduces false-positive skips when unrelated daprd errors mention the literal component name.
+- [x] [Review][Defer] Per-tenant `correlationId` log field picks `FirstOrDefault` from multi-correlation batches [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:40] — deferred, observability follow-up; meaningfully misleading only under full-history replays spanning multiple correlation chains.
+- [x] [Review][Defer] AC9 no negative test asserting logs omit tenant payloads/keys/aggregate IDs [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:128-156] — deferred, spec marks log-content assertions optional; source-generated templates already bound to safe fields.
+- [x] [Review][Defer] AC10/AC12 add positive assertions: tenant write survives after index exhaustion (AC10), and `defaultFactory` produces distinct instances per attempt (AC12) [tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs:117-152] — deferred, test-coverage enhancements; implementation is correct, and existing tests demonstrate substance.
+- [x] [Review][Defer] `IsDockerHealthy` outer bare `catch` masks Docker auth/permission errors [tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs:217-247] — deferred, test infra diagnostics; current behavior is "no Docker → skip", which is the desired test-runner behavior.
+- [x] [Review][Defer] `_disposed` flag in `TenantsDaprTestFixture.DisposeAsync` allows partial-state cleanup when invoked from `InitializeAsync` failure path [tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs:127-134,152-182] — deferred, reentrancy pattern is standard but partial fields (`_testHost`, `_daprProcess`, env vars) may be inconsistent at the early-fail point; track as test-infra fragility.
+- [x] [Review][Defer] Future daprd error wording not covered by `IsDaprInfrastructureStartupFailure` substring list [tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs:239-242] — deferred, test infra maintenance; new daprd failure surfaces bubble as test failures rather than skips, which is the safer default.
+- [x] [Review][Defer] Carry-forward of 1st-pass deferrals (retry backoff, `MaxAttempts >= 1` validation, CancellationToken threading, audit projection write safety, `AggregateId` validation, singleton starvation, DaprClient transport exception classification) — all still applicable and unchanged; see Review Findings (1st pass) above.
+
+### Review Notes (Dismissed Findings, 2nd Pass)
+
+- AC8 "FirstWrite only on missing-state" wording vs implementation — `CreateGuardedWriteOptions()` returns `FirstWrite` always, but Dapr's `TrySaveStateAsync(value, etag, options)` with `FirstWrite + non-empty ETag` is the conventional ETag-guarded update; behavior matches AC8 intent (ETag-guarded existing-state write, first-write-wins missing-state write). Spec wording could be clearer; implementation is correct.
+- `Process.WaitForExit(TimeSpan)` overload claim (Blind Hunter) — verified: `Directory.Build.props` pins `net10.0`, and the overload was added in .NET 9. Compiles cleanly.
+- `ProjectionStateRead<TValue>(value, etag)` deconstruction in `DaprTenantProjectionStateStore.cs:11-15` — Dapr's `GetStateAndETagAsync` returns `(TValue, string)` (defaults on missing key); record fields are `TValue?` and `string?`; compiler-accepted; intent is conveyed via record default propagation.
+- `MaxAttempts` `public const int = 3` — `const` cannot be mutated at runtime; defensive validation would be cosmetic only.
+- `UnreachableException` end-of-method reachability — same as above; `const = 3`.
+- `events.OfType<ProjectionEventDto>()` for audit vs `if (evt is null) continue` for policy — both drop null entries consistently.
+- `events.FirstOrDefault(... !IsNullOrWhiteSpace(CorrelationId)...)` re-enumeration cost — `IReadOnlyCollection<ProjectionEventDto?>` guarantees safe multi-enumeration; pre-materialization with `ToArray()` would be premature optimization for typical batch sizes.
+- `process.Kill(entireProcessTree: true)` swallowing exceptions — intent documented in inline comment "Best-effort cleanup for a hung Docker CLI probe".
+- `IsRedisResponsiveAsync` `ReadAsync` return 0 (closed connection) treated as "no PONG" — returns false correctly; safe behavior.
+- `ProjectionDispatcher.DispatchAsync` instantiates `TenantProjectionHandler` via `new` rather than DI — by design; both ctors are backward-compatible and the `ITenantProjectionStateStore` seam is testing-only by design.
+- Tautological `tenant-a` not-in-saved-index assertion (AC7 wording risk) — correct semantics per AC7 ("preserved from the latest state"); the stale-read `tenant-a` is intentionally not preserved.
+- `MaxLoggedMessageIds = 20` truncation format `"+N more"` breaks naive CSV splits — cosmetic; structured array would survive log pipelines better but is out of spec scope.
+- `ScriptedTenantProjectionStateStore` unprimed-key dequeue throws `KeyNotFoundException` / `InvalidOperationException` — surfaces as test failure with stack pointing at queue access; test-infra polish, not a bug.
+- All other 1st-pass dismissals re-raised in this pass (empty-ETag + FirstWrite intent, whitespace-ETag defensive guard, `IReadOnlyCollection` multi-enumeration, `applyEvent` purity contract, `messageIds` dedup, log-content assertions, InternalsVisibleTo, public ctor surface, `events.OfType` type-safety improvement) — re-dismissed for the same reasons.

@@ -225,9 +225,17 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
             await stream.WriteAsync(ping, cts.Token).ConfigureAwait(false);
 
             byte[] buffer = new byte[16];
-            int read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
-            string response = Encoding.ASCII.GetString(buffer, 0, read);
-            return response.StartsWith("+PONG", StringComparison.Ordinal);
+            int total = 0;
+            while (total < 5) {
+                int chunk = await stream.ReadAsync(buffer.AsMemory(total), cts.Token).ConfigureAwait(false);
+                if (chunk <= 0) {
+                    break;
+                }
+
+                total += chunk;
+            }
+
+            return total >= 5 && Encoding.ASCII.GetString(buffer, 0, total).StartsWith("+PONG", StringComparison.Ordinal);
         }
         catch {
             return false;
@@ -235,11 +243,15 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     }
 
     private static bool IsDaprInfrastructureStartupFailure(InvalidOperationException exception) {
+        // Match infrastructure-startup signatures specifically — broad substrings like
+        // "statestore" alone over-match and would silently turn unrelated test failures
+        // into prerequisite skips.
         string message = exception.Message;
         return message.Contains("daprd exited", StringComparison.OrdinalIgnoreCase)
             || message.Contains("Dapr sidecar did not become healthy", StringComparison.OrdinalIgnoreCase)
             || message.Contains("state.redis", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("statestore", StringComparison.OrdinalIgnoreCase);
+            || (message.Contains("statestore", StringComparison.OrdinalIgnoreCase)
+                && message.Contains("init timeout", StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task StartTestHostAsync() {

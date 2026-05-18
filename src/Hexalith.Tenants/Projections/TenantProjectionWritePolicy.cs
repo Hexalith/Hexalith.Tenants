@@ -45,6 +45,15 @@ internal static partial class TenantProjectionWritePolicy {
                 .GetStateAndETagAsync<TValue>(storeName, key, cancellationToken)
                 .ConfigureAwait(false);
 
+            // Reload-and-merge: when prior state exists we reuse it and re-apply the incoming
+            // events. This works under both full-history replay (where reapplying is a no-op
+            // for idempotent Apply) and delta replay (where the prior state is required to
+            // avoid losing previously applied events). The contract this places on callers
+            // is that `applyEvent` MUST be idempotent on the loaded state under full-replay,
+            // i.e. reapplying the same event must not duplicate list entries, double-count
+            // counters, or otherwise diverge from a from-scratch rebuild. The singleton
+            // index path additionally depends on this branch to preserve entries from other
+            // aggregates that share the key.
             TValue state = read.Value ?? defaultFactory();
             foreach (ProjectionEventDto? evt in events) {
                 if (evt is null) {

@@ -1,1508 +1,1019 @@
-diff --git a/_bmad-output/implementation-artifacts/6-2-in-memory-projection-and-conformance-tests.md b/_bmad-output/implementation-artifacts/6-2-in-memory-projection-and-conformance-tests.md
-index d927af1..59ca494 100644
---- a/_bmad-output/implementation-artifacts/6-2-in-memory-projection-and-conformance-tests.md
-+++ b/_bmad-output/implementation-artifacts/6-2-in-memory-projection-and-conformance-tests.md
-@@ -1,6 +1,6 @@
- # Story 6.2: In-Memory Projection & Conformance Tests
+diff --git a/src/Hexalith.Tenants/Program.cs b/src/Hexalith.Tenants/Program.cs
+index 95ef958..af42259 100644
+--- a/src/Hexalith.Tenants/Program.cs
++++ b/src/Hexalith.Tenants/Program.cs
+@@ -119,8 +119,8 @@ app.MapPost("/process", async (
+     DomainServiceRequestHandler handler,
+     CancellationToken cancellationToken) =>
+     Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
+-app.MapPost("/project", async (ProjectionRequest request, DaprClient daprClient)
+-    => await new ProjectionDispatcher(daprClient).DispatchAsync(request).ConfigureAwait(false));
++app.MapPost("/project", async (ProjectionRequest request, DaprClient daprClient, ILoggerFactory loggerFactory)
++    => await new ProjectionDispatcher(daprClient, loggerFactory).DispatchAsync(request).ConfigureAwait(false));
+ app.MapSubscribeHandler();
+ app.MapActorsHandlers();
  
--Status: ready-for-dev
-+Status: review
- 
- <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
- 
-@@ -38,41 +38,41 @@ So that I can test query scenarios locally and trust that test behavior matches
- 
- ## Tasks / Subtasks
- 
--- [ ] Task 1: Update Testing.Tests csproj references (unblocks Tasks 3 and 4)
--  - [ ] 1.1: Add Server project reference to `Hexalith.Tenants.Testing.Tests.csproj` (if not already present from Story 6.1) — conformance tests need direct access to `TenantAggregate`, `GlobalAdministratorsAggregate`, `TenantState`, and `GlobalAdministratorsState`
--  - [ ] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
-+- [x] Task 1: Update Testing.Tests csproj references (unblocks Tasks 3 and 4)
-+  - [x] 1.1: Add Server project reference to `Hexalith.Tenants.Testing.Tests.csproj` (if not already present from Story 6.1) — conformance tests need direct access to `TenantAggregate`, `GlobalAdministratorsAggregate`, `TenantState`, and `GlobalAdministratorsState`
-+  - [x] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
- 
--- [ ] Task 2: Create `InMemoryTenantProjection` in Testing project (AC: #1, #2)
--  - [ ] 2.1: Create `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs`
--  - [ ] 2.2: Implement per-tenant read model storage with `Dictionary<string, TenantReadModel>` and singleton `GlobalAdministratorReadModel`
--  - [ ] 2.3: Implement `void Apply(IEventPayload eventPayload)` — dispatches to correct read model's `Apply()` overload via pattern matching switch (mirrors the dispatch pattern from `InMemoryTenantService`)
--  - [ ] 2.4: Implement query methods:
-+- [x] Task 2: Create `InMemoryTenantProjection` in Testing project (AC: #1, #2)
-+  - [x] 2.1: Create `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs`
-+  - [x] 2.2: Implement per-tenant read model storage with `Dictionary<string, TenantReadModel>` and singleton `GlobalAdministratorReadModel`
-+  - [x] 2.3: Implement `void Apply(IEventPayload eventPayload)` — dispatches to correct read model's `Apply()` overload via pattern matching switch (mirrors the dispatch pattern from `InMemoryTenantService`)
-+  - [x] 2.4: Implement query methods:
-     - `TenantReadModel? GetTenant(string tenantId)` — returns read model for tenant or null
-     - `IReadOnlyList<TenantReadModel> GetAllTenants()` — returns all projected tenants
-     - `GlobalAdministratorReadModel GetGlobalAdministrators()` — returns global admin read model (never null — initialize empty)
--  - [ ] 2.5: Implement `void ApplyEvents(IEnumerable<IEventPayload> events)` — convenience method that applies multiple events in sequence
--  - [ ] 2.6: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
--
--- [ ] Task 3: Create InMemoryTenantProjection unit tests (AC: #1, #2)
--  - [ ] 3.1: Create `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs`
--  - [ ] 3.2: Test: Apply TenantCreated — projection stores tenant with correct fields
--  - [ ] 3.3: Test: Apply TenantUpdated — projection updates name and description
--  - [ ] 3.4: Test: Apply TenantDisabled/TenantEnabled — projection tracks status
--  - [ ] 3.5: Test: Apply UserAddedToTenant — projection adds member with role
--  - [ ] 3.6: Test: Apply UserRemovedFromTenant — projection removes member
--  - [ ] 3.7: Test: Apply UserRoleChanged — projection updates member role
--  - [ ] 3.8: Test: Apply TenantConfigurationSet/TenantConfigurationRemoved — projection manages config
--  - [ ] 3.9: Test: Apply GlobalAdministratorSet/GlobalAdministratorRemoved — projection tracks admins
--  - [ ] 3.10: Test: GetAllTenants returns all projected tenants
--  - [ ] 3.11: Test: Cross-tenant isolation — tenant A data never appears in tenant B query
--  - [ ] 3.12: Test: End-to-end — InMemoryTenantService command → events → InMemoryTenantProjection query
--  - [ ] 3.13: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
--
--- [ ] Task 4: Create conformance test suite in Testing.Tests (AC: #3, #4, #5, #6)
--  - [ ] 4.1: Create `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`
--  - [ ] 4.2: Implement reflection-based command type discovery — scan `Hexalith.Tenants.Contracts` assembly for all non-abstract classes in `Hexalith.Tenants.Contracts.Commands` namespace (the count assertion in 4.3 guards against non-command types being picked up)
--  - [ ] 4.3: Implement `AllCommandTypesDiscovered` test — asserts that the discovered command count matches the expected count (12 tenant + global admin commands), and lists all discovered types in test output for debugging
--  - [ ] 4.4: For **tenant commands** (9 commands with `TenantId` property): implement conformance test that for each command type:
-+  - [x] 2.5: Implement `void ApplyEvents(IEnumerable<IEventPayload> events)` — convenience method that applies multiple events in sequence
-+  - [x] 2.6: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
-+
-+- [x] Task 3: Create InMemoryTenantProjection unit tests (AC: #1, #2)
-+  - [x] 3.1: Create `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs`
-+  - [x] 3.2: Test: Apply TenantCreated — projection stores tenant with correct fields
-+  - [x] 3.3: Test: Apply TenantUpdated — projection updates name and description
-+  - [x] 3.4: Test: Apply TenantDisabled/TenantEnabled — projection tracks status
-+  - [x] 3.5: Test: Apply UserAddedToTenant — projection adds member with role
-+  - [x] 3.6: Test: Apply UserRemovedFromTenant — projection removes member
-+  - [x] 3.7: Test: Apply UserRoleChanged — projection updates member role
-+  - [x] 3.8: Test: Apply TenantConfigurationSet/TenantConfigurationRemoved — projection manages config
-+  - [x] 3.9: Test: Apply GlobalAdministratorSet/GlobalAdministratorRemoved — projection tracks admins
-+  - [x] 3.10: Test: GetAllTenants returns all projected tenants
-+  - [x] 3.11: Test: Cross-tenant isolation — tenant A data never appears in tenant B query
-+  - [x] 3.12: Test: End-to-end — InMemoryTenantService command → events → InMemoryTenantProjection query
-+  - [x] 3.13: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
-+
-+- [x] Task 4: Create conformance test suite in Testing.Tests (AC: #3, #4, #5, #6)
-+  - [x] 4.1: Create `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`
-+  - [x] 4.2: Implement reflection-based command type discovery — scan `Hexalith.Tenants.Contracts` assembly for all non-abstract classes in `Hexalith.Tenants.Contracts.Commands` namespace (the count assertion in 4.3 guards against non-command types being picked up)
-+  - [x] 4.3: Implement `AllCommandTypesDiscovered` test — asserts that the discovered command count matches the expected count (12 tenant + global admin commands), and lists all discovered types in test output for debugging
-+  - [x] 4.4: For **tenant commands** (9 commands with `TenantId` property): implement conformance test that for each command type:
-     - Creates a **fresh** `InMemoryTenantService` instance per test case (no shared state between tests)
-     - Creates a `TenantState` with appropriate preconditions (already-created tenant for most commands; null state for CreateTenant)
-     - Creates the same command instance
-@@ -81,20 +81,20 @@ So that I can test query scenarios locally and trust that test behavior matches
-     - Calls `InMemoryTenantService.ProcessTenantCommand<T>(command, envelope)` → capture `DomainResult` (**ONLY** use the low-level `ProcessTenantCommand<T>` — never the high-level `ProcessCommand()` overloads in conformance tests)
-     - Asserts both results have identical event sequences: same count, same types, same field values (using record equality)
-     - For envelope-required commands, include at least one scenario where a non-admin caller with the correct role succeeds (validates RBAC path conformance, not just global-admin bypass)
--  - [ ] 4.5: For **global admin commands** (3 commands without `TenantId`): implement conformance test that for each command:
-+  - [x] 4.5: For **global admin commands** (3 commands without `TenantId`): implement conformance test that for each command:
-     - Creates a **fresh** `InMemoryTenantService` instance per test case
-     - Creates a `GlobalAdministratorsState` with appropriate preconditions
-     - Calls `GlobalAdministratorsAggregate.Handle(command, state)` → capture `DomainResult`
-     - Calls `InMemoryTenantService.ProcessCommand(command)` → capture `DomainResult` (global admin commands don't use envelopes, so the high-level `ProcessCommand()` is correct here — this is NOT the same concern as tenant commands)
-     - Asserts identical event sequences
--  - [ ] 4.6: Implement rejection conformance — test at least one rejection scenario per command type and assert rejection events match between aggregate and InMemoryTenantService
--  - [ ] 4.7: Implement NoOp conformance — test at least one NoOp scenario (where applicable) and assert both return NoOp
--  - [ ] 4.8: Mark conformance tests with `[Trait("Category", "Conformance")]` for CI pipeline filtering
--  - [ ] 4.9: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
-+  - [x] 4.6: Implement rejection conformance — test at least one rejection scenario per command type and assert rejection events match between aggregate and InMemoryTenantService
-+  - [x] 4.7: Implement NoOp conformance — test at least one NoOp scenario (where applicable) and assert both return NoOp
-+  - [x] 4.8: Mark conformance tests with `[Trait("Category", "Conformance")]` for CI pipeline filtering
-+  - [x] 4.9: Verify all tests pass: `dotnet test tests/Hexalith.Tenants.Testing.Tests/`
- 
--- [ ] Task 5: Full solution validation
--  - [ ] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
--  - [ ] 5.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"` — all tests pass
-+- [x] Task 5: Full solution validation
-+  - [x] 5.1: `dotnet build Hexalith.Tenants.slnx --configuration Release` — 0 warnings, 0 errors
-+  - [x] 5.2: `dotnet test Hexalith.Tenants.slnx --configuration Release --filter "Category!=Integration"` — all tests pass
- 
- ## Dev Notes
- 
-@@ -453,10 +453,27 @@ Story 6.1 is currently in `review` status. It must reach `done` before starting
- 
- ### Agent Model Used
- 
--{{agent_model_name_version}}
-+Claude Opus 4.6 (1M context)
- 
- ### Debug Log References
- 
-+None — implementation completed without issues.
-+
- ### Completion Notes List
- 
-+- **Task 1**: Added Server project reference to Testing.Tests.csproj for direct aggregate/state access in conformance tests. Build verified: 0 warnings, 0 errors.
-+- **Task 2**: Created `InMemoryTenantProjection` in Testing/Projections/ — lightweight in-memory read model container reusing `TenantReadModel` and `GlobalAdministratorReadModel` from Server. Implements `Apply(IEventPayload)` with pattern matching dispatch, `ApplyEvents(IEnumerable<IEventPayload>)` convenience method, and query methods (`GetTenant`, `GetAllTenants`, `GetGlobalAdministrators`). Silently skips `IRejectionEvent` instances. Build verified.
-+- **Task 3**: Created 17 unit tests covering all event types, cross-tenant isolation, end-to-end pipeline (service → events → projection → query), rejection event skipping, null/empty edge cases. All 17 tests pass.
-+- **Task 4**: Created 37 conformance tests: 1 discovery test (reflection-based, asserts 12 command types), 15 success conformance tests (9 tenant + 3 global admin commands, with non-admin RBAC variants for all 6 envelope-required commands), 11 rejection conformance tests (at least one per command type), 7 NoOp conformance tests, plus 3 global admin conformance tests. All tests use `[Trait("Category", "Conformance")]` for CI filtering. `AssertEventsEqual` helper handles `DateTimeOffset` field comparison for `TenantCreated`, `TenantDisabled`, `TenantEnabled` events. All 37 tests pass.
-+- **Task 5**: Full solution build: 0 warnings, 0 errors. All 325 Tier 1 tests pass (71 Testing.Tests + 34 Contracts.Tests + 203 Server.Tests + 17 Sample.Tests). 2 pre-existing IntegrationTests failures (DAPR infrastructure not available locally — unrelated to this story).
-+
-+### Change Log
-+
-+- 2026-03-18: Story 6.2 implementation complete — InMemoryTenantProjection + 37 conformance tests + 17 projection unit tests
-+
- ### File List
-+
-+- `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj` — MODIFIED (added Server project reference)
-+- `src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs` — NEW
-+- `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs` — NEW
-+- `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs` — NEW
-diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
-index d6099dd..0f366b7 100644
---- a/_bmad-output/implementation-artifacts/sprint-status.yaml
-+++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
-@@ -81,7 +81,7 @@ development_status:
-   # Epic 6: Testing Package
-   epic-6: in-progress
-   6-1-in-memory-tenant-service-and-test-helpers: done
--  6-2-in-memory-projection-and-conformance-tests: ready-for-dev
-+  6-2-in-memory-projection-and-conformance-tests: review
-   epic-6-retrospective: optional
- 
-   # Epic 7: Deployment & Observability
-diff --git a/src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs b/src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs
+diff --git a/src/Hexalith.Tenants/Projections/DaprTenantProjectionStateStore.cs b/src/Hexalith.Tenants/Projections/DaprTenantProjectionStateStore.cs
 new file mode 100644
-index 0000000..b16dd1e
+index 0000000..cadadbf
 --- /dev/null
-+++ b/src/Hexalith.Tenants.Testing/Projections/InMemoryTenantProjection.cs
-@@ -0,0 +1,120 @@
-+using Hexalith.EventStore.Contracts.Events;
-+using Hexalith.Tenants.Contracts.Events;
-+using Hexalith.Tenants.Server.Projections;
++++ b/src/Hexalith.Tenants/Projections/DaprTenantProjectionStateStore.cs
+@@ -0,0 +1,56 @@
++using Dapr.Client;
 +
-+namespace Hexalith.Tenants.Testing.Projections;
++namespace Hexalith.Tenants.Projections;
 +
-+/// <summary>
-+/// In-memory read model container that reuses the same TenantReadModel and GlobalAdministratorReadModel
-+/// classes from the Server project. Applies events to these read models using the same Apply() methods,
-+/// maintaining query-testable state without DAPR state store.
-+/// </summary>
-+public sealed class InMemoryTenantProjection
-+{
-+    private readonly GlobalAdministratorReadModel _globalAdmins = new();
-+    private readonly Dictionary<string, TenantReadModel> _tenants = new();
++internal sealed class DaprTenantProjectionStateStore(DaprClient daprClient) : ITenantProjectionStateStore {
++    public async Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
++        string storeName,
++        string key,
++        CancellationToken cancellationToken = default)
++        where TValue : class {
++        (TValue value, string etag) = await daprClient
++            .GetStateAndETagAsync<TValue>(storeName, key, cancellationToken: cancellationToken)
++            .ConfigureAwait(false);
 +
-+    /// <summary>
-+    /// Applies a single event to the appropriate read model.
-+    /// </summary>
-+    /// <param name="eventPayload">The event payload to apply.</param>
-+    /// <exception cref="ArgumentNullException">Thrown when eventPayload is null.</exception>
-+    /// <exception cref="InvalidOperationException">Thrown when an unknown event type is encountered or when a tenant event is applied before TenantCreated.</exception>
-+    public void Apply(IEventPayload eventPayload)
-+    {
-+        ArgumentNullException.ThrowIfNull(eventPayload);
-+
-+        switch (eventPayload)
-+        {
-+            // Tenant events — route to per-tenant TenantReadModel
-+            case TenantCreated e:
-+                var model = new TenantReadModel();
-+                model.Apply(e);
-+                _tenants[e.TenantId] = model;
-+                break;
-+            case TenantUpdated e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case TenantDisabled e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case TenantEnabled e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case UserAddedToTenant e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case UserRemovedFromTenant e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case UserRoleChanged e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case TenantConfigurationSet e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+            case TenantConfigurationRemoved e:
-+                GetOrThrow(e.TenantId).Apply(e);
-+                break;
-+
-+            // Global admin events — route to singleton GlobalAdministratorReadModel
-+            case GlobalAdministratorSet e:
-+                _globalAdmins.Apply(e);
-+                break;
-+            case GlobalAdministratorRemoved e:
-+                _globalAdmins.Apply(e);
-+                break;
-+
-+            // IRejectionEvent — skip (projections only process success events)
-+            case IRejectionEvent:
-+                break;
-+
-+            default:
-+                throw new InvalidOperationException(
-+                    $"Unknown event type: {eventPayload.GetType().Name}. Update InMemoryTenantProjection.Apply when adding new event types.");
-+        }
++        return new ProjectionStateRead<TValue>(value, etag);
 +    }
 +
-+    /// <summary>
-+    /// Applies multiple events in sequence.
-+    /// </summary>
-+    /// <param name="events">The events to apply.</param>
-+    /// <exception cref="ArgumentNullException">Thrown when events is null.</exception>
-+    public void ApplyEvents(IEnumerable<IEventPayload> events)
-+    {
-+        ArgumentNullException.ThrowIfNull(events);
-+
-+        foreach (IEventPayload eventPayload in events)
-+        {
-+            Apply(eventPayload);
-+        }
++    public async Task SaveStateAsync<TValue>(
++        string storeName,
++        string key,
++        TValue value,
++        StateOptions? stateOptions = null,
++        IReadOnlyDictionary<string, string>? metadata = null,
++        CancellationToken cancellationToken = default)
++        where TValue : class {
++        await daprClient
++            .SaveStateAsync(
++                storeName,
++                key,
++                value,
++                stateOptions ?? new StateOptions(),
++                metadata,
++                cancellationToken)
++            .ConfigureAwait(false);
 +    }
 +
-+    /// <summary>
-+    /// Returns all projected tenants.
-+    /// </summary>
-+    /// <returns>A read-only list of all tenant read models.</returns>
-+    public IReadOnlyList<TenantReadModel> GetAllTenants() => _tenants.Values.ToList();
-+
-+    /// <summary>
-+    /// Returns the global administrator read model (never null — initialized empty).
-+    /// </summary>
-+    /// <returns>The global administrator read model.</returns>
-+    public GlobalAdministratorReadModel GetGlobalAdministrators() => _globalAdmins;
-+
-+    /// <summary>
-+    /// Returns the read model for a tenant, or null if the tenant is unknown.
-+    /// </summary>
-+    /// <param name="tenantId">The tenant identifier.</param>
-+    /// <returns>The tenant read model, or null if not found.</returns>
-+    public TenantReadModel? GetTenant(string tenantId)
-+    {
-+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
-+        return _tenants.TryGetValue(tenantId, out TenantReadModel? model) ? model : null;
-+    }
-+
-+    private TenantReadModel GetOrThrow(string tenantId)
-+        => _tenants.TryGetValue(tenantId, out TenantReadModel? m)
-+            ? m
-+            : throw new InvalidOperationException($"Tenant '{tenantId}' not found in projection. Was TenantCreated applied first?");
++    public async Task<bool> TrySaveStateAsync<TValue>(
++        string storeName,
++        string key,
++        TValue value,
++        string etag,
++        StateOptions stateOptions,
++        IReadOnlyDictionary<string, string>? metadata = null,
++        CancellationToken cancellationToken = default)
++        where TValue : class =>
++        await daprClient
++            .TrySaveStateAsync(
++                storeName,
++                key,
++                value,
++                etag,
++                stateOptions,
++                metadata,
++                cancellationToken)
++            .ConfigureAwait(false);
 +}
-diff --git a/tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs b/tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs
+diff --git a/src/Hexalith.Tenants/Projections/ITenantProjectionStateStore.cs b/src/Hexalith.Tenants/Projections/ITenantProjectionStateStore.cs
 new file mode 100644
-index 0000000..c6cc362
+index 0000000..df1dbc2
 --- /dev/null
-+++ b/tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs
-@@ -0,0 +1,888 @@
-+using System.Reflection;
++++ b/src/Hexalith.Tenants/Projections/ITenantProjectionStateStore.cs
+@@ -0,0 +1,33 @@
++using Dapr.Client;
 +
-+using Hexalith.EventStore.Contracts.Commands;
-+using Hexalith.EventStore.Contracts.Events;
-+using Hexalith.EventStore.Contracts.Results;
-+using Hexalith.Tenants.Contracts.Commands;
-+using Hexalith.Tenants.Contracts.Enums;
-+using Hexalith.Tenants.Contracts.Events;
-+using Hexalith.Tenants.Contracts.Events.Rejections;
-+using Hexalith.Tenants.Server.Aggregates;
-+using Hexalith.Tenants.Testing.Fakes;
-+using Hexalith.Tenants.Testing.Helpers;
++namespace Hexalith.Tenants.Projections;
 +
-+using Shouldly;
++internal interface ITenantProjectionStateStore {
++    Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
++        string storeName,
++        string key,
++        CancellationToken cancellationToken = default)
++        where TValue : class;
 +
-+using Xunit.Abstractions;
++    Task SaveStateAsync<TValue>(
++        string storeName,
++        string key,
++        TValue value,
++        StateOptions? stateOptions = null,
++        IReadOnlyDictionary<string, string>? metadata = null,
++        CancellationToken cancellationToken = default)
++        where TValue : class;
 +
-+namespace Hexalith.Tenants.Testing.Tests.Conformance;
++    Task<bool> TrySaveStateAsync<TValue>(
++        string storeName,
++        string key,
++        TValue value,
++        string etag,
++        StateOptions stateOptions,
++        IReadOnlyDictionary<string, string>? metadata = null,
++        CancellationToken cancellationToken = default)
++        where TValue : class;
++}
 +
-+/// <summary>
-+/// Conformance test suite proving InMemoryTenantService produces identical event sequences
-+/// as TenantAggregate and GlobalAdministratorsAggregate for every command type.
-+/// Uses reflection-based command discovery to automatically include new commands.
-+/// </summary>
-+[Trait("Category", "Conformance")]
-+public sealed class TenantConformanceTests
-+{
-+    private readonly ITestOutputHelper _output;
++internal sealed record ProjectionStateRead<TValue>(TValue? Value, string? ETag)
++    where TValue : class;
+diff --git a/src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs b/src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs
+index 58de0f5..bbfa9c3 100644
+--- a/src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs
++++ b/src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs
+@@ -3,6 +3,8 @@ using Dapr.Client;
+ using Hexalith.EventStore.Contracts.Projections;
+ 
+ using Microsoft.AspNetCore.Http;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Logging.Abstractions;
+ 
+ namespace Hexalith.Tenants.Projections;
+ 
+@@ -11,16 +13,20 @@ namespace Hexalith.Tenants.Projections;
+ /// requested <see cref="ProjectionRequest.Domain"/>. Unknown domains fail closed with
+ /// <see cref="StatusCodes.Status400BadRequest"/> instead of silently being projected as tenants.
+ /// </summary>
+-public sealed class ProjectionDispatcher(DaprClient daprClient) {
++public sealed class ProjectionDispatcher(DaprClient daprClient, ILoggerFactory? loggerFactory = null) {
+     public const string TenantsDomain = "tenants";
+     public const string GlobalAdministratorsDomain = "global-administrators";
+ 
++    private readonly ILoggerFactory _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
 +
-+    public TenantConformanceTests(ITestOutputHelper output)
-+    {
-+        _output = output;
+     public async Task<IResult> DispatchAsync(ProjectionRequest request) {
+         ArgumentNullException.ThrowIfNull(request);
+ 
+         switch (request.Domain) {
+             case TenantsDomain:
+-                ProjectionResponse tenantsResponse = await new TenantProjectionHandler(daprClient)
++                ProjectionResponse tenantsResponse = await new TenantProjectionHandler(
++                    daprClient,
++                    _loggerFactory.CreateLogger<TenantProjectionHandler>())
+                     .ProjectAsync(request).ConfigureAwait(false);
+                 return Results.Ok(tenantsResponse);
+ 
+diff --git a/src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs b/src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs
+index 07ebeab..0d7bc10 100644
+--- a/src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs
++++ b/src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs
+@@ -6,6 +6,9 @@ using Hexalith.EventStore.Contracts.Projections;
+ using Hexalith.Tenants.Contracts.Events;
+ using Hexalith.Tenants.Server.Projections;
+ 
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Logging.Abstractions;
++
+ namespace Hexalith.Tenants.Projections;
+ 
+ /// <summary>
+@@ -16,66 +19,84 @@ namespace Hexalith.Tenants.Projections;
+ /// under the full-replay projection contract. The index-side state-store read-and-merge
+ /// path is independent and orthogonal.
+ /// </remarks>
+-public sealed class TenantProjectionHandler(DaprClient daprClient) {
++public sealed class TenantProjectionHandler {
+     private const string StateStoreName = "statestore";
+     private const string TenantAuditProjectionKeyPrefix = "audit:";
++    private const string TenantIndexKeyCategory = "tenant index";
+     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
++    private const string TenantProjectionKeyCategory = "tenant read-model";
+     private const string TenantProjectionKeyPrefix = "projection:tenants:";
+ 
+     private static readonly JsonSerializerOptions s_options = new() {
+         PropertyNameCaseInsensitive = true,
+     };
+ 
+-    public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request) {
+-        ArgumentNullException.ThrowIfNull(request);
++    private readonly ILogger<TenantProjectionHandler> _logger;
++    private readonly ITenantProjectionStateStore _stateStore;
+ 
+-        // Build per-aggregate projection
+-        TenantReadModel state = new();
+-        foreach (ProjectionEventDto? evt in request.Events ?? []) {
+-            if (evt is null) {
+-                continue;
+-            }
++    public TenantProjectionHandler(DaprClient daprClient)
++        : this(CreateStateStore(daprClient), NullLogger<TenantProjectionHandler>.Instance) {
++    }
+ 
+-            ApplyEvent(state, evt);
+-        }
++    public TenantProjectionHandler(DaprClient daprClient, ILogger<TenantProjectionHandler> logger)
++        : this(CreateStateStore(daprClient), logger) {
++    }
+ 
+-        // Write per-tenant projection to state store
+-        await daprClient.SaveStateAsync(
+-            StateStoreName,
+-            TenantProjectionKeyPrefix + request.AggregateId,
+-            state).ConfigureAwait(false);
++    internal TenantProjectionHandler(ITenantProjectionStateStore stateStore, ILogger<TenantProjectionHandler> logger) {
++        ArgumentNullException.ThrowIfNull(stateStore);
++        ArgumentNullException.ThrowIfNull(logger);
++
++        _stateStore = stateStore;
++        _logger = logger;
 +    }
 +
-+    // ─── 4.2 / 4.3: Reflection-based command type discovery ───
++    public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request) {
++        ArgumentNullException.ThrowIfNull(request);
 +
-+    [Fact]
-+    public void AllCommandTypesDiscovered()
-+    {
-+        // Arrange
-+        Assembly contractsAssembly = typeof(CreateTenant).Assembly;
-+        List<Type> commandTypes = contractsAssembly
-+            .GetTypes()
-+            .Where(t => t.IsClass && !t.IsAbstract
-+                && t.Namespace == "Hexalith.Tenants.Contracts.Commands")
-+            .OrderBy(t => t.Name)
-+            .ToList();
++        IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
 +
-+        // Output all discovered types for debugging
-+        _output.WriteLine($"Discovered {commandTypes.Count} command types:");
-+        foreach (Type t in commandTypes)
-+        {
-+            _output.WriteLine($"  - {t.Name}");
++        TenantReadModel state = await TenantProjectionWritePolicy
++            .SaveWithOptimisticConcurrencyAsync(
++                _stateStore,
++                _logger,
++                StateStoreName,
++                TenantProjectionKeyPrefix + request.AggregateId,
++                TenantProjectionKeyCategory,
++                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
++                events,
++                static () => new TenantReadModel(),
++                ApplyEvent)
++            .ConfigureAwait(false);
+ 
+-        TenantAuditReadModel auditModel = TenantAuditProjection.ProjectAuditEvents(request.Events ?? []);
+-        await daprClient.SaveStateAsync(
++        TenantAuditReadModel auditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
++        await _stateStore.SaveStateAsync(
+             StateStoreName,
+             TenantAuditProjectionKeyPrefix + request.AggregateId,
+             auditModel).ConfigureAwait(false);
+ 
+-        // Update tenant index projection
+-        TenantIndexReadModel? indexModel = await daprClient
+-            .GetStateAsync<TenantIndexReadModel>(StateStoreName, TenantIndexProjectionKey)
++        _ = await TenantProjectionWritePolicy
++            .SaveWithOptimisticConcurrencyAsync(
++                _stateStore,
++                _logger,
++                StateStoreName,
++                TenantIndexProjectionKey,
++                TenantIndexKeyCategory,
++                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
++                events,
++                static () => new TenantIndexReadModel(),
++                ApplyIndexEvent)
+             .ConfigureAwait(false);
+ 
+-        indexModel ??= new TenantIndexReadModel();
+-
+-        foreach (ProjectionEventDto? evt in request.Events ?? []) {
+-            if (evt is null) {
+-                continue;
+-            }
+-
+-            ApplyIndexEvent(indexModel, evt);
+-        }
+-
+-        await daprClient.SaveStateAsync(
+-            StateStoreName,
+-            TenantIndexProjectionKey,
+-            indexModel).ConfigureAwait(false);
+-
+         return new ProjectionResponse(
+             "tenants",
+             JsonSerializer.SerializeToElement(state));
+     }
+ 
++    private static DaprTenantProjectionStateStore CreateStateStore(DaprClient daprClient) {
++        ArgumentNullException.ThrowIfNull(daprClient);
++        return new DaprTenantProjectionStateStore(daprClient);
++    }
++
+     private static void ApplyEvent(TenantReadModel state, ProjectionEventDto evt) {
+         string name = evt.EventTypeName;
+         if (string.IsNullOrEmpty(name)) {
+diff --git a/src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs b/src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs
+new file mode 100644
+index 0000000..4f9ad3b
+--- /dev/null
++++ b/src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs
+@@ -0,0 +1,157 @@
++using System.Diagnostics;
++
++using Dapr.Client;
++
++using Hexalith.EventStore.Contracts.Projections;
++
++using Microsoft.Extensions.Logging;
++
++namespace Hexalith.Tenants.Projections;
++
++internal static partial class TenantProjectionWritePolicy {
++    public const int MaxAttempts = 3;
++
++    private const int MaxLoggedMessageIds = 20;
++    private const string ConflictReason = "guarded-save-conflict";
++    private const string RetryExhaustedReason = "retry-exhausted";
++
++    public static async Task<TValue> SaveWithOptimisticConcurrencyAsync<TValue>(
++        ITenantProjectionStateStore stateStore,
++        ILogger logger,
++        string storeName,
++        string key,
++        string stateKeyCategory,
++        string operationContext,
++        IReadOnlyCollection<ProjectionEventDto?> events,
++        Func<TValue> defaultFactory,
++        Action<TValue, ProjectionEventDto> applyEvent,
++        CancellationToken cancellationToken = default)
++        where TValue : class {
++        ArgumentNullException.ThrowIfNull(stateStore);
++        ArgumentNullException.ThrowIfNull(logger);
++        ArgumentException.ThrowIfNullOrWhiteSpace(storeName);
++        ArgumentException.ThrowIfNullOrWhiteSpace(key);
++        ArgumentException.ThrowIfNullOrWhiteSpace(stateKeyCategory);
++        ArgumentException.ThrowIfNullOrWhiteSpace(operationContext);
++        ArgumentNullException.ThrowIfNull(events);
++        ArgumentNullException.ThrowIfNull(defaultFactory);
++        ArgumentNullException.ThrowIfNull(applyEvent);
++
++        string correlationId = events.FirstOrDefault(e => !string.IsNullOrWhiteSpace(e?.CorrelationId))?.CorrelationId ?? string.Empty;
++        string messageIds = BuildBoundedMessageIds(events);
++
++        for (int attempt = 1; attempt <= MaxAttempts; attempt++) {
++            ProjectionStateRead<TValue> read = await stateStore
++                .GetStateAndETagAsync<TValue>(storeName, key, cancellationToken)
++                .ConfigureAwait(false);
++
++            TValue state = read.Value ?? defaultFactory();
++            foreach (ProjectionEventDto? evt in events) {
++                if (evt is null) {
++                    continue;
++                }
++
++                applyEvent(state, evt);
++            }
++
++            bool saved = await stateStore
++                .TrySaveStateAsync(
++                    storeName,
++                    key,
++                    state,
++                    read.ETag ?? string.Empty,
++                    CreateGuardedWriteOptions(),
++                    cancellationToken: cancellationToken)
++                .ConfigureAwait(false);
++
++            if (saved) {
++                return state;
++            }
++
++            if (attempt == MaxAttempts) {
++                RetryExhausted(
++                    logger,
++                    storeName,
++                    stateKeyCategory,
++                    attempt,
++                    MaxAttempts,
++                    operationContext,
++                    RetryExhaustedReason,
++                    correlationId,
++                    messageIds);
++
++                throw new InvalidOperationException(
++                    $"{stateKeyCategory} projection write exceeded optimistic concurrency retry limit after {MaxAttempts} attempts.");
++            }
++
++            OptimisticConcurrencyConflict(
++                logger,
++                storeName,
++                stateKeyCategory,
++                attempt,
++                MaxAttempts,
++                operationContext,
++                ConflictReason,
++                correlationId,
++                messageIds);
 +        }
 +
-+        // Assert — exactly 12 command types expected
-+        commandTypes.Count.ShouldBe(12, $"Expected 12 command types but found {commandTypes.Count}. " +
-+            "If a command was added or removed, update this count and the conformance tests.");
++        throw new UnreachableException();
 +    }
 +
-+    // ═══════════════════════════════════════════════════════════
-+    // 4.4: Tenant command conformance tests (9 commands)
-+    // ═══════════════════════════════════════════════════════════
-+
-+    // ─── CreateTenant (null state, no envelope) ───
-+
-+    [Fact]
-+    public void Conformance_CreateTenant_Success()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        var command = new CreateTenant("acme", "Acme Corp", "A test tenant");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act — aggregate path
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, null);
-+        // Act — service path
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── DisableTenant (state-only, no envelope) ───
-+
-+    [Fact]
-+    public void Conformance_DisableTenant_Success()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new DisableTenant("acme");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── EnableTenant (state-only, no envelope) ───
-+
-+    [Fact]
-+    public void Conformance_EnableTenant_Success()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new DisableTenant("acme"));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        TenantAggregate.Handle(new DisableTenant("acme"), state);
-+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
-+
-+        var command = new EnableTenant("acme");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── UpdateTenant (envelope-required) ───
-+
-+    [Fact]
-+    public void Conformance_UpdateTenant_Success_GlobalAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new UpdateTenant("acme", "Acme Inc", "Updated");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_UpdateTenant_Success_NonAdmin_Contributor()
-+    {
-+        // Arrange — contributor role should succeed for UpdateTenant
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        var command = new UpdateTenant("acme", "Acme Inc", "Updated");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "alice", isGlobalAdmin: false);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── AddUserToTenant (envelope-required) ───
-+
-+    [Fact]
-+    public void Conformance_AddUserToTenant_Success_GlobalAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new AddUserToTenant("acme", "alice", TenantRole.TenantContributor);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_AddUserToTenant_Success_NonAdmin_Owner()
-+    {
-+        // Arrange — owner role with membership history should succeed
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
-+
-+        var command = new AddUserToTenant("acme", "bob", TenantRole.TenantReader);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "owner1", isGlobalAdmin: false);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── RemoveUserFromTenant (envelope-required) ───
-+
-+    [Fact]
-+    public void Conformance_RemoveUserFromTenant_Success_GlobalAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        var command = new RemoveUserFromTenant("acme", "alice");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_RemoveUserFromTenant_Success_NonAdmin_Owner()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        var command = new RemoveUserFromTenant("acme", "alice");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "owner1", isGlobalAdmin: false);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── ChangeUserRole (envelope-required) ───
-+
-+    [Fact]
-+    public void Conformance_ChangeUserRole_Success_GlobalAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantReader));
-+
-+        var command = new ChangeUserRole("acme", "alice", TenantRole.TenantContributor);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_ChangeUserRole_Success_NonAdmin_Owner()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantReader));
-+
-+        var command = new ChangeUserRole("acme", "alice", TenantRole.TenantContributor);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "owner1", isGlobalAdmin: false);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── SetTenantConfiguration (envelope-required) ───
-+
-+    [Fact]
-+    public void Conformance_SetTenantConfiguration_Success_GlobalAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new SetTenantConfiguration("acme", "theme", "dark");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_SetTenantConfiguration_Success_NonAdmin_Owner()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
-+
-+        var command = new SetTenantConfiguration("acme", "theme", "dark");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "owner1", isGlobalAdmin: false);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ─── RemoveTenantConfiguration (envelope-required) ───
-+
-+    [Fact]
-+    public void Conformance_RemoveTenantConfiguration_Success_GlobalAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
-+
-+        var command = new RemoveTenantConfiguration("acme", "theme");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_RemoveTenantConfiguration_Success_NonAdmin_Owner()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "owner1", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
-+        svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "owner1", TenantRole.TenantOwner));
-+        state.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
-+
-+        var command = new RemoveTenantConfiguration("acme", "theme");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "owner1", isGlobalAdmin: false);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ═══════════════════════════════════════════════════════════
-+    // 4.5: Global admin command conformance tests (3 commands)
-+    // ═══════════════════════════════════════════════════════════
-+
-+    [Fact]
-+    public void Conformance_BootstrapGlobalAdmin_Success()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        var command = new BootstrapGlobalAdmin("admin1");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, null);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_SetGlobalAdministrator_Success()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-+
-+        var gaState = new GlobalAdministratorsState();
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
-+
-+        var command = new SetGlobalAdministrator("admin2");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Conformance_RemoveGlobalAdministrator_Success()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-+        svc.ProcessCommand(new SetGlobalAdministrator("admin2"));
-+
-+        var gaState = new GlobalAdministratorsState();
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin2"));
-+
-+        var command = new RemoveGlobalAdministrator("admin2");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ═══════════════════════════════════════════════════════════
-+    // 4.6: Rejection conformance tests
-+    // ═══════════════════════════════════════════════════════════
-+
-+    [Fact]
-+    public void Rejection_CreateTenant_AlreadyExists()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new CreateTenant("acme", "Acme Again", null);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_DisableTenant_NotFound()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        var command = new DisableTenant("nonexistent");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "nonexistent", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, null);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_AddUserToTenant_Disabled()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new DisableTenant("acme"));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
-+
-+        var command = new AddUserToTenant("acme", "alice", TenantRole.TenantContributor);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_RemoveUserFromTenant_NotMember()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new RemoveUserFromTenant("acme", "ghost");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_ChangeUserRole_NotMember()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new ChangeUserRole("acme", "ghost", TenantRole.TenantOwner);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_UpdateTenant_NotFound()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        var command = new UpdateTenant("nonexistent", "Name", null);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "nonexistent", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, null, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_SetTenantConfiguration_NotFound()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        var command = new SetTenantConfiguration("nonexistent", "key", "value");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "nonexistent", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, null, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_RemoveTenantConfiguration_NotFound()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        var command = new RemoveTenantConfiguration("nonexistent", "key");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "nonexistent", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, null, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_BootstrapGlobalAdmin_AlreadyBootstrapped()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-+
-+        var gaState = new GlobalAdministratorsState();
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
-+
-+        var command = new BootstrapGlobalAdmin("admin2");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_RemoveGlobalAdministrator_LastAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-+
-+        var gaState = new GlobalAdministratorsState();
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
-+
-+        var command = new RemoveGlobalAdministrator("admin1");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void Rejection_AddUserToTenant_AlreadyMember()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        var command = new AddUserToTenant("acme", "alice", TenantRole.TenantOwner);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ═══════════════════════════════════════════════════════════
-+    // 4.7: NoOp conformance tests
-+    // ═══════════════════════════════════════════════════════════
-+
-+    [Fact]
-+    public void NoOp_DisableTenant_AlreadyDisabled()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new DisableTenant("acme"));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
-+
-+        var command = new DisableTenant("acme");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void NoOp_EnableTenant_AlreadyActive()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new EnableTenant("acme");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void NoOp_SetTenantConfiguration_SameValue()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new SetTenantConfiguration("acme", "theme", "dark"), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
-+
-+        var command = new SetTenantConfiguration("acme", "theme", "dark");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void NoOp_RemoveTenantConfiguration_KeyNotPresent()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+
-+        var command = new RemoveTenantConfiguration("acme", "nonexistent-key");
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void NoOp_ChangeUserRole_SameRole()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
-+        svc.ProcessCommand(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor), userId: "admin", isGlobalAdmin: true);
-+
-+        TenantState state = CreateTenantState("acme", "Acme", null);
-+        state.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        var command = new ChangeUserRole("acme", "alice", TenantRole.TenantContributor);
-+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "acme", "admin", isGlobalAdmin: true);
-+
-+        // Act
-+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
-+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void NoOp_SetGlobalAdministrator_AlreadyAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-+
-+        var gaState = new GlobalAdministratorsState();
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
-+
-+        var command = new SetGlobalAdministrator("admin1");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    [Fact]
-+    public void NoOp_RemoveGlobalAdministrator_NotAdmin()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
-+
-+        var gaState = new GlobalAdministratorsState();
-+        gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
-+
-+        var command = new RemoveGlobalAdministrator("ghost");
-+
-+        // Act
-+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-+        DomainResult serviceResult = svc.ProcessCommand(command);
-+
-+        // Assert
-+        AssertEventsEqual(aggregateResult, serviceResult);
-+    }
-+
-+    // ═══════════════════════════════════════════════════════════
-+    // Helpers
-+    // ═══════════════════════════════════════════════════════════
-+
-+    /// <summary>
-+    /// Creates a TenantState by applying a TenantCreated event manually.
-+    /// Used to build the manual aggregate state for side-by-side comparison.
-+    /// </summary>
-+    private static TenantState CreateTenantState(string tenantId, string name, string? description)
-+    {
-+        var state = new TenantState();
-+        state.Apply(new TenantCreated(tenantId, name, description, DateTimeOffset.UtcNow));
-+        return state;
-+    }
-+
-+    /// <summary>
-+    /// Asserts that two DomainResults have identical outcomes and event sequences.
-+    /// Special-cases events with DateTimeOffset fields to avoid timestamp flakiness.
-+    /// </summary>
-+    private static void AssertEventsEqual(DomainResult expected, DomainResult actual)
-+    {
-+        expected.Events.Count.ShouldBe(actual.Events.Count);
-+        expected.IsSuccess.ShouldBe(actual.IsSuccess);
-+        expected.IsRejection.ShouldBe(actual.IsRejection);
-+        expected.IsNoOp.ShouldBe(actual.IsNoOp);
-+
-+        for (int i = 0; i < expected.Events.Count; i++)
-+        {
-+            IEventPayload e1 = expected.Events[i];
-+            IEventPayload e2 = actual.Events[i];
-+            e1.GetType().ShouldBe(e2.GetType());
-+
-+            // For events with timestamps, compare non-timestamp fields
-+            switch (e1)
-+            {
-+                case TenantCreated tc1 when e2 is TenantCreated tc2:
-+                    tc1.TenantId.ShouldBe(tc2.TenantId);
-+                    tc1.Name.ShouldBe(tc2.Name);
-+                    tc1.Description.ShouldBe(tc2.Description);
-+                    // CreatedAt may differ by a few ticks — both use DateTimeOffset.UtcNow
-+                    break;
-+                case TenantDisabled td1 when e2 is TenantDisabled td2:
-+                    td1.TenantId.ShouldBe(td2.TenantId);
-+                    // DisabledAt may differ by a few ticks
-+                    break;
-+                case TenantEnabled te1 when e2 is TenantEnabled te2:
-+                    te1.TenantId.ShouldBe(te2.TenantId);
-+                    // EnabledAt may differ by a few ticks
-+                    break;
-+                default:
-+                    // Record equality — all fields compared (events are records).
-+                    // NOTE: If adding new event types with DateTimeOffset fields,
-+                    // add a special-case branch above to avoid timestamp flakiness.
-+                    e1.ShouldBe(e2);
-+                    break;
++    private static StateOptions CreateGuardedWriteOptions() =>
++        new() {
++            Concurrency = ConcurrencyMode.FirstWrite,
++        };
++
++    private static string BuildBoundedMessageIds(IReadOnlyCollection<ProjectionEventDto?> events) {
++        // Bound the joined log field so a full-replay batch with thousands of events
++        // cannot emit hundreds-of-KB log lines per conflict or exhaustion.
++        int total = 0;
++        List<string> sample = new(MaxLoggedMessageIds);
++        foreach (ProjectionEventDto? evt in events) {
++            if (string.IsNullOrWhiteSpace(evt?.MessageId)) {
++                continue;
++            }
++
++            total++;
++            if (sample.Count < MaxLoggedMessageIds) {
++                sample.Add(evt!.MessageId);
 +            }
 +        }
++
++        string joined = string.Join(",", sample);
++        int omitted = total - sample.Count;
++        return omitted > 0 ? $"{joined}+{omitted} more" : joined;
 +    }
++
++    [LoggerMessage(
++        EventId = 100101,
++        Level = LogLevel.Warning,
++        Message = "Projection state optimistic concurrency conflict for state store {StateStoreName}, key category {StateKeyCategory}, attempt {AttemptCount} of {MaxAttempts}, operation {OperationContext}, reason {Reason}, correlation ID {CorrelationId}, message IDs {MessageIds}.")]
++    private static partial void OptimisticConcurrencyConflict(
++        ILogger logger,
++        string stateStoreName,
++        string stateKeyCategory,
++        int attemptCount,
++        int maxAttempts,
++        string operationContext,
++        string reason,
++        string correlationId,
++        string messageIds);
++
++    [LoggerMessage(
++        EventId = 100102,
++        Level = LogLevel.Error,
++        Message = "Projection state optimistic concurrency retry exhausted for state store {StateStoreName}, key category {StateKeyCategory}, attempts {AttemptCount} of {MaxAttempts}, operation {OperationContext}, reason {Reason}, correlation ID {CorrelationId}, message IDs {MessageIds}.")]
++    private static partial void RetryExhausted(
++        ILogger logger,
++        string stateStoreName,
++        string stateKeyCategory,
++        int attemptCount,
++        int maxAttempts,
++        string operationContext,
++        string reason,
++        string correlationId,
++        string messageIds);
 +}
-diff --git a/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj b/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj
-index 2eecab4..c9e48ad 100644
---- a/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj
-+++ b/tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj
-@@ -4,6 +4,7 @@
-     <ProjectReference Include="..\..\src\Hexalith.Tenants.Testing\Hexalith.Tenants.Testing.csproj" />
-     <ProjectReference
-       Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
-+    <ProjectReference Include="..\..\src\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
-   </ItemGroup>
+diff --git a/tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs b/tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs
+index ee762b1..82712c7 100644
+--- a/tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs
++++ b/tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs
+@@ -15,6 +15,7 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
+ public class AspireTopologyFixture : IAsyncLifetime {
+     private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
+     private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
++    private static readonly TimeSpan DockerProbeTimeout = TimeSpan.FromSeconds(5);
+     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
+     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(1);
+     private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromSeconds(45);
+@@ -194,6 +195,10 @@ public class AspireTopologyFixture : IAsyncLifetime {
+     private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
+         var failures = new List<string>();
  
- </Project>
-\ No newline at end of file
-diff --git a/tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs b/tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs
-new file mode 100644
-index 0000000..b19ce68
---- /dev/null
-+++ b/tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionTests.cs
-@@ -0,0 +1,313 @@
++        if (!IsDockerHealthy()) {
++            failures.Add("Docker is not running or is not healthy enough for Aspire container orchestration");
++        }
++
+         if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
+             failures.Add($"Dapr placement service is not reachable on localhost:{PlacementPort}");
+         }
+@@ -206,9 +211,42 @@ public class AspireTopologyFixture : IAsyncLifetime {
+     }
+ 
+     private static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
+-        => "Aspire topology prerequisites are missing. Have you run 'dapr init'?" + Environment.NewLine
++        => "Aspire topology prerequisites are missing. Start Docker Desktop and run 'dapr init' before running these tests." + Environment.NewLine
+             + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}"));
+ 
++    private static bool IsDockerHealthy() {
++        try {
++            using var process = Process.Start(new ProcessStartInfo {
++                FileName = "docker",
++                Arguments = "info --format \"{{.ServerVersion}}\"",
++                RedirectStandardOutput = true,
++                RedirectStandardError = true,
++                UseShellExecute = false,
++                CreateNoWindow = true,
++            });
++
++            if (process is null) {
++                return false;
++            }
++
++            if (!process.WaitForExit(DockerProbeTimeout)) {
++                try {
++                    process.Kill(entireProcessTree: true);
++                }
++                catch {
++                    // Best-effort cleanup for a hung Docker CLI probe.
++                }
++
++                return false;
++            }
++
++            return process.ExitCode == 0;
++        }
++        catch {
++            return false;
++        }
++    }
++
+     private static async Task<bool> IsPortReachableAsync(string host, int port) {
+         try {
+             using var client = new TcpClient();
+diff --git a/tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprFactAttribute.cs b/tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprFactAttribute.cs
+index c460ee8..89251b2 100644
+--- a/tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprFactAttribute.cs
++++ b/tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprFactAttribute.cs
+@@ -1,5 +1,6 @@
+ using System.Net.Sockets;
+ using System.Runtime.CompilerServices;
++using System.Text;
+ 
+ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
+ 
+@@ -37,6 +38,7 @@ public sealed class DaprPerformanceFactAttribute : FactAttribute {
+ public static class DaprTestPrerequisites {
+     private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
+     private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
++    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
+     private static readonly Lazy<bool> s_isAvailable = new(CheckAvailability);
+ 
+     /// <summary>
+@@ -51,15 +53,39 @@ public static class DaprTestPrerequisites {
+         => "DAPR integration prerequisites are unavailable. Run 'dapr init' and ensure Redis, placement, and scheduler are reachable.";
+ 
+     private static bool CheckAvailability()
+-        => IsPortReachable(6379)
++        => IsRedisResponsive()
+             && IsPortReachable(PlacementPort)
+             && IsPortReachable(SchedulerPort);
+ 
++    private static bool IsRedisResponsive() {
++        try {
++            using var client = new TcpClient();
++            Task connect = client.ConnectAsync("localhost", 6379);
++            if (!connect.Wait(ProbeTimeout) || !client.Connected) {
++                return false;
++            }
++
++            client.SendTimeout = (int)ProbeTimeout.TotalMilliseconds;
++            client.ReceiveTimeout = (int)ProbeTimeout.TotalMilliseconds;
++
++            using NetworkStream stream = client.GetStream();
++            byte[] ping = Encoding.ASCII.GetBytes("*1\r\n$4\r\nPING\r\n");
++            stream.Write(ping);
++
++            Span<byte> buffer = stackalloc byte[16];
++            int read = stream.Read(buffer);
++            return read > 0 && Encoding.ASCII.GetString(buffer[..read]).StartsWith("+PONG", StringComparison.Ordinal);
++        }
++        catch {
++            return false;
++        }
++    }
++
+     private static bool IsPortReachable(int port) {
+         try {
+             using var client = new TcpClient();
+             Task connect = client.ConnectAsync("localhost", port);
+-            return connect.Wait(TimeSpan.FromMilliseconds(500)) && client.Connected;
++            return connect.Wait(ProbeTimeout) && client.Connected;
+         }
+         catch {
+             return false;
+diff --git a/tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs b/tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs
+index dc9fe7f..385b04d 100644
+--- a/tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs
++++ b/tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs
+@@ -49,6 +49,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
+     private string? _previousDaprGrpcPort;
+     private readonly StringBuilder _daprStdout = new();
+     private readonly StringBuilder _daprStderr = new();
++    private bool _disposed;
+ 
+     /// <summary>Gets the Dapr HTTP endpoint for actor proxy clients.</summary>
+     public string DaprHttpEndpoint {
+@@ -118,9 +119,19 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
+ 
+         await VerifyAppListeningAsync().ConfigureAwait(false);
+ 
+-        StartDaprSidecar();
++        try {
++            StartDaprSidecar();
+ 
+-        await WaitForDaprHealthAsync().ConfigureAwait(false);
++            await WaitForDaprHealthAsync().ConfigureAwait(false);
++        }
++        catch (InvalidOperationException ex) when (IsDaprInfrastructureStartupFailure(ex)) {
++            PrerequisitesAvailable = false;
++            SkipReason = "Dapr sidecar infrastructure startup failed. Ensure Redis, placement, and scheduler are healthy before running these tests."
++                + Environment.NewLine
++                + ex.Message;
++            await DisposeAsync().ConfigureAwait(false);
++            return;
++        }
+ 
+         // Let sidecar complete actor registration with placement service.
+         await Task.Delay(2000).ConfigureAwait(false);
+@@ -139,6 +150,12 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
+ 
+     /// <inheritdoc/>
+     public async ValueTask DisposeAsync() {
++        if (_disposed) {
++            return;
++        }
++
++        _disposed = true;
++
+         if (_testHost is not null) {
+             await _testHost.StopAsync().ConfigureAwait(false);
+             await _testHost.DisposeAsync().ConfigureAwait(false);
+@@ -167,8 +184,8 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
+     private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
+         var failures = new List<string>();
+ 
+-        if (!await IsPortReachableAsync("localhost", RedisPort).ConfigureAwait(false)) {
+-            failures.Add($"Redis is not reachable on localhost:{RedisPort}");
++        if (!await IsRedisResponsiveAsync().ConfigureAwait(false)) {
++            failures.Add($"Redis is not responding to PING on localhost:{RedisPort}");
+         }
+ 
+         if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
+@@ -198,6 +215,33 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
+         }
+     }
+ 
++    private static async Task<bool> IsRedisResponsiveAsync() {
++        try {
++            using var client = new TcpClient();
++            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
++            await client.ConnectAsync("localhost", RedisPort, cts.Token).ConfigureAwait(false);
++            await using NetworkStream stream = client.GetStream();
++            byte[] ping = Encoding.ASCII.GetBytes("*1\r\n$4\r\nPING\r\n");
++            await stream.WriteAsync(ping, cts.Token).ConfigureAwait(false);
++
++            byte[] buffer = new byte[16];
++            int read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
++            string response = Encoding.ASCII.GetString(buffer, 0, read);
++            return response.StartsWith("+PONG", StringComparison.Ordinal);
++        }
++        catch {
++            return false;
++        }
++    }
++
++    private static bool IsDaprInfrastructureStartupFailure(InvalidOperationException exception) {
++        string message = exception.Message;
++        return message.Contains("daprd exited", StringComparison.OrdinalIgnoreCase)
++            || message.Contains("Dapr sidecar did not become healthy", StringComparison.OrdinalIgnoreCase)
++            || message.Contains("state.redis", StringComparison.OrdinalIgnoreCase)
++            || message.Contains("statestore", StringComparison.OrdinalIgnoreCase);
++    }
++
+     private async Task StartTestHostAsync() {
+         WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions());
+ 
+diff --git a/tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs b/tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs
+index 073a9b4..f964d4f 100644
+--- a/tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs
++++ b/tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs
+@@ -26,6 +26,28 @@ public class ProjectionDispatcherTests {
+     [Fact]
+     public async Task DispatchAsync_TenantsDomain_RoutesToTenantProjectionHandlerAsync() {
+         DaprClient daprClient = Substitute.For<DaprClient>();
++        _ = daprClient.GetStateAndETagAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1")
++            .Returns(Task.FromResult((default(TenantReadModel)!, string.Empty)));
++        _ = daprClient.TrySaveStateAsync(
++            "statestore",
++            "projection:tenants:tenant-1",
++            Arg.Any<TenantReadModel>(),
++            Arg.Any<string>(),
++            Arg.Any<Dapr.Client.StateOptions>(),
++            Arg.Any<IReadOnlyDictionary<string, string>>(),
++            Arg.Any<CancellationToken>())
++            .Returns(Task.FromResult(true));
++        _ = daprClient.GetStateAndETagAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton")
++            .Returns(Task.FromResult((default(TenantIndexReadModel)!, string.Empty)));
++        _ = daprClient.TrySaveStateAsync(
++            "statestore",
++            "projection:tenant-index:singleton",
++            Arg.Any<TenantIndexReadModel>(),
++            Arg.Any<string>(),
++            Arg.Any<Dapr.Client.StateOptions>(),
++            Arg.Any<IReadOnlyDictionary<string, string>>(),
++            Arg.Any<CancellationToken>())
++            .Returns(Task.FromResult(true));
+         ProjectionRequest request = new(
+             "system",
+             "tenants",
+@@ -34,11 +56,12 @@ public class ProjectionDispatcherTests {
+ 
+         IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+ 
+-        // Tenant handler writes per-tenant projection key.
+-        await daprClient.Received(1).SaveStateAsync(
++        // Tenant handler writes the per-tenant projection key through a guarded ETag save.
++        await daprClient.Received(1).TrySaveStateAsync(
+             "statestore",
+             "projection:tenants:tenant-1",
+             Arg.Any<TenantReadModel>(),
++            Arg.Any<string>(),
+             Arg.Any<Dapr.Client.StateOptions>(),
+             Arg.Any<IReadOnlyDictionary<string, string>>(),
+             Arg.Any<CancellationToken>());
+diff --git a/tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs b/tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs
+index 97a6938..02acf50 100644
+--- a/tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs
++++ b/tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs
+@@ -2,24 +2,158 @@ using System.Text.Json;
+ 
+ using Dapr.Client;
+ 
 +using Hexalith.Tenants.Contracts.Enums;
-+using Hexalith.Tenants.Contracts.Events;
-+using Hexalith.Tenants.Contracts.Events.Rejections;
-+using Hexalith.Tenants.Testing.Fakes;
-+using Hexalith.Tenants.Testing.Helpers;
-+using Hexalith.Tenants.Testing.Projections;
-+
-+using Shouldly;
-+
-+namespace Hexalith.Tenants.Testing.Tests.Projections;
-+
-+/// <summary>
-+/// Unit tests for <see cref="InMemoryTenantProjection"/>.
-+/// </summary>
-+public sealed class InMemoryTenantProjectionTests
-+{
-+    // ─── 3.2: TenantCreated ───
-+
-+    [Fact]
-+    public void Apply_TenantCreated_StoresTenantWithCorrectFields()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        var evt = new TenantCreated("acme", "Acme Corp", "A test tenant", DateTimeOffset.UtcNow);
-+
-+        // Act
-+        projection.Apply(evt);
-+
-+        // Assert
-+        var tenant = projection.GetTenant("acme");
-+        tenant.ShouldNotBeNull();
-+        tenant.TenantId.ShouldBe("acme");
-+        tenant.Name.ShouldBe("Acme Corp");
-+        tenant.Description.ShouldBe("A test tenant");
-+        tenant.Status.ShouldBe(TenantStatus.Active);
-+    }
-+
-+    // ─── 3.3: TenantUpdated ───
+ using Hexalith.EventStore.Contracts.Events;
+ using Hexalith.EventStore.Contracts.Projections;
+ using Hexalith.Tenants.Contracts.Events;
+ using Hexalith.Tenants.Projections;
+ using Hexalith.Tenants.Server.Projections;
+ 
+-using NSubstitute;
++using Microsoft.Extensions.Logging.Abstractions;
+ 
+ using Shouldly;
+ 
+ namespace Hexalith.Tenants.Server.Tests.Projections;
+ 
+ public class TenantProjectionHandlerTests {
++    private const string StateStoreName = "statestore";
++    private const string TenantIndexKey = "projection:tenant-index:singleton";
++    private const string TenantProjectionKey = "projection:tenants:tenant-1";
 +
 +    [Fact]
-+    public void Apply_TenantUpdated_UpdatesNameAndDescription()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
++    public async Task ProjectAsync_ExistingTenantStateUsesLoadedETagAndFirstWriteOptionsAsync() {
++        TenantReadModel existing = new() {
++            TenantId = "tenant-1",
++            Name = "Prior",
++        };
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead(TenantProjectionKey, existing, "tenant-etag-1");
++        stateStore.EnqueueTrySave(TenantProjectionKey, true);
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
++        stateStore.EnqueueTrySave(TenantIndexKey, true);
++        ProjectionRequest request = CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1");
 +
-+        // Act
-+        projection.Apply(new TenantUpdated("acme", "Acme Inc", "Updated description"));
++        _ = await CreateHandler(stateStore).ProjectAsync(request);
 +
-+        // Assert
-+        var tenant = projection.GetTenant("acme");
-+        tenant.ShouldNotBeNull();
-+        tenant.Name.ShouldBe("Acme Inc");
-+        tenant.Description.ShouldBe("Updated description");
-+    }
-+
-+    // ─── 3.4: TenantDisabled / TenantEnabled ───
-+
-+    [Fact]
-+    public void Apply_TenantDisabled_TracksStatus()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+
-+        // Act
-+        projection.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
-+
-+        // Assert
-+        projection.GetTenant("acme")!.Status.ShouldBe(TenantStatus.Disabled);
++        SaveAttempt tenantSave = stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey);
++        tenantSave.ETag.ShouldBe("tenant-etag-1");
++        tenantSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
++        TenantReadModel saved = (TenantReadModel)tenantSave.Value;
++        saved.ShouldBeSameAs(existing);
++        saved.Name.ShouldBe("Acme");
 +    }
 +
 +    [Fact]
-+    public void Apply_TenantEnabled_TracksStatus()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
++    public async Task ProjectAsync_MissingTenantStateUsesNoETagAndFirstWriteOptionsAsync() {
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
++        stateStore.EnqueueTrySave(TenantProjectionKey, true);
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
++        stateStore.EnqueueTrySave(TenantIndexKey, true);
++        ProjectionRequest request = CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1");
 +
-+        // Act
-+        projection.Apply(new TenantEnabled("acme", DateTimeOffset.UtcNow));
++        _ = await CreateHandler(stateStore).ProjectAsync(request);
 +
-+        // Assert
-+        projection.GetTenant("acme")!.Status.ShouldBe(TenantStatus.Active);
-+    }
-+
-+    // ─── 3.5: UserAddedToTenant ───
-+
-+    [Fact]
-+    public void Apply_UserAddedToTenant_AddsMemberWithRole()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+
-+        // Act
-+        projection.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        // Assert
-+        var tenant = projection.GetTenant("acme");
-+        tenant.ShouldNotBeNull();
-+        tenant.Members.ShouldContainKey("alice");
-+        tenant.Members["alice"].ShouldBe(TenantRole.TenantContributor);
-+    }
-+
-+    // ─── 3.6: UserRemovedFromTenant ───
-+
-+    [Fact]
-+    public void Apply_UserRemovedFromTenant_RemovesMember()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantContributor));
-+
-+        // Act
-+        projection.Apply(new UserRemovedFromTenant("acme", "alice"));
-+
-+        // Assert
-+        projection.GetTenant("acme")!.Members.ShouldNotContainKey("alice");
-+    }
-+
-+    // ─── 3.7: UserRoleChanged ───
-+
-+    [Fact]
-+    public void Apply_UserRoleChanged_UpdatesMemberRole()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new UserAddedToTenant("acme", "alice", TenantRole.TenantReader));
-+
-+        // Act
-+        projection.Apply(new UserRoleChanged("acme", "alice", TenantRole.TenantReader, TenantRole.TenantOwner));
-+
-+        // Assert
-+        projection.GetTenant("acme")!.Members["alice"].ShouldBe(TenantRole.TenantOwner);
-+    }
-+
-+    // ─── 3.8: TenantConfigurationSet / TenantConfigurationRemoved ───
-+
-+    [Fact]
-+    public void Apply_TenantConfigurationSet_ManagesConfig()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+
-+        // Act
-+        projection.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
-+
-+        // Assert
-+        var tenant = projection.GetTenant("acme");
-+        tenant.ShouldNotBeNull();
-+        tenant.Configuration.ShouldContainKey("theme");
-+        tenant.Configuration["theme"].ShouldBe("dark");
++        SaveAttempt tenantSave = stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey);
++        tenantSave.ETag.ShouldBe(string.Empty);
++        tenantSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
 +    }
 +
 +    [Fact]
-+    public void Apply_TenantConfigurationRemoved_RemovesConfig()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new TenantConfigurationSet("acme", "theme", "dark"));
++    public async Task ProjectAsync_TenantStateConflictReloadsStateAndRetriesExactlyOnceAsync() {
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, new TenantReadModel(), "tenant-etag-1");
++        stateStore.EnqueueRead<TenantReadModel>(
++            TenantProjectionKey,
++            new TenantReadModel {
++                TenantId = "tenant-1",
++                Name = "Concurrent Name",
++            },
++            "tenant-etag-2");
++        stateStore.EnqueueTrySave(TenantProjectionKey, false);
++        stateStore.EnqueueTrySave(TenantProjectionKey, true);
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
++        stateStore.EnqueueTrySave(TenantIndexKey, true);
++        ProjectionRequest request = CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1");
 +
-+        // Act
-+        projection.Apply(new TenantConfigurationRemoved("acme", "theme"));
++        _ = await CreateHandler(stateStore).ProjectAsync(request);
 +
-+        // Assert
-+        projection.GetTenant("acme")!.Configuration.ShouldNotContainKey("theme");
-+    }
-+
-+    // ─── 3.9: GlobalAdministratorSet / GlobalAdministratorRemoved ───
-+
-+    [Fact]
-+    public void Apply_GlobalAdministratorSet_TracksAdmins()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+
-+        // Act
-+        projection.Apply(new GlobalAdministratorSet("system", "admin1"));
-+
-+        // Assert
-+        projection.GetGlobalAdministrators().Administrators.ShouldContain("admin1");
++        stateStore.ReadCalls.Count(c => c.Key == TenantProjectionKey).ShouldBe(2);
++        stateStore.TrySaveAttempts.Count(a => a.Key == TenantProjectionKey).ShouldBe(2);
++        stateStore.TrySaveAttempts[0].ETag.ShouldBe("tenant-etag-1");
++        stateStore.TrySaveAttempts[1].ETag.ShouldBe("tenant-etag-2");
++        ((TenantReadModel)stateStore.TrySaveAttempts[1].Value).Name.ShouldBe("Acme");
 +    }
 +
 +    [Fact]
-+    public void Apply_GlobalAdministratorRemoved_RemovesAdmin()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new GlobalAdministratorSet("system", "admin1"));
-+        projection.Apply(new GlobalAdministratorSet("system", "admin2"));
++    public async Task ProjectAsync_TenantIndexConflictPreservesReloadedExistingTenantsAsync() {
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
++        stateStore.EnqueueTrySave(TenantProjectionKey, true);
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateIndex("tenant-a", "Existing A"), "index-etag-1");
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateIndex("tenant-b", "Existing B"), "index-etag-2");
++        stateStore.EnqueueTrySave(TenantIndexKey, false);
++        stateStore.EnqueueTrySave(TenantIndexKey, true);
++        ProjectionRequest request = CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1");
 +
-+        // Act
-+        projection.Apply(new GlobalAdministratorRemoved("system", "admin1"));
++        _ = await CreateHandler(stateStore).ProjectAsync(request);
 +
-+        // Assert
-+        projection.GetGlobalAdministrators().Administrators.ShouldNotContain("admin1");
-+        projection.GetGlobalAdministrators().Administrators.ShouldContain("admin2");
++        stateStore.TrySaveAttempts.Count(a => a.Key == TenantIndexKey).ShouldBe(2);
++        TenantIndexReadModel savedIndex = (TenantIndexReadModel)stateStore.TrySaveAttempts.Last(a => a.Key == TenantIndexKey).Value;
++        savedIndex.Tenants.ShouldContainKey("tenant-b");
++        savedIndex.Tenants.ShouldContainKey("tenant-1");
++        savedIndex.Tenants.ShouldNotContainKey("tenant-a");
++        savedIndex.Tenants["tenant-1"].Name.ShouldBe("Acme");
 +    }
-+
-+    // ─── 3.10: GetAllTenants ───
 +
 +    [Fact]
-+    public void GetAllTenants_ReturnsAllProjectedTenants()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new TenantCreated("contoso", "Contoso", null, DateTimeOffset.UtcNow));
++    public async Task ProjectAsync_RetryExhaustionThrowsAfterMaxAttemptsAsync() {
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, "tenant-etag-1");
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, "tenant-etag-2");
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, "tenant-etag-3");
++        stateStore.EnqueueTrySave(TenantProjectionKey, false);
++        stateStore.EnqueueTrySave(TenantProjectionKey, false);
++        stateStore.EnqueueTrySave(TenantProjectionKey, false);
++        ProjectionRequest request = CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1");
 +
-+        // Act
-+        var tenants = projection.GetAllTenants();
++        InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(
++            () => CreateHandler(stateStore).ProjectAsync(request));
 +
-+        // Assert
-+        tenants.Count.ShouldBe(2);
-+        tenants.ShouldContain(t => t.TenantId == "acme");
-+        tenants.ShouldContain(t => t.TenantId == "contoso");
++        exception.Message.ShouldContain("tenant read-model");
++        stateStore.ReadCalls.Count(c => c.Key == TenantProjectionKey).ShouldBe(3);
++        stateStore.TrySaveAttempts.Count(a => a.Key == TenantProjectionKey).ShouldBe(3);
++        stateStore.TrySaveAttempts.ShouldAllBe(a => a.Key == TenantProjectionKey);
 +    }
-+
-+    // ─── 3.11: Cross-tenant isolation ───
 +
 +    [Fact]
-+    public void CrossTenantIsolation_TenantADataNeverAppearsInTenantBQuery()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+        projection.Apply(new TenantCreated("alpha", "Alpha Corp", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new TenantCreated("beta", "Beta Corp", null, DateTimeOffset.UtcNow));
-+        projection.Apply(new UserAddedToTenant("alpha", "alice", TenantRole.TenantOwner));
-+        projection.Apply(new TenantConfigurationSet("alpha", "key1", "val1"));
++    public async Task ProjectAsync_IndexRetryExhaustionAfterTenantSaveThrowsAsync() {
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
++        stateStore.EnqueueTrySave(TenantProjectionKey, true);
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, "index-etag-1");
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, "index-etag-2");
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, "index-etag-3");
++        stateStore.EnqueueTrySave(TenantIndexKey, false);
++        stateStore.EnqueueTrySave(TenantIndexKey, false);
++        stateStore.EnqueueTrySave(TenantIndexKey, false);
++        ProjectionRequest request = CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1");
 +
-+        // Act
-+        var alpha = projection.GetTenant("alpha");
-+        var beta = projection.GetTenant("beta");
++        InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(
++            () => CreateHandler(stateStore).ProjectAsync(request));
 +
-+        // Assert
-+        alpha.ShouldNotBeNull();
-+        alpha.Members.ShouldContainKey("alice");
-+        alpha.Configuration.ShouldContainKey("key1");
-+
-+        beta.ShouldNotBeNull();
-+        beta.Members.ShouldBeEmpty();
-+        beta.Configuration.ShouldBeEmpty();
++        exception.Message.ShouldContain("tenant index");
++        stateStore.TrySaveAttempts.Count(a => a.Key == TenantProjectionKey).ShouldBe(1);
++        stateStore.TrySaveAttempts.Count(a => a.Key == TenantIndexKey).ShouldBe(3);
 +    }
 +
-+    // ─── 3.12: End-to-end with InMemoryTenantService ───
-+
-+    [Fact]
-+    public void EndToEnd_InMemoryTenantServiceCommand_EventsProjection_Query()
-+    {
-+        // Arrange
-+        var svc = new InMemoryTenantService();
-+        TenantTestHelpers.CreateTenant(svc, "acme", "Acme Corp");
-+        svc.ProcessCommand(
-+            new Contracts.Commands.AddUserToTenant("acme", "alice", TenantRole.TenantContributor),
-+            userId: "admin",
-+            isGlobalAdmin: true);
-+
-+        var projection = new InMemoryTenantProjection();
-+
-+        // Act
-+        projection.ApplyEvents(svc.EventHistory);
-+
-+        // Assert
-+        var tenant = projection.GetTenant("acme");
-+        tenant.ShouldNotBeNull();
-+        tenant.TenantId.ShouldBe("acme");
-+        tenant.Name.ShouldBe("Acme Corp");
-+        tenant.Status.ShouldBe(TenantStatus.Active);
-+        tenant.Members.ShouldContainKey("alice");
-+        tenant.Members["alice"].ShouldBe(TenantRole.TenantContributor);
+     [Fact]
+     public async Task ProjectAsync_WritesTenantAuditStateAsync() {
+-        DaprClient daprClient = Substitute.For<DaprClient>();
+-        _ = daprClient.GetStateAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton")
+-            .Returns(Task.FromResult<TenantIndexReadModel>(null!)!);
++        var stateStore = new ScriptedTenantProjectionStateStore();
++        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
++        stateStore.EnqueueTrySave(TenantProjectionKey, true);
++        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
++        stateStore.EnqueueTrySave(TenantIndexKey, true);
+         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+         ProjectionRequest request = new(
+             "tenant-1",
+@@ -27,19 +161,34 @@ public class TenantProjectionHandlerTests {
+             "tenant-1",
+             [CreateEvent(new TenantCreated("tenant-1", "Acme", null, timestamp), "evt-1", timestamp)]);
+ 
+-        _ = await new TenantProjectionHandler(daprClient).ProjectAsync(request);
++        _ = await CreateHandler(stateStore).ProjectAsync(request);
+ 
+-        await daprClient.Received(1).SaveStateAsync(
+-            "statestore",
+-            "audit:tenant-1",
+-            Arg.Is<TenantAuditReadModel>(m =>
+-                m != null
+-                && m.Entries.Count == 1
+-                && m.Entries[0].EventId == "evt-1"
+-                && m.Entries[0].ActorId == "actor-1"),
+-            Arg.Any<StateOptions>(),
+-            Arg.Any<IReadOnlyDictionary<string, string>>(),
+-            Arg.Any<CancellationToken>());
++        SaveAttempt auditSave = stateStore.PlainSaveAttempts.Single(a => a.Key == "audit:tenant-1");
++        auditSave.StoreName.ShouldBe(StateStoreName);
++        auditSave.Value.ShouldBeOfType<TenantAuditReadModel>();
++        TenantAuditReadModel model = (TenantAuditReadModel)auditSave.Value;
++        (model != null
++                && model.Entries.Count == 1
++                && model.Entries[0].EventId == "evt-1"
++                && model.Entries[0].ActorId == "actor-1").ShouldBeTrue();
 +    }
 +
-+    // ─── Additional: Rejection event is silently skipped ───
++    private static TenantProjectionHandler CreateHandler(ScriptedTenantProjectionStateStore stateStore) =>
++        new(stateStore, NullLogger<TenantProjectionHandler>.Instance);
 +
-+    [Fact]
-+    public void Apply_RejectionEvent_IsSilentlySkipped()
-+    {
-+        // Arrange
-+        var projection = new InMemoryTenantProjection();
-+
-+        // Act — applying a rejection event should not throw
-+        projection.Apply(new TenantAlreadyExistsRejection("acme"));
-+
-+        // Assert — no tenant created, no exception
-+        projection.GetTenant("acme").ShouldBeNull();
++    private static TenantIndexReadModel CreateIndex(string tenantId, string name) {
++        var model = new TenantIndexReadModel();
++        model.Apply(new TenantCreated(tenantId, name, null, DateTimeOffset.UtcNow));
++        return model;
 +    }
 +
-+    // ─── Additional: GetTenant returns null for unknown tenant ───
++    private static ProjectionRequest CreateTenantCreatedRequest(string tenantId, string name, string messageId) {
++        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
++        return new(
++            tenantId,
++            "tenants",
++            tenantId,
++            [CreateEvent(new TenantCreated(tenantId, name, null, timestamp), messageId, timestamp)]);
+     }
+ 
+     private static ProjectionEventDto CreateEvent(IEventPayload payload, string messageId, DateTimeOffset timestamp) =>
+@@ -52,4 +201,86 @@ public class TenantProjectionHandlerTests {
+             "corr-1",
+             messageId,
+             "actor-1");
 +
-+    [Fact]
-+    public void GetTenant_UnknownTenantId_ReturnsNull()
-+    {
-+        var projection = new InMemoryTenantProjection();
-+        projection.GetTenant("nonexistent").ShouldBeNull();
++    private sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStateStore {
++        private readonly Dictionary<string, Queue<object>> _reads = [];
++        private readonly Dictionary<string, Queue<bool>> _trySaveResults = [];
++
++        public List<SaveAttempt> PlainSaveAttempts { get; } = [];
++
++        public List<ReadCall> ReadCalls { get; } = [];
++
++        public List<SaveAttempt> TrySaveAttempts { get; } = [];
++
++        public void EnqueueRead<TValue>(string key, TValue? value, string? etag)
++            where TValue : class {
++            if (!_reads.TryGetValue(key, out Queue<object>? queue)) {
++                queue = new Queue<object>();
++                _reads[key] = queue;
++            }
++
++            queue.Enqueue(new ProjectionStateRead<TValue>(value, etag));
++        }
++
++        public void EnqueueTrySave(string key, bool result) {
++            if (!_trySaveResults.TryGetValue(key, out Queue<bool>? queue)) {
++                queue = new Queue<bool>();
++                _trySaveResults[key] = queue;
++            }
++
++            queue.Enqueue(result);
++        }
++
++        public Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
++            string storeName,
++            string key,
++            CancellationToken cancellationToken)
++            where TValue : class {
++            ReadCalls.Add(new ReadCall(storeName, key, typeof(TValue)));
++            Queue<object> queue = _reads[key];
++            return Task.FromResult((ProjectionStateRead<TValue>)queue.Dequeue());
++        }
++
++        public Task SaveStateAsync<TValue>(
++            string storeName,
++            string key,
++            TValue value,
++            StateOptions? stateOptions = null,
++            IReadOnlyDictionary<string, string>? metadata = null,
++            CancellationToken cancellationToken = default)
++            where TValue : class {
++            PlainSaveAttempts.Add(new SaveAttempt(
++                storeName,
++                key,
++                value,
++                string.Empty,
++                stateOptions ?? new StateOptions(),
++                typeof(TValue)));
++            return Task.CompletedTask;
++        }
++
++        public Task<bool> TrySaveStateAsync<TValue>(
++            string storeName,
++            string key,
++            TValue value,
++            string etag,
++            StateOptions stateOptions,
++            IReadOnlyDictionary<string, string>? metadata = null,
++            CancellationToken cancellationToken = default)
++            where TValue : class {
++            TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, stateOptions, typeof(TValue)));
++            Queue<bool> queue = _trySaveResults[key];
++            return Task.FromResult(queue.Dequeue());
++        }
 +    }
 +
-+    // ─── Additional: GetGlobalAdministrators returns empty on fresh projection ───
++    private sealed record ReadCall(string StoreName, string Key, Type ValueType);
 +
-+    [Fact]
-+    public void GetGlobalAdministrators_FreshProjection_ReturnsEmptyModel()
-+    {
-+        var projection = new InMemoryTenantProjection();
-+        var admins = projection.GetGlobalAdministrators();
-+        admins.ShouldNotBeNull();
-+        admins.Administrators.ShouldBeEmpty();
-+    }
-+}
++    private sealed record SaveAttempt(
++        string StoreName,
++        string Key,
++        object Value,
++        string ETag,
++        StateOptions StateOptions,
++        Type ValueType);
+ }
