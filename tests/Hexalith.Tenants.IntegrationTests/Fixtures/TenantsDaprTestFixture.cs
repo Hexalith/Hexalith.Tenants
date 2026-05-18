@@ -49,6 +49,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     private string? _previousDaprGrpcPort;
     private readonly StringBuilder _daprStdout = new();
     private readonly StringBuilder _daprStderr = new();
+    private bool _disposed;
 
     /// <summary>Gets the Dapr HTTP endpoint for actor proxy clients.</summary>
     public string DaprHttpEndpoint {
@@ -118,9 +119,19 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
         await VerifyAppListeningAsync().ConfigureAwait(false);
 
-        StartDaprSidecar();
+        try {
+            StartDaprSidecar();
 
-        await WaitForDaprHealthAsync().ConfigureAwait(false);
+            await WaitForDaprHealthAsync().ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex) when (IsDaprInfrastructureStartupFailure(ex)) {
+            PrerequisitesAvailable = false;
+            SkipReason = "Dapr sidecar infrastructure startup failed. Ensure Redis, placement, and scheduler are healthy before running these tests."
+                + Environment.NewLine
+                + ex.Message;
+            await DisposeAsync().ConfigureAwait(false);
+            return;
+        }
 
         // Let sidecar complete actor registration with placement service.
         await Task.Delay(2000).ConfigureAwait(false);
@@ -139,6 +150,12 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync() {
+        if (_disposed) {
+            return;
+        }
+
+        _disposed = true;
+
         if (_testHost is not null) {
             await _testHost.StopAsync().ConfigureAwait(false);
             await _testHost.DisposeAsync().ConfigureAwait(false);
@@ -167,8 +184,8 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
         var failures = new List<string>();
 
-        if (!await IsPortReachableAsync("localhost", RedisPort).ConfigureAwait(false)) {
-            failures.Add($"Redis is not reachable on localhost:{RedisPort}");
+        if (!await IsRedisResponsiveAsync().ConfigureAwait(false)) {
+            failures.Add($"Redis is not responding to PING on localhost:{RedisPort}");
         }
 
         if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
@@ -196,6 +213,33 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         catch {
             return false;
         }
+    }
+
+    private static async Task<bool> IsRedisResponsiveAsync() {
+        try {
+            using var client = new TcpClient();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await client.ConnectAsync("localhost", RedisPort, cts.Token).ConfigureAwait(false);
+            await using NetworkStream stream = client.GetStream();
+            byte[] ping = Encoding.ASCII.GetBytes("*1\r\n$4\r\nPING\r\n");
+            await stream.WriteAsync(ping, cts.Token).ConfigureAwait(false);
+
+            byte[] buffer = new byte[16];
+            int read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
+            string response = Encoding.ASCII.GetString(buffer, 0, read);
+            return response.StartsWith("+PONG", StringComparison.Ordinal);
+        }
+        catch {
+            return false;
+        }
+    }
+
+    private static bool IsDaprInfrastructureStartupFailure(InvalidOperationException exception) {
+        string message = exception.Message;
+        return message.Contains("daprd exited", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Dapr sidecar did not become healthy", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("state.redis", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("statestore", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task StartTestHostAsync() {

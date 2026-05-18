@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -37,6 +38,7 @@ public sealed class DaprPerformanceFactAttribute : FactAttribute {
 public static class DaprTestPrerequisites {
     private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
     private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
     private static readonly Lazy<bool> s_isAvailable = new(CheckAvailability);
 
     /// <summary>
@@ -51,15 +53,39 @@ public static class DaprTestPrerequisites {
         => "DAPR integration prerequisites are unavailable. Run 'dapr init' and ensure Redis, placement, and scheduler are reachable.";
 
     private static bool CheckAvailability()
-        => IsPortReachable(6379)
+        => IsRedisResponsive()
             && IsPortReachable(PlacementPort)
             && IsPortReachable(SchedulerPort);
+
+    private static bool IsRedisResponsive() {
+        try {
+            using var client = new TcpClient();
+            Task connect = client.ConnectAsync("localhost", 6379);
+            if (!connect.Wait(ProbeTimeout) || !client.Connected) {
+                return false;
+            }
+
+            client.SendTimeout = (int)ProbeTimeout.TotalMilliseconds;
+            client.ReceiveTimeout = (int)ProbeTimeout.TotalMilliseconds;
+
+            using NetworkStream stream = client.GetStream();
+            byte[] ping = Encoding.ASCII.GetBytes("*1\r\n$4\r\nPING\r\n");
+            stream.Write(ping);
+
+            Span<byte> buffer = stackalloc byte[16];
+            int read = stream.Read(buffer);
+            return read > 0 && Encoding.ASCII.GetString(buffer[..read]).StartsWith("+PONG", StringComparison.Ordinal);
+        }
+        catch {
+            return false;
+        }
+    }
 
     private static bool IsPortReachable(int port) {
         try {
             using var client = new TcpClient();
             Task connect = client.ConnectAsync("localhost", port);
-            return connect.Wait(TimeSpan.FromMilliseconds(500)) && client.Connected;
+            return connect.Wait(ProbeTimeout) && client.Connected;
         }
         catch {
             return false;

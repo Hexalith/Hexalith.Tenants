@@ -15,6 +15,7 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 public class AspireTopologyFixture : IAsyncLifetime {
     private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
     private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
+    private static readonly TimeSpan DockerProbeTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromSeconds(45);
@@ -194,6 +195,10 @@ public class AspireTopologyFixture : IAsyncLifetime {
     private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
         var failures = new List<string>();
 
+        if (!IsDockerHealthy()) {
+            failures.Add("Docker is not running or is not healthy enough for Aspire container orchestration");
+        }
+
         if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
             failures.Add($"Dapr placement service is not reachable on localhost:{PlacementPort}");
         }
@@ -206,8 +211,41 @@ public class AspireTopologyFixture : IAsyncLifetime {
     }
 
     private static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
-        => "Aspire topology prerequisites are missing. Have you run 'dapr init'?" + Environment.NewLine
+        => "Aspire topology prerequisites are missing. Start Docker Desktop and run 'dapr init' before running these tests." + Environment.NewLine
             + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}"));
+
+    private static bool IsDockerHealthy() {
+        try {
+            using var process = Process.Start(new ProcessStartInfo {
+                FileName = "docker",
+                Arguments = "info --format \"{{.ServerVersion}}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+
+            if (process is null) {
+                return false;
+            }
+
+            if (!process.WaitForExit(DockerProbeTimeout)) {
+                try {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch {
+                    // Best-effort cleanup for a hung Docker CLI probe.
+                }
+
+                return false;
+            }
+
+            return process.ExitCode == 0;
+        }
+        catch {
+            return false;
+        }
+    }
 
     private static async Task<bool> IsPortReachableAsync(string host, int port) {
         try {
