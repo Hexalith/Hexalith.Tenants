@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (11-1 production JWT configuration validation story context created; epic-11 -> in-progress; story -> ready-for-dev)
 # last_updated: 2026-05-18 (9-5 shared pagination bounds and cursor utilities code review complete + 5 patches applied; D1 scope decision accepted; story -> done)
 # last_updated: 2026-05-18 (9-5 shared pagination bounds and cursor utilities code review complete + 4 patches applied; D1 scope decision accepted; P5 left as action item; story -> in-progress)
 # last_updated: 2026-05-18 (9-4 actor-layer query guardrails code review complete + 1 patch applied; story -> done)
@@ -208,8 +209,8 @@ development_status:
   epic-10-retrospective: optional
 
   # Epic 11: Production Authorization Readiness
-  epic-11: backlog
-  11-1-production-jwt-configuration-validation: backlog
+  epic-11: in-progress
+  11-1-production-jwt-configuration-validation: ready-for-dev
   11-2-eventstore-tenant-claim-contract: backlog
   11-3-deployment-auth-readiness-documentation-and-smoke-tests: backlog
   epic-11-retrospective: optional
