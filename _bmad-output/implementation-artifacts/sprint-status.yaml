@@ -1,5 +1,7 @@
 # generated: 2026-05-16T09:57:23+02:00
 # last_updated: 2026-05-17 (10-3b cancellation token threading story context created; story -> ready-for-dev)
+# last_updated: 2026-05-17 (9-4 actor-layer query guardrails implemented; story -> review)
+# last_updated: 2026-05-17 (9-4 actor-layer query guardrails development started; story -> in-progress)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy code review complete + 5 patches applied; story -> done)
 # last_updated: 2026-05-17 (9-3 disabled tenant/orphan membership query policy implemented; story -> review)
 # last_updated: 2026-05-17 (9-2 stable cursor pagination code review complete + 4 patches applied; story -> done)
@@ -184,7 +186,7 @@ development_status:
   9-1-opaque-signed-query-cursors: done
   9-2-stable-cursor-pagination-under-role-and-membership-changes: done
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: done
-  9-4-actor-layer-query-guardrails: ready-for-dev
+  9-4-actor-layer-query-guardrails: review
   9-5-shared-pagination-bounds-and-cursor-utilities: ready-for-dev
   epic-9-retrospective: optional
 

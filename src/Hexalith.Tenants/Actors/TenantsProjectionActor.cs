@@ -28,6 +28,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     internal const string TenantAuditProjectionKeyPrefix = "audit:";
     internal const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
     internal const string TenantProjectionKeyPrefix = "projection:tenants:";
+    private const string TenantQueryEnvelopeAuthorizationStage = "TenantQueryEnvelopeAuthorization";
 
     private static readonly JsonSerializerOptions s_queryJsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -65,6 +66,16 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         _ = (activity?.SetTag(TenantActivitySource.TagQueryType, envelope.QueryType));
 
         try {
+            if (IsRoleSensitiveQuery(envelope.QueryType) && string.IsNullOrWhiteSpace(envelope.UserId)) {
+                Log.MissingAuthenticatedUserRejected(
+                    _logger,
+                    envelope.CorrelationId,
+                    envelope.QueryType,
+                    QueryAdapterFailureReason.Forbidden,
+                    TenantQueryEnvelopeAuthorizationStage);
+                return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
+            }
+
             QueryResult result = envelope.QueryType switch {
                 "get-tenant" => await HandleGetTenantAsync(envelope).ConfigureAwait(false),
                 "list-tenants" => await HandleListTenantsAsync(envelope).ConfigureAwait(false),
@@ -88,6 +99,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
     private static QueryResult CreateSuccessResult(JsonElement payload, string? projectionType)
         => new(true, JsonSerializer.SerializeToUtf8Bytes(payload), ProjectionType: projectionType);
+
+    private static bool IsRoleSensitiveQuery(string? queryType)
+        => queryType is
+            "get-tenant" or
+            "list-tenants" or
+            "get-tenant-users" or
+            "get-user-tenants" or
+            "get-tenant-audit";
 
     private static (string? Cursor, int PageSize) DeserializePaginationPayload(byte[]? payload) {
         if (payload is null || payload.Length == 0) {
@@ -567,5 +586,16 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             string requesterUserId,
             string targetUserId,
             string orphanTenantId);
+
+        [LoggerMessage(
+            EventId = 1904,
+            Level = LogLevel.Warning,
+            Message = "Tenant query envelope rejected before authorization because authenticated user id was missing: CorrelationId={CorrelationId}, QueryType={QueryType}, FailureReason={FailureReason}, Stage={Stage}")]
+        public static partial void MissingAuthenticatedUserRejected(
+            ILogger logger,
+            string? correlationId,
+            string? queryType,
+            string failureReason,
+            string stage);
     }
 }
