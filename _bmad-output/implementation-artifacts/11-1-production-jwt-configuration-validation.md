@@ -12,13 +12,13 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
 
 ## Acceptance Criteria
 
-1. Given production `appsettings.json` contains empty JWT `Authority` and `SigningKey` placeholders, when Hexalith.Tenants starts without AppHost, environment, user-secret, or deployment overrides, then startup fails with a clear authentication configuration validation error.
-2. Given production JWT settings are supplied through environment variables, AppHost, or deployment configuration, when the service starts, then `EventStoreAuthenticationOptions` validation succeeds without requiring secrets in committed appsettings files.
-3. Given development mode uses symmetric-key JWT validation, when `appsettings.Development.json` or equivalent local overrides are loaded, then development authentication remains usable without weakening production validation.
+1. Given production `appsettings.json` contains empty JWT `Authority` and `SigningKey` placeholders, when Hexalith.Tenants starts with `IHostEnvironment.IsProduction()` and without AppHost, environment, user-secret, or deployment overrides, then startup/options validation fails with a clear authentication configuration validation error.
+2. Given production JWT settings are supplied through environment variables, AppHost, or deployment configuration, when the service starts with `IHostEnvironment.IsProduction()`, `Authority`, `Issuer`, `Audience`, and `RequireHttpsMetadata=true`, then `EventStoreAuthenticationOptions` validation succeeds without requiring secrets in committed appsettings files.
+3. Given development mode uses symmetric-key JWT validation, when `appsettings.Development.json` or equivalent local overrides are loaded with a non-production host environment, then development authentication remains usable without weakening production validation.
 4. Given authentication configuration fails validation, when logs or exception messages are emitted, then they identify the missing configuration key or invalid setting without exposing signing keys, tokens, or bearer material.
 5. Given focused configuration tests run, when production-valid, production-invalid, and development-valid configurations are bound, then tests verify startup/options validation behavior for each mode.
-6. Given a production deployment accidentally supplies both `Authority` and `SigningKey`, when validation runs, then the behavior is explicit and tested: either reject the ambiguous configuration in Hexalith.Tenants or document that EventStore authority/OIDC mode takes precedence and no committed or logged secret value is exposed.
-7. Given `RequireHttpsMetadata` is disabled, when the host environment is production and `Authority` is configured, then validation either rejects the setting or records an explicit approved local-only exception; production-ready tests must not silently accept non-HTTPS metadata discovery.
+6. Given a production deployment accidentally supplies both `Authority` and `SigningKey`, when validation runs, then Hexalith.Tenants rejects the ambiguous production configuration with a safe message instead of relying on implicit EventStore authority/OIDC precedence.
+7. Given `RequireHttpsMetadata` is disabled, when `IHostEnvironment.IsProduction()` and `Authority` is configured, then validation rejects the setting; non-production development/test overrides may continue to use symmetric-key auth with `RequireHttpsMetadata=false`.
 
 ## Tasks / Subtasks
 
@@ -38,8 +38,9 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
   - [ ] If any dev-mode startup validation becomes stricter, prove existing JWT integration tests still exercise valid issuer, audience, expiry, and signature behavior.
 - [ ] Decide and encode ambiguous production safety rules at the Tenants boundary. (AC: 4, 6, 7)
   - [ ] If EventStore already rejects ambiguous or unsafe production settings by the time this story is implemented, add Tenants tests that lock that behavior.
-  - [ ] If EventStore does not reject `Authority` plus `SigningKey`, decide the least invasive Tenants-side behavior: fail in production with a safe message, or explicitly document/test authority precedence without logging the signing key.
-  - [ ] If EventStore does not reject `RequireHttpsMetadata=false` with `Authority` in production, decide whether Tenants should add environment-aware validation or defer to EventStore; do not silently accept production OIDC over non-HTTPS metadata.
+  - [ ] If EventStore does not reject `Authority` plus `SigningKey`, add the least invasive Tenants-side production validation that fails with a safe message and does not log the signing key.
+  - [ ] If EventStore does not reject `RequireHttpsMetadata=false` with `Authority` in production, add narrow Tenants-side environment-aware validation for `IHostEnvironment.IsProduction()`; do not silently accept production OIDC over non-HTTPS metadata.
+  - [ ] Treat `IHostEnvironment.IsProduction()` as the production boundary for these Tenants-specific rules. Do not apply the production restrictions to `Development` or other explicitly tested local development paths unless the implementation records and justifies that broader policy.
   - [ ] Keep any Tenants-specific validation narrow and registered beside the existing options setup in `Program.cs`; do not replace `ConfigureJwtBearerOptions`.
 - [ ] Keep committed configuration and deployment override boundaries explicit. (AC: 1, 2, 4)
   - [ ] Keep `src/Hexalith.Tenants/appsettings.json` free of `SigningKey` secrets and real OIDC endpoints unless a deliberate non-secret placeholder is documented.
@@ -79,10 +80,12 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
 ### Implementation Guardrails
 
 - Reuse the EventStore validator and JWT options configurator wherever possible. Add Tenants-specific validation only for Tenants-specific production safety rules that EventStore intentionally does not own.
+- Treat `IHostEnvironment.IsProduction()` as the concrete production boundary for Story 11.1. The required Tenants production-safe modes are OIDC with `Authority`, `Issuer`, `Audience`, and `RequireHttpsMetadata=true`; the committed empty-placeholder configuration, `Authority` plus `SigningKey`, and production `Authority` with `RequireHttpsMetadata=false` must fail validation unless a later story or explicit architecture decision introduces a named escape hatch.
 - Keep validation failure messages specific enough to identify keys such as `Authentication:JwtBearer:Authority`, `Authentication:JwtBearer:SigningKey`, `Authentication:JwtBearer:Issuer`, and `Authentication:JwtBearer:Audience`, but never include the configured signing key or bearer token value.
 - Do not perform network OIDC metadata discovery in unit tests. Configuration validation should prove binding and option validation, not identity-provider availability.
 - Do not change controller authorization policies, query routes, command routes, JWT claim names, RBAC role hierarchy, tenant visibility, rate-limit partitioning, cursor behavior, or DAPR component configuration.
 - If a WebApplicationFactory startup test is added, override unrelated DAPR/EventStore dependencies narrowly so the test proves auth configuration startup validation and not infrastructure availability.
+- Prefer options-validation and startup-validation tests with explicit host environments. Avoid brittle assertions on full exception text; assert the failed key or unsafe setting is named and configured signing key/token values are absent.
 
 ### Files Likely To Update
 
@@ -132,4 +135,30 @@ GPT-5 Codex
 
 ### Completion Notes List
 
+- 2026-05-18T16:06:26+02:00 - Party-mode review applied pre-dev clarifications for concrete production environment semantics, ambiguous `Authority` plus `SigningKey` rejection, production `RequireHttpsMetadata=false` rejection, safe error assertions, and narrow options/startup validation scope.
+
 ### File List
+
+- _bmad-output/implementation-artifacts/11-1-production-jwt-configuration-validation.md
+
+## Party-Mode Review
+
+- Date/time: 2026-05-18T16:06:26+02:00
+- Selected story key: 11-1-production-jwt-configuration-validation
+- Command/skill invocation used: `/bmad-party-mode 11-1-production-jwt-configuration-validation; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect and Quality Advisor), John (Product Manager)
+- Findings summary:
+  - Reviewers agreed the story is directionally valuable but left production policy choices open in a way that could yield incompatible implementations.
+  - The main architecture risk was placing Tenants-specific production policy into shared EventStore validation without an explicit cross-repo decision.
+  - The main implementation and test risks were ambiguous behavior for production `Authority` plus `SigningKey`, unclear `RequireHttpsMetadata=false` semantics, brittle startup-message assertions, and tests that accidentally require OIDC metadata, DAPR, AppHost, or controller infrastructure.
+- Changes applied:
+  - Clarified that Story 11.1 production behavior is keyed to `IHostEnvironment.IsProduction()`.
+  - Tightened production-ready mode to OIDC with `Authority`, `Issuer`, `Audience`, and `RequireHttpsMetadata=true`.
+  - Required Tenants to reject production `Authority` plus `SigningKey` instead of relying on implicit EventStore OIDC precedence.
+  - Required Tenants to reject production `Authority` with `RequireHttpsMetadata=false`, while preserving non-production symmetric-key development behavior.
+  - Added guidance for narrow Tenants-side validation, explicit environment-scoped options/startup tests, and safe non-brittle error assertions.
+- Findings deferred:
+  - Whether shared EventStore validation should later encode the same production policy for all adopters.
+  - Whether a future story should add an explicit production escape hatch for symmetric signing keys or insecure metadata.
+  - Deployment examples, OIDC provider/AppHost environment variable documentation, tenant-claim contracts, and smoke tests remain scoped to Stories 11.2 and 11.3.
+- Final recommendation: ready-for-dev after applied clarifications.
