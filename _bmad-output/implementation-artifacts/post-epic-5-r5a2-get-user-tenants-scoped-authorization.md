@@ -166,7 +166,7 @@ Relevant requirements:
 
 No external library or package change is required. Use the current repository versions and patterns:
 
-- .NET SDK `10.0.103`, target `net10.0`, nullable enabled, `TreatWarningsAsErrors=true`.
+- Latest supported .NET 10 SDK, target `net10.0`, nullable enabled, `TreatWarningsAsErrors=true`.
 - Dapr packages are centrally pinned to `1.17.7`.
 - Tests use xUnit v3, Shouldly, and NSubstitute.
 - Do not add package versions to project files; central package management is in `Directory.Packages.props`.

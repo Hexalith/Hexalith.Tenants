@@ -1,3 +1,5 @@
+using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 
 using Microsoft.AspNetCore.DataProtection;
@@ -7,6 +9,32 @@ using Shouldly;
 namespace Hexalith.Tenants.Server.Tests.Queries;
 
 public class TenantQueryCursorCodecTests {
+    [Fact]
+    public void Cursor_scopes_preserve_existing_endpoint_strings() {
+        DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddHours(1);
+
+        TenantQueryCursorScopes.ListTenants("user-1").ShouldBe("user:user-1");
+        TenantQueryCursorScopes.GetTenantUsers("tenant-1").ShouldBe("tenant:tenant-1");
+        TenantQueryCursorScopes.GetUserTenants("user-2").ShouldBe("target-user:user-2");
+        TenantQueryCursorScopes
+            .GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative)
+            .ShouldBe("tenant:tenant-1|from:2026-05-14T10:00:00.0000000Z|to:2026-05-14T11:00:00.0000000Z|category:Administrative");
+    }
+
+    [Fact]
+    public void TryDecode_accepts_existing_list_tenants_query_scope_and_logical_position_shape() {
+        ITenantQueryCursorCodec codec = CreateCodec();
+        string scope = TenantQueryCursorScopes.ListTenants("user-1");
+        string cursor = codec.Encode(ListTenantsQuery.QueryType, scope, "tenant-001");
+
+        bool decoded = codec.TryDecode(cursor, ListTenantsQuery.QueryType, scope, out string? position, out string? failureReason);
+
+        decoded.ShouldBeTrue();
+        position.ShouldBe("tenant-001");
+        failureReason.ShouldBeNull();
+    }
+
     [Fact]
     public void Encode_does_not_expose_raw_position() {
         ITenantQueryCursorCodec codec = CreateCodec();

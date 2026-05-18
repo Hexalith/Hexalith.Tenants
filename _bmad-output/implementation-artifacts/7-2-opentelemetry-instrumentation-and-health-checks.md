@@ -351,7 +351,7 @@ Recent commits:
 
 | Technology                        | Version     | Source                   |
 | --------------------------------- | ----------- | ------------------------ |
-| .NET SDK                          | 10.0.103    | global.json              |
+| .NET SDK                          | 10.0.300    | global.json              |
 | OpenTelemetry.\*                  | 1.15.0      | Directory.Packages.props |
 | DAPR SDK                          | 1.17.3      | Directory.Packages.props |
 | Aspire.Hosting                    | 13.1.2      | Directory.Packages.props |

@@ -18,7 +18,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
 
 3. **Given** the solution structure exists **When** `dotnet test` is executed **Then** the test runner discovers all 6 test projects (5 under tests/ + Sample.Tests under samples/), executes smoke tests in each project, and reports zero failures
 
-4. **Given** the solution is built **When** a developer inspects `global.json` **Then** it specifies SDK version 10.0.103 with `rollForward: latestPatch`
+4. **Given** the solution is built **When** a developer inspects `global.json` **Then** it specifies the latest supported .NET 10 SDK, currently 10.0.300, with `rollForward: latestPatch`
 
 5. **Given** the solution is built **When** a developer inspects `Directory.Build.props` **Then** it contains shared project properties including NuGet metadata, nullable references enabled, implicit usings enabled, and warnings as errors
 
@@ -32,9 +32,9 @@ so that I can begin implementing domain logic on a proven, consistent project st
 
 - [x] Task 0: Verify prerequisites (AC: all)
     - [x] 0.1: Verify EventStore submodule is initialized — run `git submodule update --init --recursive` and confirm `Hexalith.EventStore/src/` contains project directories
-    - [x] 0.2: Verify .NET SDK version available — run `dotnet --version`. Architecture specifies 10.0.103; if unavailable, use latest 10.0.x patch and document deviation in Dev Agent Record.
+- [x] 0.2: Verify .NET SDK version available — run `dotnet --version`. Architecture specifies the latest supported .NET 10 SDK; if unavailable, use the latest available 10.0.x SDK and document deviation in Dev Agent Record.
 - [x] Task 1: Create root build configuration files (AC: #4, #5, #6, #7)
-    - [x] 1.1: Create `global.json` with SDK 10.0.103 and `rollForward: latestPatch`. If SDK 10.0.103 is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
+- [x] 1.1: Create `global.json` with the latest supported .NET 10 SDK and `rollForward: latestPatch`. If the current SDK is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
     - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, MinVer configuration)
     - [x] 1.3: Create `Directory.Packages.props` with centralized package versions — copy ALL packages from EventStore's `Directory.Packages.props` matching versions exactly (including Aspire.Hosting.\*, Testcontainers, etc.). Tenants inherits the full ecosystem; unused packages cause no harm in centralized management and will be needed in later stories.
     - [x] 1.4: Create `.editorconfig` matching EventStore's conventions exactly (copy from EventStore)
@@ -76,7 +76,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
 - **Mirror EventStore structure exactly** — the PRD and architecture specify that Hexalith.Tenants follows "the same project structure, conventions, and documentation approach as Hexalith.EventStore." The EventStore submodule at `Hexalith.EventStore/` IS the reference.
 - **Modern XML solution format** (`Hexalith.Tenants.slnx`) — NOT the classic `.sln` format.
 - **15 projects total**: 8 src + 5 test + 2 sample (see complete directory structure below).
-- **.NET 10 SDK pinned** at version 10.0.103 (architecture specifies this; EventStore uses 10.0.102 — Tenants explicitly uses 10.0.103).
+- **.NET 10 SDK pinned** to the latest supported .NET 10 SDK, currently 10.0.300.
 - **NuGet package versions** must match EventStore's `Directory.Packages.props` exactly — centralized package management via `ManagePackageVersionsCentrally`.
 - **MinVer versioning** with `v` tag prefix for git tag-based SemVer.
 
@@ -287,8 +287,8 @@ Claude Opus 4.6 (claude-opus-4-6)
 
 ### Completion Notes List
 
-- Task 0: EventStore submodule verified (8 src project directories present). SDK 10.0.103 confirmed available (also 10.0.102, 10.0.200-preview installed).
-- Task 1: Created global.json (SDK 10.0.103), Directory.Build.props (mirroring EventStore with Tenants URLs/metadata), Directory.Packages.props (exact copy of EventStore's centralized versions), .editorconfig (exact copy of EventStore conventions).
+- Task 0: EventStore submodule verified (8 src project directories present). SDK 10.0.300 confirmed available.
+- Task 1: Created global.json (latest supported .NET 10 SDK pin), Directory.Build.props (mirroring EventStore with Tenants URLs/metadata), Directory.Packages.props (exact copy of EventStore's centralized versions), .editorconfig (exact copy of EventStore conventions).
 - Task 2: Created Hexalith.Tenants.slnx with 15 projects in /src/, /tests/, /samples/ folders. All 8 src .csproj files created with correct dependency chains including cross-submodule ProjectReferences to EventStore.Contracts and EventStore.Server.
 - Task 3: Created tests/Directory.Build.props importing root props. All 5 test .csproj files with correct project references, xUnit, coverlet, and global `<Using Include="Xunit" />`.
 - Added one smoke test class per test project to prove test discovery and eliminate `No test is available` warnings during solution-level test runs.

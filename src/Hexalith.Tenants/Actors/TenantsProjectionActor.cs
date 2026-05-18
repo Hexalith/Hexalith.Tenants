@@ -109,43 +109,13 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             "get-tenant-audit";
 
     private static (string? Cursor, int PageSize) DeserializePaginationPayload(byte[]? payload) {
-        if (payload is null || payload.Length == 0) {
-            return (null, 20);
-        }
-
-        try {
-            using var doc = JsonDocument.Parse(payload);
-            JsonElement root = doc.RootElement;
-
-            string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String
-                ? cursorEl.GetString()
-                : null;
-
-            int pageSize = 20;
-            if (root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
-                && pageSizeEl.ValueKind == JsonValueKind.Number
-                && pageSizeEl.TryGetInt32(out int parsedPageSize)) {
-                pageSize = parsedPageSize;
-            }
-
-            if (pageSize <= 0) {
-                pageSize = 20;
-            }
-
-            if (pageSize > 100) {
-                pageSize = 100;
-            }
-
-            return (cursor, pageSize);
-        }
-        catch (JsonException) {
-            return (null, 20);
-        }
+        TenantQueryPaginationPayload pagination = TenantQueryPaginationPayloadParser.DeserializeStandardPayload(payload);
+        return (pagination.Cursor, pagination.PageSize);
     }
 
     private static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload) {
         if (payload is null || payload.Length == 0) {
-            return new(null, null, null, null, 100, null);
+            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null);
         }
 
         try {
@@ -157,20 +127,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String
                 ? cursorEl.GetString()
                 : null;
-            int pageSize = 100;
+            int pageSize = TenantQueryPaginationPolicy.AuditDefaultPageSize;
             if (root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
                 && pageSizeEl.ValueKind == JsonValueKind.Number
                 && pageSizeEl.TryGetInt32(out int parsedPageSize)) {
                 pageSize = parsedPageSize;
             }
 
-            if (pageSize <= 0) {
-                pageSize = 100;
-            }
-
-            if (pageSize > 1000) {
-                pageSize = 1000;
-            }
+            pageSize = TenantQueryPaginationPolicy.ClampAuditPageSize(pageSize);
 
             AuditEventCategory? category = null;
             string? errorMessage = null;
@@ -193,7 +157,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return new(from, to, category, cursor, pageSize, errorMessage);
         }
         catch (JsonException) {
-            return new(null, null, null, null, 100, "Invalid audit query payload.");
+            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, "Invalid audit query payload.");
         }
     }
 

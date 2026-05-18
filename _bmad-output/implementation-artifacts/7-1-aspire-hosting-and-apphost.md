@@ -326,7 +326,7 @@ Recent commits show:
 
 | Technology                           | Version  | Source                   |
 | ------------------------------------ | -------- | ------------------------ |
-| .NET SDK                             | 10.0.103 | global.json              |
+| .NET SDK                             | 10.0.300 | global.json              |
 | Aspire.Hosting                       | 13.1.2   | Directory.Packages.props |
 | Aspire.AppHost.Sdk                   | 13.1.2   | AppHost.csproj           |
 | CommunityToolkit.Aspire.Hosting.Dapr | 13.0.0   | Directory.Packages.props |
@@ -401,4 +401,3 @@ Claude Opus 4.6 (1M context)
 ### Change Log
 
 - 2026-03-18: Story 7.1 implementation — Added Sample to AppHost Aspire topology, created Aspire topology smoke tests (3 tests), verified NuGet packability
-

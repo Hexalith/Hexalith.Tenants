@@ -152,7 +152,7 @@ so that tenant query and projection code can observe abandoned requests without 
 
 - Follow `AGENTS.md`: do not initialize or update nested submodules recursively, and use Conventional Commits for commits.
 - No root `project-context.md` exists for this application repository; submodule project-context files are reference context only.
-- Relevant EventStore context: target .NET SDK `10.0.103`, `net10.0`, warnings-as-errors, centralized package versions, Dapr actor/query patterns, RFC 7807 API error discipline, source-generated logging, and existing testing helpers.
+- Relevant EventStore context: target the latest supported .NET 10 SDK, `net10.0`, warnings-as-errors, centralized package versions, Dapr actor/query patterns, RFC 7807 API error discipline, source-generated logging, and existing testing helpers.
 
 ## Dev Agent Record
 

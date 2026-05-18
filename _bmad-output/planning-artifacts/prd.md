@@ -393,7 +393,7 @@ Hexalith.Tenants is a .NET developer tool distributed as NuGet packages and a de
 
 ### Language & Framework Support
 
-- **Primary language:** C# (.NET 10+, matching EventStore's SDK pinning via `global.json`)
+- **Primary language:** C# on .NET 10 LTS (`net10.0`), using the latest supported .NET 10 servicing SDK pinned via `global.json`
 - **F# support:** Future consideration — event contracts and client packages designed with F# consumption in mind
 - **Nullable references:** Enabled globally
 - **Implicit usings:** Enabled globally

@@ -265,7 +265,7 @@ Recent commits:
 
 | Technology     | Version  | Source                   |
 | -------------- | -------- | ------------------------ |
-| .NET SDK       | 10.0.103 | global.json              |
+| .NET SDK       | 10.0.300 | global.json              |
 | DAPR SDK       | 1.17.3   | Directory.Packages.props |
 | Aspire.Hosting | 13.1.2   | Directory.Packages.props |
 | xUnit          | 2.9.3    | Directory.Packages.props |

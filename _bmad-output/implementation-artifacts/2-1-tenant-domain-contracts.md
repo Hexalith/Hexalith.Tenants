@@ -411,7 +411,7 @@ tests/Hexalith.Tenants.Contracts.Tests/
 - `.editorconfig` enforces: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation
 - `TreatWarningsAsErrors = true` — all warnings are build failures
 - `ImplicitUsings` and `Nullable` enabled globally via Directory.Build.props
-- `TargetFramework`: `net10.0`, SDK 10.0.103
+- `TargetFramework`: `net10.0`, latest supported .NET 10 SDK
 - `Directory.Packages.props` centralizes all NuGet versions
 - MinVer for git tag-based SemVer (prefix `v`)
 - EventStore submodule initialized and building correctly

@@ -249,7 +249,7 @@ Scope clarification from 2026-05-13: D12 is backend MVP-relevant because it affe
 
 No external package or library upgrade is required. Use the repository's current stack:
 
-- .NET SDK `10.0.103`, target `net10.0`, nullable enabled, warnings as errors.
+- Latest supported .NET 10 SDK, target `net10.0`, nullable enabled, warnings as errors.
 - Dapr package family is centrally pinned; do not add package versions in `.csproj` files.
 - Tests use xUnit v3, Shouldly, and NSubstitute.
 - Keep central package management intact.

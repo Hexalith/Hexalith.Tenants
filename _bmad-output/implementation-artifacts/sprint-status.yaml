@@ -79,7 +79,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-17T15:04:46+02:00
+last_updated: 2026-05-18T09:16:34+02:00
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -188,7 +188,7 @@ development_status:
   9-2-stable-cursor-pagination-under-role-and-membership-changes: done
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: done
   9-4-actor-layer-query-guardrails: review
-  9-5-shared-pagination-bounds-and-cursor-utilities: ready-for-dev
+  9-5-shared-pagination-bounds-and-cursor-utilities: review
   epic-9-retrospective: optional
 
   # Epic 10: Durable Projection Write Safety

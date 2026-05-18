@@ -102,7 +102,7 @@ public sealed partial class TenantsQueryController(
             return BadRequest();
         }
 
-        pageSize = ClampAuditPageSize(pageSize);
+        pageSize = TenantQueryPaginationPolicy.ClampAuditPageSize(pageSize);
         string correlationId = GetCorrelationId();
         string scope = TenantQueryCursorScopes.GetTenantAudit(tenantId, from, to, auditCategory);
         IActionResult? cursorValidation = ValidateSubmittedCursor(
@@ -156,7 +156,7 @@ public sealed partial class TenantsQueryController(
             return Unauthorized();
         }
 
-        pageSize = ClampPageSize(pageSize);
+        pageSize = TenantQueryPaginationPolicy.ClampStandardPageSize(pageSize);
         string correlationId = GetCorrelationId();
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
@@ -208,7 +208,7 @@ public sealed partial class TenantsQueryController(
             return Unauthorized();
         }
 
-        pageSize = ClampPageSize(pageSize);
+        pageSize = TenantQueryPaginationPolicy.ClampStandardPageSize(pageSize);
         string correlationId = GetCorrelationId();
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
@@ -254,7 +254,7 @@ public sealed partial class TenantsQueryController(
             return Unauthorized();
         }
 
-        pageSize = ClampPageSize(pageSize);
+        pageSize = TenantQueryPaginationPolicy.ClampStandardPageSize(pageSize);
         string correlationId = GetCorrelationId();
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
@@ -284,12 +284,6 @@ public sealed partial class TenantsQueryController(
         SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
         return Ok(result.Payload);
     }
-
-    private static int ClampPageSize(int pageSize)
-        => pageSize <= 0 ? 20 : pageSize > 100 ? 100 : pageSize;
-
-    private static int ClampAuditPageSize(int pageSize)
-        => pageSize <= 0 ? 100 : pageSize > 1000 ? 1000 : pageSize;
 
     private static bool IsValidIdentifier(string? value)
             => !string.IsNullOrWhiteSpace(value) && _identifierRegex.IsMatch(value);

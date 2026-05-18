@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "produced_by": "jobs/preflight-predev-hardening.py",
-  "timestamp": "2026-05-18T09:01:09Z",
+  "timestamp": "2026-05-18T08:01:33Z",
   "repo": "D:\\Hexalith.Tenants",
   "result": "fail",
   "bootstrap_actions": [],
@@ -12,8 +12,8 @@
       "path": "D:\\Hexalith.Tenants\\_bmad-output\\implementation-artifacts\\sprint-status.yaml",
       "result": "pass",
       "details": "PARSE OK",
-      "file_size_bytes": 11522,
-      "line_count": 216,
+      "file_size_bytes": 11388,
+      "line_count": 215,
       "top_level_keys": [
         "development_status",
         "generated",
@@ -63,11 +63,11 @@
         ":(exclude)_bmad-output/process-notes/preflight-latest.json"
       ],
       "exit_code": 0,
-      "stdout": " M _bmad-output/implementation-artifacts/1-1-solution-structure-and-build-configuration.md\n M _bmad-output/implementation-artifacts/1-2-dapr-component-configuration-and-servicedefaults.md\n M _bmad-output/implementation-artifacts/10-3a-eventstore-projection-cancellation-api-prerequisite.md\n M _bmad-output/implementation-artifacts/2-1-tenant-domain-contracts.md\n M _bmad-output/implementation-artifacts/7-1-aspire-hosting-and-apphost.md\n M _bmad-output/implementation-artifacts/7-2-opentelemetry-instrumentation-and-health-checks.md\n M _bmad-output/implementation-artifacts/7-3-stateless-scaling-and-snapshot-configuration.md\n M _bmad-output/implementation-artifacts/8-1-quickstart-guide-and-readme.md\n M _bmad-output/implementation-artifacts/8-3-aha-moment-demo-and-project-documentation.md\n M _bmad-output/implementation-artifacts/9-5-shared-pagination-bounds-and-cursor-utilities.md\n M _bmad-output/implementation-artifacts/post-epic-5-r5a2-get-user-tenants-scoped-authorization.md\n M _bmad-output/implementation-artifacts/post-epic-5-r5a3-tenant-audit-projection-query.md\n M _bmad-output/implementation-artifacts/sprint-status.yaml\n M _bmad-output/planning-artifacts/architecture.md\n M _bmad-output/planning-artifacts/epics.md\n M _bmad-output/planning-artifacts/prd.md\n M global.json\n M src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs\n M src/Hexalith.Tenants/Controllers/TenantsQueryController.cs\n M tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs\n M tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryCursorCodecTests.cs\n?? _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-18-latest-dotnet.md\n?? src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs\n?? src/Hexalith.Tenants/Queries/TenantQueryPaginationPolicy.cs\n?? tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPolicyTests.cs\n",
+      "stdout": " M _bmad-output/implementation-artifacts/9-5-shared-pagination-bounds-and-cursor-utilities.md\n M _bmad-output/implementation-artifacts/sprint-status.yaml\n M src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs\n M src/Hexalith.Tenants/Controllers/TenantsQueryController.cs\n M tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs\n M tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryCursorCodecTests.cs\n?? src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs\n?? src/Hexalith.Tenants/Queries/TenantQueryPaginationPolicy.cs\n?? tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPolicyTests.cs\n",
       "stderr": "",
-      "dirty_path_count": 25,
+      "dirty_path_count": 9,
       "result": "fail",
-      "details": "25 dirty path(s)"
+      "details": "9 dirty path(s)"
     }
   ],
   "note_to_llm": "This file was produced by jobs/preflight-predev-hardening.py. The recurring pre-dev hardening job MUST quote the contents of this file verbatim when reporting pre-flight results; do NOT re-run the checks yourself, paraphrase them, or summarize them in your own words."

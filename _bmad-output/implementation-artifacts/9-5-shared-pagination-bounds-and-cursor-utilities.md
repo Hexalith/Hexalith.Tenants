@@ -1,6 +1,6 @@
 # Story 9.5: Shared Pagination Bounds and Cursor Utilities
 
-Status: ready-for-dev
+Status: review
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -26,44 +26,44 @@ so that tenant query behavior stays consistent as endpoints evolve.
 
 ## Tasks / Subtasks
 
-- [ ] Introduce one shared pagination bounds policy for tenant queries. (AC: 1, 2, 5)
-  - [ ] Add a small internal server-side utility or constants type for standard query pagination values: default page size `20`, maximum page size `100`, audit default page size `100`, and audit maximum page size `1000`.
-  - [ ] Name the shared policy by endpoint family rather than caller location, for example standard tenant queries and audit queries; do not recreate controller-only and actor-only constants.
-  - [ ] Replace duplicated literals in `TenantsQueryController.ClampPageSize`, `TenantsQueryController.ClampAuditPageSize`, `TenantsProjectionActor.DeserializePaginationPayload`, and `TenantsProjectionActor.DeserializeAuditPayload`.
-  - [ ] Keep the current behavior exactly: `pageSize <= 0` falls back to the endpoint default, standard list endpoints cap at `100`, and audit caps at `1000`.
-  - [ ] Do not move the policy into public contract DTOs unless implementation proves a public surface is needed.
-- [ ] Centralize pagination payload parsing without hiding endpoint-specific behavior. (AC: 1, 3, 4)
-  - [ ] Extract the common `cursor` and `pageSize` parsing used by standard paginated endpoints into a focused helper that still lets audit parsing handle `from`, `to`, and `category` explicitly.
-  - [ ] Preserve existing malformed JSON behavior: standard pagination payloads fall back to `(cursor: null, pageSize: 20)`, while audit payloads return `"Invalid audit query payload."`.
-  - [ ] Preserve the current safe handling for missing, null, non-string cursor, non-number page size, and negative/zero page size values.
-  - [ ] Keep endpoint ordering keys explicit at call sites: tenant IDs for `list-tenants` and `get-user-tenants`, user IDs for `get-tenant-users`, and `Timestamp.UtcTicks + EventId` for audit.
-  - [ ] Where Story 9.4 guardrails exist, keep actor validation and authorization guardrails ahead of page-size parsing or cursor decoding.
-- [ ] Clarify and preserve cursor scope utilities. (AC: 3, 4)
-  - [ ] Keep `TenantQueryCursorScopes` as the single place for scope strings used by controller validation and actor decoding.
-  - [ ] Do not rename existing scope strings (`user:{userId}`, `tenant:{tenantId}`, `target-user:{targetUserId}`, and audit filter scope) because existing signed cursors rely on exact query type and scope matching.
-  - [ ] Keep signed cursor payload shape, signing format, query type matching, scope matching, error behavior, and public response fields unchanged.
-  - [ ] Add at least one regression assertion that a cursor encoded with the existing query type, scope, and logical position shape can still be decoded through the refactored path. (AC: 9)
-  - [ ] If helper names are changed, update both controller and actor call sites in the same patch so cursor validation stays symmetric.
-  - [ ] Do not introduce a generic cursor abstraction that obscures which logical position each endpoint stores.
-- [ ] Preserve invalid cursor and invalid audit payload error behavior. (AC: 4)
-  - [ ] Keep controller-level invalid cursor responses as HTTP 400 ProblemDetails with reason code `invalid-cursor`.
-  - [ ] Keep actor-level malformed cursor results as `new QueryResult(false, default, ErrorMessage: "Invalid cursor.")` so existing EventStore query error mapping remains unchanged.
-  - [ ] Keep invalid audit category and `from > to` handling explicit in audit parsing.
-  - [ ] Confirm malformed or invalid parse paths are read-only with respect to DAPR actor state and do not call state save operations. (AC: 10)
-  - [ ] Do not log protected cursor payloads, signing material, decoded positions, or serialized payload bodies.
-- [ ] Add focused unit tests for bounds and cursor helper behavior. (AC: 1-5)
-  - [ ] Add tests that prove standard paginated endpoints use default `20`, clamp `<= 0` to `20`, and cap values above `100`.
-  - [ ] Add tests that prove audit uses default `100`, clamps `<= 0` to `100`, and caps values above `1000`.
-  - [ ] Add tests for malformed standard pagination JSON and malformed audit JSON to preserve their intentionally different failure behavior.
-  - [ ] Add or update cursor scope tests so controller and actor use matching scopes for all four paginated query types.
-  - [ ] Keep signed cursor tests green and continue asserting cursors do not expose raw tenant IDs, user IDs, event IDs, or logical positions.
-- [ ] Keep implementation scope tight. (AC: 1-5)
-  - [ ] Do not change endpoint routes, public query DTO shapes, `PaginatedResult<T>`, or `QueryEnvelope`.
-  - [ ] Do not change page-size policy values unless a separate product decision updates the epic.
-  - [ ] Keep new pagination policy and parsing helpers `internal`; do not expose them from contract assemblies or make them part of API documentation. (AC: 11)
-  - [ ] Do not introduce generic pagination middleware, base controller behavior, or shared query-envelope changes.
-  - [ ] Do not modify the `Hexalith.EventStore` submodule.
-  - [ ] Do not add package dependencies or update package versions for this story.
+- [x] Introduce one shared pagination bounds policy for tenant queries. (AC: 1, 2, 5)
+  - [x] Add a small internal server-side utility or constants type for standard query pagination values: default page size `20`, maximum page size `100`, audit default page size `100`, and audit maximum page size `1000`.
+  - [x] Name the shared policy by endpoint family rather than caller location, for example standard tenant queries and audit queries; do not recreate controller-only and actor-only constants.
+  - [x] Replace duplicated literals in `TenantsQueryController.ClampPageSize`, `TenantsQueryController.ClampAuditPageSize`, `TenantsProjectionActor.DeserializePaginationPayload`, and `TenantsProjectionActor.DeserializeAuditPayload`.
+  - [x] Keep the current behavior exactly: `pageSize <= 0` falls back to the endpoint default, standard list endpoints cap at `100`, and audit caps at `1000`.
+  - [x] Do not move the policy into public contract DTOs unless implementation proves a public surface is needed.
+- [x] Centralize pagination payload parsing without hiding endpoint-specific behavior. (AC: 1, 3, 4)
+  - [x] Extract the common `cursor` and `pageSize` parsing used by standard paginated endpoints into a focused helper that still lets audit parsing handle `from`, `to`, and `category` explicitly.
+  - [x] Preserve existing malformed JSON behavior: standard pagination payloads fall back to `(cursor: null, pageSize: 20)`, while audit payloads return `"Invalid audit query payload."`.
+  - [x] Preserve the current safe handling for missing, null, non-string cursor, non-number page size, and negative/zero page size values.
+  - [x] Keep endpoint ordering keys explicit at call sites: tenant IDs for `list-tenants` and `get-user-tenants`, user IDs for `get-tenant-users`, and `Timestamp.UtcTicks + EventId` for audit.
+  - [x] Where Story 9.4 guardrails exist, keep actor validation and authorization guardrails ahead of page-size parsing or cursor decoding.
+- [x] Clarify and preserve cursor scope utilities. (AC: 3, 4)
+  - [x] Keep `TenantQueryCursorScopes` as the single place for scope strings used by controller validation and actor decoding.
+  - [x] Do not rename existing scope strings (`user:{userId}`, `tenant:{tenantId}`, `target-user:{targetUserId}`, and audit filter scope) because existing signed cursors rely on exact query type and scope matching.
+  - [x] Keep signed cursor payload shape, signing format, query type matching, scope matching, error behavior, and public response fields unchanged.
+  - [x] Add at least one regression assertion that a cursor encoded with the existing query type, scope, and logical position shape can still be decoded through the refactored path. (AC: 9)
+  - [x] If helper names are changed, update both controller and actor call sites in the same patch so cursor validation stays symmetric.
+  - [x] Do not introduce a generic cursor abstraction that obscures which logical position each endpoint stores.
+- [x] Preserve invalid cursor and invalid audit payload error behavior. (AC: 4)
+  - [x] Keep controller-level invalid cursor responses as HTTP 400 ProblemDetails with reason code `invalid-cursor`.
+  - [x] Keep actor-level malformed cursor results as `new QueryResult(false, default, ErrorMessage: "Invalid cursor.")` so existing EventStore query error mapping remains unchanged.
+  - [x] Keep invalid audit category and `from > to` handling explicit in audit parsing.
+  - [x] Confirm malformed or invalid parse paths are read-only with respect to DAPR actor state and do not call state save operations. (AC: 10)
+  - [x] Do not log protected cursor payloads, signing material, decoded positions, or serialized payload bodies.
+- [x] Add focused unit tests for bounds and cursor helper behavior. (AC: 1-5)
+  - [x] Add tests that prove standard paginated endpoints use default `20`, clamp `<= 0` to `20`, and cap values above `100`.
+  - [x] Add tests that prove audit uses default `100`, clamps `<= 0` to `100`, and caps values above `1000`.
+  - [x] Add tests for malformed standard pagination JSON and malformed audit JSON to preserve their intentionally different failure behavior.
+  - [x] Add or update cursor scope tests so controller and actor use matching scopes for all four paginated query types.
+  - [x] Keep signed cursor tests green and continue asserting cursors do not expose raw tenant IDs, user IDs, event IDs, or logical positions.
+- [x] Keep implementation scope tight. (AC: 1-5)
+  - [x] Do not change endpoint routes, public query DTO shapes, `PaginatedResult<T>`, or `QueryEnvelope`.
+  - [x] Do not change page-size policy values unless a separate product decision updates the epic.
+  - [x] Keep new pagination policy and parsing helpers `internal`; do not expose them from contract assemblies or make them part of API documentation. (AC: 11)
+  - [x] Do not introduce generic pagination middleware, base controller behavior, or shared query-envelope changes.
+  - [x] Do not modify the `Hexalith.EventStore` submodule.
+  - [x] Do not add package dependencies or update package versions for this story.
 
 ## Dev Notes
 
@@ -141,7 +141,7 @@ so that tenant query behavior stays consistent as endpoints evolve.
 
 ### Latest Technical Information
 
-- The repository pins .NET SDK `10.0.103` in `global.json` and centrally manages package versions in `Directory.Packages.props`. This story needs no dependency upgrade and no new package. [Source: `global.json`; `Directory.Packages.props`]
+- The repository pins the latest supported .NET 10 SDK in `global.json`; as of 2026-05-18 this is `10.0.300`. Package versions are centrally managed in `Directory.Packages.props`. This story needs no dependency upgrade and no new package. [Source: `global.json`; `Directory.Packages.props`]
 - Current relevant package versions include Dapr `1.17.9`, Aspire `13.3.3`, Microsoft ASP.NET Core OpenAPI/JWT packages `10.0.8`, xUnit v3 `3.2.2`, Shouldly `4.3.0`, and NSubstitute `6.0.0-rc.1`. Keep tests and implementation within those existing dependencies. [Source: `Directory.Packages.props`]
 
 ### Previous Story Intelligence
@@ -170,9 +170,54 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryPaginationPolicyTests` (red: `TenantQueryPaginationPolicy` missing)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` (passed: 65)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryPaginationPolicyTests` (passed: 11)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` (passed: 350)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryPaginationPolicyTests` (red: standard payload parser missing)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryPaginationPolicyTests` (passed: 19)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` (passed: 65)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` (passed: 358)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryCursorCodecTests` (passed: 10)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` (passed: 360)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` (passed: 67)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` (transient failure: `TenantsProjectionActorTelemetryTests.QueryAsync_WhenHandlerThrows_ShouldMarkActivityAsErrorAndRecordMetric`, passed when isolated)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTelemetryTests.QueryAsync_WhenHandlerThrows_ShouldMarkActivityAsErrorAndRecordMetric` (passed: 1)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` (passed: 362)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` (analyzer red: xUnit1030 from `ConfigureAwait(false)` in test method)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsProjectionActorTests` (passed: 72)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryPaginationPolicyTests` (passed: 19)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantQueryCursorCodecTests` (passed: 10)
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` (passed: 367)
+- `git status --short` / `git diff --stat` (scope check: no route/DTO/package/submodule changes; unrelated `_bmad-output/process-notes` changes left untouched)
+- `Select-String ... '- \[ \]'` against this story file (passed: no unchecked tasks/subtasks)
+- `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore` (passed: 589, skipped: 1)
+
 ### Completion Notes List
 
+- Added internal `TenantQueryPaginationPolicy` as the single source of truth for standard and audit query defaults/maximums.
+- Replaced controller and actor page-size clamp literals with the shared policy while preserving standard `20/100` and audit `100/1000` behavior.
+- Added internal `TenantQueryPaginationPayloadParser` for standard cursor/pageSize payload parsing; audit date/category parsing remains explicit in `TenantsProjectionActor`.
+- Added cursor regression coverage for exact scope string formats and an existing list-tenants query/scope/logical-position round trip.
+- Added actor regression coverage proving malformed standard payloads fall back to the default first page and malformed audit payloads fail before audit state reads or state writes.
+- Added actor boundary tests proving all standard paginated query types cap oversized page sizes at `100`, and audit non-positive sizes fall back to `100`.
+- Verified implementation scope stayed internal to the server project with no public contract, route, package, or submodule changes.
+- Completed story 9.5 and moved it to review after full solution regression passed.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/9-5-shared-pagination-bounds-and-cursor-utilities.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`
+- `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`
+- `src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs`
+- `src/Hexalith.Tenants/Queries/TenantQueryPaginationPolicy.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryCursorCodecTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPolicyTests.cs`
+
+### Change Log
+
+- 2026-05-18: Implemented shared pagination bounds/payload helpers, preserved cursor scope behavior, added focused regression coverage, and moved story to review.
 
 ## Party-Mode Review
 

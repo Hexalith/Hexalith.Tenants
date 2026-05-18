@@ -288,7 +288,7 @@ This story creates infrastructure configuration files and shared startup code. T
 - ServiceDefaults `Extensions.cs` initially failed to compile — `IHostApplicationBuilder` required explicit `using Microsoft.Extensions.Hosting;` since plain SDK projects don't include it in implicit usings (Web SDK does). **Ensure all required usings are explicit in ServiceDefaults.**
 - Library SDK projects (Contracts, Client, Server, Testing, Aspire) compile empty without placeholders. Only Web SDK and Exe projects need entry points.
 - EventStore submodule is confirmed working with 8 src project directories present.
-- .NET SDK 10.0.103 confirmed available. `dotnet build --configuration Release` passes with zero errors and warnings.
+- .NET 10 SDK confirmed available. `dotnet build --configuration Release` passes with zero errors and warnings.
 - All 6 test projects discovered by `dotnet test` with zero failures.
 - The `.slnx` format uses modern XML — when adding new files, they do NOT need to be added to the solution file (solution file references projects, not individual files).
 

@@ -82,7 +82,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 - **Identity scheme:** Commands use `{tenant}:{domain}:{aggregateId}` -- the "domain" will be `tenants` and the aggregateId must encode the specific tenant instance
 - **DAPR building blocks:** State store, pub/sub, actors, service invocation -- all infrastructure access through sidecars only
 - **Package dependency chain:** Hexalith.Tenants.Contracts depends on Hexalith.EventStore.Contracts; Server depends on EventStore.Server; etc.
-- **.NET 10 SDK** (pinned via `global.json`), modern XML solution format (`.slnx`)
+- **.NET 10 LTS SDK** (pinned via `global.json`), modern XML solution format (`.slnx`)
 - **EventStore submodule** already present in repository at `Hexalith.EventStore/`
 
 ### Cross-Cutting Concerns Identified
@@ -210,7 +210,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 **Architectural Decisions Provided by Starter:**
 
 **Language & Runtime:**
-- C# on .NET 10 (SDK 10.0.103 via `global.json`, `rollForward: latestPatch`)
+- C# on .NET 10 LTS (SDK 10.0.300 via `global.json`, `rollForward: latestPatch`)
 - Nullable references enabled globally
 - Implicit usings enabled globally
 - Warnings as errors enabled
@@ -246,7 +246,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
 1. Read model architecture → EventStoreProjection pattern with DAPR state store
 2. Query endpoints → Served from Hexalith.Tenants (single deployable with route groups)
 3. Bootstrap mechanism → Startup configuration via appsettings.json, through full MediatR pipeline
-4. .NET SDK version → 10.0.103
+4. .NET SDK version → latest supported .NET 10 SDK, currently 10.0.300
 
 **Important Decisions (Shape Architecture):**
 5. Snapshot interval → 50 events for tenant domain, default 100 for GlobalAdmin
@@ -665,7 +665,7 @@ Hexalith.Tenants/
 │   └── workflows/
 │       ├── ci.yml                         # Build + Tier 1+2 tests on push/PR
 │       └── release.yml                    # Merge-triggered: semantic-release + tests + pack + NuGet push
-├── global.json                            # SDK 10.0.103, rollForward: latestPatch
+├── global.json                            # SDK 10.0.300, rollForward: latestPatch
 ├── Directory.Build.props                  # Shared project properties, NuGet metadata
 ├── Directory.Packages.props               # Centralized NuGet package versions
 ├── Hexalith.Tenants.slnx                  # Modern XML solution file
@@ -1303,7 +1303,7 @@ Project structure supports all decisions. 8 src projects mirror EventStore (minu
 - [x] Cross-cutting concerns mapped (6 concerns + 5 Party Mode findings)
 
 **✅ Architectural Decisions**
-- [x] Critical decisions documented with versions (.NET 10.0.103, DAPR 1.17.3, Aspire 13.1.x)
+- [x] Critical decisions documented with versions (.NET 10 LTS SDK 10.0.300, DAPR 1.17.3, Aspire 13.1.x)
 - [x] Technology stack fully specified (all EventStore dependencies confirmed)
 - [x] Integration patterns defined (DAPR pub/sub, actor model, projections)
 - [x] Performance considerations addressed (snapshots, stateless scaling)

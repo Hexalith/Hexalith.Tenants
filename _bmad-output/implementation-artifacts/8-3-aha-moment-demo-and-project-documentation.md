@@ -349,7 +349,7 @@ Hexalith.Tenants/
 
 | Technology | Version | Relevance |
 |-----------|---------|-----------|
-| .NET SDK | 10.0.103 | Runtime for AppHost and services |
+| .NET SDK | 10.0.300 | Runtime for AppHost and services |
 | DAPR SDK | 1.17.3 | Pub/sub event delivery between Hexalith.Tenants and Sample |
 | .NET Aspire | 13.1.x | AppHost topology orchestration |
 | System.Text.Json | .NET 10 built-in | JSON serialization for command payloads |

@@ -243,7 +243,7 @@ The README.md currently contains only `# Hexalith.Tenants` — full replacement 
 
 | Technology       | Version      | Purpose                            |
 | ---------------- | ------------ | ---------------------------------- |
-| .NET SDK         | 10.0.103     | Runtime and build                  |
+| .NET SDK         | 10.0.300     | Runtime and build                  |
 | DAPR SDK         | 1.17.3       | State store, pub/sub, actors       |
 | .NET Aspire      | 13.1.x       | Local development topology         |
 | Keycloak         | (via Aspire) | JWT authentication for development |

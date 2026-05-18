@@ -342,7 +342,7 @@ So that I can begin implementing domain logic on a proven, consistent project st
 
 **Given** the solution is built
 **When** a developer inspects `global.json`
-**Then** it specifies SDK version 10.0.103 with `rollForward: latestPatch`
+**Then** it specifies the latest supported .NET 10 SDK, currently 10.0.300, with `rollForward: latestPatch`
 
 **Given** the solution is built
 **When** a developer inspects `Directory.Build.props`
