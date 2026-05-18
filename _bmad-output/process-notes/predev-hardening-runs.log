@@ -83,3 +83,4 @@
 2026-05-18T07:03:04+02:00	none	-	none	ready buffer full; all ready stories already have party-mode and advanced-elicitation traces; active 9-4 soft warning from preflight 2026-05-18T05:02:19Z
 2026-05-18T08:28:56+02:00	none	-	none	ready buffer full; all ready stories already have party-mode and advanced-elicitation traces; preflight pass 2026-05-18T06:28:20Z
 2026-05-18T09:03:15+02:00	none	-	none	ready buffer full; all ready stories already have party-mode and advanced-elicitation traces; preflight pass 2026-05-18T07:02:38Z
+2026-05-18T10:05:48+02:00	create-story	10-4-projection-write-conformance-and-recovery-tests	ok	created 10-4 story context; active 9-5 soft warning from preflight 2026-05-18T08:01:33Z

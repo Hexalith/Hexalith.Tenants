@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (10-4 projection write conformance and recovery tests story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (10-3b cancellation token threading story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (9-4 actor-layer query guardrails implemented; story -> review)
 # last_updated: 2026-05-17 (9-4 actor-layer query guardrails development started; story -> in-progress)
@@ -196,7 +197,7 @@ development_status:
   10-2-audit-projection-write-safety: ready-for-dev
   10-3a-eventstore-projection-cancellation-api-prerequisite: ready-for-dev
   10-3b-cancellation-token-threading-for-tenant-projection-queries: ready-for-dev
-  10-4-projection-write-conformance-and-recovery-tests: backlog
+  10-4-projection-write-conformance-and-recovery-tests: ready-for-dev
   epic-10-retrospective: optional
 
   # Epic 11: Production Authorization Readiness
