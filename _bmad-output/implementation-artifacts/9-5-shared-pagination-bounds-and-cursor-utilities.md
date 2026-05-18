@@ -1,6 +1,6 @@
 # Story 9.5: Shared Pagination Bounds and Cursor Utilities
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -62,8 +62,21 @@ so that tenant query behavior stays consistent as endpoints evolve.
   - [x] Do not change page-size policy values unless a separate product decision updates the epic.
   - [x] Keep new pagination policy and parsing helpers `internal`; do not expose them from contract assemblies or make them part of API documentation. (AC: 11)
   - [x] Do not introduce generic pagination middleware, base controller behavior, or shared query-envelope changes.
-  - [x] Do not modify the `Hexalith.EventStore` submodule.
-  - [x] Do not add package dependencies or update package versions for this story.
+  - [x] Do not modify the `Hexalith.EventStore` submodule. _(amended 2026-05-18: submodule pointer bump approved under `sprint-change-proposal-2026-05-18-latest-dotnet.md`.)_
+  - [x] Do not add package dependencies or update package versions for this story. _(amended 2026-05-18: `global.json` SDK pin 10.0.103 → 10.0.300 and `Hexalith.Commons` / `Hexalith.FrontComposer` submodule bumps approved under `sprint-change-proposal-2026-05-18-latest-dotnet.md`.)_
+
+### Review Findings
+
+- [x] [Review][Decision] Scope violation accepted (2026-05-18): submodule pointer bumps (`Hexalith.EventStore`, `Hexalith.Commons`, `Hexalith.FrontComposer`) and `global.json` SDK pin (10.0.103 → 10.0.300) are retroactively approved under `sprint-change-proposal-2026-05-18-latest-dotnet.md`. Task lines 65-66 amended in-place below to reference the proposal.
+- [x] [Review][Patch] Non-object JSON payload root throws `InvalidOperationException`, violates AC7 fallback contract [src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs:23,29 and src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:127,131,141] — fixed 2026-05-18: both parsers now early-return their documented fallback when `root.ValueKind != JsonValueKind.Object`. New parameterized test `DeserializeStandardPayload_returns_default_first_page_for_non_object_root` covers `[]`, `[{...}]`, `42`, `"x"`, `true`, `null`.
+- [x] [Review][Patch] Test helper hard-codes literal `20` instead of policy constant [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs] — fixed 2026-05-18: `CreatePaginationPayload` default → `TenantQueryPaginationPolicy.StandardDefaultPageSize`; `CreateAuditPayload` default → `TenantQueryPaginationPolicy.AuditDefaultPageSize`.
+- [x] [Review][Patch] Parser tests misplaced under policy test file [tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPolicyTests.cs] — fixed 2026-05-18: parser tests moved to new `TenantQueryPaginationPayloadParserTests.cs`; policy file now contains only clamp/policy-constant tests.
+- [x] [Review][Patch] Oversized-page test does not assert `HasMore == true` [tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs `Standard_paginated_queries_clamp_page_size_to_standard_maximumAsync`] — fixed 2026-05-18: added `GetPayloadHasMore(result).ShouldBeTrue()` and replaced literal `100` with `TenantQueryPaginationPolicy.StandardMaximumPageSize`.
+- [x] [Review][Patch] Missing actor-side test for omitted `pageSize` field — fixed 2026-05-18: added `ListTenants_pagination_payload_omitting_page_size_uses_standard_defaultAsync` which sends `{}` and asserts `Items.Count == TenantQueryPaginationPolicy.StandardDefaultPageSize` and `HasMore == true` against a 25-tenant index.
+- [x] [Review][Defer] `predev-preflight-*.json` artifacts commit absolute Windows paths (`D:\\Hexalith.Tenants\\...`) [_bmad-output/process-notes/] — deferred, pre-existing tooling/process pattern outside Story 9.5 code scope.
+- [x] [Review][Defer] `predev-preflight-latest.json` overwrite races between runs and captures the developer's intermediate dirty-tree state as `result: fail` [_bmad-output/process-notes/] — deferred, pre-existing process tooling concern.
+- [x] [Review][Defer] `_loggedOrphanMemberships` HashSet unbounded per actor lifetime [src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:44] — deferred, pre-existing Story 9.3 / Story 9.4 behavior, already tracked in `deferred-work.md`.
+- [x] [Review][Defer] Inconsistent `TenantId` log field on invalid-cursor events (controller logs `""`, actor logs `envelope.AggregateId` e.g. `"index"`) [src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:219,265 vs src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:488] — deferred, observability nit pre-existing across Story 9.1 surface.
 
 ## Dev Notes
 

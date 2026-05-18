@@ -1,4 +1,6 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (9-5 shared pagination bounds and cursor utilities code review complete + 5 patches applied; D1 scope decision accepted; story -> done)
+# last_updated: 2026-05-18 (9-5 shared pagination bounds and cursor utilities code review complete + 4 patches applied; D1 scope decision accepted; P5 left as action item; story -> in-progress)
 # last_updated: 2026-05-18 (9-4 actor-layer query guardrails code review complete + 1 patch applied; story -> done)
 # last_updated: 2026-05-18 (10-4 projection write conformance and recovery tests story context created; story -> ready-for-dev)
 # last_updated: 2026-05-17 (10-3b cancellation token threading story context created; story -> ready-for-dev)
@@ -81,6 +83,10 @@
 
 generated: 2026-05-16T09:57:23+02:00
 last_updated: 2026-05-18
+# Story 9.5 moved to done after P5 (omitted-pageSize actor test) was implemented;
+# all 5 Review Findings patches applied (P1 non-object root fallback; P2 policy-constant
+# test defaults; P3 parser-test file split; P4 HasMore assertion; P5 omitted-pageSize
+# coverage) and verified via Hexalith.Tenants.Server.Tests (374/374 passing).
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -189,7 +195,7 @@ development_status:
   9-2-stable-cursor-pagination-under-role-and-membership-changes: done
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: done
   9-4-actor-layer-query-guardrails: done
-  9-5-shared-pagination-bounds-and-cursor-utilities: review
+  9-5-shared-pagination-bounds-and-cursor-utilities: done
   epic-9-retrospective: optional
 
   # Epic 10: Durable Projection Write Safety

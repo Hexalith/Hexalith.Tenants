@@ -122,6 +122,10 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             using var doc = JsonDocument.Parse(payload);
             JsonElement root = doc.RootElement;
 
+            if (root.ValueKind != JsonValueKind.Object) {
+                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, "Invalid audit query payload.");
+            }
+
             DateTimeOffset? from = TryGetDateTimeOffset(root, "from");
             DateTimeOffset? to = TryGetDateTimeOffset(root, "to");
             string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String

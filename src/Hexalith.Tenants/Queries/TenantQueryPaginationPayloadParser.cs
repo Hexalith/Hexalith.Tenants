@@ -20,6 +20,10 @@ internal static class TenantQueryPaginationPayloadParser {
             using var doc = JsonDocument.Parse(payload);
             JsonElement root = doc.RootElement;
 
+            if (root.ValueKind != JsonValueKind.Object) {
+                return new(null, TenantQueryPaginationPolicy.StandardDefaultPageSize);
+            }
+
             string? cursor = root.TryGetProperty("cursor", out JsonElement cursorElement)
                 && cursorElement.ValueKind == JsonValueKind.String
                     ? cursorElement.GetString()

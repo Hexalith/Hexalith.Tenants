@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of 9-5-shared-pagination-bounds-and-cursor-utilities (2026-05-18)
+
+- `predev-preflight-*.json` artifacts under `_bmad-output/process-notes/` commit absolute Windows paths (`D:\\Hexalith.Tenants\\...`) and the developer's mid-run dirty-tree state as `result: fail`. Process/tooling concern, pre-existing pattern outside Story 9.5 code scope; either `.gitignore` these artifacts or normalize to repo-relative paths in a tooling-cleanup task.
+- `predev-preflight-latest.json` overwrite races between consecutive runs and captures intermediate developer state, polluting commit history. Same process pattern; bundle into the preflight-tooling cleanup item above.
+- `_loggedOrphanMemberships` HashSet in `TenantsProjectionActor.cs:44` grows unbounded for the actor's lifetime (one entry per `(targetUserId, orphanTenantId)` pair). Pre-existing Story 9.3/9.4 behavior bounded only by Dapr actor idle deactivation; revisit with the projection-actor lifecycle/cache hardening story.
+- Inconsistent `TenantId` log field on invalid-cursor events: controller (`TenantsQueryController.cs:219,265`) passes `string.Empty`; actor (`TenantsProjectionActor.cs:488`) passes `envelope.AggregateId` (e.g. `"index"` for `list-tenants` / `get-user-tenants`). Observability nit pre-existing across the Story 9.1 surface; harmonize during the next logging convention pass.
+
 ## Deferred from: code review of 9-3-query-policy-for-disabled-tenants-and-orphan-memberships (2026-05-17)
 
 - `EntityId` whitespace silently coerces to self-lookup — `string.IsNullOrWhiteSpace(envelope.EntityId)` at `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs:398` routes whitespace target IDs to self-lookup. With Story 9.3 orphan warnings this can mislabel cross-user intent as self-lookup in repair telemetry. Pre-existing behavior; track as a separate input-hardening item rather than expanding Story 9.3 scope.

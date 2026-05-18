@@ -530,7 +530,8 @@ public class TenantsProjectionActorTests {
         };
 
         result.Success.ShouldBeTrue();
-        CountPayloadItems(result).ShouldBe(100);
+        CountPayloadItems(result).ShouldBe(TenantQueryPaginationPolicy.StandardMaximumPageSize);
+        GetPayloadHasMore(result).ShouldBeTrue();
     }
 
     // --- Q17: GlobalAdmin can query any user's tenants ---
@@ -1364,6 +1365,27 @@ public class TenantsProjectionActorTests {
         await AssertNoStateWriteAsync(daprClient);
     }
 
+    [Fact]
+    public async Task ListTenants_pagination_payload_omitting_page_size_uses_standard_defaultAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(25);
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index",
+            payload: "{}"u8.ToArray()));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Count.ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
+        page.HasMore.ShouldBeTrue();
+    }
+
     // --- Q9: ListTenants filters by user membership (non-admin) ---
     [Fact]
     public async Task ListTenants_non_admin_filters_by_membership() {
@@ -1603,14 +1625,20 @@ public class TenantsProjectionActorTests {
         return document.RootElement.GetProperty("items").GetArrayLength();
     }
 
-    private static byte[] CreatePaginationPayload(string? cursor = null, int pageSize = 20) => JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
+    private static bool GetPayloadHasMore(QueryResult result) {
+        using JsonDocument document = JsonDocument.Parse(result.PayloadBytes!);
+        return document.RootElement.GetProperty("hasMore").GetBoolean();
+    }
+
+    private static byte[] CreatePaginationPayload(string? cursor = null, int pageSize = TenantQueryPaginationPolicy.StandardDefaultPageSize)
+        => JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
     private static byte[] CreateAuditPayload(
         DateTimeOffset? from = null,
         DateTimeOffset? to = null,
         string? category = null,
         string? cursor = null,
-        int pageSize = 100) =>
+        int pageSize = TenantQueryPaginationPolicy.AuditDefaultPageSize) =>
         JsonSerializer.SerializeToUtf8Bytes(new { from, to, category, cursor, pageSize });
 
     private static TenantAuditEntry CreateAuditEntry(
