@@ -19,18 +19,25 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
 5. Given focused configuration tests run, when production-valid, production-invalid, and development-valid configurations are bound, then tests verify startup/options validation behavior for each mode.
 6. Given a production deployment accidentally supplies both `Authority` and `SigningKey`, when validation runs, then Hexalith.Tenants rejects the ambiguous production configuration with a safe message instead of relying on implicit EventStore authority/OIDC precedence.
 7. Given `RequireHttpsMetadata` is disabled, when `IHostEnvironment.IsProduction()` and `Authority` is configured, then validation rejects the setting; non-production development/test overrides may continue to use symmetric-key auth with `RequireHttpsMetadata=false`.
+8. Given production `Authority` or `SigningKey` values contain only whitespace, when options validation runs, then whitespace is treated as missing or invalid configuration and does not satisfy production readiness.
+9. Given production `Authority` is configured, when validation runs, then the authority value must be an absolute HTTPS URI before OIDC discovery is attempted; relative, malformed, empty, whitespace, or non-HTTPS authorities fail with a safe configuration error.
+10. Given Tenants registers production-specific validation beside the shared EventStore validator, when `ValidateOnStart` or the options factory evaluates `EventStoreAuthenticationOptions`, then both the shared required-key rules and the Tenants production safety rules are exercised without replacing `ConfigureJwtBearerOptions`.
 
 ## Tasks / Subtasks
 
 - [ ] Confirm the existing EventStore authentication validation contract before changing code. (AC: 1-7)
   - [ ] Read `EventStoreAuthenticationOptions`, `ValidateEventStoreAuthenticationOptions`, and `ConfigureJwtBearerOptions` from the current `Hexalith.EventStore` submodule commit.
   - [ ] Verify the current rules: `Issuer` and `Audience` are required, either `Authority` or `SigningKey` is required, and `SigningKey` must be at least 32 characters when present.
+  - [ ] Verify whether the current EventStore validator treats whitespace-only `Authority`, `Issuer`, `Audience`, or `SigningKey` values as configured; if it does, cover Tenants production validation so whitespace placeholders cannot pass readiness checks.
   - [ ] Confirm whether the current EventStore validator permits both `Authority` and `SigningKey`, and whether it has any environment-aware rule for production `RequireHttpsMetadata`.
   - [ ] Do not modify `Hexalith.EventStore` or update nested submodules for this story. If the correct fix belongs in EventStore, record the blocker instead of duplicating or forking the shared validator.
 - [ ] Add focused Tenants-side validation coverage for the current startup wiring. (AC: 1, 2, 5)
   - [ ] Add tests that bind the committed production `Authentication:JwtBearer` section from `src/Hexalith.Tenants/appsettings.json` and assert validation fails because both `Authority` and `SigningKey` are empty.
   - [ ] Add tests that supply production-style OIDC overrides (`Authority`, `Issuer`, `Audience`, `RequireHttpsMetadata=true`, empty or absent `SigningKey`) and assert validation succeeds.
   - [ ] Assert the validation failure mentions `Authentication:JwtBearer` and the missing `Authority`/`SigningKey` requirement without including token values or secret-like payloads.
+  - [ ] Assert whitespace-only production `Authority`, `SigningKey`, `Issuer`, or `Audience` values fail safely and are not treated as valid overrides.
+  - [ ] Assert production `Authority` rejects relative, malformed, and non-HTTPS values before network OIDC metadata discovery can occur.
+  - [ ] Prove the registered validator composition by exercising an options factory, startup validator, or narrow host startup path that includes both `ValidateEventStoreAuthenticationOptions` and any Tenants-specific production validator.
   - [ ] Prefer direct `IOptions<EventStoreAuthenticationOptions>` / `IValidateOptions<EventStoreAuthenticationOptions>` tests when they prove the binding contract; use a host/WebApplicationFactory startup test only if direct options tests cannot prove `ValidateOnStart` integration.
 - [ ] Preserve local development symmetric-key behavior. (AC: 3, 5)
   - [ ] Add or extend tests that bind `src/Hexalith.Tenants/appsettings.Development.json` and assert `Issuer`, `Audience`, `SigningKey`, and `RequireHttpsMetadata=false` remain valid for local development.
@@ -40,6 +47,7 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
   - [ ] If EventStore already rejects ambiguous or unsafe production settings by the time this story is implemented, add Tenants tests that lock that behavior.
   - [ ] If EventStore does not reject `Authority` plus `SigningKey`, add the least invasive Tenants-side production validation that fails with a safe message and does not log the signing key.
   - [ ] If EventStore does not reject `RequireHttpsMetadata=false` with `Authority` in production, add narrow Tenants-side environment-aware validation for `IHostEnvironment.IsProduction()`; do not silently accept production OIDC over non-HTTPS metadata.
+  - [ ] If EventStore does not validate production authority URI shape, add narrow Tenants-side production validation that requires an absolute HTTPS `Authority` URI and does not perform OIDC discovery.
   - [ ] Treat `IHostEnvironment.IsProduction()` as the production boundary for these Tenants-specific rules. Do not apply the production restrictions to `Development` or other explicitly tested local development paths unless the implementation records and justifies that broader policy.
   - [ ] Keep any Tenants-specific validation narrow and registered beside the existing options setup in `Program.cs`; do not replace `ConfigureJwtBearerOptions`.
 - [ ] Keep committed configuration and deployment override boundaries explicit. (AC: 1, 2, 4)
@@ -52,6 +60,7 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
   - [ ] Use xUnit v3 and Shouldly, matching existing configuration tests.
   - [ ] Do not require DAPR sidecars, Redis, Aspire orchestration, Keycloak, Entra ID, network OIDC discovery, or real tokens to test configuration binding and validation.
   - [ ] Add regression assertions that validation errors do not echo configured signing key values.
+  - [ ] Add regression assertions that non-production symmetric-key settings remain valid when `RequireHttpsMetadata=false`, while production `Authority` with `RequireHttpsMetadata=false` fails.
 
 ## Dev Notes
 
@@ -66,7 +75,7 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
 ### EventStore Authentication Contract
 
 - `EventStoreAuthenticationOptions` is owned by the EventStore submodule and exposes `Authority`, `Audience`, `Issuer`, `SigningKey`, and `RequireHttpsMetadata`. [Source: `Hexalith.EventStore/src/Hexalith.EventStore/Authentication/EventStoreAuthenticationOptions.cs`]
-- `ValidateEventStoreAuthenticationOptions` currently requires either `Authority` or `SigningKey`, always requires `Issuer` and `Audience`, and requires `SigningKey.Length >= 32` when a signing key is present. It does not currently encode a Tenants-specific production environment policy in the source reviewed for this story. [Source: `Hexalith.EventStore/src/Hexalith.EventStore/Authentication/EventStoreAuthenticationOptions.cs`]
+- `ValidateEventStoreAuthenticationOptions` currently requires either `Authority` or `SigningKey`, always requires `Issuer` and `Audience`, and requires `SigningKey.Length >= 32` when a signing key is present. The current source uses empty-string checks, so implementation must verify whitespace behavior before relying on the shared validator for production readiness. It does not currently encode a Tenants-specific production environment policy in the source reviewed for this story. [Source: `Hexalith.EventStore/src/Hexalith.EventStore/Authentication/EventStoreAuthenticationOptions.cs`]
 - `ConfigureJwtBearerOptions` preserves original JWT claim names (`MapInboundClaims=false`), validates issuer, audience, signing key, and lifetime with one-minute clock skew, uses OIDC discovery when `Authority` is set, and falls back to symmetric key mode when only `SigningKey` is set. [Source: `Hexalith.EventStore/src/Hexalith.EventStore/Authentication/ConfigureJwtBearerOptions.cs`]
 - EventStore documentation says OIDC discovery is the recommended production mode; symmetric key mode is for development/testing; `Issuer` and `Audience` are always required; and if both `Authority` and `SigningKey` are present, the runtime takes the OIDC path, so signing keys should be cleared when switching to production OIDC. [Source: `Hexalith.EventStore/docs/guides/security-model.md#Layer 1: JWT Authentication`; `Hexalith.EventStore/docs/guides/configuration-reference.md#Authentication and JWT`]
 
@@ -80,9 +89,10 @@ so that Hexalith.Tenants does not fail later at runtime or accept unsafe authent
 ### Implementation Guardrails
 
 - Reuse the EventStore validator and JWT options configurator wherever possible. Add Tenants-specific validation only for Tenants-specific production safety rules that EventStore intentionally does not own.
-- Treat `IHostEnvironment.IsProduction()` as the concrete production boundary for Story 11.1. The required Tenants production-safe modes are OIDC with `Authority`, `Issuer`, `Audience`, and `RequireHttpsMetadata=true`; the committed empty-placeholder configuration, `Authority` plus `SigningKey`, and production `Authority` with `RequireHttpsMetadata=false` must fail validation unless a later story or explicit architecture decision introduces a named escape hatch.
+- Treat `IHostEnvironment.IsProduction()` as the concrete production boundary for Story 11.1. The required Tenants production-safe mode is OIDC with an absolute HTTPS `Authority`, non-whitespace `Issuer`, non-whitespace `Audience`, no `SigningKey`, and `RequireHttpsMetadata=true`; the committed empty-placeholder configuration, whitespace-only values, malformed or non-HTTPS authorities, `Authority` plus `SigningKey`, and production `Authority` with `RequireHttpsMetadata=false` must fail validation unless a later story or explicit architecture decision introduces a named escape hatch.
 - Keep validation failure messages specific enough to identify keys such as `Authentication:JwtBearer:Authority`, `Authentication:JwtBearer:SigningKey`, `Authentication:JwtBearer:Issuer`, and `Authentication:JwtBearer:Audience`, but never include the configured signing key or bearer token value.
 - Do not perform network OIDC metadata discovery in unit tests. Configuration validation should prove binding and option validation, not identity-provider availability.
+- Register any Tenants-specific production validator as an additional `IValidateOptions<EventStoreAuthenticationOptions>` beside the existing EventStore validator so `ValidateOnStart` evaluates the combined policy. Do not replace the shared validator, and do not add direct JWT bearer configuration that bypasses `ConfigureJwtBearerOptions`.
 - Do not change controller authorization policies, query routes, command routes, JWT claim names, RBAC role hierarchy, tenant visibility, rate-limit partitioning, cursor behavior, or DAPR component configuration.
 - If a WebApplicationFactory startup test is added, override unrelated DAPR/EventStore dependencies narrowly so the test proves auth configuration startup validation and not infrastructure availability.
 - Prefer options-validation and startup-validation tests with explicit host environments. Avoid brittle assertions on full exception text; assert the failed key or unsafe setting is named and configured signing key/token values are absent.
@@ -161,4 +171,27 @@ GPT-5 Codex
   - Whether shared EventStore validation should later encode the same production policy for all adopters.
   - Whether a future story should add an explicit production escape hatch for symmetric signing keys or insecure metadata.
   - Deployment examples, OIDC provider/AppHost environment variable documentation, tenant-claim contracts, and smoke tests remain scoped to Stories 11.2 and 11.3.
+- Final recommendation: ready-for-dev after applied clarifications.
+
+## Advanced Elicitation
+
+- Date/time: 2026-05-18T18:52:13+02:00
+- Selected story key: 11-1-production-jwt-configuration-validation
+- Command/skill invocation used: `/bmad-advanced-elicitation 11-1-production-jwt-configuration-validation`
+- Batch 1 method names: Red Team vs Blue Team; Failure Mode Analysis; Security Audit Personas; Self-Consistency Validation; First Principles Analysis.
+- Reshuffled Batch 2 method names: Pre-mortem Analysis; Code Review Gauntlet; Comparative Analysis Matrix; Occam's Razor Application; Architecture Decision Records.
+- Findings summary:
+  - The story had the right production OIDC direction, but a validator could still treat whitespace placeholders as configured values if it relies only on empty-string checks.
+  - Production readiness should fail before runtime OIDC discovery for malformed, relative, or non-HTTPS authorities; otherwise deployment can pass options validation and fail later in authentication middleware.
+  - Tests should prove the Tenants-specific production validator composes with the shared EventStore validator under options validation rather than only validating a standalone class.
+  - The narrowest architecture decision remains Tenants-side production safety rules registered beside the shared EventStore validator, without replacing `ConfigureJwtBearerOptions` or moving claim-contract/deployment scope into this story.
+- Changes applied:
+  - Added acceptance criteria for whitespace-only configuration values, absolute HTTPS production authority validation, and combined validator execution through `ValidateOnStart` or the options factory.
+  - Tightened tasks to verify current EventStore whitespace behavior, reject malformed/non-HTTPS authorities without OIDC network discovery, and test composed validator registration.
+  - Updated implementation guardrails so production-safe mode requires absolute HTTPS `Authority`, non-whitespace `Issuer` and `Audience`, empty or absent `SigningKey`, and `RequireHttpsMetadata=true`.
+  - Added test guidance for whitespace placeholders, malformed authorities, production `RequireHttpsMetadata=false`, and preservation of non-production symmetric-key development behavior.
+- Findings deferred:
+  - Whether the shared EventStore validator should eventually switch from empty-string checks to whitespace-aware validation for all adopters remains a cross-repository policy decision.
+  - Exact class name and registration shape for any Tenants-specific production validator remain implementation details.
+  - Full deployment examples, identity provider setup, tenant-claim contract, and production smoke-test workflow remain scoped to Stories 11.2 and 11.3.
 - Final recommendation: ready-for-dev after applied clarifications.
