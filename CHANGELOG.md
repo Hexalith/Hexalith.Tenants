@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.12.0...v1.13.0) (2026-05-18)
+
+
+### Features
+
+* Update subproject commits and finalize Story 9.4 with code review findings ([9a5f4e4](https://github.com/Hexalith/Hexalith.Tenants/commit/9a5f4e43f58336a1c4c1f12f4e7f2c5baaeb20d4))
+
 # [1.12.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.11.0...v1.12.0) (2026-05-18)
 
 
