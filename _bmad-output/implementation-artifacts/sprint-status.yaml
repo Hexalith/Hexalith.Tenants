@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (10-3a EventStore projection cancellation API prerequisite implementation complete locally; Server.Tests validation blocked by unrelated nested Tenants reference/JwtBearer mismatch; story remains in-progress)
 # last_updated: 2026-05-18 (10-2 audit projection write safety code review complete + 6 patches applied [reorder validate-before-tenant-write, clone-and-build merge, null-EventId guard, field-level dup-collision test, tighter dispatcher assertion, event-types added to retry-exhaustion log]; 4 findings deferred; story -> done)
 # last_updated: 2026-05-18 (11-2 EventStore tenant claim contract story context created; story -> ready-for-dev)
 # last_updated: 2026-05-18 (10-2 audit projection write safety implemented; full solution Debug/no-restore test gate passes; story -> review)
@@ -224,7 +225,7 @@ development_status:
   epic-10: in-progress
   10-1-optimistic-concurrency-for-tenant-read-model-writes: done
   10-2-audit-projection-write-safety: done
-  10-3a-eventstore-projection-cancellation-api-prerequisite: ready-for-dev
+  10-3a-eventstore-projection-cancellation-api-prerequisite: in-progress
   10-3b-cancellation-token-threading-for-tenant-projection-queries: ready-for-dev
   10-4-projection-write-conformance-and-recovery-tests: ready-for-dev
   epic-10-retrospective: optional

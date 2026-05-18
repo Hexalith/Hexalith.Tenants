@@ -1,6 +1,6 @@
 # Story 10.3A: EventStore Projection Cancellation API Prerequisite
 
-Status: ready-for-dev
+Status: in-progress
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -162,9 +162,39 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-05-18: Started implementation. Chosen API path: preserve `IProjectionActor.QueryAsync(QueryEnvelope)` as the DAPR actor contract, route production calls through DAPR `ActorProxy.InvokeMethodAsync<QueryEnvelope, QueryResult>(..., CancellationToken)` when the generated strongly typed proxy exposes the weak proxy base, and add source-compatible cancellation-aware companion overloads inside EventStore actors/fakes.
+- 2026-05-18: Verified DAPR actor-boundary shape from DAPR v1.17 docs and local `Dapr.Actors` 1.17.9 XML: `IActorProxyFactory` creates strongly typed actor proxies, generated proxies derive from `ActorProxy`, and weak `ActorProxy.InvokeMethodAsync` overloads accept `CancellationToken`. `IActorStateManager` state read/write APIs also expose cancellation-token overloads.
+- 2026-05-18: Implemented cancellation-aware EventStore APIs and tests. Validation halted before review because `Hexalith.EventStore.Server.Tests` does not compile in this workspace: it references a nested `Hexalith.EventStore/Hexalith.Tenants/...` project path that is absent, and also reports a `Microsoft.AspNetCore.Authentication.JwtBearer` 10.0.8 vs 10.0.5 assembly mismatch.
+
 ### Completion Notes List
 
+- Preserved `IProjectionActor.QueryAsync(QueryEnvelope)` and legacy `CachingProjectionActor.ExecuteQueryAsync(QueryEnvelope)` compatibility.
+- Added production actor dispatch cancellation through `ActorProxy.InvokeMethodAsync<QueryEnvelope, QueryResult>(nameof(QueryAsync), envelope, cancellationToken)` when the generated proxy exposes the DAPR weak proxy base; test substitutes continue through the legacy typed call after pre-dispatch cancellation checks.
+- Added `CachingProjectionActor.QueryAsync(QueryEnvelope, CancellationToken)` and `ExecuteQueryAsync(QueryEnvelope, CancellationToken)` so derived actors can observe cancellation before ETag lookup, cache hits, handler execution, and cache storage.
+- Added cancellation propagation to EventStore-owned DAPR actor state calls in `EventReplayProjectionActor` and to ETag actor invocation in `DaprETagService`; `OperationCanceledException` is rethrown rather than fail-open/null or adapter failure.
+- Added cancellation-aware synchronous replay overloads `EventStoreProjection<TReadModel>.Project(..., CancellationToken)` and `ProjectFromJson(..., CancellationToken)` that check cancellation between event applications while preserving existing no-token methods.
+- Tenants handoff APIs: `CachingProjectionActor.QueryAsync(QueryEnvelope, CancellationToken)`, `CachingProjectionActor.ExecuteQueryAsync(QueryEnvelope, CancellationToken)`, `EventReplayProjectionActor.UpdateProjectionAsync(ProjectionState, CancellationToken)`, `EventStoreProjection<TReadModel>.Project(IEnumerable, CancellationToken)`, and `ProjectFromJson(JsonElement, CancellationToken)`. Exact EventStore commit is pending because the submodule changes are uncommitted; current working base is `461274a8`.
+- Validation passed: `dotnet build Hexalith.EventStore/src/Hexalith.EventStore.Server/Hexalith.EventStore.Server.csproj --configuration Debug --no-restore`; `dotnet test Hexalith.EventStore/tests/Hexalith.EventStore.Client.Tests/Hexalith.EventStore.Client.Tests.csproj --configuration Debug --filter FullyQualifiedName~EventStoreProjectionTests`; `dotnet test Hexalith.EventStore/tests/Hexalith.EventStore.Testing.Tests/Hexalith.EventStore.Testing.Tests.csproj --configuration Debug --filter FullyQualifiedName~FakeProjectionActorTests`; `dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore`.
+- Validation blocked: `dotnet test Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~QueryRouterTests|FullyQualifiedName~CachingProjectionActorTests|FullyQualifiedName~EventReplayProjectionActorTests|FullyQualifiedName~DaprETagServiceTests"` fails before running the filtered tests due unrelated test-project compile issues described above.
+
 ### File List
+
+- Hexalith.EventStore/src/Hexalith.EventStore.Client/Aggregates/EventStoreProjection.cs
+- Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/CachingProjectionActor.cs
+- Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/EventReplayProjectionActor.cs
+- Hexalith.EventStore/src/Hexalith.EventStore.Server/Queries/DaprETagService.cs
+- Hexalith.EventStore/src/Hexalith.EventStore.Server/Queries/QueryRouter.cs
+- Hexalith.EventStore/src/Hexalith.EventStore.Testing/Fakes/FakeProjectionActor.cs
+- Hexalith.EventStore/tests/Hexalith.EventStore.Client.Tests/Aggregates/EventStoreProjectionTests.cs
+- Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/CachingProjectionActorTests.cs
+- Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/EventReplayProjectionActorTests.cs
+- Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Queries/DaprETagServiceTests.cs
+- Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Queries/QueryRouterTests.cs
+- Hexalith.EventStore/tests/Hexalith.EventStore.Testing.Tests/Fakes/FakeProjectionActorTests.cs
+
+### Change Log
+
+- 2026-05-18: Added EventStore projection/query cancellation path and focused tests; story remains in-progress because Server.Tests validation is blocked by unrelated workspace/test-project issues.
 
 ## Party-Mode Review
 
