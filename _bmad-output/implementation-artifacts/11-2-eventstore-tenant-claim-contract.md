@@ -13,10 +13,18 @@ so that authenticated requests are partitioned and authorized consistently inste
 ## Acceptance Criteria
 
 1. Given Hexalith.Tenants is deployed with a production IdP, when an authenticated token is issued, then the token includes the configured `eventstore:tenant` claim value required by EventStore tenant validation and rate-limit partitioning.
-2. Given an authenticated token is missing the `eventstore:tenant` claim, when a request reaches the API, then the behavior is explicit and tested: reject the token or route it through a documented fallback, rather than silently sharing an `"anonymous"` rate-limit bucket.
+2. Given an authenticated non-global-admin token is missing or has a blank `eventstore:tenant` claim after EventStore claims transformation, when a tenant-scoped request reaches authorization, then tenant access is denied explicitly rather than silently sharing an `"anonymous"` rate-limit bucket.
 3. Given test JWTs and `TestAuthHandler` assert tenant claim behavior, when production claim-contract tests are reviewed, then test assumptions match the documented IdP claim contract.
 4. Given a deployment operator configures Keycloak or another IdP, when they follow the deployment documentation, then the required claim mapping is documented with the exact claim name, value expectations, and verification steps.
-5. Given focused auth tests run, when tokens include, omit, or vary the tenant claim, then tests verify the selected production behavior and rate-limit partitioning assumptions.
+5. Given focused auth tests run, when tokens include, omit, blank, alias, or vary the tenant claim, then tests verify the selected production authorization behavior and rate-limit partitioning assumptions only where the Tenants host actually registers rate limiting.
+
+## Claim Contract Clarifications
+
+- The production-facing downstream claim consumed by EventStore tenant authorization is `eventstore:tenant`; tenant-management commands must include the platform tenant value `system` in the effective principal.
+- An IdP may emit `eventstore:tenant` directly, or it may emit a supported source claim that `EventStoreClaimsTransformation` normalizes into `eventstore:tenant`: `tenants`, `tenant_id`, or `tid`. Documentation and tests must label source claims separately from the normalized downstream claim.
+- The local quickstart `tenants: ["system"]` example is a source-claim example. The AppHost Keycloak sample's `eventstore:tenant` mapper is direct-claim evidence. Do not present either example as the only valid production IdP shape unless implementation confirms that policy decision.
+- Authorization and rate limiting are separate layers: missing or blank tenant claims should fail closed for non-global-admin tenant-scoped authorization, while an `"anonymous"` rate-limit partition is only a rate-limit fallback where rate limiting is registered and reached before or outside tenant validation.
+- Global-administrator bypass behavior must not mask the tenant claim contract. Negative missing/blank/wrong-tenant tests must use non-global-admin principals; any global-admin exception needs separate, explicit coverage or a documented deferral.
 
 ## Tasks / Subtasks
 
@@ -36,19 +44,21 @@ so that authenticated requests are partitioned and authorized consistently inste
   - [ ] Keep assertions on safe response shape and reason codes where available; do not assert brittle full exception/log text.
 - [ ] Make rate-limit partition behavior explicit and covered. (AC: 1, 2, 5)
   - [ ] Verify whether the Tenants host actually registers EventStore rate limiting in the current startup path; `Program.cs` currently registers EventStore client/domain services directly and may not call the full EventStore server `AddEventStore()` extension that wires the global limiter.
-  - [ ] If Tenants relies on EventStore rate limiting, add a focused test or documented verification that requests with `eventstore:tenant=system` use the tenant partition and requests without tenant claims do not silently merge authenticated production traffic into the shared `"anonymous"` bucket without an explicit deny/fallback decision.
-  - [ ] If Tenants does not currently register the rate limiter, document that finding in this story's Dev Agent Record during implementation and limit code changes to the claim-contract enforcement that the Tenants host actually uses.
+  - [ ] If Tenants registers EventStore rate limiting, add focused evidence that requests with `eventstore:tenant=system` use the tenant partition and requests without tenant claims do not silently merge authenticated production traffic into the shared `"anonymous"` bucket without an explicit deny/fallback decision.
+  - [ ] If Tenants does not currently register the rate limiter, document that finding in this story's Dev Agent Record and production claim-contract docs, and defer executable rate-limit partition coverage to the EventStore host boundary or Story 11.3 smoke-test scope.
   - [ ] Do not reimplement EventStore rate limiting in Tenants as part of this story unless the existing host wiring already exposes a narrow missing registration defect.
 - [ ] Document the production IdP claim mapping contract. (AC: 1, 4)
   - [ ] Add a focused production auth claim-contract section or page that states the required claim names and values for Tenants deployment: `eventstore:tenant` must include `system` for tenant management commands; `eventstore:domain` should include `tenants`; `eventstore:permission` must include the command/query permissions required by EventStore gateway authorization.
   - [ ] Name the concrete permissions used by existing samples and gateway checks, including `command:submit`, `command:query`, and `command:replay` where applicable.
   - [ ] Document the supported source claims that EventStore can normalize (`tenants`, `tenant_id`, `tid`) and distinguish them from the normalized downstream `eventstore:tenant` claim.
+  - [ ] Document operator verification steps for decoding a token, confirming the emitted source or direct claim, confirming the normalized `eventstore:tenant` value in tests, and confirming that missing or blank non-global-admin tenant claims fail closed.
   - [ ] Update the existing quickstart only if needed to align local development token examples with the production contract; do not turn quickstart into a full deployment guide.
   - [ ] Use the existing Keycloak realm sample as implementation evidence, but do not commit real IdP endpoints, client secrets, or production user data.
   - [ ] Keep broader deployment walkthroughs, smoke-test workflow, and production environment readiness sequencing scoped to Story 11.3 unless the minimal claim-contract documentation needs a pointer for correctness.
 - [ ] Keep test and fixture assumptions aligned. (AC: 3, 5)
   - [ ] Review `TenantsQueryControllerIntegrationTests`, `CommandApiRuntimeIntegrationTests`, and any `TestAuthHandler` usage for hard-coded `eventstore:tenant` assumptions.
   - [ ] Ensure test-only JWT creation uses `sub`, issuer, audience, and tenant claims that match `appsettings.Development.json` and the EventStore claim contract.
+  - [ ] Use per-test token or principal variants for canonical, alias, missing, blank, wrong-tenant, and global-admin cases so shared fixture defaults cannot hide tenant-claim regressions.
   - [ ] If test handlers bypass claims transformation by directly issuing `eventstore:tenant`, add at least one direct test of `EventStoreClaimsTransformation` or document why that layer is already covered by EventStore tests and not duplicated in Tenants.
   - [ ] Do not weaken existing 401/403 tests for missing, invalid, wrong-issuer, wrong-audience, expired, or forbidden tokens.
 - [ ] Add implementation notes for unresolved cross-repository policy decisions. (AC: 2, 4, 5)
@@ -87,6 +97,7 @@ so that authenticated requests are partitioned and authorized consistently inste
 
 - Prefer explicit fail-closed tenant authorization for protected Tenants command/query paths when `eventstore:tenant` is missing or does not include `system`.
 - Keep claim names exact and case-sensitive. Tenant IDs are system-assigned identifiers and `ClaimsTenantValidator` uses ordinal matching.
+- Define the focused test matrix before coding: canonical `eventstore:tenant=system`; omitted tenant; blank tenant; each supported alias as source input; canonical plus alias with same value; canonical plus alias conflict if EventStore behavior is observable; wrong tenant; non-global-admin missing tenant; and any global-admin missing-tenant exception that is intentionally supported.
 - Do not add identity-provider network dependencies, Keycloak containers, Entra app registrations, or Aspire orchestration to unit tests for this story. Direct options, claims transformation, controller, or authorization-component tests are preferred.
 - Do not log JWTs, signing keys, full bearer tokens, or raw claim payloads in new diagnostics. Safe messages may name the missing claim type or tenant ID under test.
 - Do not modify EventStore source unless a separate cross-repository decision is made. This story may read the submodule and test against its public behavior from Tenants.
@@ -137,6 +148,28 @@ GPT-5 Codex
 ### Debug Log References
 
 ### Completion Notes List
+
+## Party-Mode Review
+
+- Date/time: 2026-05-18T22:40:26+02:00
+- Selected story key: 11-2-eventstore-tenant-claim-contract
+- Command/skill invocation used: `/bmad-party-mode 11-2-eventstore-tenant-claim-contract; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect and Quality Advisor), Paige (Technical Writer)
+- Findings summary:
+  - Clarify authorization versus rate-limit behavior so the `"anonymous"` partition is not treated as an authorization fallback.
+  - Condition rate-limit partition tests on verified Tenants host registration; otherwise document non-applicability and defer host-boundary coverage.
+  - Name the downstream `eventstore:tenant` contract and distinguish direct IdP claims from source claims normalized by EventStore.
+  - Tighten missing/blank/wrong-tenant/global-admin test expectations and avoid shared fixture defaults that hide claim regressions.
+  - Add operator verification guidance without expanding into Story 11.1 JWT validation or Story 11.3 deployment smoke-test scope.
+- Changes applied:
+  - Added claim contract clarifications for source versus normalized claims, `system` platform tenant expectations, authorization/rate-limit layer boundaries, and global-admin caveats.
+  - Tightened acceptance criteria for missing/blank non-global-admin claims and host-registered rate-limit evidence.
+  - Added documentation and test-matrix guidance for token verification, per-test claim variants, aliases, wrong tenant, and global-admin exceptions.
+- Findings deferred:
+  - Whether production IdPs should standardize on direct `eventstore:tenant` only or continue documenting source-claim normalization as an allowed production path.
+  - Whether Tenants should register full EventStore server rate-limiting middleware if implementation finds it absent.
+  - End-to-end deployment smoke verification across JWT middleware, claims transformation, authorization, and rate limiting; keep in Story 11.3.
+- Final recommendation: needs-story-update
 
 ### File List
 
