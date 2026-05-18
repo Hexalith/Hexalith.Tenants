@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (11-2 EventStore tenant claim contract story context created; story -> ready-for-dev)
 # last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes 2nd-pass code review complete + 5 patches applied; D1 resolved as code-comment patch; story -> done)
 # last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes integration prerequisite gating fixed; full solution test gate passes; story -> review)
 # last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes code review complete + 2 patches applied; 7 findings deferred; story remains in-progress pending Docker-backed unfiltered regression gate)
@@ -228,7 +229,7 @@ development_status:
   # Epic 11: Production Authorization Readiness
   epic-11: in-progress
   11-1-production-jwt-configuration-validation: ready-for-dev
-  11-2-eventstore-tenant-claim-contract: backlog
+  11-2-eventstore-tenant-claim-contract: ready-for-dev
   11-3-deployment-auth-readiness-documentation-and-smoke-tests: backlog
   epic-11-retrospective: optional
 

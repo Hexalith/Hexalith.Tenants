@@ -95,3 +95,4 @@
 2026-05-18T18:52:13+02:00	advanced-elicitation	11-1-production-jwt-configuration-validation	ok	recorded advanced elicitation trace and tightened whitespace placeholders, absolute HTTPS production authority validation, composed validator testing, and narrow Tenants production policy; preflight passed cleanly at 2026-05-18T16:50:27Z
 2026-05-18T19:04:11+02:00	none	-	none	ready buffer full and all ready stories already have party-mode and advanced-elicitation traces; active 10-1 soft warning from preflight 2026-05-18T17:03:16Z
 2026-05-18T20:03:51+02:00	none	-	none	ready buffer full and all ready stories already have party-mode and advanced-elicitation traces; soft working-tree warning from preflight 2026-05-18T18:02:53Z
+2026-05-18T20:43:08+02:00	create-story	11-2-eventstore-tenant-claim-contract	ok	created EventStore tenant claim contract story; active-dev-story soft warning from preflight 2026-05-18T18:38:21Z
