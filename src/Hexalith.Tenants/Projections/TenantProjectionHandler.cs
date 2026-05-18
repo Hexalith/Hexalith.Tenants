@@ -6,6 +6,9 @@ using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Server.Projections;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Hexalith.Tenants.Projections;
 
 /// <summary>
@@ -16,64 +19,82 @@ namespace Hexalith.Tenants.Projections;
 /// under the full-replay projection contract. The index-side state-store read-and-merge
 /// path is independent and orthogonal.
 /// </remarks>
-public sealed class TenantProjectionHandler(DaprClient daprClient) {
+public sealed class TenantProjectionHandler {
     private const string StateStoreName = "statestore";
     private const string TenantAuditProjectionKeyPrefix = "audit:";
+    private const string TenantIndexKeyCategory = "tenant index";
     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
+    private const string TenantProjectionKeyCategory = "tenant read-model";
     private const string TenantProjectionKeyPrefix = "projection:tenants:";
 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
     };
 
+    private readonly ILogger<TenantProjectionHandler> _logger;
+    private readonly ITenantProjectionStateStore _stateStore;
+
+    public TenantProjectionHandler(DaprClient daprClient)
+        : this(CreateStateStore(daprClient), NullLogger<TenantProjectionHandler>.Instance) {
+    }
+
+    public TenantProjectionHandler(DaprClient daprClient, ILogger<TenantProjectionHandler> logger)
+        : this(CreateStateStore(daprClient), logger) {
+    }
+
+    internal TenantProjectionHandler(ITenantProjectionStateStore stateStore, ILogger<TenantProjectionHandler> logger) {
+        ArgumentNullException.ThrowIfNull(stateStore);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _stateStore = stateStore;
+        _logger = logger;
+    }
+
     public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
-        // Build per-aggregate projection
-        TenantReadModel state = new();
-        foreach (ProjectionEventDto? evt in request.Events ?? []) {
-            if (evt is null) {
-                continue;
-            }
+        IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
 
-            ApplyEvent(state, evt);
-        }
+        TenantReadModel state = await TenantProjectionWritePolicy
+            .SaveWithOptimisticConcurrencyAsync(
+                _stateStore,
+                _logger,
+                StateStoreName,
+                TenantProjectionKeyPrefix + request.AggregateId,
+                TenantProjectionKeyCategory,
+                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
+                events,
+                static () => new TenantReadModel(),
+                ApplyEvent)
+            .ConfigureAwait(false);
 
-        // Write per-tenant projection to state store
-        await daprClient.SaveStateAsync(
-            StateStoreName,
-            TenantProjectionKeyPrefix + request.AggregateId,
-            state).ConfigureAwait(false);
-
-        TenantAuditReadModel auditModel = TenantAuditProjection.ProjectAuditEvents(request.Events ?? []);
-        await daprClient.SaveStateAsync(
+        TenantAuditReadModel auditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+        await _stateStore.SaveStateAsync(
             StateStoreName,
             TenantAuditProjectionKeyPrefix + request.AggregateId,
             auditModel).ConfigureAwait(false);
 
-        // Update tenant index projection
-        TenantIndexReadModel? indexModel = await daprClient
-            .GetStateAsync<TenantIndexReadModel>(StateStoreName, TenantIndexProjectionKey)
+        _ = await TenantProjectionWritePolicy
+            .SaveWithOptimisticConcurrencyAsync(
+                _stateStore,
+                _logger,
+                StateStoreName,
+                TenantIndexProjectionKey,
+                TenantIndexKeyCategory,
+                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
+                events,
+                static () => new TenantIndexReadModel(),
+                ApplyIndexEvent)
             .ConfigureAwait(false);
-
-        indexModel ??= new TenantIndexReadModel();
-
-        foreach (ProjectionEventDto? evt in request.Events ?? []) {
-            if (evt is null) {
-                continue;
-            }
-
-            ApplyIndexEvent(indexModel, evt);
-        }
-
-        await daprClient.SaveStateAsync(
-            StateStoreName,
-            TenantIndexProjectionKey,
-            indexModel).ConfigureAwait(false);
 
         return new ProjectionResponse(
             "tenants",
             JsonSerializer.SerializeToElement(state));
+    }
+
+    private static DaprTenantProjectionStateStore CreateStateStore(DaprClient daprClient) {
+        ArgumentNullException.ThrowIfNull(daprClient);
+        return new DaprTenantProjectionStateStore(daprClient);
     }
 
     private static void ApplyEvent(TenantReadModel state, ProjectionEventDto evt) {

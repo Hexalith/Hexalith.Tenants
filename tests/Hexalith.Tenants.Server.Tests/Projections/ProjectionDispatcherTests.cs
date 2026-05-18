@@ -26,6 +26,28 @@ public class ProjectionDispatcherTests {
     [Fact]
     public async Task DispatchAsync_TenantsDomain_RoutesToTenantProjectionHandlerAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
+        _ = daprClient.GetStateAndETagAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1")
+            .Returns(Task.FromResult((default(TenantReadModel)!, string.Empty)));
+        _ = daprClient.TrySaveStateAsync(
+            "statestore",
+            "projection:tenants:tenant-1",
+            Arg.Any<TenantReadModel>(),
+            Arg.Any<string>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
+        _ = daprClient.GetStateAndETagAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton")
+            .Returns(Task.FromResult((default(TenantIndexReadModel)!, string.Empty)));
+        _ = daprClient.TrySaveStateAsync(
+            "statestore",
+            "projection:tenant-index:singleton",
+            Arg.Any<TenantIndexReadModel>(),
+            Arg.Any<string>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
         ProjectionRequest request = new(
             "system",
             "tenants",
@@ -34,11 +56,12 @@ public class ProjectionDispatcherTests {
 
         IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
 
-        // Tenant handler writes per-tenant projection key.
-        await daprClient.Received(1).SaveStateAsync(
+        // Tenant handler writes the per-tenant projection key through a guarded ETag save.
+        await daprClient.Received(1).TrySaveStateAsync(
             "statestore",
             "projection:tenants:tenant-1",
             Arg.Any<TenantReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<Dapr.Client.StateOptions>(),
             Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());

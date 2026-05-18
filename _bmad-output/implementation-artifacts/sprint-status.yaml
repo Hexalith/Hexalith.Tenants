@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes code review complete + 2 patches applied; 7 findings deferred; story remains in-progress pending Docker-backed unfiltered regression gate)
 # last_updated: 2026-05-18 (11-1 production JWT configuration validation story context created; epic-11 -> in-progress; story -> ready-for-dev)
 # last_updated: 2026-05-18 (9-5 shared pagination bounds and cursor utilities code review complete + 5 patches applied; D1 scope decision accepted; story -> done)
 # last_updated: 2026-05-18 (9-5 shared pagination bounds and cursor utilities code review complete + 4 patches applied; D1 scope decision accepted; P5 left as action item; story -> in-progress)
@@ -84,6 +85,16 @@
 
 generated: 2026-05-16T09:57:23+02:00
 last_updated: 2026-05-18
+# Story 10.1 code review complete; 2 patches applied (P1 bounded messageIds log
+# field; P2 existing-state ETag test seeds a real TenantReadModel). 7 findings
+# deferred to deferred-work.md; ~14 dismissed. Filtered Server.Tests 380/380
+# pass. Story status remains in-progress because the mandatory unfiltered
+# regression suite is still blocked by local Docker (Aspire topology tests).
+# Story 10.1 optimistic concurrency implementation complete; story remains
+# in-progress because unfiltered regression validation is blocked by Docker
+# not running for Aspire topology tests.
+# Story 10.1 optimistic concurrency for tenant read-model writes development started;
+# story -> in-progress.
 # Story 9.5 moved to done after P5 (omitted-pageSize actor test) was implemented;
 # all 5 Review Findings patches applied (P1 non-object root fallback; P2 policy-constant
 # test defaults; P3 parser-test file split; P4 HasMore assertion; P5 omitted-pageSize
@@ -201,7 +212,7 @@ development_status:
 
   # Epic 10: Durable Projection Write Safety
   epic-10: in-progress
-  10-1-optimistic-concurrency-for-tenant-read-model-writes: ready-for-dev
+  10-1-optimistic-concurrency-for-tenant-read-model-writes: in-progress
   10-2-audit-projection-write-safety: ready-for-dev
   10-3a-eventstore-projection-cancellation-api-prerequisite: ready-for-dev
   10-3b-cancellation-token-threading-for-tenant-projection-queries: ready-for-dev
