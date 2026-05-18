@@ -1,5 +1,8 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-18 (10-2 audit projection write safety code review complete + 6 patches applied [reorder validate-before-tenant-write, clone-and-build merge, null-EventId guard, field-level dup-collision test, tighter dispatcher assertion, event-types added to retry-exhaustion log]; 4 findings deferred; story -> done)
 # last_updated: 2026-05-18 (11-2 EventStore tenant claim contract story context created; story -> ready-for-dev)
+# last_updated: 2026-05-18 (10-2 audit projection write safety implemented; full solution Debug/no-restore test gate passes; story -> review)
+# last_updated: 2026-05-18 (10-2 audit projection write safety development started; story -> in-progress)
 # last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes 2nd-pass code review complete + 5 patches applied; D1 resolved as code-comment patch; story -> done)
 # last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes integration prerequisite gating fixed; full solution test gate passes; story -> review)
 # last_updated: 2026-05-18 (10-1 optimistic concurrency for tenant read-model writes code review complete + 2 patches applied; 7 findings deferred; story remains in-progress pending Docker-backed unfiltered regression gate)
@@ -220,7 +223,7 @@ development_status:
   # Epic 10: Durable Projection Write Safety
   epic-10: in-progress
   10-1-optimistic-concurrency-for-tenant-read-model-writes: done
-  10-2-audit-projection-write-safety: ready-for-dev
+  10-2-audit-projection-write-safety: done
   10-3a-eventstore-projection-cancellation-api-prerequisite: ready-for-dev
   10-3b-cancellation-token-threading-for-tenant-projection-queries: ready-for-dev
   10-4-projection-write-conformance-and-recovery-tests: ready-for-dev

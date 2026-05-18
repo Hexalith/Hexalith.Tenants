@@ -316,6 +316,48 @@ public class TenantsProjectionActorTests {
     }
 
     [Fact]
+    public async Task GetTenantAudit_conflict_recovered_entries_remain_date_range_and_cursor_queryableAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+            CreateAuditEntry("evt-existing", "UserAddedToTenant", AuditEventCategory.Access, timestamp),
+            CreateAuditEntry("evt-concurrent", "UserRemovedFromTenant", AuditEventCategory.Access, timestamp.AddMinutes(1)),
+            CreateAuditEntry("evt-added", "UserAddedToTenant", AuditEventCategory.Access, timestamp.AddMinutes(2))));
+
+        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec());
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-audit",
+            userId: "admin-1",
+            payload: CreateAuditPayload(
+                from: timestamp,
+                to: timestamp.AddMinutes(3),
+                category: "access",
+                pageSize: 2)));
+
+        PaginatedResult<TenantAuditEntry>? firstPage = DeserializePayload<PaginatedResult<TenantAuditEntry>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(e => e.EventId).ShouldBe(["evt-existing", "evt-concurrent"]);
+        firstPage.HasMore.ShouldBeTrue();
+        _ = firstPage.Cursor.ShouldNotBeNull();
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-audit",
+            userId: "admin-1",
+            payload: CreateAuditPayload(
+                from: timestamp,
+                to: timestamp.AddMinutes(3),
+                category: "access",
+                cursor: firstPage.Cursor,
+                pageSize: 2)));
+
+        PaginatedResult<TenantAuditEntry>? secondPage = DeserializePayload<PaginatedResult<TenantAuditEntry>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(e => e.EventId).ShouldBe(["evt-added"]);
+        secondPage.HasMore.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task GetTenantAudit_rejects_from_greater_than_toAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));

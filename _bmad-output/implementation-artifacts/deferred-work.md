@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of 10-2-audit-projection-write-safety (2026-05-18)
+
+- Empty/whitespace ETag returned by Dapr for an existing audit key wedges `SaveMergedWithOptimisticConcurrencyAsync` under `FirstWrite` concurrency: `read.ETag ?? string.Empty` plus hard-coded `FirstWrite` means an empty ETag is interpreted as create-only-fail-if-exists, exhausting all 3 retries. Inherited from Story 10.1's `SaveWithOptimisticConcurrencyAsync`; revisit alongside that helper, not in this story.
+- `TenantAuditReadModel` blob grows unboundedly — no archival/pagination/compaction of persisted audit state. Eventually hits the Dapr state-store value-size limit (Redis 512 MB; lower on most other components) and every retry rewrites a large blob. Pre-existing audit-projection design; needs a separate retention/archival story.
+- `ProjectAsync` has no `CancellationToken` parameter; all policy calls receive `default(CancellationToken)`. Pre-existing handler signature; explicitly owned by Story 10-3a (EventStore projection cancellation API) and 10-3b (token threading through the projection helper).
+- `AggregateId` is concatenated directly into state-store keys (`audit:{aggregateId}`, `projection:tenants:{aggregateId}`) without escape/format validation. Already deferred from Story 10.1's review — input-contract gap belongs upstream in `ProjectionRequest` validation or the `/project` endpoint, not in the projection helper.
+
 ## Deferred from: code review of 10-1-optimistic-concurrency-for-tenant-read-model-writes (2026-05-18, 2nd pass)
 
 - Per-tenant `correlationId` log field uses `events.FirstOrDefault(... !IsNullOrWhiteSpace(CorrelationId)...)` in `TenantProjectionWritePolicy.cs:40`. For full-history replays that span multiple correlation chains, "the first one we find" can misattribute the conflict/exhaustion log entry to an unrelated correlation. Operationally minor; observability follow-up.

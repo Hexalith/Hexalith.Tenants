@@ -4,6 +4,7 @@ using Dapr.Client;
 
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,7 @@ namespace Hexalith.Tenants.Projections;
 /// </remarks>
 public sealed class TenantProjectionHandler {
     private const string StateStoreName = "statestore";
+    private const string TenantAuditKeyCategory = "tenant audit";
     private const string TenantAuditProjectionKeyPrefix = "audit:";
     private const string TenantIndexKeyCategory = "tenant index";
     private const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
@@ -55,6 +57,12 @@ public sealed class TenantProjectionHandler {
 
         IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
 
+        // Build (and validate) the incoming audit model first so a missing
+        // MessageId/UserId invariant violation aborts the whole batch before
+        // any state-store write commits — extending the spirit of AC12 to the
+        // tenant read-model and singleton-index writes too.
+        TenantAuditReadModel incomingAuditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+
         TenantReadModel state = await TenantProjectionWritePolicy
             .SaveWithOptimisticConcurrencyAsync(
                 _stateStore,
@@ -68,11 +76,19 @@ public sealed class TenantProjectionHandler {
                 ApplyEvent)
             .ConfigureAwait(false);
 
-        TenantAuditReadModel auditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
-        await _stateStore.SaveStateAsync(
-            StateStoreName,
-            TenantAuditProjectionKeyPrefix + request.AggregateId,
-            auditModel).ConfigureAwait(false);
+        _ = await TenantProjectionWritePolicy
+            .SaveMergedWithOptimisticConcurrencyAsync(
+                _stateStore,
+                _logger,
+                StateStoreName,
+                TenantAuditProjectionKeyPrefix + request.AggregateId,
+                TenantAuditKeyCategory,
+                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync) + ":" + request.AggregateId,
+                events,
+                incomingAuditModel,
+                static () => new TenantAuditReadModel(),
+                MergeAuditState)
+            .ConfigureAwait(false);
 
         _ = await TenantProjectionWritePolicy
             .SaveWithOptimisticConcurrencyAsync(
@@ -97,64 +113,96 @@ public sealed class TenantProjectionHandler {
         return new DaprTenantProjectionStateStore(daprClient);
     }
 
+    private static TenantAuditReadModel MergeAuditState(TenantAuditReadModel persisted, TenantAuditReadModel incoming) {
+        ArgumentNullException.ThrowIfNull(persisted);
+        ArgumentNullException.ThrowIfNull(incoming);
+
+        // Build into a new model so the caller's persisted instance is never
+        // mutated. Required for any state-store implementation that returns a
+        // cached/shared reference from GetStateAndETagAsync.
+        TenantAuditReadModel merged = new() {
+            Entries = [.. persisted.Entries],
+        };
+
+        // Null/whitespace EventIds cannot participate in dedup. Persisted
+        // entries are preserved verbatim above so audit history is never
+        // silently dropped; only the dedup set excludes them.
+        HashSet<string> seenEventIds = merged
+            .Entries
+            .Select(e => e.EventId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (TenantAuditEntry entry in incoming.Entries) {
+            if (string.IsNullOrWhiteSpace(entry.EventId)) {
+                continue;
+            }
+
+            if (seenEventIds.Add(entry.EventId)) {
+                merged.Entries.Add(entry);
+            }
+        }
+
+        merged.SortEntries();
+        return merged;
+    }
+
     private static void ApplyEvent(TenantReadModel state, ProjectionEventDto evt) {
         string name = evt.EventTypeName;
         if (string.IsNullOrEmpty(name)) {
             return;
         }
 
-        JsonElement payload = JsonSerializer.Deserialize<JsonElement>(evt.Payload, s_options);
-
         if (name.EndsWith(nameof(TenantCreated), StringComparison.Ordinal)) {
-            TenantCreated? e = JsonSerializer.Deserialize<TenantCreated>(payload, s_options);
+            TenantCreated? e = JsonSerializer.Deserialize<TenantCreated>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantUpdated), StringComparison.Ordinal)) {
-            TenantUpdated? e = JsonSerializer.Deserialize<TenantUpdated>(payload, s_options);
+            TenantUpdated? e = JsonSerializer.Deserialize<TenantUpdated>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantDisabled), StringComparison.Ordinal)) {
-            TenantDisabled? e = JsonSerializer.Deserialize<TenantDisabled>(payload, s_options);
+            TenantDisabled? e = JsonSerializer.Deserialize<TenantDisabled>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantEnabled), StringComparison.Ordinal)) {
-            TenantEnabled? e = JsonSerializer.Deserialize<TenantEnabled>(payload, s_options);
+            TenantEnabled? e = JsonSerializer.Deserialize<TenantEnabled>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(UserAddedToTenant), StringComparison.Ordinal)) {
-            UserAddedToTenant? e = JsonSerializer.Deserialize<UserAddedToTenant>(payload, s_options);
+            UserAddedToTenant? e = JsonSerializer.Deserialize<UserAddedToTenant>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(UserRemovedFromTenant), StringComparison.Ordinal)) {
-            UserRemovedFromTenant? e = JsonSerializer.Deserialize<UserRemovedFromTenant>(payload, s_options);
+            UserRemovedFromTenant? e = JsonSerializer.Deserialize<UserRemovedFromTenant>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(UserRoleChanged), StringComparison.Ordinal)) {
-            UserRoleChanged? e = JsonSerializer.Deserialize<UserRoleChanged>(payload, s_options);
+            UserRoleChanged? e = JsonSerializer.Deserialize<UserRoleChanged>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantConfigurationSet), StringComparison.Ordinal)) {
-            TenantConfigurationSet? e = JsonSerializer.Deserialize<TenantConfigurationSet>(payload, s_options);
+            TenantConfigurationSet? e = JsonSerializer.Deserialize<TenantConfigurationSet>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantConfigurationRemoved), StringComparison.Ordinal)) {
-            TenantConfigurationRemoved? e = JsonSerializer.Deserialize<TenantConfigurationRemoved>(payload, s_options);
+            TenantConfigurationRemoved? e = JsonSerializer.Deserialize<TenantConfigurationRemoved>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
@@ -167,46 +215,44 @@ public sealed class TenantProjectionHandler {
             return;
         }
 
-        JsonElement payload = JsonSerializer.Deserialize<JsonElement>(evt.Payload, s_options);
-
         if (name.EndsWith(nameof(TenantCreated), StringComparison.Ordinal)) {
-            TenantCreated? e = JsonSerializer.Deserialize<TenantCreated>(payload, s_options);
+            TenantCreated? e = JsonSerializer.Deserialize<TenantCreated>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantUpdated), StringComparison.Ordinal)) {
-            TenantUpdated? e = JsonSerializer.Deserialize<TenantUpdated>(payload, s_options);
+            TenantUpdated? e = JsonSerializer.Deserialize<TenantUpdated>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantDisabled), StringComparison.Ordinal)) {
-            TenantDisabled? e = JsonSerializer.Deserialize<TenantDisabled>(payload, s_options);
+            TenantDisabled? e = JsonSerializer.Deserialize<TenantDisabled>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(TenantEnabled), StringComparison.Ordinal)) {
-            TenantEnabled? e = JsonSerializer.Deserialize<TenantEnabled>(payload, s_options);
+            TenantEnabled? e = JsonSerializer.Deserialize<TenantEnabled>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(UserAddedToTenant), StringComparison.Ordinal)) {
-            UserAddedToTenant? e = JsonSerializer.Deserialize<UserAddedToTenant>(payload, s_options);
+            UserAddedToTenant? e = JsonSerializer.Deserialize<UserAddedToTenant>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(UserRemovedFromTenant), StringComparison.Ordinal)) {
-            UserRemovedFromTenant? e = JsonSerializer.Deserialize<UserRemovedFromTenant>(payload, s_options);
+            UserRemovedFromTenant? e = JsonSerializer.Deserialize<UserRemovedFromTenant>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }
         }
         else if (name.EndsWith(nameof(UserRoleChanged), StringComparison.Ordinal)) {
-            UserRoleChanged? e = JsonSerializer.Deserialize<UserRoleChanged>(payload, s_options);
+            UserRoleChanged? e = JsonSerializer.Deserialize<UserRoleChanged>(evt.Payload, s_options);
             if (e is not null) {
                 indexModel.Apply(e);
             }

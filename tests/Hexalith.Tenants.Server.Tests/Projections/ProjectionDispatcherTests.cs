@@ -37,6 +37,17 @@ public class ProjectionDispatcherTests {
             Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(true));
+        _ = daprClient.GetStateAndETagAsync<TenantAuditReadModel>("statestore", "audit:tenant-1")
+            .Returns(Task.FromResult((default(TenantAuditReadModel)!, string.Empty)));
+        _ = daprClient.TrySaveStateAsync(
+            "statestore",
+            "audit:tenant-1",
+            Arg.Any<TenantAuditReadModel>(),
+            Arg.Any<string>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(true));
         _ = daprClient.GetStateAndETagAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton")
             .Returns(Task.FromResult((default(TenantIndexReadModel)!, string.Empty)));
         _ = daprClient.TrySaveStateAsync(
@@ -63,6 +74,18 @@ public class ProjectionDispatcherTests {
             Arg.Any<TenantReadModel>(),
             Arg.Any<string>(),
             Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+        // Audit projection writes are also guarded so access history cannot be overwritten.
+        // Pin the ETag (empty for a missing-state first write) and ConcurrencyMode so a future
+        // weakening of the guarded save — e.g. dropping FirstWrite or omitting the loaded ETag —
+        // fails this assertion instead of silently regressing AC1.
+        await daprClient.Received(1).TrySaveStateAsync(
+            "statestore",
+            "audit:tenant-1",
+            Arg.Any<TenantAuditReadModel>(),
+            string.Empty,
+            Arg.Is<Dapr.Client.StateOptions>(o => o != null && o.Concurrency == ConcurrencyMode.FirstWrite),
             Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
         // ...and the global-admin singleton must NOT be touched.
