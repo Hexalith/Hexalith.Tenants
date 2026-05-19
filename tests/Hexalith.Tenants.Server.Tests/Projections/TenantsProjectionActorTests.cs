@@ -170,7 +170,14 @@ public class TenantsProjectionActorTests {
             CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index"),
             cancellation.Token);
 
+        // Defense-in-depth: a wrong-token call would cause the mock to return null,
+        // landing in the empty-index Success branch — assert non-empty payload so this
+        // test cannot pass for the wrong reason if token identity drifts.
         result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? payload = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = payload.ShouldNotBeNull();
+        payload.Items.Count.ShouldBe(2);
+
         _ = await daprClient.Received(1).GetStateAsync<TenantIndexReadModel>(
             TenantsProjectionActor.StateStoreName,
             TenantsProjectionActor.TenantIndexProjectionKey,
@@ -229,6 +236,175 @@ public class TenantsProjectionActorTests {
 
         _ = await Should.ThrowAsync<OperationCanceledException>(
             () => actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"), cancellation.Token));
+    }
+
+    // Defense-in-depth: pre-cancelled role-sensitive queries must surface as OperationCanceledException
+    // — not as a successful empty payload, Forbidden, Tenant not found, Invalid cursor, ETag conflict,
+    // or retry exhaustion (Story 10.3B Tasks line 61 / AC7).
+    [Theory]
+    [InlineData("get-tenant")]
+    [InlineData("list-tenants")]
+    [InlineData("get-tenant-users")]
+    [InlineData("get-user-tenants")]
+    [InlineData("get-tenant-audit")]
+    public async Task RoleSensitiveQuery_pre_cancelled_throws_OCE_not_domain_errorAsync(string queryType) {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        string aggregateId = GetAggregateIdForQuery(queryType);
+        QueryEnvelope envelope = CreateEnvelope(
+            queryType,
+            userId: "admin-1",
+            aggregateId: aggregateId,
+            entityId: GetEntityIdForQuery(queryType));
+
+        OperationCanceledException exception = await Should.ThrowAsync<OperationCanceledException>(
+            () => actor.QueryAsync(envelope, cancellation.Token));
+
+        exception.CancellationToken.ShouldBe(cancellation.Token);
+        await AssertNoProjectionStateReadAsync(daprClient, queryType, aggregateId);
+    }
+
+    // Architectural boundary: CachingProjectionActor.QueryAsync(envelope, token) calls
+    // ThrowIfCancellationRequested BEFORE delegating to the derived ExecuteQueryAsync
+    // override (Hexalith.EventStore CachingProjectionActor.cs). The Tenants
+    // malformed-user → Forbidden short-circuit (TenantsProjectionActor.cs:73-83)
+    // precedes the in-actor cancellation checkpoint at line 83, so AC9 cheap-validation
+    // precedence applies WHEN ExecuteQueryAsync is reached — but with a pre-cancelled
+    // token the base class throws OCE first. This test pins that boundary so any change
+    // to base-class precedence surfaces immediately. (Story 10.3B Task line 57: malformed-user
+    // precedence is "not externally observable" against a pre-cancelled token.)
+    [Theory]
+    [InlineData("get-tenant", null)]
+    [InlineData("get-tenant", "")]
+    [InlineData("list-tenants", "")]
+    [InlineData("get-tenant-users", "   ")]
+    [InlineData("get-user-tenants", null)]
+    [InlineData("get-tenant-audit", "")]
+    public async Task RoleSensitiveQuery_pre_cancelled_with_malformed_user_throws_OCE_per_base_actor_precedenceAsync(
+        string queryType,
+        string? malformedUserId) {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        string aggregateId = GetAggregateIdForQuery(queryType);
+        QueryEnvelope envelope = CreateEnvelope(
+            queryType,
+            aggregateId: aggregateId,
+            entityId: GetEntityIdForQuery(queryType))
+            with {
+                UserId = malformedUserId!,
+            };
+
+        OperationCanceledException exception = await Should.ThrowAsync<OperationCanceledException>(
+            () => actor.QueryAsync(envelope, cancellation.Token));
+        exception.CancellationToken.ShouldBe(cancellation.Token);
+        await AssertNoProjectionStateReadAsync(daprClient, queryType, aggregateId);
+    }
+
+    [Fact]
+    public async Task GetTenant_passes_received_token_to_projection_state_readsAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        using var cancellation = new CancellationTokenSource();
+        TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
+        _ = daprClient.GetStateAsync<TenantReadModel>(
+                TenantsProjectionActor.StateStoreName,
+                TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+                cancellationToken: cancellation.Token)
+            .Returns(Task.FromResult(model)!);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(
+            CreateEnvelope("get-tenant"),
+            cancellation.Token);
+
+        result.Success.ShouldBeTrue();
+        _ = await daprClient.Received(1).GetStateAsync<TenantReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+            cancellationToken: cancellation.Token);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_passes_received_token_to_projection_state_readsAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        using var cancellation = new CancellationTokenSource();
+        TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
+        _ = daprClient.GetStateAsync<TenantReadModel>(
+                TenantsProjectionActor.StateStoreName,
+                TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+                cancellationToken: cancellation.Token)
+            .Returns(Task.FromResult(model)!);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(
+            CreateEnvelope("get-tenant-users"),
+            cancellation.Token);
+
+        result.Success.ShouldBeTrue();
+        _ = await daprClient.Received(1).GetStateAsync<TenantReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+            cancellationToken: cancellation.Token);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_passes_received_token_to_projection_state_readsAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        using var cancellation = new CancellationTokenSource();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(2);
+        _ = daprClient.GetStateAsync<TenantIndexReadModel>(
+                TenantsProjectionActor.StateStoreName,
+                TenantsProjectionActor.TenantIndexProjectionKey,
+                cancellationToken: cancellation.Token)
+            .Returns(Task.FromResult(indexModel)!);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(
+            CreateEnvelope("get-user-tenants", aggregateId: "index", entityId: "user-1"),
+            cancellation.Token);
+
+        result.Success.ShouldBeTrue();
+        _ = await daprClient.Received(1).GetStateAsync<TenantIndexReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantIndexProjectionKey,
+            cancellationToken: cancellation.Token);
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_passes_received_token_to_projection_state_readsAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        using var cancellation = new CancellationTokenSource();
+        _ = daprClient.GetStateAsync<GlobalAdministratorReadModel>(
+                TenantsProjectionActor.StateStoreName,
+                TenantsProjectionActor.GlobalAdminProjectionKey,
+                cancellationToken: cancellation.Token)
+            .Returns(Task.FromResult(CreateGlobalAdminModel("admin-1"))!);
+        _ = daprClient.GetStateAsync<TenantAuditReadModel>(
+                TenantsProjectionActor.StateStoreName,
+                TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+                cancellationToken: cancellation.Token)
+            .Returns(Task.FromResult(CreateAuditModel(
+                CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative)))!);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(
+            CreateEnvelope("get-tenant-audit", userId: "admin-1"),
+            cancellation.Token);
+
+        result.Success.ShouldBeTrue();
+        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.GlobalAdminProjectionKey,
+            cancellationToken: cancellation.Token);
+        _ = await daprClient.Received(1).GetStateAsync<TenantAuditReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+            cancellationToken: cancellation.Token);
     }
 
     // --- Q6: Authorized user can get tenant details ---

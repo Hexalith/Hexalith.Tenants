@@ -440,6 +440,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         if (indexModel is null
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
+            cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
             JsonElement emptyPayload = JsonSerializer.SerializeToElement(empty, s_queryJsonOptions);
             return CreateSuccessResult(emptyPayload, "tenant-index");
@@ -518,6 +519,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (indexModel is null) {
+            cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<TenantSummary> empty = new([], null, false);
             JsonElement emptyPayload = JsonSerializer.SerializeToElement(empty, s_queryJsonOptions);
             return CreateSuccessResult(emptyPayload, "tenant-index");

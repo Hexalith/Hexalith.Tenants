@@ -181,6 +181,46 @@ public class GlobalAdministratorProjectionHandlerTests {
             Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task ProjectAsync_WithPreCancelledTokenThrowsBeforeSaveAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ProjectionRequest request = CreateRequest(
+            new GlobalAdministratorSet("system", "admin-user"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        OperationCanceledException exception = await Should.ThrowAsync<OperationCanceledException>(
+            () => new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request, cancellation.Token));
+
+        exception.CancellationToken.ShouldBe(cancellation.Token);
+        await daprClient.DidNotReceive().SaveStateAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<object?>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProjectAsync_PassesCancellationTokenToSaveStateBoundaryAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ProjectionRequest request = CreateRequest(
+            new GlobalAdministratorSet("system", "admin-user"));
+        using var cancellation = new CancellationTokenSource();
+
+        _ = await new GlobalAdministratorProjectionHandler(daprClient)
+            .ProjectAsync(request, cancellation.Token);
+
+        await daprClient.Received(1).SaveStateAsync(
+            StateStoreName,
+            SingletonKey,
+            Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            cancellation.Token);
+    }
+
     private static ProjectionRequest CreateRequest(params object[] events) {
         ProjectionEventDto[] dtos = [.. events.Select(CreateEventDto)];
         return new ProjectionRequest("system", "global-administrators", "global-administrators", dtos);

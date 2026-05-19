@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-19 (10-3b code review: 1 decision resolved + 7 patches applied + 4 deferred + 15 dismissed; full Debug/no-restore solution gate passed [634 passed, 4 skipped]; story -> done)
 # last_updated: 2026-05-19 (10-3b cancellation token threading implemented; full Debug/no-restore test gate passed; story -> review)
 # last_updated: 2026-05-19 (12-1 FrontShell dependency map for Tenants UI story context created; epic-12 -> in-progress; story -> ready-for-dev)
 # last_updated: 2026-05-19 (10-3b cancellation token threading development started; story -> in-progress)
@@ -239,7 +240,7 @@ development_status:
   10-1-optimistic-concurrency-for-tenant-read-model-writes: done
   10-2-audit-projection-write-safety: done
   10-3a-eventstore-projection-cancellation-api-prerequisite: done
-  10-3b-cancellation-token-threading-for-tenant-projection-queries: review
+  10-3b-cancellation-token-threading-for-tenant-projection-queries: done
   10-4-projection-write-conformance-and-recovery-tests: ready-for-dev
   epic-10-retrospective: optional
 
