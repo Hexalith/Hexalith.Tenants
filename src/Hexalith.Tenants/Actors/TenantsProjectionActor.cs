@@ -56,7 +56,11 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     }
 
     /// <inheritdoc/>
-    protected override async Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope) {
+    protected override Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope) =>
+        ExecuteQueryAsync(envelope, CancellationToken.None);
+
+    /// <inheritdoc/>
+    protected override async Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(envelope);
 
         using Activity? activity = TenantActivitySource.Instance.StartActivity(
@@ -76,12 +80,13 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             QueryResult result = envelope.QueryType switch {
-                "get-tenant" => await HandleGetTenantAsync(envelope).ConfigureAwait(false),
-                "list-tenants" => await HandleListTenantsAsync(envelope).ConfigureAwait(false),
-                "get-tenant-users" => await HandleGetTenantUsersAsync(envelope).ConfigureAwait(false),
-                "get-user-tenants" => await HandleGetUserTenantsAsync(envelope).ConfigureAwait(false),
-                "get-tenant-audit" => await HandleGetTenantAuditAsync(envelope).ConfigureAwait(false),
+                "get-tenant" => await HandleGetTenantAsync(envelope, cancellationToken).ConfigureAwait(false),
+                "list-tenants" => await HandleListTenantsAsync(envelope, cancellationToken).ConfigureAwait(false),
+                "get-tenant-users" => await HandleGetTenantUsersAsync(envelope, cancellationToken).ConfigureAwait(false),
+                "get-user-tenants" => await HandleGetUserTenantsAsync(envelope, cancellationToken).ConfigureAwait(false),
+                "get-tenant-audit" => await HandleGetTenantAuditAsync(envelope, cancellationToken).ConfigureAwait(false),
                 _ => new QueryResult(false, default, ErrorMessage: $"Unknown query type: {envelope.QueryType}"),
             };
 
@@ -173,7 +178,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     private static PaginatedResult<TenantAuditEntry> PaginateAuditEntries(
         IEnumerable<TenantAuditEntry> entries,
         string? cursor,
-        int pageSize) {
+        int pageSize,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         IEnumerable<TenantAuditEntry> ordered = entries
             .OrderBy(e => e.Timestamp)
             .ThenBy(e => e.EventId, StringComparer.Ordinal);
@@ -182,7 +189,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             ordered = ordered.Where(e => string.Compare(GetAuditCursor(e), cursor, StringComparison.Ordinal) > 0);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         var page = ordered.Take(pageSize + 1).ToList();
+        cancellationToken.ThrowIfCancellationRequested();
         bool hasMore = page.Count > pageSize;
         if (hasMore) {
             page.RemoveAt(page.Count - 1);
@@ -251,22 +260,27 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         string? cursor,
         int pageSize,
         Func<KeyValuePair<string, TSource>, string> keySelector,
-        Func<KeyValuePair<string, TSource>, TResult> resultSelector) {
+        Func<KeyValuePair<string, TSource>, TResult> resultSelector,
+        CancellationToken cancellationToken) {
         // Callers must pass the current authorized/visible set. The cursor is only an ordinal
         // exclusive lower bound, so hidden or missing anchors are never looked up or disclosed.
+        cancellationToken.ThrowIfCancellationRequested();
         IEnumerable<KeyValuePair<string, TSource>> ordered = items.OrderBy(keySelector, StringComparer.Ordinal);
 
         if (cursor is not null) {
             ordered = ordered.Where(kvp => string.Compare(keySelector(kvp), cursor, StringComparison.Ordinal) > 0);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         var page = ordered.Take(pageSize + 1).ToList();
+        cancellationToken.ThrowIfCancellationRequested();
         bool hasMore = page.Count > pageSize;
         if (hasMore) {
             page.RemoveAt(page.Count - 1);
         }
 
         string? nextCursor = hasMore ? keySelector(page[^1]) : null;
+        cancellationToken.ThrowIfCancellationRequested();
         var results = page.Select(resultSelector).ToList();
 
         return new PaginatedResult<TResult>(results, nextCursor, hasMore);
@@ -280,19 +294,25 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             ? result
             : result with { Cursor = _cursorCodec.Encode(queryType, scope, result.Cursor) };
 
-    private async Task<QueryResult> HandleGetTenantAsync(QueryEnvelope envelope) {
+    private async Task<QueryResult> HandleGetTenantAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         TenantReadModel? model = await _daprClient
-            .GetStateAsync<TenantReadModel>(StateStoreName, TenantProjectionKeyPrefix + envelope.AggregateId)
+            .GetStateAsync<TenantReadModel>(
+                StateStoreName,
+                TenantProjectionKeyPrefix + envelope.AggregateId,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
             return new QueryResult(false, default, ErrorMessage: "Tenant not found");
         }
 
-        if (!await IsAuthorizedForTenantAsync(envelope.UserId, model).ConfigureAwait(false)) {
+        if (!await IsAuthorizedForTenantAsync(envelope.UserId, model, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         TenantDetail detail = new(
             model.TenantId,
             model.Name,
@@ -306,9 +326,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         return CreateSuccessResult(payload, "tenants");
     }
 
-    private async Task<QueryResult> HandleGetTenantAuditAsync(QueryEnvelope envelope) {
+    private async Task<QueryResult> HandleGetTenantAuditAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         // CRITICAL: Check GlobalAdmin FIRST — non-admins must get 403, not 501
-        if (!await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false)) {
+        if (!await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 
@@ -320,9 +340,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return new QueryResult(false, default, ErrorMessage: query.ErrorMessage);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         TenantAuditReadModel? model = await _daprClient
-            .GetStateAsync<TenantAuditReadModel>(StateStoreName, TenantAuditProjectionKeyPrefix + envelope.AggregateId)
+            .GetStateAsync<TenantAuditReadModel>(
+                StateStoreName,
+                TenantAuditProjectionKeyPrefix + envelope.AggregateId,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         // NFR5 defense-in-depth: a projection bug must not leak rows from another tenant.
         IEnumerable<TenantAuditEntry> entries = (model?.Entries ?? [])
@@ -344,24 +369,31 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         PaginatedResult<TenantAuditEntry> result = ProtectCursor(
-            PaginateAuditEntries(entries, cursor, query.PageSize),
+            PaginateAuditEntries(entries, cursor, query.PageSize, cancellationToken),
             GetTenantAuditQuery.QueryType,
             scope);
+        cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenants");
     }
 
-    private async Task<QueryResult> HandleGetTenantUsersAsync(QueryEnvelope envelope) {
+    private async Task<QueryResult> HandleGetTenantUsersAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         TenantReadModel? model = await _daprClient
-            .GetStateAsync<TenantReadModel>(StateStoreName, TenantProjectionKeyPrefix + envelope.AggregateId)
+            .GetStateAsync<TenantReadModel>(
+                StateStoreName,
+                TenantProjectionKeyPrefix + envelope.AggregateId,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
             return new QueryResult(false, default, ErrorMessage: "Tenant not found");
         }
 
-        if (!await IsAuthorizedForTenantAsync(envelope.UserId, model).ConfigureAwait(false)) {
+        if (!await IsAuthorizedForTenantAsync(envelope.UserId, model, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 
@@ -377,27 +409,34 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 cursor,
                 pageSize,
                 kvp => kvp.Key,
-                kvp => new TenantMember(kvp.Key, kvp.Value)),
+                kvp => new TenantMember(kvp.Key, kvp.Value),
+                cancellationToken),
             GetTenantUsersQuery.QueryType,
             scope);
 
+        cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenants");
     }
 
-    private async Task<QueryResult> HandleGetUserTenantsAsync(QueryEnvelope envelope) {
+    private async Task<QueryResult> HandleGetUserTenantsAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         string targetUserId = string.IsNullOrWhiteSpace(envelope.EntityId) ? envelope.UserId : envelope.EntityId;
 
+        cancellationToken.ThrowIfCancellationRequested();
         TenantIndexReadModel? indexModel = await _daprClient
-            .GetStateAsync<TenantIndexReadModel>(StateStoreName, TenantIndexProjectionKey)
+            .GetStateAsync<TenantIndexReadModel>(
+                StateStoreName,
+                TenantIndexProjectionKey,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Run the admin check before any early return so cross-user lookups have comparable
         // response timing whether the target user is missing from the index or present-but-filtered-out.
         // This complements D11 response-body uniformity by closing a timing-based user-enumeration oracle.
         bool isSelfLookup = string.Equals(targetUserId, envelope.UserId, StringComparison.Ordinal);
         bool canViewAllTargetTenants = isSelfLookup
-            || await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
+            || await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false);
 
         if (indexModel is null
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
@@ -418,6 +457,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         List<KeyValuePair<string, (TenantIndexEntry Entry, TenantRole Role)>> existingVisibleUserTenants = [];
         List<string> orphanTenantIds = [];
         foreach (KeyValuePair<string, TenantRole> visibleUserTenant in visibleUserTenants) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (indexModel.Tenants.TryGetValue(visibleUserTenant.Key, out TenantIndexEntry? entry)) {
                 existingVisibleUserTenants.Add(new(visibleUserTenant.Key, (entry, visibleUserTenant.Value)));
                 continue;
@@ -435,6 +475,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         // Emit repair warnings only after the request is otherwise valid, and only once per
         // (target user, orphan tenant) per actor lifetime so repeated polling does not flood logs.
         foreach (string orphanTenantId in orphanTenantIds) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (_loggedOrphanMemberships.Add((targetUserId, orphanTenantId))) {
                 Log.OrphanUserTenantMembershipFiltered(
                     _logger,
@@ -456,18 +497,25 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                     kvp.Key,
                     kvp.Value.Entry.Name,
                     kvp.Value.Entry.Status,
-                    kvp.Value.Role)),
+                    kvp.Value.Role),
+                cancellationToken),
             GetUserTenantsQuery.QueryType,
             scope);
 
+        cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenant-index");
     }
 
-    private async Task<QueryResult> HandleListTenantsAsync(QueryEnvelope envelope) {
+    private async Task<QueryResult> HandleListTenantsAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         TenantIndexReadModel? indexModel = await _daprClient
-            .GetStateAsync<TenantIndexReadModel>(StateStoreName, TenantIndexProjectionKey)
+            .GetStateAsync<TenantIndexReadModel>(
+                StateStoreName,
+                TenantIndexProjectionKey,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (indexModel is null) {
             PaginatedResult<TenantSummary> empty = new([], null, false);
@@ -475,7 +523,8 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return CreateSuccessResult(emptyPayload, "tenant-index");
         }
 
-        bool isGlobalAdmin = await IsGlobalAdminAsync(envelope.UserId).ConfigureAwait(false);
+        bool isGlobalAdmin = await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         IEnumerable<KeyValuePair<string, TenantIndexEntry>> tenants;
         if (isGlobalAdmin) {
@@ -498,25 +547,31 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 cursor,
                 pageSize,
                 kvp => kvp.Key,
-                kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status)),
+                kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status),
+                cancellationToken),
             ListTenantsQuery.QueryType,
             scope);
 
+        cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = JsonSerializer.SerializeToElement(result, s_queryJsonOptions);
         return CreateSuccessResult(payload, "tenant-index");
     }
 
-    private async Task<bool> IsAuthorizedForTenantAsync(string userId, TenantReadModel model) {
+    private async Task<bool> IsAuthorizedForTenantAsync(string userId, TenantReadModel model, CancellationToken cancellationToken) {
         if (model.Members.ContainsKey(userId)) {
             return true;
         }
 
-        return await IsGlobalAdminAsync(userId).ConfigureAwait(false);
+        return await IsGlobalAdminAsync(userId, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<bool> IsGlobalAdminAsync(string userId) {
+    private async Task<bool> IsGlobalAdminAsync(string userId, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         GlobalAdministratorReadModel? adminModel = await _daprClient
-            .GetStateAsync<GlobalAdministratorReadModel>(StateStoreName, GlobalAdminProjectionKey)
+            .GetStateAsync<GlobalAdministratorReadModel>(
+                StateStoreName,
+                GlobalAdminProjectionKey,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         return adminModel is not null && adminModel.Administrators.Contains(userId);

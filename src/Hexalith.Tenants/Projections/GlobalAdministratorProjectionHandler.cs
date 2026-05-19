@@ -26,7 +26,7 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
         PropertyNameCaseInsensitive = true,
     };
 
-    public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request) {
+    public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         if (!IsValidGlobalAdministratorIdentity(request)) {
             throw new ArgumentException(
@@ -34,19 +34,24 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
                 nameof(request));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         GlobalAdministratorReadModel state = new();
         foreach (ProjectionEventDto? evt in request.Events ?? []) {
             if (evt is null) {
                 continue;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             ApplyEvent(state, evt);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         await daprClient.SaveStateAsync(
             StateStoreName,
             GlobalAdministratorsProjectionKey,
-            state).ConfigureAwait(false);
+            state,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new ProjectionResponse(
             "global-administrators",

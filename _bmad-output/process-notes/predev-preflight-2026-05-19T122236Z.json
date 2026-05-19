@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "produced_by": "jobs/preflight-predev-hardening.py",
-  "timestamp": "2026-05-19T12:29:14Z",
+  "timestamp": "2026-05-19T12:22:36Z",
   "repo": "D:\\Hexalith.Tenants",
   "result": "fail",
   "bootstrap_actions": [],
@@ -12,8 +12,8 @@
       "path": "D:\\Hexalith.Tenants\\_bmad-output\\implementation-artifacts\\sprint-status.yaml",
       "result": "pass",
       "details": "PARSE OK",
-      "file_size_bytes": 17118,
-      "line_count": 257,
+      "file_size_bytes": 17014,
+      "line_count": 256,
       "top_level_keys": [
         "development_status",
         "generated",
@@ -63,7 +63,7 @@
         ":(exclude)_bmad-output/process-notes/preflight-latest.json"
       ],
       "exit_code": 0,
-      "stdout": " M .claude/settings.local.json\n M samples/Hexalith.Tenants.Sample/Program.cs\n M src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs\n M src/Hexalith.Tenants/Program.cs\n M src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs\n M src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs\n M src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs\n M src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs\n M tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs\n M tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs\n?? _bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md\n?? _bmad-output/test-artifacts/test-design-epic-10.md\n?? _bmad-output/test-artifacts/test-design-progress.md\n?? tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs\n?? tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceIntegrationTests.cs\n?? tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs\n",
+      "stdout": " M .claude/settings.local.json\n M Hexalith.EventStore\n M _bmad-output/implementation-artifacts/10-3a-eventstore-projection-cancellation-api-prerequisite.md\n M _bmad-output/implementation-artifacts/10-3b-cancellation-token-threading-for-tenant-projection-queries.md\n M _bmad-output/implementation-artifacts/deferred-work.md\n M _bmad-output/implementation-artifacts/sprint-status.yaml\n M samples/Hexalith.Tenants.Sample/Program.cs\n M tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs\n M tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs\n?? _bmad-output/implementation-artifacts/epic-9-retro-2026-05-19.md\n?? _bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md\n?? _bmad-output/test-artifacts/test-design-epic-10.md\n?? _bmad-output/test-artifacts/test-design-progress.md\n?? tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs\n?? tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceIntegrationTests.cs\n?? tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs\n",
       "stderr": "",
       "dirty_path_count": 16,
       "result": "fail",

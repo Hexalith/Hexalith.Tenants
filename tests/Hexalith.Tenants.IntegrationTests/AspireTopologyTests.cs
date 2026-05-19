@@ -25,28 +25,28 @@ public class AspireTopologyTests {
     public AspireTopologyTests(AspireTopologyFixture fixture) => _fixture = fixture;
 
     [DaprFact]
-    public async Task CommandApi_resource_starts_and_is_healthy() {
+    public async Task CommandApi_resource_starts_and_is_alive() {
         _fixture.SkipIfUnavailable();
 
-        using HttpResponseMessage response = await _fixture.CommandApiClient.GetAsync("/health");
+        using HttpResponseMessage response = await _fixture.CommandApiClient.GetAsync("/alive");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [DaprFact]
-    public async Task Tenants_resource_starts_and_is_healthy() {
+    public async Task Tenants_resource_starts_and_is_alive() {
         _fixture.SkipIfUnavailable();
 
-        using HttpResponseMessage response = await _fixture.TenantsClient.GetAsync("/health");
+        using HttpResponseMessage response = await _fixture.TenantsClient.GetAsync("/alive");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [DaprFact]
-    public async Task Sample_resource_starts_and_is_healthy() {
+    public async Task Sample_resource_starts_and_is_alive() {
         _fixture.SkipIfUnavailable();
 
-        using HttpResponseMessage response = await _fixture.SampleClient.GetAsync("/health");
+        using HttpResponseMessage response = await _fixture.SampleClient.GetAsync("/alive");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }

@@ -43,9 +43,11 @@ internal static partial class TenantProjectionWritePolicy {
         string eventTypes = BuildBoundedEventTypes(events);
 
         for (int attempt = 1; attempt <= MaxAttempts; attempt++) {
+            cancellationToken.ThrowIfCancellationRequested();
             ProjectionStateRead<TValue> read = await stateStore
                 .GetStateAndETagAsync<TValue>(storeName, key, cancellationToken)
                 .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Reload-and-merge: when prior state exists we reuse it and re-apply the incoming
             // events. This works under both full-history replay (where reapplying is a no-op
@@ -62,9 +64,11 @@ internal static partial class TenantProjectionWritePolicy {
                     continue;
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 applyEvent(state, evt);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool saved = await stateStore
                 .TrySaveStateAsync(
                     storeName,
@@ -141,11 +145,14 @@ internal static partial class TenantProjectionWritePolicy {
         string eventTypes = BuildBoundedEventTypes(events);
 
         for (int attempt = 1; attempt <= MaxAttempts; attempt++) {
+            cancellationToken.ThrowIfCancellationRequested();
             ProjectionStateRead<TValue> read = await stateStore
                 .GetStateAndETagAsync<TValue>(storeName, key, cancellationToken)
                 .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
             TValue state = mergeState(read.Value ?? defaultFactory(), incomingState);
+            cancellationToken.ThrowIfCancellationRequested();
 
             bool saved = await stateStore
                 .TrySaveStateAsync(

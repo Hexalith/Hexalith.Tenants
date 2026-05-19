@@ -52,8 +52,9 @@ public sealed class TenantProjectionHandler {
         _logger = logger;
     }
 
-    public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request) {
+    public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
 
         IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
 
@@ -62,6 +63,7 @@ public sealed class TenantProjectionHandler {
         // any state-store write commits — extending the spirit of AC12 to the
         // tenant read-model and singleton-index writes too.
         TenantAuditReadModel incomingAuditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+        cancellationToken.ThrowIfCancellationRequested();
 
         TenantReadModel state = await TenantProjectionWritePolicy
             .SaveWithOptimisticConcurrencyAsync(
@@ -73,8 +75,10 @@ public sealed class TenantProjectionHandler {
                 nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
                 events,
                 static () => new TenantReadModel(),
-                ApplyEvent)
+                ApplyEvent,
+                cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         _ = await TenantProjectionWritePolicy
             .SaveMergedWithOptimisticConcurrencyAsync(
@@ -87,8 +91,10 @@ public sealed class TenantProjectionHandler {
                 events,
                 incomingAuditModel,
                 static () => new TenantAuditReadModel(),
-                MergeAuditState)
+                MergeAuditState,
+                cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         _ = await TenantProjectionWritePolicy
             .SaveWithOptimisticConcurrencyAsync(
@@ -100,8 +106,10 @@ public sealed class TenantProjectionHandler {
                 nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
                 events,
                 static () => new TenantIndexReadModel(),
-                ApplyIndexEvent)
+                ApplyIndexEvent,
+                cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new ProjectionResponse(
             "tenants",

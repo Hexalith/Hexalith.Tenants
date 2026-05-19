@@ -119,8 +119,12 @@ app.MapPost("/process", async (
     DomainServiceRequestHandler handler,
     CancellationToken cancellationToken) =>
     Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
-app.MapPost("/project", async (ProjectionRequest request, DaprClient daprClient, ILoggerFactory loggerFactory)
-    => await new ProjectionDispatcher(daprClient, loggerFactory).DispatchAsync(request).ConfigureAwait(false));
+app.MapPost("/project", async (
+    ProjectionRequest request,
+    DaprClient daprClient,
+    ILoggerFactory loggerFactory,
+    CancellationToken cancellationToken)
+    => await new ProjectionDispatcher(daprClient, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
 app.MapSubscribeHandler();
 app.MapActorsHandlers();
 

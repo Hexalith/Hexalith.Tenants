@@ -19,7 +19,7 @@ public sealed class ProjectionDispatcher(DaprClient daprClient, ILoggerFactory? 
 
     private readonly ILoggerFactory _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
 
-    public async Task<IResult> DispatchAsync(ProjectionRequest request) {
+    public async Task<IResult> DispatchAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         switch (request.Domain) {
@@ -27,7 +27,7 @@ public sealed class ProjectionDispatcher(DaprClient daprClient, ILoggerFactory? 
                 ProjectionResponse tenantsResponse = await new TenantProjectionHandler(
                     daprClient,
                     _loggerFactory.CreateLogger<TenantProjectionHandler>())
-                    .ProjectAsync(request).ConfigureAwait(false);
+                    .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                 return Results.Ok(tenantsResponse);
 
             case GlobalAdministratorsDomain:
@@ -39,7 +39,7 @@ public sealed class ProjectionDispatcher(DaprClient daprClient, ILoggerFactory? 
                 }
 
                 ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(daprClient)
-                    .ProjectAsync(request).ConfigureAwait(false);
+                    .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                 return Results.Ok(globalAdminResponse);
 
             default:

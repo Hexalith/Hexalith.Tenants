@@ -373,6 +373,58 @@ public class TenantProjectionHandlerTests {
         replaySaved.Entries.Select(e => e.EventId).ShouldBe(["evt-added", "evt-removed", "evt-role"]);
     }
 
+    [Fact]
+    public async Task ProjectAsync_WithPreCancelledTokenThrowsBeforeStateStoreAccessAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        OperationCanceledException exception = await Should.ThrowAsync<OperationCanceledException>(
+            () => CreateHandler(stateStore).ProjectAsync(CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1"), cancellation.Token));
+
+        exception.CancellationToken.ShouldBe(cancellation.Token);
+        stateStore.ReadCalls.ShouldBeEmpty();
+        stateStore.TrySaveAttempts.ShouldBeEmpty();
+        stateStore.PlainSaveAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_PassesCancellationTokenToProjectionStateReadsAndSavesAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        using var cancellation = new CancellationTokenSource();
+
+        _ = await CreateHandler(stateStore).ProjectAsync(
+            CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1"),
+            cancellation.Token);
+
+        stateStore.ReadCalls.ShouldAllBe(c => c.CancellationToken == cancellation.Token);
+        stateStore.TrySaveAttempts.ShouldAllBe(a => a.CancellationToken == cancellation.Token);
+    }
+
+    [Fact]
+    public async Task ProjectAsync_CancellationAfterTenantSaveStopsBeforeLaterProjectionWritesAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        using var cancellation = new CancellationTokenSource();
+        stateStore.CancelAfterTrySave(TenantProjectionKey, cancellation);
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(
+            () => CreateHandler(stateStore).ProjectAsync(
+                CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1"),
+                cancellation.Token));
+
+        stateStore.ReadCalls.Single().Key.ShouldBe(TenantProjectionKey);
+        stateStore.TrySaveAttempts.Single().Key.ShouldBe(TenantProjectionKey);
+        stateStore.TrySaveAttempts.ShouldNotContain(a => a.Key == TenantAuditProjectionKey);
+        stateStore.TrySaveAttempts.ShouldNotContain(a => a.Key == TenantIndexKey);
+    }
+
     private static TenantProjectionHandler CreateHandler(ScriptedTenantProjectionStateStore stateStore) =>
         new(stateStore, NullLogger<TenantProjectionHandler>.Instance);
 
@@ -445,6 +497,8 @@ public class TenantProjectionHandlerTests {
     private sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStateStore {
         private readonly Dictionary<string, Queue<object>> _reads = [];
         private readonly Dictionary<string, Queue<bool>> _trySaveResults = [];
+        private CancellationTokenSource? _cancelAfterTrySaveSource;
+        private string? _cancelAfterTrySaveKey;
 
         public List<SaveAttempt> PlainSaveAttempts { get; } = [];
 
@@ -471,12 +525,20 @@ public class TenantProjectionHandlerTests {
             queue.Enqueue(result);
         }
 
+        public void CancelAfterTrySave(string key, CancellationTokenSource cancellationSource) {
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            ArgumentNullException.ThrowIfNull(cancellationSource);
+
+            _cancelAfterTrySaveKey = key;
+            _cancelAfterTrySaveSource = cancellationSource;
+        }
+
         public Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
             string storeName,
             string key,
             CancellationToken cancellationToken)
             where TValue : class {
-            ReadCalls.Add(new ReadCall(storeName, key, typeof(TValue)));
+            ReadCalls.Add(new ReadCall(storeName, key, typeof(TValue), cancellationToken));
             Queue<object> queue = _reads[key];
             return Task.FromResult((ProjectionStateRead<TValue>)queue.Dequeue());
         }
@@ -495,7 +557,8 @@ public class TenantProjectionHandlerTests {
                 value,
                 string.Empty,
                 stateOptions ?? new StateOptions(),
-                typeof(TValue)));
+                typeof(TValue),
+                cancellationToken));
             return Task.CompletedTask;
         }
 
@@ -508,13 +571,18 @@ public class TenantProjectionHandlerTests {
             IReadOnlyDictionary<string, string>? metadata = null,
             CancellationToken cancellationToken = default)
             where TValue : class {
-            TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, stateOptions, typeof(TValue)));
+            TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, stateOptions, typeof(TValue), cancellationToken));
             Queue<bool> queue = _trySaveResults[key];
-            return Task.FromResult(queue.Dequeue());
+            bool result = queue.Dequeue();
+            if (string.Equals(_cancelAfterTrySaveKey, key, StringComparison.Ordinal)) {
+                _cancelAfterTrySaveSource?.Cancel();
+            }
+
+            return Task.FromResult(result);
         }
     }
 
-    private sealed record ReadCall(string StoreName, string Key, Type ValueType);
+    private sealed record ReadCall(string StoreName, string Key, Type ValueType, CancellationToken CancellationToken);
 
     private sealed record SaveAttempt(
         string StoreName,
@@ -522,5 +590,6 @@ public class TenantProjectionHandlerTests {
         object Value,
         string ETag,
         StateOptions StateOptions,
-        Type ValueType);
+        Type ValueType,
+        CancellationToken CancellationToken);
 }
