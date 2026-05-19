@@ -5,13 +5,14 @@
   "collection_mode": "sequential",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
-  "gate_basis": "priority_thresholds_plus_test_design_exit_criteria",
-  "source_sha": "",
+  "gate_basis": "priority_thresholds_with_review_patch_overlay",
+  "source_sha": "4439159",
   "target": {
-    "type": "epic",
-    "id": "epic-10",
-    "label": "Epic 10 — Durable Projection Write Safety"
+    "type": "story",
+    "id": "10-4",
+    "label": "Story 10.4 — Projection Write Conformance and Recovery Tests"
   },
+  "story_status_at_gate": "review",
   "decision_mode": "human_with_data",
   "evaluator": "Jerome (drafted by Murat — Master Test Architect)",
   "confidence": "high",
@@ -19,13 +20,12 @@
     "resolution_mode": "formal_requirements",
     "confidence": "high",
     "sources": [
-      "_bmad-output/test-artifacts/test-design-epic-10.md",
-      "_bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md",
+      "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md",
       "_bmad-output/implementation-artifacts/10-1-optimistic-concurrency-for-tenant-read-model-writes.md",
       "_bmad-output/implementation-artifacts/10-2-audit-projection-write-safety.md",
-      "_bmad-output/implementation-artifacts/10-3a-eventstore-projection-cancellation-api-prerequisite.md",
       "_bmad-output/implementation-artifacts/10-3b-cancellation-token-threading-for-tenant-projection-queries.md",
-      "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md",
+      "_bmad-output/test-artifacts/test-design-epic-10.md",
+      "_bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md",
       "_bmad-output/implementation-artifacts/sprint-status.yaml"
     ],
     "external_pointer_status": "not_used",
@@ -33,108 +33,128 @@
   },
   "coverage": {
     "inventory": {
-      "covered": 39,
-      "total": 46,
-      "pct": 85
+      "covered_strict_FULL": 2,
+      "covered_at_least_PARTIAL": 11,
+      "total": 11,
+      "pct_strict_FULL": 18,
+      "pct_at_least_PARTIAL": 100
     },
     "priority_breakdown": {
-      "P0": { "total": 3, "covered": 3, "pct": 100 },
-      "P1": { "total": 13, "covered": 11, "pct": 85 },
-      "P2": { "total": 11, "covered": 10, "pct": 91 },
-      "P3": { "total": 0, "covered": 0, "pct": 100 }
+      "P0": {
+        "total": 1,
+        "covered_strict_FULL": 1,
+        "covered_at_least_PARTIAL": 1,
+        "pct_strict_FULL": 100,
+        "pct_at_least_PARTIAL": 100,
+        "note": "AC#1 covers R-001 BLOCKER at unit tier via T-10.4-CONF-002 + T-10.4-CONF-003"
+      },
+      "P1": {
+        "total": 8,
+        "covered_strict_FULL": 0,
+        "covered_at_least_PARTIAL": 8,
+        "pct_strict_FULL": 0,
+        "pct_at_least_PARTIAL": 100,
+        "note": "All 8 P1 ACs have passing tests; strict-FULL 0% reflects 11 open Review patches against test refinement (not coverage absence)"
+      },
+      "P2": {
+        "total": 2,
+        "covered_strict_FULL": 1,
+        "covered_at_least_PARTIAL": 2,
+        "pct_strict_FULL": 50,
+        "pct_at_least_PARTIAL": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered_strict_FULL": 0,
+        "covered_at_least_PARTIAL": 0,
+        "pct_strict_FULL": 100,
+        "pct_at_least_PARTIAL": 100
+      }
     },
     "by_level": {
-      "unit": { "tests": 22, "criteria_covered": 38 },
-      "integration": { "tests": 1, "criteria_covered": 3 },
-      "e2e": { "tests": 3, "criteria_covered": 1 }
+      "unit": { "tests": 23, "criteria_covered": 10 },
+      "api": { "tests": 0, "criteria_covered": 0 },
+      "component": { "tests": 0, "criteria_covered": 0 },
+      "e2e": { "tests": 0, "criteria_covered": 0 },
+      "other": { "tests": 1, "criteria_covered": 1, "note": "AC#9 Dev Agent Record (meta-doc evidence)" }
     }
   },
   "tests": {
-    "files": 13,
-    "cases": 640,
-    "skipped_cases": 1,
+    "files": 3,
+    "cases": 24,
+    "skipped_cases": 0,
     "fixme_cases": 0,
-    "pending_cases": 0
+    "pending_cases": 0,
+    "story_focused_pass_count": 23,
+    "solution_gate_pass_count": 655,
+    "solution_gate_skip_count": 1,
+    "baseline_note": "655/1 from full Debug/no-restore solution gate (post-Story-11-1, per sprint-status 2026-05-19). Story-10.4 scope: 23 in-scope tests + 1 fixture; all passing."
   },
   "risk_summary": {
     "critical_open": 0,
     "high_open": 0,
-    "medium_open": 1,
-    "low_open": 0
+    "medium_open": 0,
+    "low_open": 0,
+    "partial_refinement_acs": 9,
+    "open_review_patches": 16,
+    "note": "No NONE/uncovered ACs. 9 ACs carry open Review patches that block story close. 16 patches total (12 patch items + 4 decision-driven D2/D3/D4/D5)."
   },
   "heuristics": {
     "endpoint_gaps": 0,
-    "auth_negative_path_status": "present",
+    "auth_negative_path_status": "not_applicable",
     "error_path_status": "present",
     "ui_journey_status": "not_applicable",
     "ui_state_status": "not_applicable",
-    "pii_non_leak_status": "partial",
-    "ci_guards_status": "partial"
+    "state_key_coverage_status": "full",
+    "pii_sentinel_status": "partial",
+    "missing_pii_sentinel_gates": 3,
+    "fixture_fail_fast_status": "partial",
+    "integration_tier_defense_in_depth_status": "missing_for_R-001",
+    "structured_kv_diagnostic_status": "partial",
+    "wins_by_contest_status": "missing"
   },
-  "blockers": [
+  "decision": "CONCERNS",
+  "decision_rationale_short": "All 11 ACs at-least-PARTIAL, all tests pass, P0 BLOCKER covered, but 16 open Review patches block review→done transition.",
+  "blockers": [],
+  "blocking_items_for_story_close": [
+    {
+      "id": "REC-1-STORY-CLOSE",
+      "severity": "MEDIUM",
+      "description": "Apply 16 open Review patches before Story 10.4 closes review",
+      "remediation_recommendation_id": "STORY-10-4-REC-1",
+      "effort_hours": "12-20",
+      "target_date": "2026-05-26"
+    }
+  ],
+  "blocking_items_for_epic_close_only": [
     {
       "id": "T-R001-INT-001",
-      "severity": "low",
-      "reason": "Skipped by precondition (DAPR/Redis not available in current gate run); intentional skip-by-precondition per Story 10.4 design",
-      "test_file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceIntegrationTests.cs",
-      "test_title": "TenantIndex_RealDaprBackedConflictThenSuccess_PreservesIndexAsync"
-    },
-    {
-      "id": "T-R012-CI-001",
-      "severity": "medium",
-      "reason": "CI submodule pointer guard not implemented; required by test-design Exit Criteria",
-      "test_file": ".github/workflows/{ci,release}.yml",
-      "test_title": "EventStore submodule pointer drift check"
+      "severity": "MEDIUM",
+      "description": "Planned DAPR-backed integration test never built; carryover from Epic 10 REC-1B",
+      "remediation_recommendation_id": "STORY-10-4-REC-4",
+      "effort_hours": "0.5 (waive) / 3-6 (build)",
+      "target_date": "2026-05-26"
     }
   ],
   "recommendations": [
-    {
-      "priority": "HIGH",
-      "id": "REC-1-ci-guard",
-      "action": "Implement T-R012-CI-001 submodule pointer guard"
-    },
-    {
-      "priority": "MEDIUM",
-      "id": "REC-2-audit-sentinel",
-      "action": "Add Audit_RetryExhaustion sentinel-value gate test"
-    },
-    {
-      "priority": "MEDIUM",
-      "id": "REC-3-cancellation-sentinel",
-      "action": "Add Cancellation_Failure sentinel-value gate test"
-    },
-    {
-      "priority": "LOW",
-      "id": "REC-4-eventstore-cross-check",
-      "action": "Cross-check EventStore R-006 cache-coherence coverage"
-    },
-    {
-      "priority": "LOW",
-      "id": "REC-5-test-review",
-      "action": "Run /bmad-testarch-test-review on new test files"
-    }
+    { "priority": "MEDIUM", "id": "STORY-10-4-REC-1", "action": "Apply the 16 open Review patches before Story 10.4 closes review", "effort_hours": "12-20", "target_date": "2026-05-26", "blocks_story_close": true },
+    { "priority": "MEDIUM", "id": "STORY-10-4-REC-2", "action": "Add Audit_RetryExhaustion sentinel test (REC-2 carryover)", "effort_hours": "1-2", "target_date": "2026-05-26" },
+    { "priority": "MEDIUM", "id": "STORY-10-4-REC-3", "action": "Add Cancellation_Failure sentinel test (REC-3 carryover)", "effort_hours": "1-2", "target_date": "2026-05-26" },
+    { "priority": "MEDIUM", "id": "STORY-10-4-REC-4", "action": "Decide T-R001-INT-001 build or waive (REC-1B carryover; blocks Epic close, not story close)", "effort_hours": "0.5 (waive) / 3-6 (build)", "target_date": "2026-05-26", "blocks_epic_close": true },
+    { "priority": "LOW", "id": "STORY-10-4-REC-5", "action": "Run /bmad-testarch-test-review against conformance file + fixture", "effort_hours": "1" },
+    { "priority": "LOW", "id": "STORY-10-4-REC-6", "action": "Standard /bmad:tea:test-review follow-up", "effort_hours": "" }
   ],
-  "gate_status": "CONCERNS",
-  "gate_criteria": {
-    "p0_coverage_required": "100%",
-    "p0_coverage_actual": "100%",
-    "p0_status": "MET",
-    "p1_coverage_target": "90%",
-    "p1_coverage_minimum": "80%",
-    "p1_coverage_actual": "~91%",
-    "p1_status": "MET",
-    "overall_coverage_minimum": "80%",
-    "overall_coverage_actual": "95%",
-    "overall_status": "MET",
-    "test_design_exit_criteria": {
-      "ci_guard_T-R012-CI-001": "NOT_MET",
-      "pii_non_leak_sentinel_gates": "PARTIAL (1 of 3 explicit; 2 covered by behavioral analog only)"
-    }
-  },
   "links": {
     "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
     "trace_report_url": "",
-    "artifact_url": "",
-    "journey_evidence_url": ""
+    "coverage_matrix_path": "_bmad-output/test-artifacts/trace-coverage-matrix-story-10-4-2026-05-19.json",
+    "gate_decision_path": "_bmad-output/test-artifacts/gate-decision.json",
+    "story_file_path": "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md",
+    "prior_epic_10_trace": "_bmad-output/test-artifacts/traceability-matrix-epic-10-2026-05-19.md",
+    "prior_epic_10_coverage_matrix": "_bmad-output/test-artifacts/trace-coverage-matrix-2026-05-19.json",
+    "prior_epic_10_gate": "_bmad-output/test-artifacts/gate-decision-epic-10-2026-05-19.json",
+    "prior_epic_10_summary": "_bmad-output/test-artifacts/e2e-trace-summary-epic-10-2026-05-19.json",
+    "commit_url": "",
+    "ci_run_note": "Substitute CI URL after next GitHub Actions run completes"
   }
 }

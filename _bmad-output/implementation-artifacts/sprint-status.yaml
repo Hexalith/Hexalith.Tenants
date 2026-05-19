@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-19 (10-4 projection write conformance code review: 5 decisions resolved + 12 patches applied + 9 deferred + 12 dismissed; ApplyIndexEvent reverted to private; fixture rewritten to drive through ProjectAsync; structured logger capture for R-007; fail-fast AC10 enforcement via MarkTerminalFailure; full Debug/no-restore solution gate passed [660 passed, 1 skipped]; story -> done)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation implemented; full Debug/no-restore solution gate passed [655 passed, 1 skipped]; story -> review)
 # last_updated: 2026-05-19 (12-3 three-phase command feedback sequencing story context created; story -> ready-for-dev)
 # last_updated: 2026-05-19 (12-2 audit timeline and consequence preview readiness story context created; story -> ready-for-dev)
@@ -247,7 +248,7 @@ development_status:
   10-2-audit-projection-write-safety: done
   10-3a-eventstore-projection-cancellation-api-prerequisite: done
   10-3b-cancellation-token-threading-for-tenant-projection-queries: done
-  10-4-projection-write-conformance-and-recovery-tests: review
+  10-4-projection-write-conformance-and-recovery-tests: done
   epic-10-retrospective: optional
 
   # Epic 11: Production Authorization Readiness

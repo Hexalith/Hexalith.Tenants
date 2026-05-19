@@ -5,11 +5,12 @@
 
 // Projection-write conformance fixture completed by Story 10.4.
 // Test design reference: _bmad-output/test-artifacts/test-design-epic-10.md (T-R001-UNIT-001, T-R001-UNIT-002, T-R001-INT-001).
-// R-008 RULE: this fixture MUST drive the production TenantProjectionWritePolicy directly.
-// It is forbidden to re-implement retry/merge algorithm logic inside this fixture.
+// The fixture drives production projection writes exclusively through TenantProjectionHandler.ProjectAsync,
+// which routes into TenantProjectionWritePolicy. Tests cannot bypass the production helper by construction.
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -29,24 +30,12 @@ namespace Hexalith.Tenants.Server.Tests.Projections;
 
 /// <summary>
 /// Conformance fixture for projection-write safety tests (Story 10.4, R-001 trio).
+/// Owns deterministic scripted state-store outcomes and a structured-state capturing
+/// logger for negative diagnostic-content assertions (risk R-007).
+/// Production behavior is exercised exclusively through <see cref="TenantProjectionHandler.ProjectAsync"/>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Owns deterministic scripted state-store outcomes, a capturing logger for negative
-/// diagnostic-content assertions (risk R-007), and the entry-point method that drives
-/// the production <see cref="TenantProjectionWritePolicy"/> helper.
-/// </para>
-/// <para>
-/// R-008 contract: this fixture MUST drive the production helper. It must NEVER
-/// re-implement retry / merge / ETag logic in test code. The mechanical assertion
-/// in <see cref="BindsToProductionPolicy"/> exists to fail the build if a future
-/// refactor tries to substitute a test-only implementation.
-/// </para>
-/// </remarks>
 internal sealed class ProjectionWriteConformanceFixture
 {
-    private bool _productionPolicyInvoked;
-
     public const string StateStoreName = "statestore";
     public const string TenantAuditProjectionKey = "audit:tenant-1";
     public const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
@@ -60,48 +49,6 @@ internal sealed class ProjectionWriteConformanceFixture
 
     public Task<ProjectionResponse> RunProjectionHandlerAsync(ProjectionRequest request) =>
         new TenantProjectionHandler(StateStore, Logger).ProjectAsync(request);
-
-    /// <summary>
-    /// Drives the production singleton-index write path
-    /// (<see cref="TenantProjectionWritePolicy.SaveWithOptimisticConcurrencyAsync{TValue}"/>)
-    /// against the scripted state store.
-    /// </summary>
-    /// <remarks>
-    /// Invokes the production policy directly and delegates event mutation to
-    /// <see cref="TenantProjectionHandler.ApplyIndexEvent"/>.
-    /// </remarks>
-    public async Task<TenantIndexReadModel> RunSingletonIndexConformanceAsync(
-        IReadOnlyCollection<ProjectionEventDto?> events)
-    {
-        _productionPolicyInvoked = true;
-
-        return await TenantProjectionWritePolicy
-            .SaveWithOptimisticConcurrencyAsync(
-                StateStore,
-                Logger,
-                StateStoreName,
-                TenantIndexProjectionKey,
-                TenantIndexKeyCategory,
-                nameof(ProjectionWriteConformanceFixture) + "." + nameof(RunSingletonIndexConformanceAsync),
-                events,
-                static () => new TenantIndexReadModel(),
-                TenantProjectionHandler.ApplyIndexEvent)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Mechanical assertion: confirms this fixture invokes the production helper type
-    /// (R-008 rule). A test-only reimplementation MUST fail this assertion.
-    /// </summary>
-    /// <remarks>
-    /// Returns true only after this fixture has invoked the production policy type.
-    /// </remarks>
-    public bool BindsToProductionPolicy() =>
-        _productionPolicyInvoked
-        && string.Equals(
-            typeof(TenantProjectionWritePolicy).FullName,
-            "Hexalith.Tenants.Projections.TenantProjectionWritePolicy",
-            StringComparison.Ordinal);
 
     public void EnqueueSuccessfulTenantDetailSave()
     {
@@ -120,6 +67,27 @@ internal sealed class ProjectionWriteConformanceFixture
         StateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexProjectionKey, null, null);
         StateStore.EnqueueTrySave(TenantIndexProjectionKey, true);
     }
+
+    // ---- Fixture contract API (AC5): per-key inspection helpers so future projections
+    // do not duplicate LINQ boilerplate across tests.
+
+    public int GetReadAttemptCount(string key) =>
+        StateStore.ReadCalls.Count(c => c.Key == key);
+
+    public int GetSaveAttemptCount(string key) =>
+        StateStore.TrySaveAttempts.Count(a => a.Key == key);
+
+    public SaveAttempt GetSaveAttempt(string key, int attemptIndex)
+    {
+        IReadOnlyList<SaveAttempt> saves = [.. StateStore.TrySaveAttempts.Where(a => a.Key == key)];
+        return attemptIndex < 0 || attemptIndex >= saves.Count
+            ? throw new InvalidOperationException(
+                $"No save attempt at index {attemptIndex} for key '{key}'. Total attempts: {saves.Count}.")
+            : saves[attemptIndex];
+    }
+
+    public IReadOnlyList<CapturedLog> GetLogEntries(int eventId) =>
+        [.. Logger.Entries.Where(e => e.EventId.Id == eventId)];
 
     public static ProjectionRequest CreateRequest(params ProjectionEventDto[] events) =>
         new(TenantId, "tenants", TenantId, events);
@@ -153,12 +121,13 @@ internal sealed class ProjectionWriteConformanceFixture
         string eventId,
         string eventType,
         System.DateTimeOffset timestamp,
+        string actorId = "actor-1",
         IReadOnlyDictionary<string, string>? narrativePayload = null) =>
         new(
             eventId,
             eventType,
             AuditEventCategory.Access,
-            "actor-1",
+            actorId,
             timestamp,
             TenantId,
             narrativePayload ?? new Dictionary<string, string>(StringComparer.Ordinal) { ["source"] = "persisted" });
@@ -182,13 +151,14 @@ internal sealed class ProjectionWriteConformanceFixture
 
 /// <summary>
 /// Scripted, per-key, per-attempt state-store fake for projection-write conformance tests.
-/// Mirrors the existing pattern in <c>TenantProjectionHandlerTests</c>; intentionally
-/// kept independent so Story 10.4 can extend it without touching the existing handler tests.
+/// Fails fast on operations against a key that has been marked terminally failed so the
+/// AC10 "no extra writes after terminal failure" invariant is enforced at the seam.
 /// </summary>
 internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStateStore
 {
     private readonly Dictionary<string, Queue<object>> _reads = [];
     private readonly Dictionary<string, Queue<bool>> _trySaveResults = [];
+    private readonly HashSet<string> _terminalFailureKeys = new(StringComparer.Ordinal);
 
     public List<ReadCall> ReadCalls { get; } = [];
 
@@ -219,18 +189,37 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
         queue.Enqueue(result);
     }
 
+    /// <summary>
+    /// Marks a key as terminally failed. Subsequent reads or save attempts against that key
+    /// throw, enforcing the AC10 invariant that production code must not retry after the
+    /// retry budget is exhausted (Story 10.4, Task line 41).
+    /// </summary>
+    public void MarkTerminalFailure(string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        _terminalFailureKeys.Add(key);
+    }
+
     public Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
         string storeName,
         string key,
         System.Threading.CancellationToken cancellationToken = default)
         where TValue : class
     {
+        if (_terminalFailureKeys.Contains(key))
+        {
+            throw new InvalidOperationException(
+                $"AC10 violation: production code attempted to read key '{key}' after the retry budget was exhausted. " +
+                "TenantProjectionWritePolicy must throw without further state-store traffic on retry exhaustion.");
+        }
+
         ReadCalls.Add(new ReadCall(storeName, key, typeof(TValue)));
         if (!_reads.TryGetValue(key, out Queue<object>? queue) || queue.Count == 0)
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Scripted state store has no remaining read outcomes for key '{key}'. " +
-                "Ensure EnqueueRead was called for every expected attempt.");
+                "Either production code performed more reads than the test scripted, " +
+                "or EnqueueRead must be called for every expected attempt.");
         }
 
         return Task.FromResult((ProjectionStateRead<TValue>)queue.Dequeue());
@@ -265,12 +254,20 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
         System.Threading.CancellationToken cancellationToken = default)
         where TValue : class
     {
+        if (_terminalFailureKeys.Contains(key))
+        {
+            throw new InvalidOperationException(
+                $"AC10 violation: production code attempted to save key '{key}' after the retry budget was exhausted. " +
+                "TenantProjectionWritePolicy must throw without further state-store traffic on retry exhaustion.");
+        }
+
         TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, stateOptions, typeof(TValue)));
         if (!_trySaveResults.TryGetValue(key, out Queue<bool>? queue) || queue.Count == 0)
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Scripted state store has no remaining TrySave outcomes for key '{key}'. " +
-                "Ensure EnqueueTrySave was called for every expected attempt.");
+                "Either production code attempted to write more times than the test scripted, " +
+                "or EnqueueTrySave must be called for every expected attempt.");
         }
 
         return Task.FromResult(queue.Dequeue());
@@ -288,9 +285,9 @@ internal sealed record SaveAttempt(
     System.Type ValueType);
 
 /// <summary>
-/// Minimal capturing <see cref="ILogger{TCategoryName}"/> for negative-content
-/// diagnostic assertions (risk R-007). Records every emitted log entry's level,
-/// EventId, formatted message, and state for inspection.
+/// Capturing <see cref="ILogger{TCategoryName}"/> that records the full structured-state
+/// key/value pairs for source-generated log calls (risk R-007). Enables AC11 / AC3
+/// assertions on individual log fields rather than brittle full-message substring matches.
 /// </summary>
 internal sealed class CapturingLogger<TCategory> : ILogger<TCategory>
 {
@@ -309,12 +306,30 @@ internal sealed class CapturingLogger<TCategory> : ILogger<TCategory>
         System.Func<TState, System.Exception?, string> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
+        IReadOnlyDictionary<string, object?>? structured = ExtractStructuredState(state);
         Entries.Add(new CapturedLog(
             logLevel,
             eventId,
             formatter(state, exception),
             state?.ToString() ?? string.Empty,
+            structured,
             exception));
+    }
+
+    private static IReadOnlyDictionary<string, object?>? ExtractStructuredState<TState>(TState state)
+    {
+        if (state is IReadOnlyList<KeyValuePair<string, object?>> pairs)
+        {
+            var dict = new Dictionary<string, object?>(pairs.Count, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, object?> pair in pairs)
+            {
+                dict[pair.Key] = pair.Value;
+            }
+
+            return dict;
+        }
+
+        return null;
     }
 }
 
@@ -323,4 +338,5 @@ internal sealed record CapturedLog(
     EventId EventId,
     string Message,
     string StateText,
+    IReadOnlyDictionary<string, object?>? StructuredState,
     System.Exception? Exception);

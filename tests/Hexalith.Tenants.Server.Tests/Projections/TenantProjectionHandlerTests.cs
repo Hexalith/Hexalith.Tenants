@@ -304,7 +304,6 @@ public class TenantProjectionHandlerTests {
 
         stateStore.ReadCalls.ShouldBeEmpty();
         stateStore.TrySaveAttempts.ShouldBeEmpty();
-        stateStore.PlainSaveAttempts.ShouldBeEmpty();
     }
 
     [Fact]
@@ -385,7 +384,6 @@ public class TenantProjectionHandlerTests {
         exception.CancellationToken.ShouldBe(cancellation.Token);
         stateStore.ReadCalls.ShouldBeEmpty();
         stateStore.TrySaveAttempts.ShouldBeEmpty();
-        stateStore.PlainSaveAttempts.ShouldBeEmpty();
     }
 
     [Fact]

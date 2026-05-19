@@ -1,0 +1,106 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-05-19T00:00:00.000Z",
+  "amended_at": "2026-05-19T00:00:00.000Z",
+  "amendment_log": [
+    {
+      "id": "VAL-1",
+      "change": "Updated rationale + blocking_items + p0_status note to reflect that T-R001-INT-001 was never implemented (file ProjectionWriteConformanceIntegrationTests.cs does not exist on disk). R-001 BLOCKER coverage is preserved at unit level; integration tier is now tracked as a HIGH advisory gap."
+    },
+    {
+      "id": "VAL-3",
+      "change": "Refreshed test baseline from 640/1 to 655/1 (post-Story-11-1 gate)"
+    },
+    {
+      "id": "VAL-6",
+      "change": "Added explicit nfr_status: NOT_ASSESSED"
+    },
+    {
+      "id": "VAL-7",
+      "change": "Added commit_url + ci_run reference in links"
+    },
+    {
+      "id": "VAL-8",
+      "change": "Added target_date: 2026-05-26 to REC-1 blocker"
+    }
+  ],
+  "repo": "Hexalith.Tenants",
+  "source_sha": "bcda64b05b20bf0b87da243c964672feeb852c48",
+  "target": {
+    "type": "epic",
+    "id": "epic-10",
+    "label": "Epic 10 — Durable Projection Write Safety"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds_plus_test_design_exit_criteria",
+  "gate_status": "CONCERNS",
+  "rationale": "Amended after validation pass (2026-05-19): P0 BLOCKER (R-001) coverage at unit level is 100% (2 unit tests pass and directly assert the BLOCKER scenario); however the planned defense-in-depth integration test T-R001-INT-001 (TenantIndex_RealDaprBackedConflictThenSuccess_PreservesIndexAsync in ProjectionWriteConformanceIntegrationTests.cs) was never implemented — the file does not exist on disk. Overall coverage is 95% (39/41 in-scope FULL), and P1 coverage is ~91% (>=90% target). Formal priority-threshold logic on a risk-coverage basis still yields PASS. The CONCERNS verdict is driven by THREE test-design Exit Criteria gaps: (1) CI guard T-R012-CI-001 (EventStore submodule pointer drift) not implemented in .github/workflows/{ci,release}.yml; (2) the planned T-R001-INT-001 integration tier never built (REC-1B); (3) two PARTIAL items (Story 10.2 AC#9 and Story 10.3B AC#7) leave the R-007 negative-content sentinel gates incomplete on the audit-key and cancellation-failure paths. Decision: CONCERNS — proceed with caution; address REC-1 (CI guard) before closing the epic, decide on REC-1B (build T-R001-INT-001 or formally waive the integration tier in a sprint-change-proposal), and ship REC-2 + REC-3 (sentinel analogs) as follow-up patches.",
+  "p0_status": "MET",
+  "p0_status_note": "P0 risk-coverage 100% (R-001 verified at unit level via T-R001-UNIT-001/002). P0 test-inventory coverage is 67% (2/3 planned tests implemented); the missing planned test is tracked as REC-1B advisory gap rather than a P0 FAIL because the BLOCKER risk it covers is already mitigated by unit-level coverage.",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "nfr_status": "NOT_ASSESSED",
+  "nfr_status_note": "No nfr-assessment.md was generated for this trace. Security/performance/reliability/maintainability NFRs are not part of the gate evidence; consider running /bmad-testarch-nfr before formal epic close.",
+  "test_baseline": {
+    "total_passed": 655,
+    "total_skipped": 1,
+    "total_failed": 0,
+    "gate_date": "2026-05-19",
+    "gate_source": "Full Debug/no-restore solution gate; baseline_note: post-Story-11-1 gate per sprint-status 2026-05-19 (the previous trace cited 640/1 which was the pre-Story-11-1 baseline)"
+  },
+  "critical_open": 0,
+  "high_open": 1,
+  "medium_open": 1,
+  "low_open": 0,
+  "partial_open": 2,
+  "deferred_to_other_repo": 2,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
+    "trace_validation_report_path": "_bmad-output/test-artifacts/trace-validation-report.md",
+    "coverage_matrix_path": "_bmad-output/test-artifacts/trace-coverage-matrix-2026-05-19.json",
+    "e2e_trace_summary_path": "_bmad-output/test-artifacts/e2e-trace-summary.json",
+    "test_design_source": "_bmad-output/test-artifacts/test-design-epic-10.md",
+    "atdd_checklist_source": "_bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md",
+    "commit_url": "https://github.com/Hexalith/Hexalith.Tenants/commit/bcda64b05b20bf0b87da243c964672feeb852c48",
+    "repo_url": "https://github.com/Hexalith/Hexalith.Tenants",
+    "ci_run_id": "local-gate-2026-05-19",
+    "ci_run_note": "No CI run ID; the 655/1 baseline is from a local full Debug/no-restore gate. A CI URL can be substituted once the next GitHub Actions run completes."
+  },
+  "blocks_epic_close": true,
+  "blocking_items": [
+    {
+      "id": "T-R012-CI-001",
+      "type": "ci_guard",
+      "description": "EventStore submodule pointer drift CI guard not implemented",
+      "remediation_owner": "CI/Platform",
+      "estimated_effort_hours": "2-4",
+      "remediation_recommendation_id": "REC-1",
+      "target_date": "2026-05-26",
+      "target_date_basis": "+7 days from amendment date; small CI workflow change with negligible blast radius"
+    },
+    {
+      "id": "T-R001-INT-001",
+      "type": "missing_planned_test",
+      "description": "Planned integration test ProjectionWriteConformanceIntegrationTests.cs / TenantIndex_RealDaprBackedConflictThenSuccess_PreservesIndexAsync was never implemented. R-001 BLOCKER coverage is preserved at unit level so this does NOT block the gate behaviorally — but it is a planned test-design item that was missed, and it should be either built or formally waived before the epic retrospective.",
+      "remediation_owner": "Story 10.4 follow-up dev or sprint-change-proposal author",
+      "estimated_effort_hours": "3-6 (build) or 0.5 (waive)",
+      "remediation_recommendation_id": "REC-1B",
+      "target_date": "2026-05-26",
+      "target_date_basis": "Tie to REC-1 cadence; decision (build vs. waive) should happen in the same close-out pass"
+    }
+  ],
+  "advisory_items": [
+    {
+      "id": "T-R007-UNIT-002-cancellation-sentinel",
+      "type": "test_partial",
+      "description": "Cancellation-failure path R-007 sentinel-value gate not explicit",
+      "remediation_recommendation_id": "REC-3"
+    },
+    {
+      "id": "Story-10.2-AC9-audit-sentinel",
+      "type": "test_partial",
+      "description": "Audit-key retry-exhaustion R-007 sentinel-value gate not explicit",
+      "remediation_recommendation_id": "REC-2"
+    }
+  ]
+}

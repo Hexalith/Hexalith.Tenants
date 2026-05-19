@@ -1,0 +1,366 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-05-19T00:00:00.000Z",
+  "trace_target": {
+    "type": "story",
+    "id": "10-4",
+    "label": "Story 10.4 — Projection Write Conformance and Recovery Tests"
+  },
+  "collection_mode": "sequential",
+  "allow_gate": true,
+  "coverage_basis": "acceptance_criteria",
+  "summary_confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md",
+      "_bmad-output/implementation-artifacts/10-1-optimistic-concurrency-for-tenant-read-model-writes.md",
+      "_bmad-output/implementation-artifacts/10-2-audit-projection-write-safety.md",
+      "_bmad-output/implementation-artifacts/10-3b-cancellation-token-threading-for-tenant-projection-queries.md",
+      "_bmad-output/test-artifacts/test-design-epic-10.md",
+      "_bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md",
+      "_bmad-output/implementation-artifacts/sprint-status.yaml"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "requirements": [
+    {
+      "id": "AC#1",
+      "title": "Conformance proves no event loss under concurrent update + replay on all 3 keys",
+      "priority": "P0",
+      "coverage": "FULL",
+      "level": "unit",
+      "risk_linkage": ["R-001", "R-002", "R-003"],
+      "tests": [
+        {"id": "T-10.4-CONF-002", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 93, "title": "TenantIndex_ConflictThenSuccess_PreservesAllPreviouslyIndexedTenantsAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 38, "title": "TenantDetail_ConflictThenSuccess_ReplaysIncomingBatchOnFreshReloadedStateAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 273, "title": "Audit_ConflictThenSuccess_PreservesPersistedAuthoritativeDuplicateAndOrdersByTimestampThenEventIdAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 67, "title": "ProjectAsync_TenantStateConflictReloadsStateAndRetriesExactlyOnceAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-004", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 94, "title": "ProjectAsync_TenantIndexConflictPreservesReloadedExistingTenantsAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-008", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 187, "title": "ProjectAsync_AuditStateConflictReloadsAndMergesEntriesByEventIdAsync", "level": "unit", "status": "active"}
+      ],
+      "notes": "FULL at unit tier. Planned defense-in-depth integration test T-R001-INT-001 was not implemented (carryover from prior Epic 10 trace VAL-1)."
+    },
+    {
+      "id": "AC#2",
+      "title": "Transient retry exercise — eventual success OR safe observable failure per implemented policy",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-001", "R-002", "R-003"],
+      "tests": [
+        {"id": "T-10.4-CONF-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 38, "title": "TenantDetail_ConflictThenSuccess_ReplaysIncomingBatchOnFreshReloadedStateAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-002", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 93, "title": "TenantIndex_ConflictThenSuccess_PreservesAllPreviouslyIndexedTenantsAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 160, "title": "TenantIndex_RetryExhaustion_FailsObservably_WithoutClaimingSuccessAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 273, "title": "Audit_ConflictThenSuccess_PreservesPersistedAuthoritativeDuplicateAndOrdersByTimestampThenEventIdAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 116, "title": "ProjectAsync_RetryExhaustionThrowsAfterMaxAttemptsAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-009", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 223, "title": "ProjectAsync_AuditRetryExhaustionThrowsWithoutSuccessfulProjectionAsync", "level": "unit", "status": "active"}
+      ],
+      "gap": "Open Review patch (story-file line 221): T-10.4-CONF-001 line 481-490 sets externallyReloaded.Members directly, bypassing Apply. 'Exactly once' provability is weakened — a regression that double-applies an event would not surface."
+    },
+    {
+      "id": "AC#3",
+      "title": "Retry exhaustion fails observably; diagnostics redact payload/display-name/cursor/membership/user labels",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-007"],
+      "tests": [
+        {"id": "T-10.4-CONF-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 160, "title": "TenantIndex_RetryExhaustion_FailsObservably_WithoutClaimingSuccessAsync (contains T-R007-UNIT-001 sentinel gate at lines 220-228)", "level": "unit", "status": "active"}
+      ],
+      "gap": "HIGH — missing dedicated sentinel gates for (a) tenant-detail retry-exhaustion, (b) audit-key retry-exhaustion (REC-2 carryover), (c) cancellation-failure path (REC-3 carryover). Open Review patch (story-file line 220) recommends extending sentinel breadth from tenant Name + userId to narrativePayload, EventTypeName, MessageId, correlationId, TenantConfigurationSet value."
+    },
+    {
+      "id": "AC#4",
+      "title": "Event ordering preserved across mixed event types on all 3 keys",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-002", "R-003"],
+      "tests": [
+        {"id": "T-10.4-CONF-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 38, "title": "TenantDetail_ConflictThenSuccess_ReplaysIncomingBatchOnFreshReloadedStateAsync (TenantCreated + UserAddedToTenant + TenantConfigurationSet)", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 273, "title": "Audit_ConflictThenSuccess_PreservesPersistedAuthoritativeDuplicateAndOrdersByTimestampThenEventIdAsync (UserAddedToTenant + UserRemovedFromTenant + UserRoleChanged same-timestamp ordering)", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — comprehensive 9-event-type ordering test (TenantCreated, TenantUpdated, TenantDisabled, TenantEnabled, UserAddedToTenant, UserRemovedFromTenant, UserRoleChanged, TenantConfigurationSet, TenantConfigurationRemoved) decided D2/D4 in review but queued as Review patches (lines 224, 226)."
+    },
+    {
+      "id": "AC#5",
+      "title": "Reusable fixture contract for future projection opt-in",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "fixture",
+      "risk_linkage": ["R-008"],
+      "tests": [
+        {"id": "FX-10.4-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs", "line": 1, "title": "ProjectionWriteConformanceFixture class", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — Open Review patch (story-file line 217): fixture contract API missing (GetAttemptCount(key), GetSavedModelAt(key, attempt), AssertNoExtraWritesAfter(key), GetDiagnostic(eventId)). Future projections must reimplement per-test LINQ boilerplate."
+    },
+    {
+      "id": "AC#6",
+      "title": "Per-key transactionality boundary; replay/idempotency from 10.1/10.2 prevents duplicates",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-001", "R-003", "R-017"],
+      "tests": [
+        {"id": "T-10.4-CONF-004", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 235, "title": "TenantIndex_RetryExhaustionAfterTenantAndAuditSaves_FailsWithoutCrossKeyAtomicityClaimAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-006", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 330, "title": "Audit_ReplayAfterAuditSaveAndLaterIndexFailure_DoesNotDuplicateEntriesAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-006", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 136, "title": "ProjectAsync_IndexRetryExhaustionAfterTenantSaveThrowsAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-013", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 346, "title": "ProjectAsync_ReplayAfterLaterProjectionFailureDoesNotDuplicateAuditEntriesAsync", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — Open Review patch (story-file line 222): tenant-index replay idempotency test missing. 'After a partial-success run that wrote the index, replaying the same projection batch does not duplicate or lose index entries' — only the audit-side analog exists today."
+    },
+    {
+      "id": "AC#7",
+      "title": "Write helper exposes retry-attempt boundaries; tests verify exact read/save attempt counts, max-attempt behavior, no-stale-instance reuse via observable seams",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-005"],
+      "tests": [
+        {"id": "T-10.4-CONF-002", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 93, "title": "TenantIndex_ConflictThenSuccess... (attempt count + per-attempt ETag at lines 140-149)", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 160, "title": "TenantIndex_RetryExhaustion... (attempt count + structured-log shape at lines 204-218)", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 67, "title": "ProjectAsync_TenantStateConflictReloadsStateAndRetriesExactlyOnceAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 116, "title": "ProjectAsync_RetryExhaustionThrowsAfterMaxAttemptsAsync", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — three nested open Review patches: (a) line 218: exception.Message.ShouldContain('3 attempts') anchored to literal — replace with TenantProjectionWritePolicy.MaxAttempts constant; (b) line 216: fixture does not fail-fast on stale-model reuse globally; (c) line 223: dead assertion stateStore.PlainSaveAttempts.ShouldBeEmpty() at TenantProjectionHandlerTests.cs:866."
+    },
+    {
+      "id": "AC#8",
+      "title": "Audit duplicate EventId: persisted entry remains authoritative; duplicate suppressed; same-timestamp distinct events ordered by Timestamp then EventId",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-004"],
+      "tests": [
+        {"id": "T-10.4-CONF-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 273, "title": "Audit_ConflictThenSuccess_PreservesPersistedAuthoritativeDuplicateAndOrdersByTimestampThenEventIdAsync", "level": "unit", "status": "active"},
+        {"id": "T-10.4-HAND-012", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 311, "title": "ProjectAsync_AuditDuplicateEventIdKeepsPersistedEntryAuthoritativeAsync", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — Open Review patch (story-file line 219): AC#8 test wins by suppression, not by contest. Both persisted and incoming use default ActorId='actor-1'; ['source'] = 'persisted' is only present on persisted side. Distinct ActorId values + ['source']='incoming' marker needed to prove persisted wins on payload mismatch rather than coincidentally matching."
+    },
+    {
+      "id": "AC#9",
+      "title": "Dev Agent Record captures exact prerequisite evidence (implementation status / commits, helper/adapter API names, retry limit, failure contract, diagnostic contract)",
+      "priority": "P2",
+      "coverage": "FULL",
+      "level": "meta",
+      "risk_linkage": ["R-008"],
+      "tests": [
+        {"id": "DOC-10.4-001", "file": "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md", "line": 161, "title": "Dev Agent Record — prerequisite contract evidence (lines 161-166)", "level": "other", "status": "active"}
+      ],
+      "gap": "LOW — Open Review patches: (a) line 212: Debug Log References cites non-existent commit a2010bf for audit implementation; (b) line 213: stale Completion note ('Ultimate context engine analysis completed...') is copy-paste artifact from another story."
+    },
+    {
+      "id": "AC#10",
+      "title": "Deterministic per-key state-store scripts fail fast on unexpected key / write order / stale model reuse / extra writes",
+      "priority": "P1",
+      "coverage": "PARTIAL",
+      "level": "fixture",
+      "risk_linkage": ["R-008"],
+      "tests": [
+        {"id": "FX-10.4-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs", "line": 1, "title": "ScriptedTenantProjectionStateStore (per-key Queue, fail-fast on unexpected key)", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — Open Review patch (story-file line 216): ScriptedTenantProjectionStateStore does not fail-fast on stale-model reuse or extra-writes-after-terminal-failure. Need to track per-key model identity across reads + emit distinct error when attempt N's value is reference-equal to attempt N-1's; add MarkTerminalFailure(key) toggle that throws on subsequent writes to that key."
+    },
+    {
+      "id": "AC#11",
+      "title": "Assertions prefer structured fields and safe categories over brittle full-message matching unless 10.1/10.2 define exact message text as contract",
+      "priority": "P2",
+      "coverage": "PARTIAL",
+      "level": "unit",
+      "risk_linkage": ["R-007", "R-016"],
+      "tests": [
+        {"id": "T-10.4-CONF-002", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 152, "title": "TenantIndex_ConflictThenSuccess... (structured EventId.Id + LogLevel asserted)", "level": "unit", "status": "active"},
+        {"id": "T-10.4-CONF-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 213, "title": "TenantIndex_RetryExhaustion... (structured EventId.Id + Level counts asserted at lines 213-218)", "level": "unit", "status": "active"}
+      ],
+      "gap": "MEDIUM — Open Review patch (story-file line 214): For [LoggerMessage]-generated calls, Message and state?.ToString() resolve to the same formatted text. Need to capture full IReadOnlyList<KeyValuePair<string, object?>> state in CapturingLogger.Log and assert structured key/value pairs directly."
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 11,
+    "fully_covered": 2,
+    "partially_covered": 9,
+    "uncovered": 0,
+    "overall_coverage_percentage": 18,
+    "effective_coverage_note": "All 11 ACs have at least PARTIAL coverage with tests passing; the 18% strict-FULL number reflects that most ACs have at least one open Review patch (refinement gap, not blank gap). No NONE/uncovered ACs.",
+    "priority_breakdown": {
+      "P0": { "total": 1, "covered": 1, "percentage": 100 },
+      "P1": { "total": 8, "covered": 0, "covered_at_least_partial": 8, "percentage_full": 0, "percentage_partial_or_full": 100 },
+      "P2": { "total": 2, "covered": 1, "covered_at_least_partial": 2, "percentage_full": 50, "percentage_partial_or_full": 100 },
+      "P3": { "total": 0, "covered": 0, "percentage": 100 }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps_P0": [],
+    "high_gaps_P1": [],
+    "medium_gaps_P2": [],
+    "low_gaps_P3": [],
+    "partial_coverage_items": [
+      "AC#2", "AC#3", "AC#4", "AC#5", "AC#6", "AC#7", "AC#8", "AC#10", "AC#11"
+    ],
+    "unit_only_items": [
+      {
+        "id": "AC#1 (integration-tier defense layer only)",
+        "note": "AC#1 is FULL at unit tier. The planned defense-in-depth integration test T-R001-INT-001 (DAPR-backed conflict-then-success for tenant-index) was never built. R-001 BLOCKER risk is preserved at unit level."
+      }
+    ]
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "ui_journey_gaps": [],
+    "ui_state_gaps": [],
+    "state_key_coverage": "FULL (all 3 keys: projection:tenants:{tenantId}, projection:tenant-index:singleton, audit:{tenantId})",
+    "retry_exhaustion_coverage": "FULL (all 3 keys + cross-key partial-success)",
+    "idempotency_eventid_dedup": "FULL but wins-by-suppression (open Review patch line 219)",
+    "cancellation_precedence": "FULL (3 handler-level tests + ~10 actor-layer tests from Story 10.3B carryover)",
+    "pii_non_leak_gates": "PARTIAL (1 explicit sentinel gate for tenant-index retry-exhaustion; tenant-detail, audit-key, cancellation-failure sentinel gates MISSING; sentinel breadth NARROW per patch line 220)",
+    "invariant_failure_boundary": "FULL (T-10.4-HAND-010 + T-10.4-HAND-011)",
+    "stale_instance_reuse": "PARTIAL (T-10.4-CONF-001 asserts ShouldNotBeSameAs between attempts; fixture does not fail-fast globally — patch line 216)",
+    "fixture_contract_api": "MISSING (patch line 217 — GetAttemptCount, GetSavedModelAt, AssertNoExtraWritesAfter, GetDiagnostic)",
+    "structured_kv_diagnostic_assertion": "PARTIAL (current gate collapses Message + state.ToString() for [LoggerMessage] calls — patch line 214)",
+    "defense_in_depth_integration_tier": "MISSING for R-001 (T-R001-INT-001 planned but never built, carryover from Epic 10 trace VAL-1)",
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0,
+      "missing_pii_sentinel_gates": 3,
+      "missing_ci_guards": 0,
+      "missing_planned_integration_tests": 1,
+      "open_review_patches_against_coverage": 11
+    }
+  },
+  "test_inventory": {
+    "summary": {
+      "files": 3,
+      "cases": 24,
+      "skipped_cases": 0,
+      "fixme_cases": 0,
+      "pending_cases": 0,
+      "by_level": {
+        "e2e": { "tests": 0, "criteria_covered": 0 },
+        "api": { "tests": 0, "criteria_covered": 0 },
+        "component": { "tests": 0, "criteria_covered": 0 },
+        "unit": { "tests": 23, "criteria_covered": 10 },
+        "other": { "tests": 1, "criteria_covered": 1 }
+      }
+    },
+    "tests": [
+      {"id": "T-10.4-CONF-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 38, "title": "TenantDetail_ConflictThenSuccess_ReplaysIncomingBatchOnFreshReloadedStateAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-CONF-002", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 93, "title": "TenantIndex_ConflictThenSuccess_PreservesAllPreviouslyIndexedTenantsAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-CONF-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 160, "title": "TenantIndex_RetryExhaustion_FailsObservably_WithoutClaimingSuccessAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-CONF-004", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 235, "title": "TenantIndex_RetryExhaustionAfterTenantAndAuditSaves_FailsWithoutCrossKeyAtomicityClaimAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-CONF-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 273, "title": "Audit_ConflictThenSuccess_PreservesPersistedAuthoritativeDuplicateAndOrdersByTimestampThenEventIdAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-CONF-006", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs", "line": 330, "title": "Audit_ReplayAfterAuditSaveAndLaterIndexFailure_DoesNotDuplicateEntriesAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 26, "title": "ProjectAsync_ExistingTenantStateUsesLoadedETagAndFirstWriteOptionsAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-002", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 50, "title": "ProjectAsync_MissingTenantStateUsesNoETagAndFirstWriteOptionsAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-003", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 67, "title": "ProjectAsync_TenantStateConflictReloadsStateAndRetriesExactlyOnceAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-004", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 94, "title": "ProjectAsync_TenantIndexConflictPreservesReloadedExistingTenantsAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-005", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 116, "title": "ProjectAsync_RetryExhaustionThrowsAfterMaxAttemptsAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-006", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 136, "title": "ProjectAsync_IndexRetryExhaustionAfterTenantSaveThrowsAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-007", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 158, "title": "ProjectAsync_WritesTenantAuditStateAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-008", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 187, "title": "ProjectAsync_AuditStateConflictReloadsAndMergesEntriesByEventIdAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-009", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 223, "title": "ProjectAsync_AuditRetryExhaustionThrowsWithoutSuccessfulProjectionAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-010", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 247, "title": "ProjectAsync_AuditMergeSkipsMalformedPayloadsAndPreservesValidEventsDuringRetryAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-011", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 287, "title": "ProjectAsync_AuditInvariantFailureAbortsBeforeAnyStateStoreWriteAsync (Theory)", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-012", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 311, "title": "ProjectAsync_AuditDuplicateEventIdKeepsPersistedEntryAuthoritativeAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-013", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 346, "title": "ProjectAsync_ReplayAfterLaterProjectionFailureDoesNotDuplicateAuditEntriesAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-014", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 377, "title": "ProjectAsync_WithPreCancelledTokenThrowsBeforeStateStoreAccessAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-015", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 392, "title": "ProjectAsync_PassesCancellationTokenToProjectionStateReadsAndSavesAsync", "level": "unit", "status": "active"},
+      {"id": "T-10.4-HAND-016", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs", "line": 410, "title": "ProjectAsync_CancellationAfterTenantSaveStopsBeforeLaterProjectionWritesAsync", "level": "unit", "status": "active"},
+      {"id": "FX-10.4-001", "file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs", "line": 1, "title": "ProjectionWriteConformanceFixture (R-008 fixture)", "level": "unit", "status": "active"},
+      {"id": "DOC-10.4-001", "file": "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md", "line": 161, "title": "Dev Agent Record — prerequisite contract evidence", "level": "other", "status": "active"}
+    ],
+    "blockers": []
+  },
+  "blockers": [
+    {
+      "id": "T-R001-INT-001",
+      "severity": "medium",
+      "reason": "Planned defense-in-depth integration test for R-001 BLOCKER was never implemented; ProjectionWriteConformanceIntegrationTests.cs does not exist on disk. R-001 behavior is preserved at unit level by T-10.4-CONF-002/003. Tracked as carryover from Epic 10 trace VAL-1.",
+      "test_file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceIntegrationTests.cs (planned, not present)",
+      "test_title": "TenantIndex_RealDaprBackedConflictThenSuccess_PreservesIndexAsync"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "MEDIUM",
+      "id": "STORY-10-4-REC-1",
+      "action": "Apply the 12 open Review patches before story closes review status",
+      "details": "Story 10.4 review surfaced 12 patch items + 3 decision-driven patches (D2/D3/D4/D5). All are coverage-refinement gaps within already-PARTIAL ACs, not new uncovered surfaces. See traceability-matrix.md AC sections for the per-AC mapping; see _bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md lines 212-227 for the patch text.",
+      "patches_affecting_coverage": [
+        "line 212 — AC#9 stale commit citation a2010bf",
+        "line 213 — AC#9 stale Completion note (copy-paste artifact)",
+        "line 214 — AC#11 structured KV diagnostic assertion (not Message + state.ToString())",
+        "line 215 — AC#5 BindsToProductionPolicy() tautology + flag only set in 1 of 6 conformance tests",
+        "line 216 — AC#7/AC#10 ScriptedTenantProjectionStateStore stale-model reuse + extra-writes fail-fast",
+        "line 217 — AC#5 fixture contract API (GetAttemptCount, GetSavedModelAt, AssertNoExtraWritesAfter, GetDiagnostic)",
+        "line 218 — AC#7 MaxAttempts literal vs. constant reference",
+        "line 219 — AC#8 duplicate-EventId test wins by suppression, not contest",
+        "line 220 — AC#3 sentinel breadth (narrativePayload, EventTypeName, MessageId, correlationId, TenantConfigurationSet)",
+        "line 221 — AC#2 'exactly once' provability — replay external reload through Apply",
+        "line 222 — AC#6 tenant-index replay idempotency missing",
+        "line 223 — AC#7 dead assertion stateStore.PlainSaveAttempts.ShouldBeEmpty()",
+        "line 224 — AC#4/D2 mixed 9-event-type ordering under conflict reload",
+        "line 225 — AC#3/D3 TenantDetail_RetryExhaustion sentinel mirror",
+        "line 226 — AC#4/D4 Audit_MalformedPayloadPreserved_AndInvariantFailureAborts + audit mixed-ordering",
+        "line 227 — AC#1/AC#5/D5 revert ApplyIndexEvent to private + drive RunSingletonIndexConformanceAsync through ProjectAsync"
+      ],
+      "owner": "Story 10.4 dev (next iteration of review)",
+      "effort_hours": "12-20 (across all 16 items; some overlap)",
+      "target_date": "2026-05-26",
+      "blocks_story_close": true
+    },
+    {
+      "priority": "MEDIUM",
+      "id": "STORY-10-4-REC-2",
+      "action": "Add Audit_RetryExhaustion_FailsObservablyAndDoesNotLeakSensitiveAuditAsync to ProjectionWriteConformanceTests.cs (carried from Epic 10 trace REC-2)",
+      "details": "Mirror T-10.4-CONF-003 sentinel pattern but target the audit-key exhaustion path.",
+      "given_when_then": "GIVEN three queued projection events targeting an audit key whose ETag is contended by a parallel writer (scripted state store enqueues three conflicts in a row) AND the audit narrative + user identifiers carry sentinel values 'SensitiveAuditNarrative_DoNotLog' and 'SensitiveUserId_DoNotLog'; WHEN ProjectAsync is invoked and the retry budget exhausts on the audit-key save path; THEN ProjectAsync throws InvalidOperationException, logger captures exactly two EventId 100101 Warning entries followed by one EventId 100102 Error entry, AND no Logger.Entries[i].Message or .StateText contains 'SensitiveAuditNarrative_DoNotLog' or 'SensitiveUserId_DoNotLog'.",
+      "owner": "Story 10.4 dev or follow-up patch",
+      "effort_hours": "1-2",
+      "story_link": "10.2 AC#9 + 10.4 AC#3"
+    },
+    {
+      "priority": "MEDIUM",
+      "id": "STORY-10-4-REC-3",
+      "action": "Add Cancellation_Failure_DiagnosticDoesNotLeakSensitiveContextAsync to TenantsProjectionActorTests.cs (carried from Epic 10 trace REC-3)",
+      "details": "Trigger mid-flow cancellation against a tenant audit query, assert OperationCanceledException is thrown and that any captured log entries do NOT contain sentinel tenant name / user identifier / cursor payload.",
+      "given_when_then": "GIVEN a GetTenantAudit query for a tenant whose audit narrative contains sentinel values 'SensitiveTenantName_DoNotLog' and 'SensitiveCursorPayload_DoNotLog', AND a CancellationToken that is signalled after authorization passes but before the audit state read returns; WHEN the actor query method is awaited; THEN OperationCanceledException is thrown (not converted to forbidden / not-found / invalid-cursor), AND any captured log entries during the cancellation path do NOT contain 'SensitiveTenantName_DoNotLog' or 'SensitiveCursorPayload_DoNotLog' in Message or StateText.",
+      "owner": "Story 10.3B follow-up patch",
+      "effort_hours": "1-2",
+      "story_link": "10.3B AC#7 / 10.4 AC#3"
+    },
+    {
+      "priority": "MEDIUM",
+      "id": "STORY-10-4-REC-4",
+      "action": "Decide T-R001-INT-001 (carryover REC-1B): build the planned DAPR-backed integration test OR formally waive the integration tier",
+      "details": "Option A (build): Create tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceIntegrationTests.cs with TenantIndex_RealDaprBackedConflictThenSuccess_PreservesIndexAsync, using [DaprFact] or equivalent DAPR-precondition gating. Option B (waive): Author a sprint-change-proposal documenting why unit-level R-001 coverage (T-10.4-CONF-002/003) is sufficient and the integration tier is not required for Story 10.4 close.",
+      "owner": "Story 10.4 follow-up dev or sprint-change-proposal author",
+      "effort_hours": "3-6 (build) or 0.5 (waive)",
+      "target_date": "2026-05-26",
+      "blocks_story_close": false,
+      "blocks_epic_close": true
+    },
+    {
+      "priority": "LOW",
+      "id": "STORY-10-4-REC-5",
+      "action": "Run /bmad-testarch-test-review against ProjectionWriteConformanceTests.cs + ProjectionWriteConformanceFixture.cs to validate test-quality DoD compliance",
+      "details": "Conformance file at 391 lines; fixture at 326 lines. Check line budget per individual test (<300 lines/test), assertion explicitness, fixture isolation. Optional but recommended before story close — and the structured-KV-assertion (AC#11) and stale-model fail-fast (AC#10) recommendations would benefit from this review.",
+      "owner": "Murat (TEA)",
+      "effort_hours": "1"
+    },
+    {
+      "priority": "LOW",
+      "id": "STORY-10-4-REC-6",
+      "action": "Standard /bmad-testarch-test-review post-trace task",
+      "details": "Run /bmad:tea:test-review to assess overall test quality.",
+      "requirements": []
+    }
+  ]
+}

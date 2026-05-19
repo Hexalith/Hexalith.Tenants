@@ -217,12 +217,7 @@ public sealed class TenantProjectionHandler {
         }
     }
 
-    /// <summary>
-    /// Applies a projection event to the shared tenant index read model.
-    /// </summary>
-    /// <param name="indexModel">The tenant index model to update.</param>
-    /// <param name="evt">The projection event to apply.</param>
-    internal static void ApplyIndexEvent(TenantIndexReadModel indexModel, ProjectionEventDto evt) {
+    private static void ApplyIndexEvent(TenantIndexReadModel indexModel, ProjectionEventDto evt) {
         string name = evt.EventTypeName;
         if (string.IsNullOrEmpty(name)) {
             return;

@@ -1,8 +1,8 @@
 # Story 10.4: Projection Write Conformance and Recovery Tests
 
-Status: review
+Status: done
 
-Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
+Completion note: Deterministic projection write conformance and recovery tests implemented and reviewed; post-review patches applied (12 of 17 actionable, 1 dismissed, 4 from resolved decisions). Conformance fixture refactored to drive production behavior exclusively through `ProjectAsync` after `ApplyIndexEvent` visibility reverted to `private`. Full solution test gate passes (660 passed, 1 skipped).
 
 ## Story
 
@@ -190,10 +190,54 @@ GPT-5 Codex
 ### Change Log
 
 - 2026-05-19: Implemented deterministic projection write conformance and recovery tests; wired fixture to production write policy; removed obsolete DAPR/Redis skipped scaffold; moved story to review.
+- 2026-05-19: Adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) applied 12 patches + 4 patches from resolved decisions: reverted `ApplyIndexEvent` to `private`, rewrote fixture to drive everything through `ProjectAsync`, captured structured logger state for AC11 assertions, added fail-fast `MarkTerminalFailure` enforcement (AC10), added fixture contract API (AC5), strengthened duplicate-EventId test with distinct ActorId markers (AC8), expanded R-007 negative gate to inject sensitive content via configuration values, added tenant-detail retry-exhaustion test (Task line 47), added tenant-index replay idempotency test (AC6), added 9-event-type mixed-ordering test (AC4), added audit malformed-payload test (Task line 60), added audit mixed-event-type ordering test. Full solution test gate: 660 passed, 1 skipped. Story moved to done.
 
 ### Review Round
 
 - 2026-05-18T14:22:38+02:00 - `bmad-party-mode 10-4-projection-write-conformance-and-recovery-tests; review;` completed with Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect), and John (Product Manager). Findings summary: story is valuable but depended on active 10.1/10.2 persistence contracts, needed clearer observable retry/attempt-count seams, sharper duplicate `EventId` persisted-authoritative wording, explicit safe-diagnostics exclusions, and stronger no-cross-key-transaction scope boundaries. Changes applied: tightened ACs and tasks for stable prerequisite contracts, deterministic fixture capabilities, attempt-count definition, diagnostic redaction, duplicate `EventId` mismatch handling, production-change limits, and non-goals. Findings deferred: whether duplicate `EventId` mismatch should emit warning diagnostics, whether diagnostic redaction belongs in a reusable helper, whether attempt counts are a shared fixture contract or per-test assertion, and whether audit ordering should be asserted by persisted sequence, event sequence, or invocation order when Stories 10.1/10.2 do not decide it. Final recommendation: ready-for-dev after applied clarifications, gated by 10.1/10.2 stable implementation contracts.
+
+### Review Findings
+
+Adversarial review 2026-05-19 — diff scope `c8246f6~1..HEAD` filtered to story files. Three reviewers (Blind Hunter, Edge Case Hunter, Acceptance Auditor) ran in parallel. After deduplication and triage: 5 decision-needed, 12 patch, 9 defer, 11 dismissed.
+
+#### Decisions Resolved (2026-05-19)
+
+- **D1 — Cancellation scope-creep**: ACCEPT retroactively and record under 10.3B follow-up. Code stays; cancellation work is procedurally attributable to 10.3B and a deferred-work note carries the attribution.
+- **D2 — AC4 mixed event-type ordering**: ADD COVERAGE NOW. Mixed-batch tests must include `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationRemoved`.
+- **D3 — Tenant-detail retry-exhaustion**: ADD TO CONFORMANCE FILE NOW. Mirror `TenantIndex_RetryExhaustion` for tenant detail.
+- **D4 — Audit coverage**: ADD malformed-payload + mixed-event-type ordering NOW in the new conformance file.
+- **D5 — `ApplyIndexEvent` visibility**: REVERT to `private` per spec line 67 (narrowest seam, alternative `ProjectAsync` seam already exists). Rewrite `RunSingletonIndexConformanceAsync` to drive through `ProjectAsync`.
+
+#### Patch
+
+- [x] ~~[Review][Patch] AC9 Debug Log References cites non-existent commit `a2010bf` for audit implementation~~ — **Dismissed**: verified `a2010bf feat: Update sprint status and implement audit projection write safety` exists; Acceptance Auditor finding was incorrect.
+- [x] [Review][Patch] Stale Completion note ("Ultimate context engine analysis completed - comprehensive developer guide created") is a copy-paste artifact unrelated to this story [_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md:5]
+- [x] [Review][Patch] `R-007` negative-content gate inspects only `Message` and `state?.ToString()`; for `[LoggerMessage]`-generated calls these resolve to the same formatted text. Capture the full `IReadOnlyList<KeyValuePair<string, object?>>` state in `CapturingLogger.Log` and assert structured key/value pairs directly. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs:300-318]
+- [x] [Review][Patch] `BindsToProductionPolicy()` is tautological — `typeof(TenantProjectionWritePolicy).FullName == "Hexalith.Tenants.Projections.TenantProjectionWritePolicy"` is a constant. Flag is also only set in `RunSingletonIndexConformanceAsync`, so 5 of 6 conformance tests never exercise the guard. Either replace with a real invocation counter wrapping the production policy and apply to all 3 paths, or remove the guard and document removal. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs:99-104]
+- [x] [Review][Patch] `ScriptedTenantProjectionStateStore` does not fail-fast on stale-model reuse or extra-writes-after-terminal-failure (AC10). Track per-key model identity across reads and emit a distinct error message when `value` of attempt N is reference-equal to attempt N-1; add a `MarkTerminalFailure(key)` toggle that throws on subsequent writes to that key. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs:320-399]
+- [x] [Review][Patch] AC5 fixture contract API missing — add `GetAttemptCount(key)`, `GetSavedModelAt(key, attempt)`, `AssertNoExtraWritesAfter(key)`, `GetDiagnostic(eventId)` helpers so future projections do not duplicate the per-test LINQ boilerplate. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs]
+- [x] [Review][Patch] Replace literal `exception.Message.ShouldContain("3 attempts")` with reference to `TenantProjectionWritePolicy.MaxAttempts` so the contract is not anchored to a string literal that drifts if MaxAttempts changes. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs:656]
+- [x] [Review][Patch] AC8 duplicate-EventId test wins by suppression, not by contest — both persisted and incoming use default `ActorId="actor-1"` and `["source"] = "persisted"` is only present on persisted side. Use distinct `ActorId` values and a `["source"] = "incoming"` marker on the incoming entry to prove persisted wins on payload mismatch rather than coincidentally matching. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs:272-327]
+- [x] [Review][Patch] AC3/R-007 negative gate probes only tenant `Name` and `userId` — extend to inject sensitive content via `narrativePayload` values, a sensitive `EventTypeName`, a sensitive `MessageId`, a sensitive `correlationId`, and a sensitive `TenantConfigurationSet` value. Today's "ZERO TOLERANCE" gate covers a trivially-empty intersection because the production log call never emits those particular fields. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs:622-682]
+- [x] [Review][Patch] AC2 "exactly once" not provable — `externallyReloaded.Members["external-user"] = TenantRole.TenantReader` bypasses `Apply`. Build the external reload state by replaying prior projection events through the same `Apply` path so that a regression double-applying an event would surface. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs:481-490]
+- [x] [Review][Patch] AC6 tenant-index replay idempotency uncovered — add a test where after a partial-success run that wrote the index, replaying the same projection batch does not duplicate or lose index entries. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs]
+- [x] [Review][Patch] Dead assertion — `stateStore.PlainSaveAttempts.ShouldBeEmpty()` always holds because the production handler exclusively uses `TrySaveStateAsync`. Remove or replace with a positive cancellation-state assertion (e.g., on logger output or read-call count). [tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs:866]
+- [x] [Review][Patch] (from D2) Add mixed-event-type ordering test covering `TenantCreated`, `TenantUpdated`, `TenantDisabled`, `TenantEnabled`, `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `TenantConfigurationSet`, `TenantConfigurationRemoved` under conflict reload. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs]
+- [x] [Review][Patch] (from D3) Add `TenantDetail_RetryExhaustion_FailsObservably_WithoutClaimingSuccessAsync` test mirroring the singleton-index exhaustion shape. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs]
+- [x] [Review][Patch] (from D4) Add `Audit_MalformedPayloadPreserved_AndInvariantFailureAbortsBeforeWritesAsync` test (Task line 60) plus an audit-mixed-ordering test covering all 9 event types. [tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs]
+- [x] [Review][Patch] (from D5) Revert `ApplyIndexEvent` visibility from `internal` back to `private`. Rewrite `RunSingletonIndexConformanceAsync` to drive through `ProjectAsync` (using `RunProjectionHandlerAsync` pattern) and update the R-008 fixture guard so `_productionPolicyInvoked` is set across all three projection paths. [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:220; tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceFixture.cs:73-87]
+
+#### Deferred (pre-existing, tracked in deferred-work.md)
+
+- [x] [Review][Defer] In-place mutation of `read.Value` in `SaveWithOptimisticConcurrencyAsync` is latent if a future state-store adapter returns shared references [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:60-69] — deferred, pre-existing from Story 10.1.
+- [x] [Review][Defer] Empty/whitespace `AggregateId` collides across tenants — no entry-point validation, key concatenation yields `"projection:tenants:"` [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:73,88] — deferred, pre-existing.
+- [x] [Review][Defer] Out-of-order `UserAddedToTenant` before `TenantCreated` silently drops membership in `TenantIndexReadModel.Apply` [src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs:41-53] — deferred, pre-existing in Stories 9.x / 10.1.
+- [x] [Review][Defer] `NullReferenceException` defenses missing for JSON-deserialized `null` `Entries` (and null entries inside the list) in `MergeAuditState` [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:131-141] — deferred, cross-cutting deserialization hardening.
+- [x] [Review][Defer] No per-string length cap in `BuildBoundedMessageIds` / `BuildBoundedEventTypes`; a single oversize MessageId defeats the bound [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:209-254] — deferred, Story 10.1 logging design.
+- [x] [Review][Defer] `stateKeyCategory` is a free-form parameter embedded in exception messages and logs; no whitelist or length cap [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:99-100,184-185] — deferred, Story 10.1 helper design.
+- [x] [Review][Defer] `TenantAuditProjection.ProjectAuditEvents` is synchronous and accepts no cancellation token; long batches uninterruptible mid-build [src/Hexalith.Tenants.Server/Projections/TenantAuditProjection.cs:14-29] — deferred, 10.3B extension candidate.
+- [x] [Review][Defer] No backoff between retry attempts; three conflicts in microseconds can exhaust on a hot key that 10ms jitter would have resolved [src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs:45-114] — deferred, Story 10.1 retry design.
+- [x] [Review][Defer] Empty/all-null `request.Events` still triggers three full retry cycles (read+write) for zero changes [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:59-65] — deferred, performance polish.
 
 ## Advanced Elicitation
 
