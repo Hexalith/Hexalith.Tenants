@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.13.0...v1.14.0) (2026-05-19)
+
+
+### Features
+
+* **cancellation:** implement cancellation token checks in tenant projection queries and update related tests ([095be3b](https://github.com/Hexalith/Hexalith.Tenants/commit/095be3b7b0e18822231c73f2d6418490d7cee10e))
+
 # [1.13.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.12.0...v1.13.0) (2026-05-18)
 
 
