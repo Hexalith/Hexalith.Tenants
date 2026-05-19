@@ -41,19 +41,22 @@ so that auth misconfiguration is caught before users hit runtime failures.
   - [ ] Use fake tokens, redacted decoded header/payload examples, or placeholder values only; never instruct operators to paste or log full bearer tokens, signing keys, client secrets, refresh tokens, or real issuer metadata.
   - [ ] Keep development JWT generation separate and clearly labelled as local-only HMAC signing with `appsettings.Development.json`.
   - [ ] Include an evidence map that links each acceptance criterion to the documentation section, test name, expected failure mode, or documented residual risk that proves it.
+  - [ ] For every checklist command, curl sample, decoded-token example, or test transcript, state the expected observable evidence and the redaction rule that keeps tokens, secrets, authorities, tenant data, and user identifiers out of committed docs and logs.
 - [ ] Add a deployment readiness checklist operators can run before release. (AC: 1, 2, 4)
   - [ ] Include startup validation checks for missing placeholders, whitespace values, non-HTTPS authorities, ambiguous Authority plus SigningKey, and `RequireHttpsMetadata=false` in production.
   - [ ] Include token inspection checks for `iss`, `aud`, `sub`, `exp`, and the source or normalized tenant claim that yields `eventstore:tenant=system`.
   - [ ] Include request-level checks for one protected tenant query endpoint and one tenant-management command endpoint when the local test topology can support both. State which endpoint proves authentication, which proves authorization, and which layer returns the failure.
+  - [ ] Separate checks that can be proven by deterministic local smoke tests from checks that remain operator-run deployment verification, and ensure each manual step has pass/fail wording rather than relying on prose inspection alone.
   - [ ] Include rate-limit partition verification only if the Tenants host actually registers the relevant EventStore rate limiter. If enabled, confirm partitioning uses normalized subject/client identity and does not log token contents. If it does not, document the finding and defer executable rate-limit evidence to the EventStore host boundary or later deployment automation.
   - [ ] Include failure triage guidance that names missing configuration keys or claim types without instructing operators to log full tokens or secrets.
 - [ ] Add production-like smoke test coverage without depending on a real external IdP. (AC: 3, 4)
   - [ ] Exercise the real Tenants ASP.NET Core authentication/authorization middleware through `WebApplicationFactory` or the existing integration host; do not instantiate controllers, handlers, or fake authorization paths while claiming production auth readiness.
-  - [ ] Use a production-like local token issuer seam with deterministic issuer, audience, claims, signing material, and clock/skew behavior. Do not call a real IdP or OIDC discovery endpoint from the default smoke tests.
+  - [ ] Use a production-like local token issuer seam with deterministic issuer, audience, claims, signing material, and clock/skew behavior. Do not call a real IdP or OIDC discovery endpoint from the default smoke tests, and do not reuse the development HMAC key from `appsettings.Development.json` as production-like evidence.
   - [ ] Cover a valid token with matching issuer, audience, subject, and `eventstore:tenant=system` that can reach an authorized protected endpoint.
   - [ ] Cover missing token, malformed token, invalid signature, wrong issuer, wrong audience, and expired token as `401` authentication failures.
   - [ ] Cover valid authentication with missing, blank, or wrong `eventstore:tenant` as `403` authorization failures when the target endpoint enforces tenant-management authorization.
-  - [ ] Cover missing or invalid production auth overrides through startup/options validation tests for missing `Authority`, missing/blank `Issuer`, missing `Audience`, non-HTTPS `Authority`, `RequireHttpsMetadata=false`, and any production `SigningKey`.
+  - [ ] Cover missing or invalid production auth overrides through startup/options validation tests that force `IHostEnvironment.IsProduction()` for missing `Authority`, missing/blank `Issuer`, missing `Audience`, non-HTTPS `Authority`, `RequireHttpsMetadata=false`, and any production `SigningKey`.
+  - [ ] Assert failed authentication, authorization, and startup validation paths name safe configuration or claim categories only and do not echo bearer tokens, signing material, decoded payloads, or secret values in response bodies, logs captured by tests, or validation messages.
   - [ ] Do not require Keycloak, Entra ID, OIDC network discovery, real deployment manifests, DAPR sidecars, Redis, or Aspire orchestration for the narrow smoke tests unless an existing fixture already handles those prerequisites robustly.
   - [ ] If an Aspire/AppHost smoke path is added, keep it as an optional or prerequisite-gated test and preserve existing skip behavior when Docker, DAPR, Redis, or placement prerequisites are unavailable.
 - [ ] Align sample AppHost and local docs with production wording. (AC: 1, 2, 5)
@@ -191,3 +194,27 @@ GPT-5 Codex
   - Command endpoint and rate-limit executable evidence may be recorded as residual risk if current infrastructure cannot prove them without brittle live dependencies.
 - Final recommendation: ready-for-dev after applied clarifications.
 - Preflight note: this run treated `_bmad-output/process-notes/predev-preflight-latest.json` timestamp `2026-05-18T22:01:07Z` as an active-dev-story soft warning and left the captured dirty 10-3a, sprint-status, submodule, and integration-test paths untouched.
+
+## Advanced Elicitation
+
+- Date/time: 2026-05-19T02:03:36+02:00
+- Selected story key: 11-3-deployment-auth-readiness-documentation-and-smoke-tests
+- Command/skill invocation used: `/bmad-advanced-elicitation 11-3-deployment-auth-readiness-documentation-and-smoke-tests`
+- Batch 1 method names: Red Team vs Blue Team; Security Audit Personas; Pre-mortem Analysis; Failure Mode Analysis; Critique and Refine
+- Reshuffled Batch 2 method names: Self-Consistency Validation; Architecture Decision Records; User Persona Focus Group; Reverse Engineering; Expand or Contract for Audience
+- Findings summary:
+  - The story already had the right inherited-contract boundary, but the docs needed stronger evidence discipline so examples, checklists, and transcripts each state what proves readiness and what must be redacted.
+  - The smoke-test tasks needed an explicit production-environment validation requirement so tests cannot accidentally pass through development defaults while claiming production readiness.
+  - The deterministic JWT fixture guidance needed to avoid reusing the local development HMAC key as production-like evidence.
+  - Failure-path verification needed to cover safe diagnostics across authentication, authorization, startup validation, response bodies, captured logs, and validation messages.
+- Changes applied:
+  - Added evidence/redaction expectations for checklist commands, curl samples, decoded-token examples, and test transcripts.
+  - Clarified which checklist checks are deterministic local smoke tests versus operator-run deployment verification and required pass/fail wording for manual steps.
+  - Required production-auth override validation tests to force `IHostEnvironment.IsProduction()`.
+  - Clarified that production-like local token fixtures must not reuse the development HMAC signing key.
+  - Added safe-diagnostic assertions for failed auth, authorization, and startup validation paths.
+- Findings deferred:
+  - Live IdP certification, deployment-manifest automation, production Keycloak/Entra setup, and EventStore-host rate-limit proof remain deferred to later deployment automation or the owning host boundary.
+  - No product-scope, architecture-policy, or cross-story contract changes were applied.
+- Final recommendation: ready-for-dev after applied clarifications.
+- Preflight note: this run treated `_bmad-output/process-notes/predev-preflight-latest.json` timestamp `2026-05-19T00:02:05Z` as an active-dev-story soft warning and left the captured dirty 10-3a, sprint-status, submodule, and integration-test paths untouched.
