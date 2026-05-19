@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.14.0...v1.15.0) (2026-05-19)
+
+
+### Features
+
+* Update sprint status and implement projection write conformance tests ([3e27ab6](https://github.com/Hexalith/Hexalith.Tenants/commit/3e27ab658a71a649cd711a6a15e08ce5e7bb029c))
+
 # [1.14.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.13.0...v1.14.0) (2026-05-19)
 
 
