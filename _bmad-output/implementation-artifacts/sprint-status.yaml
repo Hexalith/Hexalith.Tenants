@@ -1,5 +1,6 @@
 # generated: 2026-05-16T09:57:23+02:00
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation code review: 0 decisions + 1 patch applied [env-var test xUnit isolation] + 4 deferred + ~17 dismissed; Server.Tests gate 438/438; story -> done)
+# last_updated: 2026-05-19 (12-4 phase 2 UI story backlog with explicit blockedBy story context created; story -> ready-for-dev)
 # last_updated: 2026-05-19 (10-4 projection write conformance code review: 5 decisions resolved + 12 patches applied + 9 deferred + 12 dismissed; ApplyIndexEvent reverted to private; fixture rewritten to drive through ProjectAsync; structured logger capture for R-007; fail-fast AC10 enforcement via MarkTerminalFailure; full Debug/no-restore solution gate passed [660 passed, 1 skipped]; story -> done)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation implemented; full Debug/no-restore solution gate passed [655 passed, 1 skipped]; story -> review)
 # last_updated: 2026-05-19 (12-3 three-phase command feedback sequencing story context created; story -> ready-for-dev)
@@ -272,5 +273,5 @@ development_status:
   12-1-frontshell-dependency-map-for-tenants-ui: ready-for-dev
   12-2-audit-timeline-and-consequence-preview-readiness: ready-for-dev
   12-3-three-phase-command-feedback-sequencing: ready-for-dev
-  12-4-phase-2-ui-story-backlog-with-explicit-blockedby: backlog
+  12-4-phase-2-ui-story-backlog-with-explicit-blockedby: ready-for-dev
   epic-12-retrospective: optional
