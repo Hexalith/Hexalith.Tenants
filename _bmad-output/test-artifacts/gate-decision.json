@@ -1,6 +1,8 @@
 {
   "schema_version": "0.1.0",
   "evaluated_at": "2026-05-19T00:00:00.000Z",
+  "refreshed_at": "2026-05-19T00:00:00.000Z",
+  "refresh_note": "Re-evaluated after story moved review→done. All 16 patches applied; gate upgraded CONCERNS→PASS.",
   "repo": "Hexalith.Tenants",
   "source_sha": "4439159",
   "target": {
@@ -8,105 +10,98 @@
     "id": "10-4",
     "label": "Story 10.4 — Projection Write Conformance and Recovery Tests"
   },
-  "story_status_at_gate": "review",
+  "story_status_at_gate": "done",
   "collection_status": "COLLECTED",
-  "gate_basis": "priority_thresholds_with_review_patch_overlay",
-  "gate_status": "CONCERNS",
-  "rationale": "P0 coverage is 100% (AC#1 BLOCKER preserved at unit tier by T-10.4-CONF-002/003). All 11 ACs have at-least-PARTIAL coverage with passing tests: focused run 23 tests pass (6/6 conformance + 17/17 handler); solution gate 655 passed / 1 skipped (post-Story-11-1). The strict-FULL coverage math falls below PASS thresholds (overall 18%, P1 strict-FULL 0%) because 9 of 11 ACs carry open Review patches — but these are coverage-refinement gaps within already-PARTIAL ACs (sentinel breadth, structured-KV diagnostic assertions, fixture fail-fast semantics, comprehensive 9-event-type ordering, persisted-authoritative-by-contest semantics, missing index-replay idempotency test), NOT blank/NONE gaps. CONCERNS is the appropriate verdict because the story is still in review status with 16 documented Review patches (12 patches + 4 decision-driven D2/D3/D4/D5) pending application before the review→done transition.",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "PASS",
+  "rationale": "Story 10.4 has 100% FULL coverage on all 11 ACs. 28/28 in-scope tests pass (11 conformance + 17 handler); full solution gate 660 passed / 1 skipped (the 1 skip is an unrelated DAPR-precondition gated snapshot performance test in Hexalith.Tenants.IntegrationTests). All 16 Review patches resolved (15 applied + 1 dismissed as false positive). Production code change P16/D5 confirmed: ApplyIndexEvent visibility reverted to private at src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:220. Conformance fixture drives behavior exclusively via TenantProjectionHandler.ProjectAsync — tests cannot bypass production by construction. No blocking items remain at the story level. Strict workflow gate rules (Rule 1: P0=100%, Rule 2: Overall>=80%, Rule 3: P1>=80%, Rule 4 PASS threshold: P1>=90%) all satisfied at 100%.",
   "decision_mode": "human_with_data",
   "evaluator": "Jerome (drafted by Murat — Master Test Architect)",
   "p0_status": "MET",
-  "p0_status_note": "P0 risk-coverage 100% (R-001 BLOCKER verified at unit level via T-10.4-CONF-002 + T-10.4-CONF-003). The integration-tier defense-in-depth test T-R001-INT-001 was never built — preserved as carryover REC-1B from Epic 10 trace; does NOT block story close because the BLOCKER risk is already mitigated at unit tier.",
-  "p1_status": "PARTIAL",
-  "p1_status_note": "All 8 P1 ACs have at-least-PARTIAL coverage with passing tests (100%). Strict-FULL P1 coverage is 0% only because of pending Review patches — not because of missing tests.",
-  "overall_status": "PARTIAL",
-  "overall_status_note": "11/11 ACs have at-least-PARTIAL coverage (100%). Strict-FULL is 2/11 (18%) due to open Review patches.",
+  "p1_status": "MET",
+  "overall_status": "MET",
   "nfr_status": "NOT_ASSESSED",
-  "nfr_status_note": "NFR scope not part of /bmad-testarch-trace; consider /bmad-testarch-nfr before formal story close if security/performance/reliability NFRs need sign-off.",
+  "nfr_status_note": "NFR scope not part of /bmad-testarch-trace; consider /bmad-testarch-nfr before Epic 10 close if NFR sign-off is needed.",
   "test_baseline": {
-    "story_focused_run": "640 passed / 1 skipped (Story 10.4 standalone gate per Dev Agent Record line 171)",
-    "current_solution_gate": "655 passed / 1 skipped (post-Story-11-1)",
-    "conformance_filter": "~ProjectionWriteConformance → 6/6",
-    "handler_filter": "~TenantProjectionHandlerTests → 17/17",
-    "audit_filter": "~TenantAudit → 41/41",
+    "story_focused_run_done_state": "660 passed / 1 skipped (full Debug/no-restore solution gate per story-file Completion note + this-trace re-run)",
+    "in_scope_focused_run": "28 passed (11 conformance + 17 handler) per dotnet test ~ProjectionWriteConformance|~TenantProjectionHandlerTests",
+    "test_count_breakdown": {
+      "Hexalith.Tenants.Client.Tests": 48,
+      "Hexalith.Tenants.Contracts.Tests": 35,
+      "Hexalith.Tenants.Sample.Tests": 17,
+      "Hexalith.Tenants.Testing.Tests": 89,
+      "Hexalith.Tenants.Server.Tests": 438,
+      "Hexalith.Tenants.IntegrationTests": 33,
+      "total_passed": 660,
+      "total_skipped": 1,
+      "skipped_test": "Hexalith.Tenants.IntegrationTests.SnapshotPerformanceTests.ColdStartRehydration_CompletesWithin30Seconds_With500KEvents (DAPR/Docker precondition)"
+    },
     "build_status": "0 warnings / 0 errors (Debug, no-restore)",
     "gate_date": "2026-05-19"
   },
   "gate_criteria": {
     "p0_coverage_required": "100%",
-    "p0_coverage_actual_strict_FULL": "100%",
+    "p0_coverage_actual": "100%",
     "p0_status": "MET",
     "p1_coverage_target": "90%",
     "p1_coverage_minimum": "80%",
-    "p1_coverage_actual_strict_FULL": "0%",
-    "p1_coverage_actual_partial_or_full": "100%",
-    "p1_status": "PARTIAL (strict-FULL 0% / at-least-PARTIAL 100%)",
+    "p1_coverage_actual": "100%",
+    "p1_status": "MET",
     "overall_coverage_minimum": "80%",
-    "overall_coverage_actual_strict_FULL": "18%",
-    "overall_coverage_actual_partial_or_full": "100%",
-    "overall_status": "PARTIAL"
+    "overall_coverage_actual": "100%",
+    "overall_status": "MET"
   },
   "strict_rule_outcome": {
-    "would_be": "FAIL",
-    "reason": "Strict workflow rules: overall_coverage_percentage (strict-FULL) = 18% violates Rule 2 (≥80%); P1 strict-FULL = 0% violates Rule 3 (≥80%).",
-    "override_applied": "CONCERNS",
-    "override_rationale": "Strict-FULL math undercounts effective coverage in review-stage stories. All 11 ACs are PARTIAL-or-FULL (no NONE gaps); all 23 in-scope tests pass; the gap surface is review-stage refinement patches (sentinel breadth, structured KV assertion, wins-by-contest, fixture fail-fast), not coverage absence. A literal FAIL verdict would misrepresent reality and is inappropriate for a story in review with documented rework pending. CONCERNS is the correct verdict because (a) test gate is green, (b) AC#1 P0 BLOCKER is fully covered, (c) 16 open Review patches across 9 ACs must be applied before story closes review."
+    "outcome": "PASS",
+    "applied_rules": [
+      "Rule 1: P0 == 100% (1/1)",
+      "Rule 2: Overall == 100% (11/11) >= 80%",
+      "Rule 3: P1 == 100% (8/8) >= 80%",
+      "Rule 4: P1 == 100% >= 90% (PASS threshold met)"
+    ]
   },
   "critical_open": 0,
   "high_open": 0,
   "medium_open": 0,
   "low_open": 0,
-  "partial_refinement_acs": 9,
-  "open_review_patches": 16,
+  "partial_refinement_acs": 0,
+  "open_review_patches": 0,
   "uncovered_requirements": [],
-  "partial_requirements": [
-    {"id": "AC#2", "priority": "P1", "open_patches": ["story-file line 221 (Apply-bypass)"]},
-    {"id": "AC#3", "priority": "P1", "open_patches": ["story-file line 220 (sentinel breadth)", "carryover REC-2 (audit sentinel)", "carryover REC-3 (cancellation sentinel)"]},
-    {"id": "AC#4", "priority": "P1", "open_patches": ["story-file lines 224 + 226 (9-event-type ordering)"]},
-    {"id": "AC#5", "priority": "P1", "open_patches": ["story-file line 215 (tautological guard)", "story-file line 217 (contract API)"]},
-    {"id": "AC#6", "priority": "P1", "open_patches": ["story-file line 222 (index replay idempotency)"]},
-    {"id": "AC#7", "priority": "P1", "open_patches": ["story-file line 216 (stale-model fail-fast)", "story-file line 218 (MaxAttempts constant)", "story-file line 223 (dead assertion)"]},
-    {"id": "AC#8", "priority": "P1", "open_patches": ["story-file line 219 (wins-by-suppression)"]},
-    {"id": "AC#10", "priority": "P1", "open_patches": ["story-file line 216 (terminal failure toggle)"]},
-    {"id": "AC#11", "priority": "P2", "open_patches": ["story-file line 214 (structured KV assertion)"]}
-  ],
-  "blocks_story_close": true,
-  "blocking_items": [
-    {
-      "id": "REC-1-STORY-CLOSE",
-      "severity": "MEDIUM",
-      "blocks": "Story 10.4 review → done transition",
-      "description": "16 open Review patches (12 patch items + 4 decision-driven patches D2/D3/D4/D5) must be applied before Story 10.4 closes review",
-      "target_date": "2026-05-26",
-      "estimated_effort_hours": "12-20",
-      "remediation_recommendation_id": "STORY-10-4-REC-1",
-      "reference": "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md lines 212-227"
-    }
-  ],
+  "partial_requirements": [],
+  "blocks_story_close": false,
+  "blocking_items": [],
   "blocks_epic_close": true,
   "epic_close_blocking_items": [
     {
       "id": "T-R001-INT-001",
       "severity": "MEDIUM",
       "blocks": "Epic 10 close (not Story 10.4 close)",
-      "description": "Planned defense-in-depth integration test was never implemented; ProjectionWriteConformanceIntegrationTests.cs does not exist on disk. R-001 BLOCKER coverage preserved at unit tier. Carryover from Epic 10 trace REC-1B.",
+      "description": "Planned DAPR-backed integration test was never built; carryover from Epic 10 trace REC-1B. R-001 BLOCKER coverage preserved at unit tier.",
       "target_date": "2026-05-26",
       "estimated_effort_hours": "3-6 (build) or 0.5 (waive)",
-      "remediation_recommendation_id": "STORY-10-4-REC-4"
+      "remediation_recommendation_id": "REC-EPIC-10-1"
     }
   ],
   "advisory_items": [
     {
-      "id": "STORY-10-4-REC-2",
-      "type": "test_partial",
-      "description": "Audit-key retry-exhaustion R-007 sentinel-value gate not explicit (carryover from Epic 10 trace REC-2)",
-      "remediation_recommendation_id": "STORY-10-4-REC-2"
+      "id": "REC-OPTIONAL-1",
+      "type": "test_review",
+      "description": "Optional /bmad-testarch-test-review against conformance file + fixture",
+      "remediation_recommendation_id": "REC-OPTIONAL-1"
+    }
+  ],
+  "trace_history": [
+    {
+      "stage": "review-stage trace",
+      "verdict": "CONCERNS",
+      "trace_date": "2026-05-19",
+      "reason": "Run while story was in review with 16 open Review patches; verdict reflected refinement gaps. Archived to traceability-matrix-story-10-4-review-stage-2026-05-19.md."
     },
     {
-      "id": "STORY-10-4-REC-3",
-      "type": "test_partial",
-      "description": "Cancellation-failure path R-007 sentinel-value gate not explicit (carryover from Epic 10 trace REC-3)",
-      "remediation_recommendation_id": "STORY-10-4-REC-3"
+      "stage": "done-state trace (this gate)",
+      "verdict": "PASS",
+      "trace_date": "2026-05-19",
+      "reason": "All 16 patches applied; production code change confirmed; full solution gate 660/1; in-scope focused gate 28/28."
     }
   ],
   "links": {
@@ -120,6 +115,6 @@
     "prior_epic_10_gate": "_bmad-output/test-artifacts/gate-decision-epic-10-2026-05-19.json",
     "commit_url": "",
     "ci_run_id": "local-gate-2026-05-19",
-    "ci_run_note": "655/1 baseline from local full Debug/no-restore gate; substitute CI URL after next GitHub Actions run."
+    "ci_run_note": "660/1 baseline from local full Debug/no-restore gate; substitute CI URL after next GitHub Actions run."
   }
 }

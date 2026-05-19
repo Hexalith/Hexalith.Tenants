@@ -1,0 +1,338 @@
+commit 0d0f64a453ed76c7f2549fa52e985055d4870bc9
+Author: Jérôme Piquot <jpiquot@itaneo.com>
+Date:   Tue May 19 16:49:14 2026 +0200
+
+    Add validation for tenant production authentication options
+    
+    - Implemented `ValidateTenantProductionAuthenticationOptions` to ensure proper configuration of OIDC authentication in production environments.
+    - Added unit tests for various scenarios including validation failures for missing or incorrect settings in production.
+    - Ensured that environment variables can override app settings for flexible configuration.
+
+diff --git a/src/Hexalith.Tenants/Configuration/ValidateTenantProductionAuthenticationOptions.cs b/src/Hexalith.Tenants/Configuration/ValidateTenantProductionAuthenticationOptions.cs
+new file mode 100644
+index 0000000..87e23a5
+--- /dev/null
++++ b/src/Hexalith.Tenants/Configuration/ValidateTenantProductionAuthenticationOptions.cs
+@@ -0,0 +1,59 @@
++using Hexalith.EventStore.Authentication;
++
++using Microsoft.Extensions.Hosting;
++using Microsoft.Extensions.Options;
++
++namespace Hexalith.Tenants.Configuration;
++
++internal sealed class ValidateTenantProductionAuthenticationOptions(IHostEnvironment environment) : IValidateOptions<EventStoreAuthenticationOptions> {
++    private const string AuthenticationSectionName = "Authentication:JwtBearer";
++
++    public ValidateOptionsResult Validate(string? name, EventStoreAuthenticationOptions options) {
++        ArgumentNullException.ThrowIfNull(options);
++
++        if (!environment.IsProduction()) {
++            return ValidateOptionsResult.Success;
++        }
++
++        List<string> failures = [];
++
++        ValidateAuthority(options.Authority, failures);
++        ValidateRequiredText(options.Issuer, $"{AuthenticationSectionName}:Issuer", failures);
++        ValidateRequiredText(options.Audience, $"{AuthenticationSectionName}:Audience", failures);
++        ValidateSigningKey(options.SigningKey, failures);
++
++        if (!options.RequireHttpsMetadata) {
++            failures.Add($"{AuthenticationSectionName}:RequireHttpsMetadata must be true for production OIDC authentication.");
++        }
++
++        return failures.Count == 0
++            ? ValidateOptionsResult.Success
++            : ValidateOptionsResult.Fail(failures);
++    }
++
++    private static void ValidateAuthority(string? authority, List<string> failures) {
++        if (string.IsNullOrWhiteSpace(authority)) {
++            failures.Add($"{AuthenticationSectionName}:Authority must be configured as an absolute HTTPS URI for production OIDC authentication.");
++            return;
++        }
++
++        if (!Uri.TryCreate(authority, UriKind.Absolute, out Uri? authorityUri)
++            || !string.Equals(authorityUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
++            failures.Add($"{AuthenticationSectionName}:Authority must be an absolute HTTPS URI for production OIDC authentication.");
++        }
++    }
++
++    private static void ValidateRequiredText(string? value, string key, List<string> failures) {
++        if (string.IsNullOrWhiteSpace(value)) {
++            failures.Add($"{key} must be configured with a non-empty value.");
++        }
++    }
++
++    private static void ValidateSigningKey(string? signingKey, List<string> failures) {
++        if (signingKey is null or { Length: 0 }) {
++            return;
++        }
++
++        failures.Add($"{AuthenticationSectionName}:SigningKey must be empty for production OIDC authentication; configure {AuthenticationSectionName}:Authority instead.");
++    }
++}
+diff --git a/src/Hexalith.Tenants/Program.cs b/src/Hexalith.Tenants/Program.cs
+index e1cb391..f72f2d6 100644
+--- a/src/Hexalith.Tenants/Program.cs
++++ b/src/Hexalith.Tenants/Program.cs
+@@ -90,6 +90,7 @@ builder.Services.AddOptions<EventStoreAuthenticationOptions>()
+     .BindConfiguration("Authentication:JwtBearer")
+     .ValidateOnStart();
+ builder.Services.TryAddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateEventStoreAuthenticationOptions>();
++builder.Services.AddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateTenantProductionAuthenticationOptions>();
+ builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureJwtBearerOptions>();
+ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+     .AddJwtBearer();
+diff --git a/tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs b/tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs
+new file mode 100644
+index 0000000..0e924d1
+--- /dev/null
++++ b/tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs
+@@ -0,0 +1,233 @@
++using Hexalith.EventStore.Authentication;
++using Hexalith.Tenants.Configuration;
++
++using Microsoft.Extensions.Configuration;
++using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.FileProviders;
++using Microsoft.Extensions.Hosting;
++using Microsoft.Extensions.Options;
++
++using Shouldly;
++
++namespace Hexalith.Tenants.Server.Tests.Configuration;
++
++public class AuthenticationConfigurationTests {
++    private const string AuthenticationSectionName = "Authentication:JwtBearer";
++    private const string SecretSigningKey = "do-not-echo-this-production-signing-key";
++
++    [Fact]
++    public void ProductionAppSettingsAuthenticationShouldFailValidation() {
++        IConfiguration configuration = CreateConfiguration();
++
++        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
++            () => ValidateOptions(configuration, Environments.Production));
++
++        string message = string.Join(Environment.NewLine, exception.Failures);
++        message.ShouldContain(AuthenticationSectionName);
++        message.ShouldContain("Authority");
++        message.ShouldContain("SigningKey");
++        message.ShouldNotContain(SecretSigningKey);
++    }
++
++    [Fact]
++    public void ProductionOidcOverridesShouldPassValidation() {
++        IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
++            [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
++            [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
++            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
++        });
++
++        Should.NotThrow(() => ValidateOptions(configuration, Environments.Production));
++    }
++
++    [Fact]
++    public void ProductionEnvironmentVariablesShouldOverrideCommittedPlaceholders() {
++        const string prefix = "HEXALITH_TENANTS_AUTH_TEST_";
++        IReadOnlyDictionary<string, string?> variables = new Dictionary<string, string?> {
++            [$"{prefix}Authentication__JwtBearer__Authority"] = "https://identity.example.test",
++            [$"{prefix}Authentication__JwtBearer__Issuer"] = "https://identity.example.test",
++            [$"{prefix}Authentication__JwtBearer__Audience"] = "hexalith-tenants",
++            [$"{prefix}Authentication__JwtBearer__SigningKey"] = string.Empty,
++            [$"{prefix}Authentication__JwtBearer__RequireHttpsMetadata"] = "true",
++        };
++
++        WithEnvironmentVariables(variables, () => {
++            IConfiguration configuration = new ConfigurationBuilder()
++                .AddJsonFile("appsettings.json", optional: false)
++                .AddEnvironmentVariables(prefix)
++                .Build();
++
++            Should.NotThrow(() => ValidateOptions(configuration, Environments.Production));
++        });
++    }
++
++    [Fact]
++    public void DevelopmentAppSettingsAuthenticationShouldPassValidation() {
++        IConfiguration configuration = CreateConfiguration(null, includeDevelopment: true);
++
++        Should.NotThrow(() => ValidateOptions(configuration, Environments.Development));
++    }
++
++    [Theory]
++    [InlineData("Authority")]
++    [InlineData("Issuer")]
++    [InlineData("Audience")]
++    [InlineData("SigningKey")]
++    public void ProductionWhitespaceAuthenticationSettingsShouldFailValidation(string key) {
++        var overrides = new Dictionary<string, string?> {
++            [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
++            [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
++            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
++            [$"{AuthenticationSectionName}:{key}"] = new string(' ', 40),
++        };
++
++        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
++            () => ValidateOptions(CreateConfiguration(overrides), Environments.Production));
++
++        string message = string.Join(Environment.NewLine, exception.Failures);
++        message.ShouldContain($"{AuthenticationSectionName}:{key}");
++        message.ShouldNotContain(new string(' ', 40));
++    }
++
++    [Theory]
++    [InlineData("identity.example.test")]
++    [InlineData("/identity")]
++    [InlineData("http://identity.example.test")]
++    [InlineData("not a uri")]
++    public void ProductionAuthorityShouldRequireAbsoluteHttpsUri(string authority) {
++        IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
++            [$"{AuthenticationSectionName}:Authority"] = authority,
++            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
++            [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
++            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
++        });
++
++        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
++            () => ValidateOptions(configuration, Environments.Production));
++
++        string message = string.Join(Environment.NewLine, exception.Failures);
++        message.ShouldContain($"{AuthenticationSectionName}:Authority");
++        message.ShouldNotContain(authority);
++    }
++
++    [Fact]
++    public void ProductionAuthorityWithSigningKeyShouldFailWithoutEchoingSecret() {
++        IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
++            [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
++            [$"{AuthenticationSectionName}:SigningKey"] = SecretSigningKey,
++            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
++        });
++
++        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
++            () => ValidateOptions(configuration, Environments.Production));
++
++        string message = string.Join(Environment.NewLine, exception.Failures);
++        message.ShouldContain($"{AuthenticationSectionName}:Authority");
++        message.ShouldContain($"{AuthenticationSectionName}:SigningKey");
++        message.ShouldNotContain(SecretSigningKey);
++    }
++
++    [Fact]
++    public void ProductionAuthorityWithDisabledHttpsMetadataShouldFail() {
++        IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
++            [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
++            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
++            [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
++            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "false",
++        });
++
++        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
++            () => ValidateOptions(configuration, Environments.Production));
++
++        string message = string.Join(Environment.NewLine, exception.Failures);
++        message.ShouldContain($"{AuthenticationSectionName}:RequireHttpsMetadata");
++    }
++
++    [Fact]
++    public void StartupValidationShouldComposeEventStoreAndTenantsValidators() {
++        IConfiguration configuration = CreateConfiguration();
++
++        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
++            () => ValidateOptionsOnStart(configuration, Environments.Production));
++
++        string message = string.Join(Environment.NewLine, exception.Failures);
++        message.ShouldContain("either 'Authority' (production OIDC) or 'SigningKey'");
++        message.ShouldContain($"{AuthenticationSectionName}:Authority");
++    }
++
++    private static IConfiguration CreateConfiguration(
++        IReadOnlyDictionary<string, string?>? overrides = null,
++        bool includeDevelopment = false) {
++        IConfigurationBuilder builder = new ConfigurationBuilder()
++            .AddJsonFile("appsettings.json", optional: false);
++
++        if (includeDevelopment) {
++            _ = builder.AddJsonFile("appsettings.Development.json", optional: false);
++        }
++
++        if (overrides is not null) {
++            _ = builder.AddInMemoryCollection(overrides);
++        }
++
++        return builder.Build();
++    }
++
++    private static void ValidateOptions(IConfiguration configuration, string environmentName)
++        => CreateServiceProvider(configuration, environmentName)
++            .GetRequiredService<IOptions<EventStoreAuthenticationOptions>>()
++            .Value
++            .ShouldNotBeNull();
++
++    private static void ValidateOptionsOnStart(IConfiguration configuration, string environmentName)
++        => CreateServiceProvider(configuration, environmentName)
++            .GetRequiredService<IStartupValidator>()
++            .Validate();
++
++    private static ServiceProvider CreateServiceProvider(IConfiguration configuration, string environmentName) {
++        var services = new ServiceCollection();
++        services.AddSingleton<IHostEnvironment>(new TestHostEnvironment(environmentName));
++        services.AddOptions<EventStoreAuthenticationOptions>()
++            .Bind(configuration.GetSection(AuthenticationSectionName))
++            .ValidateOnStart();
++        services.AddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateEventStoreAuthenticationOptions>();
++        services.AddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateTenantProductionAuthenticationOptions>();
++        return services.BuildServiceProvider();
++    }
++
++    private static void WithEnvironmentVariables(IReadOnlyDictionary<string, string?> variables, Action action) {
++        Dictionary<string, string?> originalValues = variables.ToDictionary(
++            static pair => pair.Key,
++            static pair => Environment.GetEnvironmentVariable(pair.Key));
++
++        try {
++            foreach (KeyValuePair<string, string?> variable in variables) {
++                Environment.SetEnvironmentVariable(variable.Key, variable.Value);
++            }
++
++            action();
++        }
++        finally {
++            foreach (KeyValuePair<string, string?> variable in originalValues) {
++                Environment.SetEnvironmentVariable(variable.Key, variable.Value);
++            }
++        }
++    }
++
++    private sealed class TestHostEnvironment(string environmentName) : IHostEnvironment {
++        public string EnvironmentName { get; set; } = environmentName;
++
++        public string ApplicationName { get; set; } = "Hexalith.Tenants.Tests";
++
++        public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
++
++        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
++    }
++}
+diff --git a/tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj b/tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+index 55458d1..e650db2 100644
+--- a/tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
++++ b/tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj
+@@ -9,6 +9,7 @@
+ 
+     <ItemGroup>
+         <Content Include="..\..\src\Hexalith.Tenants\appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />
++        <Content Include="..\..\src\Hexalith.Tenants\appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.Development.json" />
+     </ItemGroup>
+ 
+     <ItemGroup>

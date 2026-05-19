@@ -11,7 +11,13 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Configuration;
 
+[CollectionDefinition(AuthenticationConfigurationTests.CollectionName, DisableParallelization = true)]
+public sealed class AuthenticationConfigurationCollection;
+
+[Collection(AuthenticationConfigurationTests.CollectionName)]
 public class AuthenticationConfigurationTests {
+    internal const string CollectionName = "AuthenticationConfiguration";
+
     private const string AuthenticationSectionName = "Authentication:JwtBearer";
     private const string SecretSigningKey = "do-not-echo-this-production-signing-key";
 

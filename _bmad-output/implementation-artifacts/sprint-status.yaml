@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-19 (11-1 production JWT configuration validation code review: 0 decisions + 1 patch applied [env-var test xUnit isolation] + 4 deferred + ~17 dismissed; Server.Tests gate 438/438; story -> done)
 # last_updated: 2026-05-19 (10-4 projection write conformance code review: 5 decisions resolved + 12 patches applied + 9 deferred + 12 dismissed; ApplyIndexEvent reverted to private; fixture rewritten to drive through ProjectAsync; structured logger capture for R-007; fail-fast AC10 enforcement via MarkTerminalFailure; full Debug/no-restore solution gate passed [660 passed, 1 skipped]; story -> done)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation implemented; full Debug/no-restore solution gate passed [655 passed, 1 skipped]; story -> review)
 # last_updated: 2026-05-19 (12-3 three-phase command feedback sequencing story context created; story -> ready-for-dev)
@@ -113,6 +114,14 @@
 
 generated: 2026-05-16T09:57:23+02:00
 last_updated: 2026-05-19
+# Story 11.1 code review complete: 0 decisions, 1 patch applied (xUnit
+# AuthenticationConfigurationCollection with DisableParallelization=true on
+# AuthenticationConfigurationTests so env-var-mutating tests cannot race
+# with future tests that depend on process-env state), 4 deferred (name
+# parameter gating, AddSingleton vs TryAddEnumerable for IValidateOptions,
+# Authority host-trust policy out of AC9 scope, composition test wording
+# brittleness against the EventStore submodule), ~17 dismissed. Server.Tests
+# gate 438/438 with no regression. Story 11.1 -> done.
 # Story 10.1 integration prerequisite gating fixed: Aspire topology tests now
 # preflight Docker health before AppHost startup, and DAPR-backed tests require
 # Redis PING responsiveness instead of only TCP reachability. Full solution
@@ -253,7 +262,7 @@ development_status:
 
   # Epic 11: Production Authorization Readiness
   epic-11: in-progress
-  11-1-production-jwt-configuration-validation: review
+  11-1-production-jwt-configuration-validation: done
   11-2-eventstore-tenant-claim-contract: ready-for-dev
   11-3-deployment-auth-readiness-documentation-and-smoke-tests: ready-for-dev
   epic-11-retrospective: optional

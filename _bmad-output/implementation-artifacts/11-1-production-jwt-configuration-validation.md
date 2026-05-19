@@ -1,6 +1,6 @@
 # Story 11.1: Production JWT Configuration Validation
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -168,6 +168,7 @@ GPT-5 Codex
 ### Change Log
 
 - 2026-05-19 - Implemented Tenants production JWT configuration validation and focused regression tests; story status moved to review.
+- 2026-05-19 - Code review complete: 1 patch applied (env-var test xUnit isolation), 4 deferred (name-gating consistency, AddSingleton vs TryAddEnumerable, Authority host-trust policy, composition-test wording brittleness); ~17 dismissed. Server.Tests gate 438/438; story status moved to done.
 
 ## Party-Mode Review
 
@@ -213,3 +214,27 @@ GPT-5 Codex
   - Exact class name and registration shape for any Tenants-specific production validator remain implementation details.
   - Full deployment examples, identity provider setup, tenant-claim contract, and production smoke-test workflow remain scoped to Stories 11.2 and 11.3.
 - Final recommendation: ready-for-dev after applied clarifications.
+
+## Review Findings
+
+Adversarial code review of commit `0d0f64a` ("Add validation for tenant production authentication options") completed on 2026-05-19 using parallel Blind Hunter, Edge Case Hunter, and Acceptance Auditor layers. Acceptance Auditor confirmed all 10 ACs are Met with no constraint violations (no replacement of `ConfigureJwtBearerOptions`, no EventStore submodule changes, no new packages, no infrastructure, no network OIDC discovery in tests). Tests pass per `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore` (655 passed, 1 skipped).
+
+- [x] [Review][Patch] Env-var test mutates process state without xUnit isolation — `tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs:14` + `139-156` — applied 2026-05-19: added `AuthenticationConfigurationCollection` with `[CollectionDefinition(DisableParallelization = true)]` and `[Collection]` on `AuthenticationConfigurationTests` to serialize env-var-mutating tests against any future class that might enumerate or depend on process environment. Server.Tests gate passed: 438/438; AuthenticationConfigurationTests filter: 15/15.
+- [x] [Review][Defer] `IValidateOptions.Validate(string? name, …)` does not gate on `name` — `src/Hexalith.Tenants/Configuration/ValidateTenantProductionAuthenticationOptions.cs:11` — deferred, consistent with shared `ValidateEventStoreAuthenticationOptions` which also ignores `name`. No AC requires named-options support; revisit only if a consumer registers a non-default-named `EventStoreAuthenticationOptions`.
+- [x] [Review][Defer] `AddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateTenantProductionAuthenticationOptions>()` should be `TryAddEnumerable(...)` — `src/Hexalith.Tenants/Program.cs:93` — deferred, current registration works because `OptionsBuilder` resolves `IEnumerable<IValidateOptions<T>>`. Idiomatic improvement only; would also tidy the adjacent shared `TryAddSingleton` registration.
+- [x] [Review][Defer] `ValidateAuthority` has no loopback / private-IP / DNS-shape sanity beyond absolute HTTPS — `src/Hexalith.Tenants/Configuration/ValidateTenantProductionAuthenticationOptions.cs:34-44` — deferred, AC9 scopes Authority validation to "absolute HTTPS URI shape" before OIDC discovery. Deployment-time issuer trust policy belongs in Story 11.2 (tenant claim contract) and 11.3 (deployment auth readiness).
+- [x] [Review][Defer] Composition test asserts the exact shared-validator wording `either 'Authority' (production OIDC) or 'SigningKey'` — `tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs:162` — deferred, the story dev encoded an explicit two-source proof rather than a loose count. If `Hexalith.EventStore`'s `ValidateEventStoreAuthenticationOptions` wording drifts, this test breaks first — that is the intended signal. Consider loosening to `exception.Failures.Count >= 2` + per-validator-unique substrings only if EventStore wording churn becomes a problem.
+
+### Dismissed (false positives or by-design)
+
+- `IsProduction()` is case-sensitive — false positive: `HostEnvironmentEnvExtensions.IsEnvironment` uses `StringComparison.OrdinalIgnoreCase`, so `production`, `PRODUCTION`, `Production` all match.
+- `Uri.TryCreate("https:///", UriKind.Absolute, …)` accepts hostless URI — false positive: verified in PowerShell that `https:///`, `https://`, `https:///path` all return `ok=False`; `ValidateAuthority` already rejects them.
+- `ValidateSigningKey` whitespace inconsistency (`null or { Length: 0 }` vs `IsNullOrWhiteSpace` used elsewhere) — by design: whitespace SigningKey is "present, not empty" → must be rejected as ambiguous (AC6); switching to `IsNullOrWhiteSpace` would silently accept `SigningKey="   "` alongside a valid Authority, which is the exact scenario AC6 forbids. The asymmetric semantics are correct.
+- Tautological `ShouldNotContain(SecretSigningKey)` / `ShouldNotContain(new string(' ', 40))` / `ShouldNotContain(authority)` assertions — defense-in-depth; the validator never interpolates field values into messages, but these assertions catch a regression if someone ever does.
+- `ProductionAppSettingsAuthenticationShouldFailValidation` couples to committed `appsettings.json` content — by design: AC1 is specifically "committed production placeholders fail validation," so the test must read the committed file.
+- `appsettings.Development.json` loaded with `optional: false` — by design: the test csproj `<Content Include …>` copy guarantees the file exists at test runtime.
+- Most tests use `IOptions<T>.Value` rather than `IStartupValidator.Validate()` — composition AC10 is covered by the dedicated `StartupValidationShouldComposeEventStoreAndTenantsValidators` test; other tests intentionally focus on per-validator behavior.
+- `InternalsVisibleTo` wiring — verified at `src/Hexalith.Tenants/Hexalith.Tenants.csproj:17`: `<InternalsVisibleTo Include="Hexalith.Tenants.Server.Tests" />`.
+- `ServiceProvider` not disposed in tests — fixture holds only singleton `IHostEnvironment` and `IOptions` cache; no unmanaged resources to leak.
+- `Environment.SetEnvironmentVariable(name, "")` deletes on Windows — handled: the relevant test overrides empty/missing values via configuration overrides, not via empty env strings.
+- Other minor noise: bind-time exception for non-boolean `RequireHttpsMetadata`, `IConfiguration` reload-token concerns, Issuer-vs-Authority cross-field validation, test working-directory edge cases — none manifests in this codebase.

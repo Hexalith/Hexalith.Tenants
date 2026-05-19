@@ -5,14 +5,14 @@
   "collection_mode": "sequential",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
-  "gate_basis": "priority_thresholds_with_review_patch_overlay",
+  "gate_basis": "priority_thresholds",
   "source_sha": "4439159",
   "target": {
     "type": "story",
     "id": "10-4",
     "label": "Story 10.4 — Projection Write Conformance and Recovery Tests"
   },
-  "story_status_at_gate": "review",
+  "story_status_at_gate": "done",
   "decision_mode": "human_with_data",
   "evaluator": "Jerome (drafted by Murat — Master Test Architect)",
   "confidence": "high",
@@ -33,46 +33,18 @@
   },
   "coverage": {
     "inventory": {
-      "covered_strict_FULL": 2,
-      "covered_at_least_PARTIAL": 11,
+      "covered": 11,
       "total": 11,
-      "pct_strict_FULL": 18,
-      "pct_at_least_PARTIAL": 100
+      "pct": 100
     },
     "priority_breakdown": {
-      "P0": {
-        "total": 1,
-        "covered_strict_FULL": 1,
-        "covered_at_least_PARTIAL": 1,
-        "pct_strict_FULL": 100,
-        "pct_at_least_PARTIAL": 100,
-        "note": "AC#1 covers R-001 BLOCKER at unit tier via T-10.4-CONF-002 + T-10.4-CONF-003"
-      },
-      "P1": {
-        "total": 8,
-        "covered_strict_FULL": 0,
-        "covered_at_least_PARTIAL": 8,
-        "pct_strict_FULL": 0,
-        "pct_at_least_PARTIAL": 100,
-        "note": "All 8 P1 ACs have passing tests; strict-FULL 0% reflects 11 open Review patches against test refinement (not coverage absence)"
-      },
-      "P2": {
-        "total": 2,
-        "covered_strict_FULL": 1,
-        "covered_at_least_PARTIAL": 2,
-        "pct_strict_FULL": 50,
-        "pct_at_least_PARTIAL": 100
-      },
-      "P3": {
-        "total": 0,
-        "covered_strict_FULL": 0,
-        "covered_at_least_PARTIAL": 0,
-        "pct_strict_FULL": 100,
-        "pct_at_least_PARTIAL": 100
-      }
+      "P0": { "total": 1, "covered": 1, "pct": 100, "note": "AC#1 covers R-001 BLOCKER at unit tier via T-10.4-CONF-002 + T-10.4-CONF-003" },
+      "P1": { "total": 8, "covered": 8, "pct": 100 },
+      "P2": { "total": 2, "covered": 2, "pct": 100 },
+      "P3": { "total": 0, "covered": 0, "pct": 100 }
     },
     "by_level": {
-      "unit": { "tests": 23, "criteria_covered": 10 },
+      "unit": { "tests": 28, "criteria_covered": 10 },
       "api": { "tests": 0, "criteria_covered": 0 },
       "component": { "tests": 0, "criteria_covered": 0 },
       "e2e": { "tests": 0, "criteria_covered": 0 },
@@ -81,23 +53,23 @@
   },
   "tests": {
     "files": 3,
-    "cases": 24,
+    "cases": 29,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0,
-    "story_focused_pass_count": 23,
-    "solution_gate_pass_count": 655,
+    "in_scope_focused_pass_count": 28,
+    "solution_gate_pass_count": 660,
     "solution_gate_skip_count": 1,
-    "baseline_note": "655/1 from full Debug/no-restore solution gate (post-Story-11-1, per sprint-status 2026-05-19). Story-10.4 scope: 23 in-scope tests + 1 fixture; all passing."
+    "baseline_note": "660 passed / 1 skipped from full Debug/no-restore solution gate. Story-10.4 scope: 11 conformance + 17 handler = 28 in-scope tests, all passing. The 1 skip is unrelated DAPR-precondition gated snapshot performance test."
   },
   "risk_summary": {
     "critical_open": 0,
     "high_open": 0,
     "medium_open": 0,
     "low_open": 0,
-    "partial_refinement_acs": 9,
-    "open_review_patches": 16,
-    "note": "No NONE/uncovered ACs. 9 ACs carry open Review patches that block story close. 16 patches total (12 patch items + 4 decision-driven D2/D3/D4/D5)."
+    "partial_refinement_acs": 0,
+    "open_review_patches": 0,
+    "note": "All 11 ACs FULL. All 16 Review patches resolved (15 applied + 1 dismissed). No blocking items at story level."
   },
   "heuristics": {
     "endpoint_gaps": 0,
@@ -106,43 +78,34 @@
     "ui_journey_status": "not_applicable",
     "ui_state_status": "not_applicable",
     "state_key_coverage_status": "full",
-    "pii_sentinel_status": "partial",
-    "missing_pii_sentinel_gates": 3,
-    "fixture_fail_fast_status": "partial",
-    "integration_tier_defense_in_depth_status": "missing_for_R-001",
-    "structured_kv_diagnostic_status": "partial",
-    "wins_by_contest_status": "missing"
+    "pii_sentinel_status": "full",
+    "missing_pii_sentinel_gates": 0,
+    "fixture_fail_fast_status": "full",
+    "integration_tier_defense_in_depth_status": "missing_for_R-001_but_blocks_only_epic_close",
+    "structured_kv_diagnostic_status": "full",
+    "wins_by_contest_status": "full"
   },
-  "decision": "CONCERNS",
-  "decision_rationale_short": "All 11 ACs at-least-PARTIAL, all tests pass, P0 BLOCKER covered, but 16 open Review patches block review→done transition.",
+  "decision": "PASS",
+  "decision_rationale_short": "All 11 ACs FULL; 28/28 in-scope tests pass; 660/1 solution gate; all 16 Review patches resolved.",
   "blockers": [],
-  "blocking_items_for_story_close": [
-    {
-      "id": "REC-1-STORY-CLOSE",
-      "severity": "MEDIUM",
-      "description": "Apply 16 open Review patches before Story 10.4 closes review",
-      "remediation_recommendation_id": "STORY-10-4-REC-1",
-      "effort_hours": "12-20",
-      "target_date": "2026-05-26"
-    }
-  ],
+  "blocking_items_for_story_close": [],
   "blocking_items_for_epic_close_only": [
     {
       "id": "T-R001-INT-001",
       "severity": "MEDIUM",
       "description": "Planned DAPR-backed integration test never built; carryover from Epic 10 REC-1B",
-      "remediation_recommendation_id": "STORY-10-4-REC-4",
+      "remediation_recommendation_id": "REC-EPIC-10-1",
       "effort_hours": "0.5 (waive) / 3-6 (build)",
       "target_date": "2026-05-26"
     }
   ],
   "recommendations": [
-    { "priority": "MEDIUM", "id": "STORY-10-4-REC-1", "action": "Apply the 16 open Review patches before Story 10.4 closes review", "effort_hours": "12-20", "target_date": "2026-05-26", "blocks_story_close": true },
-    { "priority": "MEDIUM", "id": "STORY-10-4-REC-2", "action": "Add Audit_RetryExhaustion sentinel test (REC-2 carryover)", "effort_hours": "1-2", "target_date": "2026-05-26" },
-    { "priority": "MEDIUM", "id": "STORY-10-4-REC-3", "action": "Add Cancellation_Failure sentinel test (REC-3 carryover)", "effort_hours": "1-2", "target_date": "2026-05-26" },
-    { "priority": "MEDIUM", "id": "STORY-10-4-REC-4", "action": "Decide T-R001-INT-001 build or waive (REC-1B carryover; blocks Epic close, not story close)", "effort_hours": "0.5 (waive) / 3-6 (build)", "target_date": "2026-05-26", "blocks_epic_close": true },
-    { "priority": "LOW", "id": "STORY-10-4-REC-5", "action": "Run /bmad-testarch-test-review against conformance file + fixture", "effort_hours": "1" },
-    { "priority": "LOW", "id": "STORY-10-4-REC-6", "action": "Standard /bmad:tea:test-review follow-up", "effort_hours": "" }
+    { "priority": "MEDIUM", "id": "REC-EPIC-10-1", "action": "Decide T-R001-INT-001 build or waive (REC-1B carryover; blocks Epic close, not story close)", "effort_hours": "0.5 (waive) / 3-6 (build)", "target_date": "2026-05-26", "blocks_epic_close": true },
+    { "priority": "LOW", "id": "REC-OPTIONAL-1", "action": "Optional: /bmad-testarch-test-review against conformance file + fixture", "effort_hours": "1" }
+  ],
+  "trace_history": [
+    { "stage": "review-stage trace", "verdict": "CONCERNS", "trace_date": "2026-05-19", "note": "Run while story was in review with 16 open patches" },
+    { "stage": "done-state trace", "verdict": "PASS", "trace_date": "2026-05-19", "note": "Re-evaluated after patches applied + production code change confirmed" }
   ],
   "links": {
     "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
@@ -155,6 +118,6 @@
     "prior_epic_10_gate": "_bmad-output/test-artifacts/gate-decision-epic-10-2026-05-19.json",
     "prior_epic_10_summary": "_bmad-output/test-artifacts/e2e-trace-summary-epic-10-2026-05-19.json",
     "commit_url": "",
-    "ci_run_note": "Substitute CI URL after next GitHub Actions run completes"
+    "ci_run_note": "Substitute CI URL after next GitHub Actions run"
   }
 }
