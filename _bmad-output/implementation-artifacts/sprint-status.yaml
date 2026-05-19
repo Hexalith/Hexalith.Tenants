@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-19 (12-1 FrontShell dependency map for Tenants UI story context created; epic-12 -> in-progress; story -> ready-for-dev)
 # last_updated: 2026-05-19 (10-3b cancellation token threading development started; story -> in-progress)
 # last_updated: 2026-05-19 (10-3a second-pass code review patches applied [10-3b handoff refresh + FrontComposer pointer cleanup + transient preflight snapshot restored]; story -> done)
 # last_updated: 2026-05-19 (10-3a 12 review patches applied [EventStore submodule advance to bcccd504 + cancellation message root-cause + AspireTopologyFixture hardening + Sample /alive endpoint]; EventStore Server.Tests 82/82, Tenants 611 passed 1 skipped; story -> review)
@@ -249,8 +250,8 @@ development_status:
   epic-11-retrospective: optional
 
   # Epic 12: Phase 2 Admin UI Dependency Sequencing
-  epic-12: backlog
-  12-1-frontshell-dependency-map-for-tenants-ui: backlog
+  epic-12: in-progress
+  12-1-frontshell-dependency-map-for-tenants-ui: ready-for-dev
   12-2-audit-timeline-and-consequence-preview-readiness: backlog
   12-3-three-phase-command-feedback-sequencing: backlog
   12-4-phase-2-ui-story-backlog-with-explicit-blockedby: backlog
