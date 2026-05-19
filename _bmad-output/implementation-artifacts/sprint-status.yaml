@@ -1,5 +1,6 @@
 # generated: 2026-05-16T09:57:23+02:00
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation implemented; full Debug/no-restore solution gate passed [655 passed, 1 skipped]; story -> review)
+# last_updated: 2026-05-19 (12-3 three-phase command feedback sequencing story context created; story -> ready-for-dev)
 # last_updated: 2026-05-19 (12-2 audit timeline and consequence preview readiness story context created; story -> ready-for-dev)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation development started; story -> in-progress)
 # last_updated: 2026-05-19 (10-4 projection write conformance and recovery tests implemented; full Debug/no-restore solution gate passed [640 passed, 1 skipped]; story -> review)
@@ -260,6 +261,6 @@ development_status:
   epic-12: in-progress
   12-1-frontshell-dependency-map-for-tenants-ui: ready-for-dev
   12-2-audit-timeline-and-consequence-preview-readiness: ready-for-dev
-  12-3-three-phase-command-feedback-sequencing: backlog
+  12-3-three-phase-command-feedback-sequencing: ready-for-dev
   12-4-phase-2-ui-story-backlog-with-explicit-blockedby: backlog
   epic-12-retrospective: optional
