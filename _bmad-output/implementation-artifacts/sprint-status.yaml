@@ -1,4 +1,14 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-19 (10-3b cancellation token threading development started; story -> in-progress)
+# last_updated: 2026-05-19 (10-3a second-pass code review patches applied [10-3b handoff refresh + FrontComposer pointer cleanup + transient preflight snapshot restored]; story -> done)
+# last_updated: 2026-05-19 (10-3a 12 review patches applied [EventStore submodule advance to bcccd504 + cancellation message root-cause + AspireTopologyFixture hardening + Sample /alive endpoint]; EventStore Server.Tests 82/82, Tenants 611 passed 1 skipped; story -> review)
+# last_updated: 2026-05-19 (10-3a code review completed; 8 decisions resolved + 12 patches recorded as action items + 6 deferred + 6 dismissed; story -> in-progress)
+# last_updated: 2026-05-19 (Epic 9 retrospective completed; epic-9-retrospective -> done)
+# last_updated: 2026-05-19 (10-3a generalized EventStore Tenants path resolution for root and root-level-submodule layouts; EventStore build and Tenants regression pass; story remains review)
+# last_updated: 2026-05-19 (10-3a EventStore solution Tenants path resolution fixed; full EventStore solution build and Tenants regression gates pass; story -> review)
+# last_updated: 2026-05-19 (10-3a revalidation: focused EventStore cancellation gates, EventStore Server build, Tenants build, and unfiltered Tenants tests pass; full EventStore solution build still blocked by absent nested EventStore Tenants submodule projects/unrestored unrelated assets; story remains in-progress)
+# last_updated: 2026-05-18 (10-3a implementation tasks marked complete after focused cancellation revalidation; full regression still blocked by AspireTopologyTests fixture health cancellation and EventStore nested submodule/unrestored solution references; story remains in-progress)
+# last_updated: 2026-05-18 (10-3a focused EventStore cancellation validation unblocked and passing; full regression still blocked by Aspire topology fixture health failures / missing nested EventStore Tenants submodule projects; story remains in-progress)
 # last_updated: 2026-05-18 (11-3 deployment auth readiness documentation and smoke tests story context created; story -> ready-for-dev)
 # last_updated: 2026-05-18 (10-3a EventStore projection cancellation API prerequisite implementation complete locally; Server.Tests validation blocked by unrelated nested Tenants reference/JwtBearer mismatch; story remains in-progress)
 # last_updated: 2026-05-18 (10-2 audit projection write safety code review complete + 6 patches applied [reorder validate-before-tenant-write, clone-and-build merge, null-EventId guard, field-level dup-collision test, tighter dispatcher assertion, event-types added to retry-exhaustion log]; 4 findings deferred; story -> done)
@@ -92,7 +102,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-18
+last_updated: 2026-05-19
 # Story 10.1 integration prerequisite gating fixed: Aspire topology tests now
 # preflight Docker health before AppHost startup, and DAPR-backed tests require
 # Redis PING responsiveness instead of only TCP reachability. Full solution
@@ -220,14 +230,14 @@ development_status:
   9-3-query-policy-for-disabled-tenants-and-orphan-memberships: done
   9-4-actor-layer-query-guardrails: done
   9-5-shared-pagination-bounds-and-cursor-utilities: done
-  epic-9-retrospective: optional
+  epic-9-retrospective: done
 
   # Epic 10: Durable Projection Write Safety
   epic-10: in-progress
   10-1-optimistic-concurrency-for-tenant-read-model-writes: done
   10-2-audit-projection-write-safety: done
-  10-3a-eventstore-projection-cancellation-api-prerequisite: in-progress
-  10-3b-cancellation-token-threading-for-tenant-projection-queries: ready-for-dev
+  10-3a-eventstore-projection-cancellation-api-prerequisite: done
+  10-3b-cancellation-token-threading-for-tenant-projection-queries: in-progress
   10-4-projection-write-conformance-and-recovery-tests: ready-for-dev
   epic-10-retrospective: optional
 

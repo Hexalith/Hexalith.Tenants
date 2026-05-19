@@ -1,8 +1,8 @@
 # Story 10.3B: Cancellation Token Threading for Tenant Projection Queries
 
-Status: ready-for-dev
+Status: in-progress
 
-Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
+Completion note: Story context updated after Story 10.3A published the EventStore cancellation handoff at submodule commit `bcccd504`. Tenants implementation can now consume the approved EventStore APIs instead of re-deciding the contract shape.
 
 ## Story
 
@@ -26,9 +26,9 @@ so that abandoned requests do not keep consuming compute or block projection pro
 ## Tasks / Subtasks
 
 - [ ] Verify the Story 10.3A EventStore prerequisite before implementation. (AC: 1, 3, 4)
-  - [ ] Confirm the `Hexalith.EventStore` submodule commit that contains the approved cancellation-aware projection API.
-  - [ ] Record the exact EventStore signatures available to Tenants, including the query actor/dispatch path and projection handler path.
-  - [ ] If EventStore still only exposes `IProjectionActor.QueryAsync(QueryEnvelope envelope)`, `CachingProjectionActor.ExecuteQueryAsync(QueryEnvelope envelope)`, and `TenantProjectionHandler.ProjectAsync(ProjectionRequest request)`-style no-token paths, stop implementation and return this story for prerequisite completion instead of inventing a Tenants-only bypass.
+  - [ ] Confirm the `Hexalith.EventStore` submodule pointer is at commit `bcccd504` or a descendant containing the approved cancellation-aware projection API.
+  - [ ] Record the exact EventStore signatures consumed by this story in the Dev Agent Record, including the query actor/dispatch path, projection delivery HTTP boundary, and unsupported actor write-boundary limitations.
+  - [ ] If the submodule pointer regresses before `bcccd504` or any handoff API named below is absent, stop implementation and return this story for prerequisite repair instead of inventing a Tenants-only bypass.
   - [ ] Do not wrap synchronous EventStore APIs, shadow EventStore overloads locally, invoke DAPR/state clients outside the approved projection path, or add a Tenants-only cancellation adapter to bypass the 10.3A contract decision.
   - [ ] Do not initialize or update nested submodules recursively while checking the dependency.
 - [ ] Thread cancellation through tenant projection query execution once EventStore exposes the token. (AC: 1, 2, 5, 6)
@@ -71,20 +71,28 @@ so that abandoned requests do not keep consuming compute or block projection pro
 
 ### Dependency Gate
 
-- This story is intentionally dependent on Story 10.3A. As of `Hexalith.EventStore` submodule commit `da2f2cf3`, the key APIs still do not expose cancellation:
-  - `Hexalith.EventStore.Contracts/Queries/IProjectionActor.cs`: `Task<QueryResult> QueryAsync(QueryEnvelope envelope)`.
-  - `Hexalith.EventStore.Server/Actors/CachingProjectionActor.cs`: `public async Task<QueryResult> QueryAsync(QueryEnvelope envelope)` and `protected abstract Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope)`.
-  - `Hexalith.EventStore.Server/Queries/QueryRouter.cs`: `RouteQueryAsync(SubmitQuery query, CancellationToken cancellationToken = default)` receives a token before actor dispatch, but the actor call remains `proxy.QueryAsync(envelope)` in the current prerequisite analysis.
-  - `Hexalith.EventStore.Client/Aggregates/EventStoreProjection.cs`: projection replay helpers are synchronous in the 10.3A analysis.
-- Do not begin Tenants implementation until the completed 10.3A work names the exact API shape Story 10.3B should consume. If 10.3A concludes that a boundary cannot carry cancellation directly, implement only the supported Tenants-side cancellation boundaries and document the limitation in tests.
-- Treat the 10.3A handoff as a hard sequencing gate, not a suggestion. The handoff must name the exact EventStore submodule commit, changed API signatures, supported cancellation result/exception shape, and any actor-boundary or synchronous replay limitations before Tenants code is changed.
+- Story 10.3A completed the EventStore cancellation handoff in submodule commit `bcccd504b5c4f1984e854aa73928ec5670f0a4e9`. Consume that API surface; do not re-open the EventStore contract decision inside Tenants.
+- Approved query dispatch APIs available to Tenants:
+  - `QueryRouter.RouteQueryAsync(SubmitQuery query, CancellationToken cancellationToken = default)` now carries the route-level token to DAPR actor invocation through weak `ActorProxy.InvokeMethodAsync<QueryEnvelope, QueryResult>(nameof(IProjectionActor.QueryAsync), envelope, cancellationToken)` when the generated proxy is an `ActorProxy`.
+  - The source-compatible fallback remains `IProjectionActor.QueryAsync(QueryEnvelope envelope)` when a proxy is not an `ActorProxy`; that fallback cannot carry a downstream request-abort token.
+  - `CachingProjectionActor.QueryAsync(QueryEnvelope envelope, CancellationToken cancellationToken)` observes cancellation before ETag lookup, cache-hit return, query execution, and cache storage.
+  - `CachingProjectionActor.ExecuteQueryAsync(QueryEnvelope envelope, CancellationToken cancellationToken)` is the cancellation-aware derived-actor hook Tenants should override. The legacy `ExecuteQueryAsync(QueryEnvelope envelope)` remains for source compatibility and delegates from the token-aware hook only when a derived actor has not implemented the new path.
+  - `FakeProjectionActor.QueryAsync(QueryEnvelope envelope, CancellationToken cancellationToken)` records received tokens for deterministic tests.
+- Approved projection delivery and replay APIs available to Tenants:
+  - `IProjectionUpdateOrchestrator.UpdateProjectionAsync(AggregateIdentity identity, CancellationToken cancellationToken = default)` carries cancellation through EventStore projection delivery, including the HTTP `/project` send and response-read boundaries.
+  - `EventStoreProjection<TReadModel>.Project(IEnumerable events, CancellationToken cancellationToken)` and `ProjectFromJson(JsonElement jsonArray, CancellationToken cancellationToken)` observe cancellation between event applications.
+  - `EventReplayProjectionActor.UpdateProjectionAsync(ProjectionState state, CancellationToken cancellationToken)` passes cancellation to EventStore-owned DAPR actor state and notification operations.
+  - `IProjectionWriteActor.UpdateProjectionAsync(ProjectionState state)` remains the no-token DAPR actor interface for projection state writes; Story 10.3B must not claim actor-boundary write cancellation beyond the supported APIs above.
+- Cancellation taxonomy from Story 10.3A: bare `OperationCanceledException` / `TaskCanceledException` is allowed to surface and must not be mapped to successful empty results, query adapter failures, not-found, forbidden, invalid cursor, ETag conflict, or retry exhaustion. EventStore intentionally documents wrapped DAPR/SignalR cancellation exceptions as fail-open/failure-boundary cases where the transport wraps the cancellation inside another exception type.
+- Implementation may now start after confirming the parent repo points at `bcccd504` or a descendant. Do not initialize nested submodules while checking the dependency.
 
 ### Current Code State
 
-- `TenantsProjectionActor` currently overrides `protected override async Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope)` with no token. It dispatches to `HandleGetTenantAsync`, `HandleListTenantsAsync`, `HandleGetTenantUsersAsync`, `HandleGetUserTenantsAsync`, and `HandleGetTenantAuditAsync`, all of which call DAPR `GetStateAsync` without cancellation. [Source: `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`]
+- `TenantsProjectionActor` now inherits from an EventStore base that exposes `protected virtual Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope, CancellationToken cancellationToken)`, but Tenants still overrides only `protected override async Task<QueryResult> ExecuteQueryAsync(QueryEnvelope envelope)` with no token. It dispatches to `HandleGetTenantAsync`, `HandleListTenantsAsync`, `HandleGetTenantUsersAsync`, `HandleGetUserTenantsAsync`, and `HandleGetTenantAuditAsync`, all of which call DAPR `GetStateAsync` without cancellation. [Source: `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`; `Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/CachingProjectionActor.cs` at `bcccd504`]
 - Query handlers perform authorization, cursor decoding, in-memory filtering, ordering, pagination, and JSON serialization. Cancellation work must not reorder authorization/cursor semantics for non-cancelled requests. [Source: `src/Hexalith.Tenants/Actors/TenantsProjectionActor.cs`; Stories 9.3-9.5]
-- `TenantProjectionHandler.ProjectAsync(ProjectionRequest request)` currently has no token parameter and writes projection state through DAPR state APIs. Active/ready Stories 10.1 and 10.2 own ETag write safety, so this story must layer cancellation onto whatever guarded write helper exists when implementation begins. [Source: `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`; Stories 10.1 and 10.2]
-- `src/Hexalith.Tenants/Program.cs` already receives cancellation for the manual DAPR subscribe endpoint and passes it to `handler.ProcessAsync(request, cancellationToken)`. This endpoint token is not yet threaded into EventStore projection query actor execution or `TenantProjectionHandler.ProjectAsync`. [Source: `src/Hexalith.Tenants/Program.cs`]
+- `TenantProjectionHandler.ProjectAsync(ProjectionRequest request)` currently has no token parameter and writes projection state through DAPR state APIs. Stories 10.1 and 10.2 added guarded write policy behavior; this story must thread cancellation through those helpers without weakening retry, merge, idempotency, or recovery behavior. [Source: `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`; `src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs`; Stories 10.1 and 10.2]
+- `ProjectionDispatcher.DispatchAsync(ProjectionRequest request)` and the `/project` endpoint in `src/Hexalith.Tenants/Program.cs` currently drop the ASP.NET request-abort token before it reaches `TenantProjectionHandler.ProjectAsync`. EventStore now carries cancellation through its projection delivery HTTP send/read boundary, so Tenants must accept `CancellationToken` at `/project`, pass it through the dispatcher, and use it in tenant/global-admin projection handlers where DAPR APIs support it. [Source: `src/Hexalith.Tenants/Program.cs`; `src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs`; `Hexalith.EventStore/src/Hexalith.EventStore.Server/Projections/ProjectionUpdateOrchestrator.cs` at `bcccd504`]
+- `src/Hexalith.Tenants/Program.cs` already receives cancellation for the manual DAPR subscribe endpoint and passes it to `handler.ProcessAsync(request, cancellationToken)`. This endpoint token is separate from the projection query actor execution and `/project` projection write paths. [Source: `src/Hexalith.Tenants/Program.cs`]
 
 ### Architecture and Scope Boundaries
 
