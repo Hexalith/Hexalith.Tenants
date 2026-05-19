@@ -21,6 +21,7 @@ so that UI implementation starts only when required cross-project dependencies a
 7. Given dependency evidence includes source paths, when the map is committed, then it does not require initializing or updating nested submodules and does not copy generated build artifacts, secrets, local absolute paths, or environment-specific evidence into the document.
 8. Given the dependency map will feed future Phase 2 UI stories, when dependency entries are defined, then each dependency ID is defined exactly once and future stories can cite that stable ID in `blockedBy` without relying on prose assumptions.
 9. Given a dependency row uses evidence, when the evidence is reviewed, then the row cites a repo-relative source path, decision record, or explicit `evidence: missing` value and includes the owner responsible for resolving `needs-confirmation`, `missing`, `planned`, or fallback states.
+10. Given current FrontComposer source evidence is incomplete, stale, or unavailable in the checked-out submodule, when the map records a dependency, then it marks the dependency `needs-confirmation` or `missing` instead of inferring readiness from UX aliases, package names, or desired component names.
 
 ## Tasks / Subtasks
 
@@ -34,17 +35,20 @@ so that UI implementation starts only when required cross-project dependencies a
   - [ ] Define each dependency ID exactly once before screen rows consume it; the ID catalog must include owner, expected deliverable, UX alias if any, current FrontComposer name/path if verified, readiness, fallback rule, and Phase 1 blocker status.
   - [ ] Use current project terminology: `Hexalith.FrontComposer` for the checked-out submodule, and mention `FrontShell` only where quoting or aliasing older UX/planning language.
   - [ ] For every dependency, classify readiness as `available`, `needs-confirmation`, `missing`, `planned`, or `approved-fallback`; do not use vague values like `TBD` without a named decision owner.
+  - [ ] Treat current source evidence as checkout-specific: cite repo-relative paths and, when useful, the inspected submodule commit or planning artifact reference; if evidence cannot be verified locally, use `evidence: missing` or `needs-confirmation` rather than a speculative path.
   - [ ] Include an explicit "not a Phase 1 blocker" statement for missing UI-only dependencies.
 - [ ] Map required FrontComposer components and hooks. (AC: 1, 2, 6)
   - [ ] Map existing or planned table/list dependencies to current FrontComposer primitives such as projection rendering, DataGrid support, empty/loading placeholders, authorized command regions, command feedback, and projection connection status where those paths exist.
   - [ ] Capture UX-specified new or unconfirmed dependencies: `<AuditTimeline>`, `<ConsequencePreview>`, command pending identifiers or equivalent pending-command state, concurrent command support, toast batching, `PageLayout` full-width/constrained behavior, role/status design tokens, timeline connector token, and consequence panel token.
   - [ ] If the current FrontComposer implementation uses different names, record the current type/path and the UX alias together instead of inventing a new component name.
   - [ ] Treat React-style UX terms such as `useCommand` as aliases until verified; map them to Blazor/FrontComposer command lifecycle, pending command, feedback, and authorized-region services, or mark the dependency `needs-confirmation`/`missing` with an owner.
+  - [ ] Do not turn dependency rows into FrontComposer implementation requirements. Exact component APIs, event contracts, token names, and Storybook/tooling choices remain FrontComposer-owned unless a later approved story defines them.
   - [ ] Do not assert Storybook coverage exists unless a real Storybook or documentation path is found; mark it `missing` or `needs-confirmation` otherwise.
 - [ ] Capture screen-by-screen fallback and blocking policy. (AC: 3, 4, 5)
   - [ ] For each missing dependency, state whether the corresponding Tenants UI story should be blocked, planning-only, or allowed to proceed with a named fallback.
   - [ ] Name the decision owner for each fallback or unresolved dependency; product/UX-owned fallback decisions must not be implied by implementation convenience.
   - [ ] Require product and UX approval for fallbacks to `<AuditTimeline>`, `<ConsequencePreview>`, three-phase command feedback, role/status token gaps, or layout variants.
+  - [ ] Use exact dependency IDs in future-facing `blockedBy` examples; if a screen depends on multiple unresolved items, list each dependency ID separately instead of using a broad screen-level blocker.
   - [ ] State that backend query, projection, authorization, and deployment stories remain independent of FrontComposer UI readiness unless a later scope decision explicitly promotes Admin UI work.
 - [ ] Add source evidence and review checklist. (AC: 2, 3, 7)
   - [ ] Link each dependency-map section to source documents such as `_bmad-output/planning-artifacts/ux-design-specification.md`, `_bmad-output/planning-artifacts/epics.md`, `Hexalith.FrontComposer/_bmad-output/project-context.md`, and relevant FrontComposer planning/source paths.
@@ -55,6 +59,7 @@ so that UI implementation starts only when required cross-project dependencies a
   - [ ] Review the final document against this story's acceptance criteria.
   - [ ] Confirm every dependency row includes stable ID, owner, expected deliverable, readiness, fallback/blocking policy, evidence, and Phase 1 blocker status.
   - [ ] Confirm accessibility, keyboard, live-region, reduced-motion, forced-colors, localization/adopter-experience, and component documentation/reference evidence are first-class dependency entries rather than buried notes.
+  - [ ] Confirm future UI story authors can identify required `blockedBy` IDs from the map without reading narrative prose or making assumptions from screen names.
   - [ ] Confirm the document does not change source code, package versions, submodule pointers, or Phase 1 backend scope.
   - [ ] Record the created/updated files and any unresolved dependency decisions in this story's Dev Agent Record.
 
@@ -90,6 +95,7 @@ so that UI implementation starts only when required cross-project dependencies a
   - `FC-CNS`: consequence preview component or approved fallback.
   - `FC-TOK`: role/status/timeline/consequence visual tokens.
   - `FC-A11Y`: accessibility, keyboard, live-region, reduced-motion, and forced-colors guarantees.
+  - `FC-L10N`: localization, culture-aware formatting, adopter-facing terminology, and translation readiness.
   - `FC-DOC`: Storybook or equivalent component documentation/reference evidence.
 - The dependency ID catalog is the contract for future stories. Define each ID once, then reference it from screen rows through `blockedBy` or dependency columns; do not rely on prose section headings as dependency identifiers.
 - Each dependency row should include: ID, current `Hexalith.FrontComposer` name/path when verified, UX alias when present, owner, expected deliverable, readiness, fallback/blocking policy, evidence source, and Phase 1 blocker status.
@@ -132,6 +138,7 @@ so that UI implementation starts only when required cross-project dependencies a
 - `Hexalith.FrontComposer` project context currently pins .NET SDK `10.0.300`, Fluent UI Blazor `5.0.0-rc.2-26098.1`, Fluxor `6.9.0`, Aspire `13.2.1`, Playwright `^1.49.0`, and Node `>=24.0.0`. This story should not update any of those dependencies. [Source: `Hexalith.FrontComposer/_bmad-output/project-context.md`]
 - FrontComposer current implementation is Blazor/Fluent UI based, not React. UX text that mentions `useCommand` should be mapped to the current FrontComposer command lifecycle and pending-command services unless a later FrontComposer story explicitly provides a hook with that name. [Source: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/State/PendingCommands`; `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Services/Feedback`]
 - Storybook coverage is a UX requirement for reusable component references, but current local evidence should be verified before claiming it exists. If no Storybook path exists, mark documentation/reference evidence as `missing` or `needs-confirmation` in the map. [Source: `_bmad-output/planning-artifacts/ux-design-specification.md#Component Quality Gates`]
+- Dependency readiness is an evidence classification, not a promise that FrontComposer has finalized public APIs. The map should separate "source path exists in this checkout" from "approved reusable contract for Tenants UI stories."
 
 ### Project Context Reference
 
@@ -173,4 +180,31 @@ GPT-5 Codex
 
 ### Completion Notes List
 
+- 2026-05-19T15:06:26+02:00 - Advanced elicitation applied pre-dev clarifications for checkout-specific evidence, non-speculative readiness, exact dependency-ID `blockedBy` examples, FrontComposer-owned API boundaries, and localization/adopter-experience coverage.
+
 ### File List
+
+- _bmad-output/implementation-artifacts/12-1-frontshell-dependency-map-for-tenants-ui.md
+
+## Advanced Elicitation
+
+- Date/time: 2026-05-19T15:06:26+02:00
+- Selected story key: 12-1-frontshell-dependency-map-for-tenants-ui
+- Command/skill invocation used: `/bmad-advanced-elicitation 12-1-frontshell-dependency-map-for-tenants-ui`
+- Batch 1 method names: Self-Consistency Validation; Red Team vs Blue Team; Architecture Decision Records; Comparative Analysis Matrix; Failure Mode Analysis.
+- Reshuffled Batch 2 method names: Pre-mortem Analysis; Security Audit Personas; First Principles Analysis; Occam's Razor Application; User Persona Focus Group.
+- Findings summary:
+  - The story already constrained Phase 2 UI planning well, but implementation could still overclaim readiness from UX aliases or package names without verified current checkout evidence.
+  - The dependency map needed a sharper separation between source evidence, reusable FrontComposer contracts, and future FrontComposer API/design decisions.
+  - Future UI story consumption needed exact dependency IDs in `blockedBy` examples so unresolved items do not become broad screen-level blockers or prose-only assumptions.
+  - Localization/adopter-experience coverage was mentioned in validation but needed a stable dependency ID alongside accessibility and documentation evidence.
+- Changes applied:
+  - Added an acceptance criterion requiring `needs-confirmation` or `missing` when FrontComposer evidence is incomplete, stale, or unavailable.
+  - Tightened dependency-map tasks to cite checkout-specific repo-relative evidence, avoid speculative paths, and avoid turning dependency rows into FrontComposer implementation requirements.
+  - Added future-facing `blockedBy` guidance requiring exact dependency IDs for unresolved dependencies.
+  - Added `FC-L10N` as a stable dependency ID for localization, culture-aware formatting, adopter terminology, and translation readiness.
+  - Added validation that future UI story authors can consume dependency IDs without relying on narrative prose.
+- Findings deferred:
+  - Exact FrontComposer component APIs, event contracts, token names, documentation tooling, and final localization implementation remain FrontComposer-owned or later Phase 2 planning decisions.
+  - Whether the dependency map should record inspected submodule commit hashes for every source-backed row remains an implementation choice unless product/process requires stronger auditability.
+- Final recommendation: ready-for-dev after applied clarifications.
