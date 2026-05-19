@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <Content Include="..\..\src\Hexalith.Tenants\appsettings.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.json" />
+        <Content Include="..\..\src\Hexalith.Tenants\appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" Link="appsettings.Development.json" />
     </ItemGroup>
 
     <ItemGroup>

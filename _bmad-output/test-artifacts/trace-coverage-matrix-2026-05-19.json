@@ -1,0 +1,169 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-05-19T00:00:00.000Z",
+  "trace_target": {
+    "type": "epic",
+    "id": "epic-10",
+    "label": "Epic 10 — Durable Projection Write Safety"
+  },
+  "collection_mode": "sequential",
+  "allow_gate": true,
+  "coverage_basis": "acceptance_criteria",
+  "summary_confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/test-artifacts/test-design-epic-10.md",
+      "_bmad-output/test-artifacts/atdd-checklist-10-4-projection-write-conformance-and-recovery-tests.md",
+      "_bmad-output/test-artifacts/automation-summary.md",
+      "_bmad-output/implementation-artifacts/10-1-optimistic-concurrency-for-tenant-read-model-writes.md",
+      "_bmad-output/implementation-artifacts/10-2-audit-projection-write-safety.md",
+      "_bmad-output/implementation-artifacts/10-3a-eventstore-projection-cancellation-api-prerequisite.md",
+      "_bmad-output/implementation-artifacts/10-3b-cancellation-token-threading-for-tenant-projection-queries.md",
+      "_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md",
+      "_bmad-output/implementation-artifacts/sprint-status.yaml"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "requirements_count": 46,
+  "test_ids_count": 27,
+  "coverage_statistics": {
+    "total_requirements": 46,
+    "fully_covered": 39,
+    "partially_covered": 2,
+    "uncovered": 0,
+    "deferred": 5,
+    "overall_coverage_percentage": 85,
+    "priority_breakdown_by_test_id": {
+      "P0": { "total": 3, "covered": 3, "percentage": 100, "tests": ["T-R001-UNIT-001", "T-R001-UNIT-002", "T-R001-INT-001"] },
+      "P1": { "total": 13, "covered": 11, "covered_in_tenants": 11, "deferred_to_eventstore": 2, "percentage_in_scope": 100, "tests_in_scope": ["T-R002-UNIT-001", "T-R002-UNIT-002", "T-R003-UNIT-001", "T-R003-UNIT-002", "T-R004-UNIT-001", "T-R004-UNIT-002", "T-R005-UNIT-001", "T-R007-UNIT-001", "T-R007-UNIT-002 (PARTIAL)", "T-R007-UNIT-003", "T-R008-FIXTURE-001"] },
+      "P2": { "total": 11, "covered": 10, "missing": 1, "percentage": 91, "missing_tests": ["T-R012-CI-001"] },
+      "P3": { "total": 0, "covered": 0, "percentage": 100, "note": "Documented only per test design" }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps_P0": [],
+    "high_gaps_P1": [],
+    "medium_gaps_P2": [
+      {
+        "id": "T-R012-CI-001",
+        "title": "EventStore submodule pointer drift CI guard",
+        "risk_id": "R-012",
+        "risk_score": 4,
+        "severity": "MEDIUM",
+        "location": ".github/workflows/{ci,release}.yml",
+        "missing_mechanism": "Step that asserts EventStore submodule HEAD matches expected commit (currently 'bcccd504')",
+        "story_link": "10.4 (exit criteria) + test-design-epic-10.md Exit Criteria"
+      }
+    ],
+    "low_gaps_P3": [],
+    "partial_coverage_items": [
+      {
+        "id": "Story 10.2 AC#9 / R-007 audit-key sentinel",
+        "title": "Audit retry-exhaustion R-007 negative-content sentinel-value gate",
+        "current_state": "Behavior + structured log shape covered by ProjectAsync_AuditRetryExhaustionThrowsWithoutSuccessfulProjectionAsync; dedicated sentinel-value gate (mirroring TenantIndex_RetryExhaustion_... sentinel test at ProjectionWriteConformanceTests.cs:220-228) not present",
+        "recommended_test": "Audit_RetryExhaustion_FailsObservablyAndDoesNotLeakSensitiveAuditAsync"
+      },
+      {
+        "id": "Story 10.3B AC#7 / T-R007-UNIT-002 cancellation sentinel",
+        "title": "Cancellation-failure path R-007 negative-content sentinel-value gate",
+        "current_state": "Forbidden-path _logs_only_safe_contextAsync + cancellation taxonomy preservation present; dedicated cancellation-failure sentinel gate not explicit",
+        "recommended_test": "Cancellation_Failure_DiagnosticDoesNotLeakSensitiveContextAsync (TenantsProjectionActorTests.cs)"
+      }
+    ],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "ui_journey_gaps": [],
+    "ui_state_gaps": [],
+    "state_key_coverage": "FULL (all 3 keys: projection:tenants:{tenantId}, projection:tenant-index:singleton, audit:{tenantId})",
+    "retry_exhaustion_coverage": "FULL (all 3 keys + cross-key partial-success)",
+    "idempotency_eventid_dedup": "FULL",
+    "cancellation_precedence": "FULL (5 actor cancellation tests + 4 forbidden-precedence tests)",
+    "pii_non_leak_gates": "PARTIAL (1 explicit sentinel-value gate for tenant-index retry-exhaustion; audit-key and cancellation-failure analogs implicit)",
+    "invariant_failure_boundary": "FULL",
+    "stale_instance_reuse": "FULL (transitive via per-attempt etag mechanical assertions)",
+    "cache_poisoning_after_conflict": "DEFERRED (EventStore submodule owns CachingProjectionActor)",
+    "submodule_pointer_drift_guard": "MISSING (T-R012-CI-001)",
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0,
+      "missing_pii_sentinel_gates": 2,
+      "missing_ci_guards": 1
+    }
+  },
+  "test_inventory_summary": {
+    "tier1_unit_test_files": 11,
+    "tier2_integration_test_files": 1,
+    "tier3_e2e_test_files": 1,
+    "ci_guards_implemented": 0,
+    "ci_guards_required": 1,
+    "executed_tests_last_gate": 640,
+    "skipped_tests_last_gate": 1,
+    "failed_tests_last_gate": 0,
+    "gate_date": "2026-05-19",
+    "primary_skip_reason": "DAPR/Redis precondition (T-R001-INT-001 precondition-gated via Assert.Skip)"
+  },
+  "blockers": [
+    {
+      "id": "T-R001-INT-001",
+      "severity": "low",
+      "reason": "Skipped by precondition (DAPR/Redis not available in current gate run); intentional skip-by-precondition per Story 10.4 design",
+      "test_file": "tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceIntegrationTests.cs",
+      "test_title": "TenantIndex_RealDaprBackedConflictThenSuccess_PreservesIndexAsync"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "id": "REC-1-ci-guard",
+      "action": "Implement T-R012-CI-001 submodule pointer guard in .github/workflows/ci.yml and release.yml",
+      "details": "Add a step early in each workflow that runs `git -C Hexalith.EventStore rev-parse HEAD` and asserts the result matches a checked-in expected commit (e.g., from a `.eventstore-pinned-commit` file or env var). Fail the build on drift with a diff in the log.",
+      "owner": "CI/Platform",
+      "effort_hours": "2-4",
+      "blocks_epic_close": true
+    },
+    {
+      "priority": "MEDIUM",
+      "id": "REC-2-audit-sentinel",
+      "action": "Add Audit_RetryExhaustion_FailsObservablyAndDoesNotLeakSensitiveAuditAsync to ProjectionWriteConformanceTests.cs",
+      "details": "Mirror the TenantIndex_RetryExhaustion sentinel pattern (lines 167-232) but target the audit-key exhaustion path. Use sentinel values for audit narrative payload + user identifiers; assert they do not appear in Logger.Entries[i].Message or .StateText.",
+      "owner": "Story 10.4 dev or follow-up patch",
+      "effort_hours": "1-2",
+      "story_link": "10.2 AC#9"
+    },
+    {
+      "priority": "MEDIUM",
+      "id": "REC-3-cancellation-sentinel",
+      "action": "Add Cancellation_Failure_DiagnosticDoesNotLeakSensitiveContextAsync to TenantsProjectionActorTests.cs",
+      "details": "Trigger mid-flow cancellation against a tenant audit query, assert OperationCanceledException is thrown and that any captured log entries do NOT contain sentinel tenant name / user identifier / cursor payload.",
+      "owner": "Story 10.3B follow-up patch",
+      "effort_hours": "1-2",
+      "story_link": "10.3B AC#7 / T-R007-UNIT-002"
+    },
+    {
+      "priority": "LOW",
+      "id": "REC-4-eventstore-cross-check",
+      "action": "Cross-check that EventStore Server.Tests carries R-006 cache-coherence tests for CachingProjectionActor",
+      "details": "Open EventStore submodule, grep for cache-coherence-after-conflict tests, confirm at least one test asserts that post-conflict retry causes the actor to return persisted state (not stale cached snapshot). If absent, escalate to EventStore-side follow-up story.",
+      "owner": "Epic 10 retrospective owner",
+      "effort_hours": "0.5"
+    },
+    {
+      "priority": "LOW",
+      "id": "REC-5-test-review",
+      "action": "Run /bmad-testarch-test-review against the new ProjectionWriteConformanceTests.cs + TenantsProjectionActorTests.cs to validate test-quality DoD compliance",
+      "details": "Conformance file at ~390 lines; check line budget per individual test (<300 lines/test), assertion explicitness, fixture isolation. Optional but recommended before epic close.",
+      "owner": "Murat (TEA)",
+      "effort_hours": "1"
+    }
+  ]
+}
