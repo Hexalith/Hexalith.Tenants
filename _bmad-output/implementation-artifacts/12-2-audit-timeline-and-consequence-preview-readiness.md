@@ -1,6 +1,6 @@
 # Story 12.2: Audit Timeline and Consequence Preview Readiness
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -213,6 +213,38 @@ GPT-5 Codex
 
 - 2026-05-20 - Implemented Story 12.2 audit timeline and consequence preview readiness addendum; marked all tasks complete after documentation and regression validation.
 - 2026-05-20 - Story status moved to review.
+- 2026-05-20 - Code review applied: 6 decisions resolved + 7 patches applied (FC-CNC unified across all 4 destructive copy blocks and master FC-CNS Decision row; FC-LYT Readiness + Decision rows added to the addendum; `Readiness and Status Conventions` section added covering `needs-confirmation` semantics, platform-wide-vs-tenant-scoped blocked/planning-only criterion, grouped-mode-as-FC-AUD-sub-state, and sprint-status carve-out canonization; `FC-AUD grouped mode` Decision row's `blockedBy` cell destructured to `None` with the conditional moved to `copyForward`; `statusRationale` lines added to all 6 Future Story Copy Blocks; sprint-status `last_updated` entries stacked newest-first with code-review event at top). 7 findings deferred to `deferred-work.md`; 2 dismissed as noise. Story status moved to done.
+
+### Review Findings
+
+#### Decision-Needed (resolve before patching)
+
+- [x] [Review][Decision] `FC-CNC` placement in destructive-workflow copy blocks — `User Management Remove User` (line 199) and `Disable Tenant Flow` (line 213) include `FC-CNC` in `blockedBy`, but the master `FC-CNS` Decision row (line 144) omits it, and `Global Admin Remove Flow` (line 206) and `High-Impact Configuration Change` (line 220) also omit it despite being equally rapid-action incident-response surfaces. Story 12.4 will inherit three different rules for the same destructive-action class. Decide: (a) add `FC-CNC` to every destructive copy block + master `FC-CNS` row, (b) drop `FC-CNC` from Remove-User/Disable-Tenant blocks, or (c) define an explicit propagation rule.
+- [x] [Review][Decision] `FC-LYT` cited in `Tenant Detail Audit Tab` copy block but undeclared in Story 12.2's readiness/decision tables — line 192 adds `FC-LYT` while the Audit Trail copy block (line 185) and the `FC-AUD` Decision row (line 142) both omit it. Decide: (a) add an `FC-LYT` readiness/decision row to the Story 12.2 addendum, (b) keep `FC-LYT` only as a cross-reference to Story 12.1's master catalog with an explicit "see catalog" note, or (c) drop `FC-LYT` from the copy block to match Audit Trail.
+- [x] [Review][Decision] Inconsistent `status` between destructive copy blocks — `Global Admin Remove Flow` and `Disable Tenant Flow` are marked `status: blocked` while `User Management Remove User`, `High-Impact Configuration Change`, `Audit Trail`, and `Tenant Detail Audit Tab` are marked `status: planning-only`. All share the same dependency-readiness state. The `FC-CNS` Decision row says "blocked or planning-only" without naming a rule. Decide: (a) document the distinguishing criterion in the addendum prose, (b) normalize all four destructive blocks to one status, or (c) reclassify per workflow against a stated criterion.
+- [x] [Review][Decision] `FC-AUD grouped mode` is a pseudo-ID — used as a row key in the addendum's Readiness Rows and Dependency Decisions tables, but Story 12.1's master catalog defines `FC-AUD` exactly once with no "grouped mode" sub-ID. Decide: (a) promote grouped mode to a distinct catalog ID (e.g. `FC-AUD-GRP`) in a future 12.1 addendum, (b) keep grouped mode as a row label but mark it explicitly as a sub-state of `FC-AUD`, or (c) move grouped mode out of the table into prose under the `FC-AUD` row.
+- [x] [Review][Decision] `needs-confirmation` semantics conflict between `FC-CMD` (4 verified source paths) and `FC-AUD` (`evidence: missing`) — both carry the same readiness label despite very different evidence states. Decide: (a) add a glossary defining `needs-confirmation` as "source paths exist OR adjacent evidence exists but contract not validated", (b) introduce a new readiness value `partially-available` or `verified-with-gaps` for FC-CMD, or (c) demote `FC-CMD` evidence to `evidence: adjacent` and keep semantics binary.
+- [x] [Review][Decision] sprint-status.yaml carve-out wording — the addendum and Validation Requirements now read "sprint-status.yaml changed only for this story's BMAD workflow tracking", relaxing the original AC10 wording ("no source code, package files, submodule pointers, or backend story statuses changed"). The carve-out is reasonable for BMAD workflow but was not formally authorized by an SCP. Decide: (a) accept the carve-out as the canonical workflow rule going forward, (b) revert the wording and treat sprint-status edits as a separate housekeeping commit, or (c) record an SCP to authorize the carve-out.
+
+#### Patch (unambiguous fix)
+
+- [x] [Review][Patch] sprint-status.yaml `last_updated` lines out of causal order [_bmad-output/implementation-artifacts/sprint-status.yaml:2-3] — line 2 records "story -> review", line 3 records "story -> in-progress" with the same date. Reorder so the `in-progress` entry precedes the `review` entry, preserving the file's newest-first stacking convention.
+- [x] [Review][Patch] `FC-AUD grouped mode` Decision row's `blockedBy` column contains prose [docs/tenants-ui-frontcomposer-dependency-map.md:143] — cell currently reads `None for flat timeline; FC-AUD only when grouped mode is explicitly requested.`. Replace with a structured value (`None` or `[]`) and move the conditional to the `copyForward` or `fallback` column so Story 12.4 can mechanically copy the field.
+
+#### Defer (pre-existing or out-of-scope for this story)
+
+- [x] [Review][Defer] `evidence: missing` syntax overloaded as both a row-status sentinel and an inline annotation inside paths lists [docs/tenants-ui-frontcomposer-dependency-map.md:128, 132] — deferred, addendum schema convention question that affects Story 12.1's master catalog wording too.
+- [x] [Review][Defer] `Phase 1 blocker` column semantics conflated with Phase 2 story blocking [docs/tenants-ui-frontcomposer-dependency-map.md:128, 130] — deferred, glossary clarification that belongs in Story 12.1's column-header documentation, not this story.
+- [x] [Review][Defer] `FC-DOC` cites doc paths (`Hexalith.FrontComposer/docs/how-to/test-generated-components.md`, `.../skills/frontcomposer/domain/projections.md`) without diff-side verification [docs/tenants-ui-frontcomposer-dependency-map.md:136, 150] — deferred, evidence-verification convention that applies repo-wide.
+- [x] [Review][Defer] Dev Agent Record cites verification commands (`git diff --check`, dependency ID/field check, `dotnet test`) without committed script paths [_bmad-output/implementation-artifacts/12-2-audit-timeline-and-consequence-preview-readiness.md:186-187] — deferred, governance/traceability convention question for predev-preflight tooling.
+- [x] [Review][Defer] "300ms minimum display" skeleton timing cited without a section/anchor in the UX spec [docs/tenants-ui-frontcomposer-dependency-map.md:158] — deferred, UX spec citation depth applies to all FrontComposer dependency docs.
+- [x] [Review][Defer] `FC-A11Y` Readiness row mentions "component-test evidence" but the `FC-A11Y` Decision row's `evidence` field drops it [docs/tenants-ui-frontcomposer-dependency-map.md:134 vs 148] — deferred, minor schema drift that overlaps with the `evidence: missing` syntax defer above.
+- [x] [Review][Defer] Markdown table cell semantics: `evidence: missing` used as a value in the "Current FrontComposer source path if verified" column [docs/tenants-ui-frontcomposer-dependency-map.md:128, 130] — deferred, addendum schema convention overlaps with the syntax defer above.
+
+#### Dismissed as noise (recorded for transparency)
+
+- Readability nits: "adjacent evidence" undefined, "may be used only for" awkward phrasing, duplicate fallback-template wording across `Disable Tenant Flow` and `Global Admin Remove Flow`, vague "or equivalent" / "or approved fallback" prose. None affect mechanical copy-forward consumption.
+- "Last reviewed: 2026-05-20" in the dependency-map header not updated by this diff — still current, no action required.
 
 ## Party-Mode Review
 

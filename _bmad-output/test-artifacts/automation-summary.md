@@ -1,127 +1,220 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets']
-lastStep: 'step-02-identify-targets'
-lastSaved: '2026-05-18'
+stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-orchestrate-generation']
+lastStep: 'step-03-orchestrate-generation'
+lastSaved: '2026-05-20'
 inputDocuments:
   - '_bmad/tea/config.yaml'
+  - '_bmad-output/project-context.md'
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/epics.md'
-  - '_bmad-output/implementation-artifacts/*.md'
-  - '_bmad-output/implementation-artifacts/10-1-optimistic-concurrency-for-tenant-read-model-writes.md'
-  - '_bmad-output/implementation-artifacts/10-2-audit-projection-write-safety.md'
-  - '_bmad-output/implementation-artifacts/10-4-projection-write-conformance-and-recovery-tests.md'
+  - '_bmad-output/implementation-artifacts/sprint-status.yaml'
   - '_bmad-output/implementation-artifacts/deferred-work.md'
+  - '_bmad-output/implementation-artifacts/11-2-eventstore-tenant-claim-contract.md'
+  - '_bmad-output/implementation-artifacts/11-3-deployment-auth-readiness-documentation-and-smoke-tests.md'
+  - 'docs/production-auth-claim-contract.md'
+  - 'src/Hexalith.Tenants/Program.cs'
+  - 'src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs'
   - 'tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj'
   - 'tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj'
   - 'tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj'
+  - 'tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs'
   - 'tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj'
+  - 'tests/Hexalith.Tenants.Server.Tests/Authorization/TenantClaimContractTests.cs'
   - 'tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj'
-  - '.agents/skills/bmad-testarch-automate/resources/tea-index.csv'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/test-levels-framework.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/test-priorities-matrix.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/data-factories.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/selective-testing.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/ci-burn-in.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/test-quality.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/overview.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/api-request.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/auth-session.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/recurse.md'
-  - '.agents/skills/bmad-testarch-automate/resources/knowledge/playwright-cli.md'
+  - 'Hexalith.EventStore/src/Hexalith.EventStore/Authorization/ClaimsRbacValidator.cs'
+  - '.claude/skills/bmad-testarch-automate/resources/tea-index.csv'
+  - '.claude/skills/bmad-testarch-automate/resources/knowledge/test-levels-framework.md'
+  - '.claude/skills/bmad-testarch-automate/resources/knowledge/test-priorities-matrix.md'
+  - '.claude/skills/bmad-testarch-automate/resources/knowledge/test-quality.md'
 ---
 
 # Test Automation Summary
 
-## Step 1 - Preflight and Context
+## Step 1 — Preflight & Context
 
-Detected stack: backend.
+### Stack Detection
 
-Execution mode: BMad-integrated. Planning artifacts and implementation story files are present under `_bmad-output`, and root source/test projects are available for codebase analysis.
+- `config.test_stack_type` = `auto`.
+- Project manifests detected under `src/` and `tests/`: 7 `.csproj` files (Tenants surface) + 5 `*.Tests.csproj` projects.
+- Root `package.json` is **semantic-release tooling only** (no test runner, no frontend deps). No `playwright.config.*` or `cypress.config.*` in the Tenants tree.
+- Submodule `Hexalith.FrontComposer/` carries its own JS surface but is out of scope for Tenants test automation.
+- **Detected stack: `backend`** — pure .NET 10 / C# / xUnit v3.
 
-Framework gate: passed. The repository has existing .NET test projects under `tests`:
+### Framework Gate — PASS
 
-- `Hexalith.Tenants.Client.Tests`
-- `Hexalith.Tenants.Contracts.Tests`
-- `Hexalith.Tenants.IntegrationTests`
-- `Hexalith.Tenants.Server.Tests`
-- `Hexalith.Tenants.Testing.Tests`
+All five test projects exist with xUnit v3 / Shouldly / NSubstitute wiring:
 
-Observed test conventions:
+- `Hexalith.Tenants.Contracts.Tests` (Tier 1 — pure unit)
+- `Hexalith.Tenants.Client.Tests` (Tier 1 — pure unit)
+- `Hexalith.Tenants.Testing.Tests` (Tier 1 — pure unit; hosts the reflection-driven `ConformanceTests`)
+- `Hexalith.Tenants.Server.Tests` (Tier 2 — DAPR integration; requires `dapr init` + Docker)
+- `Hexalith.Tenants.IntegrationTests` (Tier 3 — Aspire E2E)
 
-- xUnit attributes are already used across root test projects.
-- Shouldly is the dominant assertion style.
-- NSubstitute appears in integration/controller tests.
-- ASP.NET Core `WebApplicationFactory` is used for HTTP/runtime integration tests.
-- Aspire testing support is referenced in integration tests.
-- Root test source does not contain browser Playwright usage. One `Playwright` text hit came from `MapActorsHandlers`, not browser automation.
-- No root Pact indicators were found in test source or root package metadata.
+Test sub-folders observed: `Aggregates/`, `Authorization/`, `Bootstrap/`, `CommandPipeline/`, `Configuration/`, `DomainProcessing/`, `Health/`, `Projections/`, `Queries/`, `Telemetry/`, `Validators/`, `Conformance/`, `Fakes/`, `Helpers/`, `Fixtures/`, `Handlers/`, `Registration/`, `Subscription/`.
 
-TEA config flags:
+### Execution Mode — BMad-Integrated
 
-- `tea_use_playwright_utils`: true
-- `tea_use_pactjs_utils`: false
-- `tea_pact_mcp`: none
-- `tea_browser_automation`: auto
-- `test_stack_type`: auto
+Planning + implementation artifacts are present:
 
-Knowledge profile loaded:
+- `_bmad-output/planning-artifacts/`: PRD, architecture, epics, implementation-readiness reports (latest 2026-05-16), 13 sprint change proposals, UX spec.
+- `_bmad-output/implementation-artifacts/`: sprint-status.yaml + ~40 story files across Epics 1–12.
+- Sprint status snapshot (2026-05-20):
+  - **Done**: Epics 1–11 + Epic 12 story 12-1.
+  - **In review**: `12-2-audit-timeline-and-consequence-preview-readiness`.
+  - **Ready-for-dev**: `12-3-three-phase-command-feedback-sequencing`, `12-4-phase-2-ui-story-backlog-with-explicit-blockedBy`.
+  - **Recent gate**: full Debug/no-restore solution gate passed at 723 passed / 1 skipped on 11-3 close.
 
-- Core: test levels, priority matrix, data factories, selective testing, CI burn-in, test quality.
-- Playwright utilities: API-only profile with overview, API request, auth session, recurse.
-- Browser automation: Playwright CLI fragment loaded for trace/debug guidance, but browser generation is not currently indicated.
-- Contract testing: not loaded for this step because Pact indicators were absent and Pact.js utilities are disabled.
+### TEA Config Flags
 
-Preflight decision:
+| Flag | Value | Effect for this run |
+|------|-------|----------------------|
+| `tea_use_playwright_utils` | `true` | **N/A** — pure .NET project, no `page.goto`/`page.locator` in test source. Playwright Utils fragments skipped. |
+| `tea_use_pactjs_utils` | `false` | Skip pactjs-utils. |
+| `tea_pact_mcp` | `none` | Skip Pact MCP fragment. |
+| `tea_browser_automation` | `auto` | N/A for backend. |
+| `test_stack_type` | `auto` → `backend` | Backend profile applied. |
+| `risk_threshold` | `p1` | Gate decisions block on ≥P1 risks. |
 
-Proceed to target identification for backend/API/service automation. Prefer lower-level xUnit/Shouldly tests first, integration tests for HTTP/Aspire/DAPR boundaries, and no browser E2E unless a later target proves a UI surface.
+### Knowledge Fragments Loaded (Backend Profile)
 
-## Step 2 - Identify Automation Targets
+Core (loaded):
 
-Selected target: Story 10.2, Audit Projection Write Safety.
+- `test-levels-framework.md` — unit/integration/E2E selection rules
+- `test-priorities-matrix.md` — P0–P3 + risk-score alignment
+- `test-quality.md` — DoD: deterministic, isolated, &lt;300 lines, &lt;1.5 min, self-cleaning
 
-Rationale:
+Pending on-demand (will load in Step 2/3 as targets surface):
 
-- Story 10.1 is already implemented and has focused `TenantProjectionHandlerTests` covering tenant read-model and tenant index ETag conflict/retry behavior, retry exhaustion, partial-success failure, and missing/existing-state guarded write options.
-- Story 10.4 is valuable but explicitly gated on stable 10.1 and 10.2 contracts. Because 10.2 remains `ready-for-dev`, implementing 10.4-style conformance tests now would be speculative.
-- Deferred work from the 10.1 review identifies the audit write path as the remaining last-writer-wins projection persistence risk: `audit:{tenantId}` still uses plain `SaveStateAsync`.
+- `data-factories.md`, `selective-testing.md`, `ci-burn-in.md`, `risk-governance.md`, `probability-impact.md`, `confidence-gate.md`
+- `api-testing-patterns.md` (specialized — pure backend, no-browser)
+- `error-handling.md` (resilience / api / backend)
+- `contract-testing.md` (if Tenants↔EventStore event-contract testing comes into scope)
 
-Coverage scope: selective, risk-based automation for backend/service projection persistence. Do not add browser E2E coverage for this target.
+Deliberately skipped (JS/UI only):
 
-### Automation Targets by Level
+- All Playwright Utils, Pact.js Utils, Pact MCP, network-first, intercept-network-call, selector-resilience, visual-debugging.
 
-Unit/service tests in `Hexalith.Tenants.Server.Tests`:
+### Project Conventions Carried Forward (Persistent Facts)
 
-- P0: `audit:{tenantId}` guarded ETag write conflict-then-success. Verify reload and idempotent merge preserve original persisted entries, externally persisted reload entries, and incoming access-change entries exactly once.
-- P0: retry exhaustion for audit guarded writes. Verify `ProjectAsync` fails through the existing projection failure path and does not return a successful `ProjectionResponse`.
-- P0: invariant-failure boundary. Missing `MessageId` or `UserId` must fail before any guarded audit save attempt so a partially valid incoming batch cannot commit partial audit state.
-- P0: duplicate `EventId` conflict. Persisted audit entry remains authoritative when replayed incoming content differs; no overwrite and no duplicate entry.
-- P1: deterministic ordering. Same-timestamp distinct audit entries remain sorted by `Timestamp` then `EventId` after conflict reload and merge.
-- P1: malformed payload preservation. Malformed incoming payloads remain skipped during retry/reload while valid incoming audit events are preserved.
-- P1: replay after partial cross-key failure. If audit save succeeds and a later tenant index/detail write fails, replay does not duplicate audit entries.
-- P2: existing date-range and cursor queryability regression. Verify audit entries preserved through conflict recovery remain visible through existing query behavior without route, DTO, cursor, authorization, or pagination changes.
+From `_bmad-output/project-context.md` — these constrain every test we'll generate:
 
-Pure model tests:
+1. **Three-tier model**: Tier 1 pure unit (≤10ms/test target, no infra), Tier 2 DAPR integration (must inspect state-store end-state, not just HTTP/mock counts), Tier 3 Aspire E2E.
+2. **xUnit v3 + Shouldly only** — never `Assert.*`. Every test has at least one Shouldly assertion. Typed event assertion pattern: `ShouldBeOfType<T>()` + cast + property `ShouldBe`.
+3. **Test naming**: `{Type}Tests.cs` (plural). Method: `snake_case_with_PascalCase_for_type_names`.
+4. **`CreateCommand<T>(command, actorUserId, isGlobalAdmin)` helper** — never construct `CommandEnvelope` inline.
+5. **Shared `JsonSerializerOptions` factory** — never inline `new JsonSerializerOptions()`.
+6. **ULIDs not GUIDs** — `Ulid.TryParse` on `messageId`/`correlationId`/`aggregateId`/`causationId`.
+7. **Async waits**: poll observable state with bounded timeout; never `Thread.Sleep` / `Task.Delay` as sync.
+8. **Conformance / naming-convention / serialization round-trip tests are release blockers** — never `[Skip]`.
+9. **Cross-tenant isolation (NFR5)**: Tier 1 + Tier 2 + Tier 2/3 defense; cursor tokens + Problem Details bodies must also be checked for leaks.
+10. **NFR13 perf** (500K events → ≤30s cold rehydrate) is the nightly category — never per-PR.
 
-- P1: add pure audit merge/idempotency tests only if Story 10.2 introduces a pure helper or moves merge behavior into `TenantAuditReadModel`.
-- Avoid duplicating existing `TenantAuditProjectionTests` and `TenantAuditReadModelTests` unless production behavior moves.
+### Open Questions for Step 2
 
-Integration tests:
+The current sprint shows two streams of candidate work for test automation expansion:
 
-- P2 only, optional. The focused safety contract should remain deterministic and in-memory. Do not use live DAPR, Redis, Aspire, real parallelism, sleeps, or scheduler timing for the core automation target.
+- **Story 12-2** is in review — likely has a fresh patch (`12-2-review-diff.patch` exists). Worth checking if the review surfaced any test gaps.
+- **Story 12-3** and **12-4** are ready-for-dev — fresh ATDD/automation candidates. Note: Story 12-4 is a UI backlog/dependency-mapping story (planning artifact), so it likely has **no code-level tests to automate**.
+- Alternatively, post-epic deferred-work items in `_bmad-output/implementation-artifacts/deferred-work.md` may carry test debt worth closing.
 
-### Duplicate-Coverage Boundary
+**Decision needed from Jerome**: pick a target (story / project area / risk surface) before Step 2 can proceed.
 
-Do not re-test Story 10.1 tenant read-model and tenant index retry behavior except where needed to prove cross-key partial-success behavior involving audit replay. Existing 10.1 coverage already exercises:
+### Output Location
 
-- existing-state ETag save and missing-state first-write options;
-- tenant read-model conflict reload and retry;
-- tenant index conflict reload and preservation of reloaded tenants;
-- retry exhaustion;
-- tenant success followed by index exhaustion.
+This file: `_bmad-output/test-artifacts/automation-summary.md`. Subsequent steps append below this section.
 
-Do not implement Story 10.4 conformance fixture yet. Record it as blocked until Story 10.2 production behavior is implemented and accepted.
+---
 
-### Provider Endpoint Map
+## Step 2 — Identify Automation Targets
 
-Not applicable for this run. Pact.js utilities are disabled, no Pact indicators were found, and the target is internal projection persistence rather than consumer-driven contract testing.
+### Target Scope: **Bundle 1 — Production Auth Contract Backfill**
+
+Selected after triage of `_bmad-output/implementation-artifacts/deferred-work.md`. Targets are Tenants-scoped, in-scope (no submodule changes), and have explicit file:line citations from prior reviews.
+
+### Coverage Gaps (from deferred-work.md)
+
+| ID | Gap | Source citation | Risk surface |
+|----|-----|------------------|--------------|
+| A | `/process` endpoint auth contract not pinned — neither "anonymous accepted" nor "auth required" is locked. `Program.cs:132-136` maps the route without `.RequireAuthorization()`; the DAPR `AggregateActor → CommandApi` callback depends on this. | 11-3 review · `CommandApiRuntimeIntegrationTests.cs:44-71` | DAPR pipeline integrity |
+| B | `name`-only claim contract not enforced. `production-auth-claim-contract.md:13` says *"Do not use `name` as the trusted subject"* but no test rejects a token carrying `name` without `sub`. | 11-2 review | Subject confusion / audit mis-attribution |
+| C | Claim-source normalization only happy-path tested E2E (`tenants` JSON array). Space-delimited `tenants`, `tenant_id`, `tid` fallback, and `tenant_id`+`tid` precedence are unit-tested in `TenantClaimContractTests` but not exercised through the live JwtBearer + ClaimsTransformation pipeline. | 11-2 review · `CommandApiRuntimeIntegrationTests.cs:117-251` | Multi-IdP rollout regression |
+| D | Permission claim shapes (`commands:*`, `command:submit`, exact-type tokens, `queries:*`, `query:read`, legacy `command:query`) and duplicate-permission accumulation untested in Tenants. | 11-2 review · `docs/production-auth-claim-contract.md:43` | RBAC contract bypass |
+| E | *(Deferred from this run)* `TenantBootstrapHostedService` × `AuthorizationBehavior<,>` interaction — note in deferred-work.md described this as MediatR-pipeline background dispatch, but `TenantBootstrapHostedService.cs:22-65` actually sends via DAPR HTTP (not MediatR). Gap re-scoped to "out of pattern; defer until evidence of real risk." | 11-2 review | Bootstrap robustness (theoretical) |
+
+### Risk Scoring (probability × impact, 1–9)
+
+Aligned with `risk-governance.md` / `probability-impact.md` scale; project `risk_threshold` is `p1`.
+
+| ID | Probability | Impact | Score | Priority | Rationale |
+|----|-------------|--------|-------|----------|-----------|
+| A | 2 (someone may add `RequireAuthorization` without considering DAPR callback) | 3 (silent pipeline stall at Step 4 of AggregateActor checkpoint sequence) | **6** | **P0** | DAPR callback contract regression is silent and downstream-catastrophic |
+| B | 2 (`name`-only tokens are a common IdP misconfiguration) | 3 (cross-actor identity confusion in audit logs and RBAC) | **6** | **P0** | Production-auth-claim-contract.md explicit contract; security-relevant |
+| C | 2 (IdP swap-out / federation rollout) | 2 (some users denied with confusing 403) | **4** | **P1** | Already partially covered at unit tier — closing the integration gap is incremental |
+| D | 1 (depends on misconfigured IdP) | 3 (could grant elevated access) | **3** | **P1** | Confidence-gate: needs source inspection of `ClaimsRbacValidator` in Step 3 before final scenario shape |
+| E | 1 | 2 | **2** | **P2** | Deferred — original gap framing didn't match the actual bootstrap dispatch shape |
+
+### Test Level Assignments
+
+Per `test-levels-framework.md` (prefer lower tiers; favor integration for "service contracts", E2E only for "cross-system workflows"):
+
+| Gap | Primary tier | Secondary tier | Rationale |
+|-----|--------------|----------------|-----------|
+| A | Tier 3 (Aspire E2E) | — | `/process` route is host-level; only the live `WebApplicationFactory` exposes the contract |
+| B | Tier 2 (Server.Tests/Authorization) | Tier 3 (IntegrationTests) | Claim transformation + validator are pure (Tier 2); pipeline behavior with no `sub` is Tier 3 |
+| C | Tier 3 (IntegrationTests) | — | Live JwtBearer + ClaimsTransformation pipeline is the contract surface; Tier 2 already covers transformation unit behavior |
+| D | Tier 2 (Server.Tests/Authorization) | Tier 3 (IntegrationTests, if needed) | RBAC validator is testable directly; confirm API surface in Step 3 |
+
+**Duplicate Coverage Guard** applied: `TenantClaimContractTests.cs` already covers the unit-tier behavior of claim-source normalization (lines 44–146) and the global-admin/non-global-admin tenant-claim contract (lines 178–232). New tests must not re-test these at integration tier without justification — they add a different aspect: *live pipeline behavior with real JwtBearer middleware and `User.FindFirst("sub")` controller reads*.
+
+### Fixture Reuse
+
+The existing `CommandApiRuntimeIntegrationTests.cs` provides everything the new Tier 3 tests need — no fixture additions:
+
+- `CommandApiWebApplicationFactory` (nested, line 429): override `ICommandRouter`/`ICommandStatusStore`/`ICommandArchiveStore` via constructor params; `useTestAuthentication: false` (the post-P15 default) exercises the real JwtBearer + ClaimsTransformation pipeline
+- `CreateJwt(...)` helper (line 387): symmetric-key HS256, configurable issuer/audience/expires/claims; default `expires` = `UtcNow + 5min`
+- `CreateClientWithBearer(...)` / `CreateBootstrapRequest(...)` helpers (lines 381, 414)
+
+The Tier 2 file `TenantClaimContractTests.cs` provides:
+
+- `_transformation` (`EventStoreClaimsTransformation` with `NullLogger`)
+- `CreatePrincipal(params Claim[])` helper
+- `TenantClaims(...)` extractor
+- Existing patterns for combining transformation + `ClaimsTenantValidator`
+
+### Coverage Plan (Concrete Test IDs)
+
+Following `{EPIC}.{STORY}-{LEVEL}-{SEQ}` convention from `test-levels-framework.md`, scoped to deferred-work backfill:
+
+| Test ID | Tier | File | Test name (sketch) | Maps to gap | Priority |
+|---------|------|------|---------------------|-------------|----------|
+| AUTH-INT-001 | T3 | `CommandApiRuntimeIntegrationTests.cs` | `Process_endpoint_accepts_anonymous_request_to_preserve_dapr_callback_contract` | A | P0 |
+| AUTH-T2-001 | T2 | `TenantClaimContractTests.cs` | `NameOnlyClaimWithoutSubDoesNotEstablishTrustedSubject` | B | P0 |
+| AUTH-INT-002 | T3 | `CommandApiRuntimeIntegrationTests.cs` | `Commands_endpoint_returns_403_when_jwt_carries_name_claim_without_sub` | B | P0 |
+| AUTH-INT-003 | T3 | `CommandApiRuntimeIntegrationTests.cs` | `Commands_endpoint_returns_202_when_jwt_uses_supported_source_claim_shape` (Theory: space-delim `tenants`, `tenant_id` only, `tid` only fallback, `tenant_id`+`tid` precedence) | C | P1 |
+| AUTH-T2-002 | T2 | `TenantClaimContractTests.cs` (or new `PermissionClaimContractTests.cs`) | Permission wildcard + duplicate-accumulation Theory | D | P1 (**confidence-gated** — defer concrete shape to Step 3 source inspection of `ClaimsRbacValidator`) |
+
+### Out of Scope for This Run
+
+- Gap E (bootstrap × authorization-behavior interaction): re-scoped — actual bootstrap path is DAPR HTTP, not MediatR. Track in deferred-work for separate evaluation.
+- EventStore submodule edge cases (idempotency short-circuit, malformed JSON, ordinal case sensitivity) — explicitly forbidden by the 11-2 spec guardrail "Spec Implementation Guardrails forbid modifying `Hexalith.EventStore` for this story". Cross-repo decision required.
+- JWT signing-key / `EnvironmentName` test-infrastructure pinning — broader test-fixture hardening, separate scope.
+- `nbf`/`iat`/`ClockSkew` token-hygiene — JWT validation hardening story candidate.
+
+### Confidence Gate Outcome (Step 2)
+
+Per `confidence-gate.md`: applied to each test ID.
+
+- A — confidence 9/10 (route mapping verified in `Program.cs:132`; existing test pattern with `useTestAuthentication: true` shows the shape).
+- B (T2) — confidence 9/10 (`EventStoreClaimsTransformation` + `ClaimsTenantValidator` API verified in existing tests; expected behavior fits documented contract).
+- B (T3) — confidence 8/10 (`User.FindFirst("sub")` read site is `CommandsController.cs:67` per comment in `Tenants_host_keeps_raw_sub_claim_under_real_jwt_pipeline`; expected 403 path may surface as 401 if no identity established — Step 4 to confirm exact status with first run).
+- C — confidence 9/10 (mirror existing Theory shape from `TenantClaimContractTests.cs:67-78`, applied at integration tier).
+- D — confidence 5/10 (insufficient — need to inspect `ClaimsRbacValidator` API surface before drafting scenarios). **Pause-and-confirm planned for Step 3.**
+
+### Step 2 Output Summary
+
+- Target bundle: production auth contract backfill (Epic 11 follow-on)
+- 5 concrete test IDs proposed; A–C green-lit for Step 3, D held pending source inspection, E deferred.
+- Estimated yield: ~5–8 test methods across 2 files; ~5–6 P0/P1 risk closures.
+- No new fixtures / no new helpers required.
+

@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 12-2-audit-timeline-and-consequence-preview-readiness (2026-05-20)
+
+- `evidence: missing` syntax is overloaded: used as a whole-row status sentinel in some rows (e.g. `FC-AUD`, `FC-CNS`) and as an inline annotation inside a path list in others (e.g. `FC-CNC` row reads `Hexalith.FrontComposer/src/.../PendingCommands; evidence: missing for toast batching`). Mechanical readers can't distinguish. Define a single syntax in Story 12.1's catalog conventions. [docs/tenants-ui-frontcomposer-dependency-map.md]
+- "Phase 1 blocker" column semantics conflated with Phase 2 story blocking. Every Story 12.2 row reads "No" for Phase 1 blocker, yet the same rows say "blocks or planning-only" for two Phase 2 stories. Add a column-header glossary in Story 12.1 distinguishing Phase-1 release-gate blocking from Phase-2 story-readiness blocking. [docs/tenants-ui-frontcomposer-dependency-map.md]
+- `FC-DOC` row cites `Hexalith.FrontComposer/docs/how-to/test-generated-components.md` and `Hexalith.FrontComposer/docs/skills/frontcomposer/domain/projections.md` as evidence without proof of inspection in the diff. The story workflow should require a verification step that records an inspection log entry for each cited evidence path, not only the FrontComposer commit SHA.
+- Dev Agent Record cites verification commands (`git diff --check`, dependency ID/field check) without script paths. The predev-preflight tooling produces JSON results elsewhere; the story's Debug Log References should either link to the JSON artifact or quote the exact command + result for auditability.
+- "300ms minimum display" timing for the audit timeline skeleton is cited without a section/anchor in the UX spec. Future readiness stories should cite UX-spec sections by exact anchor (e.g. `#loading-state-patterns`) rather than file-level references.
+- `FC-A11Y` Readiness row mentions "component-test evidence" but the matching `FC-A11Y` Decision row drops it from the `evidence` field. Schema drift; either align the two rows or document which row is canonical when fields disagree.
+- Markdown table cell semantics: the "Current FrontComposer source path if verified" column contains `evidence: missing` (a status sentinel) in some rows. Either rename the column to "Source path or status" or move the sentinel out of the path column.
+
 ## Deferred from: code review of 12-1-frontshell-dependency-map-for-tenants-ui (2026-05-20)
 
 - Story key/filename uses legacy `frontshell` terminology that the dependency map artifact explicitly retires. The story key `12-1-frontshell-dependency-map-for-tenants-ui` and the matching sprint-status.yaml key were created before the artifact established `Hexalith.FrontComposer` as the current source name and `FrontShell` as a UX alias only. Renaming would propagate through `_bmad-output/implementation-artifacts/sprint-status.yaml`, BMAD tooling references, and downstream Story 12.4 backlog citations; out of scope for this review. — pre-existing naming drift; revisit during Phase 2 UI story drafting (Story 12.4).
