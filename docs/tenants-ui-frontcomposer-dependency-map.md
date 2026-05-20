@@ -11,6 +11,7 @@ This document is not a Phase 1 backend blocker. Backend query, projection, autho
 ## Evidence Scope
 
 - FrontComposer checkout evidence was inspected from root-level submodule `Hexalith.FrontComposer` at commit `17c3605`.
+- Story 12.2 rechecked current source names under `Hexalith.FrontComposer/src` for `AuditTimeline`, `ConsequencePreview`, and Storybook evidence; no verified source path was found in this checkout.
 - No nested submodules were initialized or updated for this map.
 - Evidence paths are repo-relative. Missing or unverified evidence is recorded as `evidence: missing`.
 - This map does not copy generated build artifacts, secrets, local absolute paths, private configuration, tenant/user production data, or transient logs.
@@ -114,6 +115,114 @@ Every Phase 2 Tenants UI story should pass this checklist before it is marked re
 | Documentation | Storybook or equivalent documentation/reference evidence is cited through `FC-DOC`; Storybook is not assumed. |
 | Sanitization | No local absolute paths, generated `bin/` or `obj/` evidence, secrets, production tenant/user data, or copied private configuration appear in the story. |
 
+## Story 12.2 Audit and Consequence Readiness
+
+This addendum keeps Story 12.2 inside Phase 2 planning/readiness. It does not implement Tenants UI screens, FrontComposer components, backend endpoints, source code, packages, submodule pointers, generated artifacts, story-status transitions outside this story's BMAD workflow tracking, command contracts, query contracts, or Phase 1 release gates.
+
+The current checked-out UI dependency is `Hexalith.FrontComposer`. `FrontShell`, `@hexalith/ui`, `<AuditTimeline>`, `<ConsequencePreview>`, and `useCommand` remain UX aliases unless a current `Hexalith.FrontComposer` source or documentation path is listed as evidence.
+
+### Readiness Rows
+
+| Dependency ID | UX alias | Current FrontComposer source path if verified | Owner | Expected deliverable | Readiness | Fallback or blocking policy | Evidence | Phase 1 blocker | Copy-forward text |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FC-AUD` | `<AuditTimeline>` flat timeline | `evidence: missing` | `Hexalith.FrontComposer` plus product/UX acceptance | Reusable flat audit timeline or approved fallback covering date filtering, stable ordering, row expansion, loading, empty/error states, keyboard support, localization, and 500-event evidence. | `needs-confirmation` | Audit Trail and tenant-detail audit tab stories are blocked or planning-only unless product/UX approves a specific fallback such as a DataGrid-backed flat audit list using `FC-TBL`. | `_bmad-output/planning-artifacts/ux-design-specification.md`; `docs/tenants-ui-frontcomposer-dependency-map.md`; source scan under `Hexalith.FrontComposer/src`; `evidence: missing` | No | `blockedBy: [FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` until `FC-AUD` or an approved fallback is verified. |
+| `FC-AUD` grouped mode | grouped-by-session audit mode | `evidence: missing` | Product/UX plus `Hexalith.FrontComposer` | Grouped audit timeline mode for session grouping, not required for the first flat timeline slice. | `planned` | Fast-follow only. Do not block flat timeline planning unless product/UX explicitly promotes grouped mode into the first slice. | `_bmad-output/planning-artifacts/ux-design-specification.md`; `evidence: missing` | No | Keep grouped mode out of first-slice `blockedBy`; record it as fast-follow under `FC-AUD` if a future story asks for grouped audit sessions. |
+| `FC-CNS` | `<ConsequencePreview>` | `evidence: missing` | `Hexalith.FrontComposer` plus product/UX fallback approval | Reusable consequence preview or approved fallback for remove-user, disable-tenant, remove-global-admin, and high-impact configuration workflows. | `needs-confirmation` | Destructive or irreversible UI stories are blocked or planning-only unless product/UX approves an inline copy/dialog fallback with accessibility, localization, replacement path, and follow-up dependency ID. | `_bmad-output/planning-artifacts/ux-design-specification.md`; `_bmad-output/planning-artifacts/architecture.md`; source scan under `Hexalith.FrontComposer/src`; `evidence: missing` | No | `blockedBy: [FC-CNS, FC-CMD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` for destructive/high-impact workflows unless an approved fallback is recorded. |
+| `FC-CMD` | `useCommand`, `pendingIds`, three-phase command feedback | `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/State/PendingCommands`; `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Services/Feedback`; `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/EventStore/FcPendingCommandSummary.razor`; `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Rendering/FcAuthorizedCommandRegion.razor` | `Hexalith.FrontComposer` | Tenants-compatible command lifecycle feedback, pending command identity, and projection confirmation behavior. | `needs-confirmation` | Command-capable UI stories must cite `FC-CMD` until the Tenants-compatible contract is confirmed or product/UX approves reduced feedback for a planning slice. | Current source paths listed here; Story 12.1 dependency catalog | No | Include `FC-CMD` when the future story dispatches commands or relies on pending/confirmed/rejected feedback. |
+| `FC-CNC` | concurrent command support, toast batching | Related pending-command state exists; no verified toast batching policy path found. | `Hexalith.FrontComposer` plus product/UX interaction policy | Rapid sequential command handling and toast/message batching without notification overflow. | `missing` | Multi-row removals, incident-response revocations, or rapid destructive actions block or remain planning-only unless a product/UX fallback names how feedback is batched. | `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/State/PendingCommands`; `evidence: missing` for toast batching | No | Include `FC-CNC` when a workflow can dispatch repeated commands before previous command feedback settles. |
+| `FC-TOK` | role/status tokens, timeline connector token, consequence panel token | `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Badges`; `evidence: missing` for timeline/consequence tokens | `Hexalith.FrontComposer` plus product/UX semantic mapping | Status/role semantics, audit connector token, consequence severity/status token, and no color-only encoding. | `missing` | Existing badge semantics may support status/role displays only when named as fallback; timeline/consequence token gaps remain blockers for polished audit/consequence components. | Story 12.1 dependency catalog; `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Badges`; `evidence: missing` | No | Include `FC-TOK` for audit rows, consequence severity, role/status labels, and any token-driven visual semantics. |
+| `FC-A11Y` | keyboard map, live regions, reduced motion, forced colors | Accessibility planning and test guidance exist; no Tenants-specific audit/consequence coverage verified. | `Hexalith.FrontComposer` plus Tenants UI story author | Keyboard, focus, screen-reader, live-region, reduced-motion, forced-colors, contrast, and component-test evidence. | `needs-confirmation` | Every audit/consequence story must cite this ID or name a product/UX-approved fallback with explicit accessibility scope. | `Hexalith.FrontComposer/docs/how-to/test-generated-components.md`; `_bmad-output/planning-artifacts/ux-design-specification.md` | No | Include `FC-A11Y` when the story consumes `FC-AUD`, `FC-CNS`, command feedback, loading states, or destructive warnings. |
+| `FC-L10N` | i18n, culture-aware formatting, adopter terminology | `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Resources/FcShellResources.resx`; `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Resources/FcShellResources.fr.resx` | `Hexalith.FrontComposer` plus Tenants UI story author | Culture-aware timestamps, localized audit labels, localized status/action labels, warning copy, fallback/error copy, and adopter terminology ownership. | `needs-confirmation` | Future UI stories must name shell-owned versus Tenants-owned strings and formatting evidence, or remain planning-only. | Current source paths listed here; `_bmad-output/planning-artifacts/ux-design-specification.md` | No | Include `FC-L10N` for audit timestamps, event labels, destructive warning copy, error/fallback copy, and role/status/action labels. |
+| `FC-DOC` | Storybook, component reference, docs reference | Equivalent docs exist; no Storybook path or package evidence verified. | `Hexalith.FrontComposer` plus Tenants UI story author | Storybook or equivalent reference docs and component examples for consumed deliverables. | `needs-confirmation` | Do not assert component availability or Storybook coverage until source-backed or docs-backed evidence exists. | `Hexalith.FrontComposer/docs/how-to/test-generated-components.md`; `Hexalith.FrontComposer/docs/skills/frontcomposer/domain/projections.md`; `evidence: missing` for Storybook | No | Include `FC-DOC` whenever future stories depend on reusable component behavior rather than local Tenants composition only. |
+
+### Dependency Decisions
+
+| Dependency ID | decision | status | owner | evidence | fallback | blockedBy | copyForward |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `FC-AUD` | First-slice audit readiness requires a flat timeline deliverable or approved fallback; no current source-backed component path is verified. | `needs-confirmation` | `Hexalith.FrontComposer` plus product/UX | `evidence: missing`; `_bmad-output/planning-artifacts/ux-design-specification.md`; `docs/tenants-ui-frontcomposer-dependency-map.md` | Product/UX may approve a DataGrid-backed flat audit list using `FC-TBL`; approval must name accessibility, localization, replacement path, and follow-up `FC-AUD` work. | `FC-AUD`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC` | Audit Trail and tenant-detail audit tab stories copy `blockedBy: [FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` unless a specific fallback is approved. |
+| `FC-AUD` grouped mode | Grouped-by-session audit mode is fast-follow and does not block the first flat timeline slice. | `planned` | Product/UX plus `Hexalith.FrontComposer` | `_bmad-output/planning-artifacts/ux-design-specification.md`; `evidence: missing` | No fallback required for first slice; future grouped mode needs its own acceptance criteria under `FC-AUD`. | None for flat timeline; `FC-AUD` only when grouped mode is explicitly requested. | Future stories should not add grouped mode to first-slice blockers unless product/UX promotes it. |
+| `FC-CNS` | Consequence preview readiness requires a reusable component or approved fallback; no current source-backed component path is verified. | `needs-confirmation` | `Hexalith.FrontComposer` plus product/UX | `evidence: missing`; `_bmad-output/planning-artifacts/ux-design-specification.md`; `_bmad-output/planning-artifacts/architecture.md` | Product/UX may approve inline consequence copy inside a destructive dialog only with ordered consequences, localization, accessibility, focus behavior, replacement path, and follow-up `FC-CNS` work. | `FC-CNS`, `FC-CMD`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC` | Remove-user, disable-tenant, remove-global-admin, and high-impact configuration stories copy `blockedBy: [FC-CNS, FC-CMD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` unless fallback approval is recorded. |
+| `FC-CMD` | Command lifecycle concepts exist, but Tenants-compatible pending/confirmed/rejected feedback remains a confirmation dependency for destructive workflows. | `needs-confirmation` | `Hexalith.FrontComposer` | Current pending-command, feedback, summary, and authorized-region source paths | Reduced feedback is product/UX-approved planning-only scope; not an implementation shortcut. | `FC-CMD` | Any command-dispatching Phase 2 UI story includes `FC-CMD` unless the story is read-only. |
+| `FC-CNC` | Rapid sequential command handling and toast batching are missing as verified policy/component evidence. | `missing` | `Hexalith.FrontComposer` plus product/UX | Pending-command state source paths; `evidence: missing` for toast batching | Product/UX may limit early stories to one destructive command at a time and record that as a fallback. | `FC-CNC` | Add `FC-CNC` when the workflow can trigger repeated actions before previous feedback settles. |
+| `FC-TOK` | Existing status badges are adjacent evidence, but audit connector and consequence severity tokens are not verified. | `missing` | `Hexalith.FrontComposer` plus product/UX | Badge source paths; `evidence: missing` for timeline/consequence tokens | Existing badge semantics may be used only for role/status fallback; timeline/consequence visuals need explicit approval or remain blocked. | `FC-TOK` | Add `FC-TOK` to audit and consequence UI stories that rely on semantic colors, connectors, severity, role, or status displays. |
+| `FC-A11Y` | Audit and consequence readiness must carry explicit keyboard, focus, announcements, reduced-motion, forced-colors, contrast, and no-color-only expectations. | `needs-confirmation` | `Hexalith.FrontComposer` plus Tenants UI story author | FrontComposer test docs and UX accessibility requirements | Product/UX fallback must still satisfy named accessibility behaviors; missing a reusable component does not remove accessibility scope. | `FC-A11Y` | Add `FC-A11Y` to all audit/consequence stories and to any fallback decision. |
+| `FC-L10N` | Audit and consequence readiness must define culture-aware timestamp/status/action/warning copy ownership. | `needs-confirmation` | `Hexalith.FrontComposer` plus Tenants UI story author | FrontComposer resource files and UX localization requirements | Product/UX fallback must name shell-owned versus Tenants-owned strings and date/time formatting responsibility. | `FC-L10N` | Add `FC-L10N` whenever audit labels, timestamps, roles, statuses, destructive copy, error copy, or fallback copy appears. |
+| `FC-DOC` | Storybook is unverified; equivalent docs exist for some primitives but not for `FC-AUD` or `FC-CNS`. | `needs-confirmation` | `Hexalith.FrontComposer` plus Tenants UI story author | Existing docs paths; `evidence: missing` for Storybook and audit/consequence component reference | A future story may cite equivalent component docs instead of Storybook only when the docs cover the consumed behavior. | `FC-DOC` | Add `FC-DOC` when a future story depends on reusable FrontComposer behavior or component examples. |
+
+### Audit Timeline First Slice
+
+The first audit slice is a flat timeline, not grouped-by-session. It reads date-range-filtered tenant audit events from `GetTenantAuditQuery`, preserves stable chronological ordering, and displays event category, actor, target, role/status change, action/status labels, timestamp, and expandable details. Empty state must distinguish "no audit events in this date range" from "audit data could not be loaded"; error state must expose retry/reload behavior without leaking backend details.
+
+Timestamp and localization readiness belongs to `FC-L10N`. Rows should display the event instant in the user's current culture and time zone, with localized date/time formatting, localized event/action/status labels, localized empty/error/loading copy, and an explicit fallback for unknown event categories or missing optional actor/target details.
+
+Loading readiness belongs to `FC-AUD`, `FC-A11Y`, and `FC-TOK`. The required skeleton pattern is content-aware: three visible groups with two skeleton events each, a visible connector line, a 300ms minimum display, and a per-group crossfade. If the first flat slice uses a DataGrid-backed fallback, the fallback must still describe equivalent loading feedback and must not claim `<AuditTimeline>` availability.
+
+Accessibility readiness belongs to `FC-A11Y`. The flat timeline must provide a semantic ordered list or table alternative, keyboard navigation with Up/Down between audit events, Enter to expand/collapse details, predictable focus order, accessible names for event rows and detail toggles, visible focus, loading/error announcements, reduced-motion behavior for crossfades, forced-colors support, sufficient contrast, and no color-only encoding for event category, role, risk, or status.
+
+Performance readiness belongs to `FC-AUD` and `FC-DOC`. The 500-event evidence target uses a synthetic or fixture-backed `GetTenantAuditQuery` result with 500 tenant audit rows. The bounded rendering target is that initial visible content, keyboard navigation, expansion, and assistive semantics remain responsive without unbounded DOM cost. Virtualization or windowing is expected unless component tests or benchmark evidence proves a simple flat render meets the target. Until that benchmark or component-test evidence exists, performance remains `needs-confirmation`.
+
+### Consequence Preview First Slice
+
+`FC-CNS` covers at least these workflows: remove user from tenant, disable tenant, remove global administrator, and high-impact configuration changes that product/UX classifies as irreversible or high impact. The preview must explain direct consequences, affected tenant/user/role/configuration context, reversibility, expected audit evidence, and any command-feedback timing caveat without adding new backend scope.
+
+Consequence inputs must come from projection/read-model data already loaded by the planned screen: tenant status, member counts, affected user and role, global-administrator count, configuration key context, and last-known audit context where already available. If a planned screen does not already load a required field, the future story records `needs-confirmation` and fails closed instead of creating a backend consequence endpoint, command contract, validation behavior, source-code change, or new projection field.
+
+Fallback readiness is a product/UX decision. If no reusable component exists, a future story may use an approved inline text or destructive-dialog fallback only when it records the approval owner, ordered consequence copy, accessibility behavior, localization responsibility, replacement path, and the follow-up `FC-CNS` dependency. The existing `FcDestructiveConfirmationDialog` is adjacent evidence for destructive confirmation, not proof that consequence preview behavior exists.
+
+Accessibility readiness belongs to `FC-A11Y`. Consequence previews must present ordered consequences, use `role="alert"` or an equivalent assertive/polite announcement based on severity, keep all controls keyboard reachable, return focus after close/confirm/cancel, preserve screen-reader reading order, localize destructive warning text, and avoid hiding destructive risk behind color alone.
+
+### Command Feedback and Data Boundaries
+
+`useCommand` and `pendingIds` remain aliases. Current Blazor evidence maps them to `FC-CMD` concepts under pending-command state, feedback publishing, pending summary, and authorized command region paths. `FC-CNC` remains separate because rapid sequential commands and toast/message batching are not verified by the pending-command state alone.
+
+Future UI stories should consume completed backend/query evidence for `GetTenantAuditQuery`, tenant detail, tenant users, global administrators, and configuration where the planned screen already loads those surfaces. Story 12.2 does not add backend consequence queries, command endpoints, projection fields, package references, or source changes. Unknown or unavailable projection fields become a `needs-confirmation` dependency with the appropriate owner.
+
+### Future Story Copy Blocks
+
+```yaml
+Audit Trail:
+  status: planning-only
+  blockedBy: [FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]
+  fallback: Product/UX may approve a DataGrid-backed flat audit list using FC-TBL; approval must name accessibility, localization, replacement path, and follow-up FC-AUD work.
+```
+
+```yaml
+Tenant Detail Audit Tab:
+  status: planning-only
+  blockedBy: [FC-AUD, FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]
+  fallback: Read-only summary may proceed only if audit tab behavior is explicitly excluded; any timeline tab uses the Audit Trail fallback rule.
+```
+
+```yaml
+User Management Remove User:
+  status: planning-only
+  blockedBy: [FC-CNS, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]
+  fallback: Product/UX may limit the first slice to one remove action at a time and approve inline ordered consequence copy inside the destructive confirmation flow.
+```
+
+```yaml
+Global Admin Remove Flow:
+  status: blocked
+  blockedBy: [FC-CNS, FC-CMD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]
+  fallback: Product/UX approval is required because platform access removal is high impact; fallback must name global-admin count data and focus/announcement behavior.
+```
+
+```yaml
+Disable Tenant Flow:
+  status: blocked
+  blockedBy: [FC-CNS, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]
+  fallback: Product/UX approval is required for any non-reusable consequence preview; no backend consequence endpoint is added by the fallback.
+```
+
+```yaml
+High-Impact Configuration Change:
+  status: planning-only
+  blockedBy: [FC-CNS, FC-CMD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]
+  fallback: Only product/UX can classify which configuration keys require consequence preview; missing projection context is needs-confirmation, not backend scope expansion.
+```
+
+Decision ownership for unresolved fallbacks is split deliberately: product/UX owns interaction and copy fallback approval, `Hexalith.FrontComposer` owns reusable component/API evidence, the Tenants module owns screen composition and dependency citation, and backend is involved only when a completed backend surface is truly absent. Grouped audit mode, advanced analytics, and anomaly scoring remain outside the first slice unless product/UX explicitly promotes them.
+
 ## Review Checklist
 
 - Every Phase 2 screen from the UX specification has a row.
@@ -121,3 +230,4 @@ Every Phase 2 Tenants UI story should pass this checklist before it is marked re
 - Accessibility, keyboard, live-region, reduced-motion, forced-colors, localization/adopter experience, and documentation/reference evidence are first-class dependencies.
 - Missing UI dependencies are not promoted into Phase 1 backend scope.
 - Future UI stories can copy exact `blockedBy` IDs from this document without relying on narrative prose or screen names.
+- Story 12.2 rows include `decision`, `status`, `owner`, `evidence`, `fallback`, `blockedBy`, and `copyForward` fields for each referenced readiness decision.
