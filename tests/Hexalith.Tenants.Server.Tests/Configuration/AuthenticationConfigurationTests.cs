@@ -54,6 +54,7 @@ public class AuthenticationConfigurationTests {
     [InlineData("Audience")]
     public void ProductionMissingRequiredDeploymentOverrideShouldFailValidation(string key) {
         Dictionary<string, string?> overrides = CreateProductionOidcOverrides();
+        string omittedValue = overrides[$"{AuthenticationSectionName}:{key}"]!;
         _ = overrides.Remove($"{AuthenticationSectionName}:{key}");
 
         OptionsValidationException exception = Should.Throw<OptionsValidationException>(
@@ -62,6 +63,29 @@ public class AuthenticationConfigurationTests {
         string message = string.Join(Environment.NewLine, exception.Failures);
         message.ShouldContain($"{AuthenticationSectionName}:{key}");
         message.ShouldNotContain(SecretSigningKey);
+        // P14: validation messages must not echo the omitted/provided value back into deployment
+        // logs. A future validator that includes "expected non-empty, got '<production-issuer-host>'"
+        // would leak the issuer host or audience value to anyone who can read startup logs.
+        message.ShouldNotContain(omittedValue);
+    }
+
+    [Fact]
+    public void ProductionMissingRequireHttpsMetadataOverrideStaysDefaultTrue() {
+        // P12: the override theory above covers Authority/Issuer/Audience, all of which fail when
+        // omitted. RequireHttpsMetadata has a different contract: it has a default-true value, so
+        // a missing override should still bind to `true` and validation should succeed. Lock the
+        // default-true contract so a future default flip to `false` would break this test rather
+        // than silently weakening production validation.
+        Dictionary<string, string?> overrides = CreateProductionOidcOverrides();
+        _ = overrides.Remove($"{AuthenticationSectionName}:RequireHttpsMetadata");
+
+        Should.NotThrow(() => ValidateOptions(CreateDeploymentConfiguration(overrides), Environments.Production));
+
+        EventStoreAuthenticationOptions options = CreateServiceProvider(
+                CreateDeploymentConfiguration(overrides), Environments.Production)
+            .GetRequiredService<IOptions<EventStoreAuthenticationOptions>>()
+            .Value;
+        options.RequireHttpsMetadata.ShouldBeTrue();
     }
 
     [Fact]
@@ -156,15 +180,22 @@ public class AuthenticationConfigurationTests {
         message.ShouldNotContain(SecretSigningKey);
     }
 
-    [Fact]
-    public void ProductionSigningKeyWithoutAuthorityShouldFailWithoutEchoingSecret() {
-        IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
-            [$"{AuthenticationSectionName}:Authority"] = string.Empty,
+    // P13: parameterized over null and empty Authority to lock that both produce identical
+    // failure wording. A nullable-aware binding refactor (binding null → empty or vice versa)
+    // could otherwise shift the message and silently break downstream tooling that grep's the
+    // failure for the Authority key.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ProductionSigningKeyWithoutAuthorityShouldFailWithoutEchoingSecret(string? authority) {
+        var overrides = new Dictionary<string, string?> {
+            [$"{AuthenticationSectionName}:Authority"] = authority,
             [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
             [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
             [$"{AuthenticationSectionName}:SigningKey"] = SecretSigningKey,
             [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
-        });
+        };
+        IConfiguration configuration = CreateConfiguration(overrides);
 
         OptionsValidationException exception = Should.Throw<OptionsValidationException>(
             () => ValidateOptions(configuration, Environments.Production));

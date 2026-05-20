@@ -88,6 +88,30 @@ public class TenantsQueryControllerIntegrationTests {
             Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task ListTenants_returns_200_when_production_like_smoke_jwt_uses_tenants_json_array_source_claim() {
+        // P15: locks that the real JwtBearer middleware + EventStoreClaimsTransformation chain still
+        // normalizes source `tenants` claims to `eventstore:tenant=system` under the production-like
+        // smoke seam. Without this row, the smoke factory only exercises the direct-claim path.
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        IQueryRouter router = CreateRouter(
+            "list-tenants",
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
+        string token = CreateSmokeJwt(
+            "admin-user",
+            claims: [new Claim("tenants", JsonSerializer.Serialize(new[] { "system" }))]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        _ = await router.Received(1).RouteQueryAsync(
+            Arg.Is<SubmitQuery>(q => q != null && q.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
     [Theory]
     [InlineData("missing-token")]
     [InlineData("malformed-token")]
@@ -100,13 +124,16 @@ public class TenantsQueryControllerIntegrationTests {
 
         await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
         using HttpClient client = factory.CreateClient();
+        // P16: expired-token uses AddHours(-1) so the case is unambiguous even if a future refactor
+        // moves ClockSkew off TokenValidationParameters; -10 minutes was inside the default 5-minute
+        // skew window and could silently flip green for the wrong reason.
         string? token = tokenCase switch {
             "missing-token" => null,
             "malformed-token" => "not-a-jwt",
             "invalid-signature" => CreateSmokeJwt("admin-user", signingKey: "wrong-smoke-test-signing-key-minimum-32-chars"),
             "wrong-issuer" => CreateSmokeJwt("admin-user", issuer: "https://identity.other.example.test/realms/hexalith"),
             "wrong-audience" => CreateSmokeJwt("admin-user", audience: "wrong-audience"),
-            "expired-token" => CreateSmokeJwt("admin-user", expires: DateTime.UtcNow.AddMinutes(-10)),
+            "expired-token" => CreateSmokeJwt("admin-user", expires: DateTime.UtcNow.AddHours(-1)),
             _ => throw new InvalidOperationException($"Unknown token case '{tokenCase}'."),
         };
 
@@ -117,9 +144,52 @@ public class TenantsQueryControllerIntegrationTests {
         HttpResponseMessage response = await client.GetAsync("/api/tenants");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        // P3: a 401 from the JWT bearer handler must produce a ProblemDetails-shaped body so an
+        // operator triaging the response sees structured failure context. A regression that drops
+        // the ProblemDetails shape on 401 would still leave the status correct.
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        // P5: each 401 case must surface a distinct WWW-Authenticate signal so the failure layer is
+        // identifiable from the response alone. The handler emits Bearer challenge headers; expired
+        // tokens carry an `error_description` mentioning expiration, signature/issuer/audience
+        // failures emit `error="invalid_token"`, and missing-token has no error attribute.
+        AuthenticationHeaderValue? challenge = response.Headers.WwwAuthenticate.FirstOrDefault();
+        switch (tokenCase) {
+            case "missing-token":
+                _ = challenge.ShouldNotBeNull();
+                challenge.Scheme.ShouldBe("Bearer");
+                (challenge.Parameter is null || !challenge.Parameter.Contains("error=", StringComparison.Ordinal)).ShouldBeTrue();
+                break;
+            case "expired-token":
+                _ = challenge.ShouldNotBeNull();
+                challenge.Scheme.ShouldBe("Bearer");
+                _ = challenge.Parameter.ShouldNotBeNull();
+                challenge.Parameter.ShouldContain("error=\"invalid_token\"");
+                challenge.Parameter.ShouldContain("expired", Case.Insensitive);
+                break;
+            default:
+                _ = challenge.ShouldNotBeNull();
+                challenge.Scheme.ShouldBe("Bearer");
+                _ = challenge.Parameter.ShouldNotBeNull();
+                challenge.Parameter.ShouldContain("error=\"invalid_token\"");
+                challenge.Parameter.ShouldNotContain("expired", Case.Insensitive);
+                break;
+        }
+
         string body = await response.Content.ReadAsStringAsync();
         body.ShouldNotContain(SmokeJwtSigningKey);
-        if (token is not null) {
+        // P4: only the cryptographic-token cases assert token redaction. The "missing-token" row has
+        // no token to redact; the "malformed-token" row uses the literal `"not-a-jwt"` placeholder,
+        // which could legitimately appear in a future ProblemDetails Detail like "Token does not
+        // appear to be a JWT" and produce a confusing false-positive failure. For that case, assert
+        // the `Bearer ` prefix is absent so any echo of the raw Authorization header is caught.
+        if (tokenCase is "missing-token") {
+            // Nothing to redact-check beyond the signing key.
+        }
+        else if (tokenCase is "malformed-token") {
+            body.ShouldNotContain("Bearer ", Case.Insensitive);
+        }
+        else {
+            _ = token.ShouldNotBeNull();
             body.ShouldNotContain(token);
         }
 

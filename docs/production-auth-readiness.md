@@ -31,12 +31,14 @@ Expected decoded payload shape:
   "iss": "<expected-issuer>",
   "aud": "hexalith-tenants",
   "sub": "<redacted-subject>",
-  "exp": 1893456000,
+  "exp": "<future-unix-timestamp>",
   "eventstore:tenant": "system",
   "eventstore:domain": "tenants",
   "eventstore:permission": "command:submit"
 }
 ```
+
+`exp` is a Unix timestamp (seconds since epoch) in real tokens; the placeholder is shown as a string so it cannot accidentally read as expired evidence in committed docs.
 
 Expected evidence: the payload includes `iss`, `aud`, `sub`, `exp`, and either direct `eventstore:tenant=system` or one supported source tenant claim that EventStore normalizes into `eventstore:tenant=system`.
 
@@ -125,6 +127,8 @@ curl -i \
   https://<tenants-host>/api/v1/commands
 ```
 
+`<ulid>` is a placeholder. Replace it with the output of `Ulid.NewUlid().ToString()` (or any other compliant ULID generator) before sending — the EventStore controller rejects the literal placeholder because `messageId` must parse as a ULID, not the surrounding shape.
+
 Expected evidence: `202 Accepted` when command infrastructure is available and the token has command authorization, or a safe `401`/`403` before routing when authentication or authorization is wrong. This proves the command gateway path, not domain business success.
 
 Redaction rule: use non-production subjects and placeholder IDs in stored examples. Do not store bearer tokens, production user identifiers, or command payloads containing real tenant data.
@@ -134,7 +138,9 @@ Redaction rule: use non-production subjects and placeholder IDs in stored exampl
 | Symptom | Likely layer | Safe next check |
 | --- | --- | --- |
 | Startup fails before listening | Options validation | Check named `Authentication:JwtBearer` key. |
-| `401 Unauthorized` | JWT authentication | Check signature source, issuer, audience, expiration, and malformed token shape. |
+| `401 Unauthorized` with `WWW-Authenticate: Bearer error="invalid_token", error_description="The token expired ..."` | JWT authentication (lifetime) | Check token `exp`, the host's `ClockSkew`, and the IdP's clock. |
+| `401 Unauthorized` with `WWW-Authenticate: Bearer error="invalid_token"` (no expiration error_description) | JWT authentication (signature/issuer/audience) | Check signing source, `iss`, `aud`, and signature algorithm. |
+| `401 Unauthorized` with `WWW-Authenticate: Bearer` (no error attribute) or no header | JWT authentication (missing/malformed token) | Confirm the `Authorization: Bearer …` header is present and the bearer value parses as a JWT. |
 | `403 Forbidden` with `principal_not_member` | Tenant authorization | Check effective `eventstore:tenant=system` after claims transformation. |
 | `403 Forbidden` with `tenant_mismatch` | Tenant authorization | Align request tenant with the effective tenant claim. |
 | Command smoke cannot prove routing | Deployment boundary | Confirm EventStore/DAPR command infrastructure is running, or record this as infrastructure evidence outside deterministic smoke tests. |

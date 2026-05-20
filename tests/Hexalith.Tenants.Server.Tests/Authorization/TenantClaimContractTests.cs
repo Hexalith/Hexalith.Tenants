@@ -145,10 +145,17 @@ public class TenantClaimContractTests {
         result.FindFirst(ClaimTypes.NameIdentifier)?.Value.ShouldBe("user-1");
     }
 
+    // P11: extended to cover tab and newline alongside space and empty string. The documented
+    // contract ("whitespace tenant claims survive normalization and fail closed at validation")
+    // is now pinned across the four whitespace-shape inputs the validator's
+    // `string.IsNullOrWhiteSpace` filter accepts. The test name was renamed
+    // (`BlankOrEmpty...`) because the previous name said "Blank" but covered empty-string too.
     [Theory]
     [InlineData(" ")]
     [InlineData("")]
-    public async Task BlankDirectEventStoreTenantClaimIsNotRepairedBySourceClaims(string directValue) {
+    [InlineData("\t")]
+    [InlineData("\n")]
+    public async Task BlankOrEmptyDirectEventStoreTenantClaimIsNotRepairedBySourceClaims(string directValue) {
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "user-1"),
             new Claim(TenantClaimType, directValue),
@@ -163,16 +170,30 @@ public class TenantClaimContractTests {
         validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
     }
 
-    [Fact]
-    public async Task GlobalAdministratorMissingTenantClaimIsAuthorizedForSystemTenant() {
+    // P9: extended to cover every global-admin claim shape that `GlobalAdministratorHelper`
+    // accepts and the boolean parser's casing contract. A regression that tightens the helper
+    // (e.g., dropping role-based shapes, requiring exact `true` casing) would otherwise show up
+    // only when a production IdP emitted the dropped shape.
+    [Theory]
+    [InlineData("global_admin", "true")]
+    [InlineData("global_admin", "True")]
+    [InlineData("global_admin", "TRUE")]
+    [InlineData("is_global_admin", "true")]
+    [InlineData("role", "GlobalAdministrator")]
+    [InlineData("role", "global-administrator")]
+    [InlineData("role", "global-admin")]
+    [InlineData("roles", "[\"GlobalAdministrator\"]")]
+    [InlineData("roles", "GlobalAdministrator other-role")]
+    [InlineData("roles", "user,GlobalAdministrator")]
+    public async Task GlobalAdministratorMissingTenantClaimIsAuthorizedForSystemTenant(string claimType, string claimValue) {
         // Global administrators bypass tenant matching in ClaimsTenantValidator. This test locks
-        // the documented host behavior so the global-admin tenant-claim contract cannot regress
-        // silently. The Tenants host does NOT register the EventStore rate limiter, so the
-        // "anonymous" partition fallback consequence does not apply here — see
-        // docs/production-auth-claim-contract.md#global-administrators.
+        // the documented host behavior across every accepted global-admin claim shape so the
+        // global-admin tenant-claim contract cannot regress silently. The Tenants host does NOT
+        // register the EventStore rate limiter, so the "anonymous" partition fallback consequence
+        // does not apply here — see docs/production-auth-claim-contract.md#global-administrators.
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "admin-user"),
-            new Claim("global_admin", "true"));
+            new Claim(claimType, claimValue));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
@@ -182,12 +203,24 @@ public class TenantClaimContractTests {
         validation.IsAuthorized.ShouldBeTrue();
     }
 
-    [Fact]
-    public async Task NonGlobalAdministratorMissingTenantClaimFailsClosedForSystemTenant() {
+    // P10: extended to cover the boolean-parser deny shapes alongside the no-claim case. The
+    // helper accepts only `bool.TryParse` truthy values, so `global_admin=false`, `=""`, `=yes`,
+    // and `=1` must all NOT elevate. Locking these in stops a future "presence == bypass"
+    // refactor from silently elevating tokens carrying a non-truthy boolean.
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("global_admin", "false")]
+    [InlineData("global_admin", "")]
+    [InlineData("global_admin", "yes")]
+    [InlineData("global_admin", "1")]
+    [InlineData("is_global_admin", "false")]
+    public async Task NonGlobalAdministratorMissingTenantClaimFailsClosedForSystemTenant(string? claimType, string? claimValue) {
         // Companion to GlobalAdministratorMissingTenantClaim... — proves that the same missing-
-        // tenant principal without global-admin evidence is denied. Spec Tasks line 47 requires
-        // non-global-admin and global-admin missing-tenant cases be kept distinct.
-        ClaimsPrincipal principal = CreatePrincipal(new Claim("sub", "regular-user"));
+        // tenant principal without truthy global-admin evidence is denied. Spec Tasks line 47
+        // requires non-global-admin and global-admin missing-tenant cases be kept distinct.
+        ClaimsPrincipal principal = claimType is null
+            ? CreatePrincipal(new Claim("sub", "regular-user"))
+            : CreatePrincipal(new Claim("sub", "regular-user"), new Claim(claimType, claimValue ?? string.Empty));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()

@@ -250,11 +250,49 @@ public class CommandApiRuntimeIntegrationTests {
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
+    // P8: companion to the 403 cross-tenant theory — proves the validator does equality (claim
+    // matches request tenant), not a hard-coded `system` whitelist. With a hard-coded check, the
+    // `tenant-a` row would 403 even when the JWT carries `eventstore:tenant=tenant-a` and the
+    // request body says `tenant=tenant-a`. The router is mocked to return 202 so any failure
+    // localizes to the tenant validator.
+    [Theory]
+    [InlineData("system")]
+    [InlineData("tenant-a")]
+    public async Task Commands_endpoint_returns_202_when_jwt_tenant_claim_matches_request_tenant(string tenant) {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", tenant)]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: tenant);
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = await router.Received(1).RouteCommandAsync(
+            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == tenant),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Tenants_host_registers_eventstore_claims_transformation_as_transient() {
         // P8: lifetime check is part of the contract — ASP.NET Core invokes IClaimsTransformation
         // once per authenticated request, and a Singleton/Scoped registration would silently break
         // re-invocation semantics.
+        // P7: in addition to the descriptor check (catches direct `services.Add*` lifetime drift),
+        // also exercise the runtime contract directly — resolve the service twice from the built
+        // provider and assert different instances. This catches a later `services.Replace(...)`
+        // decorator that wraps the transformation as Singleton/Scoped, which the descriptor capture
+        // inside ConfigureServices would miss.
         ServiceDescriptor? descriptor = null;
         await using var factory = new CommandApiWebApplicationFactory()
             .WithWebHostBuilder(b => b.ConfigureServices(services => {
@@ -269,6 +307,18 @@ public class CommandApiRuntimeIntegrationTests {
 
         _ = descriptor.ShouldNotBeNull();
         descriptor.Lifetime.ShouldBe(ServiceLifetime.Transient);
+
+        EventStoreClaimsTransformation? firstInstance = factory.Services
+            .GetServices<IClaimsTransformation>()
+            .OfType<EventStoreClaimsTransformation>()
+            .FirstOrDefault();
+        EventStoreClaimsTransformation? secondInstance = factory.Services
+            .GetServices<IClaimsTransformation>()
+            .OfType<EventStoreClaimsTransformation>()
+            .FirstOrDefault();
+        _ = firstInstance.ShouldNotBeNull();
+        _ = secondInstance.ShouldNotBeNull();
+        firstInstance.ShouldNotBeSameAs(secondInstance);
     }
 
     [Fact]
@@ -283,6 +333,46 @@ public class CommandApiRuntimeIntegrationTests {
             .Get(JwtBearerDefaults.AuthenticationScheme);
 
         options.MapInboundClaims.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Tenants_host_keeps_raw_sub_claim_under_real_jwt_pipeline() {
+        // P6: companion to Tenants_host_keeps_jwt_bearer_map_inbound_claims_false — that test checks
+        // the host-effective options bag; this test exercises the live JWT bearer middleware via an
+        // HTTP request. CommandsController.cs:67 reads UserId via `User.FindFirst("sub")?.Value`.
+        // With MapInboundClaims=true (regression), JWT bearer would consume the `sub` claim and
+        // remap it to ClaimTypes.NameIdentifier, leaving `User.FindFirst("sub")` returning null and
+        // the controller short-circuiting with an unauthorized response. The JWT also carries a
+        // `name` claim with a different value to prove the controller does not fall back to `name`.
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "admin-user",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("name", "different-display-name"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = await router.Received(1).RouteCommandAsync(
+            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c =>
+                c != null && c.UserId == "admin-user"),
+            Arg.Any<CancellationToken>());
     }
 
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
