@@ -1,4 +1,6 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-20 (12-4 phase 2 UI story backlog with explicit blockedBy implemented; full Debug/no-restore solution gate passed [735 passed, 1 skipped]; story -> review)
+# last_updated: 2026-05-20 (12-4 phase 2 UI story backlog with explicit blockedBy development started; story -> in-progress)
 # last_updated: 2026-05-20 (12-3 three-phase command feedback sequencing code review: 3 decisions resolved + 10 patches applied [named owners subsection, allowed transitions paragraph, retry/timeout/polling budget owners subsection, optimistic trigger reworded, FC-CNS/FC-TOK/FC-AUD/FC-LYT cross-reference note, pendingIds 26-char citation + uniqueness scope, FrontShell alias normalized, FC-DOC requiredFor structured list, alreadyApplied localization key standardized] + 1 verified false-positive + 4 deferred + 4 dismissed; story -> done)
 # last_updated: 2026-05-20 (12-3 three-phase command feedback sequencing implemented; full Debug/no-restore solution gate passed [731 passed, 5 skipped]; story -> review)
 # last_updated: 2026-05-20 (12-3 three-phase command feedback sequencing development started; story -> in-progress)
@@ -132,32 +134,6 @@
 
 generated: 2026-05-16T09:57:23+02:00
 last_updated: 2026-05-20
-# Story 11.1 code review complete: 0 decisions, 1 patch applied (xUnit
-# AuthenticationConfigurationCollection with DisableParallelization=true on
-# AuthenticationConfigurationTests so env-var-mutating tests cannot race
-# with future tests that depend on process-env state), 4 deferred (name
-# parameter gating, AddSingleton vs TryAddEnumerable for IValidateOptions,
-# Authority host-trust policy out of AC9 scope, composition test wording
-# brittleness against the EventStore submodule), ~17 dismissed. Server.Tests
-# gate 438/438 with no regression. Story 11.1 -> done.
-# Story 10.1 integration prerequisite gating fixed: Aspire topology tests now
-# preflight Docker health before AppHost startup, and DAPR-backed tests require
-# Redis PING responsiveness instead of only TCP reachability. Full solution
-# Debug/no-restore test gate exits successfully; story -> review.
-# Story 10.1 code review complete; 2 patches applied (P1 bounded messageIds log
-# field; P2 existing-state ETag test seeds a real TenantReadModel). 7 findings
-# deferred to deferred-work.md; ~14 dismissed. Filtered Server.Tests 380/380
-# pass. Story status remains in-progress because the mandatory unfiltered
-# regression suite is still blocked by local Docker (Aspire topology tests).
-# Story 10.1 optimistic concurrency implementation complete; story remains
-# in-progress because unfiltered regression validation is blocked by Docker
-# not running for Aspire topology tests.
-# Story 10.1 optimistic concurrency for tenant read-model writes development started;
-# story -> in-progress.
-# Story 9.5 moved to done after P5 (omitted-pageSize actor test) was implemented;
-# all 5 Review Findings patches applied (P1 non-object root fallback; P2 policy-constant
-# test defaults; P3 parser-test file split; P4 HasMore assertion; P5 omitted-pageSize
-# coverage) and verified via Hexalith.Tenants.Server.Tests (374/374 passing).
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -290,5 +266,5 @@ development_status:
   12-1-frontshell-dependency-map-for-tenants-ui: done
   12-2-audit-timeline-and-consequence-preview-readiness: done
   12-3-three-phase-command-feedback-sequencing: done
-  12-4-phase-2-ui-story-backlog-with-explicit-blockedby: ready-for-dev
+  12-4-phase-2-ui-story-backlog-with-explicit-blockedby: review
   epic-12-retrospective: optional
