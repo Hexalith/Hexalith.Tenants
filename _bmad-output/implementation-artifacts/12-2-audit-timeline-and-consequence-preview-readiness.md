@@ -22,27 +22,33 @@ so that high-risk access-management workflows have the right interaction pattern
 8. Given current FrontComposer evidence is incomplete, stale, or unavailable, when readiness is recorded, then the dependency is marked `needs-confirmation`, `missing`, `planned`, or `approved-fallback` with an owner and evidence source rather than inferred from desired UX language.
 9. Given Phase 2 UI stories will consume this readiness work, when the output is complete, then dependent UI stories can copy exact `blockedBy` values and fallback decisions without re-reading the full UX specification.
 10. Given Epic 12 is Phase 2 planning/readiness scope, when this story is implemented, then no backend endpoint, command, query, package, source code, submodule pointer, or Phase 1 release gate is changed by this story.
+11. Given a readiness decision references any Story 12.1 dependency ID, when it is written, then the row includes `decision`, `status`, `owner`, `evidence`, `fallback`, `blockedBy`, and `copyForward` fields so the result is objectively checkable.
+12. Given UX aliases such as `FrontShell`, `@hexalith/ui`, `<AuditTimeline>`, `<ConsequencePreview>`, or `useCommand` appear in source material, when the readiness output cites them, then they remain aliases until verified against current `Hexalith.FrontComposer` repository evidence.
+13. Given consequence-preview projection data is unavailable or ambiguous, when future UI implementation consumes this story, then the story fails closed by recording `needs-confirmation` rather than expanding backend scope or assuming a new endpoint.
 
 ## Tasks / Subtasks
 
 - [ ] Locate and extend the dependency-map output from Story 12.1. (AC: 1, 2, 5, 7, 9)
   - [ ] Read `docs/tenants-ui-frontcomposer-dependency-map.md` if it exists; otherwise create `docs/tenants-ui-audit-consequence-readiness.md` as the focused readiness output and clearly cross-reference the Story 12.1 map.
   - [ ] Reuse Story 12.1 dependency IDs and readiness vocabulary; do not introduce duplicate IDs for the same FrontComposer deliverables.
-  - [ ] For every readiness row, include dependency ID, UX alias, current FrontComposer source path if verified, owner, expected deliverable, readiness, fallback/blocking policy, evidence, and Phase 1 blocker status.
-  - [ ] Mark this story as Phase 2 planning/readiness only and explicitly state that it does not implement Tenants UI screens.
+  - [ ] For every readiness row, include dependency ID, UX alias, current FrontComposer source path if verified, owner, expected deliverable, readiness, fallback/blocking policy, evidence, Phase 1 blocker status, and copy-forward text.
+  - [ ] For every dependency decision, include explicit `decision`, `status`, `owner`, `evidence`, `fallback`, `blockedBy`, and `copyForward` fields.
+  - [ ] Mark this story as Phase 2 planning/readiness only and explicitly state that it does not implement Tenants UI screens, FrontComposer components, backend endpoints, source code, packages, submodule pointers, generated artifacts, or story-status changes.
 - [ ] Resolve `<AuditTimeline>` readiness. (AC: 1, 3, 4, 6, 8)
   - [ ] Define first-slice flat timeline behavior: date-range-filtered tenant audit events, stable chronological ordering, event category/actor/target/role/status display, expandable details, empty state, and error state.
+  - [ ] Define timestamp and localization expectations for flat timeline rows, including time zone display, culture-aware date/time formatting, localized event labels, localized status/action labels, and fallback/error copy.
   - [ ] Define loading behavior from the UX spec: content-aware audit skeleton, three visible groups with two skeleton events each, connector line visible, 300ms minimum display, and crossfade per group.
-  - [ ] Define accessibility expectations: semantic ordered list or table alternative, keyboard navigation with up/down and Enter expand/collapse, focus visibility, screen-reader announcements, reduced-motion behavior, forced-colors behavior, and no color-only encoding.
-  - [ ] Define performance evidence needed for a 500-event timeline: bounded rendering target, expected fixture size, whether virtualization is required, and where benchmark or component-test evidence should live when the FrontComposer component is implemented.
+  - [ ] Define accessibility expectations: semantic ordered list or table alternative, keyboard navigation with up/down and Enter expand/collapse, focus order, accessible names, focus visibility, loading/error announcements, reduced-motion behavior, forced-colors behavior, contrast expectations, and no color-only encoding.
+  - [ ] Define performance evidence needed for a 500-event timeline: expected data source, fixture size, bounded rendering target, rendering strategy, whether virtualization is required, and what remains `needs-confirmation` until benchmark or component-test evidence exists.
   - [ ] Mark grouped-by-session mode as fast-follow unless product/UX explicitly promotes it; include a separate readiness row for grouped mode so it does not block flat timeline planning.
   - [ ] If no current `Hexalith.FrontComposer` component path exists for audit timeline behavior, record `evidence: missing` or `needs-confirmation` with FrontComposer as owner instead of inventing a path.
 - [ ] Resolve `<ConsequencePreview>` readiness. (AC: 2, 5, 6, 8)
   - [ ] Define covered workflows at minimum: remove user from tenant, disable tenant, remove global administrator, and any high-impact configuration change that product/UX classifies as irreversible or high impact.
   - [ ] Define preview inputs from already-loaded projection/read-model data: tenant status, member counts, affected user/role, global-admin count, configuration key context, and last-known audit context where available.
-  - [ ] State that no dedicated backend consequence endpoint is required for this story; any new endpoint requires a future product/architecture scope decision.
+  - [ ] State that no dedicated backend consequence endpoint is required for this story; any new endpoint, command contract, validation behavior, or source-code change requires a future product/architecture scope decision.
+  - [ ] If required projection fields are not already loaded by the planned screen, record a confirmation gap and fail closed for future implementation instead of adding backend scope.
   - [ ] Define fallback rules for missing component support: block dependent UI story, planning-only story, or explicitly approved inline copy/dialog fallback with product/UX owner.
-  - [ ] Define accessibility expectations: ordered consequences, `role="alert"` or equivalent assertive/polite behavior as appropriate, keyboard reachability, focus return, screen-reader order, and no destructive action hidden behind color alone.
+  - [ ] Define accessibility expectations: ordered consequences, `role="alert"` or equivalent assertive/polite behavior as appropriate, keyboard reachability, focus return, screen-reader order, localized destructive-warning text, and no destructive action hidden behind color alone.
   - [ ] If no current `Hexalith.FrontComposer` component path exists for consequence preview behavior, record `evidence: missing` or `needs-confirmation` with FrontComposer/product/UX ownership rather than asserting availability.
 - [ ] Align command-feedback and data-source boundaries. (AC: 2, 5, 7, 10)
   - [ ] Map readiness dependencies to Story 12.1 IDs: `FC-CMD` for command lifecycle feedback, `FC-CNC` for concurrent command/toast batching, `FC-TOK` for risk/status tokens, `FC-A11Y` for accessibility, `FC-L10N` for copy/localization readiness, and `FC-DOC` for component documentation evidence.
@@ -51,10 +57,13 @@ so that high-risk access-management workflows have the right interaction pattern
   - [ ] Where data is not already loaded by a planned UI screen, record a dependency or deferred decision rather than expanding backend scope.
 - [ ] Capture sequencing output for future Phase 2 UI stories. (AC: 4, 7, 8, 9)
   - [ ] Add exact `blockedBy` examples for Audit Trail, Tenant Detail audit tab, User Management remove-user flow, Global Admin remove flow, Disable Tenant flow, and high-impact configuration changes.
+  - [ ] Include a `Future Story Copy Blocks` section with copy-ready `blockedBy` and fallback language for `FC-AUD`, `FC-CNS`, and any related `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, or `FC-DOC` dependency.
   - [ ] For each future story, state whether it is ready, blocked, planning-only, or allowed with approved fallback.
   - [ ] Name decision owners for unresolved fallback choices: Product/UX for interaction fallback, FrontComposer for reusable component/API evidence, Tenants module for screen composition, and backend only when a completed backend surface is missing.
   - [ ] Keep grouped audit mode and advanced analytics/anomaly scoring out of the first slice unless explicitly promoted.
 - [ ] Validate and record implementation evidence. (AC: 1-10)
+  - [ ] Confirm only documentation files under `docs/` and this story's Dev Agent Record changed during implementation.
+  - [ ] Confirm no `.cs`, `.csproj`, package, lockfile, generated source, submodule pointer, sprint-status, backend status, UI screen, component, endpoint, command, query, or Phase 1 gate changed.
   - [ ] Confirm the readiness output cites repo-relative paths only and avoids local absolute paths, secrets, token values, raw tenant/user production data, generated `bin/`/`obj/` artifacts, and transient logs.
   - [ ] Confirm every dependency row has readiness, owner, evidence, fallback/blocking policy, and Phase 1 blocker status.
   - [ ] Confirm the output can be consumed by Story 12.4 to generate concrete UI stories with explicit `blockedBy` values.
@@ -81,7 +90,17 @@ so that high-risk access-management workflows have the right interaction pattern
   - `FC-A11Y`: keyboard, live-region, reduced-motion, forced-colors, and accessibility guarantees.
   - `FC-L10N`: localization, culture-aware formatting, adopter terminology, and translation readiness.
   - `FC-DOC`: Storybook or equivalent component documentation/reference evidence.
+- These Story 12.1 IDs are immutable inputs for Story 12.2 unless current repository evidence proves they were superseded. If an ID appears stale, record a deferred decision instead of renaming or reinterpreting it in this story.
+- Every dependency decision row should expose the same fields: `decision`, `status`, `owner`, `evidence`, `fallback`, `blockedBy`, and `copyForward`. Allowed readiness statuses remain `needs-confirmation`, `missing`, `planned`, and `approved-fallback` unless an implementation later verifies an `available` source-backed contract.
 - Use current repository terminology. The UX spec says `FrontShell` and `@hexalith/ui`; the checked-out submodule is `Hexalith.FrontComposer`, whose components use `Fc...` naming and Fluent UI Blazor patterns. [Source: `Hexalith.FrontComposer/_bmad-output/project-context.md`; `_bmad-output/implementation-artifacts/12-1-frontshell-dependency-map-for-tenants-ui.md`]
+- Alias handling is explicit: `FrontShell`, `@hexalith/ui`, `<AuditTimeline>`, `<ConsequencePreview>`, and `useCommand` are UX aliases until verified against `Hexalith.FrontComposer` source or documentation evidence.
+
+### Copy-Forward Decision Examples
+
+- `FC-AUD blockedBy`: Audit timeline UI dependency is not implementation-ready until `FC-AUD` or an approved equivalent/fallback is verified. Current status defaults to `needs-confirmation` when no source path exists. Owner: FrontComposer/UI platform. Evidence: current repo-relative source path or `evidence: missing`.
+- `FC-CNS blockedBy`: Destructive consequence preview dependency is not implementation-ready until `FC-CNS` or an approved equivalent/fallback is verified. Current status defaults to `needs-confirmation` when no source path exists. Owner: FrontComposer/UI platform with Product/UX fallback approval. Evidence: current repo-relative source path or `evidence: missing`.
+- Fallback rule: if no reusable FrontComposer dependency exists, a future UI story may use an approved local placeholder only after recording owner approval, accessibility behavior, localization keys, replacement path, and exact follow-up dependency ID.
+- Backend constraint: consequence preview must use already-loaded tenant projection data; no new backend endpoint, command contract, validation behavior, source-code change, or Phase 1 gate is in scope for Story 12.2.
 
 ### Audit Timeline Readiness
 
@@ -127,13 +146,19 @@ so that high-risk access-management workflows have the right interaction pattern
 - No source-code test suite is required if implementation creates or updates documentation only.
 - Validate by manual checklist:
   - `FC-AUD` and `FC-CNS` have readiness, owner, evidence, expected deliverable, fallback/blocking policy, and Phase 1 blocker status.
+  - Each dependency decision row includes `decision`, `status`, `owner`, `evidence`, `fallback`, `blockedBy`, and `copyForward`.
+  - All reused dependency IDs match Story 12.1 exactly: `FC-AUD`, `FC-CNS`, `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`.
+  - UX aliases are not promoted to verified dependencies without current `Hexalith.FrontComposer` evidence.
   - Audit flat timeline behavior includes ordering, filtering, expansion, loading, empty/error states, accessibility, localization/copy, documentation evidence, and 500-event performance evidence requirements.
+  - Accessibility readiness names keyboard behavior, focus order, accessible names, announcements, reduced motion, forced colors, contrast, and no color-only encoding.
+  - Performance readiness names data source, fixture size, rendering strategy, 500-event target, and remaining confirmation gaps.
   - Grouped audit mode is marked fast-follow and does not block flat timeline readiness.
   - Consequence preview uses already-loaded projection/read-model data and does not introduce a backend consequence endpoint.
+  - Unknown projection fields fail closed as `needs-confirmation` instead of creating backend scope.
   - Destructive/high-impact workflows have clear fallback/approval rules and future `blockedBy` examples.
   - Every missing or unverified dependency is marked `needs-confirmation`, `missing`, `planned`, or `approved-fallback` with an owner.
   - The output uses repo-relative paths or explicit `evidence: missing`; it contains no local absolute paths, secrets, raw tenant/user production data, generated build artifacts, or transient logs.
-  - No source code, package versions, submodule pointers, or Phase 1 backend scope changed.
+  - Only documentation files under `docs/` and this story's Dev Agent Record changed during implementation; no source code, package versions, lockfiles, generated source, submodule pointers, sprint status, backend story statuses, UI screens, components, endpoints, commands, queries, or Phase 1 backend scope changed.
 
 ### Previous Story Intelligence
 
@@ -158,3 +183,31 @@ GPT-5 Codex
 ### Completion Notes List
 
 ### File List
+
+- _bmad-output/implementation-artifacts/12-2-audit-timeline-and-consequence-preview-readiness.md
+
+## Party-Mode Review
+
+- Date/time: 2026-05-20T08:01:26+02:00
+- Selected story key: 12-2-audit-timeline-and-consequence-preview-readiness
+- Command/skill invocation used: `/bmad-party-mode 12-2-audit-timeline-and-consequence-preview-readiness; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect and Quality Advisor), Paige (Technical Writer)
+- Findings summary:
+  - Reviewers agreed the story is directionally ready and correctly bounded as Phase 2 planning/readiness, but needed sharper evidence and output contracts before development.
+  - The main risks were accidental UI/backend implementation scope, inferred FrontComposer readiness from UX aliases, vague `equivalent/fallback` language, and future UI stories interpreting `blockedBy` differently.
+  - Audit timeline readiness needed measurable accessibility, localization, timestamp, performance, rendering-strategy, and fail-closed confirmation expectations.
+  - Consequence preview readiness needed stronger projection-only wording so missing data becomes `needs-confirmation` instead of a new backend endpoint, command contract, or validation behavior.
+  - Documentation output needed exact dependency decision fields and copy-ready future-story blocks for Story 12.4 consumption.
+- Changes applied:
+  - Added acceptance criteria requiring dependency decision fields, explicit alias handling, and fail-closed projection-data handling.
+  - Tightened tasks so readiness rows include `decision`, `status`, `owner`, `evidence`, `fallback`, `blockedBy`, and `copyForward`.
+  - Added docs-only/non-goals validation for no source, package, lockfile, generated source, submodule pointer, sprint-status, backend, UI, endpoint, command, query, or Phase 1 gate changes.
+  - Added audit timeline localization, timestamp, accessibility, and performance evidence requirements.
+  - Added consequence-preview projection-only and missing-data confirmation requirements.
+  - Added copy-forward `FC-AUD` and `FC-CNS` `blockedBy` examples plus fallback and backend-constraint wording.
+- Findings deferred:
+  - Whether `FC-AUD`, `FC-CNS`, `useCommand`, `FrontShell`, or `@hexalith/ui` map to concrete `Hexalith.FrontComposer` assets remains implementation evidence for the readiness document.
+  - Whether grouped audit mode gets a separate future dependency ID or remains part of `FC-AUD` remains a product/UX and FrontComposer decision.
+  - Final localization key names, component API names, Storybook/equivalent documentation tooling, and richer consequence-preview backend support remain out of scope for this story.
+- Final recommendation: ready-for-dev after applied clarifications.
+- Preflight note: `_bmad-output/process-notes/predev-preflight-latest.json` timestamp `2026-05-20T05:58:32Z` passed all checks with clean working tree.
