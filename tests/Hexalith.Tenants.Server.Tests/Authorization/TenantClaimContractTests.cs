@@ -230,4 +230,28 @@ public class TenantClaimContractTests {
         validation.IsAuthorized.ShouldBeFalse();
         validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
     }
+
+    // Pins docs/production-auth-claim-contract.md:13 — "Do not use `name` as the trusted subject."
+    // A token carrying only `name` (no `sub`) must NOT be promoted to NameIdentifier and must
+    // NOT authorize without an eventstore:tenant claim. Sourced from 11-2 review deferred-work
+    // (see _bmad-output/implementation-artifacts/deferred-work.md).
+    [Fact]
+    public async Task NameOnlyClaimWithoutSubDoesNotEstablishTrustedSubject() {
+        ClaimsPrincipal principal = CreatePrincipal(
+            new Claim("name", "display-only-user"));
+
+        ClaimsPrincipal result = await _transformation.TransformAsync(principal);
+        TenantValidationResult validation = await new ClaimsTenantValidator()
+            .ValidateAsync(result, "system", CancellationToken.None);
+
+        // NOTE: assert on the Claim itself, not `?.Value`. The conditional access on a missing
+        // claim short-circuits the whole expression to null and `.ShouldBeNull()` is never
+        // called — silently no-op. Existing tests use `?.Value.ShouldBe("expected")` for
+        // positive checks, which is correct because they expect the claim to be present.
+        result.FindFirst("sub").ShouldBeNull();
+        result.FindFirst(ClaimTypes.NameIdentifier).ShouldBeNull();
+        TenantClaims(result).ShouldBeEmpty();
+        validation.IsAuthorized.ShouldBeFalse();
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
+    }
 }

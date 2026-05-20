@@ -1,6 +1,6 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-orchestrate-generation']
-lastStep: 'step-03-orchestrate-generation'
+stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-orchestrate-generation', 'step-04-validate-and-summarize']
+lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-05-20'
 inputDocuments:
   - '_bmad/tea/config.yaml'
@@ -217,4 +217,271 @@ Per `confidence-gate.md`: applied to each test ID.
 - 5 concrete test IDs proposed; A–C green-lit for Step 3, D held pending source inspection, E deferred.
 - Estimated yield: ~5–8 test methods across 2 files; ~5–6 P0/P1 risk closures.
 - No new fixtures / no new helpers required.
+
+---
+
+## Step 3 — Orchestrate Generation
+
+### Execution Mode Resolution
+
+```
+⚙️ Execution Mode Resolution:
+- Requested:        auto  (from tea_execution_mode)
+- Probe Enabled:    true  (tea_capability_probe=true)
+- Supports agent-team: false  (no agent-team runtime)
+- Supports subagent:   true   (Agent tool available)
+- Resolved:         sequential
+```
+
+**Why sequential despite subagent capability:** the skill's `step-03a-subagent-api.md` and `step-03b-subagent-backend.md` worker step files are JS/Playwright-oriented (Playwright fixtures, `apiRequest`/`page` helpers, `mergeTests`, etc.). For a pure .NET 10 / xUnit v3 backend with K&R braces, Shouldly-only assertions, and project-specific helpers (`CreateCommand<T>`, shared `JsonSerializerOptions` factory), dispatching a context-naïve general-purpose subagent would produce non-conforming code that fails the build (`TreatWarningsAsErrors=true`). All required context is already loaded in the orchestrator turn; sequential preserves the output contract while honoring the skill's master rule: *"Deterministic mode selection + stable output contract."*
+
+### Confidence Gate — Gap D Resolution
+
+Inspected `Hexalith.EventStore/src/Hexalith.EventStore/Authorization/ClaimsRbacValidator.cs` per `confidence-gate.md` stop-and-ask rule.
+
+**Findings:**
+- `ValidateAsync(user, tenantId, domain, messageType, messageCategory, ct, aggregateId?)` — pure async validator
+- Permission claims **only enforced when present** (empty list = allowed)
+- Command path accepts: `commands:*` (wildcard) OR `command:submit` (category) OR exact `messageType` token — all case-insensitive via `OrdinalIgnoreCase`
+- Pure boolean OR — duplicates cannot "accumulate elevation" by construction
+- Global admin bypass already covered by existing `TenantClaimContractTests` rows 178–204
+
+**Confidence now 9/10.** Gap D moves from gated to **green for Step 4**. Reframe: T3 integration tests (live AuthorizationBehavior pipeline) — the unit-level `ClaimsRbacValidator` contract is already covered in `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Authorization/ClaimsRbacValidatorTests.cs`. The Tenants-side gap is "does the live pipeline honor these claim shapes end-to-end through `/api/v1/commands`?"
+
+### Final Test Design (Given/When/Then)
+
+Test ID format: `{EPIC}.{STORY}-{LEVEL}-{SEQ}` per `test-levels-framework.md`. Bundle scope = production auth contract backfill (no specific story epic); use `AUTH-{LEVEL}-{SEQ}`.
+
+#### AUTH-T2-001 — `NameOnlyClaimWithoutSubDoesNotEstablishTrustedSubject`
+
+- **File**: `tests/Hexalith.Tenants.Server.Tests/Authorization/TenantClaimContractTests.cs`
+- **Type**: `[Fact]`, Tier 2, P0
+- **Gap**: B (Tier 2 portion)
+- **Given**: a principal carrying only `name="display-only-user"` (no `sub`, no `eventstore:tenant`)
+- **When**: `EventStoreClaimsTransformation.TransformAsync` runs, then `ClaimsTenantValidator.ValidateAsync(..., "system")`
+- **Then**:
+  - `result.FindFirst(ClaimTypes.NameIdentifier)?.Value.ShouldBeNull()` — `name` not promoted to NameIdentifier
+  - `result.FindFirst("sub")?.Value.ShouldBeNull()` — `sub` remains absent
+  - `validation.IsAuthorized.ShouldBeFalse()`
+  - `validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember)` (no tenant claim)
+- **Risk closed**: subject-confusion (audit attribution to display name)
+
+#### AUTH-INT-001 — `Process_endpoint_accepts_anonymous_request_to_preserve_dapr_callback_contract`
+
+- **File**: `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
+- **Type**: `[Fact]`, Tier 3, P0
+- **Gap**: A
+- **Given**: `CommandApiWebApplicationFactory(useTestAuthentication: false)` (real JwtBearer pipeline, no `RequireAuthorization()` on `/process` per `Program.cs:132`)
+- **When**: anonymous `POST /process` with valid `DomainServiceRequest` body (CreateTenant CreateCommand-style envelope), no `Authorization` header
+- **Then**:
+  - `response.StatusCode.ShouldBe(HttpStatusCode.OK)` — the DAPR `AggregateActor → CommandApi` callback contract
+  - `result.IsRejection.ShouldBeFalse()`
+  - `result.Events[0].EventTypeName.ShouldEndWith("TenantCreated")`
+- **Comment locked in test body**: `// Pins the DAPR callback contract: AggregateActor invokes /process via DAPR service-to-service. Adding .RequireAuthorization() to this route silently stalls the pipeline at AggregateActor 5-step checkpoint Step 4 — see _bmad-output/implementation-artifacts/deferred-work.md entry from 11-3 review.`
+- **Risk closed**: silent DAPR callback regression on future auth tightening
+
+#### AUTH-INT-002 — `Commands_endpoint_returns_403_when_jwt_carries_only_name_claim_without_sub`
+
+- **File**: `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
+- **Type**: `[Fact]`, Tier 3, P0
+- **Gap**: B (Tier 3 portion)
+- **Given**: a JWT minted by `CreateJwt(userId: "real-user", claims: [new Claim("name", "display-only-user")])` — note: `CreateJwt` adds `sub` from `userId`, so we need a variant or override to suppress `sub`. Step 4 will reshape `CreateJwt` *or* mint the token inline without calling the helper to produce a `sub`-less token
+- **When**: `POST /api/v1/commands` with `BootstrapGlobalAdmin` payload
+- **Then**:
+  - `response.StatusCode.ShouldBe(HttpStatusCode.Forbidden)` (subject is established by JwtBearer from `name`, but no `eventstore:tenant`)
+  - `details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member")`
+  - `await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default)` — request never reached dispatch
+- **Helper change**: extend `CreateJwt` with `bool includeSub = true` overload OR add a local `CreateJwtWithoutSub(...)` so existing tests keep their `sub` default. Step 4 picks the less-invasive shape.
+- **Risk closed**: `name` accepted as trusted subject in absence of `sub`
+
+#### AUTH-INT-003 — `Commands_endpoint_returns_202_when_jwt_uses_supported_source_claim_shape`
+
+- **File**: `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
+- **Type**: `[Theory]`, Tier 3, P1
+- **Gap**: C
+- **Rows** (each a `Claim[]` factory; named theory rows via `MemberData`):
+  1. **space-delimited `tenants`** — `[new Claim("tenants", "system tenant-a")]`
+  2. **`tenant_id` direct** — `[new Claim("tenant_id", "system")]`
+  3. **`tid` fallback** — `[new Claim("tid", "system")]`
+  4. **`tenant_id` + `tid` precedence** — `[new Claim("tenant_id", "system"), new Claim("tid", "tenant-a")]` (per contract doc: `tid` silently dropped)
+- **Given**: `CreateJwt(userId, claims: <row>)` and `CommandApiWebApplicationFactory(useTestAuthentication: false)`
+- **When**: `POST /api/v1/commands` (BootstrapGlobalAdmin against tenant=`system`)
+- **Then**:
+  - `response.StatusCode.ShouldBe(HttpStatusCode.Accepted)`
+  - `router.Received(1).RouteCommandAsync(Arg.Is<SubmitCommand>(c => c.Tenant == "system"), Arg.Any<CancellationToken>())`
+- **Comment in test body**: `// TenantClaimContractTests covers these source shapes at unit tier; this Theory pins them through the live JwtBearer + EventStoreClaimsTransformation pipeline. Per docs/production-auth-claim-contract.md mixed-source precedence rule, tid is silently dropped when tenant_id is present.`
+- **Risk closed**: multi-IdP rollout regression at pipeline tier
+
+#### AUTH-INT-004 — `Commands_endpoint_returns_202_when_jwt_carries_authorizing_permission_claim`
+
+- **File**: `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
+- **Type**: `[Theory]`, Tier 3, P1
+- **Gap**: D (positive)
+- **Rows**:
+  1. **wildcard** — `[new Claim("eventstore:tenant", "system"), new Claim("eventstore:permission", "commands:*")]`
+  2. **category** — `[..., new Claim("eventstore:permission", "command:submit")]`
+  3. **exact** — `[..., new Claim("eventstore:permission", nameof(BootstrapGlobalAdmin))]`
+- **Given**: real JwtBearer pipeline; mocked router returns success
+- **When**: `POST /api/v1/commands` (BootstrapGlobalAdmin)
+- **Then**: `Accepted` (202) + `router.Received(1).RouteCommandAsync(...)`
+- **Comment in test body**: `// Per ClaimsRbacValidator.cs, permission claims are only enforced when present and accept wildcard, category, or exact-type matches. Pins all three through the live pipeline.`
+
+#### AUTH-INT-005 — `Commands_endpoint_returns_403_when_jwt_carries_only_unrelated_permission_claims`
+
+- **File**: `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
+- **Type**: `[Theory]`, Tier 3, P1
+- **Gap**: D (negative — wrong type & duplicate non-elevating)
+- **Rows**:
+  1. **wrong exact** — `[new Claim("eventstore:tenant", "system"), new Claim("eventstore:permission", nameof(CreateTenant))]` while submitting `BootstrapGlobalAdmin`
+  2. **duplicate wrong** — two `[new Claim("eventstore:permission", nameof(CreateTenant)), new Claim("eventstore:permission", nameof(CreateTenant))]` claims, still submitting `BootstrapGlobalAdmin`
+- **Given**: real JwtBearer pipeline; router NOT expected to receive any call
+- **When**: `POST /api/v1/commands` (BootstrapGlobalAdmin)
+- **Then**:
+  - `response.StatusCode.ShouldBe(HttpStatusCode.Forbidden)`
+  - `details.Extensions["reasonCode"]?.ToString()` is one of `["insufficient_permission", "insufficient_role"]` — verify exact mapping during Step 4 first run (existing tests show `tenant_mismatch` and `principal_not_member`; permission-failure reasonCode is unverified yet — Step 4 to confirm)
+  - `await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default)`
+- **Comment in test body**: `// Per ClaimsRbacValidator.cs line 77, the validator returns Denied with InsufficientPermission. Duplicates can't elevate by construction (boolean OR over case-insensitive equality).`
+
+### Test-Quality DoD Checklist (applied prospectively per `test-quality.md`)
+
+Every test above is designed to satisfy:
+
+- [x] **No hard waits** — all assertions are over deterministic HTTP response state, no `Thread.Sleep`/`Task.Delay`
+- [x] **No conditionals controlling flow** — single linear path per test method
+- [x] **< 300 lines** — each new test method ≤ 40 lines; full file growth ≤ 250 lines
+- [x] **< 1.5 minutes** — `WebApplicationFactory` with mocked router averages <2s per test
+- [x] **Self-cleaning** — `await using var factory` and `using HttpClient client` already in use; no shared state
+- [x] **Explicit assertions in test body** — no hidden `expect()` helpers; all `ShouldBe`/`Received` calls inline
+- [x] **Parallel-safe** — each test creates its own factory; no shared static state introduced
+
+### Sequential "Worker" Output (synthetic — for Step 4 hand-off)
+
+Per the skill's sequential mode contract, the orchestrator produces a single aggregated test-generation plan in lieu of subagent JSON outputs:
+
+```yaml
+success: true
+mode: sequential
+detected_stack: backend
+tests_designed: 6 methods (1 Fact T2 + 2 Facts T3 + 3 Theories T3)
+distinct_test_cases: ~12 (counting Theory rows)
+target_files:
+  - tests/Hexalith.Tenants.Server.Tests/Authorization/TenantClaimContractTests.cs  # +1 method
+  - tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs   # +5 methods, possible CreateJwt helper extension
+new_fixtures: none
+new_helpers: optional CreateJwt(includeSub:false) overload or inline JWT mint in AUTH-INT-002
+knowledge_fragments_used:
+  - test-levels-framework.md
+  - test-priorities-matrix.md
+  - test-quality.md
+  - confidence-gate.md  (Gap D)
+  - risk-governance.md  (priority scoring)
+ready_for_step_4: true
+```
+
+### Open Items for Step 4
+
+1. **Reason code for permission-only failures** (AUTH-INT-005) — first dotnet test run will confirm whether the `AuthorizationBehavior` maps `InsufficientPermission` to `reasonCode="insufficient_permission"` or something else. Assertion will be hardened after first observation.
+2. **`CreateJwt` helper extension vs. inline JWT mint** (AUTH-INT-002) — pick the less-invasive shape. Default to inline mint to keep existing helper signature stable.
+3. **DAPR dependency for AUTH-INT-001** — `/process` route doesn't require DAPR runtime for this test (the handler dispatches an in-memory aggregate via reflection); the factory mock path will be exercised. Verify by running in Step 5.
+
+---
+
+## Step 4 — Validate & Summarize
+
+### Coverage Plan by Test Level and Priority
+
+| Test ID | Tier | Priority | Type | Cases | Pass |
+|---------|------|----------|------|-------|------|
+| AUTH-T2-001 — `NameOnlyClaimWithoutSubDoesNotEstablishTrustedSubject` | T2 | P0 | `[Fact]` | 1 | ✅ |
+| AUTH-INT-001 — `Process_endpoint_accepts_anonymous_request_to_preserve_dapr_callback_contract` | T3 | P0 | `[Fact]` | 1 | ✅ |
+| AUTH-INT-002 — `Commands_endpoint_returns_401_when_jwt_carries_only_name_claim_without_sub` (renamed from `_403_` after first-run finding) | T3 | P0 | `[Fact]` | 1 | ✅ |
+| AUTH-INT-003 — `Commands_endpoint_returns_202_when_jwt_uses_supported_source_claim_shape` | T3 | P1 | `[Theory]` | 4 | ✅ |
+| AUTH-INT-004 — `Commands_endpoint_returns_202_when_jwt_carries_authorizing_permission_claim` | T3 | P1 | `[Theory]` | 3 | ✅ |
+| AUTH-INT-005 — `Commands_endpoint_returns_403_when_jwt_carries_only_unrelated_permission_claims` | T3 | P1 | `[Theory]` | 2 | ✅ |
+| **Totals** | | | **6 methods** | **12 cases** | **12/12** |
+
+### Files Created / Updated
+
+- `tests/Hexalith.Tenants.Server.Tests/Authorization/TenantClaimContractTests.cs` — +1 `[Fact]`, ~20 lines
+- `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` — +5 methods (2 Facts + 3 Theories) and 1 private helper (`CreateJwtWithoutSub`), ~190 lines
+- `_bmad-output/test-artifacts/automation-summary.md` — this file (workflow record)
+
+No fixtures introduced; no shared helpers refactored; no production code modified.
+
+### Test-Quality DoD — Final Check
+
+Applied `test-quality.md` checklist to all new tests:
+
+- [x] **No hard waits** — all assertions over deterministic HTTP/principal state
+- [x] **No conditionals controlling flow** — straight-line per test
+- [x] **< 300 lines per test** — every new method ≤ 40 lines
+- [x] **< 1.5 minutes per test** — all 12 cases run in &lt;1.5 seconds total in IntegrationTests; &lt;30ms in Server.Tests
+- [x] **Self-cleaning** — `await using var factory` + `using HttpClient client`; no shared static state
+- [x] **Explicit assertions** — no `expect()`-hidden helpers; every Shouldly call inline
+- [x] **Parallel-safe** — every test creates its own factory; no global mutation
+- [x] **No `Assert.*`** — Shouldly throughout
+- [x] **No `Thread.Sleep`/`Task.Delay`** — none
+- [x] **No `Guid.TryParse` on ULIDs** — N/A (no ID parsing in these tests)
+- [x] **CreateCommand-style envelopes** — inline `CommandEnvelope` construction in AUTH-INT-001 matches the existing pattern at line 49–61
+
+### Full Solution Regression Gate
+
+Run: `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-build`
+
+| Project | Result |
+|---------|--------|
+| Hexalith.Tenants.Contracts.Tests | 35/35 ✅ |
+| Hexalith.Tenants.Sample.Tests | 17/17 ✅ |
+| Hexalith.Tenants.Client.Tests | 48/48 ✅ |
+| Hexalith.Tenants.Testing.Tests | 89/89 ✅ |
+| Hexalith.Tenants.Server.Tests | **475/475 ✅** (+1 vs baseline) |
+| Hexalith.Tenants.IntegrationTests | **71/71 ✅** + 1 skip (NFR13 perf, nightly-only per project policy) (+11 vs baseline) |
+| **Total** | **735 passed / 1 skipped / 0 failed** |
+
+Baseline (sprint-status.yaml at 11-3 close, 2026-05-20): 723 passed / 1 skipped. Net new cases: **+12**, exactly matching the design.
+
+### Key Assumptions and Risks (carried forward)
+
+1. **AUTH-INT-002 401 contract** — pinned the observed behavior: a JWT without `sub` is rejected at JwtBearer authentication with 401, not at authorization with 403. This is a *stronger* contract than originally designed. Document downstream: if a future host change adds a `name`→`sub` fallback (regression of `production-auth-claim-contract.md:13`), this test would flip to 403 or 202 and fail loudly.
+2. **AUTH-INT-001 anonymous `/process`** — pins today's contract (no `.RequireAuthorization()` on the route). If a future ADR requires authenticating the DAPR callback (e.g., via mTLS or a service-account token), this test must be reframed alongside the contract change — failing on intent, not accident.
+3. **AUTH-INT-004/005 RBAC pipeline coverage** — Tenants doesn't register the EventStore rate limiter, and the `IRbacValidator` registration (`Program.cs:91`) is `ClaimsRbacValidator`. If a deployment switches to `ActorRbacValidator` (e.g., remote actor-based authorization), the test outcomes still hold for the local validator path but provide no signal on actor-based RBAC — out of scope for this bundle.
+4. **No DAPR/Docker dependency introduced** — all 12 new cases run via `WebApplicationFactory` with mocked router/status/archive stores. The full solution gate runs cleanly on a dev box without `dapr init`; only the nightly NFR13 perf test was skipped (its existing skip behavior, unchanged).
+
+### Out-of-Scope (Reaffirmed)
+
+- Gap E (bootstrap × authorization-behavior) — re-scoped in Step 2; deferred to a future evaluation since the bootstrap path uses DAPR HTTP, not MediatR.
+- EventStore submodule edge cases (idempotency short-circuit, malformed JSON, ordinal case sensitivity, `tenant_id=""` shadowing `tid`) — explicitly forbidden by 11-2 spec guardrail "Spec Implementation Guardrails forbid modifying `Hexalith.EventStore` for this story".
+- JWT signing-key + `EnvironmentName` test-infrastructure pinning, `nbf`/`iat`/`ClockSkew` — broader test-fixture hardening story.
+
+### Next Recommended Workflow
+
+Per `bmad-tea` menu options:
+
+1. **`bmad-testarch-trace` (TR)** — extend the traceability matrix to mark deferred-work items A–D as closed and link to the new test IDs. Useful if you want a clean trace artifact alongside the sprint-status update.
+2. **`bmad-testarch-test-review` (RV)** — independent review pass on the 6 new tests. Catches review-found patches early (Epic 2 R2-A6 reviewer-driven-patch rate is 5/5 historically).
+3. **`bmad-testarch-ci` (CI)** — verify the GitHub Actions Tier 2/3 lanes include the new tests automatically (they should, since both new methods live in already-tracked test projects).
+
+My top recommendation: **(2) test-review** before committing — it costs 10 minutes and historically catches one review-finding patch per story. After that, a conventional commit:
+
+```
+test(auth): backfill production auth contract gaps from deferred-work
+
+Closes coverage gaps A–D from _bmad-output/implementation-artifacts/deferred-work.md:
+- /process endpoint anonymous-accepted contract pin (DAPR callback)
+- name-only claim does not establish trusted subject (T2 + T3)
+- claim-source normalization Theory through live JwtBearer pipeline
+- ClaimsRbacValidator permission shapes (wildcard/category/exact) + duplicate-non-elevation
+
+12 new test cases across TenantClaimContractTests and CommandApiRuntimeIntegrationTests.
+Full solution gate: 735 passed / 1 skipped / 0 failed.
+```
+
+### Workflow Completion
+
+- **Mode**: Create (sequential dispatch)
+- **Stack**: backend (.NET 10 / xUnit v3)
+- **Target**: production auth contract backfill (Epic 11 follow-on)
+- **Status**: ✅ Complete
+- **Last saved**: 2026-05-20
+
 

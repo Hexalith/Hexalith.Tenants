@@ -375,6 +375,188 @@ public class CommandApiRuntimeIntegrationTests {
             Arg.Any<CancellationToken>());
     }
 
+    // AUTH-INT-001 — Pins the DAPR callback contract: AggregateActor invokes /process via
+    // DAPR service-to-service after EventStore's auth boundary. Adding .RequireAuthorization()
+    // on /process would silently stall the AggregateActor 5-step checkpoint at Step 4.
+    // Source: 11-3 review deferred-work in _bmad-output/implementation-artifacts/deferred-work.md.
+    [Fact]
+    public async Task Process_endpoint_accepts_anonymous_request_to_preserve_dapr_callback_contract() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: false);
+        using HttpClient client = factory.CreateClient();
+        // NOTE: no Authorization header — proves the route does NOT enforce authentication.
+
+        var request = new DomainServiceRequest(
+            new CommandEnvelope(
+                Guid.NewGuid().ToString(),
+                "system",
+                "tenants",
+                "acme-anon",
+                nameof(CreateTenant),
+                JsonSerializer.SerializeToUtf8Bytes(new CreateTenant("acme-anon", "Acme Anonymous", "Anonymous DAPR callback path")),
+                Guid.NewGuid().ToString(),
+                null,
+                "dapr-callback",
+                null),
+            null);
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
+        _ = result.ShouldNotBeNull();
+        result.IsRejection.ShouldBeFalse();
+        result.Events.Count.ShouldBe(1);
+        result.Events[0].EventTypeName.ShouldEndWith("TenantCreated");
+    }
+
+    // AUTH-INT-002 — Pins docs/production-auth-claim-contract.md:13 ("Do not use `name` as the
+    // trusted subject") at live JwtBearer pipeline tier. First-run finding (2026-05-20): a token
+    // carrying only `name` (no `sub`) is rejected at authentication with 401, not at authorization
+    // with 403. This is a STRONGER contract than the original test design — without a trusted
+    // subject, the request never establishes an authenticated identity for the command pipeline.
+    // AUTH-T2-001 covers the transformation/validator unit shape; this test exercises the live
+    // JwtBearer middleware. Source: 11-2 review deferred-work.
+    [Fact]
+    public async Task Commands_endpoint_returns_401_when_jwt_carries_only_name_claim_without_sub() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            Substitute.For<ICommandStatusStore>(),
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwtWithoutSub(claims: [new Claim("name", "display-only-user")]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+    }
+
+    // AUTH-INT-003 — Pins the source-claim shapes documented at
+    // docs/production-auth-claim-contract.md (space-delimited tenants, tenant_id direct, tid
+    // fallback, tenant_id+tid precedence) through the live JwtBearer + EventStoreClaimsTransformation
+    // pipeline. The JSON-array tenants shape is already covered by
+    // Commands_endpoint_returns_202_when_jwt_uses_tenants_source_claim above.
+    // TenantClaimContractTests.cs covers all shapes at unit tier; this Theory pins the live
+    // middleware behavior. Source: 11-2 review deferred-work.
+    [Theory]
+    [InlineData("tenants", "system tenant-a", null, null)]
+    [InlineData("tenant_id", "system", null, null)]
+    [InlineData("tid", "system", null, null)]
+    [InlineData("tenant_id", "system", "tid", "tenant-a")]
+    public async Task Commands_endpoint_returns_202_when_jwt_uses_supported_source_claim_shape(
+        string claim1Type, string claim1Value, string? claim2Type, string? claim2Value) {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        var claims = new List<Claim> { new(claim1Type, claim1Value) };
+        if (claim2Type is not null) {
+            claims.Add(new Claim(claim2Type, claim2Value!));
+        }
+
+        string token = CreateJwt("admin-user", claims: claims);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = await router.Received(1).RouteCommandAsync(
+            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
+    // AUTH-INT-004 — Pins ClaimsRbacValidator.cs permission semantics through the live pipeline:
+    // commands:* (wildcard), command:submit (category), and exact command-type token. Source:
+    // 11-2 review deferred-work — wildcard handling untested in Tenants.
+    [Theory]
+    [InlineData("commands:*")]
+    [InlineData("command:submit")]
+    [InlineData(nameof(BootstrapGlobalAdmin))]
+    public async Task Commands_endpoint_returns_202_when_jwt_carries_authorizing_permission_claim(string permission) {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "admin-user",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:permission", permission),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = await router.Received(1).RouteCommandAsync(
+            Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // AUTH-INT-005 — Pins ClaimsRbacValidator.cs deny shape: an unrelated permission must not
+    // authorize a different command type, and duplicate non-matching claims cannot accumulate
+    // elevation (the validator uses boolean OR over case-insensitive equality). reasonCode
+    // string is the canonical AuthorizationFailureReasonExtensions.InsufficientPermission
+    // mapping ("insufficient_permission"), verified 2026-05-20 first run. Source: 11-2 review
+    // deferred-work — "duplicate eventstore:permission do not accumulate elevation".
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Commands_endpoint_returns_403_when_jwt_carries_only_unrelated_permission_claims(bool duplicate) {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            Substitute.For<ICommandStatusStore>(),
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        var claims = new List<Claim> {
+            new("eventstore:tenant", "system"),
+            new("eventstore:permission", nameof(CreateTenant)),
+        };
+        if (duplicate) {
+            claims.Add(new Claim("eventstore:permission", nameof(CreateTenant)));
+        }
+
+        string token = CreateJwt("admin-user", claims: claims);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        // Submit BootstrapGlobalAdmin while only the unrelated CreateTenant permission is granted.
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(403);
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("insufficient_permission");
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+    }
+
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
         => CreateClientWithBearer(factory, CreateJwt("admin-user"));
 
@@ -406,6 +588,27 @@ public class CommandApiRuntimeIntegrationTests {
             audience: audience ?? JwtAudience,
             claims: tokenClaims,
             expires: expires ?? DateTime.UtcNow.AddMinutes(5),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    // Companion to CreateJwt — produces a token WITHOUT a `sub` claim so tests can pin the
+    // contract "name is not promoted to trusted subject in the absence of sub". Kept separate
+    // from CreateJwt so the default `sub`-included path stays single-purpose.
+    private static string CreateJwtWithoutSub(IEnumerable<Claim>? claims = null) {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var tokenClaims = new List<Claim>();
+        if (claims is not null) {
+            tokenClaims.AddRange(claims);
+        }
+
+        var token = new JwtSecurityToken(
+            issuer: JwtIssuer,
+            audience: JwtAudience,
+            claims: tokenClaims,
+            expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
