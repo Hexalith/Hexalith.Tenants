@@ -33,7 +33,9 @@ so that implementation sequencing is transparent and stories do not hide unavail
   - [ ] Reuse stable dependency IDs exactly as defined by earlier Epic 12 stories, including `FC-TBL`, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-AUD`, `FC-CNS`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`.
 - [ ] Create the Phase 2 UI backlog artifact. (AC: 1-6, 9, 10)
   - [ ] Create `docs/tenants-ui-phase-2-story-backlog.md` unless an existing Phase 2 UI backlog document is discovered and is more appropriate.
-  - [ ] Include one row per candidate UI story with columns for story key/title, user workflow, backend evidence, FrontComposer dependencies, exact `blockedBy` IDs, readiness state, sequencing priority, fallback decision, decision owner, and evidence source.
+  - [ ] Include one row per candidate UI story with mandatory fields for `storyKey`, `title`, `workflow`, `backendEvidence`, `frontComposerDependencies`, `blockedBy`, `readiness`, `sequencingPriority`, `fallbackDecision`, `decisionOwner`, and `evidenceSource`.
+  - [ ] Keep `blockedBy` as an explicit array in every row; use `[]` only when backend evidence is complete, FrontComposer dependencies are available or approved-fallback, and no unresolved UX/auth/navigation/contract dependency remains.
+  - [ ] Make every row copy-forward ready: blockers, evidence, fallback, owner, and sequencing must be understandable from the row without requiring future story authors to parse narrative sections.
   - [ ] Keep this artifact as planning/readiness output only; do not create new sprint-status entries, implementation story files, UI source files, or FrontComposer changes.
   - [ ] Use current terminology: `Hexalith.FrontComposer` for the checked-out submodule and `FrontShell` only as a quoted or legacy alias from UX/planning documents.
   - [ ] Use repo-relative evidence paths or explicit `evidence: missing`; do not include local absolute paths, generated build artifacts, secrets, raw tenant/user production data, bearer tokens, or transient logs.
@@ -44,8 +46,10 @@ so that implementation sequencing is transparent and stories do not hide unavail
   - [ ] If a candidate story depends on missing or unapproved FrontComposer deliverables, include exact `blockedBy` IDs such as `blockedBy: [FC-AUD, FC-CNS, FC-CMD, FC-CNC]` instead of broad screen-level blockers.
   - [ ] For stories that can proceed with completed backend evidence and approved FrontComposer fallbacks, state the fallback owner and approval evidence explicitly.
 - [ ] Prioritize by readiness and sequencing risk. (AC: 4, 5)
-  - [ ] Sort dependency-free or dependency-ready UI stories before stories blocked by missing FrontComposer components, backend gaps, product/UX fallback decisions, or documentation/reference evidence.
+  - [ ] Sort by readiness group first, then sequencing priority inside each group; dependency-free or dependency-ready UI stories appear before stories blocked by missing FrontComposer components, backend gaps, product/UX fallback decisions, or documentation/reference evidence.
   - [ ] Separate `ready`, `ready-with-approved-fallback`, `planning-only`, and `blocked` candidate stories; do not use `ready-for-dev` for any candidate story with unresolved `blockedBy`.
+  - [ ] Mark a row `ready` only when `blockedBy: []` is justified by cited evidence; mark `ready-with-approved-fallback` only when the fallback decision is named, approved, and owned.
+  - [ ] Force any unresolved backend, FrontComposer, UX, auth, navigation, accessibility, localization, documentation, or contract dependency to `planning-only` or `blocked`.
   - [ ] Record any product decision to prioritize a blocked story early as an explicit sequencing-risk acceptance, with owner and rationale.
   - [ ] Keep grouped audit mode, server-side anomaly scoring, bulk provisioning, and advanced analytics out of first-slice UI backlog unless product explicitly promotes them.
 - [ ] Define story-template rules for future Phase 2 UI work. (AC: 1, 2, 6-9)
@@ -55,9 +59,11 @@ so that implementation sequencing is transparent and stories do not hide unavail
   - [ ] Require each story to preserve tenant/user context, role-aware UX, source-of-truth projection re-query behavior, and no-color-only accessibility behavior where applicable.
 - [ ] Validate and record implementation evidence. (AC: 1-10)
   - [ ] Confirm every candidate UI story row has backend evidence, FrontComposer dependencies, `blockedBy`, readiness, owner, fallback/blocking policy, priority, and evidence.
+  - [ ] Confirm all `blockedBy` values are arrays using stable dependency IDs such as `FC-TBL`, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-AUD`, `FC-CNS`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`, or explicit backend dependency/story keys when backend capability is incomplete.
   - [ ] Confirm unresolved dependencies keep candidate stories blocked or planning-only.
   - [ ] Confirm future stories can copy exact `blockedBy` arrays without rereading all Epic 12 story files.
   - [ ] Confirm the output reuses Story 12.1-12.3 IDs and readiness vocabulary.
+  - [ ] Confirm alias mappings for `FrontShell`, `@hexalith/ui`, `useCommand`, `<AuditTimeline>`, and `<ConsequencePreview>` are recorded as current evidence, `evidence: missing`, deprecated/legacy alias, or deferred owner decision; do not normalize aliases into new contracts.
   - [ ] Confirm no source code, package versions, submodule pointers, backend contracts, new sprint-status story entries, or Phase 1 backend scope changed.
   - [ ] Record created/updated files and unresolved decisions in this story's Dev Agent Record.
 
@@ -112,7 +118,11 @@ so that implementation sequencing is transparent and stories do not hide unavail
   - `Readiness Order`: ready, ready-with-approved-fallback, planning-only, blocked.
   - `Future Story Checklist`: required `blockedBy`, backend evidence, FrontComposer evidence, accessibility, localization, documentation, and evidence hygiene fields.
   - `Deferred Decisions`: product/UX, FrontComposer, backend, or Tenants-module owners for unresolved dependencies.
-- Candidate story rows should be compact and copyable. A future story author should not need to parse narrative prose to find `blockedBy`.
+- Candidate story rows should be compact and copyable. A future story author should not need to parse narrative prose to find `blockedBy`, backend evidence, FrontComposer dependency status, fallback decision, owner, or sequencing rationale.
+- Required candidate-row fields are `storyKey`, `title`, `workflow`, `backendEvidence`, `frontComposerDependencies`, `blockedBy`, `readiness`, `sequencingPriority`, `fallbackDecision`, `decisionOwner`, and `evidenceSource`.
+- Allowed candidate-story readiness values are `ready`, `ready-with-approved-fallback`, `planning-only`, and `blocked`. The earlier dependency-map readiness values `available`, `needs-confirmation`, `missing`, `planned`, and `approved-fallback` remain valid inside dependency evidence, but do not replace the candidate-story readiness field.
+- `blockedBy` must always be an array. Use `[]` only when every dependency is resolved by completed evidence or approved fallback. Rows with unresolved dependencies must remain `planning-only` or `blocked`.
+- Fallback decisions must say whether they are `approved`, `proposed`, or `deferred`, and must name a decision owner role or accountable group.
 - Avoid local machine paths and checked-out absolute paths. Use repo-relative paths such as `_bmad-output/implementation-artifacts/12-3-three-phase-command-feedback-sequencing.md` or `Hexalith.FrontComposer/src/...`.
 
 ### Files Likely To Update
@@ -124,9 +134,14 @@ so that implementation sequencing is transparent and stories do not hide unavail
 ### Testing / Validation Requirements
 
 - No source-code test suite is required if implementation creates or updates documentation only.
+- Docs-only verification should include reviewing the diff plus Markdown/table consistency. A build or source test run is not required unless implementation unexpectedly touches code, project files, packages, submodules, generated artifacts, sprint-status entries, backend contracts, or release gates.
 - Validate by manual checklist:
   - Every candidate UI story has backend evidence, FrontComposer dependency IDs, exact `blockedBy`, readiness, owner, fallback/blocking policy, priority, and evidence.
+  - Every candidate UI story row uses the required row fields and can be copied forward without consulting narrative prose for blockers or owner/fallback decisions.
+  - Every `blockedBy` value is an array; `[]` appears only when evidence or approved fallback justifies it.
   - Unresolved FrontComposer or backend dependencies keep candidate stories `blocked` or `planning-only`.
+  - Any unresolved UX, auth, navigation, accessibility, localization, documentation, or contract dependency prevents `ready`.
+  - `ready-with-approved-fallback` rows name the approved fallback decision and decision owner.
   - Dependency-ready stories appear before blocked stories unless product accepts sequencing risk explicitly.
   - Candidate stories reuse Story 12.1-12.3 dependency IDs and readiness vocabulary.
   - Accessibility, localization, adopter copy, documentation/reference evidence, tenant/user isolation, and projection re-query behavior are represented where applicable.
@@ -160,5 +175,29 @@ GPT-5 Codex
 ### Debug Log References
 
 ### Completion Notes List
+
+## Party-Mode Review
+
+- Date/time: 2026-05-20T12:05:15.9068300+02:00
+- Selected story key: `12-4-phase-2-ui-story-backlog-with-explicit-blockedby`
+- Command/skill invocation used: `/bmad-party-mode 12-4-phase-2-ui-story-backlog-with-explicit-blockedby; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect and Quality Advisor), Paige (Technical Writer)
+- Findings summary:
+  - Story scope is valid as a docs-only planning/readiness artifact, but the row schema needed to be mandatory enough to prevent drift.
+  - `blockedBy` needed explicit array semantics so unresolved dependencies cannot be hidden in prose or accidentally treated as implementation-ready.
+  - Candidate-story readiness needed a separate, auditable vocabulary from dependency-map readiness values.
+  - Fallback, owner, alias, accessibility, localization, documentation, and evidence-hygiene expectations needed to be copy-forward ready inside each row.
+- Changes applied:
+  - Added mandatory candidate-row fields for `storyKey`, `title`, `workflow`, `backendEvidence`, `frontComposerDependencies`, `blockedBy`, `readiness`, `sequencingPriority`, `fallbackDecision`, `decisionOwner`, and `evidenceSource`.
+  - Clarified `blockedBy` is always an array and `[]` is allowed only when backend evidence, FrontComposer readiness or approved fallback, and other UX/auth/navigation/contract dependencies are resolved.
+  - Added readiness grouping rules for `ready`, `ready-with-approved-fallback`, `planning-only`, and `blocked`.
+  - Added validation rules for unresolved backend, FrontComposer, UX, auth, navigation, accessibility, localization, documentation, and contract dependencies.
+  - Clarified fallback decision wording, owner wording, alias mapping evidence, copy-forward row expectations, and docs-only verification.
+- Findings deferred:
+  - Whether legacy aliases become future canonical names remains a product/architecture decision.
+  - Whether blocked Phase 2 UI stories should split further after backend or FrontComposer evidence changes remains deferred.
+  - Final fallback approval ownership and binding force remain product/UX and FrontComposer governance decisions.
+  - Whether future evidence citations require exact anchors or broader artifacts remains deferred to the implementation backlog artifact conventions.
+- Final recommendation: `ready-for-dev`
 
 ### File List
