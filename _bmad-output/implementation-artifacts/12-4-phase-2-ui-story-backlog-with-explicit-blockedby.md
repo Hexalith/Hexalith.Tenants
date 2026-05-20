@@ -1,6 +1,6 @@
 # Story 12.4: Phase 2 UI Story Backlog with Explicit `blockedBy`
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -254,3 +254,25 @@ GPT-5 Codex
 
 - 2026-05-20 - Implemented Story 12.4 Phase 2 UI backlog artifact; marked all tasks complete after documentation validation.
 - 2026-05-20 - Story status moved to review after full Debug/no-restore solution validation passed.
+- 2026-05-20 - Code review: 4 decisions resolved + 8 patches applied (Field Encoding Conventions section added, ui-10 moved to blocked, FC-DOC Storybook replaced with Blazor terms, FC-TOK switch criterion added, sprint-status historical commentary restored, /api/commands → /api/v1/commands across 7 rows, deployment-auth-readiness.md → production-auth-readiness.md, Future Story Checklist aligned with 12-field row schema) + 4 deferred + 10 dismissed; story -> done.
+
+### Review Findings
+
+Code review run: 2026-05-20 (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Triage: 4 decision-needed (all resolved → patch), 8 patch (all applied), 4 defer, 10 dismissed.
+
+Resolved decisions (now patches):
+
+- [x] [Review][Patch] Schema/format consolidation across row fields (D1 resolved → strict schema) — Split `evidenceSource` into literal `[path1, path2]` arrays; restructure `frontComposerDependencies` into a clean schema (id/readiness separated); add a `fallbackNotes` column so `fallbackDecision` becomes a pure `approved|proposed|deferred` enum value; document the `backendEvidence` token grammar inline. Resolves Blind Hunter + Edge Case Hunter + Acceptance Auditor findings on hybrid/prose notation. [docs/tenants-ui-phase-2-story-backlog.md all rows]
+- [x] [Review][Patch] Move `ui-10` from `planning-only` to `blocked` (D2 resolved) — Row meets both Blocked triggers (`FC-CNS: missing` AND `deferred` high-impact fallback). Update the Readiness Order section: Planning Only becomes `ui-01..ui-09`; Blocked becomes `ui-10..ui-15`. [docs/tenants-ui-phase-2-story-backlog.md ui-10 row + Readiness Order section]
+- [x] [Review][Patch] Replace `FC-DOC` "Storybook" with Blazor-appropriate documentation tooling (D3 resolved) — Change the FC-DOC row to reference Blazor component reference docs (Fluent UI Blazor demos, BlazorGallery-style catalog, or equivalent) instead of leading with Storybook. `Hexalith.FrontComposer` is Blazor/.NET. [docs/tenants-ui-phase-2-story-backlog.md FC-DOC row]
+- [x] [Review][Patch] Add explicit `FC-TOK` switch criterion (D4 resolved) — Extend the FC-TOK Dependency ID Reference row with the rule that classifies `needs-confirmation` vs `missing` per screen usage (e.g., `needs-confirmation` when role/status badges suffice; `missing` when consequence/risk/destructive token contracts are not yet defined). Makes per-row classification reproducible. [docs/tenants-ui-phase-2-story-backlog.md FC-TOK row]
+
+Original patches:
+- [x] [Review][Patch] Restore unrelated historical commentary deleted from sprint-status.yaml [_bmad-output/implementation-artifacts/sprint-status.yaml:158-183] — Diff removes ~27 lines of historical `# Story 11.1`/`# Story 10.1`/`# Story 9.5` commentary; Completion Notes claim "`sprint-status.yaml` changed only for this story's BMAD workflow tracking" but the deletion contradicts that scope.
+- [x] [Review][Patch] Fix command endpoint citations `/api/commands` → `/api/v1/commands` [docs/tenants-ui-phase-2-story-backlog.md:58-66] — Rows `ui-07`, `ui-08`, `ui-09`, `ui-10`, `ui-13`, `ui-14`, `ui-15` each cite `endpoint:POST /api/commands`. Verified actual route is `/api/v1/commands` per `src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs:20` and seven existing doc/source references; no `/api/commands` route exists.
+- [x] [Review][Patch] Fix cited doc path `docs/deployment-auth-readiness.md` → `docs/production-auth-readiness.md` [docs/tenants-ui-phase-2-story-backlog.md ui-06] — `docs/deployment-auth-readiness.md` does not exist; the actual deployed file is `docs/production-auth-readiness.md` (the story key is `11-3-deployment-auth-readiness-...` but the ship name diverges).
+- [x] [Review][Patch] Align Future Story Checklist field names with the 11-field row schema [docs/tenants-ui-phase-2-story-backlog.md:99-101] — Checklist invents `a11yL10nDocCoverage`, `phase1BlockerStatus`, `tenantUserBoundary` not present in the mandatory row schema. Either rename to schema-aligned identifiers (e.g., reuse `frontComposerDependencies` for FC-A11Y/L10N/DOC coverage) or add a mapping note explaining checklist-only fields.
+- [x] [Review][Defer] Add AC traceability column or mapping to candidate rows [docs/tenants-ui-phase-2-story-backlog.md] — deferred, future iteration enhancement.
+- [x] [Review][Defer] Add UX-screen → candidate-row mapping table (User Management → ui-04 + ui-09 + ui-14, etc.) [docs/tenants-ui-phase-2-story-backlog.md] — deferred, future iteration enhancement.
+- [x] [Review][Defer] Refine row-level `decisionOwner` beyond shared `Tenants Product/UX + Hexalith.FrontComposer` placeholder [docs/tenants-ui-phase-2-story-backlog.md:52-66] — deferred, Deferred Decisions table already provides finer-grained ownership.
+- [x] [Review][Defer] Define grammar for `backendEvidence` token prefixes (story key vs `endpoint:` vs `command:` vs `commands:` vs `docs:`) [docs/tenants-ui-phase-2-story-backlog.md] — deferred, schema-design decision pending Decision 1 (format consolidation).

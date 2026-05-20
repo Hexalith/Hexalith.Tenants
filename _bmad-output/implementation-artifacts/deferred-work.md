@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of 12-4-phase-2-ui-story-backlog-with-explicit-blockedby (2026-05-20)
+
+- Add AC traceability column or mapping to candidate-story rows so future implementers can verify Acceptance Criteria coverage without re-reading the parent story file. [docs/tenants-ui-phase-2-story-backlog.md] — future iteration enhancement.
+- Add a UX-screen → candidate-row mapping table (e.g., User Management → ui-04 + ui-09 + ui-14; Tenant Configuration → ui-05 + ui-10) so screen-inventory coverage is explicit instead of implicit. [docs/tenants-ui-phase-2-story-backlog.md] — future iteration enhancement.
+- Refine row-level `decisionOwner` beyond the shared `Tenants Product/UX + Hexalith.FrontComposer` placeholder used on all 15 rows. The Deferred Decisions table already disambiguates per-decision ownership; row-level granularity would improve copy-forward traceability. [docs/tenants-ui-phase-2-story-backlog.md:52-66] — deferred pending row-schema decision.
+- Define a grammar for `backendEvidence` token prefixes (`endpoint:`, `command:`, `commands:`, `docs:`) so future authors and tooling can parse the field reliably. Currently story keys and prefixed tokens share a single comma-separated array with no documented schema. [docs/tenants-ui-phase-2-story-backlog.md] — deferred, depends on the broader row-schema format decision.
+
 ## Deferred from: code review of 12-3-three-phase-command-feedback-sequencing (2026-05-20)
 
 - Command State Transition Matrix `failed` row collapses two unrelated causes (client-side lifecycle dispatch failure vs server-side authoritative rejection) into one entry with promised distinct retry/timeout and copy semantics. Splittable into separate rows in a follow-up readiness refinement so Story 12.4 can derive cleaner `requiredFor` lists. [docs/tenants-ui-frontcomposer-dependency-map.md]
