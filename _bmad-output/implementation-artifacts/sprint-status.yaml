@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-20 (Epic 11 retrospective completed; epic-11-retrospective -> done)
 # last_updated: 2026-05-20 (11-3 deployment auth readiness documentation and smoke tests code review: 1 decision resolved + 18 patches applied [exp/ulid placeholder fixes, 401 failure-triage split, command:query legacy framing tightened, smoke Content-Type + WWW-Authenticate distinctions, JSON-array smoke happy path, expired-token edge tightened, real-HTTP sub-claim companion to MapInboundClaims test, IClaimsTransformation runtime resolve-twice check, same-tenant 202 triangulation, BlankOrEmpty whitespace rows, global-admin 10-shape theory, non-global-admin deny-shape theory, echo-redaction overrides, default-true RequireHttpsMetadata test, null/empty Authority theory] + 3 deferred + 10 dismissed; full Debug/no-restore solution gate passed [723 passed, 1 skipped]; story -> done)
 # last_updated: 2026-05-20 (11-3 deployment auth readiness documentation and smoke tests implemented; full Debug/no-restore solution gate passed [697 passed, 5 skipped]; story -> review)
 # last_updated: 2026-05-20 (11-3 deployment auth readiness documentation and smoke tests development started; story -> in-progress)
@@ -273,7 +274,7 @@ development_status:
   11-1-production-jwt-configuration-validation: done
   11-2-eventstore-tenant-claim-contract: done
   11-3-deployment-auth-readiness-documentation-and-smoke-tests: done
-  epic-11-retrospective: optional
+  epic-11-retrospective: done
 
   # Epic 12: Phase 2 Admin UI Dependency Sequencing
   epic-12: in-progress
