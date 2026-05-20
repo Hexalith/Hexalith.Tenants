@@ -126,6 +126,8 @@ echo "$header.$payload.$sig"
 Copy the output token — you need it in the next step.
 
 > **How it works:** The development configuration (`appsettings.Development.json`) uses a hardcoded HMAC-SHA256 signing key with issuer `hexalith-dev` and audience `hexalith-tenants`. The `tenants: ["system"]` value is a source claim that EventStore normalizes into the downstream `eventstore:tenant=system` claim required for tenant-management commands. This token is valid for 8 hours. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
+>
+> **Production note:** Production deployments use OIDC authority-based JWT validation, not the local HMAC signing key. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
 
 ## Send Your First Commands
 

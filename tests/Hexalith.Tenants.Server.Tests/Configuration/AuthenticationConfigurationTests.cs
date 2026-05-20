@@ -48,6 +48,22 @@ public class AuthenticationConfigurationTests {
         Should.NotThrow(() => ValidateOptions(configuration, Environments.Production));
     }
 
+    [Theory]
+    [InlineData("Authority")]
+    [InlineData("Issuer")]
+    [InlineData("Audience")]
+    public void ProductionMissingRequiredDeploymentOverrideShouldFailValidation(string key) {
+        Dictionary<string, string?> overrides = CreateProductionOidcOverrides();
+        _ = overrides.Remove($"{AuthenticationSectionName}:{key}");
+
+        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
+            () => ValidateOptions(CreateDeploymentConfiguration(overrides), Environments.Production));
+
+        string message = string.Join(Environment.NewLine, exception.Failures);
+        message.ShouldContain($"{AuthenticationSectionName}:{key}");
+        message.ShouldNotContain(SecretSigningKey);
+    }
+
     [Fact]
     public void ProductionEnvironmentVariablesShouldOverrideCommittedPlaceholders() {
         const string prefix = "HEXALITH_TENANTS_AUTH_TEST_";
@@ -141,6 +157,25 @@ public class AuthenticationConfigurationTests {
     }
 
     [Fact]
+    public void ProductionSigningKeyWithoutAuthorityShouldFailWithoutEchoingSecret() {
+        IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
+            [$"{AuthenticationSectionName}:Authority"] = string.Empty,
+            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
+            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:SigningKey"] = SecretSigningKey,
+            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
+        });
+
+        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
+            () => ValidateOptions(configuration, Environments.Production));
+
+        string message = string.Join(Environment.NewLine, exception.Failures);
+        message.ShouldContain($"{AuthenticationSectionName}:Authority");
+        message.ShouldContain($"{AuthenticationSectionName}:SigningKey");
+        message.ShouldNotContain(SecretSigningKey);
+    }
+
+    [Fact]
     public void ProductionAuthorityWithDisabledHttpsMetadataShouldFail() {
         IConfiguration configuration = CreateConfiguration(new Dictionary<string, string?> {
             [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
@@ -185,6 +220,20 @@ public class AuthenticationConfigurationTests {
 
         return builder.Build();
     }
+
+    private static IConfiguration CreateDeploymentConfiguration(IReadOnlyDictionary<string, string?> overrides)
+        => new ConfigurationBuilder()
+            .AddInMemoryCollection(overrides)
+            .Build();
+
+    private static Dictionary<string, string?> CreateProductionOidcOverrides()
+        => new() {
+            [$"{AuthenticationSectionName}:Authority"] = "https://identity.example.test",
+            [$"{AuthenticationSectionName}:Issuer"] = "https://identity.example.test",
+            [$"{AuthenticationSectionName}:Audience"] = "hexalith-tenants",
+            [$"{AuthenticationSectionName}:SigningKey"] = string.Empty,
+            [$"{AuthenticationSectionName}:RequireHttpsMetadata"] = "true",
+        };
 
     private static void ValidateOptions(IConfiguration configuration, string environmentName)
         => CreateServiceProvider(configuration, environmentName)

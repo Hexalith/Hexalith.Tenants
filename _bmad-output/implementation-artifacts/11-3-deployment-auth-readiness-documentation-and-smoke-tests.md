@@ -1,6 +1,6 @@
 # Story 11.3: Deployment Auth Readiness Documentation and Smoke Tests
 
-Status: ready-for-dev
+Status: review
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -27,47 +27,47 @@ so that auth misconfiguration is caught before users hit runtime failures.
 
 ## Tasks / Subtasks
 
-- [ ] Inventory existing auth and deployment documentation before writing new docs. (AC: 1, 2, 5)
-  - [ ] Read `docs/quickstart.md`, `README.md`, `src/Hexalith.Tenants/appsettings.json`, `src/Hexalith.Tenants/appsettings.Development.json`, and the AppHost Keycloak realm sample.
-  - [ ] Read Story 11.1 and Story 11.2 before editing docs so production JWT validation and tenant claim wording stay aligned.
-  - [ ] Read EventStore security and configuration docs from the current submodule commit before copying claim, authority, or rate-limit terminology.
-  - [ ] Keep the existing local quickstart usable; add production readiness guidance as a separate section or page instead of turning the quickstart into a production deployment guide.
-- [ ] Add production auth readiness documentation. (AC: 1, 2, 4, 5)
-  - [ ] Document required production configuration keys using .NET hierarchical names and environment-variable forms: `Authentication:JwtBearer:Authority` / `Authentication__JwtBearer__Authority`, `Issuer`, `Audience`, `RequireHttpsMetadata`, and the intentionally absent or empty production `SigningKey`.
-  - [ ] State that production must use an absolute HTTPS OIDC authority with `RequireHttpsMetadata=true`; symmetric signing-key auth is development/test only unless a later architecture decision creates an explicit production exception.
-  - [ ] Document that ASP.NET Core environment variables override appsettings through the default configuration providers, and that double underscores are the portable separator for hierarchical keys.
-  - [ ] Document required IdP token contents: issuer, audience, subject, expiration, tenant claim contract from Story 11.2, and EventStore permission/domain claims when command API smoke tests use EventStore gateway endpoints.
-  - [ ] Include safe operator examples with placeholders only. Do not commit real authorities, client IDs, signing keys, bearer tokens, secrets, tenant data, or production user identifiers.
-  - [ ] Use fake tokens, redacted decoded header/payload examples, or placeholder values only; never instruct operators to paste or log full bearer tokens, signing keys, client secrets, refresh tokens, or real issuer metadata.
-  - [ ] Keep development JWT generation separate and clearly labelled as local-only HMAC signing with `appsettings.Development.json`.
-  - [ ] Include an evidence map that links each acceptance criterion to the documentation section, test name, expected failure mode, or documented residual risk that proves it.
-  - [ ] For every checklist command, curl sample, decoded-token example, or test transcript, state the expected observable evidence and the redaction rule that keeps tokens, secrets, authorities, tenant data, and user identifiers out of committed docs and logs.
-- [ ] Add a deployment readiness checklist operators can run before release. (AC: 1, 2, 4)
-  - [ ] Include startup validation checks for missing placeholders, whitespace values, non-HTTPS authorities, ambiguous Authority plus SigningKey, and `RequireHttpsMetadata=false` in production.
-  - [ ] Include token inspection checks for `iss`, `aud`, `sub`, `exp`, and the source or normalized tenant claim that yields `eventstore:tenant=system`.
-  - [ ] Include request-level checks for one protected tenant query endpoint and one tenant-management command endpoint when the local test topology can support both. State which endpoint proves authentication, which proves authorization, and which layer returns the failure.
-  - [ ] Separate checks that can be proven by deterministic local smoke tests from checks that remain operator-run deployment verification, and ensure each manual step has pass/fail wording rather than relying on prose inspection alone.
-  - [ ] Include rate-limit partition verification only if the Tenants host actually registers the relevant EventStore rate limiter. If enabled, confirm partitioning uses normalized subject/client identity and does not log token contents. If it does not, document the finding and defer executable rate-limit evidence to the EventStore host boundary or later deployment automation.
-  - [ ] Include failure triage guidance that names missing configuration keys or claim types without instructing operators to log full tokens or secrets.
-- [ ] Add production-like smoke test coverage without depending on a real external IdP. (AC: 3, 4)
-  - [ ] Exercise the real Tenants ASP.NET Core authentication/authorization middleware through `WebApplicationFactory` or the existing integration host; do not instantiate controllers, handlers, or fake authorization paths while claiming production auth readiness.
-  - [ ] Use a production-like local token issuer seam with deterministic issuer, audience, claims, signing material, and clock/skew behavior. Do not call a real IdP or OIDC discovery endpoint from the default smoke tests, and do not reuse the development HMAC key from `appsettings.Development.json` as production-like evidence.
-  - [ ] Cover a valid token with matching issuer, audience, subject, and `eventstore:tenant=system` that can reach an authorized protected endpoint.
-  - [ ] Cover missing token, malformed token, invalid signature, wrong issuer, wrong audience, and expired token as `401` authentication failures.
-  - [ ] Cover valid authentication with missing, blank, or wrong `eventstore:tenant` as `403` authorization failures when the target endpoint enforces tenant-management authorization.
-  - [ ] Cover missing or invalid production auth overrides through startup/options validation tests that force `IHostEnvironment.IsProduction()` for missing `Authority`, missing/blank `Issuer`, missing `Audience`, non-HTTPS `Authority`, `RequireHttpsMetadata=false`, and any production `SigningKey`.
-  - [ ] Assert failed authentication, authorization, and startup validation paths name safe configuration or claim categories only and do not echo bearer tokens, signing material, decoded payloads, or secret values in response bodies, logs captured by tests, or validation messages.
-  - [ ] Do not require Keycloak, Entra ID, OIDC network discovery, real deployment manifests, DAPR sidecars, Redis, or Aspire orchestration for the narrow smoke tests unless an existing fixture already handles those prerequisites robustly.
-  - [ ] If an Aspire/AppHost smoke path is added, keep it as an optional or prerequisite-gated test and preserve existing skip behavior when Docker, DAPR, Redis, or placement prerequisites are unavailable.
-- [ ] Align sample AppHost and local docs with production wording. (AC: 1, 2, 5)
-  - [ ] Treat `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` as local sample evidence only; do not present it as a production realm export.
-  - [ ] If the sample realm already emits direct `eventstore:tenant`, document how that relates to Story 11.2's supported source-claim normalization.
-  - [ ] Verify quickstart token examples remain development-only and still explain why `tenants: ["system"]` works locally.
-  - [ ] Add links from `README.md` or `docs/quickstart.md` only where they help operators find production readiness guidance without cluttering first-run development flow.
-- [ ] Record unresolved deployment boundary decisions. (AC: 2, 3, 4)
-  - [ ] If smoke tests cannot prove a command endpoint without live DAPR/EventStore infrastructure, document the exact blocker and keep the test focused on protected query/auth behavior.
-  - [ ] If Tenants does not register rate limiting in the current host, document that rate-limit partitioning is not directly smoke-testable here and reference the EventStore boundary that owns it.
-  - [ ] If a future deployment manifest, Helm chart, Aspire publish profile, or cloud-specific Keycloak/Entra setup is needed, record it as deferred deployment automation rather than adding it ad hoc.
+- [x] Inventory existing auth and deployment documentation before writing new docs. (AC: 1, 2, 5)
+  - [x] Read `docs/quickstart.md`, `README.md`, `src/Hexalith.Tenants/appsettings.json`, `src/Hexalith.Tenants/appsettings.Development.json`, and the AppHost Keycloak realm sample.
+  - [x] Read Story 11.1 and Story 11.2 before editing docs so production JWT validation and tenant claim wording stay aligned.
+  - [x] Read EventStore security and configuration docs from the current submodule commit before copying claim, authority, or rate-limit terminology.
+  - [x] Keep the existing local quickstart usable; add production readiness guidance as a separate section or page instead of turning the quickstart into a production deployment guide.
+- [x] Add production auth readiness documentation. (AC: 1, 2, 4, 5)
+  - [x] Document required production configuration keys using .NET hierarchical names and environment-variable forms: `Authentication:JwtBearer:Authority` / `Authentication__JwtBearer__Authority`, `Issuer`, `Audience`, `RequireHttpsMetadata`, and the intentionally absent or empty production `SigningKey`.
+  - [x] State that production must use an absolute HTTPS OIDC authority with `RequireHttpsMetadata=true`; symmetric signing-key auth is development/test only unless a later architecture decision creates an explicit production exception.
+  - [x] Document that ASP.NET Core environment variables override appsettings through the default configuration providers, and that double underscores are the portable separator for hierarchical keys.
+  - [x] Document required IdP token contents: issuer, audience, subject, expiration, tenant claim contract from Story 11.2, and EventStore permission/domain claims when command API smoke tests use EventStore gateway endpoints.
+  - [x] Include safe operator examples with placeholders only. Do not commit real authorities, client IDs, signing keys, bearer tokens, secrets, tenant data, or production user identifiers.
+  - [x] Use fake tokens, redacted decoded header/payload examples, or placeholder values only; never instruct operators to paste or log full bearer tokens, signing keys, client secrets, refresh tokens, or real issuer metadata.
+  - [x] Keep development JWT generation separate and clearly labelled as local-only HMAC signing with `appsettings.Development.json`.
+  - [x] Include an evidence map that links each acceptance criterion to the documentation section, test name, expected failure mode, or documented residual risk that proves it.
+  - [x] For every checklist command, curl sample, decoded-token example, or test transcript, state the expected observable evidence and the redaction rule that keeps tokens, secrets, authorities, tenant data, and user identifiers out of committed docs and logs.
+- [x] Add a deployment readiness checklist operators can run before release. (AC: 1, 2, 4)
+  - [x] Include startup validation checks for missing placeholders, whitespace values, non-HTTPS authorities, ambiguous Authority plus SigningKey, and `RequireHttpsMetadata=false` in production.
+  - [x] Include token inspection checks for `iss`, `aud`, `sub`, `exp`, and the source or normalized tenant claim that yields `eventstore:tenant=system`.
+  - [x] Include request-level checks for one protected tenant query endpoint and one tenant-management command endpoint when the local test topology can support both. State which endpoint proves authentication, which proves authorization, and which layer returns the failure.
+  - [x] Separate checks that can be proven by deterministic local smoke tests from checks that remain operator-run deployment verification, and ensure each manual step has pass/fail wording rather than relying on prose inspection alone.
+  - [x] Include rate-limit partition verification only if the Tenants host actually registers the relevant EventStore rate limiter. If enabled, confirm partitioning uses normalized subject/client identity and does not log token contents. If it does not, document the finding and defer executable rate-limit evidence to the EventStore host boundary or later deployment automation.
+  - [x] Include failure triage guidance that names missing configuration keys or claim types without instructing operators to log full tokens or secrets.
+- [x] Add production-like smoke test coverage without depending on a real external IdP. (AC: 3, 4)
+  - [x] Exercise the real Tenants ASP.NET Core authentication/authorization middleware through `WebApplicationFactory` or the existing integration host; do not instantiate controllers, handlers, or fake authorization paths while claiming production auth readiness.
+  - [x] Use a production-like local token issuer seam with deterministic issuer, audience, claims, signing material, and clock/skew behavior. Do not call a real IdP or OIDC discovery endpoint from the default smoke tests, and do not reuse the development HMAC key from `appsettings.Development.json` as production-like evidence.
+  - [x] Cover a valid token with matching issuer, audience, subject, and `eventstore:tenant=system` that can reach an authorized protected endpoint.
+  - [x] Cover missing token, malformed token, invalid signature, wrong issuer, wrong audience, and expired token as `401` authentication failures.
+  - [x] Cover valid authentication with missing, blank, or wrong `eventstore:tenant` as `403` authorization failures when the target endpoint enforces tenant-management authorization.
+  - [x] Cover missing or invalid production auth overrides through startup/options validation tests that force `IHostEnvironment.IsProduction()` for missing `Authority`, missing/blank `Issuer`, missing `Audience`, non-HTTPS `Authority`, `RequireHttpsMetadata=false`, and any production `SigningKey`.
+  - [x] Assert failed authentication, authorization, and startup validation paths name safe configuration or claim categories only and do not echo bearer tokens, signing material, decoded payloads, or secret values in response bodies, logs captured by tests, or validation messages.
+  - [x] Do not require Keycloak, Entra ID, OIDC network discovery, real deployment manifests, DAPR sidecars, Redis, or Aspire orchestration for the narrow smoke tests unless an existing fixture already handles those prerequisites robustly.
+  - [x] If an Aspire/AppHost smoke path is added, keep it as an optional or prerequisite-gated test and preserve existing skip behavior when Docker, DAPR, Redis, or placement prerequisites are unavailable.
+- [x] Align sample AppHost and local docs with production wording. (AC: 1, 2, 5)
+  - [x] Treat `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` as local sample evidence only; do not present it as a production realm export.
+  - [x] If the sample realm already emits direct `eventstore:tenant`, document how that relates to Story 11.2's supported source-claim normalization.
+  - [x] Verify quickstart token examples remain development-only and still explain why `tenants: ["system"]` works locally.
+  - [x] Add links from `README.md` or `docs/quickstart.md` only where they help operators find production readiness guidance without cluttering first-run development flow.
+- [x] Record unresolved deployment boundary decisions. (AC: 2, 3, 4)
+  - [x] If smoke tests cannot prove a command endpoint without live DAPR/EventStore infrastructure, document the exact blocker and keep the test focused on protected query/auth behavior.
+  - [x] If Tenants does not register rate limiting in the current host, document that rate-limit partitioning is not directly smoke-testable here and reference the EventStore boundary that owns it.
+  - [x] If a future deployment manifest, Helm chart, Aspire publish profile, or cloud-specific Keycloak/Entra setup is needed, record it as deferred deployment automation rather than adding it ad hoc.
 
 ## Dev Notes
 
@@ -166,11 +166,37 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-05-20T09:55:24+02:00 - Red phase: `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests` initially failed with CS0266/CS1929 while wiring the smoke configuration seam, then with `ObjectDisposedException` when mutating `ConfigurationManager` too late in `WebApplicationFactory`.
+- 2026-05-20T09:55:24+02:00 - Green phase: moved the deterministic smoke issuer to `JwtBearerOptions` post-configuration so tests exercise real JWT bearer middleware without OIDC discovery or the development HMAC key.
+- 2026-05-20T09:55:24+02:00 - Red phase: `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~AuthenticationConfigurationTests` initially failed because the missing-override test still inherited committed `appsettings.json` issuer/audience values.
+- 2026-05-20T09:55:24+02:00 - Green phase: switched the missing-override test to deployment-only in-memory configuration.
+- 2026-05-20T09:55:24+02:00 - Focused query smoke gate passed: `TenantsQueryControllerIntegrationTests` 33 passed, 0 failed.
+- 2026-05-20T09:55:24+02:00 - Focused auth configuration gate passed: `AuthenticationConfigurationTests` 19 passed, 0 failed.
+- 2026-05-20T09:55:24+02:00 - Command API runtime smoke gate passed: `CommandApiRuntimeIntegrationTests` 10 passed, 0 failed.
+- 2026-05-20T09:55:24+02:00 - Build gate passed: `dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore` completed with 0 warnings and 0 errors.
+- 2026-05-20T09:55:24+02:00 - Full regression gate passed: `dotnet test Hexalith.Tenants.slnx --configuration Debug --no-restore` passed with 697 passed and 5 skipped.
+
 ### Completion Notes List
+
+- 2026-05-20T09:55:24+02:00 - Added `docs/production-auth-readiness.md` with production JWT settings, environment variable names, IdP claim expectations, redaction rules, operator checklist, deterministic smoke-test commands, manual deployment smoke checks, failure triage, evidence map, and deployment boundary notes.
+- 2026-05-20T09:55:24+02:00 - Linked the production readiness guide from `README.md` and the local quickstart while preserving the quickstart's development-only HMAC token flow.
+- 2026-05-20T09:55:24+02:00 - Added production-like query smoke tests that use real JWT bearer middleware with a deterministic non-development issuer/key, covering valid scope, missing token, malformed token, invalid signature, wrong issuer, wrong audience, expired token, missing tenant, blank tenant, and wrong tenant.
+- 2026-05-20T09:55:24+02:00 - Added deployment-facing production configuration tests for missing required overrides and production signing-key failure without echoing secret values.
+- 2026-05-20T09:55:24+02:00 - Recorded residual boundaries: command-path local evidence uses a mocked command router; full command processing requires EventStore/DAPR infrastructure; rate-limit partition evidence belongs at the EventStore host boundary because Tenants does not register the EventStore rate limiter today.
 
 ### File List
 
 - _bmad-output/implementation-artifacts/11-3-deployment-auth-readiness-documentation-and-smoke-tests.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
+- README.md
+- docs/production-auth-readiness.md
+- docs/quickstart.md
+- tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs
+- tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs
+
+### Change Log
+
+- 2026-05-20 - Implemented deployment auth readiness documentation, deterministic production-like auth smoke tests, deployment override validation coverage, and full regression validation; story status moved to review.
 
 ## Party-Mode Review
 

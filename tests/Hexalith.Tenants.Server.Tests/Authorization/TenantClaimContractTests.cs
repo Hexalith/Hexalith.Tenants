@@ -145,18 +145,55 @@ public class TenantClaimContractTests {
         result.FindFirst(ClaimTypes.NameIdentifier)?.Value.ShouldBe("user-1");
     }
 
-    [Fact]
-    public async Task BlankDirectEventStoreTenantClaimIsNotRepairedBySourceClaims() {
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("")]
+    public async Task BlankDirectEventStoreTenantClaimIsNotRepairedBySourceClaims(string directValue) {
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "user-1"),
-            new Claim(TenantClaimType, " "),
+            new Claim(TenantClaimType, directValue),
             new Claim("tenants", "system"));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
         TenantValidationResult validation = await new ClaimsTenantValidator()
             .ValidateAsync(result, "system", CancellationToken.None);
 
-        TenantClaims(result).ShouldBe([" "]);
+        TenantClaims(result).ShouldBe([directValue]);
+        validation.IsAuthorized.ShouldBeFalse();
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
+    }
+
+    [Fact]
+    public async Task GlobalAdministratorMissingTenantClaimIsAuthorizedForSystemTenant() {
+        // Global administrators bypass tenant matching in ClaimsTenantValidator. This test locks
+        // the documented host behavior so the global-admin tenant-claim contract cannot regress
+        // silently. The Tenants host does NOT register the EventStore rate limiter, so the
+        // "anonymous" partition fallback consequence does not apply here — see
+        // docs/production-auth-claim-contract.md#global-administrators.
+        ClaimsPrincipal principal = CreatePrincipal(
+            new Claim("sub", "admin-user"),
+            new Claim("global_admin", "true"));
+
+        ClaimsPrincipal result = await _transformation.TransformAsync(principal);
+        TenantValidationResult validation = await new ClaimsTenantValidator()
+            .ValidateAsync(result, "system", CancellationToken.None);
+
+        TenantClaims(result).ShouldBeEmpty();
+        validation.IsAuthorized.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task NonGlobalAdministratorMissingTenantClaimFailsClosedForSystemTenant() {
+        // Companion to GlobalAdministratorMissingTenantClaim... — proves that the same missing-
+        // tenant principal without global-admin evidence is denied. Spec Tasks line 47 requires
+        // non-global-admin and global-admin missing-tenant cases be kept distinct.
+        ClaimsPrincipal principal = CreatePrincipal(new Claim("sub", "regular-user"));
+
+        ClaimsPrincipal result = await _transformation.TransformAsync(principal);
+        TenantValidationResult validation = await new ClaimsTenantValidator()
+            .ValidateAsync(result, "system", CancellationToken.None);
+
+        TenantClaims(result).ShouldBeEmpty();
         validation.IsAuthorized.ShouldBeFalse();
         validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
     }

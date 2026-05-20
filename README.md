@@ -64,6 +64,7 @@ samples/
 docs/
   quickstart.md                      # Getting started guide
   production-auth-claim-contract.md  # Production IdP claim mapping contract
+  production-auth-readiness.md       # Deployment auth checklist and smoke-test evidence
   demo.md                            # "Aha Moment" demo walkthrough
   event-contract-reference.md        # Event schemas and audit patterns
   idempotent-event-processing.md     # Event handling patterns

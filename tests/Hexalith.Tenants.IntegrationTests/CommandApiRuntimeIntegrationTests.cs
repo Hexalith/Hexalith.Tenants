@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
@@ -19,6 +20,7 @@ using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -41,7 +43,7 @@ public class CommandApiRuntimeIntegrationTests {
 
     [Fact]
     public async Task Process_endpoint_dispatches_create_tenant_command() {
-        await using var factory = new CommandApiWebApplicationFactory();
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
         using HttpClient client = factory.CreateClient();
 
         var request = new DomainServiceRequest(
@@ -87,7 +89,7 @@ public class CommandApiRuntimeIntegrationTests {
 
         ICommandArchiveStore archiveStore = Substitute.For<ICommandArchiveStore>();
 
-        await using var factory = new CommandApiWebApplicationFactory(router, statusStore, archiveStore);
+        await using var factory = new CommandApiWebApplicationFactory(router, statusStore, archiveStore, useTestAuthentication: true);
         using HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test");
 
@@ -186,6 +188,7 @@ public class CommandApiRuntimeIntegrationTests {
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(403);
+        details.Extensions.ShouldContainKey("reasonCode");
         details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
@@ -214,12 +217,18 @@ public class CommandApiRuntimeIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
+        details.Extensions.ShouldContainKey("reasonCode");
         details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
-    [Fact]
-    public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_targets_another_tenant() {
+    // P10: triangulate the cross-tenant gate by varying which side mismatches. Both rows must yield
+    // 403 + tenant_mismatch — proving the check site compares the claim against the request tenant,
+    // not against the URL/route or against a hard-coded tenant.
+    [Theory]
+    [InlineData("tenant-a", "system")]
+    [InlineData("system", "tenant-a")]
+    public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_does_not_match_request_tenant(string claimTenant, string requestTenant) {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
         await using var factory = new CommandApiWebApplicationFactory(
@@ -227,27 +236,53 @@ public class CommandApiRuntimeIntegrationTests {
             Substitute.For<ICommandStatusStore>(),
             Substitute.For<ICommandArchiveStore>(),
             useTestAuthentication: false);
-        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", "tenant-a")]);
+        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", claimTenant)]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: requestTenant);
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
+        details.Extensions.ShouldContainKey("reasonCode");
         details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant_mismatch");
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
     [Fact]
-    public async Task Tenants_host_registers_eventstore_claims_transformation() {
-        await using var factory = new CommandApiWebApplicationFactory();
+    public async Task Tenants_host_registers_eventstore_claims_transformation_as_transient() {
+        // P8: lifetime check is part of the contract — ASP.NET Core invokes IClaimsTransformation
+        // once per authenticated request, and a Singleton/Scoped registration would silently break
+        // re-invocation semantics.
+        ServiceDescriptor? descriptor = null;
+        await using var factory = new CommandApiWebApplicationFactory()
+            .WithWebHostBuilder(b => b.ConfigureServices(services => {
+                descriptor = services.FirstOrDefault(d =>
+                    d.ServiceType == typeof(IClaimsTransformation)
+                    && d.ImplementationType == typeof(EventStoreClaimsTransformation));
+            }));
         _ = factory.CreateClient();
 
         IEnumerable<IClaimsTransformation> transformations = factory.Services.GetServices<IClaimsTransformation>();
-
         transformations.OfType<EventStoreClaimsTransformation>().ShouldNotBeEmpty();
+
+        _ = descriptor.ShouldNotBeNull();
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Transient);
+    }
+
+    [Fact]
+    public void Tenants_host_keeps_jwt_bearer_map_inbound_claims_false() {
+        // P9: spec Task line 33 requires verifying MapInboundClaims=false on the host-effective
+        // JwtBearerOptions, not on a freshly constructed instance.
+        using var factory = new CommandApiWebApplicationFactory();
+        _ = factory.CreateClient();
+
+        JwtBearerOptions options = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        options.MapInboundClaims.ShouldBeFalse();
     }
 
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
@@ -286,22 +321,26 @@ public class CommandApiRuntimeIntegrationTests {
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateBootstrapRequest() {
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateBootstrapRequest(string tenant = "system") {
         JsonElement payload = JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin("admin-1"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
-            Guid.NewGuid().ToString(),
-            "system",
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            tenant,
             "tenants",
             "global-administrators",
             nameof(BootstrapGlobalAdmin),
             payload);
     }
 
+    // P15: default is `false` so any new tenant-claim-sensitive test that omits the flag exercises
+    // the real JwtBearer + EventStoreClaimsTransformation pipeline. Existing tests that depend on
+    // the hard-coded `eventstore:tenant=system` TestAuthHandler principal must pass
+    // `useTestAuthentication: true` explicitly.
     private sealed class CommandApiWebApplicationFactory(
         ICommandRouter? router = null,
         ICommandStatusStore? statusStore = null,
         ICommandArchiveStore? archiveStore = null,
-        bool useTestAuthentication = true) : WebApplicationFactory<TenantBootstrapOptions> {
+        bool useTestAuthentication = false) : WebApplicationFactory<TenantBootstrapOptions> {
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
             if (useTestAuthentication) {
                 _ = services.AddAuthentication(TestAuthHandler.SchemeName)

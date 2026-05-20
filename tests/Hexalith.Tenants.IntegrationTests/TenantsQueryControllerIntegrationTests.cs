@@ -14,6 +14,7 @@ using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -34,6 +35,9 @@ public class TenantsQueryControllerIntegrationTests {
     private const string JwtAudience = "hexalith-tenants";
     private const string JwtIssuer = "hexalith-dev";
     private const string JwtSigningKey = "this-is-a-development-signing-key-minimum-32-chars";
+    private const string SmokeJwtAudience = "hexalith-tenants";
+    private const string SmokeJwtIssuer = "https://identity.smoke.example.test/realms/hexalith";
+    private const string SmokeJwtSigningKey = "this-is-a-smoke-test-signing-key-minimum-32-chars";
 
     [Fact]
     public async Task ListTenants_returns_401_when_authorization_header_is_missing() {
@@ -64,6 +68,95 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
         result.TryGetProperty("items", out _).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_200_when_production_like_smoke_jwt_has_allowed_scope() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        IQueryRouter router = CreateRouter(
+            "list-tenants",
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
+        using HttpClient client = CreateSmokeJwtClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        _ = await router.Received(1).RouteQueryAsync(
+            Arg.Is<SubmitQuery>(q => q != null && q.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("missing-token")]
+    [InlineData("malformed-token")]
+    [InlineData("invalid-signature")]
+    [InlineData("wrong-issuer")]
+    [InlineData("wrong-audience")]
+    [InlineData("expired-token")]
+    public async Task ListTenants_production_like_smoke_authentication_rejects_invalid_tokens_safely(string tokenCase) {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        string? token = tokenCase switch {
+            "missing-token" => null,
+            "malformed-token" => "not-a-jwt",
+            "invalid-signature" => CreateSmokeJwt("admin-user", signingKey: "wrong-smoke-test-signing-key-minimum-32-chars"),
+            "wrong-issuer" => CreateSmokeJwt("admin-user", issuer: "https://identity.other.example.test/realms/hexalith"),
+            "wrong-audience" => CreateSmokeJwt("admin-user", audience: "wrong-audience"),
+            "expired-token" => CreateSmokeJwt("admin-user", expires: DateTime.UtcNow.AddMinutes(-10)),
+            _ => throw new InvalidOperationException($"Unknown token case '{tokenCase}'."),
+        };
+
+        if (token is not null) {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        string body = await response.Content.ReadAsStringAsync();
+        body.ShouldNotContain(SmokeJwtSigningKey);
+        if (token is not null) {
+            body.ShouldNotContain(token);
+        }
+
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Theory]
+    [InlineData("missing-tenant", "principal_not_member")]
+    [InlineData("blank-tenant", "principal_not_member")]
+    [InlineData("wrong-tenant", "tenant_mismatch")]
+    public async Task ListTenants_production_like_smoke_authorization_rejects_tenant_claim_failures_safely(
+        string tokenCase,
+        string expectedReasonCode) {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
+        string token = tokenCase switch {
+            "missing-tenant" => CreateSmokeJwt("admin-user", claims: Array.Empty<Claim>()),
+            "blank-tenant" => CreateSmokeJwt("admin-user", claims: [new Claim("eventstore:tenant", " ")]),
+            "wrong-tenant" => CreateSmokeJwt("admin-user", claims: [new Claim("eventstore:tenant", "tenant-a")]),
+            _ => throw new InvalidOperationException($"Unknown token case '{tokenCase}'."),
+        };
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        string body = await response.Content.ReadAsStringAsync();
+        body.ShouldNotContain(SmokeJwtSigningKey);
+        body.ShouldNotContain(token);
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(403);
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe(expectedReasonCode);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
 
     [Fact]
@@ -121,6 +214,7 @@ public class TenantsQueryControllerIntegrationTests {
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(403);
+        details.Extensions.ShouldContainKey("reasonCode");
         details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
         await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
@@ -144,6 +238,7 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
+        details.Extensions.ShouldContainKey("reasonCode");
         details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
         await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
@@ -161,6 +256,7 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
+        details.Extensions.ShouldContainKey("reasonCode");
         details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant_mismatch");
         await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
@@ -418,11 +514,29 @@ public class TenantsQueryControllerIntegrationTests {
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
         => CreateClientWithBearer(factory, CreateJwt("admin-user"));
 
+    private static HttpClient CreateSmokeJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
+        => CreateClientWithBearer(factory, CreateSmokeJwt("admin-user"));
+
     private static HttpClient CreateClientWithBearer(WebApplicationFactory<TenantBootstrapOptions> factory, string token) {
         HttpClient client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
     }
+
+    private static string CreateSmokeJwt(
+        string userId,
+        string? issuer = null,
+        string? audience = null,
+        string? signingKey = null,
+        DateTime? expires = null,
+        IEnumerable<Claim>? claims = null)
+        => CreateJwt(
+            userId,
+            issuer ?? SmokeJwtIssuer,
+            audience ?? SmokeJwtAudience,
+            signingKey ?? SmokeJwtSigningKey,
+            expires,
+            claims);
 
     private static string CreateJwt(
         string userId,
@@ -451,11 +565,39 @@ public class TenantsQueryControllerIntegrationTests {
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private sealed class TenantsQueryJwtWebApplicationFactory(IQueryRouter router) : WebApplicationFactory<TenantBootstrapOptions> {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
-            _ = services.RemoveAll<IQueryRouter>();
-            _ = services.AddSingleton(router);
-        });
+    private static void ConfigureSmokeJwtBearer(JwtBearerOptions options) {
+        ArgumentNullException.ThrowIfNull(options);
+
+        options.Authority = null;
+        options.RequireHttpsMetadata = false;
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters {
+            ValidateIssuer = true,
+            ValidIssuer = SmokeJwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = SmokeJwtAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SmokeJwtSigningKey)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = "sub",
+        };
+    }
+
+    private sealed class TenantsQueryJwtWebApplicationFactory(
+        IQueryRouter router,
+        bool useSmokeAuthentication = false) : WebApplicationFactory<TenantBootstrapOptions> {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+            => builder.ConfigureServices(services => {
+                if (useSmokeAuthentication) {
+                    services.PostConfigure<JwtBearerOptions>(
+                        JwtBearerDefaults.AuthenticationScheme,
+                        ConfigureSmokeJwtBearer);
+                }
+
+                _ = services.RemoveAll<IQueryRouter>();
+                _ = services.AddSingleton(router);
+            });
     }
 
     private sealed class TenantsQueryWebApplicationFactory(IQueryRouter router) : WebApplicationFactory<TenantBootstrapOptions> {

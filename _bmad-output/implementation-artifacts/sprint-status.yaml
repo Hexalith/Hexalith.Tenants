@@ -1,4 +1,7 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-20 (11-3 deployment auth readiness documentation and smoke tests implemented; full Debug/no-restore solution gate passed [697 passed, 5 skipped]; story -> review)
+# last_updated: 2026-05-20 (11-3 deployment auth readiness documentation and smoke tests development started; story -> in-progress)
+# last_updated: 2026-05-20 (11-2 EventStore tenant claim contract code review: 4 decisions resolved + 15 patches applied [Keycloak doc rewrite, mixed-source precedence section, rate-limit non-applicability callout, split command/query permission rows, removed command:replay, global-admin missing-tenant negative test, empty-string blank-direct variant, IClaimsTransformation lifetime check, host MapInboundClaims=false assertion, triangulated cross-tenant theory, flipped useTestAuthentication default to false, strengthened reasonCode ShouldContainKey, ULID for MessageId] + 7 deferred + 6 dismissed; full Debug/no-restore solution gate passed [687 passed, 1 skipped]; story -> done)
 # last_updated: 2026-05-19 (11-2 EventStore tenant claim contract implemented; full Debug/no-restore solution gate passed [682 passed, 1 skipped]; story -> review)
 # last_updated: 2026-05-19 (Epic 10 retrospective completed; epic-10-retrospective -> done)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation code review: 0 decisions + 1 patch applied [env-var test xUnit isolation] + 4 deferred + ~17 dismissed; Server.Tests gate 438/438; story -> done)
@@ -117,7 +120,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-19
+last_updated: 2026-05-20
 # Story 11.1 code review complete: 0 decisions, 1 patch applied (xUnit
 # AuthenticationConfigurationCollection with DisableParallelization=true on
 # AuthenticationConfigurationTests so env-var-mutating tests cannot race
@@ -267,8 +270,8 @@ development_status:
   # Epic 11: Production Authorization Readiness
   epic-11: in-progress
   11-1-production-jwt-configuration-validation: done
-  11-2-eventstore-tenant-claim-contract: review
-  11-3-deployment-auth-readiness-documentation-and-smoke-tests: ready-for-dev
+  11-2-eventstore-tenant-claim-contract: done
+  11-3-deployment-auth-readiness-documentation-and-smoke-tests: review
   epic-11-retrospective: optional
 
   # Epic 12: Phase 2 Admin UI Dependency Sequencing
