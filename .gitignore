@@ -420,3 +420,7 @@ FodyWeavers.xsd
 
 #Ignore cursor AI rules
 .cursor/rules/codacy.mdc
+
+# BMAD predev-preflight tooling artifacts (R11-A2; carry-forward from R9-A5 and R10-A2)
+# Local race-on-write snapshots with absolute paths; not useful in shared history.
+_bmad-output/process-notes/predev-preflight-*.json
