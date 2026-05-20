@@ -1,6 +1,6 @@
 # Story 12.1: FrontShell Dependency Map for Tenants UI
 
-Status: ready-for-dev
+Status: review
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -25,43 +25,43 @@ so that UI implementation starts only when required cross-project dependencies a
 
 ## Tasks / Subtasks
 
-- [ ] Inventory Tenants UI screens and backend surfaces. (AC: 1, 5)
-  - [ ] Read `_bmad-output/planning-artifacts/ux-design-specification.md` and extract the Phase 2 screens: Tenant List, Tenant Detail, Create Tenant, User Management, User Search, Tenant Configuration, Audit Trail, and Global Admin Management.
-  - [ ] Record each screen's backend surface from the UX spec and PRD: `ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`, tenant lifecycle commands, member-role commands, tenant configuration commands, and global administrator commands.
-  - [ ] Mark the output as Phase 2 planning/readiness only; do not add UI implementation tasks to backend MVP stories.
-- [ ] Build the dependency-map artifact. (AC: 1, 2, 3, 4, 6)
-  - [ ] Create `docs/tenants-ui-frontcomposer-dependency-map.md` unless an existing Phase 2 dependency-map document is discovered and is more appropriate.
-  - [ ] Include one row per Tenants UI screen with columns for screen, user workflow, backend surface, required FrontComposer deliverables, readiness status, fallback decision, blocked-by reference, and evidence source.
-  - [ ] Define each dependency ID exactly once before screen rows consume it; the ID catalog must include owner, expected deliverable, UX alias if any, current FrontComposer name/path if verified, readiness, fallback rule, and Phase 1 blocker status.
-  - [ ] Use current project terminology: `Hexalith.FrontComposer` for the checked-out submodule, and mention `FrontShell` only where quoting or aliasing older UX/planning language.
-  - [ ] For every dependency, classify readiness as `available`, `needs-confirmation`, `missing`, `planned`, or `approved-fallback`; do not use vague values like `TBD` without a named decision owner.
-  - [ ] Treat current source evidence as checkout-specific: cite repo-relative paths and, when useful, the inspected submodule commit or planning artifact reference; if evidence cannot be verified locally, use `evidence: missing` or `needs-confirmation` rather than a speculative path.
-  - [ ] Include an explicit "not a Phase 1 blocker" statement for missing UI-only dependencies.
-- [ ] Map required FrontComposer components and hooks. (AC: 1, 2, 6)
-  - [ ] Map existing or planned table/list dependencies to current FrontComposer primitives such as projection rendering, DataGrid support, empty/loading placeholders, authorized command regions, command feedback, and projection connection status where those paths exist.
-  - [ ] Capture UX-specified new or unconfirmed dependencies: `<AuditTimeline>`, `<ConsequencePreview>`, command pending identifiers or equivalent pending-command state, concurrent command support, toast batching, `PageLayout` full-width/constrained behavior, role/status design tokens, timeline connector token, and consequence panel token.
-  - [ ] If the current FrontComposer implementation uses different names, record the current type/path and the UX alias together instead of inventing a new component name.
-  - [ ] Treat React-style UX terms such as `useCommand` as aliases until verified; map them to Blazor/FrontComposer command lifecycle, pending command, feedback, and authorized-region services, or mark the dependency `needs-confirmation`/`missing` with an owner.
-  - [ ] Do not turn dependency rows into FrontComposer implementation requirements. Exact component APIs, event contracts, token names, and Storybook/tooling choices remain FrontComposer-owned unless a later approved story defines them.
-  - [ ] Do not assert Storybook coverage exists unless a real Storybook or documentation path is found; mark it `missing` or `needs-confirmation` otherwise.
-- [ ] Capture screen-by-screen fallback and blocking policy. (AC: 3, 4, 5)
-  - [ ] For each missing dependency, state whether the corresponding Tenants UI story should be blocked, planning-only, or allowed to proceed with a named fallback.
-  - [ ] Name the decision owner for each fallback or unresolved dependency; product/UX-owned fallback decisions must not be implied by implementation convenience.
-  - [ ] Require product and UX approval for fallbacks to `<AuditTimeline>`, `<ConsequencePreview>`, three-phase command feedback, role/status token gaps, or layout variants.
-  - [ ] Use exact dependency IDs in future-facing `blockedBy` examples; if a screen depends on multiple unresolved items, list each dependency ID separately instead of using a broad screen-level blocker.
-  - [ ] State that backend query, projection, authorization, and deployment stories remain independent of FrontComposer UI readiness unless a later scope decision explicitly promotes Admin UI work.
-- [ ] Add source evidence and review checklist. (AC: 2, 3, 7)
-  - [ ] Link each dependency-map section to source documents such as `_bmad-output/planning-artifacts/ux-design-specification.md`, `_bmad-output/planning-artifacts/epics.md`, `Hexalith.FrontComposer/_bmad-output/project-context.md`, and relevant FrontComposer planning/source paths.
-  - [ ] Include a short checklist for future Tenants UI story authors: every UI story must cite dependency-map IDs, carry `blockedBy` for missing FrontComposer deliverables, and avoid new backend requirements unless backed by completed backend story evidence.
-  - [ ] Use repo-relative paths or explicit `evidence: missing`; do not copy long duplicated UX excerpts, local absolute paths, raw private configuration, tokens, generated output, or transient logs into the map.
-  - [ ] Keep evidence sanitized: no local machine paths in the document body, no generated `bin/` or `obj/` artifacts, no token or tenant/user production data, and no copied private configuration.
-- [ ] Validate the dependency map. (AC: 1-7)
-  - [ ] Review the final document against this story's acceptance criteria.
-  - [ ] Confirm every dependency row includes stable ID, owner, expected deliverable, readiness, fallback/blocking policy, evidence, and Phase 1 blocker status.
-  - [ ] Confirm accessibility, keyboard, live-region, reduced-motion, forced-colors, localization/adopter-experience, and component documentation/reference evidence are first-class dependency entries rather than buried notes.
-  - [ ] Confirm future UI story authors can identify required `blockedBy` IDs from the map without reading narrative prose or making assumptions from screen names.
-  - [ ] Confirm the document does not change source code, package versions, submodule pointers, or Phase 1 backend scope.
-  - [ ] Record the created/updated files and any unresolved dependency decisions in this story's Dev Agent Record.
+- [x] Inventory Tenants UI screens and backend surfaces. (AC: 1, 5)
+  - [x] Read `_bmad-output/planning-artifacts/ux-design-specification.md` and extract the Phase 2 screens: Tenant List, Tenant Detail, Create Tenant, User Management, User Search, Tenant Configuration, Audit Trail, and Global Admin Management.
+  - [x] Record each screen's backend surface from the UX spec and PRD: `ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`, tenant lifecycle commands, member-role commands, tenant configuration commands, and global administrator commands.
+  - [x] Mark the output as Phase 2 planning/readiness only; do not add UI implementation tasks to backend MVP stories.
+- [x] Build the dependency-map artifact. (AC: 1, 2, 3, 4, 6)
+  - [x] Create `docs/tenants-ui-frontcomposer-dependency-map.md` unless an existing Phase 2 dependency-map document is discovered and is more appropriate.
+  - [x] Include one row per Tenants UI screen with columns for screen, user workflow, backend surface, required FrontComposer deliverables, readiness status, fallback decision, blocked-by reference, and evidence source.
+  - [x] Define each dependency ID exactly once before screen rows consume it; the ID catalog must include owner, expected deliverable, UX alias if any, current FrontComposer name/path if verified, readiness, fallback rule, and Phase 1 blocker status.
+  - [x] Use current project terminology: `Hexalith.FrontComposer` for the checked-out submodule, and mention `FrontShell` only where quoting or aliasing older UX/planning language.
+  - [x] For every dependency, classify readiness as `available`, `needs-confirmation`, `missing`, `planned`, or `approved-fallback`; do not use vague values like `TBD` without a named decision owner.
+  - [x] Treat current source evidence as checkout-specific: cite repo-relative paths and, when useful, the inspected submodule commit or planning artifact reference; if evidence cannot be verified locally, use `evidence: missing` or `needs-confirmation` rather than a speculative path.
+  - [x] Include an explicit "not a Phase 1 blocker" statement for missing UI-only dependencies.
+- [x] Map required FrontComposer components and hooks. (AC: 1, 2, 6)
+  - [x] Map existing or planned table/list dependencies to current FrontComposer primitives such as projection rendering, DataGrid support, empty/loading placeholders, authorized command regions, command feedback, and projection connection status where those paths exist.
+  - [x] Capture UX-specified new or unconfirmed dependencies: `<AuditTimeline>`, `<ConsequencePreview>`, command pending identifiers or equivalent pending-command state, concurrent command support, toast batching, `PageLayout` full-width/constrained behavior, role/status design tokens, timeline connector token, and consequence panel token.
+  - [x] If the current FrontComposer implementation uses different names, record the current type/path and the UX alias together instead of inventing a new component name.
+  - [x] Treat React-style UX terms such as `useCommand` as aliases until verified; map them to Blazor/FrontComposer command lifecycle, pending command, feedback, and authorized-region services, or mark the dependency `needs-confirmation`/`missing` with an owner.
+  - [x] Do not turn dependency rows into FrontComposer implementation requirements. Exact component APIs, event contracts, token names, and Storybook/tooling choices remain FrontComposer-owned unless a later approved story defines them.
+  - [x] Do not assert Storybook coverage exists unless a real Storybook or documentation path is found; mark it `missing` or `needs-confirmation` otherwise.
+- [x] Capture screen-by-screen fallback and blocking policy. (AC: 3, 4, 5)
+  - [x] For each missing dependency, state whether the corresponding Tenants UI story should be blocked, planning-only, or allowed to proceed with a named fallback.
+  - [x] Name the decision owner for each fallback or unresolved dependency; product/UX-owned fallback decisions must not be implied by implementation convenience.
+  - [x] Require product and UX approval for fallbacks to `<AuditTimeline>`, `<ConsequencePreview>`, three-phase command feedback, role/status token gaps, or layout variants.
+  - [x] Use exact dependency IDs in future-facing `blockedBy` examples; if a screen depends on multiple unresolved items, list each dependency ID separately instead of using a broad screen-level blocker.
+  - [x] State that backend query, projection, authorization, and deployment stories remain independent of FrontComposer UI readiness unless a later scope decision explicitly promotes Admin UI work.
+- [x] Add source evidence and review checklist. (AC: 2, 3, 7)
+  - [x] Link each dependency-map section to source documents such as `_bmad-output/planning-artifacts/ux-design-specification.md`, `_bmad-output/planning-artifacts/epics.md`, `Hexalith.FrontComposer/_bmad-output/project-context.md`, and relevant FrontComposer planning/source paths.
+  - [x] Include a short checklist for future Tenants UI story authors: every UI story must cite dependency-map IDs, carry `blockedBy` for missing FrontComposer deliverables, and avoid new backend requirements unless backed by completed backend story evidence.
+  - [x] Use repo-relative paths or explicit `evidence: missing`; do not copy long duplicated UX excerpts, local absolute paths, raw private configuration, tokens, generated output, or transient logs into the map.
+  - [x] Keep evidence sanitized: no local machine paths in the document body, no generated `bin/` or `obj/` artifacts, no token or tenant/user production data, and no copied private configuration.
+- [x] Validate the dependency map. (AC: 1-7)
+  - [x] Review the final document against this story's acceptance criteria.
+  - [x] Confirm every dependency row includes stable ID, owner, expected deliverable, readiness, fallback/blocking policy, evidence, and Phase 1 blocker status.
+  - [x] Confirm accessibility, keyboard, live-region, reduced-motion, forced-colors, localization/adopter-experience, and component documentation/reference evidence are first-class dependency entries rather than buried notes.
+  - [x] Confirm future UI story authors can identify required `blockedBy` IDs from the map without reading narrative prose or making assumptions from screen names.
+  - [x] Confirm the document does not change source code, package versions, submodule pointers, or Phase 1 backend scope.
+  - [x] Record the created/updated files and any unresolved dependency decisions in this story's Dev Agent Record.
 
 ## Dev Notes
 
@@ -178,13 +178,28 @@ GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-05-20 - Resolved BMAD workflow customization; loaded root and FrontComposer project context plus planning artifacts.
+- 2026-05-20 - Verified current FrontComposer evidence from root-level submodule commit `17c3605`; no nested submodule initialization or updates were performed.
+- 2026-05-20 - Validation commands: `git diff --check`; story screen coverage check; dependency catalog uniqueness check; source/package/submodule change boundary check; trailing whitespace check.
+
 ### Completion Notes List
 
 - 2026-05-19T15:06:26+02:00 - Advanced elicitation applied pre-dev clarifications for checkout-specific evidence, non-speculative readiness, exact dependency-ID `blockedBy` examples, FrontComposer-owned API boundaries, and localization/adopter-experience coverage.
+- 2026-05-20 - Created the Phase 2 Tenants UI dependency map at `docs/tenants-ui-frontcomposer-dependency-map.md`, covering all eight UX-specified screens and backend surfaces.
+- 2026-05-20 - Defined dependency IDs `FC-TBL`, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-AUD`, `FC-CNS`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` exactly once in the catalog, with owners, deliverables, UX aliases, readiness, fallback policy, evidence, and Phase 1 blocker status.
+- 2026-05-20 - Recorded missing or unconfirmed FrontComposer deliverables as explicit planning blockers: `FC-AUD`, `FC-CNS`, `FC-CNC`, timeline/consequence token coverage in `FC-TOK`, Storybook evidence under `FC-DOC`, and Tenants-specific confirmations for layout, command lifecycle, accessibility, and localization.
+- 2026-05-20 - Confirmed the change is documentation/story tracking only: no source code, package versions, solution files, or submodule pointers changed. No code test suite was run because the story's validation requirements state no code test suite is required when only documentation is created.
 
 ### File List
 
 - _bmad-output/implementation-artifacts/12-1-frontshell-dependency-map-for-tenants-ui.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
+- docs/tenants-ui-frontcomposer-dependency-map.md
+
+### Change Log
+
+- 2026-05-20 - Implemented Story 12.1 dependency-map artifact and validation record; marked all story tasks complete.
+- 2026-05-20 - Story status moved to review after documentation validation completed.
 
 ## Advanced Elicitation
 
