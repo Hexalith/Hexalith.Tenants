@@ -279,20 +279,58 @@ Current `Hexalith.FrontComposer` source paths are checkout-specific evidence onl
 | UX/planning alias | Current Hexalith concept | Contract status | Owner | Usage rule |
 | --- | --- | --- | --- | --- |
 | `useCommand` | Blazor command lifecycle services, pending-command state service, authorized command region, and EventStore command client evidence. | `needs-confirmation` | `Hexalith.FrontComposer` | Treat as alias only. Do not require or invent a React hook contract. |
-| `pendingIds` | `PendingCommandRegistration.MessageId`, `CorrelationId`, optional `LaneKey`, optional `EntityKey`, and pending-command dictionary keyed by normalized 26-character message ID. | `needs-confirmation` | `Hexalith.FrontComposer` | Future stories must not persist or compare pending IDs until the reusable identity contract approves key shape and scope. |
+| `pendingIds` | `PendingCommandRegistration.MessageId`, `CorrelationId`, optional `LaneKey`, optional `EntityKey`, and pending-command dictionary keyed by a normalized message ID; current checkout normalizes to 26 characters in `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/State/PendingCommands/PendingCommandStateService.cs`, but the reusable identity contract has not approved this shape. | `needs-confirmation` | `Hexalith.FrontComposer` | Future stories must not persist or compare pending IDs until the reusable identity contract approves key shape, uniqueness scope (per-tenant, per-user, per-circuit — all currently `needs-confirmation`), lifecycle ownership, and retry/timeout. |
 | `pendingOperations` | `PendingCommandEntry` snapshots and lifecycle transitions for pending, confirmed, rejected, idempotent confirmed, and needs-review states. | `needs-confirmation` | `Hexalith.FrontComposer` | Use as conceptual state language only; implementation stories cite `FC-CMD`. |
-| `FrontShell` | Current checked-out submodule `Hexalith.FrontComposer`, Blazor/Fluent UI, Fluxor, EventStore integration. | `available` as repository name mapping; reusable APIs still per dependency. | Tenants story author | Use `Hexalith.FrontComposer` in evidence; mention `FrontShell` only as a UX/planning alias. |
+| `FrontShell` | Current checked-out submodule `Hexalith.FrontComposer`, Blazor/Fluent UI, Fluxor, EventStore integration. | `needs-confirmation` (reusable APIs are confirmed per dependency row; the alias-to-repository mapping is a naming convention only, not a contract status). | Tenants story author | Use `Hexalith.FrontComposer` in evidence; mention `FrontShell` only as a UX/planning alias. |
 | `projection confirmation` | SignalR projection nudge plus REST/query/status reconciliation that re-queries source-of-truth projection or command status. | `needs-confirmation` | `Hexalith.FrontComposer` plus Tenants UI story author | SignalR alone does not confirm command completion, business success, or projection consistency. |
+
+### Named Owners for Unresolved Readiness Rows
+
+For every `missing` or `needs-confirmation` readiness in the rows above, the canonical owners are:
+
+- **Reusable contract approval** — `Hexalith.FrontComposer` maintainers (component, lifecycle, pending-command state, feedback publisher, projection-change notifier APIs).
+- **Interaction policy, threshold, and copy approval** — Tenants Product/UX.
+- **Command status / polling endpoint provision** — `Hexalith.EventStore` maintainers (status query contract, command-status projection availability).
+- **Per-row Tenants citation, fallback decision, and Phase 2 story authoring** — Tenants story author (this dependency map's consuming role).
+
+A row marked `missing` or `needs-confirmation` defers to this set of named owners; Story 12.4 and later UI stories must restate the owner explicitly on the row they consume rather than inferring from this paragraph.
+
+### Retry, Timeout, and Polling Budget Owners
+
+Every row that asserts `bounded` retry, polling, or timeout behavior (in the transition matrix `confirming` and `degraded/reconciling` rows, and in the "Polling/status unavailable" and "Command failure after optimistic update" degraded cases) defers numeric budgets (max attempts, max duration, backoff curve) to the following owners — none of whom have approved a number at the time of Story 12.3:
+
+- **Threshold for `confirming → degraded`** — Tenants Product/UX (UI patience policy) plus `Hexalith.FrontComposer` (component-level default), both `needs-confirmation`.
+- **Polling/status-lookup budget** — `Hexalith.EventStore` (status query contract) plus `Hexalith.FrontComposer` (polling coordinator default), both `needs-confirmation`.
+- **Optimistic-failure revert and retry budget** — Tenants Product/UX (retry safety policy) plus `Hexalith.FrontComposer` (lifecycle component default), both `needs-confirmation`.
+
+Future UI stories cite this subsection by reference; do not invent numbers locally and do not omit the owner names.
+
+### Allowed Command-State Transitions
+
+The transition matrix below lists the entry trigger of each state. The legal source→target transitions are enumerated here so Story 12.4 has a deterministic set; per-transition trigger, copy delta, accessibility, and timing behavior remain `needs-confirmation` and defer to the owners in the two subsections above.
+
+- `optimistic → confirming` — command dispatch accepted/acknowledged before terminal observation.
+- `optimistic → failed` — synchronous validation or dispatch rejection before any acknowledgement.
+- `optimistic → degraded/reconciling` — dispatch accepted but no acknowledgement returns within the (`needs-confirmation`) threshold.
+- `confirming → confirmed` — matching status/projection re-query confirms success or `alreadyApplied`.
+- `confirming → failed` — authoritative status reports rejection while in confirming.
+- `confirming → degraded/reconciling` — confirmation threshold exceeded, SignalR disconnect, or status lookup unavailable.
+- `degraded/reconciling → confirmed` — bounded requery succeeds.
+- `degraded/reconciling → failed` — bounded requery returns authoritative rejection.
+- `failed → optimistic` — user re-attempts the command (new pending entry, new identity).
+- `confirmed → degraded/reconciling` — stale or contradicting observation arrives after confirmation (re-query required before changing durable state).
+
+`needs-review` is not a top-level state. It is a feedback outcome that may attach to `failed` (when the cause class is unclear) or to `degraded/reconciling` (when the pending identity is lost or the browser refreshed during pending). Future UI stories must treat `needs-review` as a sub-state of one of those two parents and never as a standalone transition target.
 
 ### Three Command Feedback Phases
 
-Phase 1 `optimistic`: the UI registers a local pending entry after command submission is accepted by the UI flow. The affected row or form shows a pending affordance, related command controls prevent duplicate unsafe dispatch, unrelated rows/forms remain interactive, and reversible undo appears only where the UX pattern explicitly allows it. Durable projection data is not replaced by speculative state.
+Phase 1 `optimistic`: a command submission attempt by the user is the entry trigger. The UI then registers a local pending entry, the affected row or form shows a pending affordance, related command controls prevent duplicate unsafe dispatch, unrelated rows/forms remain interactive, and reversible undo appears only where the UX pattern explicitly allows it. Durable projection data is not replaced by speculative state. (The pending-entry registration is the *effect* of entering this phase; the matrix lists it as the observable signal of the transition, not as a pre-existing precondition.)
 
 Phase 2 `confirming`: the command has been acknowledged or accepted, but projection/status confirmation has not settled. The UI uses "confirming" or equivalent pending copy, preserves the user's row/form context, keeps source-of-truth projection data visually distinct from optimistic hints, and avoids whole-screen blocking for unrelated work.
 
 Phase 3 `confirmed`: projection re-query or status reconciliation confirms the matching message/correlation outcome. Pending state clears or moves to terminal summary, row/form state reflects reloaded projection/query data, feedback resolves to success, already-applied, rejected, or needs-review, and cache/projection state becomes source-of-truth again.
 
-Idempotent confirmation is separate from normal success. The UI should say the requested change was already applied or no further action is needed; it must not imply a new mutation occurred.
+Idempotent confirmation is separate from normal success and uses the canonical localization key `alreadyApplied` (informally referred to as "already-applied" or "idempotent" in narrative copy, but the key remains `alreadyApplied` everywhere it is referenced). The UI should say the requested change was already applied or no further action is needed; it must not imply a new mutation occurred. Copy follows a reduced pattern `[what was applied] + [why no further action is needed]` — distinct from the rejected/needs-review template below.
 
 Rejected and needs-review outcomes use bounded copy in the pattern `[what happened] + [why] + [what happened to the data] + [what to do]`. They must not expose raw command payloads, bearer tokens, serialized command bodies, stack traces, tenant/user production data, aggregate IDs, internal correlation IDs, raw EventStore metadata, infrastructure names, or local absolute paths unless a future support-copy policy explicitly classifies a field as safe.
 
@@ -335,9 +373,11 @@ Live-region behavior: optimistic, confirming, confirmed, and already-applied ann
 
 Reduced-motion and forced-colors behavior is required for pending/confirming indicators. No command state may rely on color alone; icons, text, shape, or semantic labels must carry the state.
 
-Localization/adopter copy must cover command names, success, idempotent/already-applied, rejected, needs-review, overflow, degraded connection, retry, requery, and "cannot confirm yet" messages. Error and degraded-state copy must be bounded, localizable, user-actionable, and free of raw command payloads, bearer tokens, serialized command bodies, stack traces, aggregate IDs, internal correlation IDs, raw EventStore metadata, and infrastructure names unless explicitly approved as safe support copy.
+Localization/adopter copy must cover command names, success, `alreadyApplied` (idempotent), rejected, needs-review, overflow, degraded connection, retry, requery, and "cannot confirm yet" messages. Error and degraded-state copy must be bounded, localizable, user-actionable, and free of raw command payloads, bearer tokens, serialized command bodies, stack traces, aggregate IDs, internal correlation IDs, raw EventStore metadata, and infrastructure names unless explicitly approved as safe support copy.
 
 ### Future Story `blockedBy` Examples
+
+The examples below reference IDs defined elsewhere in this document: `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, `FC-DOC` are defined in the Story 12.3 "Command Feedback Readiness Rows" table above. `FC-CNS` (consequence preview), `FC-LYT` (destructive layout), and `FC-AUD` (audit timeline) are defined in the Story 12.2 readiness rows earlier in this document. `FC-TOK` (status/role tokens and adopter-facing labels) is defined in the Story 12.1 catalog. Future stories should cross-reference whichever section defines a cited ID before copying the row verbatim.
 
 | Future story | Status until dependencies resolve | Required IDs |
 | --- | --- | --- |
@@ -371,7 +411,7 @@ blockedBy:
 blockedBy:
   - id: FC-DOC
     reason: Adopter-facing guidance must define command feedback states, projection/status reconciliation, degraded behavior, accessibility, localization, and fallback policy before reusable UI implementation.
-    requiredFor: command feedback documentation and future story acceptance evidence
+    requiredFor: [command feedback documentation, future story acceptance evidence]
 ```
 
 Future UI stories may proceed with existing FrontComposer evidence only for planning and read-only composition that does not dispatch commands or imply reusable command-feedback contracts. Command-capable implementation remains blocked or planning-only on `FC-CMD` and, when overlapping commands are possible, `FC-CNC`. Backend command acceptance, EventStore message IDs, and projection/query behavior are consumed evidence from completed backend work unless a later product/architecture decision explicitly changes scope.

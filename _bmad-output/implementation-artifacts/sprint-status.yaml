@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-20 (12-3 three-phase command feedback sequencing code review: 3 decisions resolved + 10 patches applied [named owners subsection, allowed transitions paragraph, retry/timeout/polling budget owners subsection, optimistic trigger reworded, FC-CNS/FC-TOK/FC-AUD/FC-LYT cross-reference note, pendingIds 26-char citation + uniqueness scope, FrontShell alias normalized, FC-DOC requiredFor structured list, alreadyApplied localization key standardized] + 1 verified false-positive + 4 deferred + 4 dismissed; story -> done)
 # last_updated: 2026-05-20 (12-3 three-phase command feedback sequencing implemented; full Debug/no-restore solution gate passed [731 passed, 5 skipped]; story -> review)
 # last_updated: 2026-05-20 (12-3 three-phase command feedback sequencing development started; story -> in-progress)
 # last_updated: 2026-05-20 (12-2 audit timeline and consequence preview readiness code review: 6 decisions resolved + 7 patches applied [FC-CNC unified across destructive blocks, FC-LYT readiness/decision rows added, blocked-vs-planning-only criterion documented, FC-AUD grouped mode marked as sub-state, needs-confirmation glossary added, sprint-status carve-out canonized, grouped-mode blockedBy destructured] + 7 deferred + 2 dismissed; story -> done)
@@ -288,6 +289,6 @@ development_status:
   epic-12: in-progress
   12-1-frontshell-dependency-map-for-tenants-ui: done
   12-2-audit-timeline-and-consequence-preview-readiness: done
-  12-3-three-phase-command-feedback-sequencing: review
+  12-3-three-phase-command-feedback-sequencing: done
   12-4-phase-2-ui-story-backlog-with-explicit-blockedby: ready-for-dev
   epic-12-retrospective: optional

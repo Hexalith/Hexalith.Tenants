@@ -1,6 +1,6 @@
 # Story 12.3: Three-Phase Command Feedback Sequencing
 
-Status: review
+Status: done
 
 Completion note: Ultimate context engine analysis completed - comprehensive developer guide created.
 
@@ -246,6 +246,30 @@ GPT-5 Codex
 
 - 2026-05-20 - Implemented Story 12.3 command-feedback sequencing readiness addendum; marked all tasks complete after documentation validation and full regression validation.
 - 2026-05-20 - Story status moved to review.
+- 2026-05-20 - Code review complete: 3 decisions resolved + 10 patches applied [named owners subsection, minimal transitions paragraph, retry/timeout/polling budget owners subsection, `optimistic` trigger reworded, `FC-CNS`/`FC-TOK`/`FC-AUD`/`FC-LYT` cross-reference note, `pendingIds` 26-char citation + soft wording + uniqueness scope, `FrontShell` alias normalized to `needs-confirmation`, `FC-DOC` `requiredFor` structured list, `alreadyApplied` localization key standardized + reduced copy template] + 1 false-positive verified (sprint-status reverse-chronology already correct per file convention) + 4 deferred + 4 dismissed.
+
+### Review Findings
+
+Decisions resolved (2026-05-20):
+- D1 "Tasks `[x]` without named owner" → resolved as **Add named owners now** (patch applied via new "Named Owners for Unresolved Readiness Rows" subsection).
+- D2 "Descriptive vs full state machine" → resolved as **Add minimal transitions paragraph** (patch applied via new "Allowed Command-State Transitions" subsection; per-transition detail remains `needs-confirmation`).
+- D3 "Retry/timeout budgets without owner" → resolved as **Single consolidated owner subsection** (patch applied via new "Retry, Timeout, and Polling Budget Owners" subsection).
+
+- [x] [Review][Patch] D1 — Add named owners for unresolved readiness rows [docs/tenants-ui-frontcomposer-dependency-map.md:Named Owners for Unresolved Readiness Rows] — added; canonical owners: FrontComposer (contract approval), Tenants Product/UX (interaction/copy/threshold), EventStore (status query contract), Tenants story author (per-row citation). [decision-derived]
+- [x] [Review][Patch] D2 — Add minimal transitions paragraph [docs/tenants-ui-frontcomposer-dependency-map.md:Allowed Command-State Transitions] — added; 10 legal transition pairs enumerated plus `needs-review` sub-state clarification; per-transition semantics remain `needs-confirmation`. [decision-derived]
+- [x] [Review][Patch] D3 — Add consolidated retry/timeout budget owners subsection [docs/tenants-ui-frontcomposer-dependency-map.md:Retry, Timeout, and Polling Budget Owners] — added; three budget categories (confirming threshold, polling/status budget, optimistic-failure retry) each name canonical owners. [decision-derived]
+- [x] [Review][Patch] `last_updated` reverse-chronology in sprint-status.yaml header — **verified, no change required**. On inspection, the existing order (review on top, in-progress below) IS reverse-chronological newest-first per the file convention (matches lines 11–13 for story 11.3 and 4–6 for story 12.2). The "implemented" event happened after "development started"; newest-on-top is correct. False positive. [blind+auditor]
+- [x] [Review][Patch] Phase 1 `optimistic` trigger contradiction resolved [docs/tenants-ui-frontcomposer-dependency-map.md:Three Command Feedback Phases] — reworded so command submission is the trigger and pending-entry registration is the observable effect. [blind]
+- [x] [Review][Patch] Cross-reference note added for `FC-CNS`/`FC-TOK`/`FC-AUD`/`FC-LYT` [docs/tenants-ui-frontcomposer-dependency-map.md:Future-Story blockedBy Examples] — added a one-line note pointing readers to Story 12.1 (FC-TOK) and Story 12.2 (FC-CNS, FC-LYT, FC-AUD) sections of this document. [blind+edge]
+- [x] [Review][Patch] `pendingIds` 26-character claim now cites source [docs/tenants-ui-frontcomposer-dependency-map.md:Terminology Alias Map pendingIds] — claim now cites `PendingCommandStateService.cs` and softens to "current checkout normalizes to 26 characters, reusable contract has not approved this shape." [edge]
+- [x] [Review][Patch] `FrontShell` alias status normalized to `needs-confirmation` [docs/tenants-ui-frontcomposer-dependency-map.md:Terminology Alias Map FrontShell] — single taxonomy value; alias-to-repository mapping is documented as a naming convention only, not a contract status. [blind+edge]
+- [x] [Review][Patch] `FC-DOC` YAML `requiredFor` converted to structured list [docs/tenants-ui-frontcomposer-dependency-map.md:Copy-Ready blockedBy Examples FC-DOC] — now `[command feedback documentation, future story acceptance evidence]`. [edge]
+- [x] [Review][Patch] Idempotent localization key standardized to `alreadyApplied` [docs/tenants-ui-frontcomposer-dependency-map.md:Three Command Feedback Phases + Batching, Localization, and Accessibility] — canonical key declared; reduced copy template `[what was applied] + [why no further action is needed]` defined; localization enumeration updated. [edge]
+- [x] [Review][Patch] Pending command identity uniqueness scope now explicit [docs/tenants-ui-frontcomposer-dependency-map.md:Terminology Alias Map pendingIds] — uniqueness scope (per-tenant, per-user, per-circuit) listed and marked `needs-confirmation` inline. [auditor]
+- [x] [Review][Defer] Transition matrix `failed` state collapses two unrelated causes [docs/tenants-ui-frontcomposer-dependency-map.md:Command State Transition Matrix failed row] — deferred, pre-existing; client dispatch failure and server authoritative rejection share one row with promised distinct retry/copy semantics. Splittable in follow-up. [blind]
+- [x] [Review][Defer] `Lost command ID` and `Browser refresh during pending` cases lack state-machine landing zone [docs/tenants-ui-frontcomposer-dependency-map.md:Degraded and Disconnected Cases] — deferred; outcome `needs-review` is not a top-level state in the matrix, only a feedback outcome. Resolves when the state machine arrows are formalized (Decision #10). [edge]
+- [x] [Review][Defer] Audit/filter row uses conditional IDs without a decision rule [docs/tenants-ui-frontcomposer-dependency-map.md:Future-Story blockedBy Examples Audit/filter row] — deferred; row says `conditional FC-CMD, FC-CNC` in prose. Splittable later into read-only filter vs destructive audit action, following Story 12.2 `FC-AUD` precedent. [edge]
+- [x] [Review][Defer] Batching guidance — per-command drill-down affordance unspecified [docs/tenants-ui-frontcomposer-dependency-map.md:Batching, Localization, and Accessibility] — deferred; principle is stated and `FC-CNC` is correctly `missing`, but the user affordance for inspecting individual items in a batched summary is not named. Story 12.4 follow-up. [auditor]
 
 ## Party-Mode Review
 

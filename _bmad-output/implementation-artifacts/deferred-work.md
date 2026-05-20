@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of 12-3-three-phase-command-feedback-sequencing (2026-05-20)
+
+- Command State Transition Matrix `failed` row collapses two unrelated causes (client-side lifecycle dispatch failure vs server-side authoritative rejection) into one entry with promised distinct retry/timeout and copy semantics. Splittable into separate rows in a follow-up readiness refinement so Story 12.4 can derive cleaner `requiredFor` lists. [docs/tenants-ui-frontcomposer-dependency-map.md]
+- `Lost command ID` and `Browser refresh during pending` degraded cases land on `needs-review`, but `needs-review` is not a top-level state in the matrix — only a feedback outcome on `confirmed`/`failed`. The state-machine landing zone resolves naturally when transition arrows are formalized (see Decision: descriptive vs full state machine). [docs/tenants-ui-frontcomposer-dependency-map.md]
+- Audit/filter `blockedBy` row uses `conditional FC-CMD, FC-CNC` in prose without a structured decision rule. Follow Story 12.2 `FC-AUD` precedent — split into a read-only filter row and a destructive audit action row, each with explicit conditions and a named decision owner. [docs/tenants-ui-frontcomposer-dependency-map.md]
+- Batching guidance asserts per-command traceability but does not name the user affordance (drill-down, focus target, ARIA pattern, or reference component) for inspecting individual items within a batched summary. Appropriate deferral while `FC-CNC` readiness is `missing`; Story 12.4 should re-open when toast batching contract is approved. [docs/tenants-ui-frontcomposer-dependency-map.md]
+
 ## Deferred from: code review of 12-2-audit-timeline-and-consequence-preview-readiness (2026-05-20)
 
 - `evidence: missing` syntax is overloaded: used as a whole-row status sentinel in some rows (e.g. `FC-AUD`, `FC-CNS`) and as an inline annotation inside a path list in others (e.g. `FC-CNC` row reads `Hexalith.FrontComposer/src/.../PendingCommands; evidence: missing for toast batching`). Mechanical readers can't distinguish. Define a single syntax in Story 12.1's catalog conventions. [docs/tenants-ui-frontcomposer-dependency-map.md]
