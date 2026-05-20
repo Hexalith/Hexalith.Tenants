@@ -63,6 +63,7 @@ samples/
 
 docs/
   quickstart.md                      # Getting started guide
+  production-auth-claim-contract.md  # Production IdP claim mapping contract
   demo.md                            # "Aha Moment" demo walkthrough
   event-contract-reference.md        # Event schemas and audit patterns
   idempotent-event-processing.md     # Event handling patterns

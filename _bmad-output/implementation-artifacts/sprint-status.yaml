@@ -1,5 +1,8 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-19 (11-2 EventStore tenant claim contract implemented; full Debug/no-restore solution gate passed [682 passed, 1 skipped]; story -> review)
+# last_updated: 2026-05-19 (Epic 10 retrospective completed; epic-10-retrospective -> done)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation code review: 0 decisions + 1 patch applied [env-var test xUnit isolation] + 4 deferred + ~17 dismissed; Server.Tests gate 438/438; story -> done)
+# last_updated: 2026-05-19 (11-2 EventStore tenant claim contract development started; story -> in-progress)
 # last_updated: 2026-05-19 (12-4 phase 2 UI story backlog with explicit blockedBy story context created; story -> ready-for-dev)
 # last_updated: 2026-05-19 (10-4 projection write conformance code review: 5 decisions resolved + 12 patches applied + 9 deferred + 12 dismissed; ApplyIndexEvent reverted to private; fixture rewritten to drive through ProjectAsync; structured logger capture for R-007; fail-fast AC10 enforcement via MarkTerminalFailure; full Debug/no-restore solution gate passed [660 passed, 1 skipped]; story -> done)
 # last_updated: 2026-05-19 (11-1 production JWT configuration validation implemented; full Debug/no-restore solution gate passed [655 passed, 1 skipped]; story -> review)
@@ -259,12 +262,12 @@ development_status:
   10-3a-eventstore-projection-cancellation-api-prerequisite: done
   10-3b-cancellation-token-threading-for-tenant-projection-queries: done
   10-4-projection-write-conformance-and-recovery-tests: done
-  epic-10-retrospective: optional
+  epic-10-retrospective: done
 
   # Epic 11: Production Authorization Readiness
   epic-11: in-progress
   11-1-production-jwt-configuration-validation: done
-  11-2-eventstore-tenant-claim-contract: ready-for-dev
+  11-2-eventstore-tenant-claim-contract: review
   11-3-deployment-auth-readiness-documentation-and-smoke-tests: ready-for-dev
   epic-11-retrospective: optional
 

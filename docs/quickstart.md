@@ -125,7 +125,7 @@ echo "$header.$payload.$sig"
 
 Copy the output token — you need it in the next step.
 
-> **How it works:** The development configuration (`appsettings.Development.json`) uses a hardcoded HMAC-SHA256 signing key with issuer `hexalith-dev` and audience `hexalith-tenants`. The `tenants: ["system"]` claim authorizes commands targeting the `system` tenant. This token is valid for 8 hours.
+> **How it works:** The development configuration (`appsettings.Development.json`) uses a hardcoded HMAC-SHA256 signing key with issuer `hexalith-dev` and audience `hexalith-tenants`. The `tenants: ["system"]` value is a source claim that EventStore normalizes into the downstream `eventstore:tenant=system` claim required for tenant-management commands. This token is valid for 8 hours. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
 
 ## Send Your First Commands
 
@@ -314,3 +314,4 @@ git config --system core.longpaths true
 | `GlobalAdminAlreadyBootstrapped` | Bootstrap already ran        | Safe to proceed — the admin exists           |
 | `TenantAlreadyExists`            | Tenant ID already used       | Use a different `aggregateId` and `TenantId` |
 | `401 Unauthorized`               | JWT token expired or invalid | Re-generate the token using the script above |
+| `403 Forbidden`                  | Token lacks the effective `eventstore:tenant=system` authorization | Confirm the token has `tenants: ["system"]` locally or a production mapping that normalizes to `eventstore:tenant=system` |

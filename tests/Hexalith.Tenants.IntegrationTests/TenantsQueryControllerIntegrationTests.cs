@@ -67,6 +67,105 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
+    public async Task ListTenants_returns_200_when_jwt_uses_tenants_json_array_source_claim() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        IQueryRouter router = CreateRouter(
+            "list-tenants",
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        string token = CreateJwt(
+            "admin-user",
+            claims: [new Claim("tenants", JsonSerializer.Serialize(new[] { "system" }))]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        _ = await router.Received(1).RouteQueryAsync(
+            Arg.Is<SubmitQuery>(q => q != null && q.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_200_when_jwt_uses_tenants_space_delimited_source_claim() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        IQueryRouter router = CreateRouter(
+            "list-tenants",
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        string token = CreateJwt("admin-user", claims: [new Claim("tenants", "system tenant-a")]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        _ = await router.Received(1).RouteQueryAsync(
+            Arg.Is<SubmitQuery>(q => q != null && q.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_403_when_jwt_tenant_claim_is_missing() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        string token = CreateJwt("admin-user", claims: Array.Empty<Claim>());
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(403);
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_403_when_direct_eventstore_tenant_claim_is_blank_even_with_source_alias() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        string token = CreateJwt(
+            "admin-user",
+            claims:
+            [
+                new Claim("eventstore:tenant", " "),
+                new Claim("tenants", JsonSerializer.Serialize(new[] { "system" })),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_403_when_jwt_tenant_claim_targets_another_tenant() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", "tenant-a")]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant_mismatch");
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
     public async Task GetTenant_returns_401_when_authorization_header_is_missing() {
         IQueryRouter router = CreateRouter(
             "get-tenant",
@@ -330,17 +429,22 @@ public class TenantsQueryControllerIntegrationTests {
         string? issuer = null,
         string? audience = null,
         string? signingKey = null,
-        DateTime? expires = null) {
+        DateTime? expires = null,
+        IEnumerable<Claim>? claims = null) {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey ?? JwtSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var tokenClaims = new List<Claim> { new("sub", userId) };
+        if (claims is null) {
+            tokenClaims.Add(new Claim("eventstore:tenant", "system"));
+        }
+        else {
+            tokenClaims.AddRange(claims);
+        }
+
         var token = new JwtSecurityToken(
             issuer: issuer ?? JwtIssuer,
             audience: audience ?? JwtAudience,
-            claims:
-            [
-                new Claim("sub", userId),
-                new Claim("eventstore:tenant", "system"),
-            ],
+            claims: tokenClaims,
             expires: expires ?? DateTime.UtcNow.AddMinutes(5),
             signingCredentials: credentials);
 

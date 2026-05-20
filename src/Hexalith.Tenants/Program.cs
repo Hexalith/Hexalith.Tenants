@@ -3,12 +3,15 @@ using Dapr.Client;
 using FluentValidation;
 
 using Hexalith.EventStore.Authentication;
+using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
+using Hexalith.EventStore.Contracts.Authorization;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.EventStore.ErrorHandling;
 using Hexalith.EventStore.Middleware;
+using Hexalith.EventStore.Pipeline;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Pipeline;
 using Hexalith.EventStore.Server.Queries;
@@ -24,6 +27,7 @@ using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
 using Hexalith.Tenants.Validation;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -61,9 +65,13 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDataProtection()
     .SetApplicationName("Hexalith.Tenants");
 
-// MediatR pipeline — registers SubmitQueryHandler and SubmitCommandHandler for controller dispatch
-builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssemblyContaining<SubmitQueryHandler>());
+// MediatR pipeline - registers SubmitQueryHandler and SubmitCommandHandler for controller dispatch.
+// Authorization stays narrow: Tenants uses EventStore claim/RBAC validation without registering
+// the full EventStore server extension or its rate limiter.
+builder.Services.AddMediatR(cfg => {
+    _ = cfg.RegisterServicesFromAssemblyContaining<SubmitQueryHandler>();
+    _ = cfg.AddOpenBehavior(typeof(AuthorizationBehavior<,>));
+});
 
 // Query/command routing defaults (tests may override via RemoveAll + AddSingleton)
 builder.Services.TryAddScoped<IQueryRouter, QueryRouter>();
@@ -79,6 +87,8 @@ builder.Services.Configure<CommandStatusOptions>(
     builder.Configuration.GetSection("EventStore:CommandStatus"));
 builder.Services.TryAddSingleton<ICommandStatusStore, DaprCommandStatusStore>();
 builder.Services.TryAddSingleton<ICommandArchiveStore, DaprCommandArchiveStore>();
+builder.Services.TryAddScoped<ITenantValidator, ClaimsTenantValidator>();
+builder.Services.TryAddScoped<IRbacValidator, ClaimsRbacValidator>();
 
 // ExtensionMetadataSanitizer required by CommandsController
 builder.Services.Configure<ExtensionMetadataOptions>(
@@ -92,11 +102,15 @@ builder.Services.AddOptions<EventStoreAuthenticationOptions>()
 builder.Services.TryAddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateEventStoreAuthenticationOptions>();
 builder.Services.AddSingleton<IValidateOptions<EventStoreAuthenticationOptions>, ValidateTenantProductionAuthenticationOptions>();
 builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureJwtBearerOptions>();
+builder.Services.AddTransient<IClaimsTransformation, EventStoreClaimsTransformation>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 builder.Services.AddAuthorization();
 
 // Exception handlers — map domain exceptions to RFC 7807 HTTP responses (order: specific before generic)
+builder.Services.AddExceptionHandler<AuthorizationServiceUnavailableHandler>();
+builder.Services.AddExceptionHandler<AuthorizationExceptionHandler>();
 builder.Services.AddExceptionHandler<DomainCommandRejectedExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryNotFoundExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryExecutionFailedExceptionHandler>();
