@@ -1,5 +1,9 @@
 # Deferred Work
 
+## Deferred from: code review of 12-1-frontshell-dependency-map-for-tenants-ui (2026-05-20)
+
+- Story key/filename uses legacy `frontshell` terminology that the dependency map artifact explicitly retires. The story key `12-1-frontshell-dependency-map-for-tenants-ui` and the matching sprint-status.yaml key were created before the artifact established `Hexalith.FrontComposer` as the current source name and `FrontShell` as a UX alias only. Renaming would propagate through `_bmad-output/implementation-artifacts/sprint-status.yaml`, BMAD tooling references, and downstream Story 12.4 backlog citations; out of scope for this review. — pre-existing naming drift; revisit during Phase 2 UI story drafting (Story 12.4).
+
 ## Deferred from: code review of 11-3-deployment-auth-readiness-documentation-and-smoke-tests (2026-05-20)
 
 - `/process` endpoint authentication behavior is not pinned by any test. The route is currently not mapped with `RequireAuthorization()` so it accepts anonymous requests, but no test locks "anonymous accepted" or "auth required". A future patch that adds `RequireAuthorization()` to `/process` would break the DAPR `AggregateActor → CommandApi` callback contract silently. [tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs:44-71] — pre-existing test-infrastructure gap; defer to a `/process` authorization-contract story.

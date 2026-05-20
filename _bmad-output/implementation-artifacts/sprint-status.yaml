@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-20 (12-1 FrontShell dependency map for Tenants UI code review: 3 decisions resolved + 3 patches applied [Tenant List FC-CNS addition, User Search FC-CNC + workflow expansion, FC-A11Y/FC-L10N catalog wording softened] + 1 deferred [legacy frontshell story-key naming] + 19 dismissed; story -> done)
 # last_updated: 2026-05-20 (Epic 11 retrospective completed; epic-11-retrospective -> done)
 # last_updated: 2026-05-20 (12-1 FrontShell dependency map for Tenants UI implemented; documentation validation passed; story -> review)
 # last_updated: 2026-05-20 (12-1 FrontShell dependency map for Tenants UI development started; story -> in-progress)
@@ -280,7 +281,7 @@ development_status:
 
   # Epic 12: Phase 2 Admin UI Dependency Sequencing
   epic-12: in-progress
-  12-1-frontshell-dependency-map-for-tenants-ui: review
+  12-1-frontshell-dependency-map-for-tenants-ui: done
   12-2-audit-timeline-and-consequence-preview-readiness: ready-for-dev
   12-3-three-phase-command-feedback-sequencing: ready-for-dev
   12-4-phase-2-ui-story-backlog-with-explicit-blockedby: ready-for-dev
