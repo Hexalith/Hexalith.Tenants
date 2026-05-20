@@ -22,6 +22,7 @@ so that I can trust whether tenant changes have been accepted, projected, and re
 8. Given current FrontComposer evidence is source-backed but not necessarily an approved reusable Tenants UI contract, when readiness is recorded, then each dependency separates verified checkout evidence from reusable API readiness, owner decision, fallback policy, and Phase 1 blocker status.
 9. Given future Phase 2 UI stories consume this sequencing work, when the output is complete, then those stories can copy exact `blockedBy` values, three-phase state requirements, degradation thresholds, and fallback decisions without re-reading the UX specification.
 10. Given Epic 12 is Phase 2 planning/readiness scope, when this story is implemented, then no backend endpoint, command/query contract, package version, source code, submodule pointer, or Phase 1 release gate is changed by this story.
+11. Given command-feedback readiness is documented, when the artifact is reviewed, then it includes reviewable tables for dependency readiness, terminology aliases, and command-state transitions, with checkout-specific evidence separated from reusable Tenants Admin UI API readiness.
 
 ## Tasks / Subtasks
 
@@ -30,25 +31,31 @@ so that I can trust whether tenant changes have been accepted, projected, and re
   - [ ] Reuse Story 12.1 readiness values: `available`, `needs-confirmation`, `missing`, `planned`, or `approved-fallback`; do not introduce a parallel taxonomy.
   - [ ] Reuse stable dependency IDs instead of prose-only blockers: `FC-CMD` for command lifecycle and pending identity, `FC-CNC` for concurrent command/toast batching, `FC-A11Y` for accessibility behavior, `FC-L10N` for localized/adopter-facing copy, and `FC-DOC` for documentation/reference evidence.
   - [ ] Include dependency ID, UX alias, current FrontComposer source path if verified, owner, expected deliverable, readiness, fallback/blocking policy, evidence, and Phase 1 blocker status for every readiness row.
+  - [ ] Include a reviewable dependency table with columns for dependency ID, capability, required future UI stories, current checkout evidence, reusable Tenants Admin UI contract readiness, known gap, and copy-ready `blockedBy` example.
+  - [ ] Add a `Checkout Evidence vs Reusable API Readiness` section stating that verified FrontComposer services/components are evidence only unless the reusable Admin UI contract is explicitly documented as ready.
   - [ ] Mark this story as Phase 2 planning/readiness only; do not implement Tenants UI screens, FrontComposer components, or backend endpoints.
 - [ ] Define the three command-feedback phases. (AC: 2, 3, 4, 6)
   - [ ] Define Phase 1 `optimistic`: local pending entry registered, affected row/form shows pending affordance, action remains reversible only where the UX pattern allows it, and unrelated rows/forms stay interactive.
   - [ ] Define Phase 2 `confirming`: command accepted/acknowledged but projection has not settled; UI shows "confirming" or equivalent pending copy, preserves user context, and avoids replacing source-of-truth projection data with speculative durable state.
   - [ ] Define Phase 3 `confirmed`: projection re-query or status reconciliation confirms the matching message/correlation, pending state clears, row/form state reflects projection data, and feedback becomes success/already-applied/rejected/needs-review as appropriate.
+  - [ ] Include a transition matrix for `optimistic`, `confirming`, `confirmed`, `failed`, and `degraded/reconciling` with trigger, visible feedback, retry/timeout behavior, accessibility announcement, localization key, and data/projection source.
   - [ ] Define idempotent confirmation behavior separately from normal success so "already applied" outcomes do not imply a new mutation occurred.
   - [ ] Define rejected and needs-review outcomes with bounded, user-safe copy that explains what failed, why, and what happened to the data without exposing raw command payloads, tokens, tenant/user identifiers, stack traces, or internal IDs.
 - [ ] Map current FrontComposer evidence to readiness decisions. (AC: 1, 3, 4, 6, 8)
   - [ ] Verify current source evidence before claiming readiness. Relevant paths include `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/State/PendingCommands`, `Services/Feedback`, `Infrastructure/EventStore`, `Components/EventStore`, `Components/Lifecycle`, and `Components/Rendering`.
   - [ ] Treat React-style UX terms such as `useCommand`, `pendingIds`, and `pendingOperations` as aliases until mapped to current Blazor/FrontComposer pending-command, lifecycle, feedback, and projection-notification services.
+  - [ ] Add a terminology alias table mapping `useCommand`, `pendingIds`, `pendingOperations`, `FrontShell`, and `projection confirmation` to current Hexalith concepts or an explicit unresolved owner; unmapped UX aliases must not be used as implementation contracts.
   - [ ] Record `FC-CMD` readiness for pending command identity, lifecycle states, accepted/terminal outcomes, idempotent confirmation, rejection, needs-review, and scope flush behavior.
   - [ ] Record `FC-CNC` readiness for multiple concurrent commands, bounded pending-entry caps, burst confirmations, duplicate observations, overflow/summary behavior, and toast batching or equivalent feedback consolidation.
   - [ ] Record projection confirmation readiness against EventStore REST commands/queries plus SignalR projection nudges; SignalR is a nudge to re-query, not source-of-truth projection data.
+  - [ ] State that SignalR projection events may nudge the UI to re-query projection/status state, but do not by themselves confirm command completion, business success, or projection consistency.
   - [ ] If a current path is adjacent evidence only, mark it as `needs-confirmation` instead of `available` and name FrontComposer as the owner of reusable API/contract readiness.
 - [ ] Define degraded and disconnected behavior. (AC: 4, 8, 9)
   - [ ] Define the expected confirmation threshold or owner for choosing it. If no threshold is approved, record `needs-confirmation` with Product/UX and FrontComposer ownership rather than inventing one.
-  - [ ] Define behavior for SignalR disconnected, delayed, duplicate, unknown-message, invalid-message, polling-status unavailable, and lifecycle-dispatch-failed cases.
+  - [ ] Define behavior for SignalR disconnected, delayed, duplicate, out-of-order, stale-confirmation, unknown-message, invalid-message, lost-command-id, browser-refresh-during-pending, polling-status unavailable, command-failure-after-optimistic-update, and lifecycle-dispatch-failed cases.
   - [ ] Preserve action context during degradation: keep the affected row/form visible where possible, expose pending/needs-review state, allow safe re-query, and avoid hiding unresolved mutations behind generic toast copy.
   - [ ] Specify that fallback polling/status lookup is bounded and evidence-safe; do not log raw payloads or expose local absolute paths, bearer tokens, tenant/user production data, or unbounded transport details.
+  - [ ] Require degraded-mode copy to say status is refreshing or cannot be confirmed yet without implying data loss or command failure unless the authoritative status source confirms failure.
   - [ ] State what future UI stories should do when `FC-CMD` or `FC-CNC` is unresolved: block, remain planning-only, or use an explicitly approved fallback with named owner.
 - [ ] Define batching, localization, and accessibility requirements. (AC: 2, 3, 5, 7)
   - [ ] Define burst behavior for multiple command outcomes: consolidate feedback by operation type, row/entity scope, or summary count without losing individual rejected/needs-review details.
@@ -56,18 +63,22 @@ so that I can trust whether tenant changes have been accepted, projected, and re
   - [ ] Define live-region behavior: optimistic/confirming/confirmed announcements should be polite; connection/degraded warnings may be assertive when they affect trust or unresolved actions.
   - [ ] Define reduced-motion and forced-colors behavior for pending/confirming indicators; no command state may rely on color alone.
   - [ ] Define localization/adopter copy requirements for command names, success, idempotent, rejected, needs-review, overflow, and degraded-connection messages.
+  - [ ] Require error and degraded-state copy to be bounded, localized, user-actionable, and free of command payloads, bearer tokens, serialized command bodies, stack traces, aggregate IDs, internal correlation IDs, raw EventStore metadata, and infrastructure names unless explicitly classified as safe support copy.
   - [ ] Define component documentation/reference evidence expectations without claiming Storybook or equivalent docs exist unless a real path is found.
 - [ ] Capture future-story `blockedBy` examples. (AC: 1, 7, 9)
   - [ ] Provide exact `blockedBy` examples for Create Tenant, Edit Tenant, Disable Tenant, Add User, Remove User, Change Role, Set/Remove Configuration, Set/Remove Global Administrator, and Audit/filter commands if applicable.
   - [ ] For each example, list required IDs separately, such as `blockedBy: [FC-CMD, FC-CNC, FC-A11Y, FC-L10N]`, rather than using broad screen-level blockers.
+  - [ ] Include copy-ready YAML examples for `FC-CMD`, `FC-CNC`, and `FC-DOC` that name the reason and `requiredFor` states so future stories do not need to infer blocker language.
   - [ ] State which future stories can proceed with existing FrontComposer evidence, which remain blocked, and which require approved fallback decisions.
   - [ ] Make clear that backend command acceptance, EventStore message IDs, and projection/query behavior are consumed evidence from completed backend work unless a later product/architecture decision explicitly changes scope.
 - [ ] Validate and record implementation evidence. (AC: 1-10)
   - [ ] Confirm every readiness row has owner, readiness, expected deliverable, evidence, fallback/blocking policy, and Phase 1 blocker status.
+  - [ ] Confirm each readiness row has status, checkout-specific evidence, reusable API readiness, blockedBy example, and future UI story usage.
   - [ ] Confirm the three phases define UI state, projection/data behavior, accessibility, localization/copy, degraded behavior, and terminal outcomes.
   - [ ] Confirm current FrontComposer paths are cited as repo-relative evidence and not confused with approved Tenants UI API contracts.
   - [ ] Confirm the output can be consumed by Story 12.4 to create Phase 2 UI stories with explicit `blockedBy` values.
-  - [ ] Confirm no source code, package versions, submodule pointers, backend contracts, or Phase 1 backend scope changed.
+  - [ ] Confirm validation is docs-only and no backend endpoints, source code, package references, generated UI files, submodule pointers, backend contracts, or Phase 1 backend scope changed.
+  - [ ] Confirm party-mode review evidence is dated and that any recommendation to run advanced elicitation is recorded only as a follow-up, not as completed elicitation evidence.
   - [ ] Record created/updated files and unresolved decisions in this story's Dev Agent Record.
 
 ## Dev Notes
@@ -89,6 +100,35 @@ so that I can trust whether tenant changes have been accepted, projected, and re
   - `FC-L10N`: localizable command names, outcome copy, degraded copy, and adopter-facing terminology.
   - `FC-DOC`: Storybook or equivalent component/reference documentation evidence.
 - Use current repository terminology. The UX spec says `FrontShell`, `@hexalith/ui`, and `useCommand`; the checked-out implementation evidence is `Hexalith.FrontComposer`, Blazor/Fluent UI, Fluxor, and EventStore integration. Treat UX names as aliases until verified. [Source: `Hexalith.FrontComposer/_bmad-output/project-context.md`]
+
+### Party-Mode Review Hardening Requirements
+
+- Checkout-specific FrontComposer evidence must remain separate from reusable Tenants Admin UI API readiness. Evidence from pending-command services, feedback components, or projection notifiers does not approve a reusable contract unless the readiness table names the current concept/API, intended reusable contract, readiness status, owner, evidence source, known gap, fallback behavior, and exact `blockedBy` value.
+- The dependency readiness artifact must include a table covering at least `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`, plus pending command identity, concurrent command support, projection reconciliation, and feedback batching. Each row must include future UI story usage and a copy-ready blocker example.
+- The pending command identity contract must identify correlation key shape, uniqueness scope, lifecycle ownership, retry/timeout behavior, and whether a future UI story may persist or compare pending IDs. Do not invent new backend IDs or imply a backend contract change.
+- The terminology alias map must include `useCommand`, `pendingIds`, `pendingOperations`, `FrontShell`, and `projection confirmation`. Each alias must map to a current Hexalith.FrontComposer Blazor/Fluxor/EventStore concept or be marked unresolved with an owner; aliases alone are not implementation contracts.
+- SignalR events may nudge the UI to re-query projection or command-status state. They do not, by themselves, confirm command completion, business success, or projection consistency. The output must distinguish command accepted, projection refreshed, and business outcome confirmed.
+- Batching guidance must preserve per-command traceability, partial success or failure details, accessible announcement order, and localization-ready summary/detail copy. Batched feedback must not hide rejected or needs-review outcomes.
+- User-visible error and degraded-mode copy must be bounded, localizable, and safe for adopters. It must not expose command payloads, bearer tokens, serialized command bodies, stack traces, tenant/user production data, aggregate IDs, internal correlation IDs, raw EventStore metadata, or infrastructure names unless explicitly classified as safe support copy.
+
+#### Copy-Ready `blockedBy` Examples
+
+```yaml
+blockedBy:
+  - id: FC-CMD
+    reason: Tenants Admin UI requires a stable pending command identity contract before implementing optimistic command feedback.
+    requiredFor: optimistic, confirming, confirmed state sequencing
+
+blockedBy:
+  - id: FC-CNC
+    reason: Concurrent commands must expose distinct pending identities so overlapping tenant operations cannot overwrite feedback state.
+    requiredFor: concurrent command support and feedback batching
+
+blockedBy:
+  - id: FC-DOC
+    reason: Adopter-facing guidance must define degraded SignalR/status reconciliation behavior before UI implementation.
+    requiredFor: projection confirmation and fallback copy
+```
 
 ### Three-Phase Command Feedback Model
 
@@ -134,14 +174,17 @@ so that I can trust whether tenant changes have been accepted, projected, and re
 - No source-code test suite is required if implementation creates or updates documentation only.
 - Validate by manual checklist:
   - `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` have readiness, owner, evidence, expected deliverable, fallback/blocking policy, and Phase 1 blocker status.
+  - Dependency readiness rows separate checkout-specific evidence from reusable Admin UI API readiness and include current evidence, known gap, future UI usage, and copy-ready `blockedBy` examples.
+  - Terminology aliases are mapped to current Hexalith concepts or unresolved owners before being used as acceptance criteria.
   - The three phases define local pending state, command acceptance, projection re-query/confirmation, terminal outcomes, idempotency, rejection, and needs-review handling.
-  - Degraded behavior covers SignalR disconnected/delayed, unknown/duplicate message IDs, polling unavailable, lifecycle dispatch failure, and unresolved pending commands.
+  - Degraded behavior covers SignalR disconnected/delayed, stale projection confirmation, duplicate/out-of-order status updates, lost command IDs, browser refresh during pending state, command failure after optimistic UI, unknown/duplicate message IDs, polling unavailable, lifecycle dispatch failure, and unresolved pending commands.
   - Burst outcomes define consolidated feedback without hiding individual rejected or needs-review outcomes.
-  - Accessibility covers keyboard, focus, live regions, reduced motion, forced colors, and no color-only state.
+  - Accessibility covers keyboard path, focus restoration, live-region updates for each command-state transition, reduced motion, forced colors, and no color-only state.
   - Localization/adopter copy covers command names, success, idempotent, rejected, needs-review, overflow, and degraded connection messages.
   - Future UI stories can copy exact `blockedBy` examples and do not rely on narrative prose.
   - Current FrontComposer source paths are repo-relative evidence and are not overclaimed as approved Tenants UI contracts.
-  - No source code, package versions, submodule pointers, backend contracts, or Phase 1 backend scope changed.
+  - No backend endpoints, source code, package references, generated UI files, package versions, submodule pointers, backend contracts, or Phase 1 backend scope changed.
+  - Advanced elicitation, if recommended, is listed as a follow-up and not counted as completed evidence unless a separate dated advanced-elicitation trace exists.
 
 ### Previous Story Intelligence
 
@@ -171,3 +214,25 @@ GPT-5 Codex
 ### Completion Notes List
 
 ### File List
+
+## Party-Mode Review
+
+- ISO date and time: 2026-05-20T10:12:27+02:00
+- Selected story key: `12-3-three-phase-command-feedback-sequencing`
+- Command/skill invocation used: `/bmad-party-mode 12-3-three-phase-command-feedback-sequencing; review;`
+- Participating BMAD agents: Winston (System Architect), Amelia (Senior Software Engineer), Murat (Master Test Architect and Quality Advisor), Paige (Technical Writer)
+- Findings summary:
+  - Dependency readiness needed objective tables so acceptance is reviewable without code.
+  - Checkout-specific FrontComposer evidence needed a stronger boundary from reusable Tenants Admin UI API readiness.
+  - SignalR wording needed to prevent false command-completion or projection-consistency semantics.
+  - Degraded reconciliation needed explicit disconnected, stale, duplicate, lost-ID, browser-refresh, and optimistic-failure cases.
+  - Accessibility, localization, and adopter-facing copy needed concrete gates rather than umbrella wording.
+  - Future UI stories needed copy-ready `blockedBy` examples and alias mapping to avoid inference.
+- Changes applied:
+  - Added AC 11 requiring reviewable readiness, alias, and transition tables.
+  - Added task requirements for dependency/readiness tables, checkout evidence versus reusable API readiness, command-state transition matrices, alias mapping, SignalR semantics, degraded-mode cases, safe error copy, and copy-ready blockers.
+  - Added `Party-Mode Review Hardening Requirements` with evidence boundary, pending identity, SignalR, batching, and safe-copy guardrails.
+  - Expanded docs-only validation checklist for readiness rows, alias mapping, degraded cases, accessibility, localization, no-scope-change verification, and elicitation trace separation.
+- Findings deferred:
+  - Run advanced elicitation as a separate pre-dev hardening operation after this party-mode trace; do not count this recommendation as completed elicitation.
+- Final recommendation: ready-for-dev after applied clarifications.
