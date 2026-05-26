@@ -330,7 +330,7 @@ result.Events.Count.ShouldBe(0);
 - Serialization round-trip test uses reflection to auto-discover ALL `IEventPayload` types — new `LastGlobalAdministratorRejection` will be covered automatically
 - Naming convention tests are whitelist-based — `LastGlobalAdministratorRejection` ends with `Rejection` so it passes the rejection suffix test
 - The `NamingConventionTests` also verifies all event types have `TenantId` property of type `string` — `LastGlobalAdministratorRejection` includes `TenantId` as first parameter so it passes
-- `.editorconfig` enforces: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indent
+- `.editorconfig` enforces: file-scoped namespaces, K&R braces, `_camelCase` private fields, 4-space indent
 - `TreatWarningsAsErrors = true` — all warnings are build failures
 
 **Story 2.1 Learnings:**
@@ -360,7 +360,7 @@ result.Events.Count.ShouldBe(0);
 ### References
 
 - [Source: _bmad-output/planning-artifacts/epics.md#Story 2.2] — Story definition, ACs, implementation blueprint
-- [Source: _bmad-output/planning-artifacts/architecture.md#Aggregate Boundaries] — GlobalAdministratorAggregate is singleton, platform-level
+- [Source: _bmad-output/planning-artifacts/architecture.md#Aggregate Boundaries] — GlobalAdministratorsAggregate is singleton, platform-level
 - [Source: _bmad-output/planning-artifacts/architecture.md#Process Patterns] — Handle/Apply implementation patterns, three-outcome model
 - [Source: _bmad-output/planning-artifacts/architecture.md#D10 Testing Blueprint] — ProcessAsync + CommandEnvelope test pattern
 - [Source: _bmad-output/planning-artifacts/architecture.md#Error Handling] — DomainResult.Rejection() pattern, no domain exceptions
@@ -380,7 +380,7 @@ Claude Opus 4.6 (1M context)
 ### Debug Log References
 
 - CA1062 null validation errors on Handle/Apply methods — resolved by adding `ArgumentNullException.ThrowIfNull()` calls (required because `TreatWarningsAsErrors = true`)
-- DAPR 1.17.3 upgrade introduced transitive dependency on `Microsoft.Extensions.Configuration.Binder >= 10.0.3` — resolved by updating from `10.0.0` to `10.0.3` in `Directory.Packages.props`
+- DAPR 1.17.9 upgrade introduced transitive dependency on `Microsoft.Extensions.Configuration.Binder >= 10.0.3` — resolved by updating from `10.0.0` to `10.0.3` in `Directory.Packages.props`
 
 ### Completion Notes List
 

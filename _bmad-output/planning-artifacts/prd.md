@@ -453,7 +453,7 @@ samples/
 
 ### Code Style & Conventions
 
-Inherited from EventStore's `.editorconfig`: file-scoped namespaces, Allman braces, `_camelCase` private fields, `I` prefix for interfaces, `Async` suffix for async methods, 4-space indentation, CRLF, UTF-8, warnings as errors.
+Follow the current Hexalith.Tenants `.editorconfig` and project context: file-scoped namespaces, K&R brace style in Tenants code, `_camelCase` private fields, `I` prefix for interfaces, `Async` suffix for async methods, 4-space indentation, CRLF, UTF-8, nullable references, and warnings as errors.
 
 ### Documentation Strategy
 
@@ -462,7 +462,7 @@ Following EventStore's approach: README.md with quickstart demo GIF and badges, 
 ### CI/CD Pipeline
 
 - **CI:** GitHub Actions on push/PR to main — restore, build (Release), Tier 1+2 tests, optional Tier 3
-- **Release:** Triggered by `v*` tags — full test suite, pack, validate 5 packages, push to NuGet.org
+- **Release:** Triggered on merge to `main` through semantic-release — determines SemVer from Conventional Commits, runs tests, packs and validates 5 packages, publishes to NuGet.org, creates a GitHub Release, and updates CHANGELOG.md
 - **Branch naming:** `feat/<description>`, `fix/<description>`, `docs/<description>`
 
 ### Key Dependencies
@@ -620,4 +620,4 @@ The tenant service owns a centralized read model projection for tenant discovery
 
 ### Accessibility & Internationalization
 
-- NFR24: MVP error messages and documentation are English-only. Phase 2 Admin UI must address WCAG 2.1 AA accessibility and i18n considerations as part of its requirements scoping
+- NFR24: MVP error messages and documentation are English-only. Phase 2 Admin UI accessibility baseline is WCAG 2.1 AA, with WCAG 2.2 AA as the design and implementation target where supported by the selected Fluent UI Blazor and FrontComposer stack. Phase 2 UI must address i18n considerations as part of its requirements scoping

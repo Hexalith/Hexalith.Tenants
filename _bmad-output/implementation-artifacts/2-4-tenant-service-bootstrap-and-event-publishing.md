@@ -26,7 +26,7 @@ So that the tenant service is operational end-to-end from command to event distr
 
 4. **Given** a command is successfully processed by an aggregate
    **When** domain events are produced
-   **Then** events are published to DAPR pub/sub topic `system.tenants.events` as CloudEvents 1.0
+   **Then** events are published to DAPR pub/sub topic `tenants.events` as CloudEvents 1.0
 
 5. **Given** DAPR pub/sub is temporarily unavailable
    **When** a command is processed
@@ -245,7 +245,7 @@ With this reference, the Tenants Hexalith.Tenants' existing NuGet packages (Medi
 Event publishing is handled automatically by the EventStore framework in Step 5 of the AggregateActor pipeline:
 
 - Events are persisted to DAPR state store atomically
-- Events are published to DAPR pub/sub topic `{tenant}.{domain}.events` → `system.tenants.events`
+- Events are published to DAPR pub/sub topic `{tenant}.{domain}.events` → `tenants.events`
 - CloudEvents 1.0 format is enforced by `EventPublisher` (EventStore.Server)
 - If pub/sub fails, events are still persisted (event store is source of truth) and a drain reminder is set for recovery
 
@@ -393,7 +393,7 @@ Claude Opus 4.6 (1M context)
 - **Task 2**: Created `TenantBootstrapOptions` record in `Configuration/` folder. Created `TenantBootstrapHostedService` in `Bootstrap/` folder using source-generated logging (partial class with LoggerMessage attributes). Service now reads command status after MediatR submission so `GlobalAdminAlreadyBootstrappedRejection` is logged at Information level with "Global administrator already bootstrapped, skipping".
 - **Task 3**: Completed as part of Task 1.3 — all config sections present in appsettings.json. Static domain service registration now uses the JSON-safe key `system|tenants|v1` and routes to `/process`.
 - **Task 4**: Added runtime integration coverage for `/process` dispatch and RFC 7807 domain rejection responses. Aggregate `ProcessAsync` tests remain in place. Added full DAPR slim-init Tier 2 end-to-end suite: `TenantsDaprTestFixture` starts Hexalith.Tenants with real aggregates and a local daprd sidecar (Redis state store, pub/sub, placement). 5 tests cover CreateTenant, DisableTenant, EnableTenant, BootstrapGlobalAdmin (success + duplicate rejection) through the full DAPR actor pipeline with event publication verification.
-- **Review Fixes (AI)**: Added `/process` and `/process-command` domain-service endpoints, added domain rejection Problem Details handling in the EventStore command pipeline, and aligned story/config documentation with the actual `system.tenants.events` topic convention.
+- **Review Fixes (AI)**: Added `/process` and `/process-command` domain-service endpoints, added domain rejection Problem Details handling in the EventStore command pipeline, and aligned story/config documentation with the actual `tenants.events` topic convention.
 - **Task 4.3 Bug Fix**: `DomainServiceRequestHandler.IsProcessorMismatch` now also catches "Unable to rehydrate aggregate state" errors, allowing the handler to skip mismatched processors when multiple aggregates are registered. Previously only "No Handle method found" was caught, causing 500 errors when the wrong aggregate tried to rehydrate from incompatible events.
 - **EventStore Submodule Alignment**: Fixed all `CommandEnvelope` and `SubmitCommand` constructors across Tenants codebase to include the new `MessageId` parameter added in the EventStore submodule update. Fixed `SubmitCommandRequest` constructor in integration tests.
 - **Task 5**: Full solution Release build: 0 warnings, 0 errors. All 89 tests pass (25 Contracts, 53 Server, 8 Integration, 3 scaffolding).

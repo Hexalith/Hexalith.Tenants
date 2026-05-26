@@ -115,12 +115,12 @@ If similar adoption work is planned again, split demo/adoption collateral from r
 
   - [x] 1.6: Write a "What Just Happened?" section explaining the architecture behind the demo:
     - Hexalith.Tenants processed the command and stored events atomically
-    - Events were published asynchronously via DAPR pub/sub to the `system.tenants.events` topic
+    - Events were published asynchronously via DAPR pub/sub to the `tenants.events` topic
     - The Sample service received the event via its subscription endpoint
     - The Sample's `SampleLoggingEventHandler` logged the event
     - The Sample's local projection (`ITenantProjectionStore`) was updated automatically
     - The `/access` endpoint reads from the local projection — no calls back to Hexalith.Tenants
-    - **Multi-service note**: This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `system.tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The PRD envisions this with Parties, Billing, and Reporting services all reacting to the same event. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription
+    - **Multi-service note**: This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The PRD envisions this with Parties, Billing, and Reporting services all reacting to the same event. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription
   - [x] 1.7: Write a "Next Steps" section linking to: quickstart.md, event-contract-reference.md, the sample source code at `samples/Hexalith.Tenants.Sample/`
   - [x] 1.8: Write a "Troubleshooting" section at the end of demo.md covering:
     - **HTTPS certificate errors**: Aspire assigns HTTPS URLs with development certificates that are not trusted by default. For `curl`, add `-k` or `--insecure` flag. For PowerShell `Invoke-RestMethod`, add `-SkipCertificateCheck`. For browsers, click through the certificate warning. Alternatively, check if the Aspire dashboard shows HTTP endpoints alongside HTTPS
@@ -201,7 +201,7 @@ If similar adoption work is planned again, split demo/adoption collateral from r
     - Coverage collected via coverlet (> 80% line coverage target)
   - [x] 5.5: Write "Code Style" section:
     - Code style enforced via `.editorconfig` (inherited from EventStore conventions)
-    - Key conventions: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation, warnings as errors
+    - Key conventions: file-scoped namespaces, K&R braces, `_camelCase` private fields, 4-space indentation, warnings as errors
     - Run `dotnet format` before committing to auto-fix formatting issues
   - [x] 5.6: Write "Submodule Management" section — contributors need to know how to work with the `Hexalith.EventStore` git submodule:
     - Initial clone: `git clone --recurse-submodules` (already in Getting Started)

@@ -500,7 +500,7 @@ adminApplyMethods.Count.ShouldBe(2, "GlobalAdministratorReadModel should handle 
 ### Code Style Requirements
 
 - File-scoped namespaces (`namespace X.Y.Z;`)
-- Allman braces (new line before opening brace)
+- K&R braces (opening brace on the same line)
 - 4-space indentation, CRLF line endings, UTF-8
 - `TreatWarningsAsErrors = true` — all warnings are build failures
 - `ArgumentNullException.ThrowIfNull()` on all Apply method parameters

@@ -22,20 +22,20 @@ so that I can begin implementing domain logic on a proven, consistent project st
 
 5. **Given** the solution is built **When** a developer inspects `Directory.Build.props` **Then** it contains shared project properties including NuGet metadata, nullable references enabled, implicit usings enabled, and warnings as errors
 
-6. **Given** the solution is built **When** a developer inspects `Directory.Packages.props` **Then** it contains centralized NuGet package versions for all dependencies (EventStore, DAPR SDK, Aspire, xUnit, Shouldly, NSubstitute, coverlet, FluentValidation, MediatR, MinVer)
+6. **Given** the solution is built **When** a developer inspects `Directory.Packages.props` **Then** it contains centralized NuGet package versions for all dependencies without inline `Version=` attributes
 
-7. **Given** the solution is built **When** a developer inspects `.editorconfig` **Then** it enforces EventStore conventions (file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation)
+7. **Given** the solution is built **When** a developer inspects `.editorconfig` **Then** it enforces EventStore conventions (file-scoped namespaces, K&R braces, `_camelCase` private fields, 4-space indentation)
 
 8. **Given** the solution is built **When** a developer inspects project dependencies **Then** Contracts depends on EventStore.Contracts; Client depends on Contracts; Server depends on Contracts and EventStore.Server; Testing depends on Server and Contracts; CommandApi depends on Server, Contracts, and ServiceDefaults; Aspire has NO project references (only NuGet: Aspire.Hosting, CommunityToolkit.Aspire.Hosting.Dapr — matches EventStore's actual pattern, not the architecture prose); test projects reference their corresponding src projects plus xUnit, Shouldly, NSubstitute, and coverlet
 
 ## Tasks / Subtasks
 
 - [x] Task 0: Verify prerequisites (AC: all)
-    - [x] 0.1: Verify EventStore submodule is initialized — run `git submodule update --init --recursive` and confirm `Hexalith.EventStore/src/` contains project directories
+    - [x] 0.1: Verify EventStore submodule is initialized — run `git submodule update --init` for root-level submodules only and confirm `Hexalith.EventStore/src/` contains project directories
 - [x] 0.2: Verify .NET SDK version available — run `dotnet --version`. Architecture specifies the latest supported .NET 10 SDK; if unavailable, use the latest available 10.0.x SDK and document deviation in Dev Agent Record.
 - [x] Task 1: Create root build configuration files (AC: #4, #5, #6, #7)
 - [x] 1.1: Create `global.json` with the latest supported .NET 10 SDK and `rollForward: latestPatch`. If the current SDK is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
-    - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, MinVer configuration)
+    - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, semantic-release-compatible package metadata)
     - [x] 1.3: Create `Directory.Packages.props` with centralized package versions — copy ALL packages from EventStore's `Directory.Packages.props` matching versions exactly (including Aspire.Hosting.\*, Testcontainers, etc.). Tenants inherits the full ecosystem; unused packages cause no harm in centralized management and will be needed in later stories.
     - [x] 1.4: Create `.editorconfig` matching EventStore's conventions exactly (copy from EventStore)
 - [x] Task 2: Create solution file and source project shells (AC: #1, #8)
@@ -77,8 +77,8 @@ so that I can begin implementing domain logic on a proven, consistent project st
 - **Modern XML solution format** (`Hexalith.Tenants.slnx`) — NOT the classic `.sln` format.
 - **15 projects total**: 8 src + 5 test + 2 sample (see complete directory structure below).
 - **.NET 10 SDK pinned** to the latest supported .NET 10 SDK, currently 10.0.300.
-- **NuGet package versions** must match EventStore's `Directory.Packages.props` exactly — centralized package management via `ManagePackageVersionsCentrally`.
-- **MinVer versioning** with `v` tag prefix for git tag-based SemVer.
+- **NuGet package versions** are centralized in `Directory.Packages.props` via `ManagePackageVersionsCentrally`; keep EventStore-aligned dependencies coordinated with the submodule.
+- **semantic-release versioning** derives versions from Conventional Commits on merge to `main`.
 
 ### Project Dependency Graph
 
@@ -111,7 +111,7 @@ Hexalith.EventStore.Server <────────┘     └── (Dapr, Med
 - `IsPackable`: `true` (default, overridden by host/test projects)
 - `IsPublishable`: `false` (default, overridden by deployable projects)
 - NuGet metadata: Authors, Company, PackageLicenseExpression (MIT), URLs pointing to Hexalith/Hexalith.Tenants
-- MinVer: `MinVerTagPrefix` = `v`, `MinVerDefaultPreReleaseIdentifiers` = `preview.0`
+- Release versions are injected by semantic-release in CI; local builds use normal MSBuild default versioning unless an explicit `Version` property is supplied.
 - README pack item for packable projects
 
 **Test Directory.Build.props:**
@@ -132,7 +132,7 @@ Hexalith.EventStore.Server <────────┘     └── (Dapr, Med
 Copy directly from `Hexalith.EventStore/.editorconfig`:
 
 - File-scoped namespaces (`csharp_style_namespace_declarations = file_scoped:warning`)
-- Allman braces (`csharp_new_line_before_open_brace = all:warning`)
+- K&R braces (`csharp_new_line_before_open_brace = all:warning`)
 - `_camelCase` private fields
 - `I` prefix for interfaces
 - `Async` suffix for async methods
@@ -204,11 +204,11 @@ Hexalith.Tenants/
 
 | Category               | Package                                        | Version |
 | ---------------------- | ---------------------------------------------- | ------- |
-| Build                  | MinVer                                         | 7.0.0   |
-| DAPR                   | Dapr.Client                                    | 1.16.1  |
-| DAPR                   | Dapr.AspNetCore                                | 1.16.1  |
-| DAPR                   | Dapr.Actors                                    | 1.16.1  |
-| DAPR                   | Dapr.Actors.AspNetCore                         | 1.16.1  |
+| Build                  | semantic-release                              | CI release workflow |
+| DAPR                   | Dapr.Client                                    | 1.17.9  |
+| DAPR                   | Dapr.AspNetCore                                | 1.17.9  |
+| DAPR                   | Dapr.Actors                                    | 1.17.9  |
+| DAPR                   | Dapr.Actors.AspNetCore                         | 1.17.9  |
 | Aspire                 | Aspire.Hosting                                 | 13.1.2  |
 | Aspire                 | Aspire.Hosting.Testing                         | 13.1.1  |
 | Aspire                 | CommunityToolkit.Aspire.Hosting.Dapr           | 13.0.0  |

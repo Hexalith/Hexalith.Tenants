@@ -282,7 +282,7 @@ public interface IRejectionEvent : IEventPayload;
 - Platform tenant: `system` (configurable constant)
 - Domain: `tenants`
 - AggregateId for TenantAggregate: managed tenant ID (e.g., `acme-corp`)
-- AggregateId for GlobalAdministratorAggregate: `global-administrators` (singleton)
+- AggregateId for GlobalAdministratorsAggregate: `global-administrators` (singleton)
 - Actor ID format: `system:tenants:{aggregateId}` (via `AggregateIdentity`)
 
 ### Critical Anti-Patterns (DO NOT)
@@ -408,12 +408,12 @@ tests/Hexalith.Tenants.Contracts.Tests/
 - All 15 project shells exist and compile (8 src, 5 test, 2 sample)
 - Contracts .csproj: minimal — just `<ProjectReference>` to EventStore.Contracts. No source files yet
 - Contracts.Tests .csproj: references Contracts and Testing. Has `ScaffoldingSmokeTests.cs` (keep it)
-- `.editorconfig` enforces: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation
+- `.editorconfig` enforces: file-scoped namespaces, K&R braces, `_camelCase` private fields, 4-space indentation
 - `TreatWarningsAsErrors = true` — all warnings are build failures
 - `ImplicitUsings` and `Nullable` enabled globally via Directory.Build.props
 - `TargetFramework`: `net10.0`, latest supported .NET 10 SDK
 - `Directory.Packages.props` centralizes all NuGet versions
-- MinVer for git tag-based SemVer (prefix `v`)
+- semantic-release for SemVer from Conventional Commits on merge to `main`
 - EventStore submodule initialized and building correctly
 
 **Story 1.1 Learnings:**
@@ -434,7 +434,7 @@ Recent commits are all project setup and BMAD planning — no domain code exists
 
 - [Source: _bmad-output/planning-artifacts/epics.md#Epic 2, Story 2.1] — Acceptance criteria, story definition, complete type lists
 - [Source: _bmad-output/planning-artifacts/architecture.md#Implementation Patterns & Consistency Rules] — Naming conventions, type location rules, event payload structure
-- [Source: _bmad-output/planning-artifacts/architecture.md#Aggregate Boundaries] — TenantAggregate vs GlobalAdministratorAggregate boundary
+- [Source: _bmad-output/planning-artifacts/architecture.md#Aggregate Boundaries] — TenantAggregate vs GlobalAdministratorsAggregate boundary
 - [Source: _bmad-output/planning-artifacts/architecture.md#Identity Mapping] — `system:tenants:{aggregateId}` scheme
 - [Source: _bmad-output/planning-artifacts/architecture.md#Communication Patterns] — Event record patterns, timestamp conventions, TenantId requirement
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Events/IEventPayload.cs] — Marker interface (no members)

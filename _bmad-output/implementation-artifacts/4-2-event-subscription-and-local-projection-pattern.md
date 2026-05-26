@@ -12,7 +12,7 @@ So that my service can reactively enforce access and respond to tenant changes.
 
 ## Acceptance Criteria
 
-1. **Given** a consuming service is subscribed to the `system.tenants.events` DAPR pub/sub topic
+1. **Given** a consuming service is subscribed to the `tenants.events` DAPR pub/sub topic
    **When** a UserAddedToTenant event is published
    **Then** the consuming service receives the event and can update its local projection of tenant membership
 
@@ -461,7 +461,7 @@ public static class TenantEventSubscriptionEndpoints
 **DAPR subscription integration options (dev agent must choose one):**
 
 - **Option A (Minimal API + Dapr.AspNetCore):** Use `endpoints.MapPost("/tenants/events", handler).WithTopic(pubsubName, topicName)` if DAPR SDK 1.17.3 supports `WithTopic()` on minimal API
-- **Option B (Controller):** Create a small controller class with `[Topic("pubsub", "system.tenants.events")]` attribute
+- **Option B (Controller):** Create a small controller class with `[Topic("pubsub", "tenants.events")]` attribute
 - **Option C (Programmatic subscription):** Use `DaprClient.SubscribeToTopicAsync()` if available
 
 Research the DAPR .NET SDK 1.17.3 API to determine which approach works. The key requirement: consuming services call `app.MapTenantEventSubscription()` and the endpoint automatically subscribes to the correct topic.
@@ -717,7 +717,7 @@ public async Task HandleAsync_MultipleTenants_MaintainsIndependentState()
 ### Code Style Requirements
 
 - File-scoped namespaces (`namespace X.Y.Z;`)
-- Allman braces (new line before opening brace)
+- K&R braces (opening brace on the same line)
 - 4-space indentation, CRLF line endings, UTF-8
 - `TreatWarningsAsErrors = true` — all warnings are build failures
 - `ArgumentNullException.ThrowIfNull()` on all reference type parameters
@@ -799,7 +799,7 @@ All Epic 2 and 3 stories are done/review. Story 4.1 is in review (DI foundation 
 - [Source: _bmad-output/planning-artifacts/prd.md#FR44-FR45] — DI registration requirements (under 20 lines)
 - [Source: _bmad-output/planning-artifacts/prd.md#Journey 3] — Alex integrates tenant events across services
 - [Source: _bmad-output/planning-artifacts/architecture.md#Consuming Service Flow] — DAPR pub/sub → Service Subscription → Local Projection
-- [Source: _bmad-output/planning-artifacts/architecture.md#Event Publishing] — DAPR pub/sub, CloudEvents 1.0, topic system.tenants.events
+- [Source: _bmad-output/planning-artifacts/architecture.md#Event Publishing] — DAPR pub/sub, CloudEvents 1.0, topic tenants.events
 - [Source: _bmad-output/planning-artifacts/architecture.md#Client] — "References Contracts only (thin DI layer)"
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Events/EventPublisher.cs] — How events are published (flat EventEnvelope, CloudEvent metadata)
 - [Source: Hexalith.EventStore/src/Hexalith.EventStore.Server/Events/EventEnvelope.cs] — Wire format (17-field flat record)

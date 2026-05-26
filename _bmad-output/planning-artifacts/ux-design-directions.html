@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hexalith.Tenants UX Design Directions</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            color-scheme: light;
+            --font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+            --bg: #f5f5f5;
+            --surface: #ffffff;
+            --surface-subtle: #fafafa;
+            --surface-strong: #f0f0f0;
+            --stroke: #d1d1d1;
+            --stroke-soft: #e5e5e5;
+            --text: #242424;
+            --text-muted: #616161;
+            --text-subtle: #707070;
+            --brand: #0f6cbd;
+            --brand-strong: #0b5cab;
+            --brand-soft: #ebf3fc;
+            --success: #0e700e;
+            --success-soft: #f1faf1;
+            --warning: #bc4b09;
+            --warning-soft: #fff4ce;
+            --danger: #b10e1c;
+            --danger-soft: #fde7e9;
+            --teal: #038387;
+            --teal-soft: #e6f7f8;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            --radius: 6px;
+            --gap-1: 4px;
+            --gap-2: 8px;
+            --gap-3: 12px;
+            --gap-4: 16px;
+            --gap-5: 24px;
+            --gap-6: 32px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        .showcase-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid var(--stroke);
+            backdrop-filter: blur(12px);
+        }
+
+        .header-inner {
+            display: grid;
+            gap: var(--gap-3);
+            padding: var(--gap-4) var(--gap-5);
+        }
+
+        .title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--gap-4);
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            max-width: 960px;
+        }
+
+        .direction-tabs {
+            display: flex;
+            gap: var(--gap-2);
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .tab,
+        .button,
+        .icon-button {
+            border: 1px solid var(--stroke);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: var(--radius);
+            cursor: pointer;
+            min-height: 32px;
+            transition: background 120ms ease, border 120ms ease, color 120ms ease;
+        }
+
+        .tab {
+            flex: 0 0 auto;
+            padding: 6px 12px;
+            white-space: nowrap;
+        }
+
+        .tab:hover,
+        .button:hover,
+        .icon-button:hover {
+            background: var(--surface-strong);
+        }
+
+        .tab[aria-selected="true"] {
+            color: #ffffff;
+            background: var(--brand);
+            border-color: var(--brand);
+        }
+
+        .button {
+            padding: 6px 12px;
+        }
+
+        .button.primary {
+            color: #ffffff;
+            background: var(--brand);
+            border-color: var(--brand);
+        }
+
+        .button.primary:hover {
+            background: var(--brand-strong);
+        }
+
+        .button.danger {
+            color: var(--danger);
+            border-color: #f3b7bd;
+            background: var(--surface);
+        }
+
+        .button.danger:hover {
+            background: var(--danger-soft);
+        }
+
+        .button.subtle {
+            border-color: transparent;
+            background: transparent;
+        }
+
+        .icon-button {
+            width: 32px;
+            padding: 0;
+        }
+
+        .showcase-body {
+            padding: var(--gap-5);
+        }
+
+        .direction {
+            display: none;
+            min-height: calc(100vh - 160px);
+            background: var(--surface);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .direction.active {
+            display: grid;
+        }
+
+        .mock-shell {
+            min-height: calc(100vh - 170px);
+            display: grid;
+            background: var(--surface);
+        }
+
+        .shell-left {
+            display: grid;
+            grid-template-columns: 232px 1fr;
+        }
+
+        .nav {
+            background: #fbfbfb;
+            border-right: 1px solid var(--stroke);
+            padding: var(--gap-4);
+            display: grid;
+            align-content: start;
+            gap: var(--gap-4);
+        }
+
+        .brand-line {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-2);
+            font-weight: 600;
+        }
+
+        .brand-mark {
+            width: 24px;
+            height: 24px;
+            display: grid;
+            place-items: center;
+            border-radius: var(--radius);
+            color: #ffffff;
+            background: var(--brand);
+            font-size: 12px;
+        }
+
+        .nav-list {
+            display: grid;
+            gap: var(--gap-1);
+        }
+
+        .nav-item {
+            padding: 7px 8px;
+            border-radius: var(--radius);
+            color: var(--text-muted);
+        }
+
+        .nav-item.active {
+            color: var(--brand);
+            background: var(--brand-soft);
+            font-weight: 600;
+        }
+
+        .nav-note {
+            margin-top: var(--gap-4);
+            padding: var(--gap-3);
+            border: 1px solid var(--stroke-soft);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            min-width: 0;
+            background: #f7f7f7;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--gap-3);
+            padding: var(--gap-4);
+            background: var(--surface);
+            border-bottom: 1px solid var(--stroke);
+        }
+
+        .toolbar-main {
+            display: grid;
+            gap: 2px;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-2);
+            flex-wrap: wrap;
+        }
+
+        .content {
+            padding: var(--gap-4);
+            display: grid;
+            gap: var(--gap-4);
+            align-content: start;
+        }
+
+        .content.two-col {
+            grid-template-columns: minmax(0, 1fr) 360px;
+        }
+
+        .content.split {
+            grid-template-columns: 360px minmax(0, 1fr);
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            min-width: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--gap-3);
+            padding: var(--gap-3) var(--gap-4);
+            border-bottom: 1px solid var(--stroke-soft);
+        }
+
+        .panel-body {
+            padding: var(--gap-4);
+            display: grid;
+            gap: var(--gap-3);
+        }
+
+        .metric-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: var(--gap-3);
+        }
+
+        .metric {
+            border: 1px solid var(--stroke-soft);
+            border-radius: var(--radius);
+            background: var(--surface-subtle);
+            padding: var(--gap-3);
+            display: grid;
+            gap: var(--gap-1);
+        }
+
+        .metric strong {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: var(--text-muted);
+        }
+
+        .small {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .table th,
+        .table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--stroke-soft);
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .table th {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--surface-subtle);
+        }
+
+        .table tr:hover td {
+            background: #f8fbff;
+        }
+
+        .status,
+        .role {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 24px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .status.current,
+        .status.success {
+            color: var(--success);
+            background: var(--success-soft);
+            border-color: #b7dfb7;
+        }
+
+        .status.warning {
+            color: var(--warning);
+            background: var(--warning-soft);
+            border-color: #f5d991;
+        }
+
+        .status.danger {
+            color: var(--danger);
+            background: var(--danger-soft);
+            border-color: #f3b7bd;
+        }
+
+        .status.info {
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-color: #cfe4fa;
+        }
+
+        .status.teal {
+            color: var(--teal);
+            background: var(--teal-soft);
+            border-color: #b8dcde;
+        }
+
+        .role {
+            color: #424242;
+            background: #f3f2f1;
+            border-color: var(--stroke);
+        }
+
+        .list {
+            display: grid;
+            gap: var(--gap-2);
+        }
+
+        .list-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: var(--gap-3);
+            align-items: center;
+            padding: var(--gap-3);
+            border: 1px solid var(--stroke-soft);
+            border-radius: var(--radius);
+            background: var(--surface);
+        }
+
+        .list-row:hover {
+            border-color: #b8d6f5;
+            background: #f8fbff;
+        }
+
+        .stack {
+            display: grid;
+            gap: var(--gap-3);
+        }
+
+        .inline {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-2);
+            flex-wrap: wrap;
+        }
+
+        .command-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .command-step {
+            padding: var(--gap-3);
+            background: var(--surface);
+            border-right: 1px solid var(--stroke-soft);
+        }
+
+        .command-step:last-child {
+            border-right: 0;
+        }
+
+        .command-step.active {
+            background: var(--brand-soft);
+            color: var(--brand);
+        }
+
+        .timeline {
+            display: grid;
+            gap: var(--gap-3);
+        }
+
+        .timeline-item {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: var(--gap-3);
+            padding-bottom: var(--gap-3);
+            border-bottom: 1px solid var(--stroke-soft);
+        }
+
+        .timeline-item:last-child {
+            border-bottom: 0;
+        }
+
+        .searchbar {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: var(--gap-2);
+        }
+
+        .searchbar input,
+        select {
+            min-height: 34px;
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            padding: 6px 10px;
+            background: var(--surface);
+        }
+
+        .risk-board {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--gap-4);
+        }
+
+        .column {
+            display: grid;
+            gap: var(--gap-3);
+            align-content: start;
+        }
+
+        .mini-card {
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            background: var(--surface);
+            padding: var(--gap-3);
+            display: grid;
+            gap: var(--gap-2);
+        }
+
+        .comparison {
+            display: none;
+            background: var(--surface);
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            margin-top: var(--gap-4);
+            overflow: hidden;
+        }
+
+        .comparison.active {
+            display: block;
+        }
+
+        .comparison table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison th,
+        .comparison td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--stroke-soft);
+            text-align: left;
+        }
+
+        .comparison th {
+            background: var(--surface-subtle);
+        }
+
+        @media (max-width: 1080px) {
+            .shell-left,
+            .content.two-col,
+            .content.split,
+            .risk-board {
+                grid-template-columns: 1fr;
+            }
+
+            .nav {
+                border-right: 0;
+                border-bottom: 1px solid var(--stroke);
+            }
+
+            .nav-list {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .metric-row,
+            .command-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .showcase-body,
+            .header-inner {
+                padding: var(--gap-3);
+            }
+
+            .title-row,
+            .toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .nav-list,
+            .metric-row,
+            .command-strip {
+                grid-template-columns: 1fr;
+            }
+
+            .table {
+                min-width: 760px;
+            }
+
+            .panel.table-wrap {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="showcase-header">
+            <div class="header-inner">
+                <div class="title-row">
+                    <div>
+                        <h1>Hexalith.Tenants UX Design Directions</h1>
+                        <p class="subtitle">Six Fluent-aligned operational directions for tenant access review, command lifecycle feedback, projection freshness, and audit evidence.</p>
+                    </div>
+                    <button class="button" id="compareButton" type="button">Compare directions</button>
+                </div>
+                <nav class="direction-tabs" aria-label="Design directions">
+                    <button class="tab" type="button" aria-selected="true" data-target="direction-1">1. Operations Shell</button>
+                    <button class="tab" type="button" aria-selected="false" data-target="direction-2">2. Access Review Split</button>
+                    <button class="tab" type="button" aria-selected="false" data-target="direction-3">3. Command Lifecycle Desk</button>
+                    <button class="tab" type="button" aria-selected="false" data-target="direction-4">4. Audit Evidence Workspace</button>
+                    <button class="tab" type="button" aria-selected="false" data-target="direction-5">5. User Lookup First</button>
+                    <button class="tab" type="button" aria-selected="false" data-target="direction-6">6. Incident Containment Board</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="showcase-body">
+            <section class="direction active" id="direction-1" aria-labelledby="direction-1-title">
+                <div class="mock-shell shell-left">
+                    <aside class="nav">
+                        <div class="brand-line"><span class="brand-mark">HT</span> Hexalith.Tenants</div>
+                        <div class="nav-list">
+                            <div class="nav-item active">Tenants</div>
+                            <div class="nav-item">Users</div>
+                            <div class="nav-item">Global admins</div>
+                            <div class="nav-item">Audit</div>
+                        </div>
+                        <div class="nav-note">Direction 1 emphasizes familiar Fluent admin navigation and broad tenant triage.</div>
+                    </aside>
+                    <div class="workspace">
+                        <div class="toolbar">
+                            <div class="toolbar-main">
+                                <h2 id="direction-1-title">Operations Shell</h2>
+                                <p class="small">Tenant list as the primary operational triage surface.</p>
+                            </div>
+                            <div class="toolbar-actions">
+                                <button class="button">Refresh</button>
+                                <button class="button primary">Open selected</button>
+                            </div>
+                        </div>
+                        <div class="content two-col">
+                            <div class="stack">
+                                <div class="metric-row">
+                                    <div class="metric"><span class="small">Tenants</span><strong>128</strong><span class="small">3 need access review</span></div>
+                                    <div class="metric"><span class="small">No owner</span><strong>2</strong><span class="small">warning state</span></div>
+                                    <div class="metric"><span class="small">Projection</span><strong>Current</strong><span class="small">as of 14:42:18</span></div>
+                                    <div class="metric"><span class="small">Pending</span><strong>1</strong><span class="small">command awaiting view update</span></div>
+                                </div>
+                                <div class="panel table-wrap">
+                                    <div class="panel-header"><h3>Tenant access overview</h3><span class="status current">Current</span></div>
+                                    <table class="table">
+                                        <thead><tr><th>Tenant</th><th>Status</th><th>Members</th><th>Owners</th><th>Freshness</th><th>Action</th></tr></thead>
+                                        <tbody>
+                                            <tr><td>acme-corp</td><td><span class="status success">Active</span></td><td>42</td><td>2</td><td><span class="status current">Current</span></td><td><button class="button subtle">Review</button></td></tr>
+                                            <tr><td>fabrikam-labs</td><td><span class="status warning">Owner risk</span></td><td>18</td><td>0</td><td><span class="status current">Current</span></td><td><button class="button subtle">Review</button></td></tr>
+                                            <tr><td>northwind</td><td><span class="status info">Updating</span></td><td>31</td><td>3</td><td><span class="status warning">Delayed</span></td><td><button class="button subtle">Review</button></td></tr>
+                                            <tr><td>contoso-retail</td><td><span class="status danger">Disabled</span></td><td>11</td><td>1</td><td><span class="status current">Current</span></td><td><button class="button subtle">Audit</button></td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <aside class="panel">
+                                <div class="panel-header"><h3>Selected tenant</h3><span class="status warning">Needs review</span></div>
+                                <div class="panel-body">
+                                    <div><strong>fabrikam-labs</strong><p class="small">No owner is currently visible in the projection. Access changes should preserve recovery.</p></div>
+                                    <div class="inline"><span class="role">18 members</span><span class="role">0 owners</span><span class="role">2 contributors</span></div>
+                                    <button class="button primary">Open access review</button>
+                                    <button class="button">View audit evidence</button>
+                                </div>
+                            </aside>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="direction" id="direction-2" aria-labelledby="direction-2-title">
+                <div class="mock-shell">
+                    <div class="toolbar">
+                        <div class="toolbar-main">
+                            <h2 id="direction-2-title">Access Review Split</h2>
+                            <p class="small">A master-detail review surface optimized for staying in tenant context.</p>
+                        </div>
+                        <div class="toolbar-actions">
+                            <select aria-label="Freshness filter"><option>All freshness states</option><option>Delayed only</option></select>
+                            <button class="button">Refresh projection</button>
+                        </div>
+                    </div>
+                    <div class="content split">
+                        <aside class="panel">
+                            <div class="panel-header"><h3>Tenants</h3><span class="small">Risk sorted</span></div>
+                            <div class="panel-body">
+                                <div class="list">
+                                    <div class="list-row"><div><strong>northwind</strong><p class="small">Delayed projection</p></div><span class="status warning">Delayed</span></div>
+                                    <div class="list-row"><div><strong>fabrikam-labs</strong><p class="small">No owner visible</p></div><span class="status warning">Owner risk</span></div>
+                                    <div class="list-row"><div><strong>acme-corp</strong><p class="small">42 members</p></div><span class="status current">Current</span></div>
+                                </div>
+                            </div>
+                        </aside>
+                        <section class="stack">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <div><h3>northwind access review</h3><p class="small">Current authority is backend-enforced; this view is delayed.</p></div>
+                                    <span class="status warning">Data delayed</span>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="command-strip">
+                                        <div class="command-step active"><strong>Inspect</strong><p class="small">Access visible</p></div>
+                                        <div class="command-step"><strong>Assess</strong><p class="small">Freshness needed</p></div>
+                                        <div class="command-step"><strong>Submit</strong><p class="small">Blocked for now</p></div>
+                                        <div class="command-step"><strong>Prove</strong><p class="small">Audit after command</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel table-wrap">
+                                <div class="panel-header"><h3>Members</h3><button class="button">Explain unavailable actions</button></div>
+                                <table class="table">
+                                    <thead><tr><th>User</th><th>Role</th><th>State</th><th>Action</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>sofia@hexalith</td><td><span class="role">Owner</span></td><td><span class="status warning">Freshness friction</span></td><td><button class="button" disabled>Remove unavailable</button></td></tr>
+                                        <tr><td>marc@northwind</td><td><span class="role">Contributor</span></td><td><span class="status warning">Delayed view</span></td><td><button class="button" disabled>Change role unavailable</button></td></tr>
+                                        <tr><td>kenji@audit</td><td><span class="role">Reader</span></td><td><span class="status warning">Delayed view</span></td><td><button class="button" disabled>Remove unavailable</button></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </section>
+
+            <section class="direction" id="direction-3" aria-labelledby="direction-3-title">
+                <div class="mock-shell">
+                    <div class="toolbar">
+                        <div class="toolbar-main">
+                            <h2 id="direction-3-title">Command Lifecycle Desk</h2>
+                            <p class="small">The command lifecycle is the central visual object, with projection truth preserved.</p>
+                        </div>
+                        <div class="toolbar-actions">
+                            <button class="button">Retry status lookup</button>
+                            <button class="button primary">View audit proof</button>
+                        </div>
+                    </div>
+                    <div class="content two-col">
+                        <section class="stack">
+                            <div class="panel">
+                                <div class="panel-header"><h3>RemoveUserFromTenant request</h3><span class="status info">Change pending</span></div>
+                                <div class="panel-body">
+                                    <div class="command-strip">
+                                        <div class="command-step active"><strong>Request sent</strong><p class="small">Intent submitted</p></div>
+                                        <div class="command-step active"><strong>Accepted</strong><p class="small">Backend accepted</p></div>
+                                        <div class="command-step active"><strong>Waiting for view</strong><p class="small">Projection not reconciled</p></div>
+                                        <div class="command-step"><strong>Proof</strong><p class="small">Audit pending</p></div>
+                                    </div>
+                                    <p class="muted">The last confirmed projection still shows Marc as Contributor. The UI does not overwrite it until the view catches up.</p>
+                                </div>
+                            </div>
+                            <div class="panel table-wrap">
+                                <div class="panel-header"><h3>acme-corp members</h3><span class="status info">Pending update</span></div>
+                                <table class="table">
+                                    <thead><tr><th>User</th><th>Role</th><th>Confirmed view</th><th>Pending state</th><th>Action</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>marc@acme</td><td><span class="role">Contributor</span></td><td><span class="status current">Still visible</span></td><td><span class="status info">Removal accepted</span></td><td><button class="button">Inspect</button></td></tr>
+                                        <tr><td>sofia@hexalith</td><td><span class="role">Owner</span></td><td><span class="status current">Current</span></td><td><span class="status current">None</span></td><td><button class="button">Review</button></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <aside class="panel">
+                            <div class="panel-header"><h3>Consequence preview</h3><span class="status danger">Access impact</span></div>
+                            <div class="panel-body">
+                                <div><strong>Target</strong><p class="small">marc@acme from acme-corp</p></div>
+                                <div><strong>Known consequence</strong><p class="small">Tenant membership will be removed after projection confirmation. Active sessions are not claimed to be revoked.</p></div>
+                                <div><strong>Recovery</strong><p class="small">Use a compensating add-user command if removal was wrong.</p></div>
+                                <button class="button danger">Remove access</button>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+
+            <section class="direction" id="direction-4" aria-labelledby="direction-4-title">
+                <div class="mock-shell">
+                    <div class="toolbar">
+                        <div class="toolbar-main">
+                            <h2 id="direction-4-title">Audit Evidence Workspace</h2>
+                            <p class="small">Evidence reconstruction is first-class for auditors and support investigations.</p>
+                        </div>
+                        <div class="toolbar-actions">
+                            <button class="button">Copy safe reference</button>
+                            <button class="button primary">Export evidence summary</button>
+                        </div>
+                    </div>
+                    <div class="content two-col">
+                        <section class="panel">
+                            <div class="panel-header"><h3>Access evidence timeline</h3><span class="status teal">Proof available</span></div>
+                            <div class="panel-body timeline">
+                                <div class="timeline-item"><div class="small">14:42:18</div><div><strong>Projection current</strong><p class="small">acme-corp members visible with 2 owners and 42 members.</p></div></div>
+                                <div class="timeline-item"><div class="small">14:43:02</div><div><strong>Request sent</strong><p class="small">RemoveUserFromTenant submitted for marc@acme.</p></div></div>
+                                <div class="timeline-item"><div class="small">14:43:04</div><div><strong>Backend accepted</strong><p class="small">Command accepted for processing. Projection not yet updated.</p></div></div>
+                                <div class="timeline-item"><div class="small">14:43:11</div><div><strong>Access updated</strong><p class="small">Membership no longer visible in tenant projection.</p></div></div>
+                                <div class="timeline-item"><div class="small">14:43:12</div><div><strong>Audit proof available</strong><p class="small">Support-safe reference generated.</p></div></div>
+                            </div>
+                        </section>
+                        <aside class="panel">
+                            <div class="panel-header"><h3>Evidence receipt</h3><span class="status current">Safe to cite</span></div>
+                            <div class="panel-body">
+                                <div><strong>Actor</strong><p class="small">sofia@hexalith</p></div>
+                                <div><strong>Target</strong><p class="small">marc@acme, acme-corp</p></div>
+                                <div><strong>Outcome</strong><p class="small">Tenant membership removed and projected.</p></div>
+                                <div><strong>Reference</strong><p class="small">TEN-AUD-2026-05-26-144312</p></div>
+                                <button class="button">Open related commands</button>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+
+            <section class="direction" id="direction-5" aria-labelledby="direction-5-title">
+                <div class="mock-shell">
+                    <div class="toolbar">
+                        <div class="toolbar-main">
+                            <h2 id="direction-5-title">User Lookup First</h2>
+                            <p class="small">Start from a person, then inspect tenant memberships and removal options.</p>
+                        </div>
+                        <div class="toolbar-actions">
+                            <button class="button">Recent searches</button>
+                            <button class="button primary">Open selected tenant</button>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <div class="panel">
+                            <div class="panel-body">
+                                <div class="searchbar">
+                                    <input aria-label="Search users" value="marc@">
+                                    <button class="button primary">Search</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="content two-col" style="padding:0">
+                            <section class="panel table-wrap">
+                                <div class="panel-header"><h3>Memberships for marc@acme</h3><span class="status current">Current</span></div>
+                                <table class="table">
+                                    <thead><tr><th>Tenant</th><th>Role</th><th>Freshness</th><th>Risk</th><th>Action</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>acme-corp</td><td><span class="role">Contributor</span></td><td><span class="status current">Current</span></td><td><span class="status info">Routine</span></td><td><button class="button danger">Remove</button></td></tr>
+                                        <tr><td>northwind</td><td><span class="role">Reader</span></td><td><span class="status warning">Delayed</span></td><td><span class="status warning">Freshness friction</span></td><td><button class="button" disabled>Unavailable</button></td></tr>
+                                        <tr><td>fabrikam-labs</td><td><span class="role">Owner</span></td><td><span class="status current">Current</span></td><td><span class="status warning">Last owner</span></td><td><button class="button" disabled>Needs review</button></td></tr>
+                                    </tbody>
+                                </table>
+                            </section>
+                            <aside class="panel">
+                                <div class="panel-header"><h3>Why this direction</h3></div>
+                                <div class="panel-body">
+                                    <p class="muted">Best when access questions usually start with offboarding, incident response, or "where does this user still have access?"</p>
+                                    <div class="inline"><span class="status warning">Strong for incident review</span><span class="status info">Weaker for tenant operations</span></div>
+                                </div>
+                            </aside>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="direction" id="direction-6" aria-labelledby="direction-6-title">
+                <div class="mock-shell">
+                    <div class="toolbar">
+                        <div class="toolbar-main">
+                            <h2 id="direction-6-title">Incident Containment Board</h2>
+                            <p class="small">A risk-queued workspace for urgent access review and containment.</p>
+                        </div>
+                        <div class="toolbar-actions">
+                            <select aria-label="Queue"><option>Access risk queue</option><option>Pending commands</option><option>Delayed proof</option></select>
+                            <button class="button">Refresh queue</button>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <div class="risk-board">
+                            <section class="column">
+                                <div class="panel-header"><h3>Needs review</h3><span class="status warning">3</span></div>
+                                <div class="mini-card"><strong>fabrikam-labs</strong><p class="small">No owner visible. Confirm recovery path before access removal.</p><span class="status warning">Owner risk</span></div>
+                                <div class="mini-card"><strong>northwind</strong><p class="small">Projection delayed. Command actions unavailable until refresh.</p><span class="status warning">Delayed</span></div>
+                            </section>
+                            <section class="column">
+                                <div class="panel-header"><h3>Action in progress</h3><span class="status info">1</span></div>
+                                <div class="mini-card"><strong>acme-corp</strong><p class="small">RemoveUserFromTenant accepted. Waiting for projection reflection.</p><span class="status info">Change pending</span><button class="button">Track</button></div>
+                            </section>
+                            <section class="column">
+                                <div class="panel-header"><h3>Proof ready</h3><span class="status teal">2</span></div>
+                                <div class="mini-card"><strong>contoso-retail</strong><p class="small">DisableTenant evidence receipt available.</p><span class="status teal">Audit proof</span><button class="button">Open proof</button></div>
+                                <div class="mini-card"><strong>acme-corp</strong><p class="small">Role change evidence ready for audit review.</p><span class="status teal">Safe to cite</span></div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="comparison" id="comparison" aria-labelledby="comparison-title">
+                <div class="panel-header">
+                    <h2 id="comparison-title">Direction Comparison</h2>
+                    <p class="small">Use this to pick a base direction or combine elements.</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Direction</th>
+                            <th>Best fit</th>
+                            <th>Strength</th>
+                            <th>Tradeoff</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1. Operations Shell</td><td>General admin console</td><td>Familiar, balanced, Fluent-native</td><td>Command lifecycle is secondary</td></tr>
+                        <tr><td>2. Access Review Split</td><td>Tenant access stewardship</td><td>Strong context preservation</td><td>Less global overview</td></tr>
+                        <tr><td>3. Command Lifecycle Desk</td><td>First command-capable slice</td><td>Best truth model for pending changes</td><td>Heavier for read-only browsing</td></tr>
+                        <tr><td>4. Audit Evidence Workspace</td><td>Auditor and support workflows</td><td>Best proof reconstruction</td><td>Not ideal as first landing view</td></tr>
+                        <tr><td>5. User Lookup First</td><td>Offboarding and person-first incidents</td><td>Fast cross-tenant user answer</td><td>Can underplay tenant stewardship</td></tr>
+                        <tr><td>6. Incident Containment Board</td><td>Urgent access-risk operations</td><td>Strong queue and recovery model</td><td>Could feel too incident-centric for routine work</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const tabs = Array.from(document.querySelectorAll(".tab"));
+        const directions = Array.from(document.querySelectorAll(".direction"));
+        const compareButton = document.getElementById("compareButton");
+        const comparison = document.getElementById("comparison");
+
+        tabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+                const target = tab.getAttribute("data-target");
+                tabs.forEach((item) => item.setAttribute("aria-selected", String(item === tab)));
+                directions.forEach((direction) => direction.classList.toggle("active", direction.id === target));
+            });
+        });
+
+        compareButton.addEventListener("click", () => {
+            const active = comparison.classList.toggle("active");
+            compareButton.textContent = active ? "Hide comparison" : "Compare directions";
+            if (active) {
+                comparison.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        });
+    </script>
+</body>
+</html>

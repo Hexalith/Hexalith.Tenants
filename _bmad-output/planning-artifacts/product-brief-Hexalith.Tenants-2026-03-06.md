@@ -191,7 +191,7 @@ Auditors reviewing access controls and compliance. They consume read-model proje
 
 #### 6. Event-Driven Integration
 - All tenant events published via DAPR pub/sub as CloudEvents 1.0
-- Tenant-isolated topic naming (e.g., `{tenant}.tenants.events`)
+- Single tenant event topic naming (`tenants.events`) with consumers filtering by event type and tenant payload fields
 - Consuming services subscribe to react to tenant lifecycle changes
 
 #### 7. Documentation & Quickstart

@@ -14,7 +14,7 @@ So that I can design my integration correctly and handle edge cases with confide
 
 1. **Given** `docs/event-contract-reference.md` exists
    **When** a developer reads the document
-   **Then** it documents all 12 commands and 11 events with their full schemas (field names, types, descriptions), organized by aggregate (TenantAggregate, GlobalAdministratorAggregate)
+   **Then** it documents all 12 commands and 11 events with their full schemas (field names, types, descriptions), organized by aggregate (TenantAggregate, GlobalAdministratorsAggregate)
 
 2. **Given** the event contract reference
    **When** a developer looks up a specific event (e.g., UserAddedToTenant)
@@ -35,8 +35,8 @@ So that I can design my integration correctly and handle edge cases with confide
 
 - [x] Task 1: Create `docs/event-contract-reference.md` — Overview and conventions (AC: #1)
   - [x] 1.1: Write document header with purpose statement: comprehensive reference for all tenant domain commands, events, and rejection events
-  - [x] 1.2: Add a table of contents with anchor links to each major section (Enums, TenantAggregate, GlobalAdministratorAggregate, Rejections, Quick Reference, Idempotency). This doc will be long — developers land via search and need to jump to a specific event fast
-  - [x] 1.3: Document the event delivery model: all events published via DAPR pub/sub as CloudEvents 1.0 on topic `system.tenants.events`; consumers filter by event type. Also mention the dead letter topic `deadletter.tenants.events` — events that fail subscriber processing after retries are routed here; operators should monitor it for delivery failures. Note: commands are submitted via Hexalith.Tenants — link to [Quickstart Guide](quickstart.md) for command submission details; do NOT add curl examples for every command in this doc
+  - [x] 1.2: Add a table of contents with anchor links to each major section (Enums, TenantAggregate, GlobalAdministratorsAggregate, Rejections, Quick Reference, Idempotency). This doc will be long — developers land via search and need to jump to a specific event fast
+  - [x] 1.3: Document the event delivery model: all events published via DAPR pub/sub as CloudEvents 1.0 on topic `tenants.events`; consumers filter by event type. Also mention the dead letter topic `deadletter.tenants.events` — events that fail subscriber processing after retries are routed here; operators should monitor it for delivery failures. Note: commands are submitted via Hexalith.Tenants — link to [Quickstart Guide](quickstart.md) for command submission details; do NOT add curl examples for every command in this doc
   - [x] 1.4: Document the identity scheme: platform tenant = `system`, domain = `tenants`, aggregateId = managed tenant ID or `global-administrators`
   - [x] 1.5: Document the three-outcome model: Success (events produced), Rejection (rejection events produced), NoOp (idempotent, no events)
   - [x] 1.6: Document event envelope metadata: all events wrapped in EventStore's event envelope with `eventId`, `aggregateVersion`, `timestamp`, `correlationId`, `causationId`, `userId` — link to EventStore event envelope docs at `Hexalith.EventStore/docs/concepts/event-envelope.md` for full envelope schema
@@ -64,9 +64,9 @@ So that I can design my integration correctly and handle edge cases with confide
     - Note for configuration events: Keys follow dot-delimited namespace convention (FR21), e.g., `billing.plan`, `parties.maxContacts`. Subscribing services should filter by key prefix to process only their own namespace (e.g., `key.startsWith("billing.")` for the Billing service). Include this guidance in the configuration command-event section
   - [x] 3.4: For EACH event, include a concise JSON example (3-5 lines per payload, not the envelope), using realistic field values (e.g., TenantId = "acme-corp", UserId = "jane-doe"). Use collapsible `<details>` tags for JSON examples if the document exceeds ~300 lines to keep it scannable
   - [x] 3.5: Use the enum serialization format determined in Task 0 for all JSON examples. Do NOT guess — Task 0 must be complete before this point
-  - [x] 3.6: For EACH event entry, state: "Published on topic: `system.tenants.events`"
+  - [x] 3.6: For EACH event entry, state: "Published on topic: `tenants.events`"
 
-- [x] Task 4: Create `docs/event-contract-reference.md` — GlobalAdministratorAggregate section (AC: #1, #2)
+- [x] Task 4: Create `docs/event-contract-reference.md` — GlobalAdministratorsAggregate section (AC: #1, #2)
   - [x] 4.1: Document each command-event pair:
     - `BootstrapGlobalAdmin(UserId)` → `GlobalAdministratorSet(TenantId, UserId)` | Rejections: `GlobalAdminAlreadyBootstrappedRejection` | Note: reuses same event type as SetGlobalAdministrator
     - `SetGlobalAdministrator(UserId)` → `GlobalAdministratorSet(TenantId, UserId)` | NoOp if user already admin
@@ -190,9 +190,9 @@ The documentation must accurately reflect the current implemented system state. 
 | `ChangeUserRole` | `string TenantId, string UserId, TenantRole NewRole` | TenantAggregate |
 | `SetTenantConfiguration` | `string TenantId, string Key, string Value` | TenantAggregate |
 | `RemoveTenantConfiguration` | `string TenantId, string Key` | TenantAggregate |
-| `BootstrapGlobalAdmin` | `string UserId` | GlobalAdministratorAggregate |
-| `SetGlobalAdministrator` | `string UserId` | GlobalAdministratorAggregate |
-| `RemoveGlobalAdministrator` | `string UserId` | GlobalAdministratorAggregate |
+| `BootstrapGlobalAdmin` | `string UserId` | GlobalAdministratorsAggregate |
+| `SetGlobalAdministrator` | `string UserId` | GlobalAdministratorsAggregate |
+| `RemoveGlobalAdministrator` | `string UserId` | GlobalAdministratorsAggregate |
 
 **Events (all implement IEventPayload):**
 
@@ -233,7 +233,7 @@ The documentation must accurately reflect the current implemented system state. 
 
 ### Critical Patterns to Follow
 
-**DAPR Pub/Sub Topic**: All events published on `system.tenants.events`. The topic name follows EventStore's `NamingConventionEngine`: `{domain}.events` → `tenants.events`, prefixed with platform tenant `system` → `system.tenants.events`.
+**DAPR Pub/Sub Topic**: All events published on `tenants.events`. The topic name follows EventStore's `NamingConventionEngine`: `{domain}.events` → `tenants.events`, prefixed with platform tenant `system` → `tenants.events`.
 
 **CloudEvents 1.0 Envelope**: Events are wrapped in EventStore's event envelope which provides CloudEvents 1.0 compliance. The event contract reference should document the PAYLOAD fields (the domain-specific content), not the full envelope. Reference EventStore docs for the envelope schema.
 

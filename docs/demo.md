@@ -185,13 +185,13 @@ Open `{commandapi-url}/api/tenants/acme-demo` in the Swagger UI (authenticated) 
 Here's the architecture behind the demo:
 
 1. **CommandApi** processed each command and stored events atomically in the event store
-2. Events were **published asynchronously** via DAPR pub/sub to the `system.tenants.events` topic
+2. Events were **published asynchronously** via DAPR pub/sub to the `tenants.events` topic
 3. The **Sample service** received each event via its subscription endpoint
 4. The Sample's `SampleLoggingEventHandler` logged the event
 5. The Sample's local projection (`ITenantProjectionStore`) was updated automatically
 6. The `/access` endpoint reads from the **local projection** — no calls back to CommandApi
 
-**Multi-service note:** This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `system.tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription.
+**Multi-service note:** This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription.
 
 ## Next Steps
 

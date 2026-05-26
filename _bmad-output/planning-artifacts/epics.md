@@ -176,13 +176,13 @@ This document provides the complete epic and story breakdown for Hexalith.Tenant
 **From Architecture:**
 
 - Starter Template: Scaffold solution by mirroring EventStore's structure with `Hexalith.Tenants` naming. Manual scaffolding from the reference project (no CLI template). Project initialization should be the first implementation story
-- Two aggregates: TenantAggregate (lifecycle, user-role management, configuration) and GlobalAdministratorAggregate (cross-tenant admin roles, bootstrap). Separate because GlobalAdmin is platform-level, not tenant-scoped
+- Two aggregates: TenantAggregate (lifecycle, user-role management, configuration) and GlobalAdministratorsAggregate (cross-tenant admin roles, bootstrap). Separate because GlobalAdmin is platform-level, not tenant-scoped
 - Identity Mapping: Platform tenant context = `system` (configurable), domain = `tenants`, aggregateId = managed tenant ID or `global-administrators`. Actor IDs: `system:tenants:acme-corp`, `system:tenants:global-administrators`
-- Pub/Sub topic: `system.tenants.events` -- single topic for all tenant events; consumers filter by event type
+- Pub/Sub topic: `tenants.events` -- single topic for all tenant events; consumers filter by event type
 - Read model: `EventStoreProjection<TReadModel>` pattern with DAPR state store. Three projections needed: TenantProjection, GlobalAdministratorProjection, TenantIndexProjection (cross-tenant)
 - Cross-tenant index projections use ETag-based optimistic concurrency (`ConcurrencyMode.FirstWrite`) with retry logic (max 3 attempts) to prevent silent data loss on concurrent updates
-- Snapshot strategy: 50-event interval for tenant domain, default 100 for GlobalAdministratorAggregate
-- Bootstrap mechanism: Startup config via `appsettings.json` (`Tenants:BootstrapGlobalAdminUserId`), executed through full MediatR pipeline. GlobalAdministratorAggregate rejects if any GlobalAdministratorSet event exists
+- Snapshot strategy: 50-event interval for tenant domain, default 100 for GlobalAdministratorsAggregate
+- Bootstrap mechanism: Startup config via `appsettings.json` (`Tenants:BootstrapGlobalAdminUserId`), executed through full MediatR pipeline. GlobalAdministratorsAggregate rejects if any GlobalAdministratorSet event exists
 - Query endpoints served from Hexalith.Tenants as route groups (single deployable) -- `POST /api/commands` and `GET /api/tenants/*`
 - JWT Bearer authentication via EventStore pipeline + domain RBAC in aggregate Handle methods (two authorization layers)
 - DAPR component YAML files in `dapr/components/` directory (statestore.yaml, pubsub.yaml, actors.yaml)
@@ -350,11 +350,11 @@ So that I can begin implementing domain logic on a proven, consistent project st
 
 **Given** the solution is built
 **When** a developer inspects `Directory.Packages.props`
-**Then** it contains centralized NuGet package versions for all dependencies (EventStore, DAPR SDK, Aspire, xUnit, Shouldly, NSubstitute, coverlet, FluentValidation, MediatR, MinVer)
+**Then** it contains centralized NuGet package versions for all dependencies without inline `Version=` attributes
 
 **Given** the solution is built
 **When** a developer inspects `.editorconfig`
-**Then** it enforces EventStore conventions (file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indentation)
+**Then** it enforces current Hexalith.Tenants conventions (file-scoped namespaces, K&R brace style where applicable, `_camelCase` private fields, 4-space indentation, warnings as errors)
 
 **Given** the solution is built
 **When** a developer inspects project dependencies
@@ -378,7 +378,7 @@ So that local development with DAPR sidecars and observability is ready for doma
 
 **Given** the solution from Story 1.1 exists
 **When** a developer inspects `dapr/components/`
-**Then** `actors.yaml` configures TenantAggregate and GlobalAdministratorAggregate actor types
+**Then** `actors.yaml` configures TenantAggregate and GlobalAdministratorsAggregate actor types
 
 **Given** the ServiceDefaults project exists
 **When** a developer inspects `Extensions.cs`
@@ -392,7 +392,7 @@ So that local development with DAPR sidecars and observability is ready for doma
 
 As a developer,
 I want GitHub Actions workflows for continuous integration and release publishing,
-So that every PR is validated automatically and tagged releases publish NuGet packages.
+So that every PR is validated automatically and semantic-release publishes NuGet packages after qualifying merges to `main`.
 
 **Acceptance Criteria:**
 
@@ -431,6 +431,8 @@ So that consuming services and all other packages have a stable, shared API surf
 **Given** the Contracts project exists
 **When** a developer inspects the Events folder
 **Then** it contains all 11 event records: TenantCreated, TenantUpdated, TenantDisabled, TenantEnabled, UserAddedToTenant, UserRemovedFromTenant, UserRoleChanged, TenantConfigurationSet, TenantConfigurationRemoved, GlobalAdministratorSet, GlobalAdministratorRemoved
+
+**Scaffolding exception:** Story 2.1 includes the initial public contract set for known Epic 2 and Epic 3 behavior because this pre-1.0 project already relies on serialization, naming, and conformance tests to prevent contract drift. Future stories should prefer vertical contract creation by first behavioral use unless the Product Owner explicitly approves another scaffolding exception.
 
 **Given** the Contracts project exists
 **When** a developer inspects the Enums folder
@@ -480,11 +482,11 @@ So that the system has authorized actors who can create and manage tenants.
 **When** a RemoveGlobalAdministrator command attempts to remove the last global administrator
 **Then** the command is rejected with a specific error indicating the last admin cannot be removed
 
-**Given** the GlobalAdministratorAggregate Handle methods
+**Given** the GlobalAdministratorsAggregate Handle methods
 **When** tested as static pure functions with no infrastructure
 **Then** all Handle and Apply methods execute correctly as Tier 1 unit tests
 
-**Given** the GlobalAdministratorState class
+**Given** the GlobalAdministratorsState class
 **When** Apply methods are called with each event type
 **Then** state is correctly mutated (administrators set added/removed)
 
@@ -595,7 +597,7 @@ Aggregate class — `Server/Aggregates/TenantAggregate.cs`:
 - UpdateTenant: `state is null` → `TenantNotFoundRejection`; else → `TenantUpdated` (full-replacement semantics)
 - DisableTenant: `state is null` → `TenantNotFoundRejection`; `state.Status == Disabled` → `NoOp()`; else → `TenantDisabled`
 - EnableTenant: `state is null` → `TenantNotFoundRejection`; `state.Status == Active` → `NoOp()`; else → `TenantEnabled`
-- Note: TenantState includes Users/Configuration Apply methods for completeness — those Handle methods are implemented in Epic 3 (Stories 3.1, 3.3) but the state class is created here with all Apply methods
+- Scaffolding exception: TenantState includes Users/Configuration Apply methods because related event contracts already exist and projection/testing conformance depends on stable replay behavior. This does not mean membership/configuration command behavior is complete; that behavior remains owned by Epic 3 Stories 3.1 and 3.3. Future stories should avoid adding future-facing Apply methods before their behavior slice unless explicitly approved.
 
 Testing pattern — same as Story 2.2: `aggregate.ProcessAsync(commandEnvelope, state)` with `CommandEnvelope` helper (see Architecture §D10 Testing Blueprint). All tests Tier 1.
 
@@ -631,7 +633,7 @@ So that the tenant service is operational end-to-end from command to event distr
 
 **Given** a command is successfully processed by an aggregate
 **When** domain events are produced
-**Then** events are published to DAPR pub/sub topic `system.tenants.events` as CloudEvents 1.0
+**Then** events are published to DAPR pub/sub topic `tenants.events` as CloudEvents 1.0
 
 **Given** DAPR pub/sub is temporarily unavailable
 **When** a command is processed
@@ -679,7 +681,7 @@ Key wiring details:
 - `TenantBootstrapHostedService`: reads `Tenants:BootstrapGlobalAdminUserId` from configuration, sends `BootstrapGlobalAdmin` through MediatR on startup. Logs rejection at Information level (idempotent on multi-instance)
 - `RejectionToHttpStatusMapper` middleware maps `IRejectionEvent` types to HTTP status codes per architecture §Format Patterns
 
-DAPR version alignment: `Directory.Packages.props` must be updated from DAPR 1.16.1 to 1.17.3 to match EventStore submodule before this story begins.
+DAPR version alignment: `Directory.Packages.props` must keep DAPR SDK packages aligned on the approved version family, currently 1.17.9, and match the EventStore submodule before this story begins.
 
 ## Epic 3: Tenant Membership, Roles & Configuration
 
@@ -837,7 +839,7 @@ So that my service can reactively enforce access and respond to tenant changes.
 
 **Acceptance Criteria:**
 
-**Given** a consuming service is subscribed to the `system.tenants.events` DAPR pub/sub topic
+**Given** a consuming service is subscribed to the `tenants.events` DAPR pub/sub topic
 **When** a UserAddedToTenant event is published
 **Then** the consuming service receives the event and can update its local projection of tenant membership
 
@@ -1027,7 +1029,7 @@ So that I can write tenant integration tests in under 10 lines without external 
 
 **Given** the InMemoryTenantService
 **When** two tenants are created and users are added to each
-**Then** projections for tenant A never contain data from tenant B (aggregate-level isolation guarantee)
+**Then** aggregate state and produced events for tenant A never include tenant B membership or configuration data
 
 ### Story 6.2: In-Memory Projection & Conformance Tests
 
@@ -1044,6 +1046,10 @@ So that I can test query scenarios locally and trust that test behavior matches 
 **Given** the InMemoryTenantProjection
 **When** a developer queries for tenants, users, or configuration in a test
 **Then** results are returned from the in-memory projection without DAPR state store dependency
+
+**Given** the InMemoryTenantProjection
+**When** events for tenant A and tenant B are applied in the same test run
+**Then** projected query results for tenant A never contain tenant B data, and projected query results for tenant B never contain tenant A data
 
 **Given** the conformance test suite in Testing.Tests
 **When** a reflection-based scan discovers all command types in the Contracts assembly
@@ -1079,7 +1085,7 @@ So that I can start the full local development topology with a single `dotnet ru
 
 **Given** the Hexalith.Tenants.AppHost project exists
 **When** `dotnet run` is executed on the AppHost
-**Then** the Aspire dashboard launches and the Aspire dashboard launches with Hexalith.Tenants (AppId: tenants), EventStore server, and Keycloak, all started with DAPR sidecars configured for state store, pub/sub, and actors
+**Then** the Aspire dashboard launches with Hexalith.Tenants (AppId: tenants), EventStore server, and Keycloak, all started with DAPR sidecars configured for state store, pub/sub, and actors
 
 **Given** the AppHost is running
 **When** a developer sends a command to the tenant service via the Aspire dashboard or direct HTTP
@@ -1133,7 +1139,7 @@ So that I can scale horizontally, restart without data loss, and maintain operat
 **When** a tenant aggregate accumulates more than 50 events
 **Then** a snapshot is persisted and subsequent actor rehydration replays at most 50 events from the last snapshot
 
-**Given** the GlobalAdministratorAggregate uses the default snapshot interval of 100 events
+**Given** the GlobalAdministratorsAggregate uses the default snapshot interval of 100 events
 **When** the aggregate is rehydrated
 **Then** snapshots are created at the 100-event interval appropriate for its low event volume
 
@@ -1191,7 +1197,7 @@ So that I can design my integration correctly and handle edge cases with confide
 
 **Given** `docs/event-contract-reference.md` exists
 **When** a developer reads the document
-**Then** it documents all 12 commands and 11 events with their full schemas (field names, types, descriptions), organized by aggregate (TenantAggregate, GlobalAdministratorAggregate)
+**Then** it documents all 12 commands and 11 events with their full schemas (field names, types, descriptions), organized by aggregate (TenantAggregate, GlobalAdministratorsAggregate)
 
 **Given** the event contract reference
 **When** a developer looks up a specific event (e.g., UserAddedToTenant)

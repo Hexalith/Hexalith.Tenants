@@ -192,7 +192,7 @@ public void TenantRole_ordinal_values_maintain_privilege_hierarchy()
 
 ### GlobalAdmin Bypass Mechanism
 
-**Problem:** GlobalAdministrator status is tracked in `GlobalAdministratorAggregate` (separate aggregate). `TenantState` does not know who is a GlobalAdmin. Handle methods cannot query other aggregates.
+**Problem:** GlobalAdministrator status is tracked in `GlobalAdministratorsAggregate` (separate aggregate). `TenantState` does not know who is a GlobalAdmin. Handle methods cannot query other aggregates.
 
 **Solution:** Use `CommandEnvelope.Extensions` dictionary. The MediatR `AuthorizationBehavior` (or a new behavior) checks the actor's GlobalAdmin status and adds `extensions["actor:globalAdmin"] = "true"` before the command reaches the aggregate actor.
 
@@ -519,7 +519,7 @@ result.Events[0].ShouldBeOfType<UserAddedToTenant>();
 **Key learnings applied:**
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on all reference type parameters including the new `envelope` parameter
 - `TreatWarningsAsErrors = true` → all warnings are build failures
-- `.editorconfig` → file-scoped namespaces, Allman braces, 4-space indent
+- `.editorconfig` → file-scoped namespaces, K&R braces, 4-space indent
 - Test pattern: `ProcessAsync(CommandEnvelope, state)`, NOT direct Handle method calls
 - Switch arm ordering matters: disabled guard precedes RBAC, RBAC precedes domain logic
 

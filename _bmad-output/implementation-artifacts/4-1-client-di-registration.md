@@ -33,7 +33,7 @@ So that my service is wired up for tenant event handling with minimal configurat
 
 - [x] Task 1: Create `HexalithTenantsOptions.cs` (AC: #1) — BUILD FIRST: extension method depends on this
     - [x] 1.1: Create `src/Hexalith.Tenants.Client/Configuration/HexalithTenantsOptions.cs` — options class for consuming service configuration
-    - [x] 1.2: Properties: `PubSubName` (string, default `"pubsub"`), `TopicName` (string, default `"system.tenants.events"`), `Hexalith.TenantsAppId` (string, default `"commandapi"`)
+    - [x] 1.2: Properties: `PubSubName` (string, default `"pubsub"`), `TopicName` (string, default `"tenants.events"`), `Hexalith.TenantsAppId` (string, default `"commandapi"`)
     - [x] 1.3: Verify solution builds: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create `TenantServiceCollectionExtensions.cs` (AC: #1, #2, #3) — depends on Task 1
@@ -104,7 +104,7 @@ Follow the _logical pattern_ from `EventStoreServiceCollectionExtensions.cs` (`H
 4. Opportunistic `IConfiguration` binding (resolve from service collection if available)
 5. Return `IServiceCollection` for fluent chaining
 
-**IMPORTANT — Brace style:** The EventStore repo uses K&R braces (opening brace on same line). This project uses **Allman braces** (new line before opening brace) per `.editorconfig`. Follow the EventStore's logical pattern but use Allman braces throughout.
+**IMPORTANT — Brace style:** The EventStore repo uses K&R braces (opening brace on same line). This project uses **K&R braces** (opening brace on the same line) per `.editorconfig`. Follow the EventStore's logical pattern but use K&R braces throughout.
 
 ```csharp
 // src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs
@@ -185,7 +185,7 @@ public class HexalithTenantsOptions
 {
     public string PubSubName { get; set; } = "pubsub";
 
-    public string TopicName { get; set; } = "system.tenants.events";
+    public string TopicName { get; set; } = "tenants.events";
 
     public string Hexalith.TenantsAppId { get; set; } = "commandapi";
 }
@@ -194,7 +194,7 @@ public class HexalithTenantsOptions
 **Design rationale:**
 
 - `PubSubName`: DAPR pub/sub component name. Default `"pubsub"` matches the DAPR component defined in the Aspire topology (`AddDaprPubSub("pubsub")`).
-- `TopicName`: The event topic. Architecture specifies `"system.tenants.events"` as the single topic for all tenant events.
+- `TopicName`: The event topic. Architecture specifies `"tenants.events"` as the single topic for all tenant events.
 - `Hexalith.TenantsAppId`: The DAPR app ID of the tenant Hexalith.Tenants service. Default `"commandapi"` matches the Aspire AppHost configuration.
 
 ### DaprClient Registration
@@ -356,7 +356,7 @@ private static IServiceCollection CreateServiceCollectionWithConfig(
 | D2  | AddHexalithTenants binds options from config              | ServiceCollection + IConfiguration with `Tenants:PubSubName=mypubsub` | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "mypubsub"`                    | #1, #3 |
 | D3  | AddHexalithTenants is idempotent                          | Call twice on same ServiceCollection                                  | No duplicate registrations for `HexalithTenantsOptions`                              | #3     |
 | D4  | AddHexalithTenants returns same collection                | Any ServiceCollection                                                 | Return value is same reference as input                                              | #2     |
-| D5  | Default options have correct values                       | No config section                                                     | PubSubName="pubsub", TopicName="system.tenants.events", Hexalith.TenantsAppId="commandapi" | #3     |
+| D5  | Default options have correct values                       | No config section                                                     | PubSubName="pubsub", TopicName="tenants.events", Hexalith.TenantsAppId="commandapi" | #3     |
 | D6  | AddHexalithTenants with configure action                  | Call overload with `o => o.PubSubName = "custom"`                     | `IOptions<HexalithTenantsOptions>.Value.PubSubName == "custom"`                      | #1, #2 |
 | D7  | AddHexalithTenants skips DaprClient if already registered | Pre-register DaprClient, then call AddHexalithTenants                 | No duplicate DaprClient descriptors (check descriptor count)                         | #3     |
 | D8  | AddHexalithTenants works without IConfiguration           | Empty ServiceCollection (no IConfiguration)                           | Options registered with defaults, no exception                                       | #1     |
@@ -398,7 +398,7 @@ Should.Throw<ArgumentNullException>(() =>
 ### Code Style Requirements
 
 - File-scoped namespaces (`namespace X.Y.Z;`)
-- Allman braces (new line before opening brace)
+- K&R braces (opening brace on the same line)
 - 4-space indentation, CRLF line endings, UTF-8
 - `TreatWarningsAsErrors = true` — all warnings are build failures
 - `ArgumentNullException.ThrowIfNull()` on all reference type parameters
@@ -421,7 +421,7 @@ Should.Throw<ArgumentNullException>(() =>
 
 **Story 1.1 (done) — Solution Structure:**
 
-- Established `Directory.Build.props` (TreatWarningsAsErrors, net10.0, MinVer)
+- Established `Directory.Build.props` (TreatWarningsAsErrors, net10.0, semantic-release-compatible package metadata)
 - Established `Directory.Packages.props` (centralized NuGet management)
 - Client.csproj was created as part of this story with all dependencies pre-configured
 
@@ -500,7 +500,7 @@ Claude Opus 4.6 (1M context)
 
 ### Completion Notes List
 
-- Created `HexalithTenantsOptions` with defaults: PubSubName="pubsub", TopicName="system.tenants.events", Hexalith.TenantsAppId="commandapi"
+- Created `HexalithTenantsOptions` with defaults: PubSubName="pubsub", TopicName="tenants.events", Hexalith.TenantsAppId="commandapi"
 - Created `TenantServiceCollectionExtensions` with two overloads: parameterless (config binding) and `Action<T>` (explicit config)
 - Refined registration flow after review: core registrations (`DaprClient` + options infrastructure) are always ensured, while `IConfigureOptions<HexalithTenantsOptions>` is used only to deduplicate the options configuration step
 - DaprClient registration via `AddDaprClient()` remains type-safe and is no longer skipped when options were configured earlier

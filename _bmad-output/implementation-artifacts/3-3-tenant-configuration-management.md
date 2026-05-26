@@ -520,7 +520,7 @@ public class SetTenantConfigurationValidatorTests
 
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on `command` AND `envelope`
 - `TreatWarningsAsErrors = true` → all warnings are build failures
-- `.editorconfig` → file-scoped namespaces, Allman braces, 4-space indent
+- `.editorconfig` → file-scoped namespaces, K&R braces, 4-space indent
 - Test pattern: `ProcessAsync(CommandEnvelope, state)` via aggregate instance
 - Switch arm ordering: null → disabled → RBAC → domain logic → NoOp → success
 - Validator style: NO `_ = RuleFor(...)` discard pattern — call `RuleFor(...)` directly

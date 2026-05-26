@@ -412,13 +412,13 @@ result.Events.Count.ShouldBe(0);
 **Story 2.2 Learnings:**
 
 - CA1062 null validation errors — resolved with `ArgumentNullException.ThrowIfNull()` on ALL method parameters that are reference types
-- DAPR 1.17.3 transitive dependency issue already resolved
+- DAPR 1.17.9 transitive dependency issue already resolved
 - `using Hexalith.Tenants.Contracts.Events;` is a DIFFERENT namespace from the globally imported `Hexalith.EventStore.Contracts.Events;` — both are needed, only the EventStore one is global
 
 **Story 2.1 Learnings:**
 
 - `TreatWarningsAsErrors = true` — all warnings are build failures, be thorough
-- `.editorconfig` enforces: file-scoped namespaces, Allman braces, `_camelCase` private fields, 4-space indent
+- `.editorconfig` enforces: file-scoped namespaces, K&R braces, `_camelCase` private fields, 4-space indent
 
 ### Critical Anti-Patterns (DO NOT)
 

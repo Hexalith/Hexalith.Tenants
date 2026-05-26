@@ -18,7 +18,7 @@ Comprehensive reference for all tenant domain commands, events, and rejection ev
     - [Tenant Lifecycle](#tenant-lifecycle)
     - [User-Role Management](#user-role-management)
     - [Tenant Configuration](#tenant-configuration)
-- [GlobalAdministratorAggregate](#globaladministratoraggregate)
+- [GlobalAdministratorsAggregate](#globaladministratorsaggregate)
 - [Rejection Events](#rejection-events)
     - [Rejection Table](#rejection-table)
     - [InsufficientPermissionsRejection Detail](#insufficientpermissionsrejection-detail)
@@ -30,7 +30,7 @@ Comprehensive reference for all tenant domain commands, events, and rejection ev
 
 ## Event Delivery Model
 
-All events are published via DAPR pub/sub as [CloudEvents 1.0](https://cloudevents.io/) on topic **`system.tenants.events`**. Consumers filter by event type to receive only the events they need.
+All events are published via DAPR pub/sub as [CloudEvents 1.0](https://cloudevents.io/) on topic **`tenants.events`**. Consumers filter by event type to receive only the events they need.
 
 Commands that encounter infrastructure failures during processing (e.g., state rehydration errors, event persistence failures) produce events routed to the dead letter topic **`deadletter.tenants.events`**. Operators should monitor this topic for processing failures. Note: DAPR pub/sub may also have its own dead letter behavior for subscriber delivery failures, configured at the DAPR component level.
 
@@ -124,7 +124,7 @@ Creates a new tenant. No domain-level permission check — any authenticated use
 | `Description` | string?        | Optional description                |
 | `CreatedAt`   | DateTimeOffset | Server-generated creation timestamp |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -164,7 +164,7 @@ Updates a tenant's name and description.
 | `Name`        | string  | New display name        |
 | `Description` | string? | New description         |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -200,7 +200,7 @@ Disables a tenant. Disabled tenants reject modification commands.
 | `TenantId`   | string         | The disabled tenant's ID           |
 | `DisabledAt` | DateTimeOffset | Server-generated disable timestamp |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -238,7 +238,7 @@ Re-enables a previously disabled tenant.
 | `TenantId`  | string         | The enabled tenant's ID           |
 | `EnabledAt` | DateTimeOffset | Server-generated enable timestamp |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -281,7 +281,7 @@ Adds a user to a tenant with a specified role.
 | `UserId`   | string           | The added user |
 | `Role`     | TenantRole (int) | Assigned role  |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -318,7 +318,7 @@ Removes a user from a tenant.
 | `TenantId` | string | The tenant ID    |
 | `UserId`   | string | The removed user |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -357,7 +357,7 @@ Changes a user's role within a tenant.
 | `OldRole`  | TenantRole (int) | Previous role (from aggregate state) |
 | `NewRole`  | TenantRole (int) | New role                             |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -400,7 +400,7 @@ Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited nam
 | `Key`      | string | Configuration key   |
 | `Value`    | string | Configuration value |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -438,7 +438,7 @@ Removes a configuration key from a tenant.
 | `TenantId` | string | The tenant ID             |
 | `Key`      | string | Removed configuration key |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -457,9 +457,9 @@ Published on topic: `system.tenants.events`
 
 ---
 
-## GlobalAdministratorAggregate
+## GlobalAdministratorsAggregate
 
-Commands and events for managing global administrators. The GlobalAdministratorAggregate is a **singleton** using aggregate ID `global-administrators`.
+Commands and events for managing global administrators. The GlobalAdministratorsAggregate is a **singleton** using aggregate ID `global-administrators`.
 
 > **Note:** GlobalAdmin commands do **not** include a `TenantId` field. The `TenantId` field in GlobalAdmin events is always `"system"` (the platform tenant context).
 
@@ -482,7 +482,7 @@ Bootstraps the first global administrator. Can only be called once.
 | `TenantId` | string | Always `"system"`            |
 | `UserId`   | string | The designated administrator |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -519,7 +519,7 @@ Designates a user as a global administrator.
 | `TenantId` | string | Always `"system"`            |
 | `UserId`   | string | The designated administrator |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>
@@ -554,7 +554,7 @@ Removes a user from the global administrator list.
 | `TenantId` | string | Always `"system"`         |
 | `UserId`   | string | The removed administrator |
 
-Published on topic: `system.tenants.events`
+Published on topic: `tenants.events`
 
 <details>
 <summary>JSON example</summary>

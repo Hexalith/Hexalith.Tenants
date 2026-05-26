@@ -20,7 +20,7 @@ So that I can scale horizontally, restart without data loss, and maintain operat
    **When** a tenant aggregate accumulates more than 50 events
    **Then** a snapshot is persisted and subsequent actor rehydration replays at most 50 events from the last snapshot
 
-3. **Given** the GlobalAdministratorAggregate uses the default snapshot interval of 100 events
+3. **Given** the GlobalAdministratorsAggregate uses the default snapshot interval of 100 events
    **When** the aggregate is rehydrated
    **Then** snapshots are created at the 100-event interval appropriate for its low event volume
 
@@ -60,7 +60,7 @@ Future reliability/performance stories must carry one independently testable out
 ## Tasks / Subtasks
 
 - [x] Task 1: Configure snapshot interval for tenant domain (AC: #2, #3)
-    - [x] 1.1: In `src/Hexalith.Tenants/appsettings.json`, add the `EventStore:Snapshots` section with `DomainIntervals` setting `tenants` to `50`. The `DefaultInterval` stays at `100` (EventStore's default in `SnapshotOptions`) — this covers GlobalAdministratorAggregate's low event volume. Do NOT set `TenantDomainIntervals` — the `system` tenant uses the same domain interval as any other tenant
+    - [x] 1.1: In `src/Hexalith.Tenants/appsettings.json`, add the `EventStore:Snapshots` section with `DomainIntervals` setting `tenants` to `50`. The `DefaultInterval` stays at `100` (EventStore's default in `SnapshotOptions`) — this covers GlobalAdministratorsAggregate's low event volume. Do NOT set `TenantDomainIntervals` — the `system` tenant uses the same domain interval as any other tenant
     - [x] 1.2: Verify build: `dotnet build Hexalith.Tenants.slnx --configuration Release`
 
 - [x] Task 2: Create snapshot configuration unit test (AC: #2, #3)
@@ -92,7 +92,7 @@ This story validates three architectural properties that are **already implement
 
 1. **Stateless service architecture** (FR57, NFR12): The tenant service stores no local state between requests. All state is reconstructed from the event store via DAPR actor state rehydration (snapshot + tail event replay). EventStore's `AggregateActor` handles this automatically.
 
-2. **Configurable snapshot intervals** (NFR13): EventStore's `SnapshotManager` creates snapshots at configurable intervals. The tenant domain needs a 50-event interval (tenants grow with user/config additions, up to ~1000 events at max capacity). GlobalAdministratorAggregate uses the default 100-event interval (singleton, very low event volume).
+2. **Configurable snapshot intervals** (NFR13): EventStore's `SnapshotManager` creates snapshots at configurable intervals. The tenant domain needs a 50-event interval (tenants grow with user/config additions, up to ~1000 events at max capacity). GlobalAdministratorsAggregate uses the default 100-event interval (singleton, very low event volume).
 
 3. **Graceful degradation** (NFR17): EventStore's `AggregateActor` already implements pub/sub failure handling: events are persisted atomically in the state store, and a drain reminder (Story 4.4) retries publication when pub/sub recovers. Commands succeed even during pub/sub outages.
 
@@ -134,7 +134,7 @@ EventStore's `SnapshotOptions` is bound from `appsettings.json` at the path `Eve
 
 1. `TenantDomainIntervals["system:tenants"]` — NOT needed (no per-tenant override)
 2. `DomainIntervals["tenants"]` = 50 — **THIS IS WHAT WE SET**
-3. `DefaultInterval` = 100 — default from `SnapshotOptions`, covers GlobalAdministratorAggregate
+3. `DefaultInterval` = 100 — default from `SnapshotOptions`, covers GlobalAdministratorsAggregate
 
 **Minimum interval enforcement**: `SnapshotOptions.Validate()` rejects intervals < 10. The 50-event interval is safe.
 
@@ -310,7 +310,7 @@ Claude Opus 4.6 (1M context)
 
 ### Completion Notes List
 
-- Task 1: Added `EventStore:Snapshots` section to `appsettings.json` with `DomainIntervals["tenants"] = 50`. DefaultInterval remains at 100 (SnapshotOptions default), covering GlobalAdministratorAggregate. No TenantDomainIntervals set. Build: 0 warnings, 0 errors.
+- Task 1: Added `EventStore:Snapshots` section to `appsettings.json` with `DomainIntervals["tenants"] = 50`. DefaultInterval remains at 100 (SnapshotOptions default), covering GlobalAdministratorsAggregate. No TenantDomainIntervals set. Build: 0 warnings, 0 errors.
 - Task 2: Created 3 Tier 1 snapshot configuration tests: config loads correctly, passes validation, and has no TenantDomainIntervals. Added `<Content>` item in csproj to copy appsettings.json to test output. Server.Tests: 240 tests pass (up from 237).
 - Task 3: Created StatelessRestartTests.cs — Tier 2 integration test verifying state reconstruction after actor reactivation. Creates tenant, creates new proxy (simulates restart), sends DisableTenant, asserts success. Marked with `[Trait("Category", "Integration")]`.
 - Task 4: Created GracefulDegradationTests.cs — Tier 2 integration test with two tests: (1) Command_Succeeds_AndEventsPersisted_WhenPubSubUnavailable — uses FakeEventPublisher.SetupFailure() to simulate pub/sub outage, verifies Accepted=true and EventCount=1; (2) DrainRecovery_PublishesPendingEvents_WhenPubSubRecovers — verifies drain reminder eventually publishes events after FakeEventPublisher failure is cleared (polls up to 90 seconds). Uses reflection to clear FakeEventPublisher private \_failureMessage field (no ClearFailure() API available). Marked with `[Trait("Category", "Integration")]`.

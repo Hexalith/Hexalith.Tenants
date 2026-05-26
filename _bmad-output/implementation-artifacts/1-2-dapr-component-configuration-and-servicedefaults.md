@@ -296,7 +296,7 @@ This story creates infrastructure configuration files and shared startup code. T
 - Project references use relative paths through the EventStore submodule (e.g., `..\..\Hexalith.EventStore\src\...`)
 - Namespace convention: `Hexalith.Tenants.{ProjectName}`
 - File-scoped namespaces enforced by `.editorconfig`
-- Allman braces, `_camelCase` private fields, 4-space indentation
+- K&R braces, `_camelCase` private fields, 4-space indentation
 
 **Files created in Story 1.1 relevant to Story 1.2:**
 - `src/Hexalith.Tenants.ServiceDefaults/Extensions.cs` — **placeholder to REPLACE** (currently empty static class with placeholder method)
@@ -372,7 +372,7 @@ None — clean implementation, no debugging required.
 ### Completion Notes List
 
 - Task 0: All prerequisites verified — Story 1.1 builds clean, EventStore reference files (DaprComponents, ServiceDefaults, Aspire extension) all present and loaded.
-- Task 1: ServiceDefaults Extensions.cs replaced placeholder with full implementation mirroring EventStore pattern. All 4 public methods + 1 private exporter method + internal JSON health writer. Allman braces per .editorconfig. Build verified zero errors.
+- Task 1: ServiceDefaults Extensions.cs replaced placeholder with full implementation mirroring EventStore pattern. All 4 public methods + 1 private exporter method + internal JSON health writer. K&R braces per .editorconfig. Build verified zero errors.
 - Task 2: Created 4 DAPR component YAML files in `src/Hexalith.Tenants.AppHost/DaprComponents/` — statestore (Redis, actorStateStore, scoped), pubsub (Redis, dead-letter, scoped), accesscontrol (allow-by-default with production warning), resiliency (retry/timeout/CB for apps and components).
 - Task 3: Created Aspire extension — `HexalithTenantsExtensions.cs` with `AddHexalithTenants()` using `AddDaprComponent` (not `AddDaprStateStore` for metadata propagation), `AddDaprPubSub`, and `WithDaprSidecar` (no AppPort for Aspire Testing compatibility). `HexalithTenantsResources.cs` record for downstream use. Build verified zero errors.
 - Task 4: Updated AppHost Program.cs with access control config path resolution (CWD + BaseDirectory fallback), Hexalith.Tenants project resource, and `AddHexalithTenants()` call. Build verified zero errors.

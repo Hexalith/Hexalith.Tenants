@@ -108,7 +108,7 @@ public class TenantServiceCollectionExtensionsTests {
         using ServiceProvider provider = services.BuildServiceProvider();
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("pubsub");
-        options.TopicName.ShouldBe("system.tenants.events");
+        options.TopicName.ShouldBe("tenants.events");
         options.CommandApiAppId.ShouldBe("commandapi");
     }
 
@@ -147,7 +147,7 @@ public class TenantServiceCollectionExtensionsTests {
         using ServiceProvider provider = services.BuildServiceProvider();
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("pubsub");
-        options.TopicName.ShouldBe("system.tenants.events");
+        options.TopicName.ShouldBe("tenants.events");
         options.CommandApiAppId.ShouldBe("commandapi");
     }
 

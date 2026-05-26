@@ -72,7 +72,7 @@ public class GracefulDegradationTests {
         _fixture.EventPublisher.SetupFailure("Pub/sub unavailable — drain recovery test");
 
         string tenantId = $"t-drain-{Guid.NewGuid():N}";
-        string expectedTopic = "system.tenants.events";
+        string expectedTopic = "tenants.events";
 
         try {
             var actorProxyFactory = new ActorProxyFactory(

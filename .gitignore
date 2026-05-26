@@ -407,6 +407,9 @@ FodyWeavers.xsd
 # Local History for Visual Studio Code
 .history/
 
+# Local Playwright MCP session artifacts
+.playwright-mcp/
+
 # Built Visual Studio Code Extensions
 *.vsix
 

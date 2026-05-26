@@ -41,7 +41,7 @@ so that every PR is validated automatically and merges to `main` publish NuGet p
     - [x] 1.3: Configure concurrency group `ci-${{ github.ref }}` with `cancel-in-progress: true`
     - [x] 1.4: Set permissions to `contents: read`
     - [x] 1.5: Job `build-and-test` on `ubuntu-latest` with `timeout-minutes: 15`
-    - [x] 1.6: Steps: checkout (fetch-depth: 0 for MinVer), setup-dotnet (auto-detects global.json), NuGet cache, restore, build (Release, --no-restore)
+    - [x] 1.6: Steps: checkout (fetch-depth: 0 for semantic-release), setup-dotnet (auto-detects global.json), NuGet cache, restore, build (Release, --no-restore)
     - [x] 1.7: Tier 1 Unit Tests — run each test project individually with `--no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"`: Contracts.Tests, Client.Tests, Testing.Tests, Sample.Tests (from samples/)
     - [x] 1.8: Install DAPR CLI v1.16.0 and run full `dapr init` before Tier 2 tests
     - [x] 1.9: Tier 2 Integration Tests — run Server.Tests with `--no-build --configuration Release --logger "trx;LogFileName=integration-results.trx" --collect:"XPlat Code Coverage"`
@@ -215,7 +215,7 @@ Validation checks (mirror EventStore exactly):
 
 No new NuGet packages needed for this story. All dependencies are build-time tools already available:
 
-- `MinVer 7.0.0` — version calculation from git tags (already in Directory.Packages.props)
+- `semantic-release` — version calculation from Conventional Commits on merge to `main`
 - `coverlet.collector 6.0.4` — code coverage collection (already in test project dependencies)
 - GitHub Actions runners provide Python 3.x for validation scripts
 
@@ -278,7 +278,7 @@ This story creates GitHub Actions workflow YAML files. They cannot be functional
 
 - Release build (`--configuration Release`) must pass with zero errors
 - All 6 test projects must be discoverable and pass
-- MinVer versioning from git tags (requires `fetch-depth: 0` for full history)
+- semantic-release versioning from Conventional Commits (requires `fetch-depth: 0` for full history)
 - 5 NuGet packages: Contracts, Client, Server, Testing, Aspire
 
 ### Git Intelligence
@@ -304,7 +304,7 @@ c04fc8b Initial commit
 
 - **DO NOT** use version tags (e.g., `@v4`) for GitHub Actions — always use pinned commit SHAs for supply chain security
 - **DO NOT** use `submodules: recursive` in checkout unless nested submodules are explicitly required — `submodules: true` is sufficient for root-level submodules
-- **DO NOT** forget `fetch-depth: 0` in checkout — MinVer needs full git history to calculate versions
+- **DO NOT** forget `fetch-depth: 0` in checkout — semantic-release needs full git history to calculate versions and changelog context
 - **DO NOT** use `dapr init --slim` for Tier 2 tests in CI — Server.Tests may exercise DAPR runtime components (actors, state store) that require full initialization. Because the release workflow now executes the Tier 3 Aspire suite as well, it also uses full `dapr init`.
 - **DO NOT** bypass semantic-release in `release.yml` — semantic-release owns version calculation, changelog updates, tag creation, GitHub Release creation, and NuGet publication
 - **DO NOT** add NuGet source configuration — default NuGet.org feed is sufficient
@@ -327,7 +327,7 @@ c04fc8b Initial commit
 - [Source: _bmad-output/planning-artifacts/architecture.md#CI/CD] — CI/CD architectural decision (GitHub Actions, Tier 1+2 tests, pack, validate, push)
 - [Source: _bmad-output/planning-artifacts/architecture.md#Complete Project Directory Structure] — Workflow file locations (`.github/workflows/ci.yml`, `.github/workflows/release.yml`)
 - [Source: _bmad-output/planning-artifacts/epics.md#Story 1.3] — Original acceptance criteria and story definition
-- [Source: _bmad-output/implementation-artifacts/1-1-solution-structure-and-build-configuration.md] — Previous story learnings: submodule verification, SDK pinning, MinVer, package versions
+- [Source: _bmad-output/implementation-artifacts/1-1-solution-structure-and-build-configuration.md] — Previous story learnings: submodule verification, SDK pinning, semantic-release, package versions
 - [Source: _bmad-output/implementation-artifacts/1-2-dapr-component-configuration-and-servicedefaults.md] — Previous story learnings: DAPR component location, ServiceDefaults compilation
 - [Source: Hexalith.EventStore/CLAUDE.md#CI/CD] — EventStore's CI/CD documentation summary
 

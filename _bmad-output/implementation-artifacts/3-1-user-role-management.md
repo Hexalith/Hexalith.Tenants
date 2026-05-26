@@ -163,7 +163,7 @@ public static DomainResult Handle(ChangeUserRole command, TenantState? state)
 - All methods follow the established pattern: `public static`, pure, `DomainResult` return, nullable `TenantState?`
 - `ArgumentNullException.ThrowIfNull(command)` required for CA1062 with `TreatWarningsAsErrors = true`
 - **Disabled tenant guard:** All 3 commands check `Status: TenantStatus.Disabled` and reject with `TenantDisabledRejection`. Disabled tenants reject ALL commands except EnableTenant (NFR8)
-- **Role escalation (defense-in-depth):** `!Enum.IsDefined(command.Role)` is a deserialization defense — catches undefined enum values (e.g., `(TenantRole)99` injected via raw JSON). This is NOT a GlobalAdministrator business rule; the `TenantRole` enum intentionally excludes GlobalAdministrator (GlobalAdmin is managed by `GlobalAdministratorAggregate`, not per-tenant roles). The type system prevents GlobalAdmin assignment at compile time; this check catches runtime integer casting attacks
+- **Role escalation (defense-in-depth):** `!Enum.IsDefined(command.Role)` is a deserialization defense — catches undefined enum values (e.g., `(TenantRole)99` injected via raw JSON). This is NOT a GlobalAdministrator business rule; the `TenantRole` enum intentionally excludes GlobalAdministrator (GlobalAdmin is managed by `GlobalAdministratorsAggregate`, not per-tenant roles). The type system prevents GlobalAdmin assignment at compile time; this check catches runtime integer casting attacks
 - **Duplicate detection:** `state.Users.ContainsKey(command.UserId)` — the state property is `Users` (NOT `Members` — architecture uses `Members` in one example, but the actual implementation uses `Users`)
 - **ChangeUserRole same-role:** Returns `NoOp()` when `state.Users[command.UserId] == command.NewRole` — consistent with idempotent patterns (DisableTenant, EnableTenant). **Note for Story 3.2:** This NoOp silently swallows same-role changes (no event produced). Story 3.2's role enforcement must not re-implement this check
 - **ChangeUserRole OldRole:** Reads `state.Users[command.UserId]` to populate `UserRoleChanged.OldRole` — this is safe because the `ContainsKey` check precedes it
@@ -430,7 +430,7 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on all reference type parameters
 - `TreatWarningsAsErrors = true` → all warnings are build failures
-- `.editorconfig` → file-scoped namespaces, Allman braces, 4-space indent
+- `.editorconfig` → file-scoped namespaces, K&R braces, 4-space indent
 - `using Hexalith.Tenants.Contracts.Events;` is different from globally imported `Hexalith.EventStore.Contracts.Events;` — both needed
 - Test pattern: `ProcessAsync(CommandEnvelope, state)`, NOT direct Handle method calls
 
