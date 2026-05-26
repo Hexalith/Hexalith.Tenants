@@ -3,9 +3,10 @@
 # This Configuration CRD is loaded ONLY by the eventstore-admin sidecar and therefore
 # governs which CALLERS may invoke Admin.Server through Dapr service invocation.
 #
-# In the current topology no other service should directly invoke eventstore-admin.
-# Admin.Server is an HTTP-facing host that delegates to EventStore, not a Dapr
-# service target for peer workloads.
+# Allowed callers in the local topology:
+#   - eventstore-admin-ui: Admin Blazor UI. Invokes the Admin REST API via Dapr
+#     service invocation. The UI forwards the user JWT in the Authorization header;
+#     Admin.Server enforces RBAC/tenant scope.
 apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
@@ -14,4 +15,12 @@ spec:
   accessControl:
     defaultAction: allow  # Allow-by-default in self-hosted mode; change to deny with mTLS
     trustDomain: "public"
-    policies: []
+    policies:
+      - appId: eventstore-admin-ui
+        defaultAction: deny
+        trustDomain: "public"
+        namespace: "default"
+        operations:
+          - name: /**
+            httpVerb: ['GET', 'POST', 'PUT', 'DELETE']
+            action: allow

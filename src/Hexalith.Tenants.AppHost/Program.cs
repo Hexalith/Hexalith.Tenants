@@ -73,7 +73,11 @@ _ = adminUI
     .WithReference(adminServer)
     .WaitFor(adminServer)
     .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithDaprSidecar(sidecar => sidecar
+        .WithOptions(new DaprSidecarOptions {
+            AppId = "eventstore-admin-ui",
+        }));
 
 // Wire Keycloak auth to EventStore, Tenants, Admin.Server, and Admin.UI if enabled.
 if (keycloak is not null && realmUrl is not null) {
