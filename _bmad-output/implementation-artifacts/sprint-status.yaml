@@ -1,4 +1,5 @@
 # generated: 2026-05-16T09:57:23+02:00
+# last_updated: 2026-05-21 (Epic 12 retrospective completed; epic-12-retrospective -> done)
 # last_updated: 2026-05-20 (12-4 phase 2 UI story backlog with explicit blockedBy code review: 4 decisions resolved + 8 patches applied [Field Encoding Conventions section, ui-10 moved to blocked, FC-DOC Storybook replaced with Blazor terms, FC-TOK switch criterion, sprint-status historical commentary restored, /api/commands → /api/v1/commands across 7 rows, deployment-auth-readiness → production-auth-readiness, Future Story Checklist aligned with 12-field row schema] + 4 deferred + 10 dismissed; story -> done)
 # last_updated: 2026-05-20 (12-4 phase 2 UI story backlog with explicit blockedBy implemented; full Debug/no-restore solution gate passed [735 passed, 1 skipped]; story -> review)
 # last_updated: 2026-05-20 (12-4 phase 2 UI story backlog with explicit blockedBy development started; story -> in-progress)
@@ -134,7 +135,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-16T09:57:23+02:00
-last_updated: 2026-05-20
+last_updated: 2026-05-21
 # Story 11.1 code review complete: 0 decisions, 1 patch applied (xUnit
 # AuthenticationConfigurationCollection with DisableParallelization=true on
 # AuthenticationConfigurationTests so env-var-mutating tests cannot race
@@ -294,4 +295,4 @@ development_status:
   12-2-audit-timeline-and-consequence-preview-readiness: done
   12-3-three-phase-command-feedback-sequencing: done
   12-4-phase-2-ui-story-backlog-with-explicit-blockedby: done
-  epic-12-retrospective: optional
+  epic-12-retrospective: done

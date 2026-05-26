@@ -10,6 +10,7 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (Tenants.ContainsKey(e.TenantId)) {
             return;
         }
@@ -19,6 +20,7 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(TenantUpdated e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (Tenants.TryGetValue(e.TenantId, out TenantIndexEntry? existing)) {
             Tenants[e.TenantId] = existing with { Name = e.Name };
         }
@@ -26,6 +28,7 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(TenantDisabled e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (Tenants.TryGetValue(e.TenantId, out TenantIndexEntry? existing)) {
             Tenants[e.TenantId] = existing with { Status = TenantStatus.Disabled };
         }
@@ -33,6 +36,7 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(TenantEnabled e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (Tenants.TryGetValue(e.TenantId, out TenantIndexEntry? existing)) {
             Tenants[e.TenantId] = existing with { Status = TenantStatus.Active };
         }
@@ -40,6 +44,7 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(UserAddedToTenant e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (!Tenants.ContainsKey(e.TenantId)) {
             return;
         }
@@ -54,6 +59,7 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(UserRemovedFromTenant e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants)) {
             _ = tenants.Remove(e.TenantId);
             if (tenants.Count == 0) {
@@ -64,9 +70,15 @@ public sealed class TenantIndexReadModel {
 
     public void Apply(UserRoleChanged e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         if (UserTenants.TryGetValue(e.UserId, out Dictionary<string, TenantRole>? tenants)
             && tenants.ContainsKey(e.TenantId)) {
             tenants[e.TenantId] = e.NewRole;
         }
+    }
+
+    private void EnsureCollections() {
+        Tenants ??= [];
+        UserTenants ??= [];
     }
 }

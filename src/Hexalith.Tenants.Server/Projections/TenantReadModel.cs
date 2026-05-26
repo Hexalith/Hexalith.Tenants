@@ -14,6 +14,7 @@ public sealed class TenantReadModel {
 
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         TenantId = e.TenantId;
         Name = e.Name;
         Description = e.Description;
@@ -23,42 +24,55 @@ public sealed class TenantReadModel {
 
     public void Apply(TenantUpdated e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         Name = e.Name;
         Description = e.Description;
     }
 
     public void Apply(TenantDisabled e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         Status = TenantStatus.Disabled;
     }
 
     public void Apply(TenantEnabled e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         Status = TenantStatus.Active;
     }
 
     public void Apply(UserAddedToTenant e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         Members[e.UserId] = e.Role;
     }
 
     public void Apply(UserRemovedFromTenant e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         _ = Members.Remove(e.UserId);
     }
 
     public void Apply(UserRoleChanged e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         Members[e.UserId] = e.NewRole;
     }
 
     public void Apply(TenantConfigurationSet e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         Configuration[e.Key] = e.Value;
     }
 
     public void Apply(TenantConfigurationRemoved e) {
         ArgumentNullException.ThrowIfNull(e);
+        EnsureCollections();
         _ = Configuration.Remove(e.Key);
+    }
+
+    private void EnsureCollections() {
+        Members ??= [];
+        Configuration ??= [];
     }
 }

@@ -22,6 +22,147 @@ public class TenantProjectionHandlerTests {
     private const string TenantIndexKey = "projection:tenant-index:singleton";
     private const string TenantProjectionKey = "projection:tenants:tenant-1";
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task ProjectAsync_WhitespaceAggregateIdThrowsBeforeStateStoreAccessAsync(string aggregateId) {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            aggregateId,
+            [CreateEvent(new TenantCreated("tenant-1", "Acme", null, DateTimeOffset.UtcNow), "evt-1", DateTimeOffset.UtcNow)]);
+
+        _ = await Should.ThrowAsync<ArgumentException>(() => CreateHandler(stateStore).ProjectAsync(request));
+
+        stateStore.ReadCalls.ShouldBeEmpty();
+        stateStore.TrySaveAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_NullAggregateIdThrowsBeforeStateStoreAccessAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            null!,
+            [CreateEvent(new TenantCreated("tenant-1", "Acme", null, DateTimeOffset.UtcNow), "evt-1", DateTimeOffset.UtcNow)]);
+
+        _ = await Should.ThrowAsync<ArgumentException>(() => CreateHandler(stateStore).ProjectAsync(request));
+
+        stateStore.ReadCalls.ShouldBeEmpty();
+        stateStore.TrySaveAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_EmptyEventBatchReturnsDefaultProjectionWithoutStateStoreAccessAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        ProjectionRequest request = new("tenant-1", "tenants", "tenant-1", []);
+
+        ProjectionResponse response = await CreateHandler(stateStore).ProjectAsync(request);
+
+        response.ProjectionType.ShouldBe("tenants");
+        TenantReadModel? state = response.State.Deserialize<TenantReadModel>();
+        state.ShouldNotBeNull();
+        state.TenantId.ShouldBe(string.Empty);
+        stateStore.ReadCalls.ShouldBeEmpty();
+        stateStore.TrySaveAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_AllNullEventBatchReturnsDefaultProjectionWithoutStateStoreAccessAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        ProjectionRequest request = new("tenant-1", "tenants", "tenant-1", [null!]);
+
+        ProjectionResponse response = await CreateHandler(stateStore).ProjectAsync(request);
+
+        response.ProjectionType.ShouldBe("tenants");
+        stateStore.ReadCalls.ShouldBeEmpty();
+        stateStore.TrySaveAttempts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_AuditMergeTreatsNullPersistedEntriesAsEmptyAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        stateStore.EnqueueRead(TenantAuditProjectionKey, new TenantAuditReadModel { Entries = null! }, "audit-etag-1");
+        stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [CreateEvent(new TenantCreated("tenant-1", "Acme", null, timestamp), "evt-1", timestamp)]);
+
+        _ = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantAuditReadModel saved = (TenantAuditReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantAuditProjectionKey).Value;
+        saved.Entries.Select(e => e.EventId).ShouldBe(["evt-1"]);
+    }
+
+    [Fact]
+    public async Task ProjectAsync_TenantReadModelNullCollectionsAreReinitializedDuringReplayAsync() {
+        TenantReadModel existing = new() {
+            TenantId = "tenant-1",
+            Name = "Acme",
+            Members = null!,
+            Configuration = null!,
+        };
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead(TenantProjectionKey, existing, "tenant-etag-1");
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [
+                CreateEvent(new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantOwner), "evt-added", timestamp),
+                CreateEvent(new TenantConfigurationSet("tenant-1", "feature", "enabled"), "evt-config", timestamp.AddMinutes(1)),
+            ]);
+
+        _ = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey).Value;
+        saved.Members["user-1"].ShouldBe(TenantRole.TenantOwner);
+        saved.Configuration["feature"].ShouldBe("enabled");
+    }
+
+    [Fact]
+    public async Task ProjectAsync_TenantIndexNullCollectionsAreReinitializedDuringReplayAsync() {
+        TenantIndexReadModel existing = new() {
+            Tenants = null!,
+            UserTenants = null!,
+        };
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        EnqueueSuccessfulAuditSave(stateStore);
+        stateStore.EnqueueRead(TenantIndexKey, existing, "index-etag-1");
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        ProjectionRequest request = new(
+            "tenant-1",
+            "tenants",
+            "tenant-1",
+            [
+                CreateEvent(new TenantCreated("tenant-1", "Acme", null, timestamp), "evt-created", timestamp),
+                CreateEvent(new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantReader), "evt-added", timestamp.AddMinutes(1)),
+            ]);
+
+        _ = await CreateHandler(stateStore).ProjectAsync(request);
+
+        TenantIndexReadModel saved = (TenantIndexReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantIndexKey).Value;
+        saved.Tenants["tenant-1"].Name.ShouldBe("Acme");
+        saved.UserTenants["user-1"]["tenant-1"].ShouldBe(TenantRole.TenantReader);
+    }
+
     [Fact]
     public async Task ProjectAsync_ExistingTenantStateUsesLoadedETagAndFirstWriteOptionsAsync() {
         TenantReadModel existing = new() {

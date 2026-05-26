@@ -484,4 +484,267 @@ Full solution gate: 735 passed / 1 skipped / 0 failed.
 - **Status**: ✅ Complete
 - **Last saved**: 2026-05-20
 
+---
 
+## Step 1 — Preflight & Context (Create Run, 2026-05-20)
+
+### Stack Detection
+
+- `config.test_stack_type` = `auto`.
+- Root manifests detected: `Hexalith.Tenants.slnx`, `global.json`, and `package.json`.
+- Root `package.json` is semantic-release / commitlint tooling only; it has no frontend test framework dependencies.
+- Tenants source/test manifests detected under `src/`, `samples/`, and `tests/`; test projects exist for Client, Contracts, IntegrationTests, Server, and Testing.
+- No Tenants-scoped `playwright.config.*`, `cypress.config.*`, `page.goto`, or `page.locator` usage found.
+- **Detected stack: `backend`** (.NET 10 / C# / xUnit v3).
+
+### Framework Gate
+
+**PASS** — `tests/Directory.Build.props` wires xUnit v3, Shouldly, NSubstitute, Microsoft.NET.Test.Sdk, coverlet, and global `Xunit` using. Existing Tenants tests are present in:
+
+- `tests/Hexalith.Tenants.Client.Tests`
+- `tests/Hexalith.Tenants.Contracts.Tests`
+- `tests/Hexalith.Tenants.IntegrationTests`
+- `tests/Hexalith.Tenants.Server.Tests`
+- `tests/Hexalith.Tenants.Testing.Tests`
+
+### Execution Mode
+
+**BMad-Integrated** — planning and implementation artifacts are present in `_bmad-output/planning-artifacts/` and `_bmad-output/implementation-artifacts/`, with existing test artifacts under `_bmad-output/test-artifacts/`.
+
+### TEA Config Flags
+
+| Flag | Value | Effect |
+|------|-------|--------|
+| `tea_use_playwright_utils` | `true` | API-only profile loaded because the detected stack is backend and no browser tests were found. |
+| `tea_use_pactjs_utils` | `false` | Pact.js utility fragments skipped. |
+| `tea_pact_mcp` | `none` | Pact MCP fragment skipped. |
+| `tea_browser_automation` | `auto` | Playwright CLI knowledge loaded for possible trace/evidence use, but no browser workflow is active. |
+| `test_stack_type` | `auto` -> `backend` | Backend profile applied. |
+| `risk_threshold` | `p1` | Target selection should prioritize P0/P1 risk closure. |
+
+### Knowledge Fragments Loaded
+
+Core workflow fragments:
+
+- `test-levels-framework.md`
+- `test-priorities-matrix.md`
+- `data-factories.md`
+- `selective-testing.md`
+- `ci-burn-in.md`
+- `test-quality.md`
+
+Backend/API-only Playwright Utils profile:
+
+- `overview.md`
+- `api-request.md`
+- `auth-session.md`
+- `recurse.md`
+
+Browser automation support:
+
+- `playwright-cli.md`
+
+Skipped:
+
+- Pact.js utilities and Pact MCP: disabled by config and no Tenants-scoped Pact indicators were found.
+- UI/browser-only fragments: no Tenants browser-test surface was detected.
+
+### Project Conventions Carried Forward
+
+- xUnit v3 + Shouldly only; no raw `Assert.*`.
+- Use existing Tenants/EventStore helpers before adding new fixtures.
+- Use bounded polling for async state; never `Thread.Sleep` or arbitrary `Task.Delay`.
+- Tier 2/3 tests must inspect meaningful observable state, not just mock call counts or HTTP status.
+- Keep root-level submodules only; do not recursively initialize or update submodules.
+- `_bmad-output/` artifacts are workflow records and remain untracked implementation context.
+
+### Input Documents
+
+- `_bmad/tea/config.yaml`
+- `_bmad-output/project-context.md`
+- `_bmad-output/planning-artifacts/prd.md`
+- `_bmad-output/planning-artifacts/architecture.md`
+- `_bmad-output/planning-artifacts/epics.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `tests/Directory.Build.props`
+- `package.json`
+- `.agents/skills/bmad-testarch-automate/resources/tea-index.csv`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/test-levels-framework.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/test-priorities-matrix.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/data-factories.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/selective-testing.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/ci-burn-in.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/test-quality.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/overview.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/api-request.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/auth-session.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/recurse.md`
+- `.agents/skills/bmad-testarch-automate/resources/knowledge/playwright-cli.md`
+
+---
+
+## Step 2 — Identify Automation Targets (Create Run, 2026-05-20)
+
+### Target Selection
+
+**Selected bundle: Projection input-contract and deserialized-state hardening.**
+
+The current sprint stories 12.2, 12.3, and 12.4 are documentation/readiness work and explicitly require no source-code test suite. The next highest-value automation target is therefore deferred backend risk in projection write/read-model hardening, especially items carried from Epic 10 reviews.
+
+Primary evidence:
+
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`
+- `src/Hexalith.Tenants/Projections/TenantProjectionWritePolicy.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs`
+- Existing tests in `tests/Hexalith.Tenants.Server.Tests/Projections/`
+
+### Duplicate Coverage Guard
+
+Already covered:
+
+- Optimistic concurrency reload/retry behavior for tenant detail, audit, and index writes.
+- Audit duplicate deduplication by `EventId`, persisted-authoritative collisions, replay after partial success, malformed audit-only payloads, and missing `MessageId`/`UserId` aborts.
+- Cancellation-token threading through projection reads/saves.
+- `TenantIndexReadModel` out-of-order no-op behavior for member events and lifecycle events.
+
+Not covered:
+
+- Empty or whitespace `ProjectionRequest.AggregateId` producing shared garbage keys such as `projection:tenants:` and `audit:`.
+- Empty/all-null projection event batches still performing three state-store writes despite no state change.
+- Persisted read models deserialized with null collection properties (`Entries`, `Members`, `Configuration`, `Tenants`, `UserTenants`) causing null-reference failures during merge/apply.
+- Per-string diagnostic bounding for very long `MessageId`/event type values.
+- `stateKeyCategory` free-form log/exception value hygiene.
+
+### Coverage Plan
+
+| Test ID | Tier | Priority | Target | Scenario | Justification |
+|---------|------|----------|--------|----------|---------------|
+| PROJ-T2-001 | T2 | P0 | `TenantProjectionHandler.ProjectAsync` | Reject null/empty/whitespace `AggregateId` before any state-store read/write | Prevents cross-tenant shared-key collision for `projection:tenants:` and `audit:`. |
+| PROJ-T2-002 | T2 | P1 | `TenantProjectionHandler.ProjectAsync` | Empty or all-null event batches should no-op or fail before state-store writes | Avoids unnecessary 3-key write amplification for zero useful work. Final expected behavior to be confirmed in Step 3 against production design. |
+| PROJ-T2-003 | T2 | P1 | `TenantProjectionHandler` audit merge | Persisted `TenantAuditReadModel.Entries = null` does not throw and is normalized/handled deliberately | Guards deserialization edge where JSON setters override collection initializers. |
+| PROJ-T2-004 | T2 | P1 | `TenantReadModel` apply path through handler | Persisted `TenantReadModel.Members = null` / `Configuration = null` does not throw during replay | Guards historical/corrupt blobs and adapter-returned partial state. |
+| PROJ-T2-005 | T2 | P1 | `TenantIndexReadModel` apply path through handler | Persisted `Tenants = null` / `UserTenants = null` does not throw during singleton-index replay | Protects the shared cross-tenant index from one bad persisted blob. |
+| PROJ-T2-006 | T2 | P2 | `TenantProjectionWritePolicy` logs | Very long single `MessageId`/event type is length-bounded in conflict/exhaustion diagnostics | Improves existing count-bound guard; lower priority because logs already avoid payloads. |
+| PROJ-T2-007 | T2 | P2 | `TenantProjectionWritePolicy` guard inputs | `stateKeyCategory` cannot carry user-controlled content into exception/log fields | Lower likelihood today because callers use constants, but protects future helper use. |
+
+### Test Level Decision
+
+All selected tests are **Tier 2 Server.Tests** rather than Aspire E2E:
+
+- The behavior lives in projection handler/policy and mutable read models.
+- Existing `ProjectionWriteConformanceFixture` and `TenantProjectionHandlerTests` exercise production behavior through `TenantProjectionHandler.ProjectAsync` without DAPR or Docker.
+- Tier 3 would add infrastructure cost without testing a different contract aspect.
+
+### Priority Rationale
+
+- **P0**: `AggregateId` validation closes a tenant-isolation/data-integrity risk: blank aggregate ID collapses distinct tenant writes into shared keys.
+- **P1**: Null collection and empty-batch behaviors are reliability/data-integrity risks in state-store recovery and replay paths.
+- **P2**: Diagnostic length/category hygiene reduces observability risk, but current callers and count bounds lower immediate probability.
+
+### Scope Decision for Generation
+
+Generate the P0/P1 subset first:
+
+- `PROJ-T2-001` through `PROJ-T2-005`
+- Primary file: `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs`
+- Reuse or minimally extend existing scripted state-store helpers.
+
+Hold `PROJ-T2-006` and `PROJ-T2-007` for a follow-up unless Step 3 finds the implementation change is trivial and contained.
+
+---
+
+## Step 3 — Generate and Aggregate Tests (Create Run, 2026-05-20)
+
+### Execution Mode Resolution
+
+- Requested: `auto`
+- Probe enabled: `true`
+- Supports agent-team: not used
+- Supports subagent: not used
+- Resolved: `sequential`
+
+Rationale: this run did not explicitly request delegated agent work, so the API and backend worker instructions were executed locally while preserving the TEA temp-output contract.
+
+### Worker Outputs
+
+- API worker output: `_bmad-output/test-artifacts/.tmp/tea-automate-api-tests-2026-05-20T19-32-45-3104675+02-00.json`
+- Backend worker output: `_bmad-output/test-artifacts/.tmp/tea-automate-backend-tests-2026-05-20T19-32-45-3104675+02-00.json`
+- Aggregated summary: `_bmad-output/test-artifacts/.tmp/tea-automate-summary-2026-05-20T19-32-45-3104675+02-00.json`
+
+### Generated / Updated Files
+
+Backend tests:
+
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs`
+
+Source changes required to satisfy the selected deferred risks:
+
+- `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
+
+No new fixtures were created; the existing scripted projection state-store helper was sufficient.
+
+### Test Cases Generated
+
+| Test ID | File | Test case | Priority |
+|---------|------|-----------|----------|
+| PROJ-T2-001a | `TenantProjectionHandlerTests.cs` | `ProjectAsync_WhitespaceAggregateIdThrowsBeforeStateStoreAccessAsync` | P0 |
+| PROJ-T2-001b | `TenantProjectionHandlerTests.cs` | `ProjectAsync_NullAggregateIdThrowsBeforeStateStoreAccessAsync` | P0 |
+| PROJ-T2-002a | `TenantProjectionHandlerTests.cs` | `ProjectAsync_EmptyEventBatchReturnsDefaultProjectionWithoutStateStoreAccessAsync` | P1 |
+| PROJ-T2-002b | `TenantProjectionHandlerTests.cs` | `ProjectAsync_AllNullEventBatchReturnsDefaultProjectionWithoutStateStoreAccessAsync` | P1 |
+| PROJ-T2-003 | `TenantProjectionHandlerTests.cs` | `ProjectAsync_AuditMergeTreatsNullPersistedEntriesAsEmptyAsync` | P1 |
+| PROJ-T2-004 | `TenantProjectionHandlerTests.cs` | `ProjectAsync_TenantReadModelNullCollectionsAreReinitializedDuringReplayAsync` | P1 |
+| PROJ-T2-005 | `TenantProjectionHandlerTests.cs` | `ProjectAsync_TenantIndexNullCollectionsAreReinitializedDuringReplayAsync` | P1 |
+
+### Aggregation Summary
+
+- Stack type: backend
+- Total tests generated: 7
+- API tests: 0
+- Backend tests: 7
+- Fixture needs: none beyond existing helpers
+- Priority coverage: P0 = 2, P1 = 5, P2 = 0, P3 = 0
+
+---
+
+## Step 4 — Validate and Summarize (Create Run, 2026-05-20)
+
+### Validation Results
+
+- Checklist validation: passed for backend/.NET applicable items; E2E, browser, Pact, package-script, and faker-fixture items are N/A for this backend projection run.
+- Temp artifacts: moved into `_bmad-output/test-artifacts/.tmp/`.
+- CLI sessions: no orphaned browser sessions used; stopped the Aspire-managed `tenants` and `tenants-dapr` resources to clear a DLL lock before validation.
+
+### Test Execution
+
+| Command | Result |
+|---------|--------|
+| `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~TenantProjectionHandlerTests"` | Passed: 25, Failed: 0, Skipped: 0 |
+| `dotnet test .\tests\Hexalith.Tenants.Server.Tests\Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore` | Passed: 483, Failed: 0, Skipped: 0 |
+| `dotnet test .\Hexalith.Tenants.slnx --configuration Debug --no-restore` | Failed in `Hexalith.Tenants.IntegrationTests`: 68 passed, 3 failed, 1 skipped. Failing tests were DAPR/pubsub/bootstrap environment paths, not the targeted projection server suite. |
+
+### Files Updated
+
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs`
+- `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantReadModel.cs`
+- `src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs`
+- `_bmad-output/test-artifacts/automation-summary.md`
+
+### Coverage Closed
+
+- P0: null/empty/whitespace aggregate IDs are rejected before state-store access.
+- P1: empty/all-null event batches return a default projection without state-store reads or writes.
+- P1: persisted null collection properties in tenant detail, audit, and singleton index read models are normalized during replay/merge.
+
+### Residual Risks and Next Workflow
+
+- P2 diagnostic log hygiene items `PROJ-T2-006` and `PROJ-T2-007` remain deferred.
+- Recommended next workflow: `bmad-testarch-test-review` for focused review of the newly added projection tests, or `bmad-testarch-trace` if the team wants these deferred risks mapped into a formal gate.

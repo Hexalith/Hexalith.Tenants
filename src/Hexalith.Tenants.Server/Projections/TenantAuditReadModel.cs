@@ -19,6 +19,7 @@ public sealed class TenantAuditReadModel {
 
     public void Apply(ProjectionEventDto evt) {
         ArgumentNullException.ThrowIfNull(evt);
+        Entries ??= [];
 
         if (string.IsNullOrWhiteSpace(evt.MessageId) || string.IsNullOrWhiteSpace(evt.UserId)) {
             throw new InvalidOperationException(
@@ -34,7 +35,7 @@ public sealed class TenantAuditReadModel {
     }
 
     public void SortEntries() {
-        Entries = Entries
+        Entries = (Entries ?? [])
             .OrderBy(e => e.Timestamp)
             .ThenBy(e => e.EventId, StringComparer.Ordinal)
             .ToList();

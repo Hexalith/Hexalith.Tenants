@@ -54,9 +54,15 @@ public sealed class TenantProjectionHandler {
 
     public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.AggregateId);
         cancellationToken.ThrowIfCancellationRequested();
 
         IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
+        if (!events.Any(e => e is not null)) {
+            return new ProjectionResponse(
+                "tenants",
+                JsonSerializer.SerializeToElement(new TenantReadModel()));
+        }
 
         // Build (and validate) the incoming audit model first so a missing
         // MessageId/UserId invariant violation aborts the whole batch before
@@ -129,7 +135,7 @@ public sealed class TenantProjectionHandler {
         // mutated. Required for any state-store implementation that returns a
         // cached/shared reference from GetStateAndETagAsync.
         TenantAuditReadModel merged = new() {
-            Entries = [.. persisted.Entries],
+            Entries = [.. (persisted.Entries ?? [])],
         };
 
         // Null/whitespace EventIds cannot participate in dedup. Persisted
@@ -141,7 +147,7 @@ public sealed class TenantProjectionHandler {
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .ToHashSet(StringComparer.Ordinal);
 
-        foreach (TenantAuditEntry entry in incoming.Entries) {
+        foreach (TenantAuditEntry entry in incoming.Entries ?? []) {
             if (string.IsNullOrWhiteSpace(entry.EventId)) {
                 continue;
             }
