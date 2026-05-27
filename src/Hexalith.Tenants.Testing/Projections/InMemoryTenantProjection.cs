@@ -70,7 +70,9 @@ public sealed class InMemoryTenantProjection {
                 break;
 
             default:
-                // Silently ignore unknown events to maintain parity with service processing behavior
+                // Silently ignore unknown events to maintain parity with real service processing.
+                // Drift guard: InMemoryTenantProjectionConformanceTests fails if a Contracts.Events
+                // success event is added without being wired into a case above (TEN-4).
                 break;
         }
     }

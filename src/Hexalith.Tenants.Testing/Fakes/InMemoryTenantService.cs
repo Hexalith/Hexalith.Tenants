@@ -14,6 +14,12 @@ namespace Hexalith.Tenants.Testing.Fakes;
 /// Handle/Apply methods used in production. Does not reimplement domain logic — wraps existing pure-function
 /// methods in a simple in-memory container for fast, infrastructure-free testing.
 /// </summary>
+/// <remarks>
+/// Public helpers return <see cref="DomainResult"/> (Hexalith.EventStore.Contracts) by design — it is the
+/// canonical EventStore outcome type and an in-tier dependency of this package, reused by consuming-service
+/// tests without added coupling. See the "Tenants.Testing result type" decision record in architecture.md.
+/// Do not wrap it in a Tenants-owned result type (TEN-5).
+/// </remarks>
 public sealed class InMemoryTenantService {
     private const string DefaultDomain = "tenants";
     private const string GlobalAdminAggregateId = "system";
