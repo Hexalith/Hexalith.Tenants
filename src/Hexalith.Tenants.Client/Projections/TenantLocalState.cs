@@ -43,12 +43,15 @@ public class TenantLocalState {
     public string? Description { get; set; }
 
     /// <summary>
-    /// Gets or sets the tenant status.
+    /// Gets or sets the tenant status. Defaults to <see cref="TenantStatus.Unknown"/> (the non-active
+    /// sentinel) so a state built before <c>TenantCreated</c> is applied never reads as active (TEN-2).
     /// </summary>
-    public TenantStatus Status { get; set; } = TenantStatus.Active;
+    public TenantStatus Status { get; set; } = TenantStatus.Unknown;
 
     /// <summary>
     /// Gets the tenant members mapped by user ID to their role.
+    /// Keyed case-sensitively (Ordinal) per the Identifier Casing Contract in
+    /// docs/production-auth-claim-contract.md — do not switch to OrdinalIgnoreCase (TEN-3).
     /// </summary>
     public Dictionary<string, TenantRole> Members { get; init; } = [];
 

@@ -74,7 +74,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                     command.TenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole addRole) ? addRole : null,
                     nameof(AddUserToTenant))]),
-            _ when !Enum.IsDefined(command.Role)
+            _ when !IsAssignableRole(command.Role)
                 => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.Role)]),
             _ when state.Users.TryGetValue(command.UserId, out TenantRole existingRole)
                 => DomainResult.Rejection([new UserAlreadyInTenantRejection(command.TenantId, command.UserId, existingRole)]),
@@ -171,7 +171,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                     command.TenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole changeRole) ? changeRole : null,
                     nameof(ChangeUserRole))]),
-            _ when !Enum.IsDefined(command.NewRole)
+            _ when !IsAssignableRole(command.NewRole)
                 => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.NewRole)]),
             _ when !state.Users.ContainsKey(command.UserId)
                 => DomainResult.Rejection([new UserNotInTenantRejection(command.TenantId, command.UserId)]),
@@ -180,6 +180,11 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             _ => DomainResult.Success([new UserRoleChanged(command.TenantId, command.UserId, state.Users[command.UserId], command.NewRole)]),
         };
     }
+
+    // Only the three real roles are assignable; the Unknown sentinel (ordinal 0) and out-of-range
+    // values are rejected. Replaces a bare Enum.IsDefined check, which now accepts Unknown (TEN-1).
+    private static bool IsAssignableRole(TenantRole role)
+        => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
 
     private static bool IsAuthorized(TenantState state, string actorUserId, TenantRole minimumRole)
         => state.Users.TryGetValue(actorUserId, out TenantRole actorRole) && MeetsMinimumRole(actorRole, minimumRole);

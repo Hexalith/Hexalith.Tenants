@@ -3,7 +3,9 @@ namespace Hexalith.Tenants.Client.Handlers;
 /// <summary>
 /// Context for tenant event processing, providing envelope metadata to handlers.
 /// </summary>
-/// <param name="TenantId">The managed tenant ID (from AggregateId, not envelope TenantId).</param>
+/// <param name="TenantId">The managed tenant ID (from AggregateId, not envelope TenantId).
+/// Compared case-sensitively (Ordinal) per the Identifier Casing Contract in
+/// docs/production-auth-claim-contract.md; canonical casing is the IdP/operator's responsibility (TEN-3).</param>
 /// <param name="MessageId">The unique event message ID (ULID) for idempotency.</param>
 /// <param name="SequenceNumber">The event sequence number within the aggregate.</param>
 /// <param name="Timestamp">When the event was persisted.</param>
