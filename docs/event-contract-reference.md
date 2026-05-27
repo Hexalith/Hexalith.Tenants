@@ -70,7 +70,7 @@ This document covers the **payload fields** — the domain-specific content insi
 
 **Example of a backward-compatible change:** In a future v1.1, a new optional field `tags` could be added to `TenantCreated`. Existing subscribers continue working because System.Text.Json ignores unknown properties by default (`JsonSerializerOptions.UnmappedMemberHandling` defaults to `Skip`).
 
-**Forward-compatible enum handling:** Subscribers should handle unknown `TenantRole` values gracefully — log a warning and treat unknown roles as the lowest-permission `TenantReader`, or skip the event — rather than throwing. Phase 2 may add custom or extensible roles beyond the current set.
+**Forward-compatible enum handling (fail-closed):** Enums serialize **by name** and reserve ordinal `0` as a non-privileged `Unknown` sentinel (TEN-1/TEN-2). A payload with a missing role/status deserializes to `Unknown`; an unrecognized name throws `JsonException`. Subscribers must treat `Unknown` (and any unrecognized value) as **fail-closed** — deny access and do not treat the tenant as active — never as a usable role or as `Active`. Do **not** map unknown roles to `TenantReader`. Phase 2 may add roles; new names are additive and old payloads remain decodable by name.
 
 ---
 
@@ -78,22 +78,24 @@ This document covers the **payload fields** — the domain-specific content insi
 
 ### TenantRole
 
-Defines the permission level of a user within a tenant. Serialized as an **integer** in event payloads (default `System.Text.Json`). Note: the query endpoint (`GET /api/tenants/{id}`) serializes enums as **strings** (e.g., `"TenantOwner"`) because it uses `JsonStringEnumConverter`. Consumers should handle both formats if they read from both events and query responses.
+Defines the permission level of a user within a tenant. Serialized **by name** (e.g. `"TenantOwner"`) in both event payloads and query responses via `[JsonConverter(typeof(JsonStringEnumConverter<TenantRole>))]`. Ordinal `0` is the non-privileged `Unknown` sentinel: a missing or unrecognized role fails closed rather than mapping to a privileged role (TEN-1).
 
-| Value | Name                | Description                                 |
-| ----- | ------------------- | ------------------------------------------- |
-| `0`   | `TenantOwner`       | Full administrative control over the tenant |
-| `1`   | `TenantContributor` | Can perform operations within the tenant    |
-| `2`   | `TenantReader`      | Read-only access to tenant data             |
+| Ordinal | Name                | Description                                                        |
+| ------- | ------------------- | ------------------------------------------------------------------ |
+| `0`     | `Unknown`           | Non-privileged sentinel — rejected by the aggregate, never granted |
+| `1`     | `TenantOwner`       | Full administrative control over the tenant                        |
+| `2`     | `TenantContributor` | Can perform operations within the tenant                           |
+| `3`     | `TenantReader`      | Read-only access to tenant data                                    |
 
 ### TenantStatus
 
-Defines the operational state of a tenant. Serialized as an **integer** in event payloads.
+Defines the operational state of a tenant. Serialized **by name** (e.g. `"Active"`) via `[JsonConverter(typeof(JsonStringEnumConverter<TenantStatus>))]`. Ordinal `0` is the non-active `Unknown` sentinel: an absent or unrecognized status never defaults to `Active` (TEN-2).
 
-| Value | Name       | Description                                                          |
-| ----- | ---------- | -------------------------------------------------------------------- |
-| `0`   | `Active`   | Tenant is operational                                                |
-| `1`   | `Disabled` | Tenant is suspended — commands that modify tenant state are rejected |
+| Ordinal | Name       | Description                                                          |
+| ------- | ---------- | -------------------------------------------------------------------- |
+| `0`     | `Unknown`  | Non-active sentinel — absent/unrecognized status is never active     |
+| `1`     | `Active`   | Tenant is operational                                                |
+| `2`     | `Disabled` | Tenant is suspended — commands that modify tenant state are rejected |
 
 ---
 
@@ -271,7 +273,7 @@ Adds a user to a tenant with a specified role.
 | ---------- | ---------------- | ------------------------------------------------------- |
 | `TenantId` | string           | Target tenant ID                                        |
 | `UserId`   | string           | User to add                                             |
-| `Role`     | TenantRole (int) | Role to assign (`0`=Owner, `1`=Contributor, `2`=Reader) |
+| `Role`     | TenantRole (string) | Role to assign: `"TenantOwner"`, `"TenantContributor"`, or `"TenantReader"` |
 
 **Success event:** `UserAddedToTenant`
 
@@ -279,7 +281,7 @@ Adds a user to a tenant with a specified role.
 | ---------- | ---------------- | -------------- |
 | `TenantId` | string           | The tenant ID  |
 | `UserId`   | string           | The added user |
-| `Role`     | TenantRole (int) | Assigned role  |
+| `Role`     | TenantRole (string) | Assigned role  |
 
 Published on topic: `tenants.events`
 
@@ -346,7 +348,7 @@ Changes a user's role within a tenant.
 | ---------- | ---------------- | ------------------ |
 | `TenantId` | string           | Target tenant ID   |
 | `UserId`   | string           | Target user        |
-| `NewRole`  | TenantRole (int) | New role to assign |
+| `NewRole`  | TenantRole (string) | New role to assign |
 
 **Success event:** `UserRoleChanged`
 
@@ -354,8 +356,8 @@ Changes a user's role within a tenant.
 | ---------- | ---------------- | ------------------------------------ |
 | `TenantId` | string           | The tenant ID                        |
 | `UserId`   | string           | The user whose role changed          |
-| `OldRole`  | TenantRole (int) | Previous role (from aggregate state) |
-| `NewRole`  | TenantRole (int) | New role                             |
+| `OldRole`  | TenantRole (string) | Previous role (from aggregate state) |
+| `NewRole`  | TenantRole (string) | New role                             |
 
 Published on topic: `tenants.events`
 

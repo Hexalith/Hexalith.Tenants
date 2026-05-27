@@ -28,6 +28,15 @@ For Tenants deployment, `eventstore:tenant=system` is the safest production cont
 
 `ClaimsTenantValidator` and `ClaimsRbacValidator` bypass tenant matching and RBAC for global administrators, so a global-admin token without an `eventstore:tenant` claim is authorized for tenant-management commands and queries. The rate-limit fallback to the `anonymous` partition does NOT apply on the Tenants host today because EventStore rate limiting is not registered (see [Rate-Limit Boundary](#rate-limit-boundary)). Provision global-administrator tokens with `eventstore:tenant=system` anyway so audit logs and partitioning behave consistently if the EventStore host is later added.
 
+## Identifier Casing Contract
+
+`sub` (the authenticated user identifier) and the managed `tenantId` are compared **case-sensitively** (`StringComparer.Ordinal`) throughout Hexalith.Tenants — membership keys (`TenantLocalState.Members`, `TenantState.Users`), projection lookups, and event deduplication.
+
+- **Rationale:** OIDC `sub` is case-sensitive per spec. Case-folding identifiers could collapse two genuinely distinct subjects into one membership entry — a silent privilege merge. Tenants therefore does **not** normalize casing internally.
+- **Identity-provider / operator obligation:** the IdP MUST emit a stable, canonically-cased `sub`, and the casing present when an administrator issues `AddUserToTenant` MUST match the casing consuming services later observe for that principal. Managed tenant IDs are operator-assigned and MUST be referenced with identical casing across EventStore registration, the `eventstore:tenant` claim, and event payloads. Convention for new tenant IDs: lowercase kebab-case (for example `acme-corp`).
+- **Mismatch is fail-closed by design:** a casing difference surfaces as an unknown tenant or a missing member. Resolve it by aligning the IdP/operator casing at the source — **not** by relaxing the comparer to `OrdinalIgnoreCase`.
+- **Consumer guidance:** consuming services (for example Parties) should rely on this published contract rather than compensating with claims case-folding.
+
 ## Supported Source Claims
 
 An identity provider may emit the downstream `eventstore:tenant` claim directly (recommended for production — see [Keycloak Mapping](#keycloak-mapping-direct-claim-shape) below). EventStore can also normalize these source claim shapes into `eventstore:tenant`:
