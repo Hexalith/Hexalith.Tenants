@@ -1433,12 +1433,67 @@ public class TenantAggregateTests {
         _ = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
     }
 
-    // Task 3.7: TenantRole enum ordinal regression test
+    // TEN-1: AddUserToTenant with the Unknown sentinel role → RoleEscalationRejection.
+    // Empty Users dict → bootstrap exception applies, RBAC is skipped → assignable-role check fires.
     [Fact]
-    public void TenantRole_ordinal_values_maintain_privilege_hierarchy() {
+    public async Task AddUserToTenant_with_Unknown_role_produces_RoleEscalationRejection() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.Unknown));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        _ = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+    }
+
+    // TEN-1: ChangeUserRole to the Unknown sentinel → RoleEscalationRejection.
+    [Fact]
+    public async Task ChangeUserRole_to_Unknown_role_produces_RoleEscalationRejection() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.Unknown), actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        _ = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+    }
+
+    // TEN-1: a member whose stored role is the Unknown sentinel (e.g. materialized from a malformed
+    // event) fails owner-gated authorization — fail-closed, not fail-open to TenantOwner.
+    [Fact]
+    public async Task Member_with_Unknown_role_is_not_authorized_for_owner_operations() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "ghost", TenantRole.Unknown));
+
+        CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantReader), actorUserId: "ghost");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+    }
+
+    // TenantRole enum sentinel + hierarchy regression test (TEN-1 correction).
+    // Authorization is name-based (MeetsMinimumRole), so ordinals are not the privilege source;
+    // this guards the Unknown=0 sentinel and the role count.
+    [Fact]
+    public void TenantRole_reserves_Unknown_sentinel_at_zero() {
+        ((int)TenantRole.Unknown).ShouldBe(0);
+        ((int)TenantRole.TenantOwner).ShouldBeGreaterThan(0);
+        // Relative order of the assignable roles is preserved (informational only).
         ((int)TenantRole.TenantOwner).ShouldBeLessThan((int)TenantRole.TenantContributor);
         ((int)TenantRole.TenantContributor).ShouldBeLessThan((int)TenantRole.TenantReader);
-        Enum.GetValues<TenantRole>().Length.ShouldBe(3);
+        Enum.GetValues<TenantRole>().Length.ShouldBe(4);
     }
 
     // Task 3.10: 3-param Handle method discovery guard
