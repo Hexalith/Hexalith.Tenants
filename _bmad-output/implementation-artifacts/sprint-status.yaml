@@ -1,0 +1,134 @@
+# generated: 2026-05-27
+# last_updated: 2026-05-27
+# project: Hexalith.Tenants
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-05-27
+last_updated: 2026-05-27
+project: Hexalith.Tenants
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  # Epic 1: Developers Can Build and Consume the Tenant Platform
+  epic-1: backlog
+  1-1-establish-eventstore-native-solution-structure: backlog
+  1-2-configure-central-build-and-package-governance: backlog
+  1-3-add-ci-quality-gates-for-build-test-coverage-and-package-validation: backlog
+  1-4-verify-consumer-package-reference-experience: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Global Administrators Can Bootstrap and Govern Tenants
+  epic-2: backlog
+  2-1-bootstrap-the-initial-global-administrator: backlog
+  2-2-manage-global-administrator-assignments: backlog
+  2-3-authorize-global-administrators-for-cross-tenant-governance: backlog
+  2-4-create-and-update-tenants: backlog
+  2-5-disable-and-re-enable-tenants: backlog
+  2-6-return-structured-tenant-governance-rejections: backlog
+  2-7-preserve-command-source-of-truth-when-pub-sub-is-unavailable: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Tenant Owners Can Manage Access and Configuration Safely
+  epic-3: backlog
+  3-1-add-users-to-a-tenant-with-explicit-roles: backlog
+  3-2-remove-users-from-a-tenant: backlog
+  3-3-change-tenant-user-roles-with-escalation-protection: backlog
+  3-4-enforce-tenant-scoped-role-behavior: backlog
+  3-5-set-tenant-configuration-entries: backlog
+  3-6-remove-tenant-configuration-entries: backlog
+  3-7-enforce-tenant-configuration-limits: backlog
+  3-8-reject-conflicting-concurrent-tenant-modifications: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Consuming Services Can React to Tenant Events
+  epic-4: backlog
+  4-1-publish-tenant-domain-events-as-cloudevents: backlog
+  4-2-expose-consumer-di-registration-for-tenant-client-services: backlog
+  4-3-register-tenant-event-handlers-in-under-twenty-lines: backlog
+  4-4-build-a-local-consumer-projection-from-tenant-events: backlog
+  4-5-react-to-tenant-access-lifecycle-and-configuration-changes: backlog
+  4-6-provide-idempotent-consumer-guidance-and-sample-service: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Operators and Developers Can Query Tenant State and Audit Access
+  epic-5: backlog
+  5-1-query-a-paginated-tenant-list: backlog
+  5-2-query-tenant-details-and-tenant-users: backlog
+  5-3-query-the-tenants-a-user-belongs-to: backlog
+  5-4-query-tenant-access-audit-history: backlog
+  5-5-provide-safe-cursor-based-pagination-for-query-endpoints: backlog
+  5-6-persist-tenant-projections-without-silent-write-loss: backlog
+  5-7-enforce-query-side-authorization-and-isolation: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Developers Can Test Tenant Behavior Without Infrastructure
+  epic-6: backlog
+  6-1-provide-in-memory-tenant-test-fakes: backlog
+  6-2-reuse-production-aggregate-logic-in-testing-fakes: backlog
+  6-3-add-production-fake-conformance-tests: backlog
+  6-4-support-consumer-tenant-isolation-tests: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Operators Can Deploy, Secure, and Observe Production Tenants
+  epic-7: backlog
+  7-1-provide-aspire-hosting-extensions-for-tenants: backlog
+  7-2-configure-dapr-components-for-local-and-production-deployment: backlog
+  7-3-validate-production-authentication-and-eventstore-tenant-claims: backlog
+  7-4-expose-tenant-command-and-event-metrics-with-opentelemetry: backlog
+  7-5-prove-stateless-operation-health-and-startup-reconstruction: backlog
+  7-6-validate-deployment-readiness-with-smoke-tests-and-recovery-checks: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: Developers Can Adopt Through Documentation and Demo Evidence
+  epic-8: backlog
+  8-1-create-a-prerequisite-validated-quickstart: backlog
+  8-2-publish-the-event-contract-reference: backlog
+  8-3-document-the-sample-consuming-service-walkthrough: backlog
+  8-4-produce-the-reactive-access-aha-moment-demo: backlog
+  8-5-document-cross-aggregate-timing-and-eventual-consistency: backlog
+  8-6-document-compensating-command-patterns: backlog
+  epic-8-retrospective: optional
+
+  # Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
+  epic-9: backlog
+  9-1-map-fluent-ui-and-frontcomposer-dependencies-for-tenant-admin-screens: backlog
+  9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: backlog
+  9-3-define-truth-state-freshness-and-unavailable-action-patterns: backlog
+  9-4-specify-the-removeuserfromtenant-command-capable-journey: backlog
+  9-5-specify-audit-evidence-and-compensating-recovery-ui-patterns: backlog
+  9-6-specify-responsive-operational-layout-and-visual-system-usage: backlog
+  9-7-define-accessibility-localization-and-ui-acceptance-evidence: backlog
+  epic-9-retrospective: optional

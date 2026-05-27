@@ -285,6 +285,15 @@ Security-sensitive invariants:
 - No command payloads, event payloads, tokens, secrets, or PII in logs.
 - Cross-tenant isolation tests are release blockers.
 
+### Security & Contract Hardening Decisions (Correct Course 2026-05-27)
+
+Resolves fail-open defaults and consumer-contract gaps raised in the Parties review (TEN-1 … TEN-5). See `_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-27.md`.
+
+- **Enum fail-safe serialization (TEN-1/TEN-2).** `TenantRole` and `TenantStatus` serialize **by name** (`JsonStringEnumConverter<T>`) and reserve ordinal `0` as a non-privileged `Unknown` sentinel. A missing field deserializes to `Unknown` (default-denied by `MeetsMinimumRole`; never `Active`); an unrecognized name fails closed via `JsonException`. The aggregate's `IsAssignableRole` guard and the `AddUserToTenant`/`ChangeUserRole` validators reject `Unknown`. Pre-v1.0 wire change (int→name + ordinal shift), recorded in CHANGELOG.
+- **Identifier casing contract (TEN-3).** `sub`/userId and managed `tenantId` are compared case-sensitively (`StringComparer.Ordinal`) everywhere. Canonical casing is a boundary contract owned by the IdP/operator (OIDC `sub` is case-sensitive; case-folding could merge distinct subjects). A casing mismatch fails closed by design. Documented in `docs/production-auth-claim-contract.md`; consuming services rely on the contract instead of compensating.
+- **Tenants.Testing result type (TEN-5).** `InMemoryTenantService`/`TenantTestHelpers` return `Hexalith.EventStore.Contracts.Results.DomainResult` intentionally — the canonical, in-tier outcome type reused by consumer tests without new coupling. No wrapper; no consumer fitness restriction.
+- **Projection drift guard (TEN-4).** `InMemoryTenantProjection` keeps its silent `default:` arm for real-service parity, but `InMemoryTenantProjectionConformanceTests` fails if a `Contracts.Events` success event is added without being wired.
+
 ### API & Communication Patterns
 
 Commands use EventStore command submission, with `POST /api/v1/commands` or the repository's current EventStore command route as the command gateway. Command handling returns success, rejection, or no-op through EventStore domain result semantics.
