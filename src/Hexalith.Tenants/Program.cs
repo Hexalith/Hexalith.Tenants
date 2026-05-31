@@ -4,6 +4,7 @@ using FluentValidation;
 
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
+using Hexalith.EventStore.Client.Discovery;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
 using Hexalith.EventStore.Contracts.Authorization;
@@ -13,6 +14,7 @@ using Hexalith.EventStore.ErrorHandling;
 using Hexalith.EventStore.Middleware;
 using Hexalith.EventStore.Pipeline;
 using Hexalith.EventStore.Server.Commands;
+using Hexalith.EventStore.Indexes;
 using Hexalith.EventStore.Server.Pipeline;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.EventStore.Validation;
@@ -140,6 +142,10 @@ app.MapPost("/project", async (
     ILoggerFactory loggerFactory,
     CancellationToken cancellationToken)
     => await new ProjectionDispatcher(daprClient, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
+app.MapPost("/admin/operational-index-metadata", (
+    AdminOperationalIndexMetadataRequest request,
+    DiscoveryResult discovery)
+    => Results.Ok(Hexalith.Tenants.AdminOperationalIndexMetadata.Create(discovery, request.Domains)));
 app.MapSubscribeHandler();
 app.MapActorsHandlers();
 
