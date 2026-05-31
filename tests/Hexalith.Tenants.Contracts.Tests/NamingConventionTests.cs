@@ -9,6 +9,18 @@ namespace Hexalith.Tenants.Contracts.Tests;
 public class NamingConventionTests {
     private static readonly Assembly ContractsAssembly = typeof(Commands.CreateTenant).Assembly;
 
+    private static readonly HashSet<string> ForbiddenRejectionPropertyNames = new(StringComparer.Ordinal) {
+        "Message",
+        "Reason",
+        "Detail",
+        "Description",
+        "Exception",
+        "StackTrace",
+        "Payload",
+        "PayloadJson",
+        "Token",
+    };
+
     private static readonly string[] CommandVerbPrefixes =
     [
         "Create",
@@ -90,6 +102,27 @@ public class NamingConventionTests {
     }
 
     [Fact]
+    public void All_rejection_events_use_structured_contract_fields_only() {
+        IEnumerable<Type> rejectionTypes = ContractsAssembly
+            .GetTypes()
+            .Where(t =>
+                t.IsClass
+                && !t.IsAbstract
+                && typeof(IRejectionEvent).IsAssignableFrom(t));
+
+        rejectionTypes.ShouldNotBeEmpty("No rejection event types found");
+
+        foreach (Type rejectionType in rejectionTypes) {
+            foreach (PropertyInfo property in rejectionType.GetProperties(BindingFlags.Instance | BindingFlags.Public)) {
+                ForbiddenRejectionPropertyNames.Contains(property.Name)
+                    .ShouldBeFalse($"Rejection event '{rejectionType.Name}' must not persist prose or sensitive '{property.Name}' data");
+                IsStructuredRejectionPropertyType(property.PropertyType)
+                    .ShouldBeTrue($"Rejection event '{rejectionType.Name}' property '{property.Name}' uses unsupported type '{property.PropertyType.Name}'");
+            }
+        }
+    }
+
+    [Fact]
     public void All_event_types_have_tenant_id_property() {
         IEnumerable<Type> allEventTypes = ContractsAssembly
             .GetTypes()
@@ -105,5 +138,12 @@ public class NamingConventionTests {
             _ = tenantIdProperty.ShouldNotBeNull($"Event type '{eventType.Name}' is missing 'TenantId' property");
             tenantIdProperty.PropertyType.ShouldBe(typeof(string), $"Event type '{eventType.Name}' has 'TenantId' but it is not of type string");
         }
+    }
+
+    private static bool IsStructuredRejectionPropertyType(Type type) {
+        Type effectiveType = Nullable.GetUnderlyingType(type) ?? type;
+        return effectiveType == typeof(string)
+            || effectiveType == typeof(int)
+            || effectiveType.IsEnum;
     }
 }

@@ -583,19 +583,21 @@ Rejection events are produced when a command violates a business rule. All rejec
 
 ### Rejection Table
 
-| Rejection                                 | Fields                                                 | HTTP Status | Corrective Action                                                                                                          |
-| ----------------------------------------- | ------------------------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `TenantAlreadyExistsRejection`            | `TenantId`                                             | 409         | Use a different tenant ID, or query the existing tenant                                                                    |
-| `TenantNotFoundRejection`                 | `TenantId`                                             | 404         | Ensure CreateTenant has been processed for this tenant ID                                                                  |
-| `TenantDisabledRejection`                 | `TenantId`                                             | 422         | Enable the tenant with EnableTenant before sending commands                                                                |
-| `TenantLifecycleStateAlreadySetRejection` | `TenantId`, `CurrentStatus`, `RequestedStatus`, `CommandName` | 409         | Do not repeat a lifecycle command when the tenant is already in the requested state                                         |
-| `GlobalAdminAlreadyBootstrappedRejection` | `TenantId`                                             | 422         | Bootstrap already completed — proceed with normal operations                                                               |
-| `LastGlobalAdministratorRejection`        | `TenantId`, `UserId`                                   | 422         | Add another global administrator before removing the last one                                                              |
-| `UserAlreadyInTenantRejection`            | `TenantId`, `UserId`, `ExistingRole`                   | 409         | User is already a member — use ChangeUserRole to modify their role                                                         |
-| `UserNotInTenantRejection`                | `TenantId`, `UserId`                                   | 422         | Add the user first with AddUserToTenant                                                                                    |
-| `RoleEscalationRejection`                 | `TenantId`, `UserId`, `AttemptedRole`                  | 422         | TenantOwner cannot assign GlobalAdministrator — use SetGlobalAdministrator instead |
-| `InsufficientPermissionsRejection`        | `TenantId`, `ActorUserId`, `ActorRole?`, `CommandName` | 422         | The acting user needs TenantOwner or GlobalAdministrator role for this command                                             |
-| `ConfigurationLimitExceededRejection`     | `TenantId`, `LimitType`, `CurrentCount`, `MaxAllowed`  | 422         | Remove existing configuration entries or reduce value size                                                                 |
+| Rejection                                      | Fields                                                       | HTTP Status | HTTP Boundary Corrective Action                                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------ | ----------- | ----------------------------------------------------------------------------------------------- |
+| `TenantAlreadyExistsRejection`                 | `TenantId`                                                   | 409         | Use a different identifier or treat the existing resource as the current state.                  |
+| `TenantNotFoundRejection`                      | `TenantId`                                                   | 404         | Verify the identifier and tenant context, then retry with an existing resource.                  |
+| `TenantDisabledRejection`                      | `TenantId`                                                   | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `TenantLifecycleStateAlreadySetRejection`      | `TenantId`, `CurrentStatus`, `RequestedStatus`, `CommandName` | 409         | Use a different identifier or treat the existing resource as the current state.                  |
+| `GlobalAdminAlreadyBootstrappedRejection`      | `TenantId`                                                   | 409         | Use a different identifier or treat the existing resource as the current state.                  |
+| `GlobalAdministratorAlreadyExistsRejection`    | `TenantId`, `UserId`                                         | 409         | Use a different identifier or treat the existing resource as the current state.                  |
+| `GlobalAdministratorNotFoundRejection`         | `TenantId`, `UserId`                                         | 404         | Verify the identifier and tenant context, then retry with an existing resource.                  |
+| `LastGlobalAdministratorRejection`             | `TenantId`, `UserId`                                         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `UserAlreadyInTenantRejection`                 | `TenantId`, `UserId`, `ExistingRole`                         | 409         | Use a different identifier or treat the existing resource as the current state.                  |
+| `UserNotInTenantRejection`                     | `TenantId`, `UserId`                                         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `RoleEscalationRejection`                      | `TenantId`, `UserId`, `AttemptedRole`                        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `InsufficientPermissionsRejection`             | `TenantId`, `ActorUserId`, `ActorRole?`, `CommandName`        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `ConfigurationLimitExceededRejection`          | `TenantId`, `LimitType`, `CurrentCount`, `MaxAllowed`         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 
 ### InsufficientPermissionsRejection Detail
 
@@ -606,21 +608,24 @@ The `ActorRole` field is **nullable**:
 
 ### RFC 7807 Problem Details
 
-All domain rejections are returned as HTTP error responses following the [RFC 7807 Problem Details](https://www.rfc-editor.org/rfc/rfc7807) format. The `type` field uses the rejection event type name, and `status` matches the HTTP status from the rejection table above.
+Domain command rejections returned from `POST /api/v1/commands` use [RFC 7807 Problem Details](https://www.rfc-editor.org/rfc/rfc7807). The `type` field is a stable domain-rejection URI, not just the event type name. The URI suffix is the `reasonCode`, derived from the rejection event type.
 
 ```json
 {
-    "type": "TenantNotFoundRejection",
-    "title": "Not Found",
-    "detail": "Tenant 'acme-test' does not exist.",
+    "type": "https://hexalith.io/problems/domain-rejections/tenant-not-found-rejection",
+    "title": "Tenant Not Found Rejection",
+    "detail": "The command referenced a domain resource that does not exist in the requested tenant context.",
     "status": 404,
     "instance": "/api/v1/commands",
     "correlationId": "abc-123",
-    "tenantId": "system"
+    "tenantId": "system",
+    "reasonCode": "tenant-not-found-rejection",
+    "rejectionType": "Hexalith.Tenants.Contracts.Events.Rejections.TenantNotFoundRejection",
+    "correctiveAction": "Verify the identifier and tenant context, then retry with an existing resource."
 }
 ```
 
-The `title` is derived from the HTTP status code (`"Not Found"` for 404, `"Conflict"` for 409, `"Unprocessable Entity"` for 422). The `detail` contains the domain-specific rejection message. Extensions `correlationId` and `tenantId` are always included.
+The `title`, `detail`, HTTP status, and `correctiveAction` are composed by EventStore's HTTP boundary/catalog. Persisted rejection events remain structured data only. Problem Details responses must not echo raw command payload JSON, serialized rejection event payload JSON, bearer tokens, stack traces, local paths, or sensitive tenant/user values.
 
 ---
 
@@ -638,8 +643,8 @@ The `title` is derived from the HTTP status code (`"Not Found"` for 404, `"Confl
 | `SetTenantConfiguration`    | `TenantConfigurationSet`     | `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection`                     |
 | `RemoveTenantConfiguration` | `TenantConfigurationRemoved` | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
 | `BootstrapGlobalAdmin`      | `GlobalAdministratorSet`     | `GlobalAdminAlreadyBootstrappedRejection`                                                                                                           |
-| `SetGlobalAdministrator`    | `GlobalAdministratorSet`     | _(none — NoOp if already admin)_                                                                                                                    |
-| `RemoveGlobalAdministrator` | `GlobalAdministratorRemoved` | `LastGlobalAdministratorRejection`                                                                                                                  |
+| `SetGlobalAdministrator`    | `GlobalAdministratorSet`     | `GlobalAdministratorAlreadyExistsRejection`                                                                                                         |
+| `RemoveGlobalAdministrator` | `GlobalAdministratorRemoved` | `GlobalAdministratorNotFoundRejection`, `LastGlobalAdministratorRejection`                                                                          |
 
 ## Idempotency
 

@@ -12,6 +12,7 @@ using System.Text.Json;
 using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.Models;
 using Hexalith.EventStore.Server.Actors;
@@ -45,6 +46,24 @@ public class CommandApiRuntimeIntegrationTests {
     private const string JwtIssuer = "hexalith-dev";
     private const string JwtSigningKey = "this-is-a-development-signing-key-minimum-32-chars";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+    private const string DomainRejectionProblemTypeBase = "https://hexalith.io/problems/domain-rejections";
+    private static readonly JsonSerializerOptions ProblemDetailsJsonOptions = new(JsonSerializerDefaults.Web);
+
+    public static IEnumerable<object[]> TenantRejectionProblemDetailsExpectations() {
+        yield return [typeof(TenantNotFoundRejection), HttpStatusCode.NotFound, "tenant-not-found-rejection"];
+        yield return [typeof(GlobalAdministratorNotFoundRejection), HttpStatusCode.NotFound, "global-administrator-not-found-rejection"];
+        yield return [typeof(TenantAlreadyExistsRejection), HttpStatusCode.Conflict, "tenant-already-exists-rejection"];
+        yield return [typeof(TenantLifecycleStateAlreadySetRejection), HttpStatusCode.Conflict, "tenant-lifecycle-state-already-set-rejection"];
+        yield return [typeof(UserAlreadyInTenantRejection), HttpStatusCode.Conflict, "user-already-in-tenant-rejection"];
+        yield return [typeof(GlobalAdminAlreadyBootstrappedRejection), HttpStatusCode.Conflict, "global-admin-already-bootstrapped-rejection"];
+        yield return [typeof(GlobalAdministratorAlreadyExistsRejection), HttpStatusCode.Conflict, "global-administrator-already-exists-rejection"];
+        yield return [typeof(TenantDisabledRejection), HttpStatusCode.UnprocessableEntity, "tenant-disabled-rejection"];
+        yield return [typeof(InsufficientPermissionsRejection), HttpStatusCode.UnprocessableEntity, "insufficient-permissions-rejection"];
+        yield return [typeof(RoleEscalationRejection), HttpStatusCode.UnprocessableEntity, "role-escalation-rejection"];
+        yield return [typeof(ConfigurationLimitExceededRejection), HttpStatusCode.UnprocessableEntity, "configuration-limit-exceeded-rejection"];
+        yield return [typeof(UserNotInTenantRejection), HttpStatusCode.UnprocessableEntity, "user-not-in-tenant-rejection"];
+        yield return [typeof(LastGlobalAdministratorRejection), HttpStatusCode.UnprocessableEntity, "last-global-administrator-rejection"];
+    }
 
     [Fact]
     public async Task Process_endpoint_dispatches_create_tenant_command() {
@@ -496,7 +515,82 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
-    public async Task Commands_endpoint_ignores_client_supplied_globalAdmin_extension_when_jwt_is_not_global_admin() {
+    public void All_tenant_rejection_types_have_explicit_problem_details_expectation() {
+        Type[] expectedRejectionTypes = TenantRejectionProblemDetailsExpectations()
+            .Select(static expectation => (Type)expectation[0])
+            .OrderBy(static type => type.FullName, StringComparer.Ordinal)
+            .ToArray();
+        Type[] actualRejectionTypes = typeof(TenantNotFoundRejection).Assembly
+            .GetTypes()
+            .Where(static type =>
+                type.IsClass
+                && !type.IsAbstract
+                && type.Namespace == "Hexalith.Tenants.Contracts.Events.Rejections"
+                && typeof(Hexalith.EventStore.Contracts.Events.IRejectionEvent).IsAssignableFrom(type))
+            .OrderBy(static type => type.FullName, StringComparer.Ordinal)
+            .ToArray();
+
+        expectedRejectionTypes.ShouldBe(actualRejectionTypes);
+    }
+
+    [Theory]
+    [MemberData(nameof(TenantRejectionProblemDetailsExpectations))]
+    public async Task Commands_endpoint_returns_deterministic_problem_details_for_every_tenant_rejection(
+        Type rejectionType,
+        HttpStatusCode expectedStatusCode,
+        string expectedReasonCode) {
+        ArgumentNullException.ThrowIfNull(rejectionType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedReasonCode);
+
+        const string leakedDetail = "Domain rejection leaked payload {\"tenantId\":\"sensitive-tenant-999\",\"userId\":\"sensitive-user-999\"}; Authorization: Bearer secret-token-123; System.InvalidOperationException at /home/administrator/secret/path";
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, leakedDetail, "rejection-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                rejectionType.FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+        string problemJson = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(expectedStatusCode);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(problemJson, ProblemDetailsJsonOptions);
+        _ = details.ShouldNotBeNull();
+        details.Type.ShouldBe($"{DomainRejectionProblemTypeBase}/{expectedReasonCode}");
+        details.Title.ShouldNotBeNullOrWhiteSpace();
+        details.Status.ShouldBe((int)expectedStatusCode);
+        details.Instance.ShouldBe("/api/v1/commands");
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.CorrelationId).ShouldNotBeNullOrWhiteSpace();
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.TenantId).ShouldBe("system");
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.ReasonCode).ShouldBe(expectedReasonCode);
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.RejectionType).ShouldBe(rejectionType.FullName);
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.CorrectiveAction).ShouldNotBeNullOrWhiteSpace();
+
+        foreach (string forbiddenValue in SensitiveProblemDetailsLeakMarkers()) {
+            problemJson.Contains(forbiddenValue, StringComparison.OrdinalIgnoreCase)
+                .ShouldBeFalse($"ProblemDetails leaked '{forbiddenValue}' for {rejectionType.Name}");
+        }
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
@@ -526,15 +620,14 @@ public class CommandApiRuntimeIntegrationTests {
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
-        _ = await router.Received(1).RouteCommandAsync(
-            Arg.Is<SubmitPipelineCommand>(c =>
-                c != null
-                && !c.IsGlobalAdmin
-                && c.Extensions != null
-                && !c.Extensions.ContainsKey(GlobalAdminExtensionKey)
-                && c.Extensions["client-correlation"] == "safe-metadata"),
-            Arg.Any<CancellationToken>());
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Title.ShouldBe("Command Validation Failed");
+        details.Detail.ShouldBe("Extension key contains invalid characters.");
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
     [Fact]
@@ -992,6 +1085,20 @@ public class CommandApiRuntimeIntegrationTests {
 
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
         => CreateClientWithBearer(factory, CreateJwt("admin-user"));
+
+    private static IEnumerable<string> SensitiveProblemDetailsLeakMarkers() {
+        yield return "sensitive-tenant-999";
+        yield return "sensitive-user-999";
+        yield return "secret-token-123";
+        yield return "Bearer";
+        yield return "System.InvalidOperationException";
+        yield return "/home/administrator";
+        yield return "Acme Corp";
+        yield return "Updated tenant metadata";
+    }
+
+    private static string? GetProblemExtension(ProblemDetails details, string key)
+        => details.Extensions.TryGetValue(key, out object? value) ? value?.ToString() : null;
 
     private static HttpClient CreateClientWithBearer(WebApplicationFactory<TenantBootstrapOptions> factory, string token) {
         HttpClient client = factory.CreateClient();
