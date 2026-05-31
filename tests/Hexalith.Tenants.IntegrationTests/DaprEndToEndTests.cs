@@ -14,6 +14,8 @@ using Hexalith.Tenants.IntegrationTests.Fixtures;
 
 using Shouldly;
 
+using EventEnvelope = Hexalith.EventStore.Server.Events.EventEnvelope;
+
 namespace Hexalith.Tenants.IntegrationTests;
 
 /// <summary>
@@ -146,6 +148,38 @@ public class DaprEndToEndTests {
 
         string expectedTopic = enableCmd.AggregateIdentity.PubSubTopic;
         _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
+    }
+
+    [DaprFact]
+    public async Task Tenant_lifecycle_commands_remain_source_of_truth_when_pubsub_publish_fails() {
+        _fixture.SkipIfUnavailable();
+
+        await AssertPublishFailurePreservesSourceOfTruthAsync<TenantCreated>(
+            $"t-pubsub-create-{Guid.NewGuid():N}",
+            _ => Array.Empty<CommandEnvelope>(),
+            tenantId => CreateTenantCommand(new CreateTenant(tenantId, "PubSub Create", "Publish failure create")));
+
+        await AssertPublishFailurePreservesSourceOfTruthAsync<TenantUpdated>(
+            $"t-pubsub-update-{Guid.NewGuid():N}",
+            tenantId => [
+                CreateTenantCommand(new CreateTenant(tenantId, "PubSub Update", "Original metadata")),
+            ],
+            tenantId => CreateTenantCommand(new UpdateTenant(tenantId, "PubSub Updated", "Updated while pub/sub is unavailable")));
+
+        await AssertPublishFailurePreservesSourceOfTruthAsync<TenantDisabled>(
+            $"t-pubsub-disable-{Guid.NewGuid():N}",
+            tenantId => [
+                CreateTenantCommand(new CreateTenant(tenantId, "PubSub Disable", "Will be disabled")),
+            ],
+            tenantId => CreateTenantCommand(new DisableTenant(tenantId)));
+
+        await AssertPublishFailurePreservesSourceOfTruthAsync<TenantEnabled>(
+            $"t-pubsub-enable-{Guid.NewGuid():N}",
+            tenantId => [
+                CreateTenantCommand(new CreateTenant(tenantId, "PubSub Enable", "Will be re-enabled")),
+                CreateTenantCommand(new DisableTenant(tenantId)),
+            ],
+            tenantId => CreateTenantCommand(new EnableTenant(tenantId)));
     }
 
     [DaprFact]
@@ -316,6 +350,128 @@ public class DaprEndToEndTests {
             .Count(e =>
                 e.AggregateId == tenantId
                 && e.EventTypeName == eventTypeName);
+
+    private async Task AssertPublishFailurePreservesSourceOfTruthAsync<TEvent>(
+        string tenantId,
+        Func<string, IReadOnlyList<CommandEnvelope>> setupCommandsFactory,
+        Func<string, CommandEnvelope> failingCommandFactory) {
+        _fixture.EventPublisher.Reset();
+
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        CommandEnvelope failingCommand = failingCommandFactory(tenantId);
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, failingCommand);
+
+        foreach (CommandEnvelope setupCommand in setupCommandsFactory(tenantId)) {
+            CommandProcessingResult setupResult = await proxy.ProcessCommandAsync(setupCommand);
+            setupResult.Accepted.ShouldBeTrue($"Setup command {setupCommand.CommandType} must succeed before publish-failure assertion.");
+        }
+
+        _fixture.EventPublisher.Reset();
+        _fixture.EventPublisher.SetupFailure("Pub/sub unavailable");
+
+        long sequenceBeforeFailure = await proxy.GetCurrentSequenceAsync();
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(failingCommand);
+        string topic = failingCommand.AggregateIdentity.PubSubTopic;
+
+        result.Accepted.ShouldBeTrue($"{failingCommand.CommandType} should remain accepted after the event is persisted.");
+        result.EventCount.ShouldBe(1);
+        result.ErrorMessage.ShouldBeNull();
+        _fixture.EventPublisher.GetEventsForTopic(topic)
+            .Where(e => e.CorrelationId == failingCommand.CorrelationId)
+            .ShouldBeEmpty("failed publication must not add an event to the fake publisher topic");
+
+        EventEnvelope persisted = await AssertPersistedOnceAsync<TEvent>(
+            proxy,
+            failingCommand,
+            sequenceBeforeFailure + 1);
+
+        IReadOnlyList<CommandStatusRecord> historyBeforeDrain = _fixture.CommandStatusStore.GetStatusHistory(
+            failingCommand.TenantId,
+            failingCommand.CorrelationId);
+        AssertEventsStoredThenPublishFailed(historyBeforeDrain);
+        historyBeforeDrain.Select(x => x.Status).ShouldNotContain(
+            CommandStatus.Completed,
+            "drain recovery has not run yet, so Completed must not be required before recovery");
+
+        _fixture.EventPublisher.ClearFailure();
+        _fixture.EventPublisher.Reset();
+        EventEnvelope republished = await WaitForPublishedEventAsync(
+            topic,
+            failingCommand.CorrelationId,
+            typeof(TEvent).FullName!);
+
+        republished.SequenceNumber.ShouldBe(persisted.SequenceNumber);
+        republished.AggregateId.ShouldBe(failingCommand.AggregateId);
+        republished.EventTypeName.ShouldBe(typeof(TEvent).FullName);
+        republished.CorrelationId.ShouldBe(failingCommand.CorrelationId);
+
+        _ = await AssertPersistedOnceAsync<TEvent>(
+            proxy,
+            failingCommand,
+            persisted.SequenceNumber);
+    }
+
+    private static async Task<EventEnvelope> AssertPersistedOnceAsync<TEvent>(
+        IAggregateActor proxy,
+        CommandEnvelope command,
+        long expectedSequence) {
+        EventEnvelope[] stream = await proxy.GetEventsAsync(0);
+        EventEnvelope[] matches = [
+            .. stream.Where(e =>
+                e.CorrelationId == command.CorrelationId
+                && e.EventTypeName == typeof(TEvent).FullName),
+        ];
+
+        matches.Length.ShouldBe(1, "the persisted source event stream must not duplicate the command event");
+        matches[0].SequenceNumber.ShouldBe(expectedSequence);
+        matches[0].AggregateId.ShouldBe(command.AggregateId);
+        matches[0].TenantId.ShouldBe(command.TenantId);
+        matches[0].Domain.ShouldBe(command.Domain);
+        matches[0].CorrelationId.ShouldBe(command.CorrelationId);
+        return matches[0];
+    }
+
+    private async Task<EventEnvelope> WaitForPublishedEventAsync(
+        string topic,
+        string correlationId,
+        string eventTypeName) {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(25);
+        while (DateTimeOffset.UtcNow < deadline) {
+            EventEnvelope? published = _fixture.EventPublisher
+                .GetEventsForTopic(topic)
+                .FirstOrDefault(e =>
+                    e.CorrelationId == correlationId
+                    && e.EventTypeName == eventTypeName);
+            if (published is not null) {
+                return published;
+            }
+
+            await Task.Delay(250);
+        }
+
+        throw new TimeoutException(
+            $"Timed out waiting for drain recovery to publish {eventTypeName} on {topic} for {correlationId}.");
+    }
+
+    private static void AssertEventsStoredThenPublishFailed(IReadOnlyList<CommandStatusRecord> history) {
+        int eventsStoredIndex = -1;
+        int publishFailedIndex = -1;
+
+        for (int i = 0; i < history.Count; i++) {
+            if (history[i].Status == CommandStatus.EventsStored && eventsStoredIndex < 0) {
+                eventsStoredIndex = i;
+            }
+
+            if (history[i].Status == CommandStatus.PublishFailed && publishFailedIndex < 0) {
+                publishFailedIndex = i;
+            }
+        }
+
+        eventsStoredIndex.ShouldBeGreaterThanOrEqualTo(0);
+        publishFailedIndex.ShouldBeGreaterThanOrEqualTo(0);
+        publishFailedIndex.ShouldBeGreaterThan(eventsStoredIndex);
+        history[publishFailedIndex].FailureReason.ShouldBe("Pub/sub unavailable");
+    }
 
     private static CommandEnvelope CreateTenantCommand<T>(T command) where T : notnull
         => new(

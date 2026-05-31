@@ -6,13 +6,15 @@ How events propagate from command processing to consuming services, the timing w
 
 ## Timing Window
 
-When a tenant command is processed (e.g., `RemoveUserFromTenant`), the event is stored **atomically** in the event store but delivered to subscribers **asynchronously** via DAPR pub/sub. This creates a timing window where:
+When a tenant command is processed (e.g., `RemoveUserFromTenant`), the event is stored **atomically** in the event store but delivered to subscribers **asynchronously** via DAPR pub/sub. The stored event stream is the source of truth; the pub/sub channel is a delivery mechanism that can lag or temporarily fail after storage succeeds. This creates a timing window where:
 
 1. The Tenant aggregate has already applied the state change
 2. Subscribing services have **not yet** received or processed the event
 3. During this window, a subscribing service's local projection still reflects the old state
 
-Under normal load, the propagation window is typically **50–200ms**. Under pub/sub backpressure or network latency, it can extend to low seconds.
+Under normal load, the propagation window is typically **50–200ms**. Under pub/sub backpressure, subscriber downtime, or pub/sub infrastructure outage, it can extend to low seconds or until recovery completes.
+
+If pub/sub publication fails after the event has been stored, command processing does not roll back the event. Operators should expect a `PublishFailed` command status or structured warning/metric, followed by EventStore drain recovery republishing the persisted sequence range when pub/sub is available again. During that outage, downstream projections can be stale, but the aggregate event stream remains durable and can be used for projection catch-up.
 
 Tenant query projections have the same eventual-consistency window. After `UserRemovedFromTenant` is accepted by the aggregate, a `get-user-tenants` self-lookup can briefly return the previous membership until the tenant index projection processes the removal event. That stale query result is read-only visibility: it does not grant command capability, does not override aggregate authorization, and does not allow writes against a disabled tenant or removed membership.
 
@@ -58,6 +60,8 @@ Subscribing services should treat tenant state as **eventually consistent**. Fol
 - **Across different aggregates** and **across different subscribing services**, there is **no ordering guarantee**. Do not assume events arrive in the same order across different services.
 
 **Design handlers to be idempotent.** DAPR pub/sub guarantees at-least-once delivery, meaning events may arrive more than once. See [Idempotent Event Processing](idempotent-event-processing.md) for patterns.
+
+**Treat stored events as authoritative.** Pub/sub recovery may redeliver an event after a temporary outage, and duplicate deliveries are possible. Consumers must deduplicate by stable event metadata such as message ID, aggregate identity, sequence number, and correlation ID. Do not infer that a missing pub/sub delivery means the command failed.
 
 **Use the query endpoint for read-after-write confirmation.** When a consuming service needs to verify a command was processed before proceeding:
 

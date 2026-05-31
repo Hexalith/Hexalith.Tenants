@@ -32,7 +32,11 @@ Comprehensive reference for all tenant domain commands, events, and rejection ev
 
 All events are published via DAPR pub/sub as [CloudEvents 1.0](https://cloudevents.io/) on topic **`tenants.events`**. Consumers filter by event type to receive only the events they need.
 
+The durable EventStore stream is the source of truth. Pub/sub publication happens after event storage and is asynchronous. If pub/sub is temporarily unavailable after a tenant event is stored, the command can still be accepted, the event remains committed, and EventStore drain recovery republishes the stored sequence range when the channel recovers. Operators should monitor `PublishFailed` command status transitions and related structured logs/metrics as delivery diagnostics, not as evidence that the source event was rolled back.
+
 Commands that encounter infrastructure failures during processing (e.g., state rehydration errors, event persistence failures) produce events routed to the dead letter topic **`deadletter.tenants.events`**. Operators should monitor this topic for processing failures. Note: DAPR pub/sub may also have its own dead letter behavior for subscriber delivery failures, configured at the DAPR component level.
+
+DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see duplicate deliveries after retry or recovery. Do not depend on exactly-once publication or subscriber delivery order; use the event envelope metadata to deduplicate and resequence per aggregate.
 
 Commands are submitted via the CommandApi. See the [Quickstart Guide](quickstart.md) for command submission details.
 

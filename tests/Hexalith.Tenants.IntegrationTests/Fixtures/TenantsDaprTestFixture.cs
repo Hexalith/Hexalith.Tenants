@@ -93,7 +93,18 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     public async ValueTask InitializeAsync() {
         KillOrphanedDaprdProcesses();
 
-        int[] ports = GetAvailablePorts(6);
+        int[] ports;
+        try {
+            ports = GetAvailablePorts(6);
+        }
+        catch (SocketException ex) {
+            PrerequisitesAvailable = false;
+            SkipReason = "Dapr infrastructure pre-flight check failed. Unable to allocate local listener ports for the test fixture."
+                + Environment.NewLine
+                + $"  - {ex.GetType().FullName} ({ex.NativeErrorCode}): {ex.Message}";
+            return;
+        }
+
         _appPort = ports[0];
         _daprHttpPort = ports[1];
         _daprGrpcPort = ports[2];
