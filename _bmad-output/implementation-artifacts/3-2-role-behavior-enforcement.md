@@ -511,7 +511,7 @@ result.Events[0].ShouldBeOfType<UserAddedToTenant>();
 - `ChangeUserRole` returns `NoOp()` for same-role — RBAC check should run BEFORE NoOp check (rejected user shouldn't get NoOp)
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on all reference type parameters (include `envelope`)
 
-**Story 2.4 (in-progress) — Hexalith.Tenants bootstrap:**
+**Story 2.4 (in-progress) — Tenants bootstrap:**
 - Program.cs is fully wired with `AddHexalith.Tenants()`, `AddEventStoreServer()`
 - `AuthorizationBehavior` is in the MediatR pipeline but only validates JWT claims (Layer 1)
 - This story does NOT modify Hexalith.Tenants/pipeline — domain RBAC is Handle-method-only

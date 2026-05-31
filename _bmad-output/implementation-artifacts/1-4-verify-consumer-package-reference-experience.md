@@ -17,7 +17,7 @@ Status: done
 
 As a consuming developer,
 I want the tenant packages to restore and expose the expected integration surface,
-so that I can adopt Hexalith.Tenants without understanding the repository internals.
+so that I can adopt Tenants without understanding the repository internals.
 
 ## Acceptance Criteria
 
@@ -73,7 +73,7 @@ so that I can adopt Hexalith.Tenants without understanding the repository intern
 
 - Epic 1 objective: developers can clone, build, test, package, and reference the tenant platform with EventStore-native structure, package boundaries, CI gates, and release foundation. [Source: `_bmad-output/planning-artifacts/epics.md#Epic 1: Developers Can Build and Consume the Tenant Platform`]
 - Story 1.4 owns package consumption from produced NuGet artifacts. It must not rework Story 1.2 central package governance or Story 1.3 CI/release gates except to add consumer-reference evidence after package creation. [Source: `_bmad-output/planning-artifacts/epics.md#Story 1.4: Verify Consumer Package Reference Experience`]
-- PRD FR43 requires developers to install Hexalith.Tenants through five NuGet packages; FR44, FR46, and FR48 require Client DI registration, infrastructure-free Testing helpers, and Aspire hosting extensions. [Source: `_bmad-output/planning-artifacts/prd.md#Developer Experience & Packaging`]
+- PRD FR43 requires developers to install Tenants through five NuGet packages; FR44, FR46, and FR48 require Client DI registration, infrastructure-free Testing helpers, and Aspire hosting extensions. [Source: `_bmad-output/planning-artifacts/prd.md#Developer Experience & Packaging`]
 - The package architecture is: Contracts = commands/events/result/identity surface; Client = DI and event handling; Server = domain service; Testing = in-memory fakes; Aspire = hosting extensions. [Source: `_bmad-output/planning-artifacts/prd.md#NuGet Package Architecture`]
 - Architecture maps Epic 1 to root build files, workflows, `src/*`, and `tests/*`; package versions come from `Directory.Packages.props`; published packages are Contracts, Client, Server, Aspire, and Testing. [Source: `_bmad-output/planning-artifacts/architecture.md#Requirements to Structure Mapping`]
 

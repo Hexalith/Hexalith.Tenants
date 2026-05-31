@@ -16,7 +16,7 @@ stepsCompleted:
   - step-11-polish
   - step-12-complete
 inputDocuments:
-  - product-brief-Hexalith.Tenants-2026-03-06.md
+  - product-brief-Tenants-2026-03-06.md
 documentCounts:
   briefs: 1
   research: 0
@@ -30,20 +30,20 @@ classification:
 workflowType: 'prd'
 ---
 
-# Product Requirements Document - Hexalith.Tenants
+# Product Requirements Document - Tenants
 
 **Author:** Jerome
 **Date:** 2026-03-06
 
 ## Executive Summary
 
-Hexalith.Tenants is a standalone, event-sourced microservice that provides multi-tenant management for applications built on Hexalith.EventStore. Its core value: when a user is added to or removed from a tenant, every subscribing service enforces the change automatically through DAPR pub/sub event subscriptions — no polling, no sync jobs, no per-service integration code. Developers add the NuGet packages with minimal DI registration and get tenant lifecycle management, tenant-scoped RBAC, and tenant configuration that propagates reactively across all subscribing services.
+Tenants is a standalone, event-sourced microservice that provides multi-tenant management for applications built on Hexalith.EventStore. Its core value: when a user is added to or removed from a tenant, every subscribing service enforces the change automatically through DAPR pub/sub event subscriptions — no polling, no sync jobs, no per-service integration code. Developers add the NuGet packages with minimal DI registration and get tenant lifecycle management, tenant-scoped RBAC, and tenant configuration that propagates reactively across all subscribing services.
 
 The vision extends beyond event-driven integration: a planned EventStore authorization plugin will reject commands from unauthorized users — those without TenantOwner, TenantContributor, or GlobalAdministrator roles — at the pipeline level, before they reach any domain service. Combined with in-memory test fakes via `Hexalith.Tenants.Testing`, the result is tenant management adoptable with minimal DI registration, transparent once running, and testable without live infrastructure.
 
 ### What Makes This Special
 
-Existing approaches to multi-tenancy in .NET — custom EF Core tenant filters, CRUD-based tenant tables, or identity provider extensions — treat tenant data as static state. They cannot produce domain events, cannot answer temporal queries ("who had access last Tuesday?"), and cannot trigger reactive behavior across services. Hexalith.Tenants makes tenant-user-role relationships native to the event-sourced lifecycle. Every change is an immutable domain event that flows through the same CQRS/ES pipeline as all other Hexalith state — provably auditable through event history and operationally invisible to consuming services.
+Existing approaches to multi-tenancy in .NET — custom EF Core tenant filters, CRUD-based tenant tables, or identity provider extensions — treat tenant data as static state. They cannot produce domain events, cannot answer temporal queries ("who had access last Tuesday?"), and cannot trigger reactive behavior across services. Tenants makes tenant-user-role relationships native to the event-sourced lifecycle. Every change is an immutable domain event that flows through the same CQRS/ES pipeline as all other Hexalith state — provably auditable through event history and operationally invisible to consuming services.
 
 ## Project Classification
 
@@ -56,14 +56,14 @@ Existing approaches to multi-tenancy in .NET — custom EF Core tenant filters, 
 
 ### User Success
 
-- A developer can deploy Hexalith.Tenants and send a CreateTenant command within 30 minutes following the quickstart guide
+- A developer can deploy Tenants and send a CreateTenant command within 30 minutes following the quickstart guide
 - A consuming service can become fully tenant-aware — DI registration, event subscription, and access enforcement — in under 20 lines of code
 - A developer can write a tenant integration test in under 10 lines using `Hexalith.Tenants.Testing` in-memory fakes, zero external infrastructure required
 - The "aha moment": a user removal in one place automatically revokes access across all subscribing services without any custom integration code
 
 ### Business Success
 
-- **Primary metric:** Number of Hexalith-based projects adopting Hexalith.Tenants, starting with Hexalith.Parties as the first consumer
+- **Primary metric:** Number of Hexalith-based projects adopting Tenants, starting with Hexalith.Parties as the first consumer
 - Elimination of duplicated effort — teams no longer spend 2-4 weeks per project building custom tenant management
 - Community traction — GitHub stars, contributions, and discussions grow alongside EventStore adoption
 
@@ -105,7 +105,7 @@ The MVP must satisfy two validation goals simultaneously:
 
 Event contracts may evolve with breaking changes during pre-1.0 development. Event contract stability (zero breaking changes) is a v1.0 release milestone.
 
-**MVP scope clarification (2026-05-13):** Phase 1 remains a backend/package/documentation MVP. It includes tenant domain behavior, query endpoints, audit-query capability, packages, tests, deployment, observability, and adoption documentation. The Hexalith.Tenants Admin UI / FrontShell reference module is Phase 2 unless explicitly promoted by a future scope decision.
+**MVP scope clarification (2026-05-13):** Phase 1 remains a backend/package/documentation MVP. It includes tenant domain behavior, query endpoints, audit-query capability, packages, tests, deployment, observability, and adoption documentation. The Tenants Admin UI / FrontShell reference module is Phase 2 unless explicitly promoted by a future scope decision.
 
 **Core User Journeys Supported:**
 - Journey 1 (Alex — Evaluate & Adopt): Full quickstart path from NuGet install to first tenant command
@@ -190,7 +190,7 @@ Priority-ordered:
 
 ## User Journeys
 
-### Journey 1: Alex Evaluates and Adopts Hexalith.Tenants
+### Journey 1: Alex Evaluates and Adopts Tenants
 
 **Alex** is a .NET developer three weeks into a new SaaS project built on Hexalith.EventStore. He's just finished modeling his core domain — a party management system — and now faces the same wall he's hit twice before: tenant management. Last time, he spent three weeks building custom tenant tables, EF Core filters, and a hand-rolled access control layer that still had a cross-tenant data leak in production.
 
@@ -202,7 +202,7 @@ Twenty minutes after that, he sends his first `CreateTenant` command and watches
 
 The real moment comes when he wires up his Parties service to subscribe to tenant events. He removes a user from the tenant — and his Parties service automatically revokes that user's access. No webhook. No polling. No custom integration code. Just a DAPR pub/sub subscription and a handful of lines in DI registration. He stares at the screen for a moment, then deletes 400 lines of custom tenant code from his previous project's clipboard.
 
-The next morning, he pulls his senior dev colleague into a screen share. "Watch this," he says, and removes a user from the tenant. The colleague watches the Parties service log the access revocation in real time. "Wait — that just... works? No integration code?" Alex grins. By lunch, the team has agreed to adopt Hexalith.Tenants as standard infrastructure for all new projects.
+The next morning, he pulls his senior dev colleague into a screen share. "Watch this," he says, and removes a user from the tenant. The colleague watches the Parties service log the access revocation in real time. "Wait — that just... works? No integration code?" Alex grins. By lunch, the team has agreed to adopt Tenants as standard infrastructure for all new projects.
 
 **What this reveals:** Event contract documentation quality, testing package as evaluation hook, prerequisite validation in quickstart, DAPR setup guidance, NuGet package discoverability, DI registration simplicity, event subscription developer experience, time-to-first-command metric, peer validation as adoption accelerator.
 
@@ -308,11 +308,11 @@ The event history preserves full auditability: the mistake, the correction, the 
 
 ### The Core Insight
 
-A developer removes a contractor from a tenant. In a CRUD-based system, nothing happens — the contractor's access persists in three other services until someone manually updates each one, if they remember. In Hexalith.Tenants, every subscribing service revokes access within seconds, and the event stream records exactly who removed the contractor, when, and from which role — queryable forever.
+A developer removes a contractor from a tenant. In a CRUD-based system, nothing happens — the contractor's access persists in three other services until someone manually updates each one, if they remember. In Tenants, every subscribing service revokes access within seconds, and the event stream records exactly who removed the contractor, when, and from which role — queryable forever.
 
 This difference isn't a feature gap. It's an architectural category difference.
 
-Every multi-tenant .NET library treats tenant data as static rows in a database. Hexalith.Tenants treats it as what it actually is: domain state that changes over time, produces events, and must flow reactively across services. Multi-tenancy is a domain concern, not an infrastructure concern.
+Every multi-tenant .NET library treats tenant data as static rows in a database. Tenants treats it as what it actually is: domain state that changes over time, produces events, and must flow reactively across services. Multi-tenancy is a domain concern, not an infrastructure concern.
 
 From this recognition, everything else follows:
 - If tenants are domain state, they should be event-sourced
@@ -342,7 +342,7 @@ Scope of the guarantee: the fakes guarantee isolation at the **aggregate domain 
 
 No known open-source project in the .NET ecosystem event-sources tenant management. Existing approaches occupy fundamentally different architectural categories:
 
-| Capability | Hexalith.Tenants | Finbuckle / EF Core Filters | Identity Provider (Keycloak / Entra ID) |
+| Capability | Tenants | Finbuckle / EF Core Filters | Identity Provider (Keycloak / Entra ID) |
 |---|---|---|---|
 | Domain events from tenant changes | Native — all changes are domain events | Impossible — CRUD architecture | Platform notifications — not domain events, not part of application event pipeline |
 | Temporal audit queries | Inherent — event stream is the audit trail | Impossible — current state only | Basic audit log, not temporal domain queries |
@@ -359,13 +359,13 @@ No known open-source project in the .NET ecosystem event-sources tenant manageme
 
 This is an architectural category difference. Features can be copied. Architectural foundations cannot.
 
-**Market context:** Hexalith.Tenants serves the Hexalith.EventStore ecosystem — .NET developers building event-sourced, DAPR-native applications that need multi-tenancy. This is a focused market, not a mass market. The product's value grows with EventStore adoption.
+**Market context:** Tenants serves the Hexalith.EventStore ecosystem — .NET developers building event-sourced, DAPR-native applications that need multi-tenancy. This is a focused market, not a mass market. The product's value grows with EventStore adoption.
 
 ### Defensibility
 
 **Primary moat — Network effect:** Each service subscribing to the tenant event stream deepens the organization's investment in the shared tenant model. After two or three services subscribe, switching means rewiring every service simultaneously.
 
-**Secondary moat — Event contract gravity:** Once the event schema becomes the de facto contract in the ecosystem, a competitor must either adopt the same schema (validating Hexalith.Tenants' design) or create an incompatible one (fragmenting the ecosystem). Post-v1.0 contract stability transforms the event schema from an implementation detail into an ecosystem standard.
+**Secondary moat — Event contract gravity:** Once the event schema becomes the de facto contract in the ecosystem, a competitor must either adopt the same schema (validating Tenants' design) or create an incompatible one (fragmenting the ecosystem). Post-v1.0 contract stability transforms the event schema from an implementation detail into an ecosystem standard.
 
 ### Validation Approach
 
@@ -389,7 +389,7 @@ This 90-second sequence communicates the value of event-sourced tenant managemen
 
 ### Project-Type Overview
 
-Hexalith.Tenants is a .NET developer tool distributed as NuGet packages and a deployable microservice. It follows the same project structure, conventions, and documentation approach as Hexalith.EventStore — ensuring consistency across the Hexalith ecosystem.
+Tenants is a .NET developer tool distributed as NuGet packages and a deployable microservice. It follows the same project structure, conventions, and documentation approach as Hexalith.EventStore — ensuring consistency across the Hexalith ecosystem.
 
 ### Language & Framework Support
 
@@ -438,7 +438,7 @@ samples/
 
 ### API Surface
 
-- **Command API:** REST endpoints for tenant commands via Hexalith.Tenants project
+- **Command API:** REST endpoints for tenant commands via Tenants project
 - **Event contracts:** CloudEvents 1.0 published via DAPR pub/sub
 - **Read model queries:** ListTenants, GetTenant, GetTenantUsers via standard read model projections
 - **Client DI registration:** Consuming services register via minimal DI extension method
@@ -453,7 +453,7 @@ samples/
 
 ### Code Style & Conventions
 
-Follow the current Hexalith.Tenants `.editorconfig` and project context: file-scoped namespaces, K&R brace style in Tenants code, `_camelCase` private fields, `I` prefix for interfaces, `Async` suffix for async methods, 4-space indentation, CRLF, UTF-8, nullable references, and warnings as errors.
+Follow the current Tenants `.editorconfig` and project context: file-scoped namespaces, K&R brace style in Tenants code, `_camelCase` private fields, `I` prefix for interfaces, `Async` suffix for async methods, 4-space indentation, CRLF, UTF-8, nullable references, and warnings as errors.
 
 ### Documentation Strategy
 
@@ -545,7 +545,7 @@ The tenant service owns a centralized read model projection for tenant discovery
 
 ### Developer Experience & Packaging
 
-- FR43: A developer can install Hexalith.Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire)
+- FR43: A developer can install Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire)
 - FR44: A developer can register tenant client services in DI with a single extension method call
 - FR45: A developer can register tenant event handlers in a consuming service in under 20 lines of DI configuration
 - FR46: A developer can write tenant integration tests using in-memory fakes without external infrastructure, in under 10 lines per test

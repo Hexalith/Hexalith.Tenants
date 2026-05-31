@@ -240,7 +240,7 @@ Switch arm ordering follows the established pattern: null → disabled → RBAC 
 | -------------------------------- | ---------- | ----------- | ------------------------------------------- |
 | Handle methods + limit constants | Server     | Aggregates/ | TenantAggregate.cs (MODIFY)                 |
 | SetTenantConfigurationValidator  | Server     | Validators/ | SetTenantConfigurationValidator.cs (CREATE) |
-| TenantSubmitCommandValidator     | Hexalith.Tenants | Validation/ | TenantSubmitCommandValidator.cs (MODIFY)    |
+| TenantSubmitCommandValidator     | Tenants | Validation/ | TenantSubmitCommandValidator.cs (MODIFY)    |
 
 **DO NOT:**
 
@@ -505,7 +505,7 @@ public class SetTenantConfigurationValidatorTests
 **Story 3.1 (done) — User-Role Management:**
 
 - Added FluentValidation to Server .csproj, created validator pattern in `Server/Validators/`
-- Created `TenantSubmitCommandValidator` in Hexalith.Tenants for pipeline-level validation
+- Created `TenantSubmitCommandValidator` in Tenants for pipeline-level validation
 - `UserAlreadyInTenantRejection` was extended with `ExistingRole` field during review
 - CA1062 → `ArgumentNullException.ThrowIfNull()` on all reference type parameters including `envelope`
 - Test pattern: `ProcessAsync(CommandEnvelope, state)`, NOT direct Handle method calls

@@ -6,7 +6,7 @@ Status: done
 
 ## Story
 
-As a developer evaluating Hexalith.Tenants,
+As a developer evaluating Tenants,
 I want a quickstart guide with prerequisite validation that gets me to my first tenant command within 30 minutes,
 So that I can evaluate the system quickly and confidently with clear guidance at every step.
 
@@ -56,7 +56,7 @@ So that I can evaluate the system quickly and confidently with clear guidance at
 
 - [x] Task 3: Create `docs/quickstart.md` — first command section (AC: #3, #4)
     - [x] 3.1: Write JWT token acquisition step using Keycloak (follow EventStore quickstart pattern — `curl` for bash/Zsh, `Invoke-RestMethod` for PowerShell)
-    - [x] 3.2: Write Swagger UI instructions: open Hexalith.Tenants URL from Aspire dashboard, append `/swagger`, authorize with JWT token
+    - [x] 3.2: Write Swagger UI instructions: open Tenants URL from Aspire dashboard, append `/swagger`, authorize with JWT token
     - [x] 3.3: **IMPORTANT — Bootstrap before CreateTenant.** The quickstart must establish the correct command sequence: (1) BootstrapGlobalAdmin first (to authorize the actor), then (2) CreateTenant. Without bootstrap, CreateTenant may fail authorization. Document sending BootstrapGlobalAdmin via Swagger UI as the first command (simpler for quickstart than config-file approach):
         ```json
         {
@@ -97,7 +97,7 @@ So that I can evaluate the system quickly and confidently with clear guidance at
 - [x] Task 5: Create `docs/quickstart.md` — troubleshooting section
     - [x] 5.1: Add a "Troubleshooting" section at the end of the quickstart covering common AppHost startup failures:
         - **Port conflict**: DAPR sidecar port 3500 already in use → stop other DAPR instances (`dapr stop --all`) or change the port in AppHost configuration
-        - **Docker resource limits**: Keycloak + Redis + DAPR + Hexalith.Tenants can exceed default Docker Desktop memory allocation → increase Docker memory to 4GB+ in Docker Desktop settings
+        - **Docker resource limits**: Keycloak + Redis + DAPR + Tenants can exceed default Docker Desktop memory allocation → increase Docker memory to 4GB+ in Docker Desktop settings
         - **DAPR not initialized**: `dapr init` not run → run `dapr init` (full init, not `--slim`) for the Aspire topology
         - **Build fails on Windows with path-too-long**: Enable long paths with `git config --system core.longpaths true`
     - [x] 5.2: Add a "Common Errors" sub-section with expected error responses and what they mean:
@@ -145,7 +145,7 @@ The documentation must accurately reflect the current state of the implemented s
 | CI workflow                  | `.github/workflows/ci.yml`                                     | Build status badge URL source                                                                             |
 | Release workflow             | `.github/workflows/release.yml`                                | NuGet publishing pipeline                                                                                 |
 | EventStore quickstart        | `Hexalith.EventStore/docs/getting-started/quickstart.md`       | Pattern to follow — Aspire AppHost launch, Keycloak JWT acquisition, Swagger UI command submission        |
-| Health check endpoint        | Built into Hexalith.Tenants via `MapDefaultEndpoints()`              | Verify service is running                                                                                 |
+| Health check endpoint        | Built into Tenants via `MapDefaultEndpoints()`              | Verify service is running                                                                                 |
 
 ### Critical Patterns to Follow
 
@@ -210,7 +210,7 @@ These items have ambiguity that CANNOT be resolved from planning artifacts alone
     - Submit BootstrapGlobalAdmin via Swagger UI with a valid JWT
     - If rejected by auth → switch the quickstart to the config-based approach (set `BootstrapGlobalAdminUserId` in appsettings.Development.json before starting)
 
-4. **Query endpoint URL**: Verify the exact route for tenant detail queries. Is it `GET /api/tenants/{tenantId}` or a different pattern? Grep for route group registration in Hexalith.Tenants source or check Swagger UI.
+4. **Query endpoint URL**: Verify the exact route for tenant detail queries. Is it `GET /api/tenants/{tenantId}` or a different pattern? Grep for route group registration in Tenants source or check Swagger UI.
 
 ### Anti-Patterns to Avoid
 

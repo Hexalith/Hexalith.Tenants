@@ -8,16 +8,16 @@ Completion note: Ultimate context engine analysis completed - comprehensive deve
 
 As a platform operator,
 I want production JWT configuration to be validated before deployment,
-so that Hexalith.Tenants does not fail later at runtime or accept unsafe authentication settings unexpectedly.
+so that Tenants does not fail later at runtime or accept unsafe authentication settings unexpectedly.
 
 ## Acceptance Criteria
 
-1. Given production `appsettings.json` contains empty JWT `Authority` and `SigningKey` placeholders, when Hexalith.Tenants starts with `IHostEnvironment.IsProduction()` and without AppHost, environment, user-secret, or deployment overrides, then startup/options validation fails with a clear authentication configuration validation error.
+1. Given production `appsettings.json` contains empty JWT `Authority` and `SigningKey` placeholders, when Tenants starts with `IHostEnvironment.IsProduction()` and without AppHost, environment, user-secret, or deployment overrides, then startup/options validation fails with a clear authentication configuration validation error.
 2. Given production JWT settings are supplied through environment variables, AppHost, or deployment configuration, when the service starts with `IHostEnvironment.IsProduction()`, `Authority`, `Issuer`, `Audience`, and `RequireHttpsMetadata=true`, then `EventStoreAuthenticationOptions` validation succeeds without requiring secrets in committed appsettings files.
 3. Given development mode uses symmetric-key JWT validation, when `appsettings.Development.json` or equivalent local overrides are loaded with a non-production host environment, then development authentication remains usable without weakening production validation.
 4. Given authentication configuration fails validation, when logs or exception messages are emitted, then they identify the missing configuration key or invalid setting without exposing signing keys, tokens, or bearer material.
 5. Given focused configuration tests run, when production-valid, production-invalid, and development-valid configurations are bound, then tests verify startup/options validation behavior for each mode.
-6. Given a production deployment accidentally supplies both `Authority` and `SigningKey`, when validation runs, then Hexalith.Tenants rejects the ambiguous production configuration with a safe message instead of relying on implicit EventStore authority/OIDC precedence.
+6. Given a production deployment accidentally supplies both `Authority` and `SigningKey`, when validation runs, then Tenants rejects the ambiguous production configuration with a safe message instead of relying on implicit EventStore authority/OIDC precedence.
 7. Given `RequireHttpsMetadata` is disabled, when `IHostEnvironment.IsProduction()` and `Authority` is configured, then validation rejects the setting; non-production development/test overrides may continue to use symmetric-key auth with `RequireHttpsMetadata=false`.
 8. Given production `Authority` or `SigningKey` values contain only whitespace, when options validation runs, then whitespace is treated as missing or invalid configuration and does not satisfy production readiness.
 9. Given production `Authority` is configured, when validation runs, then the authority value must be an absolute HTTPS URI before OIDC discovery is attempted; relative, malformed, empty, whitespace, or non-HTTPS authorities fail with a safe configuration error.

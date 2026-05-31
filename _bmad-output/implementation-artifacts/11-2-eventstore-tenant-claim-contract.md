@@ -12,7 +12,7 @@ so that authenticated requests are partitioned and authorized consistently inste
 
 ## Acceptance Criteria
 
-1. Given Hexalith.Tenants is deployed with a production IdP, when an authenticated token is issued, then the token includes the configured `eventstore:tenant` claim value required by EventStore tenant validation and rate-limit partitioning.
+1. Given Tenants is deployed with a production IdP, when an authenticated token is issued, then the token includes the configured `eventstore:tenant` claim value required by EventStore tenant validation and rate-limit partitioning.
 2. Given an authenticated non-global-admin token is missing or has a blank `eventstore:tenant` claim after EventStore claims transformation, when a tenant-scoped request reaches authorization, then tenant access is denied explicitly rather than silently sharing an `"anonymous"` rate-limit bucket.
 3. Given test JWTs and `TestAuthHandler` assert tenant claim behavior, when production claim-contract tests are reviewed, then test assumptions match the documented IdP claim contract.
 4. Given a deployment operator configures Keycloak or another IdP, when they follow the deployment documentation, then the required claim mapping is documented with the exact claim name, value expectations, and verification steps.

@@ -1,5 +1,5 @@
 ---
-project: Hexalith.Tenants
+project: Tenants
 date: 2026-05-26
 workflow: bmad-correct-course
 trigger: _bmad-output/planning-artifacts/implementation-readiness-report-2026-05-26.md
@@ -15,7 +15,7 @@ implementationStatus: Applied
 
 ## 1. Issue Summary
 
-The Implementation Readiness Assessment completed on 2026-05-26 found that the Hexalith.Tenants planning set has full FR traceability but is not ready for unqualified implementation handoff. The report identified 15 issues or concerns: 3 critical, 6 major, 3 minor, and 3 UX alignment clarifications.
+The Implementation Readiness Assessment completed on 2026-05-26 found that the Tenants planning set has full FR traceability but is not ready for unqualified implementation handoff. The report identified 15 issues or concerns: 3 critical, 6 major, 3 minor, and 3 UX alignment clarifications.
 
 The core problem is artifact consistency and story readiness, not missing functional coverage. Several source-of-truth documents and story specs disagree on aggregate names, DAPR topic naming, story sizing, style/release conventions, and Phase 2 UI readiness boundaries. Proceeding without correction would create avoidable implementation ambiguity around EventStore reflection discovery, DAPR pub/sub subscriptions, sprint slicing, and UI dependency gating.
 
@@ -475,7 +475,7 @@ Inherited from EventStore's `.editorconfig`: file-scoped namespaces, Allman brac
 PRD style new:
 
 ```text
-Follow the current Hexalith.Tenants `.editorconfig` and project context: file-scoped namespaces, K&R brace style in Tenants code, `_camelCase` private fields, `I` prefix for interfaces, `Async` suffix for async methods, 4-space indentation, CRLF, UTF-8, nullable references, and warnings as errors.
+Follow the current Tenants `.editorconfig` and project context: file-scoped namespaces, K&R brace style in Tenants code, `_camelCase` private fields, `I` prefix for interfaces, `Async` suffix for async methods, 4-space indentation, CRLF, UTF-8, nullable references, and warnings as errors.
 ```
 
 PRD release old:
@@ -501,7 +501,7 @@ Epics Story 1.1 new:
 
 ```text
 **Then** it contains centralized NuGet package versions for all dependencies without inline `Version=` attributes
-**Then** it enforces current Hexalith.Tenants conventions (file-scoped namespaces, K&R brace style where applicable, `_camelCase` private fields, 4-space indentation, warnings as errors)
+**Then** it enforces current Tenants conventions (file-scoped namespaces, K&R brace style where applicable, `_camelCase` private fields, 4-space indentation, warnings as errors)
 ```
 
 Epics Story 1.3 old:
@@ -530,13 +530,13 @@ Artifacts:
 Story 7.1 old:
 
 ```text
-**Then** the Aspire dashboard launches and the Aspire dashboard launches with Hexalith.Tenants ...
+**Then** the Aspire dashboard launches and the Aspire dashboard launches with Tenants ...
 ```
 
 Story 7.1 new:
 
 ```text
-**Then** the Aspire dashboard launches with Hexalith.Tenants ...
+**Then** the Aspire dashboard launches with Tenants ...
 ```
 
 Story 9 sequencing:

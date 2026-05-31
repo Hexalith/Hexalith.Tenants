@@ -1,6 +1,6 @@
 # Sprint Change Proposal — Fail-Safe Defaults & Consumer-Contract Hardening (TEN-1 … TEN-5)
 
-- **Project:** Hexalith.Tenants
+- **Project:** Tenants
 - **Date:** 2026-05-27
 - **Author:** Jerome (via Correct Course workflow)
 - **Trigger origin:** Parties consuming-team review, cross-referencing Tenants stories 11-2 / 11-3 / 11-4 (now folded into the restructured 9-epic plan)

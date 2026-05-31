@@ -448,7 +448,7 @@ domainName.ShouldBe("tenant-index", "TenantIndexProjection must use a unique pro
 
 **Story 5.1 (ready-for-dev) — Per-Tenant & Global Admin Projections:**
 
-- Established the `EventStoreProjection<TReadModel>` pattern for Hexalith.Tenants projections
+- Established the `EventStoreProjection<TReadModel>` pattern for Tenants projections
 - Created `TenantReadModel` with Apply methods for all 9 tenant events — mirror Apply method signatures for event type compatibility
 - `private set` is correct (not `init`) because Apply methods mutate post-construction
 - Assembly scanning auto-discovers projection classes — no DI registration changes needed

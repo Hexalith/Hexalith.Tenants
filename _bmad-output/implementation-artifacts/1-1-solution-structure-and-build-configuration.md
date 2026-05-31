@@ -7,7 +7,7 @@ Status: done
 ## Story
 
 As a developer,
-I want to clone the Hexalith.Tenants repository and have a fully buildable solution with all project shells and correct dependency chains,
+I want to clone the Tenants repository and have a fully buildable solution with all project shells and correct dependency chains,
 so that I can begin implementing domain logic on a proven, consistent project structure mirroring EventStore conventions.
 
 ## Acceptance Criteria
@@ -35,7 +35,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
 - [x] 0.2: Verify .NET SDK version available — run `dotnet --version`. Architecture specifies the latest supported .NET 10 SDK; if unavailable, use the latest available 10.0.x SDK and document deviation in Dev Agent Record.
 - [x] Task 1: Create root build configuration files (AC: #4, #5, #6, #7)
 - [x] 1.1: Create `global.json` with the latest supported .NET 10 SDK and `rollForward: latestPatch`. If the current SDK is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
-    - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, semantic-release-compatible package metadata)
+    - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Tenants, semantic-release-compatible package metadata)
     - [x] 1.3: Create `Directory.Packages.props` with centralized package versions — copy ALL packages from EventStore's `Directory.Packages.props` matching versions exactly (including Aspire.Hosting.\*, Testcontainers, etc.). Tenants inherits the full ecosystem; unused packages cause no harm in centralized management and will be needed in later stories.
     - [x] 1.4: Create `.editorconfig` matching EventStore's conventions exactly (copy from EventStore)
 - [x] Task 2: Create solution file and source project shells (AC: #1, #8)
@@ -73,7 +73,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
 
 ### Architecture Requirements
 
-- **Mirror EventStore structure exactly** — the PRD and architecture specify that Hexalith.Tenants follows "the same project structure, conventions, and documentation approach as Hexalith.EventStore." The EventStore submodule at `Hexalith.EventStore/` IS the reference.
+- **Mirror EventStore structure exactly** — the PRD and architecture specify that Tenants follows "the same project structure, conventions, and documentation approach as Hexalith.EventStore." The EventStore submodule at `Hexalith.EventStore/` IS the reference.
 - **Modern XML solution format** (`Hexalith.Tenants.slnx`) — NOT the classic `.sln` format.
 - **15 projects total**: 8 src + 5 test + 2 sample (see complete directory structure below).
 - **.NET 10 SDK pinned** to the latest supported .NET 10 SDK, currently 10.0.300.

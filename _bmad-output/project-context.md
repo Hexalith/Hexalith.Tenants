@@ -1,5 +1,5 @@
 ---
-project_name: 'Hexalith.Tenants'
+project_name: 'Tenants'
 user_name: 'Jerome'
 date: '2026-05-31'
 sections_completed: ['technology_stack', 'language_rules', 'framework_rules', 'testing_rules', 'code_quality', 'workflow_rules', 'critical_rules']

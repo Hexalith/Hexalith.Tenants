@@ -8,7 +8,7 @@ date: 2026-03-06
 author: Jerome
 ---
 
-# Product Brief: Hexalith.Tenants
+# Product Brief: Tenants
 
 ## Executive Summary
 
@@ -68,7 +68,7 @@ A standalone microservice that provides:
 - Integration testing tenant behavior requires spinning up custom infrastructure every time
 
 **Success Vision:**
-- Adds the Hexalith.Tenants NuGet packages, deploys the tenant microservice, and gets tenant management out of the box
+- Adds the Tenants NuGet packages, deploys the tenant microservice, and gets tenant management out of the box
 - Subscribes to tenant events in their domain services to react to user/role/config changes
 - Uses `Hexalith.Tenants.Testing` for fast, in-memory integration tests without a live tenant service
 - Never writes tenant management code again
@@ -85,7 +85,7 @@ A standalone microservice that provides:
 - No centralized audit trail for tenant access changes
 
 **Success Vision:**
-- Deploys Hexalith.Tenants as a shared microservice across all applications
+- Deploys Tenants as a shared microservice across all applications
 - Has a single source of truth for tenant state, user assignments, and configuration
 - Can monitor tenant lifecycle events and set up alerts for suspicious activity
 
@@ -114,7 +114,7 @@ A standalone microservice that provides:
 ### Key Stakeholders (Inform Requirements, Not Direct Users)
 
 #### Tenant Administrators (e.g., "Marc")
-TenantOwners who manage their tenant's users and settings through consuming application UIs. They never interact with Hexalith.Tenants directly — their experience is shaped by the consuming app developer. Their needs inform the command design (AddUserToTenant, SetTenantConfiguration) and the richness of tenant events.
+TenantOwners who manage their tenant's users and settings through consuming application UIs. They never interact with Tenants directly — their experience is shaped by the consuming app developer. Their needs inform the command design (AddUserToTenant, SetTenantConfiguration) and the richness of tenant events.
 
 #### Security Auditors (e.g., "Kenji")
 Auditors reviewing access controls and compliance. They consume read-model projections and event history built by developers, not the tenant service itself. Their needs drive the event schema design — every role change, config change, and admin action must be an immutable, queryable event with full context.
@@ -122,12 +122,12 @@ Auditors reviewing access controls and compliance. They consume read-model proje
 ### User Journey
 
 **Alex (SaaS Developer) — Primary Journey:**
-1. **Discovery:** Finds Hexalith.Tenants in the Hexalith documentation or NuGet while building a new EventStore-based application
+1. **Discovery:** Finds Tenants in the Hexalith documentation or NuGet while building a new EventStore-based application
 2. **Onboarding:** Adds the NuGet packages, deploys the tenant microservice alongside their EventStore deployment, follows the quickstart guide
 3. **Core Usage:** Sends tenant commands (CreateTenant, AddUserToTenant, SetTenantConfiguration) via the API; subscribes to tenant events in their domain services to enforce access and react to changes
 4. **Testing:** Uses `Hexalith.Tenants.Testing` package with in-memory fakes for integration tests — no live tenant service needed during development
 5. **Aha Moment:** Realizes that tenant user removal automatically triggers access revocation in their downstream services through event subscriptions — no custom integration code needed
-6. **Long-term:** Hexalith.Tenants becomes standard infrastructure in every new project, never builds tenant management again
+6. **Long-term:** Tenants becomes standard infrastructure in every new project, never builds tenant management again
 
 ## Success Metrics
 
@@ -140,7 +140,7 @@ Auditors reviewing access controls and compliance. They consume read-model proje
 
 ### Business Objectives
 
-- **Ecosystem growth** — Hexalith.Tenants removes a key friction point (tenant management) that currently discourages adoption of Hexalith.EventStore for multi-tenant scenarios. Success means more projects choosing EventStore because tenant management is solved
+- **Ecosystem growth** — Tenants removes a key friction point (tenant management) that currently discourages adoption of Hexalith.EventStore for multi-tenant scenarios. Success means more projects choosing EventStore because tenant management is solved
 - **Elimination of duplicated effort** — teams no longer spend 2-4 weeks per project building custom tenant management. Each new project starts with tenant infrastructure ready on day one
 - **Community traction** — GitHub stars, community contributions, and discussions around tenant-related use cases grow alongside EventStore adoption
 
@@ -211,7 +211,7 @@ Auditors reviewing access controls and compliance. They consume read-model proje
 
 ### MVP Success Criteria
 
-- A developer can deploy Hexalith.Tenants and send a CreateTenant command within 30 minutes
+- A developer can deploy Tenants and send a CreateTenant command within 30 minutes
 - All tenant commands produce correct domain events, published via DAPR pub/sub
 - A consuming service can subscribe to tenant events and enforce access control based on UserAddedToTenant/UserRemovedFromTenant events
 - Zero cross-tenant data leaks verified by Tier 3 integration tests

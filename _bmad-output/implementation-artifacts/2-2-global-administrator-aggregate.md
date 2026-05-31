@@ -138,7 +138,7 @@ public class GlobalAdministratorsAggregate : EventStoreAggregate<GlobalAdministr
 - Three outcomes: `DomainResult.Success([events])`, `DomainResult.Rejection([rejections])`, `DomainResult.NoOp()`
 - `TenantId` on events is `"system"` — GlobalAdmin events belong to the platform tenant, not a managed tenant
 - `BootstrapGlobalAdmin` reuses `GlobalAdministratorSet` event — no separate `GlobalAdminBootstrapped` event type
-- `SetGlobalAdministrator` is idempotent — if user already in set, return `NoOp()`. Note: aggregate does NOT enforce authorization (e.g., "only existing admins can add admins") — authorization is enforced at Hexalith.Tenants layer via JWT/MediatR pipeline (Story 2.4). The aggregate only enforces domain invariants
+- `SetGlobalAdministrator` is idempotent — if user already in set, return `NoOp()`. Note: aggregate does NOT enforce authorization (e.g., "only existing admins can add admins") — authorization is enforced at Tenants layer via JWT/MediatR pipeline (Story 2.4). The aggregate only enforces domain invariants
 - `RemoveGlobalAdministrator` with null state → `NoOp()` (nothing to remove); user not in set → `NoOp()`; last admin → rejection; else → success
 
 **New Rejection Event — `LastGlobalAdministratorRejection.cs` (in Contracts):**
@@ -394,7 +394,7 @@ Claude Opus 4.6 (1M context)
 
 ### Change Log
 
-- 2026-03-15: Implemented GlobalAdministratorsAggregate (Story 2.2) — first aggregate in Hexalith.Tenants establishing the pattern for future aggregates. Updated DAPR SDK 1.16.1 → 1.17.3.
+- 2026-03-15: Implemented GlobalAdministratorsAggregate (Story 2.2) — first aggregate in Tenants establishing the pattern for future aggregates. Updated DAPR SDK 1.16.1 → 1.17.3.
 - 2026-03-15: Senior Developer AI review completed — changes requested due to undocumented test-file modification and inaccurate completion-note wording around auto-discovered tests.
 - 2026-03-15: Review follow-up applied — story record corrected to include the contracts naming test change and clarify what test coverage was auto-discovered versus explicitly updated.
 

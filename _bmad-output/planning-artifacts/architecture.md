@@ -14,10 +14,10 @@ completedAt: '2026-05-26'
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/prd-validation-report.md
-  - _bmad-output/planning-artifacts/product-brief-Hexalith.Tenants-2026-03-06.md
+  - _bmad-output/planning-artifacts/product-brief-Tenants-2026-03-06.md
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/ux-design-specification.md
-  - _bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-hexalith-tenants-ux-research-2026-05-26.md
+  - _bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-tenants-ux-research-2026-05-26.md
   - docs/compensating-commands.md
   - docs/cross-aggregate-timing.md
   - docs/demo.md
@@ -33,7 +33,7 @@ inputDocuments:
   - Hexalith.EventStore/_bmad-output/project-context.md
   - Hexalith.FrontComposer/_bmad-output/project-context.md
 workflowType: 'architecture'
-project_name: 'Hexalith.Tenants'
+project_name: 'Tenants'
 user_name: 'Jerome'
 date: '2026-05-26'
 ---
@@ -120,7 +120,7 @@ The system is not computationally complex in the algorithmic sense. Its complexi
 
 ### Primary Technology Domain
 
-Hexalith.Tenants is a .NET 10 event-sourced backend/platform service with DAPR and Aspire orchestration, distributed as multiple NuGet packages and one deployable service. Phase 2 adds an operational Blazor/FrontComposer admin UI, but the Phase 1 architectural foundation is backend/package infrastructure.
+Tenants is a .NET 10 event-sourced backend/platform service with DAPR and Aspire orchestration, distributed as multiple NuGet packages and one deployable service. Phase 2 adds an operational Blazor/FrontComposer admin UI, but the Phase 1 architectural foundation is backend/package infrastructure.
 
 The repository is already initialized, so starter evaluation is about which foundation should remain canonical, not which new CLI template should overwrite the tree.
 
@@ -136,7 +136,7 @@ Rejected as the primary starter because it does not encode the Hexalith.EventSto
 
 This is useful when adding Aspire orchestration to an existing solution.
 
-Rejected as the primary starter because Hexalith.Tenants needs more than an AppHost. The package topology, EventStore integration, DAPR actor/service invocation path, test tiers, and semantic-release packaging rules remain project-specific.
+Rejected as the primary starter because Tenants needs more than an AppHost. The package topology, EventStore integration, DAPR actor/service invocation path, test tiers, and semantic-release packaging rules remain project-specific.
 
 **Option 3: Generic ASP.NET Core / Blazor / React starters**
 
@@ -146,13 +146,13 @@ Rejected because they would introduce irrelevant defaults and likely conflict wi
 
 **Option 4: Mirror the Hexalith.EventStore structure and adapt it to Tenants**
 
-Selected. Hexalith.Tenants is a Hexalith.EventStore domain service and must follow the established ecosystem structure rather than a generic template.
+Selected. Tenants is a Hexalith.EventStore domain service and must follow the established ecosystem structure rather than a generic template.
 
 ### Selected Starter: Hexalith.EventStore Structure Mirror
 
 **Rationale for Selection:**
 
-The PRD, epics, project context, and existing repository all point to the same foundation: Hexalith.Tenants should be structured as an EventStore-native domain service with explicit package boundaries, DAPR/Aspire orchestration, and production/test parity.
+The PRD, epics, project context, and existing repository all point to the same foundation: Tenants should be structured as an EventStore-native domain service with explicit package boundaries, DAPR/Aspire orchestration, and production/test parity.
 
 This starter is not a third-party template. It is the ecosystem reference architecture already present through the `Hexalith.EventStore` root-level submodule.
 

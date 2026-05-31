@@ -9,7 +9,7 @@ Status: done
 ## Story
 
 As a developer,
-I want the Hexalith.Tenants repository to use the EventStore-native solution and project structure,
+I want the Tenants repository to use the EventStore-native solution and project structure,
 so that I can build and extend the tenant platform using the expected Hexalith package boundaries.
 
 ## Acceptance Criteria
@@ -55,7 +55,7 @@ so that I can build and extend the tenant platform using the expected Hexalith p
 
 - Epic 1 objective: developers can clone, build, test, package, and reference the tenant platform with EventStore-native project structure, package boundaries, CI gates, and release foundation in place. [Source: _bmad-output/planning-artifacts/epics.md#Epic 1: Developers Can Build and Consume the Tenant Platform]
 - Story 1.1 is the foundation story for the EventStore-native solution structure and must preserve consumer-facing build usability, not just rearrange infrastructure files. [Source: _bmad-output/planning-artifacts/epics.md#Story 1.1: Establish EventStore-Native Solution Structure] [Source: _bmad-output/planning-artifacts/implementation-readiness-report-2026-05-31.md#Minor 1 - Epic 1 Is Infrastructure-Heavy but Acceptable for This Developer Tool]
-- The PRD defines Hexalith.Tenants as a .NET developer tool distributed as five NuGet packages plus a deployable microservice: Contracts, Client, Server, Testing, and Aspire. [Source: _bmad-output/planning-artifacts/prd.md#NuGet Package Architecture]
+- The PRD defines Tenants as a .NET developer tool distributed as five NuGet packages plus a deployable microservice: Contracts, Client, Server, Testing, and Aspire. [Source: _bmad-output/planning-artifacts/prd.md#NuGet Package Architecture]
 - Phase 1 has no frontend implementation requirement. Do not pull Phase 2 UI/FrontComposer work into this story. [Source: _bmad-output/planning-artifacts/architecture.md#Frontend Architecture]
 
 ### Current Repository State

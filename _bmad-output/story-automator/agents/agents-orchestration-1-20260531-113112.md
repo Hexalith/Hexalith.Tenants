@@ -3,14 +3,14 @@ stateFile: "/home/administrator/projects/hexalith/tenants/_bmad-output/story-aut
 createdAt: "2026-05-31T11:31:59Z"
 ---
 
-# Agents Plan: Hexalith.Tenants - Epic Breakdown
+# Agents Plan: Tenants - Epic Breakdown
 
 ```json
 {
   "version": "1.0.0",
   "stateFile": "/home/administrator/projects/hexalith/tenants/_bmad-output/story-automator/orchestration-1-20260531-113112.md",
   "epic": "1",
-  "epicName": "Hexalith.Tenants - Epic Breakdown",
+  "epicName": "Tenants - Epic Breakdown",
   "createdAt": "2026-05-31T11:31:59Z",
   "stories": [
     {

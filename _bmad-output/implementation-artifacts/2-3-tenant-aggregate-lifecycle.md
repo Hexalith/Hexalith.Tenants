@@ -61,7 +61,7 @@ Story 2.3 is accepted as an aggregate replay foundation story for `TenantState`,
 
 ### Developer Context
 
-This is the **second aggregate** in Hexalith.Tenants and the core business object. It follows the pattern established by `GlobalAdministratorsAggregate` in Story 2.2, but with per-tenant identity instead of singleton. The `TenantAggregate` manages the full lifecycle of a managed tenant — each tenant has its own aggregate instance identified by the managed tenant ID (e.g., `acme-corp`).
+This is the **second aggregate** in Tenants and the core business object. It follows the pattern established by `GlobalAdministratorsAggregate` in Story 2.2, but with per-tenant identity instead of singleton. The `TenantAggregate` manages the full lifecycle of a managed tenant — each tenant has its own aggregate instance identified by the managed tenant ID (e.g., `acme-corp`).
 
 **Key difference from GlobalAdministratorsAggregate:** GlobalAdmin uses singleton aggregate ID `global-administrators`. TenantAggregate uses the managed tenant ID as the aggregate ID (e.g., `acme-corp`). Both operate under the `system` platform tenant with domain `tenants`.
 

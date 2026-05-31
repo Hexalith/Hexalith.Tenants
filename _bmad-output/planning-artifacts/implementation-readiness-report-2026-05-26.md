@@ -1,6 +1,6 @@
 ---
 date: 2026-05-26
-project: Hexalith.Tenants
+project: Tenants
 stepsCompleted:
   - step-01-document-discovery
   - step-02-prd-analysis
@@ -27,7 +27,7 @@ excludedDocuments:
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-05-26
-**Project:** Hexalith.Tenants
+**Project:** Tenants
 
 ## Step 1: Document Discovery
 
@@ -166,7 +166,7 @@ FR41: Event contracts include sufficient information (event ID, aggregate versio
 
 FR42: Documentation provides guidance on idempotent event processing patterns for consumers, since DAPR pub/sub may deliver events more than once. Minimum content: at-least-once delivery explanation, deduplication by event ID example, idempotent handler pattern with code sample
 
-FR43: A developer can install Hexalith.Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire)
+FR43: A developer can install Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire)
 
 FR44: A developer can register tenant client services in DI with a single extension method call
 
@@ -414,7 +414,7 @@ Total FRs in epics: 65
 | FR40 | A consuming service can react to configuration change events to update tenant-specific behavior | Epic 4 | Covered |
 | FR41 | Event contracts include sufficient information (event ID, aggregate version) for consuming services to implement idempotent event handling | Epic 4 | Covered |
 | FR42 | Documentation provides guidance on idempotent event processing patterns for consumers, since DAPR pub/sub may deliver events more than once. Minimum content: at-least-once delivery explanation, deduplication by event ID example, idempotent handler pattern with code sample | Epic 4 | Covered |
-| FR43 | A developer can install Hexalith.Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire) | Epic 1 | Covered |
+| FR43 | A developer can install Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire) | Epic 1 | Covered |
 | FR44 | A developer can register tenant client services in DI with a single extension method call | Epic 4 | Covered |
 | FR45 | A developer can register tenant event handlers in a consuming service in under 20 lines of DI configuration | Epic 4 | Covered |
 | FR46 | A developer can write tenant integration tests using in-memory fakes without external infrastructure, in under 10 lines per test | Epic 6 | Covered |
@@ -462,7 +462,7 @@ No FRs were found in the epics coverage map that do not exist in the PRD.
 
 Found: `_bmad-output/planning-artifacts/ux-design-specification.md`
 
-The UX document is complete and dated 2026-05-26. It is explicitly framed as the Phase 2 Hexalith.Tenants Admin UI / FrontComposer operational trust surface, not Phase 1 backend MVP scope.
+The UX document is complete and dated 2026-05-26. It is explicitly framed as the Phase 2 Tenants Admin UI / FrontComposer operational trust surface, not Phase 1 backend MVP scope.
 
 ### UX to PRD Alignment
 

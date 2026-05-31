@@ -32,7 +32,7 @@ so that every PR is validated automatically and merges to `main` publish NuGet p
 
 - [x] Task 0: Verify prerequisites (AC: all)
     - [x] 0.1: Verify EventStore CI/CD reference files exist — confirm `Hexalith.EventStore/.github/workflows/ci.yml` and `release.yml` are present and read their full content
-    - [x] 0.2: Verify `.github/workflows/` directory exists or can be created in Hexalith.Tenants
+    - [x] 0.2: Verify `.github/workflows/` directory exists or can be created in Tenants
     - [x] 0.3: Verify the solution builds — run `dotnet build Hexalith.Tenants.slnx --configuration Release` and confirm zero errors
 
 - [x] Task 1: Create CI workflow (AC: #1, #2, #5, #7, #8)

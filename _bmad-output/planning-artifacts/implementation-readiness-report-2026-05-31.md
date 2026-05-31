@@ -26,7 +26,7 @@ date: '2026-05-31'
 
 **Supporting context identified:**
 - `_bmad-output/planning-artifacts/prd-validation-report.md`
-- `_bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-hexalith-tenants-ux-research-2026-05-26.md`
+- `_bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-tenants-ux-research-2026-05-26.md`
 
 **Discovery findings:**
 - No whole-vs-sharded duplicate conflicts were found for PRD, Architecture, Epics, or UX.
@@ -81,7 +81,7 @@ FR39: A consuming service can react to tenant disable/enable events to block or 
 FR40: A consuming service can react to configuration change events to update tenant-specific behavior
 FR41: Event contracts include sufficient information (event ID, aggregate version) for consuming services to implement idempotent event handling
 FR42: Documentation provides guidance on idempotent event processing patterns for consumers, since DAPR pub/sub may deliver events more than once. Minimum content: at-least-once delivery explanation, deduplication by event ID example, idempotent handler pattern with code sample
-FR43: A developer can install Hexalith.Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire)
+FR43: A developer can install Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire)
 FR44: A developer can register tenant client services in DI with a single extension method call
 FR45: A developer can register tenant event handlers in a consuming service in under 20 lines of DI configuration
 FR46: A developer can write tenant integration tests using in-memory fakes without external infrastructure, in under 10 lines per test
@@ -328,7 +328,7 @@ No FRs were found in the epic coverage map that are absent from the PRD FR list.
 
 Found:
 - `_bmad-output/planning-artifacts/ux-design-specification.md` (read completely; 1,305 lines)
-- Supporting research: `_bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-hexalith-tenants-ux-research-2026-05-26.md`
+- Supporting research: `_bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-tenants-ux-research-2026-05-26.md`
 
 Related documents checked:
 - `_bmad-output/planning-artifacts/prd.md` (already read in Step 2)

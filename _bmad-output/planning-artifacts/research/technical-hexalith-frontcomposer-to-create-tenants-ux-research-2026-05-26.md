@@ -4,7 +4,7 @@ inputDocuments: []
 workflowType: 'research'
 lastStep: 6
 research_type: 'technical'
-research_topic: 'Hexalith.FrontComposer to create the Hexalith.Tenants UX'
+research_topic: 'Hexalith.FrontComposer to create the Tenants UX'
 research_goals: 'Define the architecture, integration points, implementation approach, and practical UX composition strategy for a Tenants frontend built with FrontComposer.'
 user_name: 'Jerome'
 date: '2026-05-26'
@@ -24,13 +24,13 @@ source_verification: true
 
 This research evaluates how Hexalith.FrontComposer can be used as the UX composition layer for Hexalith.Tenants. It combines local repository evidence with current public documentation for FrontComposer-style composition, event-sourced UX patterns, .NET Aspire, Dapr, OpenTelemetry, Blazor testing, and Azure Well-Architected operational guidance.
 
-The core finding is that FrontComposer is a strong fit when used as a generated composition layer over EventStore and Hexalith.Tenants contracts, not as a reason to reshape existing domain contracts. The recommended approach is an adapter module that owns UI-friendly command models, projection models, mappings, generated registration, and custom overrides for audit, destructive, and authorization-sensitive workflows.
+The core finding is that FrontComposer is a strong fit when used as a generated composition layer over EventStore and Tenants contracts, not as a reason to reshape existing domain contracts. The recommended approach is an adapter module that owns UI-friendly command models, projection models, mappings, generated registration, and custom overrides for audit, destructive, and authorization-sensitive workflows.
 
-The final Research Synthesis section consolidates the stack analysis, integration patterns, architectural design, implementation plan, risks, roadmap, and source verification into an implementation-oriented reference for future Hexalith.Tenants UX stories.
+The final Research Synthesis section consolidates the stack analysis, integration patterns, architectural design, implementation plan, risks, roadmap, and source verification into an implementation-oriented reference for future Tenants UX stories.
 
 ## Technical Research Scope Confirmation
 
-**Research Topic:** Hexalith.FrontComposer to create the Hexalith.Tenants UX
+**Research Topic:** Hexalith.FrontComposer to create the Tenants UX
 
 **Research Goals:** Define the architecture, integration points, implementation approach, and practical UX composition strategy for a Tenants frontend built with FrontComposer.
 
@@ -65,7 +65,7 @@ Confidence is high for the stack boundaries because the local repositories alrea
 
 The Tenants UX should stay in the same language family as the rest of the Hexalith platform: C# on .NET 10, with Razor/Blazor for UI components and Roslyn incremental generators for generated UI artifacts. This aligns with both local repository constraints and Microsoft's current Blazor model. Microsoft documents Blazor as a framework for building interactive web UI with .NET and C#, and its render-mode documentation supports static server rendering, interactive server rendering, interactive WebAssembly rendering, and Interactive Auto.
 
-For Hexalith.Tenants, the primary language decision is not "which frontend language," but "which C# contract surface is safe to expose to FrontComposer." The existing Tenants command contracts are immutable positional records such as `CreateTenant(string TenantId, string Name, string? Description)`. Local FrontComposer source analysis shows that `[Command]` generation currently expects a public parameterless constructor, public writable setters for non-derivable fields, and a `MessageId` property for command correlation. Directly annotating the existing Tenants domain command records would therefore create generator diagnostics and likely force undesirable public contract changes.
+For Tenants, the primary language decision is not "which frontend language," but "which C# contract surface is safe to expose to FrontComposer." The existing Tenants command contracts are immutable positional records such as `CreateTenant(string TenantId, string Name, string? Description)`. Local FrontComposer source analysis shows that `[Command]` generation currently expects a public parameterless constructor, public writable setters for non-derivable fields, and a `MessageId` property for command correlation. Directly annotating the existing Tenants domain command records would therefore create generator diagnostics and likely force undesirable public contract changes.
 
 The recommended language-level pattern is a C# adapter model layer:
 
@@ -88,7 +88,7 @@ _Sources:_ Local: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools
 
 FrontComposer is already designed around Blazor, Fluent UI Blazor, Fluxor, SignalR, and Roslyn source generation. The Shell project references `Fluxor.Blazor.Web`, `Microsoft.FluentUI.AspNetCore.Components`, `Microsoft.AspNetCore.SignalR.Client`, `Microsoft.AspNetCore.Authentication.OpenIdConnect`, `NUlid`, and `System.Reactive`. Its contracts include `ICommandService`, `IQueryService`, tenant-aware projection change notification, render contracts, projection templates, projection slots, command lifecycle tracking, and registry contracts.
 
-For Hexalith.Tenants, FrontComposer should be used as a composition framework rather than a visual component library. The implementation should register a Tenants bounded context and expose UX artifacts for:
+For Tenants, FrontComposer should be used as a composition framework rather than a visual component library. The implementation should register a Tenants bounded context and expose UX artifacts for:
 
 - Tenant list and tenant detail projections.
 - Tenant membership and role management.
@@ -111,7 +111,7 @@ _Sources:_ Local: `Hexalith.FrontComposer/Directory.Packages.props`, `Hexalith.F
 
 ### Database and Storage Technologies
 
-The Tenants UX should not introduce a direct database dependency. Hexalith.Tenants is event-sourced through Hexalith.EventStore and Dapr-backed infrastructure; FrontComposer should consume command and query APIs, not storage engines. The UX state stack should therefore be split into three levels:
+The Tenants UX should not introduce a direct database dependency. Tenants is event-sourced through Hexalith.EventStore and Dapr-backed infrastructure; FrontComposer should consume command and query APIs, not storage engines. The UX state stack should therefore be split into three levels:
 
 - Durable domain state: EventStore aggregates, events, snapshots, and projections owned by the Tenants backend.
 - Projection access state: REST query results, ETags, paging/filter/sort state, and tenant-scoped caches in FrontComposer Shell services.
@@ -158,7 +158,7 @@ _Sources:_ Local: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools
 
 ### Cloud Infrastructure and Deployment
 
-The Tenants UX should be hosted as part of the Hexalith distributed application model, with Aspire coordinating local development topology and Dapr abstracting runtime infrastructure. Microsoft documents .NET Aspire as a stack for building observable, production-ready distributed applications, with an AppHost project that defines and orchestrates app resources during development. This fits the existing Hexalith.Tenants AppHost and the FrontComposer product requirement for on-premise, sovereign cloud, and major-cloud portability.
+The Tenants UX should be hosted as part of the Hexalith distributed application model, with Aspire coordinating local development topology and Dapr abstracting runtime infrastructure. Microsoft documents .NET Aspire as a stack for building observable, production-ready distributed applications, with an AppHost project that defines and orchestrates app resources during development. This fits the existing Tenants AppHost and the FrontComposer product requirement for on-premise, sovereign cloud, and major-cloud portability.
 
 The frontend deployment decision should remain conservative:
 
@@ -199,7 +199,7 @@ _Sources:_ Local: `Hexalith.FrontComposer/_bmad-output/A-Product-Brief/project-b
 
 ### Step 2 Conclusion
 
-Use FrontComposer for Hexalith.Tenants through a dedicated UX composition layer, not by reshaping Tenants domain contracts. The strongest technology path is:
+Use FrontComposer for Tenants through a dedicated UX composition layer, not by reshaping Tenants domain contracts. The strongest technology path is:
 
 - C#/.NET 10 and Blazor as the single application language/runtime.
 - Fluent UI Blazor and FrontComposer Shell as the user-facing design system.
@@ -366,7 +366,7 @@ This flow matches FrontComposer's command lifecycle and Tenants' existing event-
 
 ### Step 3 Conclusion
 
-The integration pattern for Hexalith.Tenants UX should be: FrontComposer shell and generated UI -> EventStore gateway HTTP/SignalR adapters -> Dapr-backed EventStore/Tenants backend topology.
+The integration pattern for Tenants UX should be: FrontComposer shell and generated UI -> EventStore gateway HTTP/SignalR adapters -> Dapr-backed EventStore/Tenants backend topology.
 
 Use EventStore's generic `/api/v1/commands`, `/api/v1/queries`, and `/hubs/projection-changes` routes as the default integration surface. Use Tenants' `/api/tenants` GET endpoints selectively for specialized hand-written adapters. Keep Dapr, actors, pub/sub, and projection dispatch behind the server boundary. Keep authorization server-side and treat SignalR messages as invalidation nudges only.
 
@@ -392,7 +392,7 @@ Source quality is high because the web inputs are Microsoft Learn, Azure Archite
 
 ### System Architecture Patterns
 
-The right architecture for Hexalith.Tenants UX is a modular, generated Blazor shell composed over a CQRS/event-sourced backend.
+The right architecture for Tenants UX is a modular, generated Blazor shell composed over a CQRS/event-sourced backend.
 
 Recommended system pattern:
 
@@ -624,7 +624,7 @@ This architecture preserves Hexalith's event-sourced backend while allowing a ge
 
 ### Technology Adoption Strategies
 
-Hexalith.Tenants should adopt Hexalith.FrontComposer through an incremental adapter strategy. The correct adoption model is a strangler-style modernization path: introduce a FrontComposer composition module beside the current Tenants backend, route selected UX capabilities through it, and expand only when the adapter, testing, accessibility, and operations evidence is stable.
+Tenants should adopt Hexalith.FrontComposer through an incremental adapter strategy. The correct adoption model is a strangler-style modernization path: introduce a FrontComposer composition module beside the current Tenants backend, route selected UX capabilities through it, and expand only when the adapter, testing, accessibility, and operations evidence is stable.
 
 The recommended first module is `Hexalith.Tenants.FrontComposer`. It should be a separate source project that owns FrontComposer-friendly command models, projection rows, mapping code, registration metadata, and custom high-risk UI overrides. It should not mutate the existing immutable Tenants command contracts or sealed/read-only query DTOs to satisfy UI generation conventions.
 
@@ -844,7 +844,7 @@ Implementation success should be measured with technical and user-visible signal
 
 ### Step 5 Conclusion
 
-The implementation path is practical, but it should be treated as a phased product integration rather than a generator flip. FrontComposer is strongest for consistent list, detail, projection, and command composition. Hexalith.Tenants still needs explicit adapter models, custom destructive-flow components, source-backed dependency decisions, and rigorous accessibility/localization testing before the UX can be considered production-ready.
+The implementation path is practical, but it should be treated as a phased product integration rather than a generator flip. FrontComposer is strongest for consistent list, detail, projection, and command composition. Tenants still needs explicit adapter models, custom destructive-flow components, source-backed dependency decisions, and rigorous accessibility/localization testing before the UX can be considered production-ready.
 
 ---
 
@@ -854,7 +854,7 @@ The implementation path is practical, but it should be treated as a phased produ
 
 Hexalith.FrontComposer can be used to create the Hexalith.Tenants UX if it is positioned as a composition and generation layer over the existing event-sourced platform. The strongest technical path is not to annotate or reshape existing Tenants contracts. The stronger path is to create a dedicated `Hexalith.Tenants.FrontComposer` module that maps between FrontComposer-friendly UX models and the current immutable command contracts, query DTOs, projection read models, EventStore command/query endpoints, and SignalR projection-change stream.
 
-The research found a solid architectural fit among Hexalith.Tenants, Hexalith.EventStore, and Hexalith.FrontComposer. Tenants already owns event-sourced domain behavior, Dapr/Aspire hosting, projections, authorization, and contract tests. EventStore provides the command/query gateway and projection-change hub. FrontComposer provides shell, rendering, generated component, communication, feedback, and testing infrastructure. The integration risk is concentrated at boundaries: command model shape, projection model shape, tenant/auth context propagation, projection freshness, destructive workflow UX, accessibility, localization, and source-backed dependency readiness.
+The research found a solid architectural fit among Tenants, Hexalith.EventStore, and Hexalith.FrontComposer. Tenants already owns event-sourced domain behavior, Dapr/Aspire hosting, projections, authorization, and contract tests. EventStore provides the command/query gateway and projection-change hub. FrontComposer provides shell, rendering, generated component, communication, feedback, and testing infrastructure. The integration risk is concentrated at boundaries: command model shape, projection model shape, tenant/auth context propagation, projection freshness, destructive workflow UX, accessibility, localization, and source-backed dependency readiness.
 
 The recommended strategy is phased adoption. First, clean up readiness risks and create the FrontComposer adapter module. Then ship read-only tenant operations screens. Then add command workflows with strong pending/confirmed/rejected feedback. Finally, harden audit timeline, consequence preview, localization, accessibility, E2E evidence, and operations dashboards before treating the UX as production-ready.
 
@@ -894,7 +894,7 @@ The recommended strategy is phased adoption. First, clean up readiness risks and
 
 #### Technical Research Significance
 
-Hexalith.Tenants is an operational domain where UX correctness is tightly linked to event-sourced behavior. Operators need to understand whether tenant commands were accepted, rejected, pending, projected, stale, or unauthorized. A generated UX layer can reduce repeated table, form, and detail-view work, but only if it preserves domain boundaries and exposes event-sourced consistency honestly.
+Tenants is an operational domain where UX correctness is tightly linked to event-sourced behavior. Operators need to understand whether tenant commands were accepted, rejected, pending, projected, stale, or unauthorized. A generated UX layer can reduce repeated table, form, and detail-view work, but only if it preserves domain boundaries and exposes event-sourced consistency honestly.
 
 The technical significance is therefore twofold. First, FrontComposer can create a consistent operator experience across tenant list, detail, membership, configuration, global administrator, audit, and command workflows. Second, the platform must avoid using the generator as a shortcut around domain contracts, authorization rules, accessibility requirements, or projection-lag behavior.
 
@@ -904,7 +904,7 @@ _Sources:_ Local repository evidence in `src`, `tests`, `docs/tenants-ui-frontco
 
 This research used four evidence layers:
 
-- Local Hexalith.Tenants source: contracts, server, client, AppHost, ServiceDefaults, tests, CI, release, package versions, and planning artifacts.
+- Local Tenants source: contracts, server, client, AppHost, ServiceDefaults, tests, CI, release, package versions, and planning artifacts.
 - Local Hexalith.FrontComposer source: Contracts, Shell, Testing, EventStore adapter wiring, generated rendering primitives, testing docs, accessibility evidence, and E2E tests.
 - Local Hexalith.EventStore evidence: command/query gateway patterns, projection-change SignalR hub, tenant context, authorization, and event-sourced hosting concepts.
 - Current public technical documentation: Microsoft Azure Architecture Center, Microsoft Learn, Dapr docs, Playwright .NET, bUnit, and Azure Well-Architected Framework.
@@ -928,7 +928,7 @@ The analysis framework separated technology stack, integration contracts, archit
 
 #### Current Technical Architecture Patterns
 
-The relevant architecture is a generated Blazor/FrontComposer UX over an event-sourced backend. Hexalith.Tenants owns domain commands, projections, policies, and backend behavior. Hexalith.EventStore provides command/query dispatch and projection notifications. Hexalith.FrontComposer provides the shell, metadata, generated UI composition, command/projection rendering, feedback patterns, and testing utilities.
+The relevant architecture is a generated Blazor/FrontComposer UX over an event-sourced backend. Tenants owns domain commands, projections, policies, and backend behavior. Hexalith.EventStore provides command/query dispatch and projection notifications. Hexalith.FrontComposer provides the shell, metadata, generated UI composition, command/projection rendering, feedback patterns, and testing utilities.
 
 The dominant patterns are:
 
@@ -1034,7 +1034,7 @@ FrontComposer Shell
   -> UX command/projection adapter models
   -> EventStore command/query client services
   -> EventStore command/query endpoints
-  -> Hexalith.Tenants handlers, aggregates, projections
+  -> Tenants handlers, aggregates, projections
   -> EventStore projection changes hub
   -> FrontComposer subscription/cache/refresh behavior
 ```
@@ -1338,7 +1338,7 @@ The main limitation is that some FrontComposer deliverables are planning aliases
 | UX shell | Hexalith.FrontComposer Shell and Contracts. |
 | UI components | FrontComposer plus Fluent UI conventions. |
 | Backend gateway | Hexalith.EventStore command/query/hub endpoints. |
-| Backend platform | Hexalith.Tenants event-sourced domain and projections. |
+| Backend platform | Tenants event-sourced domain and projections. |
 | Distributed app host | Aspire AppHost. |
 | Backend building blocks | Dapr where already used by the backend. |
 | Observability | OpenTelemetry and structured logs. |
@@ -1368,7 +1368,7 @@ The main limitation is that some FrontComposer deliverables are planning aliases
 
 ## Technical Research Conclusion
 
-Hexalith.FrontComposer can create the Hexalith.Tenants UX effectively, but the successful architecture is an adapter-backed composition layer, not a direct generator pass over the existing domain contracts. The platform should preserve Hexalith.Tenants' event-sourced command and projection model, use Hexalith.EventStore as the browser-facing command/query/projection-change gateway, and introduce a dedicated FrontComposer module that owns UI model shapes and generated shell registration.
+Hexalith.FrontComposer can create the Tenants UX effectively, but the successful architecture is an adapter-backed composition layer, not a direct generator pass over the existing domain contracts. The platform should preserve Tenants' event-sourced command and projection model, use Hexalith.EventStore as the browser-facing command/query/projection-change gateway, and introduce a dedicated FrontComposer module that owns UI model shapes and generated shell registration.
 
 The main implementation decision is to be deliberate about boundaries. Domain commands, API DTOs, read projections, and UI rendering models should remain separate. That extra mapping cost is justified because it protects backend correctness, improves testability, and lets FrontComposer evolve without destabilizing Tenants contracts.
 

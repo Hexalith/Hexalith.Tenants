@@ -81,7 +81,7 @@ All dependencies are ready. No new NuGet packages or project references are need
 
 ### Architecture: Thin DI Layer
 
-Architecture specifies: "Client → References Contracts only (thin DI layer)". This describes the _project reference_ layer — Client has no project reference to Server, Hexalith.Tenants, or any other Hexalith project except Contracts. NuGet infrastructure packages (`Dapr.Client`, `Microsoft.Extensions.Configuration.Binder`, `Microsoft.Extensions.Hosting.Abstractions`) are already in the csproj from Story 1.1 and are not "references" in the architecture sense. The Client package is a NuGet package consumed by external services. It must be minimal — only DI extension methods and configuration options.
+Architecture specifies: "Client → References Contracts only (thin DI layer)". This describes the _project reference_ layer — Client has no project reference to Server, Tenants, or any other Hexalith project except Contracts. NuGet infrastructure packages (`Dapr.Client`, `Microsoft.Extensions.Configuration.Binder`, `Microsoft.Extensions.Hosting.Abstractions`) are already in the csproj from Story 1.1 and are not "references" in the architecture sense. The Client package is a NuGet package consumed by external services. It must be minimal — only DI extension methods and configuration options.
 
 Architecture directory structure prescribes exactly:
 
@@ -413,7 +413,7 @@ Should.Throw<ArgumentNullException>(() =>
 - CA1062 compliance is mandatory — all public method parameters must be null-checked
 - `TreatWarningsAsErrors = true` means any CA warnings are build failures
 
-**Story 2.4 (done) — Hexalith.Tenants Bootstrap & Event Publishing:**
+**Story 2.4 (done) — Tenants Bootstrap & Event Publishing:**
 
 - Established Hexalith.Tenants `Program.cs` DI composition root pattern
 - Shows how `AddDaprClient()`, `AddEventStore()`, `AddEventStoreServer()` are composed

@@ -102,10 +102,10 @@ This story adds the **user-role management Handle methods** to the existing `Ten
 **Recommended follow-up (file as separate tech-debt item):**
 
 - Add explicit numeric values to prevent future drift: `TenantOwner = 0, TenantContributor = 1, TenantReader = 2`
-- Enforce `[JsonRequired]` or `JsonSerializerOptions.RespectRequiredMembers = true` at Hexalith.Tenants level to reject payloads that omit `Role`
+- Enforce `[JsonRequired]` or `JsonSerializerOptions.RespectRequiredMembers = true` at Tenants level to reject payloads that omit `Role`
 - This is a Hexalith.Tenants/serialization concern, not an aggregate concern
 
-**This story adds:** 3 Handle methods, 2 typed validators, a tenant-specific `SubmitCommand` payload validator in Hexalith.Tenants, the `ExistingRole` field on `UserAlreadyInTenantRejection`, and focused tests. No new projects.
+**This story adds:** 3 Handle methods, 2 typed validators, a tenant-specific `SubmitCommand` payload validator in Tenants, the `ExistingRole` field on `UserAlreadyInTenantRejection`, and focused tests. No new projects.
 
 ### Technical Requirements
 
@@ -413,7 +413,7 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - State property is `Users` (not `Members`) — `Dictionary<string, TenantRole>`
 - Test file `TenantAggregateTests.cs` has 12 existing tests + `CreateCommand<T>` helper
 
-**Story 2.4 (review) — Hexalith.Tenants bootstrap:**
+**Story 2.4 (review) — Tenants bootstrap:**
 
 - Program.cs is fully wired: `AddHexalith.Tenants()`, `AddEventStoreServer()`, `AddEventStore(typeof(TenantAggregate).Assembly)`
 - `AddHexalith.Tenants()` sets up MediatR pipeline with ValidationBehavior but only registers EventStore's own validators
@@ -484,7 +484,7 @@ Follow the same pattern for `ChangeUserRoleValidatorTests.cs` (validate TenantId
 - 2026-03-15: Task 3 — Added 16 unit tests covering all 3 Handle methods (success, rejection, NoOp paths). [Theory] with [InlineData] for all 3 TenantRole values. Switch arm ordering verified (disabled takes precedence over duplicate member).
 - 2026-03-15: Task 4 — Full solution build (0 warnings, 0 errors) and all 81 tests pass across 5 test projects with no regressions.
 - 2026-03-16: Senior developer review completed. Story moved back to in-progress after finding an unmet validation acceptance criterion and a duplicate-user rejection contract gap.
-- 2026-03-16: Fix follow-up — Added typed validators plus a tenant-specific `SubmitCommand` payload validator, registered validators in Hexalith.Tenants, extended `UserAlreadyInTenantRejection` with `ExistingRole`, and added focused regression tests. Story returned to done.
+- 2026-03-16: Fix follow-up — Added typed validators plus a tenant-specific `SubmitCommand` payload validator, registered validators in Tenants, extended `UserAlreadyInTenantRejection` with `ExistingRole`, and added focused regression tests. Story returned to done.
 
 ## Dev Agent Record
 

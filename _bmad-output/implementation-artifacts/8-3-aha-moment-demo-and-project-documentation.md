@@ -6,7 +6,7 @@ Status: done
 
 ## Story
 
-As a developer or decision-maker evaluating Hexalith.Tenants,
+As a developer or decision-maker evaluating Tenants,
 I want a compelling demo showing reactive cross-service access revocation and complete project documentation,
 So that I can see the value of event-sourced tenant management in under 2 minutes and understand how to contribute.
 
@@ -38,7 +38,7 @@ If similar adoption work is planned again, split demo/adoption collateral from r
   - [x] 0.1: **CRITICAL GATE**: The quickstart (`docs/quickstart.md`) uses PascalCase payload fields (`"TenantId"`, `"UserId"`) and **integer enums** (`"Role": 1` for TenantContributor). However, Story 8.2 notes suggest `JsonStringEnumConverter` may cause string serialization in events. The dev agent MUST verify: (a) What casing does the command payload deserializer accept? (b) Does `AddUserToTenant` accept `"Role": "TenantContributor"` (string) or `"Role": 1` (integer) or both? Inspect the `CommandsController` deserialization path and test against the running AppHost. Match the quickstart's verified format exactly. This determination affects EVERY JSON example in the demo and scripts. Do NOT proceed to Task 1.5+ until resolved.
 
 - [x] Task 1: Create `docs/demo.md` — "Aha Moment" demo walkthrough (AC: #1, #2)
-  - [x] 1.1: Write introduction explaining the demo's purpose: prove reactive cross-service access revocation. State that this demo uses the AppHost topology which launches Hexalith.Tenants + Sample consuming service + DAPR sidecars + Redis. Clarify timing: "The demo sequence (Steps 1-6) takes under 2 minutes once the topology is running. Initial one-time setup (AppHost startup, JWT generation) is separate preparation — allow 5-10 minutes on first run."
+  - [x] 1.1: Write introduction explaining the demo's purpose: prove reactive cross-service access revocation. State that this demo uses the AppHost topology which launches Tenants + Sample consuming service + DAPR sidecars + Redis. Clarify timing: "The demo sequence (Steps 1-6) takes under 2 minutes once the topology is running. Initial one-time setup (AppHost startup, JWT generation) is separate preparation — allow 5-10 minutes on first run."
   - [x] 1.2: Write prerequisites section (same prerequisites as quickstart: .NET 10, DAPR CLI + `dapr init`, Docker running)
   - [x] 1.3: Write "Start the Topology" section: `dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`. Note: first run pulls Docker images (allow 5-10 minutes). Wait for Aspire dashboard to show both `commandapi` and `sample` as running. **Include explicit instructions**: "In the terminal output, look for a line like `Login to the dashboard at https://localhost:17225/login?t=...` — open this URL in your browser. This is the Aspire dashboard. You will use it throughout the demo to find service URLs and view logs."
   - [x] 1.3a: Write a "Find Your Service URLs" sub-section immediately after startup: instruct the developer to click `commandapi` in the Aspire dashboard to find Hexalith.Tenants base URL (e.g., `https://localhost:{port}`), then click `sample` to find the Sample service base URL. Note these URLs for the remaining steps. Explain: "Aspire assigns ports dynamically — your ports will differ from the examples below. Replace `{commandapi-url}` and `{sample-url}` with your actual URLs throughout this guide."
@@ -48,7 +48,7 @@ If similar adoption work is planned again, split demo/adoption collateral from r
     For each step, include:
     - The JSON command body for `POST /api/v1/commands` — paste into the Swagger UI request body (do NOT include curl examples in demo.md; the automation scripts in `scripts/` handle programmatic HTTP)
     - What to observe in the Sample service logs — always specify: "In the Aspire dashboard, click `sample` → Logs tab"
-    - What to observe in Hexalith.Tenants response
+    - What to observe in Tenants response
 
     **Step 1: Bootstrap Global Admin**
     ```json
@@ -60,7 +60,7 @@ If similar adoption work is planned again, split demo/adoption collateral from r
         "payload": { "UserId": "demo-admin" }
     }
     ```
-    - Observe: Hexalith.Tenants returns `202 Accepted`. No Sample service log entry (GlobalAdmin events don't trigger sample handlers)
+    - Observe: Tenants returns `202 Accepted`. No Sample service log entry (GlobalAdmin events don't trigger sample handlers)
 
     **Step 2: Create a Tenant**
     ```json
@@ -72,7 +72,7 @@ If similar adoption work is planned again, split demo/adoption collateral from r
         "payload": { "TenantId": "acme-demo", "Name": "Acme Demo Corp", "Description": "Demo tenant for aha moment" }
     }
     ```
-    - Observe: Hexalith.Tenants returns `202 Accepted` with TenantCreated event
+    - Observe: Tenants returns `202 Accepted` with TenantCreated event
     > **Re-running the demo?** If you've run this before, `BootstrapGlobalAdmin` will return `GlobalAdminAlreadyBootstrappedRejection` (safe to ignore — bootstrap already done) and `CreateTenant` will return `TenantAlreadyExistsRejection`. Use a different tenant ID (e.g., `acme-demo-2`) and matching `aggregateId`.
 
     **Step 3: Add a User with TenantContributor Role**
@@ -114,12 +114,12 @@ If similar adoption work is planned again, split demo/adoption collateral from r
     - **Audit trail note**: The query endpoint shows the CURRENT projection state, not the event history. The full audit trail — `TenantCreated` → `UserAddedToTenant` → `UserRemovedFromTenant` with timestamps and actor IDs — lives in the event store. In the event-sourced model, no state change is ever lost: the add, the remove, who did it, and when are all preserved as immutable events. For audit queries by date range, see `GET /api/tenants/{tenantId}/audit` (FR29). For more on temporal auditability, see [Event Contract Reference](event-contract-reference.md)
 
   - [x] 1.6: Write a "What Just Happened?" section explaining the architecture behind the demo:
-    - Hexalith.Tenants processed the command and stored events atomically
+    - Tenants processed the command and stored events atomically
     - Events were published asynchronously via DAPR pub/sub to the `tenants.events` topic
     - The Sample service received the event via its subscription endpoint
     - The Sample's `SampleLoggingEventHandler` logged the event
     - The Sample's local projection (`ITenantProjectionStore`) was updated automatically
-    - The `/access` endpoint reads from the local projection — no calls back to Hexalith.Tenants
+    - The `/access` endpoint reads from the local projection — no calls back to Tenants
     - **Multi-service note**: This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The PRD envisions this with Parties, Billing, and Reporting services all reacting to the same event. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription
   - [x] 1.7: Write a "Next Steps" section linking to: quickstart.md, event-contract-reference.md, the sample source code at `samples/Hexalith.Tenants.Sample/`
   - [x] 1.8: Write a "Troubleshooting" section at the end of demo.md covering:
@@ -133,11 +133,11 @@ If similar adoption work is planned again, split demo/adoption collateral from r
 - [x] Task 2: Create demo automation scripts (AC: #2)
   - [x] 2.1: Create `scripts/demo.ps1` (PowerShell) — automated demo script that:
     - Generates a JWT token using the dev signing key (same approach as quickstart — verify the claims structure produces the same token that the quickstart scripts produce)
-    - Sends the 6 commands sequentially via `Invoke-RestMethod` to Hexalith.Tenants
+    - Sends the 6 commands sequentially via `Invoke-RestMethod` to Tenants
     - Includes `Start-Sleep -Seconds 2` between steps to allow event propagation and visual observation
     - Queries the Sample service `/access` endpoint to show access grant then revocation
     - Prints clear step headers and colored output so the terminal itself IS the demo
-    - **IMPORTANT**: The script assumes the AppHost is already running (it does not start it). Print a prerequisite check at the start: attempt to reach Hexalith.Tenants health endpoint and fail fast with a clear message if unreachable
+    - **IMPORTANT**: The script assumes the AppHost is already running (it does not start it). Print a prerequisite check at the start: attempt to reach Tenants health endpoint and fail fast with a clear message if unreachable
     - Use realistic unique IDs to avoid conflicts on re-run (append timestamp or GUID suffix to tenant ID and user ID, e.g., `acme-demo-{timestamp}`)
     - Use the enum format verified in Task 0 for the `Role` field
     - **HTTPS handling**: Use `-SkipCertificateCheck` on all `Invoke-RestMethod` calls — Aspire dev certificates are not trusted by default
@@ -233,7 +233,7 @@ This is a **documentation + scripting** story — no C# code changes. The delive
 - `CONTRIBUTING.md` — Developer contribution guide
 - `README.md` update — Replace demo placeholder with link
 
-The demo leverages the existing AppHost topology which already includes both Hexalith.Tenants and the Sample consuming service with DAPR sidecars. No new services or code changes are needed — the demo simply drives the existing system through its paces.
+The demo leverages the existing AppHost topology which already includes both Tenants and the Sample consuming service with DAPR sidecars. No new services or code changes are needed — the demo simply drives the existing system through its paces.
 
 ### What Already Exists (DO NOT Recreate)
 
@@ -253,7 +253,7 @@ The demo leverages the existing AppHost topology which already includes both Hex
 | Release workflow | `.github/workflows/release.yml` | Existing release pipeline |
 | License | `LICENSE` | MIT license file exists |
 | .editorconfig | `.editorconfig` | Code style conventions exist |
-| Hexalith.Tenants health endpoint | Built into Hexalith.Tenants via `MapDefaultEndpoints()` | Typically `/health` or `/alive` — verify by inspecting ServiceDefaults or hitting the endpoint. Used by demo scripts for prerequisite check |
+| Tenants health endpoint | Built into Tenants via `MapDefaultEndpoints()` | Typically `/health` or `/alive` — verify by inspecting ServiceDefaults or hitting the endpoint. Used by demo scripts for prerequisite check |
 | Sample health endpoint | `samples/Hexalith.Tenants.Sample/Program.cs:34` | Explicit `GET /health` returning `"healthy"` |
 
 ### Critical Patterns to Follow
@@ -285,7 +285,7 @@ The demo leverages the existing AppHost topology which already includes both Hex
 - The `/access/{tenantId}/{userId}` endpoint queries `ITenantProjectionStore` for real-time access checks
 
 **AppHost Topology:**
-- Hexalith.Tenants runs as `commandapi` with full DAPR sidecar (state store + pub/sub + actors)
+- Tenants runs as `commandapi` with full DAPR sidecar (state store + pub/sub + actors)
 - Sample runs as `sample` with DAPR sidecar (pub/sub only — no state store, subscriber only)
 - Both services are started by `dotnet run --project src/Hexalith.Tenants.AppHost/`
 - Service URLs are assigned dynamically by Aspire — check the dashboard for actual ports
@@ -302,7 +302,7 @@ These items have ambiguity that CANNOT be resolved from planning artifacts alone
 
 4. **`sub` claim ↔ BootstrapGlobalAdmin.UserId alignment**: Verify that when the JWT `sub` claim is `"demo-admin"` and `BootstrapGlobalAdmin.payload.UserId` is `"demo-admin"`, subsequent commands (CreateTenant, AddUserToTenant) succeed authorization. If the `sub` claim must match the bootstrapped admin's UserId for the actor to be recognized as GlobalAdmin, this must be documented explicitly. Test by bootstrapping with UserId `"demo-admin"` and sending CreateTenant with a JWT where `sub` = `"demo-admin"`.
 
-5. **Hexalith.Tenants health endpoint path**: The demo scripts use a health check for prerequisite verification. Verify the actual health endpoint path — inspect `ServiceDefaults/Extensions.cs` for `MapDefaultEndpoints()` or `MapHealthChecks()`. Common paths: `/health`, `/healthz`, `/alive`. The Sample service uses `/health` explicitly.
+5. **Tenants health endpoint path**: The demo scripts use a health check for prerequisite verification. Verify the actual health endpoint path — inspect `ServiceDefaults/Extensions.cs` for `MapDefaultEndpoints()` or `MapHealthChecks()`. Common paths: `/health`, `/healthz`, `/alive`. The Sample service uses `/health` explicitly.
 
 ### Anti-Patterns to Avoid
 
@@ -350,7 +350,7 @@ Hexalith.Tenants/
 | Technology | Version | Relevance |
 |-----------|---------|-----------|
 | .NET SDK | 10.0.300 | Runtime for AppHost and services |
-| DAPR SDK | 1.17.3 | Pub/sub event delivery between Hexalith.Tenants and Sample |
+| DAPR SDK | 1.17.3 | Pub/sub event delivery between Tenants and Sample |
 | .NET Aspire | 13.1.x | AppHost topology orchestration |
 | System.Text.Json | .NET 10 built-in | JSON serialization for command payloads |
 | PowerShell | 7.x | Demo script (cross-platform) |
@@ -375,7 +375,7 @@ Hexalith.Tenants/
 - Registers `SampleLoggingEventHandler` for `UserAddedToTenant`, `UserRemovedFromTenant`, `TenantDisabled`
 - Has an `/access/{tenantId}/{userId}` endpoint that queries the local projection
 - Uses `AddHexalithTenants()` for DI registration (12 lines of DI config in Program.cs)
-- The topology works end-to-end — events flow from Hexalith.Tenants through DAPR pub/sub to Sample
+- The topology works end-to-end — events flow from Tenants through DAPR pub/sub to Sample
 
 ### Git Intelligence
 

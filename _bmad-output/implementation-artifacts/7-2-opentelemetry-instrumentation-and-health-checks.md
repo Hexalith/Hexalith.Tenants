@@ -333,7 +333,7 @@ tests/Hexalith.Tenants.Server.Tests/
 
 Story 7.1 established:
 
-- AppHost topology with Hexalith.Tenants and Sample, both with DAPR sidecars
+- AppHost topology with Tenants and Sample, both with DAPR sidecars
 - Aspire topology smoke tests (3 tests) in IntegrationTests
 - 391 Tier 1 tests pass; 2 pre-existing Tier 3 failures (expected — DAPR infrastructure)
 - ServiceDefaults is fully functional with OpenTelemetry tracing, health endpoints, JSON console logging

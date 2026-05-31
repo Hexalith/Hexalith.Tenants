@@ -1,7 +1,7 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
 inputDocuments: []
-session_topic: 'DDD Message Design for Hexalith.Tenants - Metadata Envelope, Command/Event Patterns, and Cross-Boundary Consumption'
+session_topic: 'DDD Message Design for Tenants - Metadata Envelope, Command/Event Patterns, and Cross-Boundary Consumption'
 session_goals: 'Design metadata envelope structure, establish command/event message patterns for Tenants bounded context, address projection and cross-boundary consumer implications'
 selected_approach: 'ai-recommended'
 techniques_used: ['First Principles Thinking', 'Morphological Analysis', 'Constraint Mapping']
@@ -16,7 +16,7 @@ context_file: ''
 
 ## Session Overview
 
-**Topic:** DDD Message Design for Hexalith.Tenants — Metadata Envelope, Command/Event Patterns, and Cross-Boundary Consumption
+**Topic:** DDD Message Design for Tenants — Metadata Envelope, Command/Event Patterns, and Cross-Boundary Consumption
 
 **Goals:**
 1. Design the metadata envelope structure (what belongs alongside aggregateId)

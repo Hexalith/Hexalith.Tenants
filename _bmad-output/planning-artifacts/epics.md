@@ -10,11 +10,11 @@ inputDocuments:
   - _bmad-output/planning-artifacts/ux-design-specification.md
 ---
 
-# Hexalith.Tenants - Epic Breakdown
+# Tenants - Epic Breakdown
 
 ## Overview
 
-This document provides the complete epic and story breakdown for Hexalith.Tenants, decomposing the requirements from the PRD, UX Design if it exists, and Architecture requirements into implementable stories.
+This document provides the complete epic and story breakdown for Tenants, decomposing the requirements from the PRD, UX Design if it exists, and Architecture requirements into implementable stories.
 
 ## Requirements Inventory
 
@@ -104,7 +104,7 @@ FR41: Event contracts include sufficient information (event ID, aggregate versio
 
 FR42: Documentation provides guidance on idempotent event processing patterns for consumers, since DAPR pub/sub may deliver events more than once. Minimum content: at-least-once delivery explanation, deduplication by event ID example, and idempotent handler pattern with code sample.
 
-FR43: A developer can install Hexalith.Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire).
+FR43: A developer can install Tenants via NuGet packages (Contracts, Client, Server, Testing, Aspire).
 
 FR44: A developer can register tenant client services in DI with a single extension method call.
 
@@ -728,7 +728,7 @@ Developers can clone, build, test, package, and reference the tenant platform wi
 ### Story 1.1: Establish EventStore-Native Solution Structure
 
 As a developer,
-I want the Hexalith.Tenants repository to use the EventStore-native solution and project structure,
+I want the Tenants repository to use the EventStore-native solution and project structure,
 So that I can build and extend the tenant platform using the expected Hexalith package boundaries.
 
 **Acceptance Criteria:**
@@ -758,7 +758,7 @@ So that I can build and extend the tenant platform using the expected Hexalith p
 
 As a package maintainer,
 I want build and package settings governed centrally,
-So that every Hexalith.Tenants package follows consistent versioning, warnings, metadata, and dependency rules.
+So that every Tenants package follows consistent versioning, warnings, metadata, and dependency rules.
 
 **Acceptance Criteria:**
 
@@ -827,7 +827,7 @@ So that every change proves the solution can build, test, and package before rel
 
 As a consuming developer,
 I want the tenant packages to restore and expose the expected integration surface,
-So that I can adopt Hexalith.Tenants without understanding the repository internals.
+So that I can adopt Tenants without understanding the repository internals.
 
 **Acceptance Criteria:**
 
@@ -1561,7 +1561,7 @@ So that downstream services update behavior automatically when tenant state chan
 
 ### Story 4.6: Provide Idempotent Consumer Guidance and Sample Service
 
-As a developer evaluating Hexalith.Tenants,
+As a developer evaluating Tenants,
 I want a sample consuming service and idempotency guidance,
 So that I can copy a safe event-driven integration pattern into my own service.
 
@@ -2009,7 +2009,7 @@ Operators can deploy Tenants alongside EventStore with Aspire/DAPR, production a
 
 ### Story 7.1: Provide Aspire Hosting Extensions for Tenants
 
-As a developer deploying Hexalith.Tenants,
+As a developer deploying Tenants,
 I want Aspire hosting extensions for the tenant service,
 So that I can add Tenants to an AppHost through the documented Hexalith integration path.
 
@@ -2278,7 +2278,7 @@ Developers can follow a validated quickstart, understand event contracts, see th
 
 ### Story 8.1: Create a Prerequisite-Validated Quickstart
 
-As a developer evaluating Hexalith.Tenants,
+As a developer evaluating Tenants,
 I want a quickstart that validates prerequisites before the first command,
 So that I can reach my first tenant command within 30 minutes without guessing at environment setup.
 
@@ -2344,7 +2344,7 @@ So that I can subscribe to the right tenant events and handle their schemas safe
 
 ### Story 8.3: Document the Sample Consuming Service Walkthrough
 
-As a developer adopting Hexalith.Tenants,
+As a developer adopting Tenants,
 I want a guided walkthrough of the sample consuming service,
 So that I can copy the event subscription and access-enforcement pattern into my own service.
 
@@ -2377,7 +2377,7 @@ So that I can copy the event subscription and access-enforcement pattern into my
 
 ### Story 8.4: Produce the Reactive Access "Aha Moment" Demo
 
-As a developer evaluating Hexalith.Tenants,
+As a developer evaluating Tenants,
 I want a concise demo that shows access revocation propagating through subscribing services,
 So that I can understand the event-driven value without reading the full architecture.
 

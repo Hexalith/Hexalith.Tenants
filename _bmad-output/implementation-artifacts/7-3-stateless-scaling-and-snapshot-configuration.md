@@ -249,7 +249,7 @@ Story 7.2 established:
 
 Story 7.1 established:
 
-- AppHost topology with Hexalith.Tenants and Sample, both with DAPR sidecars
+- AppHost topology with Tenants and Sample, both with DAPR sidecars
 - Aspire topology smoke tests (3 tests) in IntegrationTests
 - The Sample does NOT use ServiceDefaults
 
@@ -278,7 +278,7 @@ Recent commits:
 - No new NuGet packages required
 - No new projects created
 - Server.Tests may need `<Content>` item for `appsettings.json` if not already configured
-- IntegrationTests already references Hexalith.Tenants and EventStore.Testing
+- IntegrationTests already references Tenants and EventStore.Testing
 
 ### References
 

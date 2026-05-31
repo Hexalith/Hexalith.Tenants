@@ -88,7 +88,7 @@ so that local development with DAPR sidecars, observability, and health probes i
 - **Mirror EventStore implementation patterns exactly** — the reference implementation is in the EventStore submodule at `Hexalith.EventStore/src/`, NOT the architecture prose. Where the architecture document and EventStore implementation diverge, follow EventStore's code.
 - **DAPR component location**: `src/Hexalith.Tenants.AppHost/DaprComponents/` (EventStore pattern), NOT `dapr/components/` (architecture prose). The architecture document's directory structure lists `dapr/components/` but EventStore places local dev components inside the AppHost project for Aspire integration. Follow the implementation.
 - **No `actors.yaml` file needed**: The architecture document lists `actors.yaml` for actor type configuration, but EventStore does NOT use a separate actors component file. Actor state is handled by setting `actorStateStore: "true"` on the state store component (AC 1). Actor type registration happens programmatically via `app.MapActorsHandlers()` in later stories (Epic 2). This is an architecture document error — document the deviation in the Change Log.
-- **ServiceDefaults is NOT referenced by AppHost** — only by web application projects (Hexalith.Tenants, Sample). AppHost uses `Aspire.AppHost.Sdk` which conflicts with `FrameworkReference Microsoft.AspNetCore.App`. The dependency graph from Story 1.1 already enforces this — do not change it.
+- **ServiceDefaults is NOT referenced by AppHost** — only by web application projects (Tenants, Sample). AppHost uses `Aspire.AppHost.Sdk` which conflicts with `FrameworkReference Microsoft.AspNetCore.App`. The dependency graph from Story 1.1 already enforces this — do not change it.
 - **Aspire extension is self-contained for Story 1.2** — `AddHexalithTenants()` does NOT reference EventStore's Aspire extension. Cross-project Aspire wiring comes in later stories when EventStore runtime integration is needed.
 
 ### DAPR Component Patterns (from EventStore Reference)
@@ -325,7 +325,7 @@ c04fc8b Initial commit
 - **DO NOT** create `actors.yaml` — actor state is configured via `actorStateStore: "true"` on the state store component; actor types are registered programmatically in later stories
 - **DO NOT** deploy local dev access control config to production — it uses `defaultAction: allow`
 - **DO NOT** hard-code secrets in YAML — use `{env:VARIABLE_NAME}` pattern for all credentials
-- **DO NOT** reference ServiceDefaults from AppHost — only web app projects (Hexalith.Tenants, Sample) use ServiceDefaults
+- **DO NOT** reference ServiceDefaults from AppHost — only web app projects (Tenants, Sample) use ServiceDefaults
 - **DO NOT** reference EventStore's Aspire extension from Tenants' Aspire extension in this story — cross-project wiring comes later
 - **DO NOT** omit `scopes` from DAPR component files — every component MUST be scoped to `commandapi` from day one
 - **DO NOT** add `appsettings.json`, `launchSettings.json`, domain logic, commands, events, or aggregates — those are future stories

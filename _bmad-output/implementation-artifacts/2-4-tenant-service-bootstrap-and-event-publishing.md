@@ -1,4 +1,4 @@
-# Story 2.4: Hexalith.Tenants Bootstrap & Event Publishing
+# Story 2.4: Tenants Bootstrap & Event Publishing
 
 Status: done
 
@@ -12,15 +12,15 @@ So that the tenant service is operational end-to-end from command to event distr
 
 ## Acceptance Criteria
 
-1. **Given** Hexalith.Tenants is deployed with DAPR sidecar
+1. **Given** Tenants is deployed with DAPR sidecar
    **When** a valid command is sent to `POST /api/v1/commands`
    **Then** the command is processed through the MediatR pipeline (validation, authorization, aggregate Handle) and a success response is returned
 
-2. **Given** Hexalith.Tenants starts with `Tenants:BootstrapGlobalAdminUserId` configured in appsettings.json
+2. **Given** Tenants starts with `Tenants:BootstrapGlobalAdminUserId` configured in appsettings.json
    **When** no global administrators exist in the event store
    **Then** `TenantBootstrapHostedService` sends a `BootstrapGlobalAdmin` command through MediatR and the initial global admin is created
 
-3. **Given** Hexalith.Tenants starts on a multi-instance deployment where bootstrap has already completed
+3. **Given** Tenants starts on a multi-instance deployment where bootstrap has already completed
    **When** `TenantBootstrapHostedService` sends the `BootstrapGlobalAdmin` command
    **Then** the rejection is logged at Information level with "Global administrator already bootstrapped, skipping"
 
@@ -36,17 +36,17 @@ So that the tenant service is operational end-to-end from command to event distr
    **When** the error response is returned
    **Then** it follows RFC 7807 Problem Details format with type, title, detail, status, and correlationId fields
 
-7. **Given** Hexalith.Tenants is deployed with JWT authentication
+7. **Given** Tenants is deployed with JWT authentication
    **When** a request arrives without valid JWT credentials
    **Then** the request is rejected with 401 Unauthorized
 
-8. **Given** Hexalith.Tenants registers domain services via `AddEventStore()`
+8. **Given** Tenants registers domain services via `AddEventStore()`
    **When** the application starts
    **Then** `TenantAggregate` and `GlobalAdministratorsAggregate` are auto-discovered via assembly scanning and registered as domain processors
 
 9. **Given** the AggregateActor invokes domain processing via DAPR service-to-service call
    **When** a command reaches Step 4 of the actor pipeline
-   **Then** Hexalith.Tenants' `/process` endpoint receives the `DomainServiceRequest`, dispatches to `IDomainProcessor.ProcessAsync()`, and returns `DomainServiceWireResult` with events or rejections
+   **Then** Tenants' `/process` endpoint receives the `DomainServiceRequest`, dispatches to `IDomainProcessor.ProcessAsync()`, and returns `DomainServiceWireResult` with events or rejections
 
 10. **Given** the full command pipeline is operational
     **When** Tier 2 integration tests run with DAPR slim init
@@ -97,7 +97,7 @@ Future stories with this breadth must be split before sprint execution unless th
 
 ### Critical Architecture: How the Command Pipeline Works
 
-The EventStore framework provides a complete command processing pipeline. The Tenants Hexalith.Tenants is a **domain-specific deployable** that hosts the EventStore infrastructure. The flow is:
+The EventStore framework provides a complete command processing pipeline. The Tenants service is a **domain-specific deployable** that hosts the EventStore infrastructure. The flow is:
 
 ```text
 HTTP POST /api/v1/commands (JWT-authenticated)
@@ -196,7 +196,7 @@ The hosted service must:
 
 ### Domain Service Registration (appsettings.json)
 
-The `DomainServiceResolver` resolves which DAPR app-id handles each domain. JSON configuration uses the config-friendly `system|tenants|v1` key to map the Tenants Hexalith.Tenants to itself (self-referencing for domain processing):
+The `DomainServiceResolver` resolves which DAPR app-id handles each domain. JSON configuration uses the config-friendly `system|tenants|v1` key to map the Tenants service to itself (self-referencing for domain processing):
 
 ```json
 {
@@ -392,7 +392,7 @@ Claude Opus 4.6 (1M context)
 - **Task 1**: Added `Hexalith.EventStore.Hexalith.Tenants` project reference to Hexalith.Tenants.csproj. Replaced skeleton `Program.cs` with full pipeline: `AddServiceDefaults()`, `AddDaprClient()`, `AddHexalith.Tenants()`, `AddEventStoreServer()`, `AddEventStore(typeof(TenantAggregate).Assembly)`, `UseEventStore()`, plus full middleware chain (CorrelationId, ExceptionHandler, health endpoints, Auth, RateLimiter, CloudEvents, Controllers, Subscribers, Actors). Created `appsettings.json` with EventStore domain service registration, DAPR pub/sub publisher config, JWT auth (dev signing key), rate limiting, and bootstrap options.
 - **Task 2**: Created `TenantBootstrapOptions` record in `Configuration/` folder. Created `TenantBootstrapHostedService` in `Bootstrap/` folder using source-generated logging (partial class with LoggerMessage attributes). Service now reads command status after MediatR submission so `GlobalAdminAlreadyBootstrappedRejection` is logged at Information level with "Global administrator already bootstrapped, skipping".
 - **Task 3**: Completed as part of Task 1.3 — all config sections present in appsettings.json. Static domain service registration now uses the JSON-safe key `system|tenants|v1` and routes to `/process`.
-- **Task 4**: Added runtime integration coverage for `/process` dispatch and RFC 7807 domain rejection responses. Aggregate `ProcessAsync` tests remain in place. Added full DAPR slim-init Tier 2 end-to-end suite: `TenantsDaprTestFixture` starts Hexalith.Tenants with real aggregates and a local daprd sidecar (Redis state store, pub/sub, placement). 5 tests cover CreateTenant, DisableTenant, EnableTenant, BootstrapGlobalAdmin (success + duplicate rejection) through the full DAPR actor pipeline with event publication verification.
+- **Task 4**: Added runtime integration coverage for `/process` dispatch and RFC 7807 domain rejection responses. Aggregate `ProcessAsync` tests remain in place. Added full DAPR slim-init Tier 2 end-to-end suite: `TenantsDaprTestFixture` starts Tenants with real aggregates and a local daprd sidecar (Redis state store, pub/sub, placement). 5 tests cover CreateTenant, DisableTenant, EnableTenant, BootstrapGlobalAdmin (success + duplicate rejection) through the full DAPR actor pipeline with event publication verification.
 - **Review Fixes (AI)**: Added `/process` and `/process-command` domain-service endpoints, added domain rejection Problem Details handling in the EventStore command pipeline, and aligned story/config documentation with the actual `tenants.events` topic convention.
 - **Task 4.3 Bug Fix**: `DomainServiceRequestHandler.IsProcessorMismatch` now also catches "Unable to rehydrate aggregate state" errors, allowing the handler to skip mismatched processors when multiple aggregates are registered. Previously only "No Handle method found" was caught, causing 500 errors when the wrong aggregate tried to rehydrate from incompatible events.
 - **EventStore Submodule Alignment**: Fixed all `CommandEnvelope` and `SubmitCommand` constructors across Tenants codebase to include the new `MessageId` parameter added in the EventStore submodule update. Fixed `SubmitCommandRequest` constructor in integration tests.

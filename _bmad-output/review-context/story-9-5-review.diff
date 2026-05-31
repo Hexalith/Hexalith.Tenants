@@ -56,11 +56,11 @@ index 5344381..144c6d7 100644
  - [x] Task 1: Create root build configuration files (AC: #4, #5, #6, #7)
 -    - [x] 1.1: Create `global.json` with SDK 10.0.103 and `rollForward: latestPatch`. If SDK 10.0.103 is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
 +- [x] 1.1: Create `global.json` with the latest supported .NET 10 SDK and `rollForward: latestPatch`. If the current SDK is not available (verified in Task 0.2), use latest available 10.0.x and document in Dev Agent Record.
-     - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Hexalith.Tenants, MinVer configuration)
+     - [x] 1.2: Create `Directory.Build.props` mirroring EventStore's pattern (TargetFramework net10.0, Nullable enable, ImplicitUsings enable, TreatWarningsAsErrors true, NuGet metadata for Tenants, MinVer configuration)
      - [x] 1.3: Create `Directory.Packages.props` with centralized package versions — copy ALL packages from EventStore's `Directory.Packages.props` matching versions exactly (including Aspire.Hosting.\*, Testcontainers, etc.). Tenants inherits the full ecosystem; unused packages cause no harm in centralized management and will be needed in later stories.
      - [x] 1.4: Create `.editorconfig` matching EventStore's conventions exactly (copy from EventStore)
 @@ -76,7 +76,7 @@ so that I can begin implementing domain logic on a proven, consistent project st
- - **Mirror EventStore structure exactly** — the PRD and architecture specify that Hexalith.Tenants follows "the same project structure, conventions, and documentation approach as Hexalith.EventStore." The EventStore submodule at `Hexalith.EventStore/` IS the reference.
+ - **Mirror EventStore structure exactly** — the PRD and architecture specify that Tenants follows "the same project structure, conventions, and documentation approach as Hexalith.EventStore." The EventStore submodule at `Hexalith.EventStore/` IS the reference.
  - **Modern XML solution format** (`Hexalith.Tenants.slnx`) — NOT the classic `.sln` format.
  - **15 projects total**: 8 src + 5 test + 2 sample (see complete directory structure below).
 -- **.NET 10 SDK pinned** at version 10.0.103 (architecture specifies this; EventStore uses 10.0.102 — Tenants explicitly uses 10.0.103).
@@ -185,7 +185,7 @@ index 70f8888..1695921 100644
  |-----------|---------|-----------|
 -| .NET SDK | 10.0.103 | Runtime for AppHost and services |
 +| .NET SDK | 10.0.300 | Runtime for AppHost and services |
- | DAPR SDK | 1.17.3 | Pub/sub event delivery between Hexalith.Tenants and Sample |
+ | DAPR SDK | 1.17.3 | Pub/sub event delivery between Tenants and Sample |
  | .NET Aspire | 13.1.x | AppHost topology orchestration |
  | System.Text.Json | .NET 10 built-in | JSON serialization for command payloads |
 diff --git a/_bmad-output/implementation-artifacts/9-4-actor-layer-query-guardrails.md b/_bmad-output/implementation-artifacts/9-4-actor-layer-query-guardrails.md
@@ -438,7 +438,7 @@ index e859ab8..7edb3a8 100644
  generated: 2026-05-16T09:57:23+02:00
 -last_updated: 2026-05-17T15:04:46+02:00
 +last_updated: 2026-05-18
- project: Hexalith.Tenants
+ project: Tenants
  project_key: NOKEY
  tracking_system: file-system
 @@ -187,8 +188,8 @@ development_status:
@@ -476,7 +476,7 @@ index 8400029..df27dba 100644
  - Warnings as errors enabled
 @@ -246,7 +246,7 @@ Scaffold the solution by mirroring EventStore's structure with `Hexalith.Tenants
  1. Read model architecture → EventStoreProjection pattern with DAPR state store
- 2. Query endpoints → Served from Hexalith.Tenants (single deployable with route groups)
+ 2. Query endpoints → Served from Tenants (single deployable with route groups)
  3. Bootstrap mechanism → Startup configuration via appsettings.json, through full MediatR pipeline
 -4. .NET SDK version → 10.0.103
 +4. .NET SDK version → latest supported .NET 10 SDK, currently 10.0.300
@@ -518,7 +518,7 @@ diff --git a/_bmad-output/planning-artifacts/prd.md b/_bmad-output/planning-arti
 index 3a0f882..fc9554b 100644
 --- a/_bmad-output/planning-artifacts/prd.md
 +++ b/_bmad-output/planning-artifacts/prd.md
-@@ -393,7 +393,7 @@ Hexalith.Tenants is a .NET developer tool distributed as NuGet packages and a de
+@@ -393,7 +393,7 @@ Tenants is a .NET developer tool distributed as NuGet packages and a de
  
  ### Language & Framework Support
  
@@ -535,7 +535,7 @@ index 0000000..878cdda
 @@ -0,0 +1,250 @@
 +# Sprint Change Proposal: Use Latest Supported .NET
 +
-+**Project:** Hexalith.Tenants  
++**Project:** Tenants
 +**Date:** 2026-05-18  
 +**Prepared for:** Jerome  
 +**Mode:** Batch  
@@ -545,7 +545,7 @@ index 0000000..878cdda
 +
 +## 1. Issue Summary
 +
-+Hexalith.Tenants already targets `.NET 10` and `net10.0`, which remains the correct current GA/LTS runtime line. However, project artifacts and `global.json` still pin SDK `10.0.103`. Microsoft release metadata identifies `.NET 10.0.8` as the latest .NET 10 runtime and `10.0.300` as the latest .NET 10 SDK as of 2026-05-12. Microsoft Learn lists .NET 10 as the current LTS release, supported until 2028-11-14.
++Tenants already targets `.NET 10` and `net10.0`, which remains the correct current GA/LTS runtime line. However, project artifacts and `global.json` still pin SDK `10.0.103`. Microsoft release metadata identifies `.NET 10.0.8` as the latest .NET 10 runtime and `10.0.300` as the latest .NET 10 SDK as of 2026-05-12. Microsoft Learn lists .NET 10 as the current LTS release, supported until 2028-11-14.
 +
 +This proposal interprets "latest .NET" as latest supported GA/LTS .NET, not the .NET 11 preview channel. Preview adoption would be a separate strategic change because it would put production and package release work onto prerelease tooling.
 +

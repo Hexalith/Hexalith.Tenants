@@ -389,7 +389,7 @@ index 0000000..f8ccabb
 +
 +# Production Auth Readiness
 +
-+Use this guide before promoting Hexalith.Tenants to a production-like environment. It turns the Story 11.1 JWT validation contract and the Story 11.2 tenant-claim contract into operator checks and smoke-test evidence.
++Use this guide before promoting Tenants to a production-like environment. It turns the Story 11.1 JWT validation contract and the Story 11.2 tenant-claim contract into operator checks and smoke-test evidence.
 +
 +This page is not a production IdP provisioning guide. It assumes your deployment platform supplies configuration overrides and your IdP issues access tokens. Keep local development token generation in [Quickstart](quickstart.md), and keep the production claim mapping detail in [Production Auth Claim Contract](production-auth-claim-contract.md).
 +

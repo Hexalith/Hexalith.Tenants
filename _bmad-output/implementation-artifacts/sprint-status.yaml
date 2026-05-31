@@ -1,6 +1,6 @@
 # generated: 2026-05-31
 # last_updated: 2026-05-31
-# project: Hexalith.Tenants
+# project: Tenants
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: {project-root}/_bmad-output/implementation-artifacts
@@ -36,7 +36,7 @@
 
 generated: 2026-05-31
 last_updated: 2026-05-31
-project: Hexalith.Tenants
+project: Tenants
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"

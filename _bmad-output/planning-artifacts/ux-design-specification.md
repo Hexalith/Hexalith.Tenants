@@ -18,12 +18,12 @@ lastStep: 14
 status: complete
 completedAt: 2026-05-26T17:04:36+02:00
 inputDocuments:
-  - _bmad-output/planning-artifacts/product-brief-Hexalith.Tenants-2026-03-06.md
+  - _bmad-output/planning-artifacts/product-brief-Tenants-2026-03-06.md
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/prd-validation-report.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/epics.md
-  - _bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-hexalith-tenants-ux-research-2026-05-26.md
+  - _bmad-output/planning-artifacts/research/technical-hexalith-frontcomposer-to-create-tenants-ux-research-2026-05-26.md
   - docs/compensating-commands.md
   - docs/cross-aggregate-timing.md
   - docs/demo.md
@@ -46,12 +46,12 @@ documentCounts:
   projectDocs: 10
   projectContext: 4
 workflowType: ux-design
-project_name: Hexalith.Tenants
+project_name: Tenants
 user_name: Jerome
 date: 2026-05-26
 ---
 
-# UX Design Specification Hexalith.Tenants
+# UX Design Specification Tenants
 
 **Author:** Jerome
 **Date:** 2026-05-26
@@ -64,7 +64,7 @@ date: 2026-05-26
 
 ### Project Vision
 
-Hexalith.Tenants UI is an operational trust surface for tenant access and configuration. Its job is to help authorized users inspect tenant state, make access-impacting changes safely, and later prove what happened.
+Tenants UI is an operational trust surface for tenant access and configuration. Its job is to help authorized users inspect tenant state, make access-impacting changes safely, and later prove what happened.
 
 The design north star is: users should never have to guess whether they are looking at truth, waiting for truth, or acting on risk. Because changes are event-sourced and projections may lag, the UI must distinguish displayed state, submitted intent, confirmed outcome, and audit evidence.
 
@@ -118,7 +118,7 @@ The product can create a differentiated incident-response experience: exact user
 
 A maturity-based rollout can deliver value early while reducing risk. Read-only screens validate information architecture and provide fast operational visibility with minimal authority surface. Command-capable screens follow once feedback, authorization, accessibility, localization, and documentation evidence are ready.
 
-FrontComposer can provide consistency and speed for low-risk list/detail composition, while custom overrides handle destructive, audit-heavy, and authorization-sensitive workflows without reshaping Hexalith.Tenants domain contracts.
+FrontComposer can provide consistency and speed for low-risk list/detail composition, while custom overrides handle destructive, audit-heavy, and authorization-sensitive workflows without reshaping Tenants domain contracts.
 
 ### Known Assumptions and Open Dependencies
 
@@ -272,21 +272,21 @@ Avoid distrust by being explicit about freshness, authority, command lifecycle, 
 
 ### Inspiring Products Analysis
 
-Hexalith.Tenants should draw inspiration from operational admin products that help users inspect complex state, act safely, and preserve evidence. The strongest references are not consumer apps, but tools where trust, density, permissions, and auditability matter. Inspiration is useful only when it improves operational confidence, traceable command outcomes, scoped authorization clarity, projection freshness, and accessible recovery from degraded status. Patterns that make the UI feel faster while reducing truthfulness are rejected.
+Tenants should draw inspiration from operational admin products that help users inspect complex state, act safely, and preserve evidence. The strongest references are not consumer apps, but tools where trust, density, permissions, and auditability matter. Inspiration is useful only when it improves operational confidence, traceable command outcomes, scoped authorization clarity, projection freshness, and accessible recovery from degraded status. Patterns that make the UI feel faster while reducing truthfulness are rejected.
 
-Microsoft Fluent UI Blazor v5 is the primary implementation-aligned control language. Its value is predictability: standard tables, buttons, stacks, tabs, forms, status surfaces, dialogs, and keyboard-accessible controls. For Hexalith.Tenants, Fluent UI should provide the interaction grammar, while tenant-specific semantics define the meaning of states such as stale, confirming, rejected, already applied, and unable to verify. Because the local project pins a prerelease Fluent UI Blazor v5 package, implementation stories must verify exact component APIs against the pinned version before relying on specific parameters or behaviors.
+Microsoft Fluent UI Blazor v5 is the primary implementation-aligned control language. Its value is predictability: standard tables, buttons, stacks, tabs, forms, status surfaces, dialogs, and keyboard-accessible controls. For Tenants, Fluent UI should provide the interaction grammar, while tenant-specific semantics define the meaning of states such as stale, confirming, rejected, already applied, and unable to verify. Because the local project pins a prerelease Fluent UI Blazor v5 package, implementation stories must verify exact component APIs against the pinned version before relying on specific parameters or behaviors.
 
-Azure Portal and Microsoft Entra admin center are useful references for progressive disclosure in permission-sensitive administration. Their transferable pattern is list to detail, detail to scoped panels, scoped panels to review-before-commit flows. Hexalith.Tenants should borrow role scoping, permission explanations, and "why can't I do this?" affordances without inheriting deeply nested enterprise configuration mazes.
+Azure Portal and Microsoft Entra admin center are useful references for progressive disclosure in permission-sensitive administration. Their transferable pattern is list to detail, detail to scoped panels, scoped panels to review-before-commit flows. Tenants should borrow role scoping, permission explanations, and "why can't I do this?" affordances without inheriting deeply nested enterprise configuration mazes.
 
 GitHub is useful for context preservation, governance, and durable history. Its transferable pattern is keeping the current repository, organization, permission, or activity context visible while users move between related views. Hexalith.Tenants should adapt this for tenant, user, role, command, and audit context without making tenancy feel like a software development workflow.
 
-Stripe Dashboard and Cloudflare are useful references for calm operational density. They show complex platform state through restrained tables, scoped filters, readable status language, and careful destructive workflows. Hexalith.Tenants should borrow this restraint for disabled tenants, membership changes, last-owner warnings, global administrator changes, and degraded projection states, while avoiding polished minimalism that hides risk.
+Stripe Dashboard and Cloudflare are useful references for calm operational density. They show complex platform state through restrained tables, scoped filters, readable status language, and careful destructive workflows. Tenants should borrow this restraint for disabled tenants, membership changes, last-owner warnings, global administrator changes, and degraded projection states, while avoiding polished minimalism that hides risk.
 
-Datadog and similar observability tools are useful references for temporal confidence. Their transferable pattern is making sequence, recency, freshness, and uncertainty visible. Hexalith.Tenants should adapt this for command lifecycle, projection lag, audit trails, and support-safe investigation without overwhelming administrators with telemetry-style complexity.
+Datadog and similar observability tools are useful references for temporal confidence. Their transferable pattern is making sequence, recency, freshness, and uncertainty visible. Tenants should adapt this for command lifecycle, projection lag, audit trails, and support-safe investigation without overwhelming administrators with telemetry-style complexity.
 
 ### Transferable UX Patterns
 
-Hexalith.Tenants should feel like an operational control surface for access decisions, not a CRUD console. The user should always understand what command they are about to issue, why it is or is not available, what evidence exists, and whether the current projection may lag behind accepted event truth.
+Tenants should feel like an operational control surface for access decisions, not a CRUD console. The user should always understand what command they are about to issue, why it is or is not available, what evidence exists, and whether the current projection may lag behind accepted event truth.
 
 Use Fluent UI Blazor v5 as the component foundation, not as a separate visual theme. Standard Fluent and FrontComposer patterns should carry low-risk browse, filter, inspect, and projection views. Custom overrides are required for destructive, authorization-sensitive, audit-heavy, consequence-preview, and command-lifecycle workflows.
 
@@ -350,13 +350,13 @@ Adapt observability-style confidence patterns: projection freshness, command lif
 
 Treat read-only FrontComposer table and projection patterns as closest to implementation readiness. Command-capable flows remain provisional until command lifecycle, consequence preview, audit timeline, role availability, accessibility, localization, and documentation evidence are confirmed or explicitly approved as scoped fallbacks.
 
-The resulting strategy is to make Hexalith.Tenants feel like a serious Blazor and Fluent operational console: generated where patterns are low-risk, custom where access, audit, consequence, or command truth require stronger human judgment.
+The resulting strategy is to make Tenants feel like a serious Blazor and Fluent operational console: generated where patterns are low-risk, custom where access, audit, consequence, or command truth require stronger human judgment.
 
 ## Design System Foundation
 
 ### 1.1 Design System Choice
 
-Hexalith.Tenants will use an established, themeable design system foundation: Microsoft Fluent UI Blazor v5, implemented through Hexalith.FrontComposer where generated composition is appropriate.
+Tenants will use an established, themeable design system foundation: Microsoft Fluent UI Blazor v5, implemented through Hexalith.FrontComposer where generated composition is appropriate.
 
 This is not a custom design system effort. The UI should use Fluent UI Blazor v5 as the control and interaction language for standard application surfaces: tables, buttons, forms, tabs, stacks, menus, dialogs, status indicators, and accessible focus behavior.
 
@@ -364,7 +364,7 @@ FrontComposer should provide generated consistency for low-risk read-only and pr
 
 ### Rationale for Selection
 
-Fluent UI Blazor v5 fits the product because Hexalith.Tenants is an operational administration tool, not a branded consumer product. Users need density, predictability, accessibility, keyboard support, restrained visual hierarchy, and clear command affordances more than visual uniqueness.
+Fluent UI Blazor v5 fits the product because Tenants is an operational administration tool, not a branded consumer product. Users need density, predictability, accessibility, keyboard support, restrained visual hierarchy, and clear command affordances more than visual uniqueness.
 
 The design-system choice also matches the technical stack. Hexalith.FrontComposer already depends on Fluent UI Blazor and Blazor patterns, so using Fluent UI avoids a second component system and keeps future implementation aligned with existing shell and generated UI conventions.
 
@@ -427,7 +427,7 @@ Accessibility, localization, and component documentation are part of design-syst
 
 ### 2.1 Defining Experience
 
-The defining experience for Hexalith.Tenants is the Access Decision Case: a focused workflow that helps an administrator or operator answer whether access exists, whether a change is safe, whether the requested change was actually applied, and whether the outcome can be proven later.
+The defining experience for Tenants is the Access Decision Case: a focused workflow that helps an administrator or operator answer whether access exists, whether a change is safe, whether the requested change was actually applied, and whether the outcome can be proven later.
 
 The Access Decision Case is supported internally by an Access Evidence Loop: inspect tenant access with visible freshness, assess whether a scoped change is safe, submit a command with clear consequence and authorization context where command execution is available, track lifecycle truth without assuming immediate success, reconcile visible state with confirmed audit evidence, and recover through explicit compensating commands when the outcome is incomplete, unsafe, or disputed.
 
@@ -441,7 +441,7 @@ Users should describe the product as: "I can see who has access, decide safely, 
 
 Users arrive with expectations from identity tools, admin consoles, and operational dashboards. They expect lists, filters, detail pages, role badges, disabled actions, confirmation flows, and audit history.
 
-Hexalith.Tenants must preserve those familiar patterns while correcting a dangerous assumption: this is not immediate CRUD editing. The right user-facing mental model is an access decision case. The system-facing truth model remains command intent, event proof, and projection observation.
+Tenants must preserve those familiar patterns while correcting a dangerous assumption: this is not immediate CRUD editing. The right user-facing mental model is an access decision case. The system-facing truth model remains command intent, event proof, and projection observation.
 
 The experience starts when someone needs to answer one of four questions:
 
@@ -491,7 +491,7 @@ The workflow combines established admin patterns with a Hexalith-specific truth 
 
 Established patterns include list/detail navigation, scoped filters, member tables, role/status badges, command buttons, confirmation flows, disabled action explanations, and audit trails.
 
-The novel pattern is explicitly separating the user-facing access decision from the underlying command, projection, and audit evidence lifecycle. Most admin tools collapse these into a single success state. Hexalith.Tenants should make the distinction visible without forcing users to learn event-sourcing terminology.
+The novel pattern is explicitly separating the user-facing access decision from the underlying command, projection, and audit evidence lifecycle. Most admin tools collapse these into a single success state. Tenants should make the distinction visible without forcing users to learn event-sourcing terminology.
 
 Preferred user-facing state language:
 
@@ -645,7 +645,7 @@ Non-negotiable experience rules:
 
 ### Color System
 
-Hexalith.Tenants should follow Microsoft Fluent UI as the visual authority. The product should not introduce a separate branded palette for Phase 2. Visual consistency should come from Fluent UI theme tokens, semantic color roles, and restrained operational usage.
+Tenants should follow Microsoft Fluent UI as the visual authority. The product should not introduce a separate branded palette for Phase 2. Visual consistency should come from Fluent UI theme tokens, semantic color roles, and restrained operational usage.
 
 The base theme should use Fluent neutral surfaces for application chrome, tables, panels, dialogs, cards, and forms. Primary actions should use the Fluent brand/accent treatment supplied by the active theme. Secondary, subtle, and transparent actions should preserve Fluent hierarchy rather than adding custom button colors.
 
@@ -680,7 +680,7 @@ The interface should avoid hero-scale type except where no operational content i
 
 ### Spacing & Layout Foundation
 
-The layout should feel dense, efficient, and stable. Hexalith.Tenants is an operational console, not a marketing site or card dashboard. Spacing should support repeated scanning of tenant lists, member tables, role summaries, pending command states, and audit records.
+The layout should feel dense, efficient, and stable. Tenants is an operational console, not a marketing site or card dashboard. Spacing should support repeated scanning of tenant lists, member tables, role summaries, pending command states, and audit records.
 
 Use a Fluent-compatible spacing rhythm with small increments suitable for enterprise UI. A 4px base rhythm with common 8px, 12px, 16px, 24px, and 32px steps is appropriate.
 
@@ -934,7 +934,7 @@ These rules are acceptance criteria for the UX promise, not merely implementatio
 
 ### Design System Components
 
-Hexalith.Tenants should use Microsoft Fluent UI Blazor and Hexalith.FrontComposer as the component foundation.
+Tenants should use Microsoft Fluent UI Blazor and Hexalith.FrontComposer as the component foundation.
 
 Use Fluent UI for standard primitives:
 
@@ -1201,7 +1201,7 @@ Disabled explanations, command lifecycle changes, stale/degraded states, and aud
 
 ### Responsive Strategy
 
-Hexalith.Tenants should use a desktop-first operational strategy with responsive support. The primary users are administrators, tenant owners, operators, and auditors working in dense, long-running admin sessions.
+Tenants should use a desktop-first operational strategy with responsive support. The primary users are administrators, tenant owners, operators, and auditors working in dense, long-running admin sessions.
 
 Desktop and laptop layouts are primary. Use available width for persistent shell navigation, tenant list tables, detail panels, member tables, command context, and audit evidence. Desktop should support fast scanning, keyboard use, side-by-side context, and stable row actions.
 

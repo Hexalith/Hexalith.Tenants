@@ -3,7 +3,7 @@ validationTarget: '_bmad-output/planning-artifacts/prd.md'
 validationDate: '2026-03-07'
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
-  - _bmad-output/planning-artifacts/product-brief-Hexalith.Tenants-2026-03-06.md
+  - _bmad-output/planning-artifacts/product-brief-Tenants-2026-03-06.md
 validationStepsCompleted:
   - step-v-01-discovery
   - advanced-elicitation
@@ -32,7 +32,7 @@ overallStatus: Pass
 ## Input Documents
 
 - PRD: prd.md
-- Product Brief: product-brief-Hexalith.Tenants-2026-03-06.md
+- Product Brief: product-brief-Tenants-2026-03-06.md
 
 ## Validation Findings
 
@@ -116,7 +116,7 @@ Methods used: Critique and Refine, Pre-mortem Analysis, Stakeholder Round Table,
 
 ### Product Brief Coverage
 
-**Product Brief:** product-brief-Hexalith.Tenants-2026-03-06.md
+**Product Brief:** product-brief-Tenants-2026-03-06.md
 
 #### Coverage Map
 

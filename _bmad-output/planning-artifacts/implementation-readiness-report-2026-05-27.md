@@ -15,7 +15,7 @@ status: 'in-progress'
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-05-27
-**Project:** Hexalith.Tenants
+**Project:** Tenants
 
 ## 1. Document Inventory
 
@@ -97,7 +97,7 @@ status: 'in-progress'
 - FR42: Documentation provides idempotent event processing guidance (at-least-once delivery, dedup by event ID, idempotent handler code sample).
 
 **Developer Experience & Packaging**
-- FR43: A developer can install Hexalith.Tenants via NuGet (Contracts, Client, Server, Testing, Aspire).
+- FR43: A developer can install Tenants via NuGet (Contracts, Client, Server, Testing, Aspire).
 - FR44: A developer can register tenant client services in DI with a single extension method call.
 - FR45: A developer can register tenant event handlers in a consuming service in under 20 lines of DI config.
 - FR46: A developer can write tenant integration tests using in-memory fakes without infra, under 10 lines/test.
@@ -322,7 +322,7 @@ UX documentation is **present, complete, and strongly aligned** with both PRD an
 
 **🟠 NEEDS WORK — artifact reconciliation only.** Functional, architectural, and UX readiness is **strong**; the work itself is **already implemented** (all 41 stories `Status: done`, retros for all 12 epics). The blocker is **not** missing scope or weak planning — it is **traceability/consistency** introduced when `epics.md` was regenerated into a 9-epic structure that diverges from the as-built 12-epic story set, the architecture document, and the approved sprint-change-proposal.
 
-> **Important interpretation note.** This skill is designed as a *pre–Phase-4* gate ("are we ready to start implementing?"). For Hexalith.Tenants, implementation is essentially complete. So this report functions as a **post-hoc consistency audit**, not a go/no-go for new work. Read "NEEDS WORK" as "the planning artifacts must be reconciled to remain a trustworthy record," not "do not build."
+> **Important interpretation note.** This skill is designed as a *pre–Phase-4* gate ("are we ready to start implementing?"). For Tenants, implementation is essentially complete. So this report functions as a **post-hoc consistency audit**, not a go/no-go for new work. Read "NEEDS WORK" as "the planning artifacts must be reconciled to remain a trustworthy record," not "do not build."
 
 ### What is solid (no action needed)
 - ✅ **100% FR coverage** (FR1–FR65 all mapped; PRD↔epics inventory is a 1:1 mirror).

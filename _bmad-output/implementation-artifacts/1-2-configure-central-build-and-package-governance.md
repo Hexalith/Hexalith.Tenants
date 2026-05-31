@@ -16,7 +16,7 @@ Status: done
 
 As a package maintainer,
 I want build and package settings governed centrally,
-so that every Hexalith.Tenants package follows consistent versioning, warnings, metadata, and dependency rules.
+so that every Tenants package follows consistent versioning, warnings, metadata, and dependency rules.
 
 ## Acceptance Criteria
 

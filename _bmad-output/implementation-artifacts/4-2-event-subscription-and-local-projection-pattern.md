@@ -96,7 +96,7 @@ This story adds event handler abstractions, local projection infrastructure, and
 
 - Create a sample consuming service (Story 4.3)
 - Create server-side projections (Epic 5)
-- Modify Hexalith.Tenants or Server projects
+- Modify Tenants or Server projects
 - Add event publishing logic (already handled by EventStore)
 
 ### Current State: Client Has DI Foundation
@@ -534,7 +534,7 @@ private static void RegisterEventHandler<TEvent, THandler>(IServiceCollection se
 **DO NOT:**
 
 - Create types outside the Client or Client.Tests projects
-- Modify the Server, Hexalith.Tenants, or Contracts projects
+- Modify the Server, Tenants, or Contracts projects
 - Add new NuGet packages to Client (all dependencies are already available)
 - Create sample consuming service code (Story 4.3 scope)
 - Create server-side projections (Epic 5 scope)
@@ -771,7 +771,7 @@ All Epic 2 and 3 stories are done/review. Story 4.1 is in review (DI foundation 
 
 ### Critical Anti-Patterns (DO NOT)
 
-- **DO NOT** reference Server or Hexalith.Tenants projects from Client — Client is a consuming-service package
+- **DO NOT** reference Server or Tenants projects from Client — Client is a consuming-service package
 - **DO NOT** use the Contracts `EventEnvelope` (nested Metadata + Payload) for DAPR subscription — the wire format is the flat Server EventEnvelope. Create a Client-side DTO that matches the flat shape
 - **DO NOT** hardcode the topic name or pub/sub name — always resolve from `IOptions<HexalithTenantsOptions>`
 - **DO NOT** throw exceptions for unknown event types — log a warning and skip. New events may be added to the system before consuming services are updated
@@ -779,7 +779,7 @@ All Epic 2 and 3 stories are done/review. Story 4.1 is in review (DI foundation 
 - **DO NOT** make `TenantLocalState` a record — it needs mutable collections (Members, Configuration) that are updated in place
 - **DO NOT** add async methods to `TenantLocalState` — it's a plain POCO read model
 - **DO NOT** implement complex eviction/TTL on the idempotency dictionary — add a comment for production, keep MVP simple
-- **DO NOT** modify any files in Contracts, Server, or Hexalith.Tenants projects
+- **DO NOT** modify any files in Contracts, Server, or Tenants projects
 - **DO NOT** create test infrastructure that duplicates what's in Testing package
 - **DO NOT** block the DAPR subscription endpoint — return success (200) quickly after dispatching. If handler logic is slow, consider background processing (but not in MVP)
 
