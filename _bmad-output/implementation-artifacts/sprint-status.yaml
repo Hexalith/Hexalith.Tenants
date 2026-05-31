@@ -66,7 +66,7 @@ development_status:
   3-1-add-users-to-a-tenant-with-explicit-roles: done
   3-2-remove-users-from-a-tenant: done
   3-3-change-tenant-user-roles-with-escalation-protection: done
-  3-4-enforce-tenant-scoped-role-behavior: backlog
+  3-4-enforce-tenant-scoped-role-behavior: done
   3-5-set-tenant-configuration-entries: backlog
   3-6-remove-tenant-configuration-entries: backlog
   3-7-enforce-tenant-configuration-limits: backlog

@@ -20,7 +20,8 @@ public class TenantAggregateTests {
         T command,
         string actorUserId = "test-user",
         bool isGlobalAdmin = false,
-        string? aggregateId = null)
+        string? aggregateId = null,
+        string? globalAdminExtensionValue = null)
         where T : notnull {
         string commandTenantId = ((dynamic)command).TenantId;
         return new(
@@ -33,8 +34,8 @@ public class TenantAggregateTests {
             UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             actorUserId,
-            isGlobalAdmin
-                ? new Dictionary<string, string> { ["actor:globalAdmin"] = "true" }
+            isGlobalAdmin || globalAdminExtensionValue is not null
+                ? new Dictionary<string, string> { ["actor:globalAdmin"] = globalAdminExtensionValue ?? "true" }
                 : null);
     }
 
@@ -510,6 +511,27 @@ public class TenantAggregateTests {
         ((UserAddedToTenant)evt).Role.ShouldBe(role);
     }
 
+    [Fact]
+    public async Task AddUserToTenant_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("body-tenant", "reader-user", TenantRole.TenantReader),
+            actorUserId: "owner-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        UserAddedToTenant evt = result.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        evt.TenantId.ShouldBe("envelope-tenant");
+        evt.UserId.ShouldBe("reader-user");
+        evt.Role.ShouldBe(TenantRole.TenantReader);
+    }
+
     // Test 14: AddUserToTenant on null state → TenantNotFoundRejection (AC #1)
     [Fact]
     public async Task AddUserToTenant_on_null_state_produces_TenantNotFoundRejection() {
@@ -520,6 +542,62 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task AddUserToTenant_rejections_use_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var activeState = new TenantState();
+        activeState.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        activeState.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+        activeState.Apply(new UserAddedToTenant("envelope-tenant", "existing-user", TenantRole.TenantReader));
+
+        var disabledState = new TenantState();
+        disabledState.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        disabledState.Apply(new TenantDisabled("envelope-tenant", DateTimeOffset.UtcNow));
+
+        DomainResult[] results =
+        [
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new AddUserToTenant("body-tenant", "new-user", TenantRole.TenantReader),
+                    aggregateId: "envelope-tenant"),
+                currentState: null),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new AddUserToTenant("body-tenant", "new-user", TenantRole.TenantReader),
+                    isGlobalAdmin: true,
+                    aggregateId: "envelope-tenant"),
+                currentState: disabledState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new AddUserToTenant("body-tenant", "new-user", TenantRole.TenantReader),
+                    actorUserId: "reader-user",
+                    aggregateId: "envelope-tenant"),
+                currentState: activeState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new AddUserToTenant("body-tenant", "new-user", TenantRole.Unknown),
+                    actorUserId: "owner-user",
+                    aggregateId: "envelope-tenant"),
+                currentState: activeState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new AddUserToTenant("body-tenant", "existing-user", TenantRole.TenantOwner),
+                    actorUserId: "owner-user",
+                    aggregateId: "envelope-tenant"),
+                currentState: activeState),
+        ];
+
+        foreach (DomainResult result in results) {
+            result.IsRejection.ShouldBeTrue();
+        }
+
+        results[0].Events[0].ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("envelope-tenant");
+        results[1].Events[0].ShouldBeOfType<TenantDisabledRejection>().TenantId.ShouldBe("envelope-tenant");
+        results[2].Events[0].ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("envelope-tenant");
+        results[3].Events[0].ShouldBeOfType<RoleEscalationRejection>().TenantId.ShouldBe("envelope-tenant");
+        results[4].Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>().TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 15: AddUserToTenant on disabled tenant → TenantDisabledRejection (AC #1)
@@ -1114,6 +1192,31 @@ public class TenantAggregateTests {
         _ = result.Events[0].ShouldBeOfType<UserAddedToTenant>();
     }
 
+    [Theory]
+    [InlineData("TRUE")]
+    [InlineData("True")]
+    [InlineData(" true")]
+    [InlineData("true ")]
+    public async Task RBAC_globalAdmin_extension_requires_exact_true_value(string extensionValue) {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "external-admin",
+            aggregateId: "acme",
+            globalAdminExtensionValue: extensionValue);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("external-admin");
+        rejection.ActorRole.ShouldBeNull();
+        rejection.CommandName.ShouldBe(nameof(AddUserToTenant));
+    }
+
     // R5: AddUserToTenant by non-member → InsufficientPermissionsRejection (AC #5)
     [Fact]
     public async Task RBAC_AddUserToTenant_by_nonMember_produces_InsufficientPermissionsRejection() {
@@ -1612,6 +1715,24 @@ public class TenantAggregateTests {
         evt.Value.ShouldBe("blue");
     }
 
+    [Fact]
+    public async Task SetTenantConfiguration_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        CommandEnvelope cmd = CreateCommand(
+            new SetTenantConfiguration("body-tenant", "theme.color", "blue"),
+            actorUserId: "owner-user",
+            aggregateId: "acme");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantConfigurationSet evt = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        evt.TenantId.ShouldBe("acme");
+        evt.Key.ShouldBe("theme.color");
+        evt.Value.ShouldBe("blue");
+    }
+
     // C2: SetTenantConfiguration overwrite existing key (AC #1)
     [Fact]
     public async Task SetTenantConfiguration_overwrite_existing_key_produces_TenantConfigurationSet() {
@@ -1658,6 +1779,65 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task SetTenantConfiguration_rejections_use_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        TenantState activeState = CreateStateWith100ConfigKeys();
+        TenantState disabledState = CreateStateWithRolesAndConfig();
+        disabledState.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        DomainResult[] results =
+        [
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new SetTenantConfiguration("body-tenant", "key", "value"),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: null),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new SetTenantConfiguration("body-tenant", "key", "value"),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: disabledState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new SetTenantConfiguration("body-tenant", "key", "value"),
+                    actorUserId: "reader-user",
+                    aggregateId: "acme"),
+                currentState: activeState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new SetTenantConfiguration("body-tenant", new string('k', 257), "value"),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: activeState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new SetTenantConfiguration("body-tenant", "key", new string('v', 1025)),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: activeState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new SetTenantConfiguration("body-tenant", "new.key", "value"),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: activeState),
+        ];
+
+        foreach (DomainResult result in results) {
+            result.IsRejection.ShouldBeTrue();
+        }
+
+        results[0].Events[0].ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("acme");
+        results[1].Events[0].ShouldBeOfType<TenantDisabledRejection>().TenantId.ShouldBe("acme");
+        results[2].Events[0].ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("acme");
+        results[3].Events[0].ShouldBeOfType<ConfigurationLimitExceededRejection>().TenantId.ShouldBe("acme");
+        results[4].Events[0].ShouldBeOfType<ConfigurationLimitExceededRejection>().TenantId.ShouldBe("acme");
+        results[5].Events[0].ShouldBeOfType<ConfigurationLimitExceededRejection>().TenantId.ShouldBe("acme");
     }
 
     // C5: SetTenantConfiguration disabled tenant → TenantDisabledRejection (AC #1)
@@ -1835,6 +2015,23 @@ public class TenantAggregateTests {
         evt.Key.ShouldBe("billing.plan");
     }
 
+    [Fact]
+    public async Task RemoveTenantConfiguration_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveTenantConfiguration("body-tenant", "billing.plan"),
+            actorUserId: "owner-user",
+            aggregateId: "acme");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantConfigurationRemoved evt = result.Events[0].ShouldBeOfType<TenantConfigurationRemoved>();
+        evt.TenantId.ShouldBe("acme");
+        evt.Key.ShouldBe("billing.plan");
+    }
+
     // C15: RemoveTenantConfiguration null state (AC #2)
     [Fact]
     public async Task RemoveTenantConfiguration_null_state_produces_TenantNotFoundRejection() {
@@ -1847,6 +2044,44 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task RemoveTenantConfiguration_rejections_use_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        TenantState activeState = CreateStateWithRolesAndConfig();
+        TenantState disabledState = CreateStateWithRolesAndConfig();
+        disabledState.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        DomainResult[] results =
+        [
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new RemoveTenantConfiguration("body-tenant", "billing.plan"),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: null),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new RemoveTenantConfiguration("body-tenant", "billing.plan"),
+                    actorUserId: "owner-user",
+                    aggregateId: "acme"),
+                currentState: disabledState),
+            await aggregate.ProcessAsync(
+                CreateCommand(
+                    new RemoveTenantConfiguration("body-tenant", "billing.plan"),
+                    actorUserId: "reader-user",
+                    aggregateId: "acme"),
+                currentState: activeState),
+        ];
+
+        foreach (DomainResult result in results) {
+            result.IsRejection.ShouldBeTrue();
+        }
+
+        results[0].Events[0].ShouldBeOfType<TenantNotFoundRejection>().TenantId.ShouldBe("acme");
+        results[1].Events[0].ShouldBeOfType<TenantDisabledRejection>().TenantId.ShouldBe("acme");
+        results[2].Events[0].ShouldBeOfType<InsufficientPermissionsRejection>().TenantId.ShouldBe("acme");
     }
 
     // C16: RemoveTenantConfiguration disabled tenant (AC #2)

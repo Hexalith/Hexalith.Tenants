@@ -68,6 +68,39 @@ public class CommandApiRuntimeIntegrationTests {
         yield return [typeof(LastGlobalAdministratorRejection), HttpStatusCode.UnprocessableEntity, "last-global-administrator-rejection"];
     }
 
+    public static IEnumerable<object[]> ReaderRejectedTenantStateChangingCommands() {
+        yield return [
+            nameof(UpdateTenant),
+            JsonSerializer.SerializeToUtf8Bytes(new UpdateTenant("acme", "Acme Updated", "Reader attempt")),
+            nameof(TenantUpdated),
+        ];
+        yield return [
+            nameof(AddUserToTenant),
+            JsonSerializer.SerializeToUtf8Bytes(new AddUserToTenant("acme", "new-user", TenantRole.TenantReader)),
+            nameof(UserAddedToTenant),
+        ];
+        yield return [
+            nameof(RemoveUserFromTenant),
+            JsonSerializer.SerializeToUtf8Bytes(new RemoveUserFromTenant("acme", "contributor-user")),
+            nameof(UserRemovedFromTenant),
+        ];
+        yield return [
+            nameof(ChangeUserRole),
+            JsonSerializer.SerializeToUtf8Bytes(new ChangeUserRole("acme", "contributor-user", TenantRole.TenantOwner)),
+            nameof(UserRoleChanged),
+        ];
+        yield return [
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.reader", "denied")),
+            nameof(TenantConfigurationSet),
+        ];
+        yield return [
+            nameof(RemoveTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new RemoveTenantConfiguration("acme", "feature.enabled")),
+            nameof(TenantConfigurationRemoved),
+        ];
+    }
+
     [Fact]
     public async Task Process_endpoint_dispatches_create_tenant_command() {
         await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
@@ -171,6 +204,128 @@ public class CommandApiRuntimeIntegrationTests {
         payload.UserId.ShouldBe("reader-user");
         payload.OldRole.ShouldBe(TenantRole.TenantReader);
         payload.NewRole.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    [Theory]
+    [MemberData(nameof(ReaderRejectedTenantStateChangingCommands))]
+    public async Task Process_endpoint_rejects_reader_for_tenant_state_changing_commands(
+        string commandType,
+        byte[] payload,
+        string successEventTypeName) {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        TenantState state = CreateRoleBehaviorState();
+        DomainServiceRequest request = CreateProcessRequest(commandType, payload, state, "reader-user");
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        DomainServiceWireResult result = await ReadDomainResultAsync(response);
+        result.IsRejection.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        result.Events[0].EventTypeName.ShouldEndWith(nameof(InsufficientPermissionsRejection));
+        result.Events.ShouldNotContain(e => e.EventTypeName.EndsWith(successEventTypeName, StringComparison.Ordinal));
+        InsufficientPermissionsRejection rejection = DeserializeEvent<InsufficientPermissionsRejection>(result);
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("reader-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+        rejection.CommandName.ShouldBe(commandType);
+    }
+
+    [Fact]
+    public async Task Process_endpoint_applies_contributor_and_owner_role_boundaries() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+
+        DomainServiceWireResult contributorUpdate = await PostProcessAsync(
+            client,
+            CreateProcessRequest(
+                nameof(UpdateTenant),
+                JsonSerializer.SerializeToUtf8Bytes(new UpdateTenant("acme", "Acme Contributor Update", null)),
+                CreateRoleBehaviorState(),
+                "contributor-user"));
+        contributorUpdate.IsRejection.ShouldBeFalse();
+        contributorUpdate.Events[0].EventTypeName.ShouldEndWith(nameof(TenantUpdated));
+
+        DomainServiceWireResult contributorMembership = await PostProcessAsync(
+            client,
+            CreateProcessRequest(
+                nameof(AddUserToTenant),
+                JsonSerializer.SerializeToUtf8Bytes(new AddUserToTenant("acme", "contributor-added-user", TenantRole.TenantReader)),
+                CreateRoleBehaviorState(),
+                "contributor-user"));
+        contributorMembership.IsRejection.ShouldBeTrue();
+        DeserializeEvent<InsufficientPermissionsRejection>(contributorMembership).ActorRole.ShouldBe(TenantRole.TenantContributor);
+
+        DomainServiceWireResult contributorConfiguration = await PostProcessAsync(
+            client,
+            CreateProcessRequest(
+                nameof(SetTenantConfiguration),
+                JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.contributor", "denied")),
+                CreateRoleBehaviorState(),
+                "contributor-user"));
+        contributorConfiguration.IsRejection.ShouldBeTrue();
+        DeserializeEvent<InsufficientPermissionsRejection>(contributorConfiguration).ActorRole.ShouldBe(TenantRole.TenantContributor);
+
+        DomainServiceWireResult ownerMembership = await PostProcessAsync(
+            client,
+            CreateProcessRequest(
+                nameof(AddUserToTenant),
+                JsonSerializer.SerializeToUtf8Bytes(new AddUserToTenant("acme", "owner-added-user", TenantRole.TenantReader)),
+                CreateRoleBehaviorState(),
+                "owner-user"));
+        ownerMembership.IsRejection.ShouldBeFalse();
+        DeserializeEvent<UserAddedToTenant>(ownerMembership).UserId.ShouldBe("owner-added-user");
+
+        DomainServiceWireResult ownerConfiguration = await PostProcessAsync(
+            client,
+            CreateProcessRequest(
+                nameof(SetTenantConfiguration),
+                JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.owner", "allowed")),
+                CreateRoleBehaviorState(),
+                "owner-user"));
+        ownerConfiguration.IsRejection.ShouldBeFalse();
+        DeserializeEvent<TenantConfigurationSet>(ownerConfiguration).Key.ShouldBe("feature.owner");
+    }
+
+    [Fact]
+    public async Task Process_endpoint_keeps_owner_authority_scoped_to_envelope_aggregate_tenant() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        TenantState targetTenantState = CreateRoleBehaviorState();
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(AddUserToTenant),
+            JsonSerializer.SerializeToUtf8Bytes(new AddUserToTenant("body-tenant", "scoped-user", TenantRole.TenantReader)),
+            targetTenantState,
+            "owner-user",
+            aggregateId: "acme");
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeFalse();
+        UserAddedToTenant payload = DeserializeEvent<UserAddedToTenant>(result);
+        payload.TenantId.ShouldBe("acme");
+        payload.UserId.ShouldBe("scoped-user");
+        targetTenantState.Users.ShouldNotContainKey("scoped-user");
+    }
+
+    [Fact]
+    public async Task Process_endpoint_allows_trusted_global_admin_envelope_bypass_without_tenant_membership() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.global-admin", "allowed")),
+            CreateRoleBehaviorState(),
+            "external-global-admin",
+            extensions: GlobalAdminExtensions());
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeFalse();
+        TenantConfigurationSet payload = DeserializeEvent<TenantConfigurationSet>(result);
+        payload.TenantId.ShouldBe("acme");
+        payload.Key.ShouldBe("feature.global-admin");
     }
 
     [Fact]
@@ -1462,6 +1617,55 @@ public class CommandApiRuntimeIntegrationTests {
 
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
         => CreateClientWithBearer(factory, CreateJwt("admin-user"));
+
+    private static TenantState CreateRoleBehaviorState() {
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Tenant from /process", DateTimeOffset.UtcNow));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "contributor-user", TenantRole.TenantContributor));
+        state.Apply(new UserAddedToTenant("acme", "reader-user", TenantRole.TenantReader));
+        state.Apply(new TenantConfigurationSet("acme", "feature.enabled", "true"));
+        return state;
+    }
+
+    private static DomainServiceRequest CreateProcessRequest(
+        string commandType,
+        byte[] payload,
+        TenantState? state,
+        string userId,
+        string aggregateId = "acme",
+        Dictionary<string, string>? extensions = null)
+        => new(
+            new CommandEnvelope(
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                "system",
+                "tenants",
+                aggregateId,
+                commandType,
+                payload,
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                null,
+                userId,
+                extensions),
+            state);
+
+    private static async Task<DomainServiceWireResult> PostProcessAsync(HttpClient client, DomainServiceRequest request) {
+        HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        return await ReadDomainResultAsync(response);
+    }
+
+    private static async Task<DomainServiceWireResult> ReadDomainResultAsync(HttpResponseMessage response) {
+        DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
+        return result.ShouldNotBeNull();
+    }
+
+    private static TEvent DeserializeEvent<TEvent>(DomainServiceWireResult result)
+        where TEvent : class {
+        result.Events.Count.ShouldBe(1);
+        TEvent? payload = JsonSerializer.Deserialize<TEvent>(result.Events[0].Payload);
+        return payload.ShouldNotBeNull();
+    }
 
     private static IEnumerable<string> SensitiveProblemDetailsLeakMarkers() {
         yield return "sensitive-tenant-999";

@@ -89,22 +89,23 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
     public static DomainResult Handle(AddUserToTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
         return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin OR first user bootstrap on empty tenant)
             _ when !IsGlobalAdmin(envelope)
                 && state.HasMembershipHistory
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
-                    command.TenantId, envelope.UserId,
+                    tenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole addRole) ? addRole : null,
                     nameof(AddUserToTenant))]),
             _ when !IsAssignableRole(command.Role)
-                => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.Role)]),
+                => DomainResult.Rejection([new RoleEscalationRejection(tenantId, command.UserId, command.Role)]),
             _ when state.Users.TryGetValue(command.UserId, out TenantRole existingRole)
-                => DomainResult.Rejection([new UserAlreadyInTenantRejection(command.TenantId, command.UserId, existingRole)]),
-            _ => DomainResult.Success([new UserAddedToTenant(command.TenantId, command.UserId, command.Role)]),
+                => DomainResult.Rejection([new UserAlreadyInTenantRejection(tenantId, command.UserId, existingRole)]),
+            _ => DomainResult.Success([new UserAddedToTenant(tenantId, command.UserId, command.Role)]),
         };
     }
 
@@ -133,34 +134,35 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(envelope);
         ArgumentNullException.ThrowIfNull(command.Key);
         ArgumentNullException.ThrowIfNull(command.Value);
+        string tenantId = envelope.AggregateId;
         return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
             // RBAC: TenantOwner only (skip if GlobalAdmin)
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
-                    command.TenantId, envelope.UserId,
+                    tenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
                     nameof(SetTenantConfiguration))]),
             // Limit: key length (FR23)
             _ when command.Key.Length > MaxKeyLength
                 => DomainResult.Rejection([new ConfigurationLimitExceededRejection(
-                    command.TenantId, "KeyLength", command.Key.Length, MaxKeyLength)]),
+                    tenantId, "KeyLength", command.Key.Length, MaxKeyLength)]),
             // Limit: value length (FR23)
             _ when command.Value.Length > MaxValueLength
                 => DomainResult.Rejection([new ConfigurationLimitExceededRejection(
-                    command.TenantId, "ValueSize", command.Value.Length, MaxValueLength)]),
+                    tenantId, "ValueSize", command.Value.Length, MaxValueLength)]),
             // Limit: key count — only when adding a NEW key (FR23)
             _ when !state.Configuration.ContainsKey(command.Key)
                 && state.Configuration.Count >= MaxConfigurationKeys
                 => DomainResult.Rejection([new ConfigurationLimitExceededRejection(
-                    command.TenantId, "KeyCount", state.Configuration.Count, MaxConfigurationKeys)]),
+                    tenantId, "KeyCount", state.Configuration.Count, MaxConfigurationKeys)]),
             // Idempotent: same key, same value → NoOp
             _ when state.Configuration.TryGetValue(command.Key, out string? existing)
                 && existing == command.Value
                 => DomainResult.NoOp(),
-            _ => DomainResult.Success([new TenantConfigurationSet(command.TenantId, command.Key, command.Value)]),
+            _ => DomainResult.Success([new TenantConfigurationSet(tenantId, command.Key, command.Value)]),
         };
     }
 
@@ -168,20 +170,21 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
         ArgumentNullException.ThrowIfNull(command.Key);
+        string tenantId = envelope.AggregateId;
         return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
             // RBAC: TenantOwner only (skip if GlobalAdmin)
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
-                    command.TenantId, envelope.UserId,
+                    tenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
                     nameof(RemoveTenantConfiguration))]),
             // Idempotent: key not present → NoOp (desired state already achieved)
             _ when !state.Configuration.ContainsKey(command.Key)
                 => DomainResult.NoOp(),
-            _ => DomainResult.Success([new TenantConfigurationRemoved(command.TenantId, command.Key)]),
+            _ => DomainResult.Success([new TenantConfigurationRemoved(tenantId, command.Key)]),
         };
     }
 
@@ -257,5 +260,5 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
     // CommandsController strips client-provided reserved extensions and only repopulates this key from trusted claims.
     private static bool IsGlobalAdmin(CommandEnvelope envelope)
         => envelope.Extensions?.TryGetValue(GlobalAdminExtensionKey, out string? value) == true
-           && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+           && string.Equals(value, "true", StringComparison.Ordinal);
 }

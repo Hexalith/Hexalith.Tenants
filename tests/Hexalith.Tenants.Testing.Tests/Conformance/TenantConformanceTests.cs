@@ -678,6 +678,33 @@ public sealed class TenantConformanceTests {
     }
 
     [Fact]
+    public void Rejection_UpdateTenant_CrossTenantRoleDoesNotTransfer() {
+        // Arrange
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("tenant-a", "Tenant A", null));
+        _ = svc.ProcessCommand(new CreateTenant("tenant-b", "Tenant B", null));
+        _ = svc.ProcessCommand(new AddUserToTenant("tenant-a", "shared-user", TenantRole.TenantReader), userId: "admin", isGlobalAdmin: true);
+        _ = svc.ProcessCommand(new AddUserToTenant("tenant-b", "shared-user", TenantRole.TenantOwner), userId: "admin", isGlobalAdmin: true);
+
+        TenantState state = CreateTenantState("tenant-a", "Tenant A", null);
+        state.Apply(new UserAddedToTenant("tenant-a", "shared-user", TenantRole.TenantReader));
+
+        var command = new UpdateTenant("tenant-a", "Tenant A Updated", null);
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "tenant-a", "shared-user", isGlobalAdmin: false);
+
+        // Act
+        DomainResult aggregateResult = TenantAggregate.Handle(command, state, envelope);
+        DomainResult serviceResult = svc.ProcessTenantCommand(command, envelope);
+
+        // Assert
+        AssertEventsEqual(aggregateResult, serviceResult);
+        InsufficientPermissionsRejection rejection = serviceResult.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+        rejection.TenantId.ShouldBe("tenant-a");
+        svc.GetTenantState("tenant-b")!.Users["shared-user"].ShouldBe(TenantRole.TenantOwner);
+    }
+
+    [Fact]
     public void Rejection_AddUserToTenant_InsufficientPermissions() {
         // Arrange
         var svc = new InMemoryTenantService();

@@ -257,6 +257,50 @@ public class InMemoryTenantServiceTests {
         stateB.Name.ShouldBe("Tenant B");
     }
 
+    [Fact]
+    public void Same_user_with_different_roles_in_different_tenants_uses_target_tenant_role() {
+        var svc = new InMemoryTenantService();
+
+        _ = svc.ProcessCommand(new CreateTenant("tenant-a", "Tenant A", null));
+        _ = svc.ProcessCommand(new CreateTenant("tenant-b", "Tenant B", null));
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("tenant-a", "shared-user", TenantRole.TenantReader),
+            userId: "admin",
+            isGlobalAdmin: true);
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("tenant-b", "shared-user", TenantRole.TenantOwner),
+            userId: "admin",
+            isGlobalAdmin: true);
+
+        DomainResult updateTenantA = svc.ProcessCommand(
+            new UpdateTenant("tenant-a", "Tenant A Updated", null),
+            userId: "shared-user");
+        DomainResult addToTenantA = svc.ProcessCommand(
+            new AddUserToTenant("tenant-a", "new-user-a", TenantRole.TenantReader),
+            userId: "shared-user");
+        DomainResult addToTenantB = svc.ProcessCommand(
+            new AddUserToTenant("tenant-b", "new-user-b", TenantRole.TenantReader),
+            userId: "shared-user");
+
+        updateTenantA.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection updateRejection = updateTenantA.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        updateRejection.TenantId.ShouldBe("tenant-a");
+        updateRejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+
+        addToTenantA.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection addRejection = addToTenantA.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        addRejection.TenantId.ShouldBe("tenant-a");
+        addRejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+
+        addToTenantB.IsSuccess.ShouldBeTrue();
+        UserAddedToTenant evt = addToTenantB.Events[0].ShouldBeOfType<UserAddedToTenant>();
+        evt.TenantId.ShouldBe("tenant-b");
+        evt.UserId.ShouldBe("new-user-b");
+
+        svc.GetTenantState("tenant-a")!.Users.ShouldNotContainKey("new-user-a");
+        svc.GetTenantState("tenant-b")!.Users["new-user-b"].ShouldBe(TenantRole.TenantReader);
+    }
+
     // ─── 3.9: GlobalAdmin commands ───
 
     [Fact]
