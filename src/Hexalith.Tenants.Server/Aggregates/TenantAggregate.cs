@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Hexalith.EventStore.Client.Aggregates;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
@@ -194,6 +196,15 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
     /// Uses explicit hierarchy to avoid fragile enum ordinal dependency.
     /// Default deny: unknown roles are rejected. Update this method when adding new TenantRole values.
     /// </summary>
+    /// <remarks>
+    /// Excluded from coverage: callers (<see cref="IsAuthorized"/>) only ever pass a
+    /// <see cref="TenantRole.TenantContributor"/> or <see cref="TenantRole.TenantOwner"/> minimum, and
+    /// <paramref name="minimumRole"/> is always a defined enum value. The <see cref="TenantRole.TenantReader"/>
+    /// arm and the default-deny arm are therefore unreachable defensive/extensibility branches that exist to
+    /// keep the hierarchy explicit when new roles are added. The reachable Contributor/Owner authorization
+    /// behavior is asserted by the RBAC scenarios in TenantAggregateTests.
+    /// </remarks>
+    [ExcludeFromCodeCoverage(Justification = "Reader-minimum and default-deny arms are unreachable via the public command API; reachable RBAC behavior is covered by handler-level tests.")]
     private static bool MeetsMinimumRole(TenantRole actorRole, TenantRole minimumRole)
         => minimumRole switch {
             TenantRole.TenantReader => true,

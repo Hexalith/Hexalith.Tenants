@@ -49,6 +49,45 @@ public class PackageGovernanceTests {
         "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
     ];
 
+    private static readonly string[] BlockingTestProjects =
+    [
+        "tests/Hexalith.Tenants.Contracts.Tests/",
+        "tests/Hexalith.Tenants.Client.Tests/",
+        "tests/Hexalith.Tenants.Testing.Tests/",
+        "samples/Hexalith.Tenants.Sample.Tests/",
+        "tests/Hexalith.Tenants.Server.Tests/",
+    ];
+
+    private static readonly string[] ExpectedPackageIds =
+    [
+        "Hexalith.Tenants.Contracts",
+        "Hexalith.Tenants.Client",
+        "Hexalith.Tenants.Server",
+        "Hexalith.Tenants.Testing",
+        "Hexalith.Tenants.Aspire",
+    ];
+
+    private static readonly string[] BoundedArtifactGlobs =
+    [
+        "TestResults/**/*.trx",
+        "TestResults/**/coverage.cobertura.xml",
+        "nupkgs/*.nupkg",
+    ];
+
+    private static readonly string[] ForbiddenWorkflowFragments =
+    [
+        "submodules: recursive",
+        "git submodule update --recursive",
+        "Hexalith.EventStore.Tests",
+        "Hexalith.EventStore.*.Tests",
+        "Hexalith.EventStore.*.nupkg",
+        "**/bin/**",
+        "**/obj/**",
+        "**/TestResults/**",
+        "**/*.snupkg",
+        "**/.nuget/**",
+    ];
+
     [Fact]
     public void PackageReference_versions_are_centralized_for_Tenants_owned_projects() {
         string repoRoot = FindRepoRoot();
@@ -198,6 +237,108 @@ public class PackageGovernanceTests {
         GetAdHocContainerFiles(repoRoot).ShouldBeEmpty("Phase 1 container governance must use .NET SDK publish properties instead of Dockerfiles or compose files.");
     }
 
+    [Fact]
+    public void Ci_workflow_enforces_build_test_coverage_and_artifact_governance() {
+        string repoRoot = FindRepoRoot();
+        string workflowPath = Path.Combine(repoRoot, ".github/workflows/ci.yml");
+        string workflow = File.ReadAllText(workflowPath);
+
+        workflow.ShouldContain("permissions:\n  contents: read");
+        workflow.ShouldContain("DAPR_VERSION: '1.17.");
+        workflow.ShouldContain("global-json-file: global.json");
+        workflow.ShouldContain("dotnet restore Hexalith.Tenants.slnx");
+        workflow.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
+        workflow.ShouldContain("fetch-depth: 0");
+        workflow.ShouldContain("submodules: true");
+        workflow.ShouldNotContain("recursive");
+
+        foreach (string testProject in BlockingTestProjects) {
+            workflow.ShouldContain(testProject);
+            workflow.ShouldContain($"{testProject} --no-build --configuration Release");
+        }
+
+        workflow.ShouldContain("scripts/validate-coverage.py");
+        workflow.ShouldContain("--minimum-line-coverage 80");
+        workflow.ShouldContain("--required-branch-coverage 100");
+        workflow.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
+        workflow.ShouldContain("$GITHUB_STEP_SUMMARY");
+
+        foreach (string artifactGlob in BoundedArtifactGlobs.Take(2)) {
+            workflow.ShouldContain(artifactGlob);
+        }
+
+        foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
+            workflow.ShouldNotContain(forbiddenFragment);
+        }
+
+        GetWorkflowActionReferences(workflow).ShouldAllBe(
+            action => IsFullCommitSha(action.Reference),
+            "GitHub Actions references must stay pinned to full commit SHAs.");
+    }
+
+    [Fact]
+    public void Release_workflow_packs_validates_and_publishes_only_expected_packages() {
+        string repoRoot = FindRepoRoot();
+        string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
+        string releaseConfig = File.ReadAllText(Path.Combine(repoRoot, "release.config.cjs"));
+        string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
+
+        workflow.ShouldContain("DAPR_VERSION: '1.17.");
+        workflow.ShouldContain("global-json-file: global.json");
+        workflow.ShouldContain("dotnet restore Hexalith.Tenants.slnx");
+        workflow.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
+        workflow.ShouldContain("npx semantic-release");
+        workflow.ShouldNotContain("dotnet nuget push **");
+        workflow.ShouldNotContain("recursive");
+
+        foreach (string testProject in BlockingTestProjects) {
+            workflow.ShouldContain(testProject);
+        }
+
+        releaseConfig.ShouldContain("@semantic-release/exec");
+        releaseConfig.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version}");
+        releaseConfig.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
+        releaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
+        releaseConfig.ShouldContain("--skip-duplicate");
+        releaseConfig.ShouldContain("NUGET_API_KEY");
+        releaseConfig.ShouldContain("assets: ['nupkgs/*.nupkg']");
+        releaseConfig.ShouldNotContain(".snupkg");
+        releaseConfig.ShouldNotContain("**/*.nupkg");
+        packageValidator.ShouldContain("not path.name.endswith(\".snupkg\")");
+        packageValidator.ShouldContain("\".symbols.\" not in path.name");
+
+        foreach (string packageId in ExpectedPackageIds) {
+            releaseConfig.ShouldContain(packageId);
+        }
+
+        foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
+            workflow.ShouldNotContain(forbiddenFragment);
+            releaseConfig.ShouldNotContain(forbiddenFragment);
+        }
+
+        GetWorkflowActionReferences(workflow).ShouldAllBe(
+            action => IsFullCommitSha(action.Reference),
+            "GitHub Actions references must stay pinned to full commit SHAs.");
+    }
+
+    [Fact]
+    public void Coverage_gate_script_enforces_overall_and_named_isolation_thresholds() {
+        string repoRoot = FindRepoRoot();
+        string script = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-coverage.py"));
+
+        script.ShouldContain("coverage.cobertura.xml");
+        script.ShouldContain("minimum_line_coverage");
+        script.ShouldContain("required_branch_coverage");
+        script.ShouldContain("condition-coverage");
+        script.ShouldContain("src/Hexalith.Tenants.Contracts/");
+        script.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
+        script.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs");
+        script.ShouldContain("src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs");
+        script.ShouldContain("GITHUB_STEP_SUMMARY");
+        script.ShouldContain("No publishable-package line coverage data found");
+        script.ShouldContain("No isolation/auth branch coverage data found");
+    }
+
     private static string FormatViolation(string projectPath, XElement packageReference)
         => $"{projectPath}: {FormatNode(packageReference)}";
 
@@ -272,6 +413,22 @@ public class PackageGovernanceTests {
 
         return [.. violations];
     }
+
+    private static (string Action, string Reference)[] GetWorkflowActionReferences(string workflow)
+        => workflow
+            .Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("uses: ", StringComparison.Ordinal))
+            .Select(line => line["uses: ".Length..].Split('@'))
+            .Where(parts => parts.Length == 2)
+            .Select(parts => (Action: parts[0], Reference: parts[1].Split(' ')[0]))
+            .ToArray();
+
+    private static bool IsFullCommitSha(string value)
+        => value.Length == 40 && value.All(IsLowerHexDigit);
+
+    private static bool IsLowerHexDigit(char value)
+        => value is >= '0' and <= '9' or >= 'a' and <= 'f';
 
     private static string? ValueFor(XDocument document, string elementName)
         => document.Descendants(elementName).FirstOrDefault()?.Value;

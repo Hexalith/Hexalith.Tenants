@@ -10,7 +10,7 @@ permissions:
   pull-requests: write
 
 env:
-  DAPR_VERSION: '1.16.0'
+  DAPR_VERSION: '1.17.0'
 
 jobs:
   release:
@@ -24,6 +24,8 @@ jobs:
           persist-credentials: false
 
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -40,7 +42,10 @@ jobs:
         run: npm ci
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore Hexalith.Tenants.slnx
+
+      - name: Build
+        run: dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror
 
       - name: Install Dapr CLI
         uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
@@ -57,11 +62,11 @@ jobs:
 
       - name: Run Tests (Tier 1 + 2)
         run: |
-          dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=contracts-results.trx" --collect:"XPlat Code Coverage"
-          dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=client-results.trx" --collect:"XPlat Code Coverage"
-          dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=testing-results.trx" --collect:"XPlat Code Coverage"
-          dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=sample-results.trx" --collect:"XPlat Code Coverage"
-          dotnet test tests/Hexalith.Tenants.Server.Tests/ --no-restore --configuration Release --logger "trx;LogFileName=server-results.trx" --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-build --configuration Release --logger "trx;LogFileName=contracts-results.trx" --results-directory TestResults/contracts --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-build --configuration Release --logger "trx;LogFileName=client-results.trx" --results-directory TestResults/client --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-build --configuration Release --logger "trx;LogFileName=testing-results.trx" --results-directory TestResults/testing --collect:"XPlat Code Coverage"
+          dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-build --configuration Release --logger "trx;LogFileName=sample-results.trx" --results-directory TestResults/sample --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.Server.Tests/ --no-build --configuration Release --logger "trx;LogFileName=server-results.trx" --results-directory TestResults/server --collect:"XPlat Code Coverage"
 
       - name: Semantic Release
         env:

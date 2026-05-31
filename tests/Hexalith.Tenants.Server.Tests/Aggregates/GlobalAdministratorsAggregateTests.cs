@@ -64,6 +64,34 @@ public class GlobalAdministratorsAggregateTests {
         ((GlobalAdministratorSet)evt).UserId.ShouldBe("admin-1");
     }
 
+    // Test 1b: Bootstrap handler invoked with a literal null state → Success.
+    // Exercises the null short-circuit of the `state?.Bootstrapped` guard (the `?.` jump).
+    // This is the genuine first-admin bootstrap when the aggregate has never been created.
+    [Fact]
+    public void Handle_BootstrapGlobalAdmin_with_null_state_produces_GlobalAdministratorSet() {
+        DomainResult result = GlobalAdministratorsAggregate.Handle(new BootstrapGlobalAdmin("admin-1"), state: null);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        GlobalAdministratorSet evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        evt.TenantId.ShouldBe("system");
+        evt.UserId.ShouldBe("admin-1");
+    }
+
+    // Test 1c: Bootstrap with a non-null state that was never bootstrapped → Success.
+    // Exercises the false outcome of the `== true` comparison for a present-but-unbootstrapped
+    // state (the other half of the guard's branch, complementing the already-bootstrapped rejection).
+    [Fact]
+    public void Handle_BootstrapGlobalAdmin_with_unbootstrapped_state_produces_GlobalAdministratorSet() {
+        DomainResult result = GlobalAdministratorsAggregate.Handle(new BootstrapGlobalAdmin("admin-1"), state: new GlobalAdministratorsState());
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        GlobalAdministratorSet evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        evt.TenantId.ShouldBe("system");
+        evt.UserId.ShouldBe("admin-1");
+    }
+
     // Test 2: Bootstrap when already bootstrapped → Rejection (AC #2)
     [Fact]
     public async Task Bootstrap_when_already_bootstrapped_produces_rejection() {
