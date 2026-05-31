@@ -589,6 +589,52 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_accepts_SetTenantConfiguration_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "set-config-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateSetTenantConfigurationRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(SetTenantConfiguration));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        SetTenantConfiguration? payload = JsonSerializer.Deserialize<SetTenantConfiguration>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.Key.ShouldBe("billing.plan");
+        payload.Value.ShouldBe("enterprise");
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_422_problem_details_for_AddUserToTenant_role_escalation() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
@@ -1791,6 +1837,17 @@ public class CommandApiRuntimeIntegrationTests {
             "tenants",
             "acme",
             nameof(ChangeUserRole),
+            payload);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateSetTenantConfigurationRequest() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new SetTenantConfiguration("acme", "billing.plan", "enterprise"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(SetTenantConfiguration),
             payload);
     }
 

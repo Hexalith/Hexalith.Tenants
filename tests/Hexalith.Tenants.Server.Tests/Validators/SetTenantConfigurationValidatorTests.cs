@@ -14,6 +14,11 @@ public class SetTenantConfigurationValidatorTests {
             .ShouldHaveValidationErrorFor(x => x.TenantId);
 
     [Fact]
+    public void Should_have_error_when_Key_is_null()
+        => _validator.TestValidate(new SetTenantConfiguration("acme", null!, "value"))
+            .ShouldHaveValidationErrorFor(x => x.Key);
+
+    [Fact]
     public void Should_have_error_when_Key_is_empty()
         => _validator.TestValidate(new SetTenantConfiguration("acme", "", "value"))
             .ShouldHaveValidationErrorFor(x => x.Key);

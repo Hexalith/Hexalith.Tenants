@@ -106,6 +106,16 @@ public class TenantSubmitCommandValidatorTests {
     }
 
     [Fact]
+    public void SetTenantConfiguration_payload_with_null_key_fails_validation() {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", null!, "value"));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Key");
+    }
+
+    [Fact]
     public void SetTenantConfiguration_payload_with_empty_key_fails_validation() {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", string.Empty, "value"));
 
