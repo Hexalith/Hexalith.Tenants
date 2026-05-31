@@ -123,7 +123,7 @@ Redaction rule: do not store the bearer token, full host name, returned tenant d
 curl -i \
   -H "Authorization: Bearer <redacted-access-token>" \
   -H "Content-Type: application/json" \
-  -d '{"messageId":"<ulid>","tenant":"system","domain":"tenants","aggregateId":"global-administrators","commandType":"BootstrapGlobalAdmin","payload":{"userId":"<redacted-subject>"}}' \
+  -d '{"messageId":"<ulid>","tenant":"system","domain":"global-administrators","aggregateId":"global-administrators","commandType":"BootstrapGlobalAdmin","payload":{"userId":"<redacted-subject>"}}' \
   https://<tenants-host>/api/v1/commands
 ```
 

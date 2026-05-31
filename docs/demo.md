@@ -63,9 +63,9 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
 
 ```json
 {
-    "messageId": "demo-01-bootstrap",
+    "messageId": "01JQK000000000000000000011",
     "tenant": "system",
-    "domain": "tenants",
+    "domain": "global-administrators",
     "aggregateId": "global-administrators",
     "commandType": "BootstrapGlobalAdmin",
     "payload": {
@@ -82,7 +82,7 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
 
 ```json
 {
-    "messageId": "demo-02-create-tenant",
+    "messageId": "01JQK000000000000000000012",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-demo",
@@ -103,7 +103,7 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
 
 ```json
 {
-    "messageId": "demo-03-add-user",
+    "messageId": "01JQK000000000000000000013",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-demo",
@@ -111,12 +111,12 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
     "payload": {
         "TenantId": "acme-demo",
         "UserId": "jane-doe",
-        "Role": 1
+        "Role": "TenantContributor"
     }
 }
 ```
 
-> **Roles:** `0` = TenantOwner, `1` = TenantContributor, `2` = TenantReader
+> **Roles:** Use the enum names `TenantOwner`, `TenantContributor`, or `TenantReader`. `Unknown` is the fail-closed sentinel and is rejected by the aggregate.
 
 **Observe** (Aspire dashboard → `sample` → Logs): `[Sample] User jane-doe added to tenant acme-demo with role TenantContributor`
 
@@ -141,7 +141,7 @@ Open `{sample-url}/access/acme-demo/jane-doe` in your browser (find `{sample-url
 
 ```json
 {
-    "messageId": "demo-05-remove-user",
+    "messageId": "01JQK000000000000000000014",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-demo",

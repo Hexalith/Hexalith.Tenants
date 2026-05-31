@@ -145,9 +145,9 @@ Before creating tenants, you must authorize an administrator. Expand the **POST 
 
 ```json
 {
-    "messageId": "01JNQV0001-bootstrap",
+    "messageId": "01JQK000000000000000000001",
     "tenant": "system",
-    "domain": "tenants",
+    "domain": "global-administrators",
     "aggregateId": "global-administrators",
     "commandType": "BootstrapGlobalAdmin",
     "payload": {
@@ -166,7 +166,7 @@ Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
 
 ```json
 {
-    "messageId": "01JNQV0002-create-tenant",
+    "messageId": "01JQK000000000000000000002",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
@@ -184,14 +184,14 @@ Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
 Click **Execute**. The API returns `202 Accepted`. The response body contains a correlation ID:
 
 ```json
-{ "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+{ "correlationId": "01JQK000000000000000000002" }
 ```
 
 The `Location` header points to the status polling endpoint (`/api/v1/commands/status/{correlationId}`). You can poll this endpoint until you see a terminal status:
 
 ```json
 {
-    "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "correlationId": "01JQK000000000000000000002",
     "status": "Completed",
     "statusCode": 5,
     "timestamp": "2026-03-19T12:00:01Z",
@@ -218,8 +218,8 @@ You can also check the command status via the URL in the `Location` header from 
 
 If you've run this before:
 
-- **BootstrapGlobalAdmin** will return a rejection (`GlobalAdminAlreadyBootstrapped`) — this is correct behavior, the admin was already created.
-- **CreateTenant** with the same ID will return a rejection (`TenantAlreadyExists`) — use a different `aggregateId` and `TenantId`, e.g., `my-second-tenant`.
+- **BootstrapGlobalAdmin** will return a rejection (`GlobalAdminAlreadyBootstrappedRejection`) — this is correct behavior, the admin was already created.
+- **CreateTenant** with the same ID will return a rejection (`TenantAlreadyExistsRejection`) — use a different `aggregateId` and `TenantId`, e.g., `my-second-tenant`.
 
 ### Try More Commands
 
@@ -229,7 +229,7 @@ Create a multi-step workflow — add a user to your new tenant:
 
 ```json
 {
-    "messageId": "01JNQV0003-add-user",
+    "messageId": "01JQK000000000000000000003",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
@@ -237,12 +237,12 @@ Create a multi-step workflow — add a user to your new tenant:
     "payload": {
         "TenantId": "my-first-tenant",
         "UserId": "jane-doe",
-        "Role": 1
+        "Role": "TenantContributor"
     }
 }
 ```
 
-> **Roles:** `0` = TenantOwner, `1` = TenantContributor, `2` = TenantReader
+> **Roles:** Use the enum names `TenantOwner`, `TenantContributor`, or `TenantReader`. `Unknown` is the fail-closed sentinel and is rejected by the aggregate.
 
 **2. Verify the user was added:**
 
@@ -313,7 +313,7 @@ git config --system core.longpaths true
 
 | Error                            | Meaning                      | Action                                       |
 | -------------------------------- | ---------------------------- | -------------------------------------------- |
-| `GlobalAdminAlreadyBootstrapped` | Bootstrap already ran        | Safe to proceed — the admin exists           |
-| `TenantAlreadyExists`            | Tenant ID already used       | Use a different `aggregateId` and `TenantId` |
+| `GlobalAdminAlreadyBootstrappedRejection` | Bootstrap already ran        | Safe to proceed — the admin exists           |
+| `TenantAlreadyExistsRejection`            | Tenant ID already used       | Use a different `aggregateId` and `TenantId` |
 | `401 Unauthorized`               | JWT token expired or invalid | Re-generate the token using the script above |
 | `403 Forbidden`                  | Token lacks the effective `eventstore:tenant=system` authorization | Confirm the token has `tenants: ["system"]` locally or a production mapping that normalizes to `eventstore:tenant=system` |

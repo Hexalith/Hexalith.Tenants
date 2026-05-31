@@ -289,7 +289,7 @@ Security-sensitive invariants:
 
 Resolves fail-open defaults and consumer-contract gaps raised in the Parties review (TEN-1 … TEN-5). See `_bmad-output/planning-artifacts/sprint-change-proposal-2026-05-27.md`.
 
-- **Enum fail-safe serialization (TEN-1/TEN-2).** `TenantRole` and `TenantStatus` serialize **by name** (`JsonStringEnumConverter<T>`) and reserve ordinal `0` as a non-privileged `Unknown` sentinel. A missing field deserializes to `Unknown` (default-denied by `MeetsMinimumRole`; never `Active`); an unrecognized name fails closed via `JsonException`. The aggregate's `IsAssignableRole` guard and the `AddUserToTenant`/`ChangeUserRole` validators reject `Unknown`. Pre-v1.0 wire change (int→name + ordinal shift), recorded in CHANGELOG.
+- **Enum fail-safe serialization (TEN-1/TEN-2).** `TenantRole` and `TenantStatus` serialize **by name** and reserve ordinal `0` as a non-privileged/non-active `Unknown` sentinel. A missing field deserializes to `Unknown` (default-denied by `MeetsMinimumRole`; never `Active`). An unrecognized `TenantRole` name fails closed via `JsonException`; an unrecognized `TenantStatus` name materializes as `TenantStatus.Unknown` through `TenantStatusJsonConverter`. The aggregate's `IsAssignableRole` guard and the `AddUserToTenant`/`ChangeUserRole` validators reject `Unknown`, and tenant-scoped state-changing handlers reject any status other than `Active`. Pre-v1.0 wire change (int->name + ordinal shift), recorded in CHANGELOG.
 - **Identifier casing contract (TEN-3).** `sub`/userId and managed `tenantId` are compared case-sensitively (`StringComparer.Ordinal`) everywhere. Canonical casing is a boundary contract owned by the IdP/operator (OIDC `sub` is case-sensitive; case-folding could merge distinct subjects). A casing mismatch fails closed by design. Documented in `docs/production-auth-claim-contract.md`; consuming services rely on the contract instead of compensating.
 - **Tenants.Testing result type (TEN-5).** `InMemoryTenantService`/`TenantTestHelpers` return `Hexalith.EventStore.Contracts.Results.DomainResult` intentionally — the canonical, in-tier outcome type reused by consumer tests without new coupling. No wrapper; no consumer fitness restriction.
 - **Projection drift guard (TEN-4).** `InMemoryTenantProjection` keeps its silent `default:` arm for real-service parity, but `InMemoryTenantProjectionConformanceTests` fails if a `Contracts.Events` success event is added without being wired.
@@ -419,7 +419,7 @@ Projection state keys must follow existing projection policy types and tests. Do
 **API Response Formats:**
 
 - Domain rejection responses use RFC 7807 Problem Details.
-- Rejection `type` uses the rejection event type name.
+- Rejection `type` uses EventStore's stable domain-rejection URI; `reasonCode` carries the normalized rejection name and `rejectionType` carries the fully qualified rejection event type.
 - Rejection payloads contain structured data only, never English prose.
 - Command outcomes follow EventStore success/rejection/no-op semantics.
 - Query responses use typed query DTOs and pagination contracts, not anonymous shapes.

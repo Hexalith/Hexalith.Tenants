@@ -111,7 +111,7 @@ Commands and events for managing individual tenants. Each tenant is an aggregate
 
 #### CreateTenant
 
-Creates a new tenant. No domain-level permission check — any authenticated user can create a tenant. The Phase 2 auth plugin will enforce authorization at the pipeline level.
+Creates a new tenant. Requires trusted global administrator authority from the server-populated command envelope. The aggregate uses the envelope aggregate ID as the canonical managed tenant ID; command payload fields cannot retarget the operation.
 
 **Command fields:**
 
@@ -146,7 +146,7 @@ Published on topic: `tenants.events`
 
 </details>
 
-**Rejections:** `TenantAlreadyExistsRejection`
+**Rejections:** `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection`
 
 ---
 
@@ -298,7 +298,7 @@ Published on topic: `tenants.events`
 {
     "TenantId": "acme-corp",
     "UserId": "jane-doe",
-    "Role": 1
+    "Role": "TenantContributor"
 }
 ```
 
@@ -471,7 +471,7 @@ Commands and events for managing global administrators. The GlobalAdministrators
 
 > **Note:** GlobalAdmin commands do **not** include a `TenantId` field. The `TenantId` field in GlobalAdmin events is always `"system"` (the platform tenant context).
 
-> **Authorization:** GlobalAdmin commands have no domain-level permission checks in Phase 1. The Phase 2 auth plugin will enforce that only existing global administrators can call `SetGlobalAdministrator` and `RemoveGlobalAdministrator`.
+> **Authorization:** `BootstrapGlobalAdmin` is the only first-administrator path. `SetGlobalAdministrator` and `RemoveGlobalAdministrator` require the actor in the trusted command envelope to already be present in `GlobalAdministratorsState`.
 
 #### BootstrapGlobalAdmin
 
@@ -485,10 +485,12 @@ Bootstraps the first global administrator. Can only be called once.
 
 **Success event:** `GlobalAdministratorSet`
 
-| Field      | Type   | Description                  |
-| ---------- | ------ | ---------------------------- |
-| `TenantId` | string | Always `"system"`            |
-| `UserId`   | string | The designated administrator |
+| Field         | Type           | Description                                                |
+| ------------- | -------------- | ---------------------------------------------------------- |
+| `TenantId`    | string         | Always `"system"`                                          |
+| `UserId`      | string         | The designated administrator                               |
+| `ActorUserId` | string         | Actor recorded for audit; for bootstrap this is `UserId`   |
+| `SetAt`       | DateTimeOffset | Server-generated timestamp for the assignment              |
 
 Published on topic: `tenants.events`
 
@@ -498,7 +500,9 @@ Published on topic: `tenants.events`
 ```json
 {
     "TenantId": "system",
-    "UserId": "admin-user"
+    "UserId": "admin-user",
+    "ActorUserId": "admin-user",
+    "SetAt": "2026-03-19T14:30:00+00:00"
 }
 ```
 
@@ -522,10 +526,12 @@ Designates a user as a global administrator.
 
 **Success event:** `GlobalAdministratorSet`
 
-| Field      | Type   | Description                  |
-| ---------- | ------ | ---------------------------- |
-| `TenantId` | string | Always `"system"`            |
-| `UserId`   | string | The designated administrator |
+| Field         | Type           | Description                                   |
+| ------------- | -------------- | --------------------------------------------- |
+| `TenantId`    | string         | Always `"system"`                             |
+| `UserId`      | string         | The designated administrator                  |
+| `ActorUserId` | string         | Existing global administrator making the call |
+| `SetAt`       | DateTimeOffset | Server-generated timestamp for the assignment |
 
 Published on topic: `tenants.events`
 
@@ -535,13 +541,15 @@ Published on topic: `tenants.events`
 ```json
 {
     "TenantId": "system",
-    "UserId": "sofia-admin"
+    "UserId": "sofia-admin",
+    "ActorUserId": "admin-user",
+    "SetAt": "2026-03-19T15:00:00+00:00"
 }
 ```
 
 </details>
 
-**NoOp:** If the user is already a global administrator, no event is produced.
+**Rejections:** `InsufficientPermissionsRejection`, `GlobalAdministratorAlreadyExistsRejection`
 
 ---
 
@@ -557,10 +565,12 @@ Removes a user from the global administrator list.
 
 **Success event:** `GlobalAdministratorRemoved`
 
-| Field      | Type   | Description               |
-| ---------- | ------ | ------------------------- |
-| `TenantId` | string | Always `"system"`         |
-| `UserId`   | string | The removed administrator |
+| Field         | Type           | Description                                   |
+| ------------- | -------------- | --------------------------------------------- |
+| `TenantId`    | string         | Always `"system"`                             |
+| `UserId`      | string         | The removed administrator                     |
+| `ActorUserId` | string         | Existing global administrator making the call |
+| `RemovedAt`   | DateTimeOffset | Server-generated timestamp for the removal    |
 
 Published on topic: `tenants.events`
 
@@ -570,14 +580,15 @@ Published on topic: `tenants.events`
 ```json
 {
     "TenantId": "system",
-    "UserId": "sofia-admin"
+    "UserId": "sofia-admin",
+    "ActorUserId": "admin-user",
+    "RemovedAt": "2026-03-19T15:30:00+00:00"
 }
 ```
 
 </details>
 
-**Rejections:** `LastGlobalAdministratorRejection`
-**NoOp:** If the user is not a global administrator, no event is produced.
+**Rejections:** `InsufficientPermissionsRejection`, `GlobalAdministratorNotFoundRejection`, `LastGlobalAdministratorRejection`
 
 ---
 
@@ -637,7 +648,7 @@ The `title`, `detail`, HTTP status, and `correctiveAction` are composed by Event
 
 | Command                     | Success Event                | Possible Rejections                                                                                                                                 |
 | --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateTenant`              | `TenantCreated`              | `TenantAlreadyExistsRejection`                                                                                                                      |
+| `CreateTenant`              | `TenantCreated`              | `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection`                                                                                  |
 | `UpdateTenant`              | `TenantUpdated`              | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
 | `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`                                                                                |
 | `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`                                                                                |
@@ -647,8 +658,8 @@ The `title`, `detail`, HTTP status, and `correctiveAction` are composed by Event
 | `SetTenantConfiguration`    | `TenantConfigurationSet`     | `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection`                     |
 | `RemoveTenantConfiguration` | `TenantConfigurationRemoved` | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
 | `BootstrapGlobalAdmin`      | `GlobalAdministratorSet`     | `GlobalAdminAlreadyBootstrappedRejection`                                                                                                           |
-| `SetGlobalAdministrator`    | `GlobalAdministratorSet`     | `GlobalAdministratorAlreadyExistsRejection`                                                                                                         |
-| `RemoveGlobalAdministrator` | `GlobalAdministratorRemoved` | `GlobalAdministratorNotFoundRejection`, `LastGlobalAdministratorRejection`                                                                          |
+| `SetGlobalAdministrator`    | `GlobalAdministratorSet`     | `InsufficientPermissionsRejection`, `GlobalAdministratorAlreadyExistsRejection`                                                                      |
+| `RemoveGlobalAdministrator` | `GlobalAdministratorRemoved` | `InsufficientPermissionsRejection`, `GlobalAdministratorNotFoundRejection`, `LastGlobalAdministratorRejection`                                      |
 
 ## Idempotency
 

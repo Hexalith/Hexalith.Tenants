@@ -51,7 +51,7 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Global Administrators Can Bootstrap and Govern Tenants
-  epic-2: in-progress
+  epic-2: done
   2-1-bootstrap-the-initial-global-administrator: done
   2-2-manage-global-administrator-assignments: done
   2-3-authorize-global-administrators-for-cross-tenant-governance: done
@@ -59,7 +59,7 @@ development_status:
   2-5-disable-and-re-enable-tenants: done
   2-6-return-structured-tenant-governance-rejections: done
   2-7-preserve-command-source-of-truth-when-pub-sub-is-unavailable: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # Epic 3: Tenant Owners Can Manage Access and Configuration Safely
   epic-3: backlog

@@ -24,7 +24,7 @@ Sofia removes `jdoe-contractor` from `acme-corp`:
 
 ```json
 {
-    "messageId": "01JNQV7K8M0001-remove-wrong",
+    "messageId": "01JQK000000000000000000021",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-corp",
@@ -48,7 +48,7 @@ Sofia issues `AddUserToTenant` to restore `jdoe-contractor`:
 
 ```json
 {
-    "messageId": "01JNQV8R4N0002-compensate",
+    "messageId": "01JQK000000000000000000022",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-corp",
@@ -56,12 +56,12 @@ Sofia issues `AddUserToTenant` to restore `jdoe-contractor`:
     "payload": {
         "TenantId": "acme-corp",
         "UserId": "jdoe-contractor",
-        "Role": 1
+        "Role": "TenantContributor"
     }
 }
 ```
 
-This produces `UserAddedToTenant`, restoring the user with the `TenantContributor` role (value `1`).
+This produces `UserAddedToTenant`, restoring the user with the `TenantContributor` role.
 
 ### Step 4: Remove the Intended User
 
@@ -69,7 +69,7 @@ Sofia now removes the correct user:
 
 ```json
 {
-    "messageId": "01JNQV9F7P0003-remove-correct",
+    "messageId": "01JQK000000000000000000023",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-corp",
@@ -85,7 +85,7 @@ This produces `UserRemovedFromTenant` for the intended user.
 
 ## Why the Role Must Be Explicitly Specified
 
-In Step 3, Sofia must explicitly specify `"Role": 1` (TenantContributor) in the compensating `AddUserToTenant` command. The system does **not** auto-restore the previous role. Here's why:
+In Step 3, Sofia must explicitly specify `"Role": "TenantContributor"` in the compensating `AddUserToTenant` command. The system does **not** auto-restore the previous role. Here's why:
 
 1. **`UserRemovedFromTenant` does not carry role information.** The removal event records only which user was removed, not what role they had. The previous role exists only in earlier events (`UserAddedToTenant` or the last `UserRoleChanged`).
 
@@ -101,6 +101,6 @@ The event stream after this correction contains three events in order:
 2. `UserAddedToTenant` — jdoe-contractor re-added with TenantContributor role (the correction)
 3. `UserRemovedFromTenant` — jdoe-consulting removed (the intended action)
 
-Each event records the timestamp and the actor (`userId`) who performed it. The complete sequence is preserved — the mistake, the correction, when each happened, and who performed each action.
+Each event envelope records timestamp and actor (`userId`) metadata. The complete sequence is preserved — the mistake, the correction, when each happened, and who performed each action.
 
 This is an advantage of event sourcing over CRUD: in a CRUD system, corrections overwrite state and the history of the mistake is lost. In event sourcing, the full audit trail is permanent and queryable.
