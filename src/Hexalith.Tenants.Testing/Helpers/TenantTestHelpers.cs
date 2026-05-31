@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
@@ -50,13 +51,13 @@ public static class TenantTestHelpers {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
         return new CommandEnvelope(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             TenantIdentity.DefaultTenantId,
             GetDomainForAggregate(aggregateId),
             aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             userId,
             isGlobalAdmin

@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Results;
@@ -238,13 +239,13 @@ public sealed class InMemoryTenantService {
 
     private static CommandEnvelope CreateEnvelope<T>(T command, string aggregateId, string userId, bool isGlobalAdmin)
         where T : notnull => new(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             SystemTenantId,
             DefaultDomain,
             aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             userId,
             isGlobalAdmin
@@ -253,13 +254,13 @@ public sealed class InMemoryTenantService {
 
     private static CommandEnvelope CreateGlobalAdminEnvelope<T>(T command, string userId)
         where T : notnull => new(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             TenantIdentity.DefaultTenantId,
             TenantIdentity.GlobalAdministratorsDomain,
             TenantIdentity.GlobalAdministratorsAggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             userId,
             null);

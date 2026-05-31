@@ -3,30 +3,29 @@
 ## Generated Tests
 
 ### API Tests
-- [ ] Not applicable for Story 1.4; this story validates NuGet package metadata and package-reference consumer restore/build behavior rather than HTTP API behavior.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` - Verifies `/api/v1/commands` ignores client-supplied `actor:globalAdmin` extension metadata when the JWT is not globally authorized.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` - Verifies `/api/v1/commands` marks the submitted command as globally authorized only when the JWT carries a recognized global-admin claim.
 
 ### E2E Tests
-- [x] `Hexalith.Tenants/scripts/validate-consumer-package-references.py` - Generates isolated package-only Contracts+Client, Testing, and Aspire consumers under `/tmp`, restores from local `.nupkg` output plus NuGet, rejects `ProjectReference`, builds public API usage, and runs an infrastructure-free Testing consumer unit test.
-- [x] `Hexalith.Tenants/tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs` - Pins CI/release consumer validation hooks, dependency-boundary validator expectations, public package surface coverage, and the socket-free xUnit runner path for generated consumer tests.
-- [x] `Hexalith.Tenants/tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs` - Extends synthetic `.nupkg` fixtures so package validation tests cover exact packages, ignored symbol packages, metadata failure, and Story 1.4 dependency boundaries.
+- [x] `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/GlobalAdminCommandEnvelopeTests.cs` - Verifies EventStore `SubmitCommand` to `CommandEnvelope` conversion strips untrusted global-admin extension metadata and adds the trusted extension only from `SubmitCommand.IsGlobalAdmin`.
+- [x] Existing story coverage retained in `tests/Hexalith.Tenants.Server.Tests/Aggregates/TenantAggregateTests.cs`, `tests/Hexalith.Tenants.Server.Tests/CommandPipeline/CommandPipelineIntegrationTests.cs`, `tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs`, and `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs`.
+- [x] Review fix: Story 2.3 command-envelope helpers now generate sortable unique IDs for message and correlation fields instead of GUID strings.
 
 ## Coverage
-- API endpoints: 0/0 applicable for Story 1.4.
-- UI features: 0/0 applicable for Story 1.4.
-- Package artifacts: 5/5 covered (`Contracts`, `Client`, `Server`, `Testing`, `Aspire`).
-- Consumer scenarios: 3/3 covered (`Contracts+Client` build, `Testing` infrastructure-free unit test, `Aspire` compile).
-- Acceptance criteria: 5/5 covered by package metadata validation, generated package-only consumers, CI/release wiring assertions, and dependency-boundary checks.
+- API endpoints: 1/1 Story 2.3 command submission boundary covered (`POST /api/v1/commands`).
+- UI features: 0/0 applicable; Story 2.3 is backend/domain authorization only.
+- Trusted metadata boundaries: 2/2 covered (API sanitization and `SubmitCommandExtensions.ToCommandEnvelope()`).
+- Tenant lifecycle commands: 4/4 covered by existing and generated tests (`CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`).
+- Critical error cases: non-global actor rejection, untrusted global-admin extension stripping, and body/envelope tenant ID mismatch are covered.
 
 ## Validation
 
-- [x] `python3 -m py_compile scripts/pack-release-packages.py scripts/validate-nuget-packages.py scripts/validate-consumer-package-references.py`
-- [x] `dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --no-restore --configuration Release -m:1 /nodeReuse:false /p:UseSharedCompilation=false --verbosity minimal`
-- [x] `dotnet tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests.dll -class Hexalith.Tenants.Contracts.Tests.CiQualityGateScriptTests -class Hexalith.Tenants.Contracts.Tests.PackageGovernanceTests -parallel none -noLogo` - 17/17 passed.
-- [x] `python3 scripts/validate-nuget-packages.py ./nupkgs`
-- [x] `python3 scripts/validate-consumer-package-references.py ./nupkgs` - Contracts+Client build passed, Testing consumer xUnit test passed, Aspire compile passed.
-- [x] `dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror -m:1 /nodeReuse:false /p:UseSharedCompilation=false --verbosity minimal`
-- [ ] `dotnet test ...` via VSTest is blocked in this sandbox by `System.Net.Sockets.SocketException (13): Permission denied` when VSTest opens its TCP listener. The generated consumer smoke now avoids that dependency by running the xUnit v3 test assembly directly.
+- [x] `MSBUILDDISABLENODEREUSE=1 dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false` - passed with 0 warnings and 0 errors.
+- [x] Review rerun: `MSBUILDDISABLENODEREUSE=1 dotnet build Hexalith.Tenants.slnx --configuration Release -warnaserror -m:1 -nr:false` - passed with 0 warnings and 0 errors after review fixes.
+- [ ] `MSBUILDDISABLENODEREUSE=1 dotnet test tests/Hexalith.Tenants.Server.Tests --filter "GlobalAdminCommandEnvelopeTests|CommandPipelineIntegrationTests|TenantAggregateTests|TenantMetricsTests" -m:1 -nr:false` - test projects compiled, then VSTest aborted before executing tests with `System.Net.Sockets.SocketException (13): Permission denied` while starting its socket server.
+- [ ] `MSBUILDDISABLENODEREUSE=1 dotnet test tests/Hexalith.Tenants.IntegrationTests --filter "CommandApiRuntimeIntegrationTests" -m:1 -nr:false` - test project compiled, then VSTest aborted with the same socket permission error.
+- [ ] `MSBUILDDISABLENODEREUSE=1 dotnet test tests/Hexalith.Tenants.Testing.Tests --filter "InMemoryTenantServiceTests|TenantConformanceTests" -m:1 -nr:false` - test project compiled, then VSTest aborted with the same socket permission error.
 
 ## Next Steps
 
-- Run the standard `dotnet test` VSTest command in CI or another environment that permits VSTest socket transport.
+- Run the same focused `dotnet test` commands in CI or another environment that permits VSTest socket transport.

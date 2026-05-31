@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Results;
@@ -23,13 +24,13 @@ public class TenantAggregateTests {
         where T : notnull {
         string commandTenantId = ((dynamic)command).TenantId;
         return new(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             "system",
             "tenants",
             aggregateId ?? commandTenantId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             actorUserId,
             isGlobalAdmin

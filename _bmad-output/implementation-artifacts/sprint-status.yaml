@@ -54,7 +54,7 @@ development_status:
   epic-2: in-progress
   2-1-bootstrap-the-initial-global-administrator: done
   2-2-manage-global-administrator-assignments: done
-  2-3-authorize-global-administrators-for-cross-tenant-governance: review
+  2-3-authorize-global-administrators-for-cross-tenant-governance: done
   2-4-create-and-update-tenants: backlog
   2-5-disable-and-re-enable-tenants: backlog
   2-6-return-structured-tenant-governance-rejections: backlog

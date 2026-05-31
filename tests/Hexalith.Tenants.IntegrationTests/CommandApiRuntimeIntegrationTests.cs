@@ -49,13 +49,13 @@ public class CommandApiRuntimeIntegrationTests {
 
         var request = new DomainServiceRequest(
             new CommandEnvelope(
-                Guid.NewGuid().ToString(),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
                 "system",
                 "tenants",
                 "acme",
                 nameof(CreateTenant),
                 JsonSerializer.SerializeToUtf8Bytes(new CreateTenant("acme", "Acme Corp", "Tenant from /process")),
-                Guid.NewGuid().ToString(),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
                 null,
                 "test-user",
                 GlobalAdminExtensions()),
@@ -143,6 +143,85 @@ public class CommandApiRuntimeIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         _ = await router.Received(1).RouteCommandAsync(
             Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_ignores_client_supplied_globalAdmin_extension_when_jwt_is_not_global_admin() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "tenant-operator",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("eventstore:permission", "commands:*"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest(
+            extensions: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                [GlobalAdminExtensionKey] = "true",
+                ["client-correlation"] = "safe-metadata",
+            });
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = await router.Received(1).RouteCommandAsync(
+            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c =>
+                c != null
+                && !c.IsGlobalAdmin
+                && c.Extensions != null
+                && !c.Extensions.ContainsKey(GlobalAdminExtensionKey)
+                && c.Extensions["client-correlation"] == "safe-metadata"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_marks_submit_command_global_admin_when_jwt_has_global_admin_claim() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "test-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = await router.Received(1).RouteCommandAsync(
+            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c =>
+                c != null
+                && c.IsGlobalAdmin
+                && c.UserId == "global-admin"
+                && c.AggregateId == "acme"),
             Arg.Any<CancellationToken>());
     }
 
@@ -392,13 +471,13 @@ public class CommandApiRuntimeIntegrationTests {
 
         var request = new DomainServiceRequest(
             new CommandEnvelope(
-                Guid.NewGuid().ToString(),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
                 "system",
                 "tenants",
                 "acme-anon",
                 nameof(CreateTenant),
                 JsonSerializer.SerializeToUtf8Bytes(new CreateTenant("acme-anon", "Acme Anonymous", "Anonymous DAPR callback path")),
-                Guid.NewGuid().ToString(),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
                 null,
                 "dapr-callback",
                 GlobalAdminExtensions()),
@@ -628,6 +707,19 @@ public class CommandApiRuntimeIntegrationTests {
             "global-administrators",
             nameof(BootstrapGlobalAdmin),
             payload);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateCreateTenantRequest(
+        Dictionary<string, string>? extensions = null) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new CreateTenant("acme", "Acme Corp", "Tenant from command API"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(CreateTenant),
+            payload,
+            Extensions: extensions);
     }
 
     private static Dictionary<string, string> GlobalAdminExtensions()
