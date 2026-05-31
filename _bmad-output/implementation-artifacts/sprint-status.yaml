@@ -1,4 +1,4 @@
-# generated: 2026-05-27
+# generated: 2026-05-31
 # last_updated: 2026-05-31
 # project: Hexalith.Tenants
 # project_key: NOKEY
@@ -34,7 +34,7 @@
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-05-27
+generated: 2026-05-31
 last_updated: 2026-05-31
 project: Hexalith.Tenants
 project_key: NOKEY
@@ -115,7 +115,7 @@ development_status:
   7-6a-validate-production-auth-smoke-tests: backlog
   7-6b-validate-dapr-component-and-service-invocation-smoke-tests: backlog
   7-6c-validate-health-and-dependency-readiness-smoke-tests: backlog
-  7-6d-validate-pubsub-recovery-and-catch-up-evidence: backlog
+  7-6d-validate-pub-sub-recovery-and-catch-up-evidence: backlog
   7-6e-publish-the-deployment-readiness-checklist-and-evidence-template: backlog
   epic-7-retrospective: optional
 
