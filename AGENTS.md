@@ -47,6 +47,22 @@ feat!: rename TenantAggregate state shape
 - **CI:** GitHub Actions on push/PR to main — restore, build (Release), Tier 1+2 tests
 - **Release:** Triggered on merge to main via semantic-release — determines version from Conventional Commits, tests, pack, publish 5 NuGet packages, creates GitHub Release, updates CHANGELOG.md
 
+## Submodule Policy
+
+Only initialize submodules declared at the root of this repository:
+
+- `Hexalith.EventStore`
+- `Hexalith.Commons`
+- `Hexalith.AI.Tools`
+- `Hexalith.FrontComposer`
+
+Use:
+```
+git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.FrontComposer
+```
+
+Never initialize nested submodules. Do not run `git submodule update --init --recursive`, `git submodule foreach --recursive`, or any equivalent command that initializes submodules inside the root-level submodules. If a nested submodule appears uninitialized, leave it alone unless a human explicitly requests otherwise.
+
 ## Project Structure
 
 - **Project**: Hexalith.Tenants (.NET/C#)
@@ -54,4 +70,4 @@ feat!: rename TenantAggregate state shape
   - `_bmad-output/planning-artifacts/` - PRD, architecture, epics, product brief
   - `_bmad-output/implementation-artifacts/` - sprint status, story files
 - **BMAD tooling**: `_bmad/` - BMAD framework installation (tracked)
-- **Git submodule**: `Hexalith.EventStore` - EventStore dependency
+- **Git submodules**: root-level dependencies listed in the Submodule Policy section
