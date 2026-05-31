@@ -24,6 +24,8 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("TenantsDaprTest")]
 [Trait("Category", "Integration")]
 public class GracefulDegradationTests {
+    private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+
     private readonly TenantsDaprTestFixture _fixture;
 
     public GracefulDegradationTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
@@ -134,5 +136,8 @@ public class GracefulDegradationTests {
             Guid.NewGuid().ToString(),
             null,
             "test-user",
-            null);
+            GlobalAdminExtensions());
+
+    private static Dictionary<string, string> GlobalAdminExtensions()
+        => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 }

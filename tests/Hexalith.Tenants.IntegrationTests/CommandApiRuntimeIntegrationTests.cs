@@ -40,6 +40,7 @@ public class CommandApiRuntimeIntegrationTests {
     private const string JwtAudience = "hexalith-tenants";
     private const string JwtIssuer = "hexalith-dev";
     private const string JwtSigningKey = "this-is-a-development-signing-key-minimum-32-chars";
+    private const string GlobalAdminExtensionKey = "actor:globalAdmin";
 
     [Fact]
     public async Task Process_endpoint_dispatches_create_tenant_command() {
@@ -57,7 +58,7 @@ public class CommandApiRuntimeIntegrationTests {
                 Guid.NewGuid().ToString(),
                 null,
                 "test-user",
-                null),
+                GlobalAdminExtensions()),
             null);
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
@@ -108,11 +109,15 @@ public class CommandApiRuntimeIntegrationTests {
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         _ = details.ShouldNotBeNull();
-        details.Title.ShouldBe("Conflict");
+        details.Title.ShouldBe("Global Admin Already Bootstrapped Rejection");
         details.Status.ShouldBe(409);
         details.Detail.ShouldNotBeNullOrWhiteSpace();
-        details.Type.ShouldBe("Hexalith.Tenants.Contracts.Events.Rejections.GlobalAdminAlreadyBootstrappedRejection");
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/global-admin-already-bootstrapped-rejection");
         details.Extensions.ShouldContainKey("correlationId");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("global-admin-already-bootstrapped-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe("Hexalith.Tenants.Contracts.Events.Rejections.GlobalAdminAlreadyBootstrappedRejection");
     }
 
     [Fact]
@@ -396,7 +401,7 @@ public class CommandApiRuntimeIntegrationTests {
                 Guid.NewGuid().ToString(),
                 null,
                 "dapr-callback",
-                null),
+                GlobalAdminExtensions()),
             null);
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
@@ -624,6 +629,9 @@ public class CommandApiRuntimeIntegrationTests {
             nameof(BootstrapGlobalAdmin),
             payload);
     }
+
+    private static Dictionary<string, string> GlobalAdminExtensions()
+        => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 
     // P15: default is `false` so any new tenant-claim-sensitive test that omits the flag exercises
     // the real JwtBearer + EventStoreClaimsTransformation pipeline. Existing tests that depend on

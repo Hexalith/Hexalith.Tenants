@@ -80,9 +80,10 @@ public class DomainServiceRequestHandlerTelemetryTests : IDisposable {
 
         _ = await handler.ProcessAsync(CreateRequest("CreateTenant", "tenant-1"));
 
-        _metrics.ShouldContain(m => m.Name == "tenants.command.duration");
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
-            _metrics.First(m => m.Name == "tenants.command.duration");
+            FindCommandDurationMetric(tags =>
+                HasTag(tags, "command_type", "CreateTenant")
+                && HasTag(tags, "success", true));
         Value.ShouldBeGreaterThanOrEqualTo(0);
 
         Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
@@ -105,9 +106,8 @@ public class DomainServiceRequestHandlerTelemetryTests : IDisposable {
         activity.Status.ShouldBe(ActivityStatusCode.Error);
         activity.GetTagItem(TenantActivitySource.TagSuccess).ShouldBe(false);
 
-        _metrics.ShouldContain(m => m.Name == "tenants.command.duration");
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
-            _metrics.First(m => m.Name == "tenants.command.duration");
+            FindCommandDurationMetric(tags => HasTag(tags, "success", false));
         Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["success"].ShouldBe(false);
     }
@@ -123,12 +123,20 @@ public class DomainServiceRequestHandlerTelemetryTests : IDisposable {
 
         _ = await handler.ProcessAsync(CreateRequest("UnknownMaliciousCommand", "tenant-1"));
 
-        _metrics.ShouldContain(m => m.Name == "tenants.command.duration");
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
-            _metrics.First(m => m.Name == "tenants.command.duration");
+            FindCommandDurationMetric(tags => HasTag(tags, "command_type", "unknown"));
         Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["command_type"].ShouldBe("unknown");
     }
+
+    private (string Name, double Value, KeyValuePair<string, object?>[] Tags) FindCommandDurationMetric(
+        Func<KeyValuePair<string, object?>[], bool> predicate)
+        => _metrics.Last(metric =>
+            metric.Name == "tenants.command.duration"
+            && predicate(metric.Tags));
+
+    private static bool HasTag(KeyValuePair<string, object?>[] tags, string key, object? value)
+        => tags.Any(tag => tag.Key == key && Equals(tag.Value, value));
 
     private static DomainServiceRequest CreateRequest(string commandType, string tenantId) {
         var command = new CreateTenant("acme", "Acme Corp", null);

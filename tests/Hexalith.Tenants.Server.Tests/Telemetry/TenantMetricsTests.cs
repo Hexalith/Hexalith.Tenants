@@ -46,6 +46,23 @@ public class TenantMetricsTests : IDisposable {
     }
 
     [Fact]
+    public void RecordCommandDuration_WithKnownFullyQualifiedTenantsType_ShouldRecordShortName() {
+        TenantMetrics.RecordCommandDuration(42.5, "Hexalith.Tenants.Contracts.Commands.CreateTenant", true);
+        _listener.RecordObservableInstruments();
+
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
+            FindRecording(
+                "tenants.command.duration",
+                tags => HasTag(tags, "command_type", "CreateTenant") && HasTag(tags, "success", true));
+        Name.ShouldBe("tenants.command.duration");
+        Value.ShouldBe(42.5);
+
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
+        tags["command_type"].ShouldBe("CreateTenant");
+        tags["success"].ShouldBe(true);
+    }
+
+    [Fact]
     public void RecordCommandDuration_WithUnknownType_ShouldSanitizeToUnknown() {
         TenantMetrics.RecordCommandDuration(10.0, "MaliciousCommandType", false);
         _listener.RecordObservableInstruments();

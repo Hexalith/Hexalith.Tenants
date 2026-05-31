@@ -18,6 +18,8 @@ using Shouldly;
 namespace Hexalith.Tenants.Server.Tests.DomainProcessing;
 
 public class DomainServiceRequestHandlerTests {
+    private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+
     [Fact]
     public async Task ProcessAsync_WhenFirstProcessorHasMismatchedState_UsesNextProcessor() {
         var first = new FakeDomainProcessor(
@@ -94,10 +96,13 @@ public class DomainServiceRequestHandlerTests {
             "corr-1",
             null,
             "user-1",
-            null);
+            GlobalAdminExtensions());
 
         return new DomainServiceRequest(envelope, currentState);
     }
+
+    private static Dictionary<string, string> GlobalAdminExtensions()
+        => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 
     private static DomainServiceCurrentState CreateCurrentStateWithTenantCreated() {
         var created = new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UnixEpoch);

@@ -7,6 +7,7 @@ namespace Hexalith.Tenants.Telemetry;
 /// Histograms natively track count, sum, and bucket distribution.
 /// </summary>
 internal static class TenantMetrics {
+    private const string CommandTypeNamespacePrefix = "Hexalith.Tenants.Contracts.Commands.";
 
     /// <summary>The meter name registered with OpenTelemetry.</summary>
     public const string MeterName = "Hexalith.Tenants";
@@ -65,8 +66,22 @@ internal static class TenantMetrics {
             milliseconds,
             new KeyValuePair<string, object?>("query_type", SanitizeQueryType(queryType)));
 
-    private static string SanitizeCommandType(string commandType)
-        => !string.IsNullOrEmpty(commandType) && _knownCommandTypes.Contains(commandType) ? commandType : "unknown";
+    private static string SanitizeCommandType(string commandType) {
+        if (string.IsNullOrWhiteSpace(commandType)) {
+            return "unknown";
+        }
+
+        if (_knownCommandTypes.Contains(commandType)) {
+            return commandType;
+        }
+
+        if (commandType.StartsWith(CommandTypeNamespacePrefix, StringComparison.Ordinal)) {
+            string shortName = commandType[CommandTypeNamespacePrefix.Length..];
+            return _knownCommandTypes.Contains(shortName) ? shortName : "unknown";
+        }
+
+        return "unknown";
+    }
 
     private static string SanitizeQueryType(string queryType)
         => !string.IsNullOrEmpty(queryType) && _knownQueryTypes.Contains(queryType) ? queryType : "unknown";

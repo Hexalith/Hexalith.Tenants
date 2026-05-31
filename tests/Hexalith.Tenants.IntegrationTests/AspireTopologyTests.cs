@@ -20,6 +20,8 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("AspireTopology")]
 [Trait("Category", "Integration")]
 public class AspireTopologyTests {
+    private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+
     private readonly AspireTopologyFixture _fixture;
 
     public AspireTopologyTests(AspireTopologyFixture fixture) => _fixture = fixture;
@@ -67,7 +69,7 @@ public class AspireTopologyTests {
                 Guid.NewGuid().ToString(),
                 null,
                 "aspire-test-user",
-                null),
+                GlobalAdminExtensions()),
             null);
 
         using HttpResponseMessage response = await _fixture.TenantsClient.PostAsJsonAsync("/process", request);
@@ -79,4 +81,7 @@ public class AspireTopologyTests {
         result.Events.Count.ShouldBe(1);
         result.Events[0].EventTypeName.ShouldEndWith("TenantCreated");
     }
+
+    private static Dictionary<string, string> GlobalAdminExtensions()
+        => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 }

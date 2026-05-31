@@ -21,6 +21,8 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// </summary>
 [Collection("TenantsDaprTest")]
 public class DaprEndToEndTests {
+    private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+
     private readonly TenantsDaprTestFixture _fixture;
 
     public DaprEndToEndTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
@@ -184,7 +186,7 @@ public class DaprEndToEndTests {
             Guid.NewGuid().ToString(),
             null,
             "test-user",
-            null);
+            GlobalAdminExtensions());
 
     private static CommandEnvelope CreateGlobalAdminCommand<T>(T command, string aggregateId) where T : notnull
         => new(
@@ -198,4 +200,7 @@ public class DaprEndToEndTests {
             null,
             "test-user",
             null);
+
+    private static Dictionary<string, string> GlobalAdminExtensions()
+        => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 }

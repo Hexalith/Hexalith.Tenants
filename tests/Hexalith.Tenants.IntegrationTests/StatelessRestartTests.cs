@@ -23,6 +23,8 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("TenantsDaprTest")]
 [Trait("Category", "Integration")]
 public class StatelessRestartTests {
+    private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+
     private readonly TenantsDaprTestFixture _fixture;
 
     public StatelessRestartTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
@@ -98,5 +100,8 @@ public class StatelessRestartTests {
             Guid.NewGuid().ToString(),
             null,
             "test-user",
-            null);
+            GlobalAdminExtensions());
+
+    private static Dictionary<string, string> GlobalAdminExtensions()
+        => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 }
