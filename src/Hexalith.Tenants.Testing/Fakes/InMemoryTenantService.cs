@@ -5,6 +5,7 @@ using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Server.Aggregates;
 
 namespace Hexalith.Tenants.Testing.Fakes;
@@ -22,7 +23,6 @@ namespace Hexalith.Tenants.Testing.Fakes;
 /// </remarks>
 public sealed class InMemoryTenantService {
     private const string DefaultDomain = "tenants";
-    private const string GlobalAdminAggregateId = "system";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private const string SystemTenantId = "system";
 
@@ -162,7 +162,15 @@ public sealed class InMemoryTenantService {
     /// <summary>Processes a SetGlobalAdministrator command.</summary>
     public DomainResult ProcessCommand(SetGlobalAdministrator command) {
         ArgumentNullException.ThrowIfNull(command);
-        DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState);
+        return ProcessCommand(command, GetDefaultGlobalAdministratorActor(command.UserId));
+    }
+
+    /// <summary>Processes a SetGlobalAdministrator command.</summary>
+    public DomainResult ProcessCommand(SetGlobalAdministrator command, string actorUserId) {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentException.ThrowIfNullOrWhiteSpace(actorUserId);
+        CommandEnvelope envelope = CreateGlobalAdminEnvelope(command, actorUserId);
+        DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState, envelope);
         ApplyGlobalAdminEvents(result);
         return result;
     }
@@ -170,7 +178,15 @@ public sealed class InMemoryTenantService {
     /// <summary>Processes a RemoveGlobalAdministrator command.</summary>
     public DomainResult ProcessCommand(RemoveGlobalAdministrator command) {
         ArgumentNullException.ThrowIfNull(command);
-        DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState);
+        return ProcessCommand(command, GetDefaultGlobalAdministratorActor(command.UserId));
+    }
+
+    /// <summary>Processes a RemoveGlobalAdministrator command.</summary>
+    public DomainResult ProcessCommand(RemoveGlobalAdministrator command, string actorUserId) {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentException.ThrowIfNullOrWhiteSpace(actorUserId);
+        CommandEnvelope envelope = CreateGlobalAdminEnvelope(command, actorUserId);
+        DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState, envelope);
         ApplyGlobalAdminEvents(result);
         return result;
     }
@@ -226,6 +242,23 @@ public sealed class InMemoryTenantService {
             isGlobalAdmin
                 ? new Dictionary<string, string> { [GlobalAdminExtensionKey] = "true" }
                 : null);
+
+    private static CommandEnvelope CreateGlobalAdminEnvelope<T>(T command, string userId)
+        where T : notnull => new(
+            Guid.NewGuid().ToString(),
+            TenantIdentity.DefaultTenantId,
+            TenantIdentity.GlobalAdministratorsDomain,
+            TenantIdentity.GlobalAdministratorsAggregateId,
+            typeof(T).Name,
+            JsonSerializer.SerializeToUtf8Bytes(command),
+            Guid.NewGuid().ToString(),
+            null,
+            userId,
+            null);
+
+    private string GetDefaultGlobalAdministratorActor(string fallbackUserId)
+        => _globalAdminState?.Administrators.OrderBy(x => x, StringComparer.Ordinal).FirstOrDefault()
+           ?? fallbackUserId;
 
     private void ApplyGlobalAdminEvents(DomainResult result) {
         if (!result.IsSuccess) {

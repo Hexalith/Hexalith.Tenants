@@ -4,6 +4,7 @@ using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 
@@ -15,22 +16,30 @@ public class TenantAuditReadModelTests {
     private static readonly DateTimeOffset Timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
 
     public static IEnumerable<object[]> ClassifiedEvents() {
-        yield return [new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantOwner), AuditEventCategory.Access, "UserAddedToTenant"];
-        yield return [new UserRemovedFromTenant("tenant-1", "user-1"), AuditEventCategory.Access, "UserRemovedFromTenant"];
-        yield return [new UserRoleChanged("tenant-1", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor), AuditEventCategory.Access, "UserRoleChanged"];
-        yield return [new GlobalAdministratorSet("tenant-1", "admin-2"), AuditEventCategory.Access, "GlobalAdministratorSet"];
-        yield return [new GlobalAdministratorRemoved("tenant-1", "admin-2"), AuditEventCategory.Access, "GlobalAdministratorRemoved"];
-        yield return [new TenantCreated("tenant-1", "Acme", null, Timestamp), AuditEventCategory.Administrative, "TenantCreated"];
-        yield return [new TenantUpdated("tenant-1", "Acme Updated", null), AuditEventCategory.Administrative, "TenantUpdated"];
-        yield return [new TenantDisabled("tenant-1", Timestamp), AuditEventCategory.Administrative, "TenantDisabled"];
-        yield return [new TenantEnabled("tenant-1", Timestamp), AuditEventCategory.Administrative, "TenantEnabled"];
-        yield return [new TenantConfigurationSet("tenant-1", "theme", "dark"), AuditEventCategory.Administrative, "TenantConfigurationSet"];
-        yield return [new TenantConfigurationRemoved("tenant-1", "theme"), AuditEventCategory.Administrative, "TenantConfigurationRemoved"];
+        yield return [new UserAddedToTenant("tenant-1", "user-1", TenantRole.TenantOwner), AuditEventCategory.Access, "UserAddedToTenant", "tenant-1"];
+        yield return [new UserRemovedFromTenant("tenant-1", "user-1"), AuditEventCategory.Access, "UserRemovedFromTenant", "tenant-1"];
+        yield return [new UserRoleChanged("tenant-1", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor), AuditEventCategory.Access, "UserRoleChanged", "tenant-1"];
+        yield return [
+            new GlobalAdministratorSet(TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp),
+            AuditEventCategory.Access,
+            "GlobalAdministratorSet",
+            TenantIdentity.DefaultTenantId];
+        yield return [
+            new GlobalAdministratorRemoved(TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp),
+            AuditEventCategory.Access,
+            "GlobalAdministratorRemoved",
+            TenantIdentity.DefaultTenantId];
+        yield return [new TenantCreated("tenant-1", "Acme", null, Timestamp), AuditEventCategory.Administrative, "TenantCreated", "tenant-1"];
+        yield return [new TenantUpdated("tenant-1", "Acme Updated", null), AuditEventCategory.Administrative, "TenantUpdated", "tenant-1"];
+        yield return [new TenantDisabled("tenant-1", Timestamp), AuditEventCategory.Administrative, "TenantDisabled", "tenant-1"];
+        yield return [new TenantEnabled("tenant-1", Timestamp), AuditEventCategory.Administrative, "TenantEnabled", "tenant-1"];
+        yield return [new TenantConfigurationSet("tenant-1", "theme", "dark"), AuditEventCategory.Administrative, "TenantConfigurationSet", "tenant-1"];
+        yield return [new TenantConfigurationRemoved("tenant-1", "theme"), AuditEventCategory.Administrative, "TenantConfigurationRemoved", "tenant-1"];
     }
 
     [Theory]
     [MemberData(nameof(ClassifiedEvents))]
-    public void Apply_classifies_supported_event_types(IEventPayload payload, AuditEventCategory category, string eventType) {
+    public void Apply_classifies_supported_event_types(IEventPayload payload, AuditEventCategory category, string eventType, string tenantId) {
         ArgumentNullException.ThrowIfNull(payload);
 
         var model = new TenantAuditReadModel();
@@ -43,7 +52,7 @@ public class TenantAuditReadModelTests {
         entry.Category.ShouldBe(category);
         entry.ActorId.ShouldBe("actor-1");
         entry.Timestamp.ShouldBe(Timestamp);
-        entry.TenantId.ShouldBe("tenant-1");
+        entry.TenantId.ShouldBe(tenantId);
         entry.NarrativePayload.ShouldNotBeEmpty();
     }
 
@@ -53,12 +62,24 @@ public class TenantAuditReadModelTests {
 
         model.Apply(CreateEvent(new UserRoleChanged("tenant-1", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor)));
         model.Apply(CreateEvent(new TenantConfigurationSet("tenant-1", "secret-key", "do-not-store"), messageId: "evt-2"));
+        model.Apply(CreateEvent(
+            new GlobalAdministratorSet(TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp),
+            messageId: "evt-3"));
+        model.Apply(CreateEvent(
+            new GlobalAdministratorRemoved(TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp.AddMinutes(1)),
+            messageId: "evt-4"));
 
         model.Entries[0].NarrativePayload["userId"].ShouldBe("user-1");
         model.Entries[0].NarrativePayload["oldRole"].ShouldBe("TenantReader");
         model.Entries[0].NarrativePayload["newRole"].ShouldBe("TenantContributor");
         model.Entries[1].NarrativePayload["key"].ShouldBe("secret-key");
         model.Entries[1].NarrativePayload.Values.ShouldNotContain("do-not-store");
+        model.Entries[2].NarrativePayload["userId"].ShouldBe("admin-2");
+        model.Entries[2].NarrativePayload["actorUserId"].ShouldBe("admin-1");
+        model.Entries[2].NarrativePayload["setAt"].ShouldBe(Timestamp.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        model.Entries[3].NarrativePayload["userId"].ShouldBe("admin-2");
+        model.Entries[3].NarrativePayload["actorUserId"].ShouldBe("admin-1");
+        model.Entries[3].NarrativePayload["removedAt"].ShouldBe(Timestamp.AddMinutes(1).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

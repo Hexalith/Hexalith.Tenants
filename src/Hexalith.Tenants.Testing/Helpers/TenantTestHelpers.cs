@@ -4,6 +4,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Testing.Fakes;
 
 namespace Hexalith.Tenants.Testing.Helpers;
@@ -12,9 +13,7 @@ namespace Hexalith.Tenants.Testing.Helpers;
 /// Common setup patterns for tenant integration tests, reducing test authoring to under 10 lines per test.
 /// </summary>
 public static class TenantTestHelpers {
-    private const string DefaultDomain = "tenants";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
-    private const string SystemTenantId = "system";
 
     /// <summary>
     /// Bootstraps a global administrator via the given service.
@@ -52,8 +51,8 @@ public static class TenantTestHelpers {
 
         return new CommandEnvelope(
             Guid.NewGuid().ToString(),
-            SystemTenantId,
-            DefaultDomain,
+            TenantIdentity.DefaultTenantId,
+            GetDomainForAggregate(aggregateId),
             aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
@@ -64,6 +63,11 @@ public static class TenantTestHelpers {
                 ? new Dictionary<string, string> { [GlobalAdminExtensionKey] = "true" }
                 : null);
     }
+
+    private static string GetDomainForAggregate(string aggregateId)
+        => string.Equals(aggregateId, TenantIdentity.GlobalAdministratorsAggregateId, StringComparison.Ordinal)
+            ? TenantIdentity.GlobalAdministratorsDomain
+            : TenantIdentity.Domain;
 
     /// <summary>
     /// Creates a tenant via the given service.

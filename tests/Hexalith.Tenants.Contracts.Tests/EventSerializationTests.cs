@@ -54,6 +54,7 @@ public class EventSerializationTests {
             return name switch {
                 "TenantId" => "tenant-abc",
                 "UserId" => "user-xyz",
+                "ActorUserId" => "actor-user-123",
                 "Name" => "Test Tenant Name",
                 "Description" => "Test description",
                 "Key" => "config-key-1",

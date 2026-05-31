@@ -63,7 +63,7 @@ public class TenantMetricsTests : IDisposable {
 
     [Theory]
     [InlineData("CreateTenant")]
-    [InlineData("UpdateTenantInformation")]
+    [InlineData("UpdateTenant")]
     [InlineData("DisableTenant")]
     [InlineData("EnableTenant")]
     [InlineData("AddUserToTenant")]
@@ -71,9 +71,9 @@ public class TenantMetricsTests : IDisposable {
     [InlineData("ChangeUserRole")]
     [InlineData("SetTenantConfiguration")]
     [InlineData("RemoveTenantConfiguration")]
-    [InlineData("AddGlobalAdministrator")]
+    [InlineData("SetGlobalAdministrator")]
     [InlineData("RemoveGlobalAdministrator")]
-    [InlineData("RegisterGlobalAdministrator")]
+    [InlineData("BootstrapGlobalAdmin")]
     public void RecordCommandDuration_AllKnownTypes_ShouldPassThrough(string commandType) {
         TenantMetrics.RecordCommandDuration(1.0, commandType, true);
         _listener.RecordObservableInstruments();

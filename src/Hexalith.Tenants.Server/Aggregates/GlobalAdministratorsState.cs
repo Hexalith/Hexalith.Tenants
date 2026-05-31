@@ -23,6 +23,16 @@ public sealed class GlobalAdministratorsState {
         MarkReplayOnlyEventHandled();
     }
 
+    public void Apply(GlobalAdministratorAlreadyExistsRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
+    public void Apply(GlobalAdministratorNotFoundRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
     public void Apply(LastGlobalAdministratorRejection e) {
         ArgumentNullException.ThrowIfNull(e);
         MarkReplayOnlyEventHandled();

@@ -21,7 +21,7 @@ internal static class TenantMetrics {
 
     private static readonly HashSet<string> _knownCommandTypes = new([
         "CreateTenant",
-        "UpdateTenantInformation",
+        "UpdateTenant",
         "DisableTenant",
         "EnableTenant",
         "AddUserToTenant",
@@ -29,9 +29,9 @@ internal static class TenantMetrics {
         "ChangeUserRole",
         "SetTenantConfiguration",
         "RemoveTenantConfiguration",
-        "AddGlobalAdministrator",
+        "SetGlobalAdministrator",
         "RemoveGlobalAdministrator",
-        "RegisterGlobalAdministrator",
+        "BootstrapGlobalAdmin",
     ], StringComparer.Ordinal);
 
     private static readonly HashSet<string> _knownQueryTypes =

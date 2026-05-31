@@ -59,9 +59,13 @@ public sealed class TenantAuditReadModel {
             }),
             nameof(GlobalAdministratorSet) => CreateAccessEntry(evt, Deserialize<GlobalAdministratorSet>(evt.Payload), eventType, e => new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["userId"] = e.UserId,
+                ["actorUserId"] = e.ActorUserId,
+                ["setAt"] = e.SetAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             }),
             nameof(GlobalAdministratorRemoved) => CreateAccessEntry(evt, Deserialize<GlobalAdministratorRemoved>(evt.Payload), eventType, e => new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["userId"] = e.UserId,
+                ["actorUserId"] = e.ActorUserId,
+                ["removedAt"] = e.RemovedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             }),
             nameof(TenantCreated) => CreateAdministrativeEntry(evt, Deserialize<TenantCreated>(evt.Payload), eventType, e => new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["name"] = e.Name,

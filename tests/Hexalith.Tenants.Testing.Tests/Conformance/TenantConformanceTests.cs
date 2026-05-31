@@ -408,10 +408,11 @@ public sealed class TenantConformanceTests {
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
 
         var command = new SetGlobalAdministrator("admin2");
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "global-administrators", "admin1");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-        DomainResult serviceResult = svc.ProcessCommand(command);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState, envelope);
+        DomainResult serviceResult = svc.ProcessCommand(command, "admin1");
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
@@ -429,10 +430,11 @@ public sealed class TenantConformanceTests {
         gaState.Apply(new GlobalAdministratorSet("system", "admin2"));
 
         var command = new RemoveGlobalAdministrator("admin2");
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "global-administrators", "admin1");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-        DomainResult serviceResult = svc.ProcessCommand(command);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState, envelope);
+        DomainResult serviceResult = svc.ProcessCommand(command, "admin1");
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
@@ -624,10 +626,11 @@ public sealed class TenantConformanceTests {
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
 
         var command = new RemoveGlobalAdministrator("admin1");
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "global-administrators", "admin1");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-        DomainResult serviceResult = svc.ProcessCommand(command);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState, envelope);
+        DomainResult serviceResult = svc.ProcessCommand(command, "admin1");
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
@@ -1085,7 +1088,7 @@ public sealed class TenantConformanceTests {
     }
 
     [Fact]
-    public void NoOp_SetGlobalAdministrator_AlreadyAdmin() {
+    public void Rejection_SetGlobalAdministrator_AlreadyAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
         _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
@@ -1094,17 +1097,18 @@ public sealed class TenantConformanceTests {
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
 
         var command = new SetGlobalAdministrator("admin1");
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "global-administrators", "admin1");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-        DomainResult serviceResult = svc.ProcessCommand(command);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState, envelope);
+        DomainResult serviceResult = svc.ProcessCommand(command, "admin1");
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
     }
 
     [Fact]
-    public void NoOp_RemoveGlobalAdministrator_NotAdmin() {
+    public void Rejection_RemoveGlobalAdministrator_NotAdmin() {
         // Arrange
         var svc = new InMemoryTenantService();
         _ = svc.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
@@ -1113,10 +1117,11 @@ public sealed class TenantConformanceTests {
         gaState.Apply(new GlobalAdministratorSet("system", "admin1"));
 
         var command = new RemoveGlobalAdministrator("ghost");
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, "global-administrators", "admin1");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
-        DomainResult serviceResult = svc.ProcessCommand(command);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState, envelope);
+        DomainResult serviceResult = svc.ProcessCommand(command, "admin1");
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
@@ -1166,4 +1171,3 @@ public sealed class TenantConformanceTests {
         }
     }
 }
-
