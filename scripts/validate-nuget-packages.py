@@ -6,21 +6,77 @@ from __future__ import annotations
 import argparse
 import sys
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree
 
 
-EXPECTED_PACKAGE_IDS = {
+EXPECTED_PACKAGE_IDS = frozenset({
     "Hexalith.Tenants.Contracts",
     "Hexalith.Tenants.Client",
     "Hexalith.Tenants.Server",
     "Hexalith.Tenants.Testing",
     "Hexalith.Tenants.Aspire",
+})
+
+EXPECTED_DEPENDENCIES = {
+    "Hexalith.Tenants.Contracts": frozenset({
+        "Hexalith.EventStore.Contracts",
+    }),
+    "Hexalith.Tenants.Client": frozenset({
+        "Dapr.AspNetCore",
+        "Hexalith.Tenants.Contracts",
+    }),
+    "Hexalith.Tenants.Server": frozenset({
+        "Dapr.Actors",
+        "Dapr.Actors.AspNetCore",
+        "Dapr.Client",
+        "FluentValidation",
+        "Hexalith.EventStore.Server",
+        "Hexalith.Tenants.Contracts",
+        "MediatR",
+    }),
+    "Hexalith.Tenants.Testing": frozenset({
+        "Hexalith.Tenants.Contracts",
+        "Hexalith.Tenants.Server",
+        "Shouldly",
+        "xunit.v3.assert",
+    }),
+    "Hexalith.Tenants.Aspire": frozenset({
+        "Aspire.Hosting",
+        "CommunityToolkit.Aspire.Hosting.Dapr",
+    }),
 }
 
+FORBIDDEN_DEPENDENCY_IDS = frozenset({
+    "Hexalith.Tenants",
+    "Hexalith.Tenants.AppHost",
+    "Hexalith.Tenants.ServiceDefaults",
+    "Hexalith.Tenants.Sample",
+    "Hexalith.Tenants.Sample.Tests",
+})
 
-def get_metadata(package_path: Path) -> tuple[str, str, str | None, bool]:
-    """Return package id, version, readme path, and license metadata flag."""
+FORBIDDEN_DEPENDENCY_FRAGMENTS = (
+    ".Tests",
+    ".Test",
+    ".Sample",
+    ".Samples",
+    ".AppHost",
+    ".ServiceDefaults",
+)
+
+
+@dataclass(frozen=True)
+class PackageMetadata:
+    package_id: str
+    version: str
+    readme: str
+    has_license: bool
+    dependencies: frozenset[str]
+
+
+def get_metadata(package_path: Path) -> PackageMetadata:
+    """Return package id, version, metadata flags, and dependency ids."""
     with zipfile.ZipFile(package_path) as package:
         nuspec_names = [name for name in package.namelist() if name.endswith(".nuspec")]
         if len(nuspec_names) != 1:
@@ -32,6 +88,9 @@ def get_metadata(package_path: Path) -> tuple[str, str, str | None, bool]:
         def find_text(name: str) -> str | None:
             element = root.find(f".//n:metadata/n:{name}", ns) if ns else root.find(f".//metadata/{name}")
             return element.text.strip() if element is not None and element.text else None
+
+        def find_elements(path: str) -> list[ElementTree.Element]:
+            return root.findall(path, ns) if ns else root.findall(path.replace("n:", ""))
 
         package_id = find_text("id")
         version = find_text("version")
@@ -48,7 +107,38 @@ def get_metadata(package_path: Path) -> tuple[str, str, str | None, bool]:
         if readme not in package.namelist():
             raise ValueError(f"{package_path.name}: readme file '{readme}' is not in the package")
 
-        return package_id, version, readme, bool(license_value or license_file)
+        dependencies = frozenset(
+            dependency.attrib["id"].strip()
+            for dependency in find_elements(".//n:metadata/n:dependencies//n:dependency")
+            if dependency.attrib.get("id", "").strip()
+        )
+
+        return PackageMetadata(package_id, version, readme, bool(license_value or license_file), dependencies)
+
+
+def validate_dependency_boundaries(package_path: Path, metadata: PackageMetadata) -> None:
+    """Validate package dependency metadata against the intended package boundaries."""
+    expected_dependencies = EXPECTED_DEPENDENCIES.get(metadata.package_id)
+    if expected_dependencies is None:
+        raise ValueError(f"{package_path.name}: no expected dependency boundary is defined")
+
+    if metadata.dependencies != expected_dependencies:
+        missing = sorted(expected_dependencies - metadata.dependencies)
+        unexpected = sorted(metadata.dependencies - expected_dependencies)
+        raise ValueError(
+            f"{package_path.name}: dependency boundary mismatch. Missing: {missing}; unexpected: {unexpected}"
+        )
+
+    forbidden_dependencies = sorted(
+        dependency
+        for dependency in metadata.dependencies
+        if dependency in FORBIDDEN_DEPENDENCY_IDS or any(fragment in dependency for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS)
+    )
+    if forbidden_dependencies:
+        raise ValueError(
+            f"{package_path.name}: dependency boundary includes host, samples, tests, or other forbidden projects: "
+            f"{forbidden_dependencies}"
+        )
 
 
 def main() -> int:
@@ -72,11 +162,12 @@ def main() -> int:
     package_ids: set[str] = set()
     versions: set[str] = set()
     for package in packages:
-        package_id, version, _readme, has_license = get_metadata(package)
-        package_ids.add(package_id)
-        versions.add(version)
-        if not has_license:
+        metadata = get_metadata(package)
+        package_ids.add(metadata.package_id)
+        versions.add(metadata.version)
+        if not metadata.has_license:
             raise ValueError(f"{package.name}: missing license metadata")
+        validate_dependency_boundaries(package, metadata)
 
     if package_ids != EXPECTED_PACKAGE_IDS:
         missing = sorted(EXPECTED_PACKAGE_IDS - package_ids)
@@ -89,7 +180,7 @@ def main() -> int:
     version = next(iter(versions))
     print(f"Validated {len(packages)} NuGet packages at version {version}:")
     for package_id in sorted(package_ids):
-        print(f"- {package_id}")
+        print(f"- {package_id} dependencies: {', '.join(sorted(EXPECTED_DEPENDENCIES[package_id]))}")
 
     return 0
 

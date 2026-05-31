@@ -43,6 +43,8 @@ def main() -> int:
                 "--output",
                 str(output_directory),
                 f"-p:Version={args.version}",
+                "/m:1",
+                "/nr:false",
             ],
             check=True,
         )

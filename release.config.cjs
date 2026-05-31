@@ -18,9 +18,11 @@ module.exports = {
           'rm -rf ./nupkgs',
           'python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version}',
           'python3 scripts/validate-nuget-packages.py ./nupkgs',
+          'python3 scripts/validate-consumer-package-references.py ./nupkgs',
         ].join(' && '),
         publishCmd: [
           'python3 scripts/validate-nuget-packages.py ./nupkgs',
+          'python3 scripts/validate-consumer-package-references.py ./nupkgs',
           'dotnet nuget push ./nupkgs/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate',
         ].join(' && '),
       },

@@ -298,6 +298,7 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldContain("@semantic-release/exec");
         releaseConfig.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version}");
         releaseConfig.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
+        releaseConfig.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
         releaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
         releaseConfig.ShouldContain("--skip-duplicate");
         releaseConfig.ShouldContain("NUGET_API_KEY");
@@ -306,6 +307,8 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldNotContain("**/*.nupkg");
         packageValidator.ShouldContain("not path.name.endswith(\".snupkg\")");
         packageValidator.ShouldContain("\".symbols.\" not in path.name");
+        packageValidator.ShouldContain("EXPECTED_DEPENDENCIES");
+        packageValidator.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
 
         foreach (string packageId in ExpectedPackageIds) {
             releaseConfig.ShouldContain(packageId);
@@ -319,6 +322,65 @@ public class PackageGovernanceTests {
         GetWorkflowActionReferences(workflow).ShouldAllBe(
             action => IsFullCommitSha(action.Reference),
             "GitHub Actions references must stay pinned to full commit SHAs.");
+    }
+
+    [Fact]
+    public void Ci_workflow_runs_package_consumer_validation_after_release_build_and_pack() {
+        string repoRoot = FindRepoRoot();
+        string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/ci.yml"));
+
+        workflow.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs 0.0.0-ci-test");
+        workflow.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
+        workflow.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
+        workflow.IndexOf("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror", StringComparison.Ordinal)
+            .ShouldBeLessThan(workflow.IndexOf("python3 scripts/pack-release-packages.py ./nupkgs 0.0.0-ci-test", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Consumer_package_reference_script_verifies_public_package_surfaces() {
+        string repoRoot = FindRepoRoot();
+        string script = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-consumer-package-references.py"));
+
+        script.ShouldContain("Hexalith.Tenants.Contracts");
+        script.ShouldContain("Hexalith.Tenants.Client");
+        script.ShouldContain("Hexalith.Tenants.Testing");
+        script.ShouldContain("Hexalith.Tenants.Aspire");
+        script.ShouldContain("CreateTenant");
+        script.ShouldContain("TenantCreated");
+        script.ShouldContain("ListTenantsQuery");
+        script.ShouldContain("AddHexalithTenants");
+        script.ShouldContain("InMemoryTenantService");
+        script.ShouldContain("TenantTestHelpers");
+        script.ShouldContain("InMemoryTenantProjection");
+        script.ShouldContain("HexalithTenantsResources");
+        script.ShouldContain("ProjectReference");
+        script.ShouldContain("dotnet");
+        script.ShouldContain("NuGet.Config");
+        script.ShouldContain("local-tenants-packages");
+        script.ShouldContain("inherited NuGet.Config sources are preserved");
+        script.ShouldContain("run_xunit_assembly");
+        script.ShouldNotContain("[\"test\"");
+    }
+
+    [Fact]
+    public void NuGet_package_validator_enforces_dependency_boundaries() {
+        string repoRoot = FindRepoRoot();
+        string script = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
+
+        foreach (string packageId in ExpectedPackageIds) {
+            script.ShouldContain(packageId);
+        }
+
+        script.ShouldContain("Hexalith.EventStore.Contracts");
+        script.ShouldContain("Hexalith.EventStore.Server");
+        script.ShouldContain("Dapr.AspNetCore");
+        script.ShouldContain("Dapr.Client");
+        script.ShouldContain("Aspire.Hosting");
+        script.ShouldContain("CommunityToolkit.Aspire.Hosting.Dapr");
+        script.ShouldContain("Hexalith.Tenants.AppHost");
+        script.ShouldContain("Hexalith.Tenants.ServiceDefaults");
+        script.ShouldContain("samples");
+        script.ShouldContain("dependency");
     }
 
     [Fact]

@@ -222,6 +222,25 @@ public class CiQualityGateScriptTests {
         "Hexalith.Tenants.Aspire",
     ];
 
+    // Mirrors EXPECTED_DEPENDENCIES in scripts/validate-nuget-packages.py so synthetic fixtures satisfy the
+    // dependency-boundary validation added in Story 1.4 and keep isolating license/symbol/version behavior.
+    private static readonly Dictionary<string, string[]> ExpectedDependencies = new(StringComparer.Ordinal) {
+        ["Hexalith.Tenants.Contracts"] = ["Hexalith.EventStore.Contracts"],
+        ["Hexalith.Tenants.Client"] = ["Dapr.AspNetCore", "Hexalith.Tenants.Contracts"],
+        ["Hexalith.Tenants.Server"] =
+        [
+            "Dapr.Actors",
+            "Dapr.Actors.AspNetCore",
+            "Dapr.Client",
+            "FluentValidation",
+            "Hexalith.EventStore.Server",
+            "Hexalith.Tenants.Contracts",
+            "MediatR",
+        ],
+        ["Hexalith.Tenants.Testing"] = ["Hexalith.Tenants.Contracts", "Hexalith.Tenants.Server", "Shouldly", "xunit.v3.assert"],
+        ["Hexalith.Tenants.Aspire"] = ["Aspire.Hosting", "CommunityToolkit.Aspire.Hosting.Dapr"],
+    };
+
     private static string CoverageClass(string filename, string[] lines)
         => $"""
                     <class name="{Path.GetFileNameWithoutExtension(filename)}" filename="{filename}" line-rate="1" branch-rate="1">
@@ -266,8 +285,14 @@ public class CiQualityGateScriptTests {
         WriteZipEntry(package, "README.md", $"# {packageId}");
     }
 
-    private static string Nuspec(string packageId, string version, bool includeLicense)
-        => $"""
+    private static string Nuspec(string packageId, string version, bool includeLicense) {
+        string dependencies = ExpectedDependencies.TryGetValue(packageId, out string[]? dependencyIds) && dependencyIds.Length > 0
+            ? "<dependencies><group targetFramework=\"net10.0\">"
+                + string.Concat(Array.ConvertAll(dependencyIds, id => $"<dependency id=\"{id}\" version=\"1.0.0\" />"))
+                + "</group></dependencies>"
+            : string.Empty;
+
+        return $"""
             <?xml version="1.0" encoding="utf-8"?>
             <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
               <metadata>
@@ -276,9 +301,11 @@ public class CiQualityGateScriptTests {
                 <authors>Hexalith Contributors</authors>
                 <readme>README.md</readme>
                 {(includeLicense ? "<license type=\"expression\">MIT</license>" : string.Empty)}
+                {dependencies}
               </metadata>
             </package>
             """;
+    }
 
     private static void WriteZipEntry(ZipArchive package, string entryName, string content) {
         ZipArchiveEntry entry = package.CreateEntry(entryName);

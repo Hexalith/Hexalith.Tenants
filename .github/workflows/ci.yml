@@ -45,6 +45,13 @@ jobs:
       - name: Build
         run: dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror
 
+      - name: Validate package consumer references
+        run: |
+          rm -rf ./nupkgs
+          python3 scripts/pack-release-packages.py ./nupkgs 0.0.0-ci-test
+          python3 scripts/validate-nuget-packages.py ./nupkgs
+          python3 scripts/validate-consumer-package-references.py ./nupkgs
+
       - name: Unit Tests (Tier 1)
         run: |
           dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-build --configuration Release --logger "trx;LogFileName=contracts-results.trx" --results-directory TestResults/contracts --collect:"XPlat Code Coverage"
