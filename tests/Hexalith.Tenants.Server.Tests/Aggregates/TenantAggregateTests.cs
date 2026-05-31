@@ -467,6 +467,7 @@ public class TenantAggregateTests {
 
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test tenant", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+        state.HasMembershipHistory.ShouldBeTrue();
         state.Apply(new UserRoleChanged("acme", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor));
         state.Apply(new TenantConfigurationSet("acme", "billing.plan", "pro"));
 
@@ -743,6 +744,24 @@ public class TenantAggregateTests {
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
 
         CommandEnvelope cmd = CreateCommand(new AddUserToTenant("acme", "user-1", TenantRole.TenantOwner));
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
+    [Fact]
+    public async Task AddUserToTenant_on_disabled_tenant_with_unauthorized_actor_and_invalid_role_produces_TenantDisabledRejection() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(
+            new AddUserToTenant("acme", "user-1", TenantRole.Unknown),
+            actorUserId: "unknown-user");
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 

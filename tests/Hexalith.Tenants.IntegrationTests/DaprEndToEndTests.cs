@@ -8,6 +8,7 @@ using Dapr.Actors.Client;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -56,6 +57,74 @@ public class DaprEndToEndTests {
         string expectedTopic = command.AggregateIdentity.PubSubTopic;
         _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
         _fixture.EventPublisher.GetEventsForTopic(expectedTopic).ShouldNotBeEmpty();
+    }
+
+    [DaprFact]
+    public async Task AddUserToTenant_succeeds_end_to_end_with_user_added_event_published() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create an enabled tenant, then add a member through the actor pipeline.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-add-user-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Membership Target", "Add user E2E"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        // Act
+        CommandEnvelope addUserCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantContributor));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(addUserCmd);
+
+        // Assert
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeTrue(
+            $"AddUserToTenant should be accepted but got error: {result.ErrorMessage}"
+            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+        result.EventCount.ShouldBe(1, "AddUserToTenant should produce 1 UserAddedToTenant event");
+
+        string expectedTopic = addUserCmd.AggregateIdentity.PubSubTopic;
+        CountPublishedEvents(expectedTopic, tenantId, typeof(UserAddedToTenant).FullName).ShouldBe(1);
+
+        EventEnvelope persisted = await AssertPersistedOnceAsync<UserAddedToTenant>(
+            proxy,
+            addUserCmd,
+            expectedSequence: 2);
+        persisted.AggregateId.ShouldBe(tenantId);
+    }
+
+    [DaprFact]
+    public async Task Duplicate_AddUserToTenant_is_rejected_end_to_end_without_duplicate_UserAdded_event() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create the tenant and add the user once.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-dup-add-user-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Membership Target", "Add user once"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope firstAddCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantReader));
+        CommandProcessingResult firstAddResult = await proxy.ProcessCommandAsync(firstAddCmd);
+        firstAddResult.Accepted.ShouldBeTrue("Setup: first AddUserToTenant must succeed");
+
+        string expectedTopic = firstAddCmd.AggregateIdentity.PubSubTopic;
+        int userAddedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(UserAddedToTenant).FullName);
+
+        // Act — submit the duplicate add with a different requested role.
+        CommandEnvelope duplicateAddCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantOwner));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(duplicateAddCmd);
+
+        // Assert — the duplicate is a structured rejection and no second UserAddedToTenant event is published.
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeFalse("Duplicate AddUserToTenant should be rejected");
+        result.EventCount.ShouldBe(1, "Duplicate AddUserToTenant should persist one rejection event");
+        CountPublishedEvents(expectedTopic, tenantId, typeof(UserAddedToTenant).FullName).ShouldBe(userAddedEventsBefore);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(UserAlreadyInTenantRejection).FullName).ShouldBe(1);
     }
 
     [DaprFact]

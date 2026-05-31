@@ -19,6 +19,7 @@ using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 
 using CommandApiResponse = Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse;
@@ -218,6 +219,92 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_accepts_AddUserToTenant_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "add-user-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(AddUserToTenant));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        AddUserToTenant? payload = JsonSerializer.Deserialize<AddUserToTenant>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.UserId.ShouldBe("alice");
+        payload.Role.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_422_problem_details_for_AddUserToTenant_role_escalation() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: RoleEscalationRejection", "add-user-role-escalation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(RoleEscalationRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Role Escalation Rejection");
+        details.Status.ShouldBe(422);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/role-escalation-rejection");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("role-escalation-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(RoleEscalationRejection).FullName);
+    }
+
+    [Fact]
     public async Task Commands_endpoint_accepts_UpdateTenant_and_routes_story_payload() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         SubmitPipelineCommand? capturedCommand = null;
@@ -390,6 +477,47 @@ public class CommandApiRuntimeIntegrationTests {
         details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant-already-exists-rejection");
         details.Extensions.ShouldContainKey("rejectionType");
         details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(TenantAlreadyExistsRejection).FullName);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_409_problem_details_for_duplicate_AddUserToTenant() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: UserAlreadyInTenantRejection", "add-user-duplicate"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(UserAlreadyInTenantRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("User Already In Tenant Rejection");
+        details.Status.ShouldBe(409);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/user-already-in-tenant-rejection");
+        details.Extensions.ShouldContainKey("correlationId");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("user-already-in-tenant-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(UserAlreadyInTenantRejection).FullName);
     }
 
     [Fact]
@@ -1176,6 +1304,19 @@ public class CommandApiRuntimeIntegrationTests {
             nameof(CreateTenant),
             payload,
             Extensions: extensions);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateAddUserToTenantRequest(
+        JsonElement? payload = null) {
+        JsonElement commandPayload = payload
+            ?? JsonSerializer.SerializeToElement(new AddUserToTenant("acme", "alice", TenantRole.TenantContributor));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(AddUserToTenant),
+            commandPayload);
     }
 
     private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateUpdateTenantRequest(

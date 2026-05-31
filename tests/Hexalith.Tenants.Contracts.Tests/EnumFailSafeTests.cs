@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
@@ -35,6 +36,35 @@ public sealed class EnumFailSafeTests {
         const string json = """{"TenantId":"acme","UserId":"alice","Role":"Superuser"}""";
 
         _ = Should.Throw<JsonException>(() => JsonSerializer.Deserialize<UserAddedToTenant>(json));
+    }
+
+    [Fact]
+    public void AddUserToTenant_with_missing_role_deserializes_to_Unknown() {
+        const string json = """{"TenantId":"acme","UserId":"alice"}""";
+
+        AddUserToTenant? command = JsonSerializer.Deserialize<AddUserToTenant>(json);
+
+        _ = command.ShouldNotBeNull();
+        command.Role.ShouldBe(TenantRole.Unknown);
+    }
+
+    [Fact]
+    public void AddUserToTenant_with_unrecognized_role_name_fails_closed() {
+        const string json = """{"TenantId":"acme","UserId":"alice","Role":"GlobalAdministrator"}""";
+
+        _ = Should.Throw<JsonException>(() => JsonSerializer.Deserialize<AddUserToTenant>(json));
+    }
+
+    [Fact]
+    public void AddUserToTenant_role_round_trips_by_name() {
+        var expected = new AddUserToTenant("acme", "alice", TenantRole.TenantContributor);
+
+        string json = JsonSerializer.Serialize(expected);
+        AddUserToTenant? actual = JsonSerializer.Deserialize<AddUserToTenant>(json);
+
+        json.ShouldContain("\"TenantContributor\"");
+        _ = actual.ShouldNotBeNull();
+        actual.ShouldBe(expected);
     }
 
     [Fact]

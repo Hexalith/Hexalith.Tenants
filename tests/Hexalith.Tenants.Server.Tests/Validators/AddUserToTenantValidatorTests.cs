@@ -23,4 +23,9 @@ public class AddUserToTenantValidatorTests {
     public void Should_have_error_when_Role_is_invalid_enum()
         => _validator.TestValidate(new AddUserToTenant("acme", "user-1", (TenantRole)99))
             .ShouldHaveValidationErrorFor(x => x.Role);
+
+    [Fact]
+    public void Should_have_error_when_Role_is_Unknown()
+        => _validator.TestValidate(new AddUserToTenant("acme", "user-1", TenantRole.Unknown))
+            .ShouldHaveValidationErrorFor(x => x.Role);
 }

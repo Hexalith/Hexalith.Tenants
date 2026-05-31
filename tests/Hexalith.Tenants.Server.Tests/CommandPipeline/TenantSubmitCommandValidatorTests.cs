@@ -28,6 +28,40 @@ public class TenantSubmitCommandValidatorTests {
     }
 
     [Fact]
+    public void AddUserToTenant_payload_with_missing_role_fails_validation() {
+        SubmitCommand command = CreateCommand(
+            nameof(AddUserToTenant),
+            """{"TenantId":"acme","UserId":"user-1"}"""u8.ToArray());
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Role");
+    }
+
+    [Fact]
+    public void AddUserToTenant_payload_with_invalid_enum_fails_validation() {
+        SubmitCommand command = CreateCommand(new AddUserToTenant("acme", "user-1", (TenantRole)99));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Role");
+    }
+
+    [Fact]
+    public void AddUserToTenant_payload_with_unrecognized_role_name_fails_validation() {
+        SubmitCommand command = CreateCommand(
+            nameof(AddUserToTenant),
+            """{"TenantId":"acme","UserId":"user-1","Role":"GlobalAdministrator"}"""u8.ToArray());
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SubmitCommand.Payload));
+    }
+
+    [Fact]
     public void ChangeUserRole_payload_with_invalid_enum_fails_validation() {
         SubmitCommand command = CreateCommand(new ChangeUserRole("acme", "user-1", (TenantRole)99));
 
@@ -104,6 +138,18 @@ public class TenantSubmitCommandValidatorTests {
             AggregateId: payload is CreateTenant createTenant ? createTenant.TenantId : ((dynamic)payload).TenantId,
             CommandType: typeof(T).Name,
             Payload: JsonSerializer.SerializeToUtf8Bytes(payload),
+            CorrelationId: Guid.NewGuid().ToString(),
+            UserId: "test-user",
+            Extensions: null);
+
+    private static SubmitCommand CreateCommand(string commandType, byte[] payload)
+        => new(
+            MessageId: Guid.NewGuid().ToString(),
+            Tenant: "system",
+            Domain: "tenants",
+            AggregateId: "acme",
+            CommandType: commandType,
+            Payload: payload,
             CorrelationId: Guid.NewGuid().ToString(),
             UserId: "test-user",
             Extensions: null);
