@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
 
 using Shouldly;
 
@@ -30,6 +31,17 @@ public class EventSerializationTests {
 
         _ = deserialized.ShouldNotBeNull();
         deserialized.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void UserRemovedFromTenant_payload_contains_only_tenant_and_user_ids() {
+        string[] propertyNames = typeof(UserRemovedFromTenant)
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(p => p.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        propertyNames.ShouldBe(["TenantId", "UserId"]);
     }
 
     private static IEventPayload CreateTestInstance(Type eventType) {

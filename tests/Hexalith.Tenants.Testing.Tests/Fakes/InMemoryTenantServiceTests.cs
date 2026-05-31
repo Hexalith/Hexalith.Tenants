@@ -123,6 +123,34 @@ public class InMemoryTenantServiceTests {
         _ = svc.EventHistory[1].ShouldBeOfType<UserAddedToTenant>();
     }
 
+    [Fact]
+    public void RemoveUserFromTenant_removes_membership_and_preserves_unrelated_members() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("acme", "owner", TenantRole.TenantOwner),
+            userId: "admin",
+            isGlobalAdmin: true);
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("acme", "reader", TenantRole.TenantReader),
+            userId: "owner");
+
+        DomainResult result = svc.ProcessCommand(
+            new RemoveUserFromTenant("acme", "reader"),
+            userId: "owner");
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRemovedFromTenant evt = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        evt.TenantId.ShouldBe("acme");
+        evt.UserId.ShouldBe("reader");
+
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Users.ShouldNotContainKey("reader");
+        state.Users["owner"].ShouldBe(TenantRole.TenantOwner);
+        state.HasMembershipHistory.ShouldBeTrue();
+    }
+
     // ─── 3.4: Duplicate tenant creation returns TenantAlreadyExistsRejection ───
 
     [Fact]

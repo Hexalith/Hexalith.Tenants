@@ -20,7 +20,9 @@ using Hexalith.EventStore.Server.Commands;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Server.Aggregates;
 
 using CommandApiResponse = Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse;
 using SubmitPipelineCommand = Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand;
@@ -93,6 +95,43 @@ public class CommandApiRuntimeIntegrationTests {
         result.IsRejection.ShouldBeFalse();
         result.Events.Count.ShouldBe(1);
         result.Events[0].EventTypeName.ShouldEndWith("TenantCreated");
+    }
+
+    [Fact]
+    public async Task Process_endpoint_dispatches_RemoveUserFromTenant_with_current_state() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Tenant from /process", DateTimeOffset.UtcNow));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "reader-user", TenantRole.TenantReader));
+
+        var request = new DomainServiceRequest(
+            new CommandEnvelope(
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                "system",
+                "tenants",
+                "acme",
+                nameof(RemoveUserFromTenant),
+                JsonSerializer.SerializeToUtf8Bytes(new RemoveUserFromTenant("acme", "reader-user")),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                null,
+                "owner-user",
+                null),
+            state);
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
+        _ = result.ShouldNotBeNull();
+        result.IsRejection.ShouldBeFalse();
+        result.Events.Count.ShouldBe(1);
+        result.Events[0].EventTypeName.ShouldEndWith(nameof(UserRemovedFromTenant));
+        UserRemovedFromTenant? payload = JsonSerializer.Deserialize<UserRemovedFromTenant>(result.Events[0].Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.UserId.ShouldBe("reader-user");
     }
 
     [Fact]
@@ -262,6 +301,51 @@ public class CommandApiRuntimeIntegrationTests {
         payload.TenantId.ShouldBe("acme");
         payload.UserId.ShouldBe("alice");
         payload.Role.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_accepts_RemoveUserFromTenant_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "remove-user-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateRemoveUserFromTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(RemoveUserFromTenant));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        RemoveUserFromTenant? payload = JsonSerializer.Deserialize<RemoveUserFromTenant>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.UserId.ShouldBe("alice");
     }
 
     [Fact]
@@ -518,6 +602,46 @@ public class CommandApiRuntimeIntegrationTests {
         details.Extensions["reasonCode"]?.ToString().ShouldBe("user-already-in-tenant-rejection");
         details.Extensions.ShouldContainKey("rejectionType");
         details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(UserAlreadyInTenantRejection).FullName);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_422_problem_details_for_RemoveUserFromTenant_when_user_is_not_in_tenant() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: UserNotInTenantRejection", "remove-user-not-member"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(UserNotInTenantRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateRemoveUserFromTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("User Not In Tenant Rejection");
+        details.Status.ShouldBe(422);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/user-not-in-tenant-rejection");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("user-not-in-tenant-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(UserNotInTenantRejection).FullName);
     }
 
     [Fact]
@@ -1317,6 +1441,17 @@ public class CommandApiRuntimeIntegrationTests {
             "acme",
             nameof(AddUserToTenant),
             commandPayload);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateRemoveUserFromTenantRequest() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new RemoveUserFromTenant("acme", "alice"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(RemoveUserFromTenant),
+            payload);
     }
 
     private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateUpdateTenantRequest(

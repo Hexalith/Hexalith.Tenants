@@ -478,6 +478,7 @@ public class TenantAggregateTests {
         state.Apply(new TenantConfigurationRemoved("acme", "billing.plan"));
 
         state.Users.ContainsKey("user-1").ShouldBeFalse();
+        state.HasMembershipHistory.ShouldBeTrue();
         state.Configuration.ContainsKey("billing.plan").ShouldBeFalse();
     }
 
@@ -588,6 +589,32 @@ public class TenantAggregateTests {
         IEventPayload evt = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
         ((UserRemovedFromTenant)evt).TenantId.ShouldBe("acme");
         ((UserRemovedFromTenant)evt).UserId.ShouldBe("user-1");
+
+        state.Apply((UserRemovedFromTenant)evt);
+        state.Users.ShouldNotContainKey("user-1");
+        state.Users["test-user"].ShouldBe(TenantRole.TenantOwner);
+        state.HasMembershipHistory.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task RemoveUserFromTenant_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "reader-user", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("body-tenant", "reader-user"),
+            actorUserId: "owner-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRemovedFromTenant evt = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        evt.TenantId.ShouldBe("envelope-tenant");
+        evt.UserId.ShouldBe("reader-user");
     }
 
     // Test 19: RemoveUserFromTenant on null state → TenantNotFoundRejection (AC #3)
@@ -600,6 +627,20 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task RemoveUserFromTenant_not_found_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("body-tenant", "user-1"),
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantNotFoundRejection rejection = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 20: RemoveUserFromTenant on disabled tenant → TenantDisabledRejection (AC #3)
@@ -632,6 +673,26 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+    }
+
+    [Fact]
+    public async Task RemoveUserFromTenant_not_member_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("body-tenant", "missing-user"),
+            actorUserId: "owner-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        UserNotInTenantRejection rejection = result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
+        rejection.UserId.ShouldBe("missing-user");
     }
 
     // Test 22: ChangeUserRole with valid new role → Success (AC #5)
@@ -924,7 +985,10 @@ public class TenantAggregateTests {
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("reader-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+        rejection.CommandName.ShouldBe(nameof(RemoveUserFromTenant));
     }
 
     // R7: RemoveUserFromTenant by Contributor → InsufficientPermissionsRejection (AC #2)
@@ -940,7 +1004,10 @@ public class TenantAggregateTests {
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("contributor-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantContributor);
+        rejection.CommandName.ShouldBe(nameof(RemoveUserFromTenant));
     }
 
     // R8: RemoveUserFromTenant by Owner → Success (AC #3)
@@ -956,7 +1023,11 @@ public class TenantAggregateTests {
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsSuccess.ShouldBeTrue();
-        _ = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        UserRemovedFromTenant evt = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        state.Apply(evt);
+        state.Users.ShouldNotContainKey("reader-user");
+        state.Users["owner-user"].ShouldBe(TenantRole.TenantOwner);
+        state.Users["contributor-user"].ShouldBe(TenantRole.TenantContributor);
     }
 
     // R9: RemoveUserFromTenant by GlobalAdmin → Success (AC #6)
@@ -974,6 +1045,66 @@ public class TenantAggregateTests {
 
         result.IsSuccess.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+    }
+
+    [Fact]
+    public async Task RBAC_RemoveUserFromTenant_allows_globalAdmin_to_remove_last_owner() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "last-owner", TenantRole.TenantOwner));
+
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveUserFromTenant("acme", "last-owner"),
+            actorUserId: "global-admin",
+            isGlobalAdmin: true);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRemovedFromTenant evt = result.Events[0].ShouldBeOfType<UserRemovedFromTenant>();
+        state.Apply(evt);
+        state.Users.ShouldBeEmpty();
+        state.HasMembershipHistory.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task RBAC_removed_owner_has_no_residual_authority_for_owner_only_commands() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        state.Apply(new UserRemovedFromTenant("acme", "owner-user"));
+
+        CommandEnvelope addCommand = CreateCommand(
+            new AddUserToTenant("acme", "new-user", TenantRole.TenantReader),
+            actorUserId: "owner-user");
+        CommandEnvelope removeCommand = CreateCommand(
+            new RemoveUserFromTenant("acme", "reader-user"),
+            actorUserId: "owner-user");
+        CommandEnvelope changeRoleCommand = CreateCommand(
+            new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor),
+            actorUserId: "owner-user");
+        CommandEnvelope setConfigCommand = CreateCommand(
+            new SetTenantConfiguration("acme", "billing.plan", "enterprise"),
+            actorUserId: "owner-user");
+        CommandEnvelope removeConfigCommand = CreateCommand(
+            new RemoveTenantConfiguration("acme", "billing.plan"),
+            actorUserId: "owner-user");
+
+        DomainResult[] results =
+        [
+            await aggregate.ProcessAsync(addCommand, currentState: state),
+            await aggregate.ProcessAsync(removeCommand, currentState: state),
+            await aggregate.ProcessAsync(changeRoleCommand, currentState: state),
+            await aggregate.ProcessAsync(setConfigCommand, currentState: state),
+            await aggregate.ProcessAsync(removeConfigCommand, currentState: state),
+        ];
+
+        foreach (DomainResult result in results) {
+            result.IsRejection.ShouldBeTrue();
+            InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+            rejection.ActorUserId.ShouldBe("owner-user");
+            rejection.ActorRole.ShouldBeNull();
+        }
     }
 
     // R10: ChangeUserRole by Reader → InsufficientPermissionsRejection (AC #1)

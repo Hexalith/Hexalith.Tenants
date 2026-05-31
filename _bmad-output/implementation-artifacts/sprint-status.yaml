@@ -64,7 +64,7 @@ development_status:
   # Epic 3: Tenant Owners Can Manage Access and Configuration Safely
   epic-3: in-progress
   3-1-add-users-to-a-tenant-with-explicit-roles: done
-  3-2-remove-users-from-a-tenant: backlog
+  3-2-remove-users-from-a-tenant: done
   3-3-change-tenant-user-roles-with-escalation-protection: backlog
   3-4-enforce-tenant-scoped-role-behavior: backlog
   3-5-set-tenant-configuration-entries: backlog
