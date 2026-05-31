@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using Dapr.Client;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 
@@ -55,7 +56,42 @@ public class TenantBootstrapHostedServiceTests {
         root.GetProperty("domain").GetString().ShouldBe("global-administrators");
         root.GetProperty("aggregateId").GetString().ShouldBe("global-administrators");
         root.GetProperty("commandType").GetString().ShouldBe("BootstrapGlobalAdmin");
-        logger.Messages.ShouldContain(m => m.Contains("admin-user-1", StringComparison.Ordinal));
+        string messageId = root.GetProperty("messageId").GetString().ShouldNotBeNull();
+        string correlationId = root.GetProperty("correlationId").GetString().ShouldNotBeNull();
+        messageId.Length.ShouldBe(26);
+        correlationId.Length.ShouldBe(26);
+        Should.NotThrow(() => UniqueIdHelper.ExtractTimestamp(messageId));
+        Should.NotThrow(() => UniqueIdHelper.ExtractTimestamp(correlationId));
+        logger.Messages.ShouldContain(m => m.Contains("configured global administrator", StringComparison.Ordinal));
+        logger.Messages.ShouldNotContain(m => m.Contains("admin-user-1", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task StartAsync_with_configured_userId_waits_until_application_started() {
+        bool httpCalled = false;
+        var handler = new TestHttpMessageHandler((_, _) => {
+            httpCalled = true;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+            BootstrapGlobalAdminUserId = "admin-user-1",
+        });
+
+        var service = new TenantBootstrapHostedService(
+            scopeFactory,
+            options,
+            lifetime,
+            NullLogger<TenantBootstrapHostedService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        await Task.Delay(50);
+        httpCalled.ShouldBeFalse();
+
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => httpCalled);
     }
 
     [Theory]
@@ -137,6 +173,61 @@ public class TenantBootstrapHostedServiceTests {
 
         // Assert — logs the unexpected response with status code
         logger.Messages.ShouldContain(m => m.Contains("409", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task StartAsync_when_already_bootstrapped_rejection_logs_information_without_response_body() {
+        const string sensitiveBody = "{\"type\":\"GlobalAdminAlreadyBootstrappedRejection\",\"payload\":{\"token\":\"secret-token\"}}";
+        var handler = new TestHttpMessageHandler((_, _)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict) {
+                Content = new StringContent(sensitiveBody),
+            }));
+
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+            BootstrapGlobalAdminUserId = "admin-user-1",
+        });
+
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(e => e.EventId.Id == 2004));
+
+        TestLogEntry entry = logger.Entries.Single(e => e.EventId.Id == 2004);
+        entry.LogLevel.ShouldBe(LogLevel.Information);
+        entry.Message.ShouldContain("already");
+        entry.Message.ShouldNotContain(sensitiveBody);
+        entry.Message.ShouldNotContain("secret-token");
+        entry.Message.ShouldNotContain("admin-user-1");
+    }
+
+    [Fact]
+    public async Task StartAsync_when_unexpected_response_logs_status_without_response_body() {
+        const string sensitiveBody = "{\"detail\":\"do-not-log-command-payload-or-token\"}";
+        var handler = new TestHttpMessageHandler((_, _)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError) {
+                Content = new StringContent(sensitiveBody),
+            }));
+
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+            BootstrapGlobalAdminUserId = "admin-user-1",
+        });
+
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Messages.Any(m => m.Contains("500", StringComparison.Ordinal)));
+
+        logger.Messages.ShouldContain(m => m.Contains("500", StringComparison.Ordinal));
+        logger.Messages.ShouldNotContain(m => m.Contains(sensitiveBody, StringComparison.Ordinal));
+        logger.Messages.ShouldNotContain(m => m.Contains("do-not-log-command-payload-or-token", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -225,15 +316,21 @@ public class TenantBootstrapHostedServiceTests {
 
     private sealed class TestLogger<T> : ILogger<T> {
         private readonly ConcurrentQueue<string> _messages = new();
+        private readonly ConcurrentQueue<TestLogEntry> _entries = new();
 
         public IReadOnlyCollection<string> Messages => _messages.ToArray();
+        public IReadOnlyCollection<TestLogEntry> Entries => _entries.ToArray();
 
         public IDisposable BeginScope<TState>(TState state)
             where TState : notnull => NullScope.Instance;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => _messages.Enqueue(formatter(state, exception));
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) {
+            string message = formatter(state, exception);
+            _messages.Enqueue(message);
+            _entries.Enqueue(new TestLogEntry(logLevel, eventId, message));
+        }
 
         private sealed class NullScope : IDisposable {
             public static readonly NullScope Instance = new();
@@ -242,4 +339,6 @@ public class TenantBootstrapHostedServiceTests {
             }
         }
     }
+
+    private sealed record TestLogEntry(LogLevel LogLevel, EventId EventId, string Message);
 }

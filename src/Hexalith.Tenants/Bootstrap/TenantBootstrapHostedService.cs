@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using Dapr.Client;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Identity;
@@ -18,6 +19,7 @@ public partial class TenantBootstrapHostedService(
     ILogger<TenantBootstrapHostedService> logger) : IHostedService {
     private const string EventStoreAppId = "eventstore";
     private const string CommandEndpoint = "api/v1/commands";
+    private const long MaxExpectedRejectionProbeBytes = 8192;
 
     public Task StartAsync(CancellationToken cancellationToken) {
         string? userId = options.Value.BootstrapGlobalAdminUserId;
@@ -46,13 +48,13 @@ public partial class TenantBootstrapHostedService(
                 JsonElement payloadElement = JsonSerializer.SerializeToElement(command);
 
                 object commandBody = new {
-                    messageId = Guid.NewGuid().ToString(),
+                    messageId = UniqueIdHelper.GenerateSortableUniqueStringId(),
                     tenant = TenantIdentity.DefaultTenantId,
                     domain = TenantIdentity.GlobalAdministratorsDomain,
                     aggregateId = TenantIdentity.GlobalAdministratorsAggregateId,
                     commandType = nameof(BootstrapGlobalAdmin),
                     payload = payloadElement,
-                    correlationId = Guid.NewGuid().ToString(),
+                    correlationId = UniqueIdHelper.GenerateSortableUniqueStringId(),
                 };
 
                 using HttpRequestMessage httpRequest = daprClient.CreateInvokeMethodRequest(
@@ -65,22 +67,22 @@ public partial class TenantBootstrapHostedService(
                 using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted) {
-                    Log.BootstrapCommandSent(logger, userId);
+                    Log.BootstrapCommandSent(logger);
                     return;
                 }
 
-                string errorBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                string errorBody = await ReadExpectedRejectionProbeAsync(httpResponse.Content, cancellationToken).ConfigureAwait(false);
 
                 // Bootstrap is idempotent at the domain level. A 409 with the
                 // GlobalAdminAlreadyBootstrappedRejection type means the global admin was
                 // already registered (typical on every restart after the first successful run).
                 if (httpResponse.StatusCode == HttpStatusCode.Conflict
                     && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
-                    Log.BootstrapAlreadyDone(logger, userId);
+                    Log.BootstrapAlreadyDone(logger);
                     return;
                 }
 
-                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode, errorBody);
+                Log.BootstrapUnexpectedResponse(logger, (int)httpResponse.StatusCode);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
@@ -93,6 +95,19 @@ public partial class TenantBootstrapHostedService(
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
+    private static async Task<string> ReadExpectedRejectionProbeAsync(HttpContent content, CancellationToken cancellationToken) {
+        try {
+            await content.LoadIntoBufferAsync(MaxExpectedRejectionProbeBytes, cancellationToken).ConfigureAwait(false);
+            return await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (HttpRequestException) {
+            return string.Empty;
+        }
+        catch (InvalidOperationException) {
+            return string.Empty;
+        }
+    }
+
     private static partial class Log {
         [LoggerMessage(
             EventId = 2000,
@@ -103,14 +118,14 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2001,
             Level = LogLevel.Information,
-            Message = "Bootstrap command sent for global administrator: UserId={UserId}")]
-        public static partial void BootstrapCommandSent(ILogger logger, string userId);
+            Message = "Bootstrap command sent for configured global administrator")]
+        public static partial void BootstrapCommandSent(ILogger logger);
 
         [LoggerMessage(
             EventId = 2003,
-            Level = LogLevel.Information,
-            Message = "Bootstrap unexpected response: StatusCode={StatusCode}, Body={Body}")]
-        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode, string body);
+            Level = LogLevel.Warning,
+            Message = "Bootstrap unexpected response: StatusCode={StatusCode}")]
+        public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode);
 
         [LoggerMessage(
             EventId = 2002,
@@ -121,7 +136,7 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2004,
             Level = LogLevel.Information,
-            Message = "Bootstrap skipped: global administrator {UserId} is already registered")]
-        public static partial void BootstrapAlreadyDone(ILogger logger, string userId);
+            Message = "Bootstrap skipped: initial global administrator is already registered")]
+        public static partial void BootstrapAlreadyDone(ILogger logger);
     }
 }

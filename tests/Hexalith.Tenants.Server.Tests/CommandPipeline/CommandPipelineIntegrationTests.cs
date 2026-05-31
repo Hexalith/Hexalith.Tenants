@@ -1,11 +1,13 @@
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Shouldly;
@@ -133,13 +135,13 @@ public class CommandPipelineIntegrationTests {
     private static CommandEnvelope CreateGlobalAdminCommand<T>(T command)
         where T : notnull
         => new(
-            Guid.NewGuid().ToString(),
-            "system",
-            "tenants",
-            "global-administrators",
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            TenantIdentity.DefaultTenantId,
+            TenantIdentity.GlobalAdministratorsDomain,
+            TenantIdentity.GlobalAdministratorsAggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             "test-user",
             null);

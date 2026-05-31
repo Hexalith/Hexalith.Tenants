@@ -1,11 +1,13 @@
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Shouldly;
@@ -16,13 +18,13 @@ public class GlobalAdministratorsAggregateTests {
     private static CommandEnvelope CreateCommand<T>(T command)
         where T : notnull
         => new(
-            Guid.NewGuid().ToString(),
-            "system",
-            "tenants",
-            "global-administrators",
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            TenantIdentity.DefaultTenantId,
+            TenantIdentity.GlobalAdministratorsDomain,
+            TenantIdentity.GlobalAdministratorsAggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             "test-user",
             null);
@@ -31,16 +33,16 @@ public class GlobalAdministratorsAggregateTests {
         where T : notnull
         => new(
             new EventMetadata(
-                Guid.NewGuid().ToString(),
-                "global-administrators",
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                TenantIdentity.GlobalAdministratorsDomain,
                 "GlobalAdministrators",
-                "system",
-                "tenants",
+                TenantIdentity.DefaultTenantId,
+                TenantIdentity.GlobalAdministratorsDomain,
                 sequence,
                 sequence,
                 DateTimeOffset.UtcNow,
-                Guid.NewGuid().ToString(),
-                Guid.NewGuid().ToString(),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
                 "test-user",
                 "v1",
                 typeof(T).FullName ?? typeof(T).Name,
@@ -62,6 +64,31 @@ public class GlobalAdministratorsAggregateTests {
         IEventPayload evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
         ((GlobalAdministratorSet)evt).TenantId.ShouldBe("system");
         ((GlobalAdministratorSet)evt).UserId.ShouldBe("admin-1");
+    }
+
+    [Fact]
+    public async Task Two_bootstrap_submissions_against_same_aggregate_produce_one_success_and_one_rejection() {
+        var aggregate = new GlobalAdministratorsAggregate();
+        CommandEnvelope firstCommand = CreateCommand(new BootstrapGlobalAdmin("admin-1"));
+        CommandEnvelope secondCommand = CreateCommand(new BootstrapGlobalAdmin("admin-2"));
+
+        DomainResult firstResult = await aggregate.ProcessAsync(firstCommand, currentState: null);
+        var state = new GlobalAdministratorsState();
+        state.Apply(firstResult.Events[0].ShouldBeOfType<GlobalAdministratorSet>());
+
+        DomainResult secondResult = await aggregate.ProcessAsync(secondCommand, currentState: state);
+
+        firstResult.IsSuccess.ShouldBeTrue();
+        firstResult.Events.Count.ShouldBe(1);
+        GlobalAdministratorSet created = firstResult.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        created.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
+        created.UserId.ShouldBe("admin-1");
+        secondResult.IsRejection.ShouldBeTrue();
+        secondResult.Events.Count.ShouldBe(1);
+        _ = secondResult.Events[0].ShouldBeOfType<GlobalAdminAlreadyBootstrappedRejection>();
+        state.Administrators.Count.ShouldBe(1);
+        state.Administrators.ShouldContain("admin-1");
+        state.Administrators.ShouldNotContain("admin-2");
     }
 
     // Test 1b: Bootstrap handler invoked with a literal null state → Success.
@@ -273,5 +300,17 @@ public class GlobalAdministratorsAggregateTests {
         result.IsSuccess.ShouldBeTrue();
         GlobalAdministratorSet evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
         evt.UserId.ShouldBe("admin-2");
+    }
+
+    [Fact]
+    public void Applying_persisted_rejection_preserves_bootstrapped_state() {
+        var state = new GlobalAdministratorsState();
+        state.Apply(new GlobalAdministratorSet(TenantIdentity.DefaultTenantId, "admin-1"));
+
+        state.Apply(new GlobalAdminAlreadyBootstrappedRejection(TenantIdentity.DefaultTenantId));
+
+        state.Bootstrapped.ShouldBeTrue();
+        state.Administrators.Count.ShouldBe(1);
+        state.Administrators.ShouldContain("admin-1");
     }
 }
