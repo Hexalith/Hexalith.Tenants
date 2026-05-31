@@ -165,6 +165,15 @@ public class TenantSubmitCommandValidatorTests {
     }
 
     [Fact]
+    public void RemoveTenantConfiguration_payload_with_whitespace_key_passes_validation() {
+        SubmitCommand command = CreateCommand(new RemoveTenantConfiguration("acme", "   "));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Unrelated_command_payload_is_ignored_by_tenant_submit_command_validator() {
         SubmitCommand command = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"));
 

@@ -70,6 +70,11 @@ public sealed class TenantState {
         MarkReplayOnlyEventHandled();
     }
 
+    public void Apply(ConfigurationKeyNotFoundRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
     public void Apply(InsufficientPermissionsRejection e) {
         ArgumentNullException.ThrowIfNull(e);
         MarkReplayOnlyEventHandled();

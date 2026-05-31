@@ -181,9 +181,9 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                     tenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
                     nameof(RemoveTenantConfiguration))]),
-            // Idempotent: key not present → NoOp (desired state already achieved)
+            // Missing key is a business rejection; consumers may rely on this as corrective feedback.
             _ when !state.Configuration.ContainsKey(command.Key)
-                => DomainResult.NoOp(),
+                => DomainResult.Rejection([new ConfigurationKeyNotFoundRejection(tenantId, command.Key)]),
             _ => DomainResult.Success([new TenantConfigurationRemoved(tenantId, command.Key)]),
         };
     }

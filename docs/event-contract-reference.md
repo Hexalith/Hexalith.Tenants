@@ -460,8 +460,8 @@ Published on topic: `tenants.events`
 
 </details>
 
-**Rejections:** `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`
-**NoOp:** If the key does not exist in the tenant's configuration, no event is produced.
+**Rejections:** `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationKeyNotFoundRejection`, `InsufficientPermissionsRejection`
+**Missing key:** If the key does not exist in the tenant's configuration, `ConfigurationKeyNotFoundRejection` is produced and no `TenantConfigurationRemoved` event is produced.
 
 ---
 
@@ -613,6 +613,7 @@ Rejection events are produced when a command violates a business rule. All rejec
 | `RoleEscalationRejection`                      | `TenantId`, `UserId`, `AttemptedRole`                        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `InsufficientPermissionsRejection`             | `TenantId`, `ActorUserId`, `ActorRole?`, `CommandName`        | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `ConfigurationLimitExceededRejection`          | `TenantId`, `LimitType`, `CurrentCount`, `MaxAllowed`         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
+| `ConfigurationKeyNotFoundRejection`            | `TenantId`, `Key`                                             | 404         | Verify the configuration key and tenant context, then retry with an existing key.                |
 
 ### InsufficientPermissionsRejection Detail
 
@@ -656,7 +657,7 @@ The `title`, `detail`, HTTP status, and `correctiveAction` are composed by Event
 | `RemoveUserFromTenant`      | `UserRemovedFromTenant`      | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection`                                |
 | `ChangeUserRole`            | `UserRoleChanged`            | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection`     |
 | `SetTenantConfiguration`    | `TenantConfigurationSet`     | `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection`                     |
-| `RemoveTenantConfiguration` | `TenantConfigurationRemoved` | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
+| `RemoveTenantConfiguration` | `TenantConfigurationRemoved` | `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationKeyNotFoundRejection`, `InsufficientPermissionsRejection`                       |
 | `BootstrapGlobalAdmin`      | `GlobalAdministratorSet`     | `GlobalAdminAlreadyBootstrappedRejection`                                                                                                           |
 | `SetGlobalAdministrator`    | `GlobalAdministratorSet`     | `InsufficientPermissionsRejection`, `GlobalAdministratorAlreadyExistsRejection`                                                                      |
 | `RemoveGlobalAdministrator` | `GlobalAdministratorRemoved` | `InsufficientPermissionsRejection`, `GlobalAdministratorNotFoundRejection`, `LastGlobalAdministratorRejection`                                      |

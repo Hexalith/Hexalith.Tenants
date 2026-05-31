@@ -1082,7 +1082,7 @@ public sealed class TenantConformanceTests {
     }
 
     [Fact]
-    public void NoOp_RemoveTenantConfiguration_KeyNotPresent() {
+    public void Rejection_RemoveTenantConfiguration_KeyNotPresent() {
         // Arrange
         var svc = new InMemoryTenantService();
         _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
@@ -1098,6 +1098,10 @@ public sealed class TenantConformanceTests {
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
+        serviceResult.IsRejection.ShouldBeTrue();
+        ConfigurationKeyNotFoundRejection rejection = serviceResult.Events[0].ShouldBeOfType<ConfigurationKeyNotFoundRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Key.ShouldBe("nonexistent-key");
     }
 
     [Fact]

@@ -2013,6 +2013,9 @@ public class TenantAggregateTests {
         TenantConfigurationRemoved evt = result.Events[0].ShouldBeOfType<TenantConfigurationRemoved>();
         evt.TenantId.ShouldBe("acme");
         evt.Key.ShouldBe("billing.plan");
+
+        state.Apply(evt);
+        state.Configuration.ContainsKey("billing.plan").ShouldBeFalse();
     }
 
     [Fact]
@@ -2100,6 +2103,21 @@ public class TenantAggregateTests {
         _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
+    [Fact]
+    public async Task RemoveTenantConfiguration_disabled_tenant_by_reader_produces_TenantDisabledRejection_not_RBAC() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveTenantConfiguration("acme", "billing.plan"),
+            actorUserId: "reader-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
     // C17: RemoveTenantConfiguration reader → InsufficientPermissionsRejection (AC #2)
     [Fact]
     public async Task RemoveTenantConfiguration_reader_produces_InsufficientPermissionsRejection() {
@@ -2117,9 +2135,9 @@ public class TenantAggregateTests {
         rejection.CommandName.ShouldBe(nameof(RemoveTenantConfiguration));
     }
 
-    // C18: RemoveTenantConfiguration non-existent key → NoOp (AC #2)
+    // C18: RemoveTenantConfiguration non-existent key → ConfigurationKeyNotFoundRejection (AC #2)
     [Fact]
-    public async Task RemoveTenantConfiguration_nonexistent_key_produces_NoOp() {
+    public async Task RemoveTenantConfiguration_nonexistent_key_produces_ConfigurationKeyNotFoundRejection() {
         var aggregate = new TenantAggregate();
         TenantState state = CreateStateWithRolesAndConfig();
         CommandEnvelope cmd = CreateCommand(
@@ -2128,8 +2146,30 @@ public class TenantAggregateTests {
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
-        result.IsNoOp.ShouldBeTrue();
-        result.Events.Count.ShouldBe(0);
+        result.IsRejection.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        ConfigurationKeyNotFoundRejection rejection = result.Events[0].ShouldBeOfType<ConfigurationKeyNotFoundRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Key.ShouldBe("nonexistent");
+        result.Events.ShouldNotContain(e => e is TenantConfigurationRemoved);
+    }
+
+    [Fact]
+    public async Task RemoveTenantConfiguration_missing_key_rejection_preserves_exact_key_and_uses_envelope_aggregate_id() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        const string exactKey = " billing.plan ";
+        CommandEnvelope cmd = CreateCommand(
+            new RemoveTenantConfiguration("body-tenant", exactKey),
+            actorUserId: "owner-user",
+            aggregateId: "acme");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        ConfigurationKeyNotFoundRejection rejection = result.Events[0].ShouldBeOfType<ConfigurationKeyNotFoundRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Key.ShouldBe(exactKey);
     }
 
     // C19: RemoveTenantConfiguration global admin bypasses RBAC (AC #2)

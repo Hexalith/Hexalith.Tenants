@@ -24,6 +24,11 @@ public class RemoveTenantConfigurationValidatorTests {
             .ShouldHaveValidationErrorFor(x => x.Key);
 
     [Fact]
+    public void Should_not_have_error_when_Key_is_whitespace()
+        => _validator.TestValidate(new RemoveTenantConfiguration("acme", "   "))
+            .ShouldNotHaveValidationErrorFor(x => x.Key);
+
+    [Fact]
     public void Should_not_have_error_for_valid_input()
         => _validator.TestValidate(new RemoveTenantConfiguration("acme", "billing.plan"))
             .ShouldNotHaveAnyValidationErrors();

@@ -64,6 +64,7 @@ public class CommandApiRuntimeIntegrationTests {
         yield return [typeof(InsufficientPermissionsRejection), HttpStatusCode.UnprocessableEntity, "insufficient-permissions-rejection"];
         yield return [typeof(RoleEscalationRejection), HttpStatusCode.UnprocessableEntity, "role-escalation-rejection"];
         yield return [typeof(ConfigurationLimitExceededRejection), HttpStatusCode.UnprocessableEntity, "configuration-limit-exceeded-rejection"];
+        yield return [typeof(ConfigurationKeyNotFoundRejection), HttpStatusCode.NotFound, "configuration-key-not-found-rejection"];
         yield return [typeof(UserNotInTenantRejection), HttpStatusCode.UnprocessableEntity, "user-not-in-tenant-rejection"];
         yield return [typeof(LastGlobalAdministratorRejection), HttpStatusCode.UnprocessableEntity, "last-global-administrator-rejection"];
     }
@@ -326,6 +327,43 @@ public class CommandApiRuntimeIntegrationTests {
         TenantConfigurationSet payload = DeserializeEvent<TenantConfigurationSet>(result);
         payload.TenantId.ShouldBe("acme");
         payload.Key.ShouldBe("feature.global-admin");
+    }
+
+    [Fact]
+    public async Task Process_endpoint_removes_existing_tenant_configuration_for_owner() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(RemoveTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new RemoveTenantConfiguration("acme", "feature.enabled")),
+            CreateRoleBehaviorState(),
+            "owner-user");
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeFalse();
+        TenantConfigurationRemoved payload = DeserializeEvent<TenantConfigurationRemoved>(result);
+        payload.TenantId.ShouldBe("acme");
+        payload.Key.ShouldBe("feature.enabled");
+    }
+
+    [Fact]
+    public async Task Process_endpoint_rejects_missing_tenant_configuration_key_for_owner() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(RemoveTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new RemoveTenantConfiguration("acme", "feature.missing")),
+            CreateRoleBehaviorState(),
+            "owner-user");
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldNotContain(e => e.EventTypeName.EndsWith(nameof(TenantConfigurationRemoved), StringComparison.Ordinal));
+        ConfigurationKeyNotFoundRejection rejection = DeserializeEvent<ConfigurationKeyNotFoundRejection>(result);
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Key.ShouldBe("feature.missing");
     }
 
     [Fact]
