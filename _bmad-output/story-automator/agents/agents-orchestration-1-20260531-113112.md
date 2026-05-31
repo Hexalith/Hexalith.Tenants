@@ -449,6 +449,144 @@ createdAt: "2026-05-31T11:31:59Z"
           "fallback": "claude"
         }
       }
+    },
+    {
+      "storyId": "4.1",
+      "title": "Publish Tenant Domain Events as CloudEvents",
+      "complexity": "high",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "4.2",
+      "title": "Expose Consumer DI Registration for Tenant Client Services",
+      "complexity": "medium",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "4.3",
+      "title": "Register Tenant Event Handlers in Under Twenty Lines",
+      "complexity": "medium",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "4.4",
+      "title": "Build a Local Consumer Projection from Tenant Events",
+      "complexity": "high",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "4.5",
+      "title": "React to Tenant Access, Lifecycle, and Configuration Changes",
+      "complexity": "medium",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "4.6",
+      "title": "Provide Idempotent Consumer Guidance and Sample Service",
+      "complexity": "medium",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
     }
   ]
 }

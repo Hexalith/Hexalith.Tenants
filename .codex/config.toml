@@ -8,3 +8,9 @@ args = [
     "Error",
 ]
 command = "aspire"
+
+[features]
+hooks = true
+
+[projects."/home/administrator/projects/hexalith/tenants"]
+trust_level = "trusted"
