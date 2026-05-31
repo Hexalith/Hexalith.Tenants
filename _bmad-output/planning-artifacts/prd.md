@@ -403,12 +403,12 @@ Hexalith.Tenants is a .NET developer tool distributed as NuGet packages and a de
 | Package | Purpose | Dependencies |
 |---------|---------|-------------|
 | `Hexalith.Tenants.Contracts` | Commands, events, result types, identities | Minimal — Hexalith.EventStore.Contracts |
-| `Hexalith.Tenants.Client` | Client abstractions and DI registration | Contracts |
-| `Hexalith.Tenants.Server` | Domain service with aggregate, processors, DAPR integration | Contracts, Client, EventStore.Server |
-| `Hexalith.Tenants.Testing` | In-memory fakes for integration testing | Contracts, Server (same domain logic) |
-| `Hexalith.Tenants.Aspire` | .NET Aspire hosting extensions | Contracts, Client |
+| `Hexalith.Tenants.Client` | Client abstractions, DI registration, and DAPR endpoint integration | Contracts, Dapr.AspNetCore |
+| `Hexalith.Tenants.Server` | Domain service with aggregate, processors, DAPR integration | Contracts, EventStore.Server, DAPR actors/client packages, MediatR, FluentValidation |
+| `Hexalith.Tenants.Testing` | In-memory fakes for integration testing | Contracts, Server (same domain logic), Shouldly, xUnit v3 assertions |
+| `Hexalith.Tenants.Aspire` | .NET Aspire hosting extensions | Aspire.Hosting, CommunityToolkit Aspire DAPR integration |
 
-**Package quality standards:** Source Link, deterministic builds, XML documentation, semantic-release (Conventional Commits, automated SemVer on merge to main), centralized package management via `Directory.Packages.props`, CI validates expected package count before NuGet push.
+**Package quality standards:** Source Link, deterministic builds, semantic-release (Conventional Commits, automated SemVer on merge to main), centralized package management via `Directory.Packages.props`, CI validates expected package count and package-only consumer restore/build behavior before NuGet push.
 
 ### Solution & Project Structure
 
@@ -426,7 +426,7 @@ src/
 tests/
   Hexalith.Tenants.Contracts.Tests    # Tier 1 — unit tests
   Hexalith.Tenants.Client.Tests       # Tier 1 — unit tests
-  Hexalith.Tenants.Server.Tests       # Tier 2 — requires DAPR slim init
+  Hexalith.Tenants.Server.Tests       # Tier 2 — requires full DAPR init
   Hexalith.Tenants.Testing.Tests      # Tier 1 — test the testing fakes
   Hexalith.Tenants.IntegrationTests   # Tier 3 — Aspire E2E contract tests
 
@@ -446,9 +446,9 @@ samples/
 ### Test Architecture
 
 - **Tier 1 — Unit tests:** No external dependencies. Run in CI on every PR
-- **Tier 2 — Integration tests:** Requires DAPR slim init. Server tests with DAPR state/pub-sub
+- **Tier 2 — Integration tests:** Requires full DAPR init. Server tests with DAPR state/pub-sub
 - **Tier 3 — E2E contract tests:** Requires full DAPR init + Docker. Aspire-orchestrated cross-service validation
-- **Framework:** xUnit, Shouldly, NSubstitute, coverlet.collector
+- **Framework:** xUnit v3, Shouldly, NSubstitute, coverlet.collector
 - **Coverage target:** > 80% line coverage, 100% branch coverage on isolation and authorization logic
 
 ### Code Style & Conventions

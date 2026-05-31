@@ -330,7 +330,7 @@ CI/CD remains GitHub Actions plus semantic-release:
 - Restore/build/test on PR and push.
 - Tier 1 and Tier 2 tests in the blocking lane.
 - Tier 3/Aspire tests where infrastructure is available.
-- Package validation before publishing five NuGet packages.
+- Package metadata and package-only consumer validation before publishing five NuGet packages.
 
 Operational telemetry uses OpenTelemetry and structured logging with correlation, tenant, domain, aggregate, causation, command/event type, and stage metadata.
 

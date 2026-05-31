@@ -43,18 +43,18 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 
 development_status:
   # Epic 1: Developers Can Build and Consume the Tenant Platform
-  epic-1: backlog
-  1-1-establish-eventstore-native-solution-structure: backlog
-  1-2-configure-central-build-and-package-governance: backlog
-  1-3-add-ci-quality-gates-for-build-test-coverage-and-package-validation: backlog
-  1-4-verify-consumer-package-reference-experience: backlog
-  epic-1-retrospective: optional
+  epic-1: done
+  1-1-establish-eventstore-native-solution-structure: done
+  1-2-configure-central-build-and-package-governance: done
+  1-3-add-ci-quality-gates-for-build-test-coverage-and-package-validation: done
+  1-4-verify-consumer-package-reference-experience: done
+  epic-1-retrospective: done
 
   # Epic 2: Global Administrators Can Bootstrap and Govern Tenants
-  epic-2: backlog
-  2-1-bootstrap-the-initial-global-administrator: backlog
-  2-2-manage-global-administrator-assignments: backlog
-  2-3-authorize-global-administrators-for-cross-tenant-governance: backlog
+  epic-2: in-progress
+  2-1-bootstrap-the-initial-global-administrator: done
+  2-2-manage-global-administrator-assignments: done
+  2-3-authorize-global-administrators-for-cross-tenant-governance: review
   2-4-create-and-update-tenants: backlog
   2-5-disable-and-re-enable-tenants: backlog
   2-6-return-structured-tenant-governance-rejections: backlog
