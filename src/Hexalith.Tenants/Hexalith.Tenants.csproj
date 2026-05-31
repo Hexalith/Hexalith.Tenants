@@ -3,7 +3,6 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsPublishable>true</IsPublishable>
-    <LangVersion>latest</LangVersion>
     <EnableContainer>true</EnableContainer>
     <ContainerRepository>tenants</ContainerRepository>
     <!-- Tenants.csproj references Hexalith.EventStore.csproj (web host) which causes
