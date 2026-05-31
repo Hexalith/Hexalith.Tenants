@@ -44,7 +44,7 @@ src/
   Hexalith.Tenants.AppHost/          # .NET Aspire AppHost — orchestrates the full topology
   Hexalith.Tenants.Aspire/           # Aspire hosting extensions for consuming AppHosts
   Hexalith.Tenants.Client/           # Client DI registration and event handling
-  Hexalith.Tenants.CommandApi/       # REST API, auth, validation, DAPR actors
+  Hexalith.Tenants/                  # REST API host, auth, validation, DAPR actors
   Hexalith.Tenants.Contracts/        # Commands, events, enums, identities
   Hexalith.Tenants.Server/           # Aggregates, projections, domain logic
   Hexalith.Tenants.ServiceDefaults/  # Shared service config, OpenTelemetry
@@ -84,7 +84,7 @@ scripts/
 
 ### Development Workflow
 
-1. Fork and clone, then initialize root-level submodules: `git submodule update --init Hexalith.EventStore Hexalith.Commons`
+1. Fork and clone, then initialize root-level submodules: `git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer`
 2. Create a feature branch from `main`
 3. Make changes following the code style defined in [`.editorconfig`](.editorconfig)
 4. Ensure all tests pass: `dotnet test Hexalith.Tenants.slnx`

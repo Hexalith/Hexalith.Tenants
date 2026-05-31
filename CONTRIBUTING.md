@@ -17,7 +17,7 @@ Clone the repository, then initialize root-level submodules only:
 ```bash
 git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
-git submodule update --init Hexalith.EventStore Hexalith.Commons
+git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
 ```
 
 > **Windows users:** If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
@@ -84,7 +84,7 @@ feat!: rename TenantAggregate state shape
 2. Make changes and commit using Conventional Commits format
 3. Ensure all Tier 1 and Tier 2 tests pass locally before submitting
 4. Open a PR against `main` with a description of changes
-5. CI will run automatically — PR must pass before merge
+5. CI will run automatically, including package metadata and package-only consumer validation — PR must pass before merge
 6. PRs require at least one approval
 7. On merge to `main`, semantic-release automatically determines the version, publishes NuGet packages, and creates a GitHub Release
 
@@ -93,8 +93,8 @@ feat!: rename TenantAggregate state shape
 All pull requests must pass Tier 1 (unit) and Tier 2 (DAPR integration) tests.
 
 - **New domain logic** requires Tier 1 tests with 100% branch coverage on authorization paths
-- **Test framework:** xUnit + Shouldly + NSubstitute
-- **Coverage:** Collected via coverlet (> 80% line coverage target)
+- **Test framework:** xUnit v3 + Shouldly + NSubstitute
+- **Coverage:** Collected via coverlet (> 80% line coverage target, 100% branch coverage for the configured isolation/auth targets)
 
 Run the full test suite:
 
@@ -122,11 +122,11 @@ dotnet format Hexalith.Tenants.slnx
 
 ## Submodule Management
 
-This repository uses root-level `Hexalith.EventStore` and `Hexalith.Commons` git submodules.
+This repository uses root-level `Hexalith.EventStore`, `Hexalith.Commons`, `Hexalith.AI.Tools`, `Hexalith.Builds`, and `Hexalith.FrontComposer` git submodules.
 
-- **Initial clone:** Run `git submodule update --init Hexalith.EventStore Hexalith.Commons` after cloning
-- **After pulling main:** Run `git submodule update --init Hexalith.EventStore Hexalith.Commons` to sync root-level submodules
-- **When a root-level submodule reference changes in a PR:** Run `git submodule update Hexalith.EventStore Hexalith.Commons` to update your local copy
+- **Initial clone:** Run `git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer` after cloning
+- **After pulling main:** Run `git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer` to sync root-level submodules
+- **When a root-level submodule reference changes in a PR:** Run `git submodule update Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer` to update your local copy
 - **Nested submodules:** Do not use recursive submodule initialization unless a maintainer explicitly asks for nested submodules
 
 > **Important:** Do NOT modify files inside `Hexalith.EventStore/` directly. Changes to the submodule must go through the [EventStore repository](https://github.com/Hexalith/Hexalith.EventStore).
@@ -139,7 +139,7 @@ Key directories:
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/` | Production source code — contracts, client, server, CommandApi, Aspire hosting |
+| `src/` | Production source code — contracts, client, server, REST API host, Aspire hosting |
 | `tests/` | Unit and integration tests |
 | `samples/` | Example consuming service with event subscription |
 | `docs/` | Guides and reference documentation |

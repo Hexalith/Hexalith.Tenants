@@ -1,21 +1,8 @@
 # Hexalith.Tenants - Codex Configuration
 
-## Critical: Glob and Grep Tools Broken — ripgrep Not Installed
+## File Discovery and Search
 
-The `Glob` and `Grep` tools silently fail (return "No files found" for all queries) because **ripgrep (`rg`) is not installed** on this Windows system. Both tools depend on ripgrep internally.
-
-**To fix permanently**: Install ripgrep and restart Codex:
-```
-winget install BurntSushi.ripgrep
-```
-
-**Until fixed — workarounds (MUST follow):**
-
-- **Instead of Glob**: Use `Bash` with `find` or `ls` for file discovery
-  - Example: `find . -name "*.md" -type f` instead of `Glob("**/*.md")`
-- **Instead of Grep**: Use `Bash` with `grep -rn` for content search
-  - Example: `grep -rn "pattern" src/` instead of `Grep("pattern")`
-- **Read tool**: Works normally, continue using it
+Use `rg` and `rg --files` for repository searches when available. If `rg` is unavailable in a local environment, fall back to `find`, `ls`, or `grep -rn` without changing repository behavior.
 
 ## Commit Messages
 
@@ -44,8 +31,8 @@ feat!: rename TenantAggregate state shape
 
 ## CI/CD
 
-- **CI:** GitHub Actions on push/PR to main — restore, build (Release), Tier 1+2 tests
-- **Release:** Triggered on merge to main via semantic-release — determines version from Conventional Commits, tests, pack, publish 5 NuGet packages, creates GitHub Release, updates CHANGELOG.md
+- **CI:** GitHub Actions on push/PR to main — restore, build (Release), Tier 1+2 tests, package metadata validation, and package-only consumer validation
+- **Release:** Triggered on merge to main via semantic-release — determines version from Conventional Commits, tests, packs and validates 5 NuGet packages, validates package-only consumers, publishes to NuGet, creates GitHub Release, updates CHANGELOG.md
 
 ## Submodule Policy
 

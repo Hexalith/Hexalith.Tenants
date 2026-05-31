@@ -63,7 +63,7 @@ Clone the repository, then initialize the root-level submodules:
 ```bash
 git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
-git submodule update --init Hexalith.EventStore Hexalith.Commons
+git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
 ```
 
 > **Windows users:** The repository contains submodule paths such as `Hexalith.Tenants/Hexalith.EventStore/src/...`. If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
