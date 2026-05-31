@@ -618,6 +618,35 @@ FR64: Epic 8 - cross-aggregate timing documentation explains propagation windows
 
 FR65: Epic 8 - compensating command documentation explains explicit correction workflows.
 
+### NFR Coverage Map
+
+| NFR | Primary Story Coverage | Required Evidence |
+| --- | --- | --- |
+| NFR1 | 7.4, command stories in Epics 2-3 | OpenTelemetry command latency measurement and p95 evidence. |
+| NFR2 | Epic 5 query endpoint stories | Query latency measurement for single-page result sets. |
+| NFR3 | 4.2, 7.4 | Event publication latency measurement. |
+| NFR4 | 6.1-6.3 | xUnit timing evidence for in-memory fakes. |
+| NFR5 | 5.7, endpoint stories in Epic 5, 4.2 | Tier 3 isolation tests across read models and event subscriptions. |
+| NFR6 | 2.2, 2.3, 3.1-3.4 | Unit tests for every role escalation path. |
+| NFR7 | Command stories in Epics 2-3, 5.4 | Integration tests proving event audit fields. |
+| NFR8 | 2.5, command stories in Epic 3 | Unit tests proving disabled tenants reject commands. |
+| NFR9 | 7.1, 7.3, 7.6 | Deployment documentation identifying encryption as infrastructure concern. |
+| NFR10 | 2.3, 3.1-3.4, 5.7 | Coverage gate evidence for tenant isolation and role authorization branches. |
+| NFR11 | 7.5 | Load test evidence at target tenant/user volume. |
+| NFR12 | 7.5 | Multi-instance stateless operation evidence. |
+| NFR13 | 7.5 | Startup benchmark for 500,000 events and snapshot baseline. |
+| NFR14 | 4.1-4.3 | CloudEvents conformance tests. |
+| NFR15 | 4.2, 7.1 | DAPR pub/sub abstraction verification. |
+| NFR16 | 5.6, 7.1 | DAPR state store abstraction verification. |
+| NFR17 | 4.2, 7.6 | Pub/sub outage and catch-up integration test. |
+| NFR18 | 8.2 | Event contract compatibility documentation and package validation. |
+| NFR19 | 4.1, 8.2 | Event ID and aggregate version contract tests/docs. |
+| NFR20 | 7.5 | Replay/reconstruction evidence. |
+| NFR21 | 2.4, 3.8 | Command atomicity and conflict tests. |
+| NFR22 | 7.5, 7.6 | Health check availability and readiness evidence. |
+| NFR23 | 4.2, 7.6 | Durable event storage and recovery evidence. |
+| NFR24 | Epic 9 | Phase 2 accessibility and i18n readiness evidence. |
+
 ## Epic List
 
 ### Epic 1: Developers Can Build and Consume the Tenant Platform
@@ -670,9 +699,27 @@ Developers can follow a validated quickstart, understand event contracts, see th
 
 ### Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
 
+**Readiness status:** readiness/planning-only. This epic produces Phase 2 UI dependency maps, specifications, and acceptance-evidence requirements. It is not a shippable Admin UI implementation epic and must not be routed to Developer agents as product delivery work until separate implementation stories are created.
+
+**Routing rule:** Product implementation must not create Developer-agent story files directly from Epic 9 stories. Before Phase 2 UI implementation starts, Product/UX/Architecture must convert these planning outputs into implementation stories with explicit source projections, FrontComposer/Fluent UI dependencies, adapter architecture, command lifecycle behavior, accessibility/localization evidence, and test artifacts.
+
 Phase 2 Admin UI readiness is sequenced around operational access review, truth-state feedback, consequence preview, command lifecycle, audit evidence, accessibility, localization, and FrontComposer dependencies.
 
 **FRs covered:** Supports FR25-FR29, FR31, FR34 through UI surfaces; primary coverage is UX-DR1-UX-DR80 and NFR24.
+
+## Epic Readiness Status
+
+| Epic | Status | Notes |
+| --- | --- | --- |
+| Epic 1 | Implementation-ready | Foundation, package, and CI work can proceed after current artifact cleanup is applied. |
+| Epic 2 | Implementation-ready | Duplicate global administrator and lifecycle semantics are resolved as structured rejections. |
+| Epic 3 | Implementation-ready | Missing configuration key and concurrency semantics are resolved as structured rejection/conflict outcomes. |
+| Epic 4 | Implementation-ready | No readiness blocker identified by the 2026-05-31 assessment. |
+| Epic 5 | Implementation-ready after correction | Projection write safety, query authorization, and cursor security are sequenced before endpoint completion. |
+| Epic 6 | Implementation-ready | No readiness blocker identified by the 2026-05-31 assessment. |
+| Epic 7 | Implementation-ready after correction | Invalid tenant-claim behavior is resolved as fail-closed rejection; deployment readiness smoke tests are split before Developer-agent handoff. |
+| Epic 8 | Implementation-ready | No readiness blocker identified by the 2026-05-31 assessment. |
+| Epic 9 | Readiness/planning-only | Produces Phase 2 UI planning outputs; not implementation-ready UI delivery. |
 
 ## Epic 1: Developers Can Build and Consume the Tenant Platform
 
@@ -869,10 +916,19 @@ So that platform governance can be delegated and recovered without per-tenant ro
 **Then** the aggregate returns a specific last-global-administrator rejection
 **And** the existing global administrator set remains unchanged.
 
-**Given** a duplicate global administrator add or remove operation is submitted
-**When** the requested state is already true
-**Then** the aggregate returns a structured rejection or no-op outcome consistent with EventStore command semantics
-**And** the result is covered by unit tests.
+**Given** a duplicate global administrator add operation is submitted
+**When** the target user is already a global administrator
+**Then** the aggregate returns a structured duplicate-global-administrator rejection
+**And** no additional global administrator added event is produced.
+
+**Given** a duplicate global administrator remove operation is submitted
+**When** the target user is not a global administrator
+**Then** the aggregate returns a structured global-administrator-not-found rejection
+**And** no global administrator removed event is produced.
+
+**Given** duplicate global administrator assignment tests run
+**When** duplicate add and missing remove cases are exercised
+**Then** tests verify the exact rejection types, unchanged aggregate state, and absence of duplicate events.
 
 **Given** global administrator assignment events are serialized
 **When** contract round-trip tests run
@@ -973,10 +1029,19 @@ So that tenant operations can be stopped during risk or restored when the tenant
 **Then** the aggregate rejects it immediately with a structured disabled-tenant rejection
 **And** no state-changing event is produced.
 
-**Given** duplicate disable or enable commands are submitted
-**When** the tenant is already in the requested lifecycle state
-**Then** the aggregate returns a structured duplicate-operation rejection or no-op outcome consistent with EventStore command semantics
-**And** tests document the selected behavior.
+**Given** a duplicate disable command is submitted
+**When** the tenant is already disabled
+**Then** the aggregate returns a structured duplicate-tenant-lifecycle-state rejection
+**And** no tenant disabled event is produced.
+
+**Given** a duplicate enable command is submitted
+**When** the tenant is already enabled
+**Then** the aggregate returns a structured duplicate-tenant-lifecycle-state rejection
+**And** no tenant enabled event is produced.
+
+**Given** tenant lifecycle duplicate tests run
+**When** duplicate disable and duplicate enable cases are exercised
+**Then** tests verify the exact rejection type, current lifecycle state, and absence of duplicate lifecycle events.
 
 **Given** the tenant status enum reserves ordinal 0 as a non-active `Unknown` sentinel (TEN-2 correction)
 **When** a tenant snapshot, read model, or query payload is deserialized with a missing or unrecognized status field
@@ -1237,8 +1302,8 @@ So that obsolete or incorrect tenant-specific settings stop influencing consumin
 
 **Given** the requested configuration key does not exist
 **When** a remove-configuration command is handled
-**Then** the aggregate returns a structured configuration-key-not-found rejection or documented no-op outcome
-**And** no removal event is produced unless the selected EventStore semantics explicitly require one.
+**Then** the aggregate returns a structured configuration-key-not-found rejection
+**And** no tenant-configuration-removed event is produced.
 
 **Given** a non-owner tenant member attempts to remove configuration
 **When** authorization is evaluated
@@ -1298,7 +1363,12 @@ So that concurrent administration does not silently overwrite tenant state.
 **Given** two actors submit conflicting membership commands against the same tenant aggregate version
 **When** EventStore optimistic concurrency is evaluated
 **Then** one command succeeds according to ordering rules
-**And** the conflicting command is rejected or retried according to the documented command pipeline behavior.
+**And** the conflicting command returns a structured concurrency conflict outcome to the caller after the command pipeline's bounded retry policy is exhausted.
+
+**Given** the command pipeline performs any automatic retry
+**When** retry behavior is documented
+**Then** the retry limit, retryable conflict conditions, final rejection mapping, and idempotency interaction are specified in the story implementation notes
+**And** tests verify both successful retry and exhausted-retry conflict outcomes where the EventStore API supports them.
 
 **Given** two actors submit conflicting role-change commands for the same user
 **When** the aggregate state version differs from the expected command context
@@ -1526,169 +1596,13 @@ So that I can copy a safe event-driven integration pattern into my own service.
 
 Users can query tenants, tenant details, users, user memberships, and audit history through safe cursor-based APIs backed by durable projections.
 
-### Story 5.1: Query a Paginated Tenant List
+**Implementation sequencing:** Complete projection write safety, query-side authorization, and cursor security before endpoint delivery. Endpoint stories must prove that returned rows, cursors, errors, and pagination metadata do not leak hidden tenant data, and that the projection state required by the endpoint does not silently overwrite successfully processed events.
 
-As a developer,
-I want to query a paginated list of tenants with status information,
-So that I can discover existing tenants and decide which tenant to inspect.
-
-**Acceptance Criteria:**
-
-**Given** tenant lifecycle events have been projected
-**When** a caller requests `GET /api/tenants`
-**Then** the response returns tenant IDs, names, statuses, and pagination metadata
-**And** the result ordering is deterministic across pages.
-
-**Given** no tenants match the request
-**When** the tenant list endpoint is called
-**Then** the response returns an empty page using the standard query response shape
-**And** it does not return an error for an empty result set.
-
-**Given** a tenant has been disabled or re-enabled
-**When** the list query is served from projections
-**Then** the tenant status reflects the latest successfully projected lifecycle event
-**And** stale projection behavior is documented as eventual consistency.
-
-**Given** the caller supplies page size parameters
-**When** the requested page size is omitted, valid, or above the maximum
-**Then** the endpoint applies the default page size, accepts valid sizes, and enforces the configured maximum.
-
-**Given** tenant list query tests run
-**When** active, disabled, empty, paginated, and invalid-parameter cases are exercised
-**Then** tests verify response shape, ordering, and safe error behavior.
-
-### Story 5.2: Query Tenant Details and Tenant Users
-
-As a tenant user,
-I want to query tenant details and the tenant's users,
-So that I can inspect the current tenant state allowed by my role.
-
-**Acceptance Criteria:**
-
-**Given** a tenant exists and its projection has been updated
-**When** an authorized caller requests `GET /api/tenants/{tenantId}`
-**Then** the response includes tenant metadata, status, users, roles, and configuration visible to that caller
-**And** the response uses typed query DTOs rather than anonymous response shapes.
-
-**Given** a tenant exists and contains users
-**When** an authorized caller requests `GET /api/tenants/{tenantId}/users`
-**Then** the response returns the tenant's users with assigned roles
-**And** the endpoint supports pagination if the user list exceeds one page.
-
-**Given** the requested tenant does not exist
-**When** tenant detail or users are queried
-**Then** the API returns a safe not-found response
-**And** it does not reveal data from another tenant or internal projection keys.
-
-**Given** a caller has TenantReader or higher authority for the tenant
-**When** the caller queries details or users
-**Then** read access is allowed according to tenant role behavior
-**And** no state-changing authority is implied by query access.
-
-**Given** tenant detail and users query tests run
-**When** enabled, disabled, missing, empty-users, multi-page, and unauthorized cases are exercised
-**Then** tests verify filtering, response shape, status codes, and isolation.
-
-### Story 5.3: Query the Tenants a User Belongs To
-
-As a developer or administrator,
-I want to query the list of tenants a user belongs to,
-So that user access can be reviewed without scanning every tenant manually.
-
-**Acceptance Criteria:**
-
-**Given** a user belongs to one or more tenants
-**When** an authorized caller requests `GET /api/users/{userId}/tenants`
-**Then** the response returns each visible tenant with the user's role in that tenant
-**And** results are ordered consistently for pagination.
-
-**Given** the requester asks for their own tenant memberships
-**When** query-side authorization is evaluated
-**Then** the requester can see their own allowed membership rows
-**And** rows outside their authorized scope are not returned.
-
-**Given** a TenantOwner queries another user's tenant memberships
-**When** the target user has memberships in tenants the owner does and does not control
-**Then** only memberships visible through the owner's tenant scope are returned
-**And** memberships in other tenants are excluded without leaking their existence.
-
-**Given** a global administrator queries a user's tenant memberships
-**When** query-side authorization is evaluated
-**Then** the global administrator can see memberships across tenants
-**And** the result still uses pagination and stable ordering.
-
-**Given** user-tenants query tests run
-**When** self, tenant-owner, global-admin, missing-user, no-membership, and cross-tenant cases are exercised
-**Then** tests prove row-level filtering and zero cross-tenant leakage.
-
-### Story 5.4: Query Tenant Access Audit History
-
-As a global administrator,
-I want to query tenant access changes by tenant and date range,
-So that I can reconstruct who changed access and when.
-
-**Acceptance Criteria:**
-
-**Given** tenant lifecycle, membership, role, configuration, and global-admin events have been projected into audit state
-**When** a global administrator requests `GET /api/tenants/{tenantId}/audit` with a date range
-**Then** the response returns matching audit entries for that tenant
-**And** each entry includes support-safe actor, target, scope, outcome, timestamp, and event reference data.
-
-**Given** no audit entries match the date range
-**When** the audit endpoint is called
-**Then** the response returns an empty page
-**And** the empty result does not imply that the tenant is missing unless the tenant itself cannot be found.
-
-**Given** the caller is not a global administrator or otherwise authorized for audit review
-**When** the audit endpoint is called
-**Then** the request is rejected or filtered according to the documented authorization policy
-**And** audit data is not leaked through status codes, cursor tokens, or error bodies.
-
-**Given** the caller requests a page size
-**When** the page size is omitted, valid, or above the maximum
-**Then** the endpoint uses the default page size of 100, accepts valid sizes, and enforces the maximum page size of 1,000.
-
-**Given** audit query tests run
-**When** date boundaries, empty results, multi-page results, unauthorized access, and missing-tenant cases are exercised
-**Then** tests verify audit completeness, ordering, pagination, and safe failures.
-
-### Story 5.5: Provide Safe Cursor-Based Pagination for Query Endpoints
-
-As a tenant API consumer,
-I want all tenant query endpoints to use safe cursor-based pagination,
-So that I can page through results consistently without leaking tenant data.
-
-**Acceptance Criteria:**
-
-**Given** a tenant list, tenant users, user-tenants, or audit query returns more than one page
-**When** the first page is returned
-**Then** the response includes an opaque next cursor
-**And** the cursor can be used to request the next page with stable ordering.
-
-**Given** a cursor is malformed, expired, or mismatched to the endpoint or requester scope
-**When** the cursor is submitted
-**Then** the endpoint returns a safe validation error
-**And** the response does not reveal embedded tenant IDs, user IDs, filters, or internal state.
-
-**Given** list data changes between page requests
-**When** a caller continues paging
-**Then** the endpoint preserves the documented ordering and consistency behavior
-**And** duplicate or skipped records are handled according to the selected cursor strategy.
-
-**Given** a caller attempts to use a cursor generated for another tenant, user, or authorization scope
-**When** the endpoint validates the cursor
-**Then** the request is rejected or returns no unauthorized rows
-**And** cross-tenant leakage is prevented.
-
-**Given** pagination tests run across all list/query endpoints
-**When** default size, maximum size, invalid cursor, scope-mismatched cursor, and concurrent data-change cases are exercised
-**Then** tests verify consistency, security, and endpoint-specific behavior.
-
-### Story 5.6: Persist Tenant Projections Without Silent Write Loss
+### Story 5.1: Persist Per-Tenant Detail Projections Without Silent Write Loss
 
 As a platform operator,
-I want tenant read-model projections to handle concurrent writes safely,
-So that query results and audit reports do not silently lose tenant events.
+I want per-tenant detail projections to handle concurrent writes safely,
+So that tenant detail and user query results do not silently lose tenant events.
 
 **Acceptance Criteria:**
 
@@ -1697,26 +1611,63 @@ So that query results and audit reports do not silently lose tenant events.
 **Then** the write path uses optimistic concurrency, ETag-aware writes, or verified `CachingProjectionActor` fan-in behavior
 **And** no successful event update is silently overwritten.
 
+**Given** per-tenant detail projection write conformance tests run
+**When** tenant detail projection writes race
+**Then** tests prove no silent data loss, deterministic recovery behavior, and enough diagnostics for replay or repair.
+
+### Story 5.2: Persist the Shared Tenant Index Projection Without Silent Write Loss
+
+As a platform operator,
+I want the shared tenant index projection to handle concurrent writes safely,
+So that tenant discovery does not silently lose tenant lifecycle events.
+
+**Acceptance Criteria:**
+
 **Given** multiple tenant events update the shared tenant index projection
 **When** the shared projection state is modified
 **Then** conflicting writes are retried or safely failed according to a documented retry policy
 **And** final index state includes all successfully processed events.
+
+**Given** shared tenant index projection write conformance tests run
+**When** tenant index projection writes race
+**Then** tests prove no silent data loss, deterministic recovery behavior, and enough diagnostics for replay or repair.
+
+### Story 5.3: Persist the Tenant Audit Projection Without Silent Write Loss
+
+As a platform operator,
+I want the tenant audit projection to handle concurrent writes safely,
+So that audit reports remain complete and ordered under access-change concurrency.
+
+**Acceptance Criteria:**
 
 **Given** multiple access-change events update the audit projection close together
 **When** audit state is persisted
 **Then** every successfully processed audit event remains queryable by date range and pagination cursor
 **And** ordering remains deterministic.
 
+**Given** audit projection write conformance tests run
+**When** tenant audit projection writes race
+**Then** tests prove no silent data loss, deterministic recovery behavior, and enough diagnostics for replay or repair.
+
+### Story 5.4: Expose Projection Write Conflict Diagnostics and Recovery Evidence
+
+As a platform operator,
+I want projection write conflicts to be observable and recoverable,
+So that projection failures are not mistaken for successful read-model updates.
+
+**Acceptance Criteria:**
+
 **Given** a projection write conflict exceeds the retry limit
 **When** the projection cannot safely persist state
 **Then** the failure is observable through structured logs or metrics
 **And** the projection does not falsely report a successful update.
 
-**Given** projection write conformance tests run
-**When** tenant detail, tenant index, and audit projection writes race
-**Then** tests prove no silent data loss, deterministic recovery behavior, and enough diagnostics for replay or repair.
+**Given** replay or repair evidence is needed
+**When** projection conflict diagnostics are inspected
+**Then** logs or metrics include support-safe tenant, domain, aggregate, projection type, event type, correlation, causation, and retry metadata
+**And** they do not expose raw payloads, tokens, secrets, or PII.
 
-### Story 5.7: Enforce Query-Side Authorization and Isolation
+### Story 5.5: Enforce Query-Side Authorization and Isolation
 
 As a security-conscious platform owner,
 I want query endpoints to filter results by requester scope,
@@ -1748,6 +1699,164 @@ So that tenant data is never exposed across tenant or role boundaries.
 **When** query endpoints, projections, cursors, and error bodies are exercised across multiple tenants and users
 **Then** tests verify zero cross-tenant data leaks
 **And** coverage includes unauthorized, partially authorized, and global-admin cases.
+
+### Story 5.6: Provide Safe Cursor-Based Pagination for Query Endpoints
+
+As a tenant API consumer,
+I want all tenant query endpoints to use safe cursor-based pagination,
+So that I can page through results consistently without leaking tenant data.
+
+**Acceptance Criteria:**
+
+**Given** a tenant list, tenant users, user-tenants, or audit query returns more than one page
+**When** the first page is returned
+**Then** the response includes an opaque next cursor
+**And** the cursor can be used to request the next page with stable ordering.
+
+**Given** a cursor is malformed, expired, or mismatched to the endpoint or requester scope
+**When** the cursor is submitted
+**Then** the endpoint returns a safe validation error
+**And** the response does not reveal embedded tenant IDs, user IDs, filters, or internal state.
+
+**Given** list data changes between page requests
+**When** a caller continues paging
+**Then** the endpoint preserves the documented ordering and consistency behavior
+**And** duplicate or skipped records are handled according to the selected cursor strategy.
+
+**Given** a caller attempts to use a cursor generated for another tenant, user, or authorization scope
+**When** the endpoint validates the cursor
+**Then** the request is rejected or returns no unauthorized rows
+**And** cross-tenant leakage is prevented.
+
+**Given** pagination tests run across all list/query endpoints
+**When** default size, maximum size, invalid cursor, scope-mismatched cursor, and concurrent data-change cases are exercised
+**Then** tests verify consistency, security, and endpoint-specific behavior.
+
+### Story 5.7: Query a Paginated Tenant List
+
+As a developer,
+I want to query a paginated list of tenants with status information,
+So that I can discover existing tenants and decide which tenant to inspect.
+
+**Acceptance Criteria:**
+
+**Given** tenant lifecycle events have been projected
+**When** a caller requests `GET /api/tenants`
+**Then** the response returns tenant IDs, names, statuses, and pagination metadata
+**And** the result ordering is deterministic across pages.
+
+**Given** no tenants match the request
+**When** the tenant list endpoint is called
+**Then** the response returns an empty page using the standard query response shape
+**And** it does not return an error for an empty result set.
+
+**Given** a tenant has been disabled or re-enabled
+**When** the list query is served from projections
+**Then** the tenant status reflects the latest successfully projected lifecycle event
+**And** stale projection behavior is documented as eventual consistency.
+
+**Given** the caller supplies page size parameters
+**When** the requested page size is omitted, valid, or above the maximum
+**Then** the endpoint applies the default page size, accepts valid sizes, and enforces the configured maximum.
+
+**Given** tenant list query tests run
+**When** active, disabled, empty, paginated, and invalid-parameter cases are exercised
+**Then** tests verify response shape, ordering, and safe error behavior.
+
+### Story 5.8: Query Tenant Details and Tenant Users
+
+As a tenant user,
+I want to query tenant details and the tenant's users,
+So that I can inspect the current tenant state allowed by my role.
+
+**Acceptance Criteria:**
+
+**Given** a tenant exists and its projection has been updated
+**When** an authorized caller requests `GET /api/tenants/{tenantId}`
+**Then** the response includes tenant metadata, status, users, roles, and configuration visible to that caller
+**And** the response uses typed query DTOs rather than anonymous response shapes.
+
+**Given** a tenant exists and contains users
+**When** an authorized caller requests `GET /api/tenants/{tenantId}/users`
+**Then** the response returns the tenant's users with assigned roles
+**And** the endpoint supports pagination if the user list exceeds one page.
+
+**Given** the requested tenant does not exist
+**When** tenant detail or users are queried
+**Then** the API returns a safe not-found response
+**And** it does not reveal data from another tenant or internal projection keys.
+
+**Given** a caller has TenantReader or higher authority for the tenant
+**When** the caller queries details or users
+**Then** read access is allowed according to tenant role behavior
+**And** no state-changing authority is implied by query access.
+
+**Given** tenant detail and users query tests run
+**When** enabled, disabled, missing, empty-users, multi-page, and unauthorized cases are exercised
+**Then** tests verify filtering, response shape, status codes, and isolation.
+
+### Story 5.9: Query the Tenants a User Belongs To
+
+As a developer or administrator,
+I want to query the list of tenants a user belongs to,
+So that user access can be reviewed without scanning every tenant manually.
+
+**Acceptance Criteria:**
+
+**Given** a user belongs to one or more tenants
+**When** an authorized caller requests `GET /api/users/{userId}/tenants`
+**Then** the response returns each visible tenant with the user's role in that tenant
+**And** results are ordered consistently for pagination.
+
+**Given** the requester asks for their own tenant memberships
+**When** query-side authorization is evaluated
+**Then** the requester can see their own allowed membership rows
+**And** rows outside their authorized scope are not returned.
+
+**Given** a TenantOwner queries another user's tenant memberships
+**When** the target user has memberships in tenants the owner does and does not control
+**Then** only memberships visible through the owner's tenant scope are returned
+**And** memberships in other tenants are excluded without leaking their existence.
+
+**Given** a global administrator queries a user's tenant memberships
+**When** query-side authorization is evaluated
+**Then** the global administrator can see memberships across tenants
+**And** the result still uses pagination and stable ordering.
+
+**Given** user-tenants query tests run
+**When** self, tenant-owner, global-admin, missing-user, no-membership, and cross-tenant cases are exercised
+**Then** tests prove row-level filtering and zero cross-tenant leakage.
+
+### Story 5.10: Query Tenant Access Audit History
+
+As a global administrator,
+I want to query tenant access changes by tenant and date range,
+So that I can reconstruct who changed access and when.
+
+**Acceptance Criteria:**
+
+**Given** tenant lifecycle, membership, role, configuration, and global-admin events have been projected into audit state
+**When** a global administrator requests `GET /api/tenants/{tenantId}/audit` with a date range
+**Then** the response returns matching audit entries for that tenant
+**And** each entry includes support-safe actor, target, scope, outcome, timestamp, and event reference data.
+
+**Given** no audit entries match the date range
+**When** the audit endpoint is called
+**Then** the response returns an empty page
+**And** the empty result does not imply that the tenant is missing unless the tenant itself cannot be found.
+
+**Given** the caller is not a global administrator or otherwise authorized for audit review
+**When** the audit endpoint is called
+**Then** the request is rejected or filtered according to the documented authorization policy
+**And** audit data is not leaked through status codes, cursor tokens, or error bodies.
+
+**Given** the caller requests a page size
+**When** the page size is omitted, valid, or above the maximum
+**Then** the endpoint uses the default page size of 100, accepts valid sizes, and enforces the maximum page size of 1,000.
+
+**Given** audit query tests run
+**When** date boundaries, empty results, multi-page results, unauthorized access, and missing-tenant cases are exercised
+**Then** tests verify audit completeness, ordering, pagination, and safe failures.
 
 ## Epic 6: Developers Can Test Tenant Behavior Without Infrastructure
 
@@ -1986,10 +2095,15 @@ So that tenant operations are authorized consistently and unsafe defaults do not
 **Then** it contains or is normalized to `eventstore:tenant=system`
 **And** tenant validation does not fall into a shared anonymous partition silently.
 
-**Given** a token is missing or has an invalid `eventstore:tenant` claim
-**When** a protected tenant endpoint is called
-**Then** the request is rejected or handled through an explicitly documented fallback
-**And** rate-limit partitioning assumptions are tested.
+**Given** a token is missing the `eventstore:tenant` claim
+**When** a protected tenant endpoint is called in production mode
+**Then** the request is rejected with a safe authentication or authorization failure
+**And** no command, query, projection, or rate-limit partition uses an anonymous or fallback tenant.
+
+**Given** a token has an invalid `eventstore:tenant` claim
+**When** a protected tenant endpoint is called in production mode
+**Then** the request is rejected fail-closed
+**And** logs identify the claim contract failure without exposing token material.
 
 **Given** auth tests run
 **When** production-valid, production-invalid, development-valid, missing-claim, and wrong-claim tokens are exercised
@@ -2011,17 +2125,20 @@ So that I can observe latency, failures, and processing health in production.
 **Given** tenant commands are submitted
 **When** command processing completes, rejects, or fails
 **Then** OpenTelemetry spans or metrics record command latency
-**And** p95 command duration can be measured against the 50ms target.
+**And** smoke-level telemetry presence checks run in the normal implementation lane
+**And** p95 command duration evidence is classified as release evidence or scheduled performance evidence unless explicitly approved as a blocking CI gate.
 
 **Given** tenant events are published or projected
 **When** event processing completes, retries, or fails
 **Then** OpenTelemetry spans or metrics record event processing latency and outcome
-**And** p95 event publication duration can be measured against the 50ms target.
+**And** smoke-level telemetry presence checks run in the normal implementation lane
+**And** p95 event publication duration evidence is classified as release evidence or scheduled performance evidence unless explicitly approved as a blocking CI gate.
 
 **Given** query endpoints are called
 **When** read model queries complete
 **Then** query latency is observable
-**And** p95 query duration can be measured for single-page result sets.
+**And** smoke-level telemetry presence checks run in the normal implementation lane
+**And** p95 query duration evidence for single-page result sets is classified as release evidence or scheduled performance evidence unless explicitly approved as a blocking CI gate.
 
 **Given** telemetry is emitted
 **When** logs and spans are inspected
@@ -2063,13 +2180,85 @@ So that horizontal scaling and recovery are predictable.
 **Given** startup reconstruction performance tests run with the target scale data set
 **When** 1,000 tenants with an assumed average of 500 events each are seeded
 **Then** ready-state reconstruction completes within the 30-second target or reports a documented failure
-**And** test evidence is categorized appropriately for CI or scheduled performance lanes.
+**And** the 500,000-event benchmark is classified as scheduled performance evidence, while ordinary readiness and health checks remain in the implementation lane.
 
-### Story 7.6: Validate Deployment Readiness with Smoke Tests and Recovery Checks
+### Story 7.6A: Validate Production Auth Smoke Tests
 
 As a platform operator,
-I want deployment smoke tests and recovery checks,
-So that auth, DAPR, health, and tenant command paths are proven before users depend on the service.
+I want production authentication smoke tests,
+So that valid and invalid identity provider configuration is proven before users depend on the service.
+
+**Acceptance Criteria:**
+
+**Given** production-like smoke tests run
+**When** valid and invalid tokens are used against protected tenant command and query endpoints
+**Then** valid tokens succeed only within their allowed scope
+**And** invalid or misconfigured tokens fail safely.
+
+**Given** production auth smoke-test evidence is captured
+**When** results are reviewed
+**Then** issuer, audience, `eventstore:tenant`, HTTPS metadata, signing/authority source, and development-token separation are documented
+**And** evidence does not expose token material, secrets, or PII.
+
+### Story 7.6B: Validate DAPR Component and Service Invocation Smoke Tests
+
+As a platform operator,
+I want DAPR component and service invocation smoke tests,
+So that tenant command processing can reach required EventStore and Tenants service paths safely.
+
+**Acceptance Criteria:**
+
+**Given** DAPR component smoke tests run
+**When** actor, state store, pub/sub, placement, scheduler, and service invocation inputs are missing or misnamed
+**Then** the failure identifies the missing deployment input or dependency
+**And** it does not produce ambiguous runtime errors or leak secrets.
+
+**Given** the domain processor route is smoke-tested
+**When** EventStore aggregate actors invoke Tenants domain processing
+**Then** the required service invocation path succeeds only through approved DAPR configuration
+**And** deny-by-default service invocation assumptions are preserved.
+
+### Story 7.6C: Validate Health and Dependency Readiness Smoke Tests
+
+As a platform operator,
+I want health and dependency readiness smoke tests,
+So that the service does not report ready before required infrastructure is usable.
+
+**Acceptance Criteria:**
+
+**Given** health or dependency checks fail
+**When** smoke tests run
+**Then** the failure identifies the missing deployment input or dependency
+**And** it does not produce ambiguous runtime errors or leak secrets.
+
+**Given** health and readiness smoke-test evidence is captured
+**When** operators review deployment readiness
+**Then** readiness covers required DAPR/EventStore dependencies and tenant command/query paths
+**And** readiness does not claim success before required dependencies are usable.
+
+### Story 7.6D: Validate Pub/Sub Recovery and Catch-Up Evidence
+
+As a platform operator,
+I want pub/sub recovery and catch-up evidence,
+So that temporary publication failures do not imply tenant event loss.
+
+**Acceptance Criteria:**
+
+**Given** DAPR pub/sub is temporarily unavailable
+**When** tenant commands are submitted and then pub/sub recovers
+**Then** persisted events remain durable
+**And** subscribers or projections can catch up according to documented recovery behavior.
+
+**Given** recovery evidence is captured
+**When** operators inspect logs, metrics, or documented replay output
+**Then** event durability, recovery path, and catch-up result are visible with support-safe identifiers
+**And** raw payloads, tokens, secrets, or PII are not exposed.
+
+### Story 7.6E: Publish the Deployment Readiness Checklist and Evidence Template
+
+As a platform operator,
+I want a deployment readiness checklist and evidence template,
+So that production readiness proof is repeatable across environments.
 
 **Acceptance Criteria:**
 
@@ -2077,21 +2266,6 @@ So that auth, DAPR, health, and tenant command paths are proven before users dep
 **When** an operator verifies Tenants in an environment
 **Then** the checklist covers issuer, audience, `eventstore:tenant`, HTTPS metadata, signing/authority source, DAPR components, service invocation, and health endpoints
 **And** development token guidance is clearly separated from production IdP setup.
-
-**Given** production-like smoke tests run
-**When** valid and invalid tokens are used against protected tenant command and query endpoints
-**Then** valid tokens succeed only within their allowed scope
-**And** invalid or misconfigured tokens fail safely.
-
-**Given** DAPR pub/sub is temporarily unavailable
-**When** tenant commands are submitted and then pub/sub recovers
-**Then** persisted events remain durable
-**And** subscribers or projections can catch up according to documented recovery behavior.
-
-**Given** health or dependency checks fail
-**When** smoke tests run
-**Then** the failure identifies the missing deployment input or dependency
-**And** it does not produce ambiguous runtime errors or leak secrets.
 
 **Given** deployment readiness documentation and smoke tests are reviewed
 **When** operators prepare a production deployment
@@ -2302,6 +2476,10 @@ So that incorrect tenant access changes are corrected explicitly and auditably.
 
 ## Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
 
+**Readiness status:** readiness/planning-only. This epic produces Phase 2 UI dependency maps, specifications, and acceptance-evidence requirements. It is not a shippable Admin UI implementation epic and must not be routed to Developer agents as product delivery work until separate implementation stories are created.
+
+**Routing rule:** Product implementation must not create Developer-agent story files directly from Epic 9 stories. Before Phase 2 UI implementation starts, Product/UX/Architecture must convert these planning outputs into implementation stories with explicit source projections, FrontComposer/Fluent UI dependencies, adapter architecture, command lifecycle behavior, accessibility/localization evidence, and test artifacts.
+
 Phase 2 Admin UI readiness is sequenced around operational access review, truth-state feedback, consequence preview, command lifecycle, audit evidence, accessibility, localization, and FrontComposer dependencies.
 
 ### Story 9.1: Map Fluent UI and FrontComposer Dependencies for Tenant Admin Screens
@@ -2507,6 +2685,8 @@ So that dense access-review workflows remain usable without sacrificing truth or
 As a product owner planning UI implementation,
 I want accessibility, localization, and responsive evidence requirements defined before UI stories start,
 So that Phase 2 work cannot ship without proving the operational trust surface is usable.
+
+**Implementation split directive:** If these outputs become implementation backlog later, split this story into focused proof targets: 9.7A keyboard, focus, and modal accessibility evidence; 9.7B screen reader, live region, and status accessibility evidence; 9.7C localization and message composition evidence; 9.7D reduced motion, forced colors, contrast, and visual accessibility evidence; and 9.7E responsive layout and scenario evidence matrix.
 
 **Acceptance Criteria:**
 

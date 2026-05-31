@@ -1,5 +1,5 @@
 # generated: 2026-05-27
-# last_updated: 2026-05-27
+# last_updated: 2026-05-31
 # project: Hexalith.Tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-27
-last_updated: 2026-05-27
+last_updated: 2026-05-31
 project: Hexalith.Tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -85,13 +85,16 @@ development_status:
 
   # Epic 5: Operators and Developers Can Query Tenant State and Audit Access
   epic-5: backlog
-  5-1-query-a-paginated-tenant-list: backlog
-  5-2-query-tenant-details-and-tenant-users: backlog
-  5-3-query-the-tenants-a-user-belongs-to: backlog
-  5-4-query-tenant-access-audit-history: backlog
-  5-5-provide-safe-cursor-based-pagination-for-query-endpoints: backlog
-  5-6-persist-tenant-projections-without-silent-write-loss: backlog
-  5-7-enforce-query-side-authorization-and-isolation: backlog
+  5-1-persist-per-tenant-detail-projections-without-silent-write-loss: backlog
+  5-2-persist-the-shared-tenant-index-projection-without-silent-write-loss: backlog
+  5-3-persist-the-tenant-audit-projection-without-silent-write-loss: backlog
+  5-4-expose-projection-write-conflict-diagnostics-and-recovery-evidence: backlog
+  5-5-enforce-query-side-authorization-and-isolation: backlog
+  5-6-provide-safe-cursor-based-pagination-for-query-endpoints: backlog
+  5-7-query-a-paginated-tenant-list: backlog
+  5-8-query-tenant-details-and-tenant-users: backlog
+  5-9-query-the-tenants-a-user-belongs-to: backlog
+  5-10-query-tenant-access-audit-history: backlog
   epic-5-retrospective: optional
 
   # Epic 6: Developers Can Test Tenant Behavior Without Infrastructure
@@ -109,7 +112,11 @@ development_status:
   7-3-validate-production-authentication-and-eventstore-tenant-claims: backlog
   7-4-expose-tenant-command-and-event-metrics-with-opentelemetry: backlog
   7-5-prove-stateless-operation-health-and-startup-reconstruction: backlog
-  7-6-validate-deployment-readiness-with-smoke-tests-and-recovery-checks: backlog
+  7-6a-validate-production-auth-smoke-tests: backlog
+  7-6b-validate-dapr-component-and-service-invocation-smoke-tests: backlog
+  7-6c-validate-health-and-dependency-readiness-smoke-tests: backlog
+  7-6d-validate-pubsub-recovery-and-catch-up-evidence: backlog
+  7-6e-publish-the-deployment-readiness-checklist-and-evidence-template: backlog
   epic-7-retrospective: optional
 
   # Epic 8: Developers Can Adopt Through Documentation and Demo Evidence
@@ -123,6 +130,7 @@ development_status:
   epic-8-retrospective: optional
 
   # Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
+  # planning-only: do not mark Epic 9 stories ready-for-dev until converted into Phase 2 UI implementation stories.
   epic-9: backlog
   9-1-map-fluent-ui-and-frontcomposer-dependencies-for-tenant-admin-screens: backlog
   9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: backlog

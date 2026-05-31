@@ -64,7 +64,7 @@ The PRD defines 65 functional requirements across 11 categories:
 | Observability & Operations | FR54-FR58 | OpenTelemetry metrics, stateless operation, DAPR deployment, CI quality gates |
 | Documentation & Adoption | FR59-FR65 | Quickstart, event contract reference, sample service, demo, eventual-consistency docs, compensating command docs |
 
-The epic breakdown maps these requirements into 12 epics and 41 stories. Epics 1-8 cover the backend/package/documentation MVP. Epics 9-11 harden query correctness, projection durability, and production authorization. Epic 12 is Phase 2 Admin UI dependency sequencing and should not be treated as Phase 1 backend scope.
+The selected implementation planning set maps these requirements into 9 epics. Epics 1-8 cover the backend/package/documentation MVP. Query correctness, projection durability, production authorization, and deployment readiness are represented inside Epics 5 and 7. Epic 9 is Phase 2 Admin UI readiness and dependency sequencing; it should not be treated as Phase 1 backend scope or as shippable UI implementation.
 
 **Non-Functional Requirements:**
 
@@ -637,14 +637,11 @@ Hexalith.Tenants/
 - Epic 2 Tenant lifecycle/global admin -> `Contracts/Commands`, `Contracts/Events`, `Server/Aggregates`, `src/Hexalith.Tenants/Bootstrap`.
 - Epic 3 Membership/roles/config -> `Server/Aggregates`, `Server/Validators`, rejection events, aggregate tests.
 - Epic 4 Event integration -> `Client/Handlers`, `Client/Subscription`, `samples/Hexalith.Tenants.Sample`.
-- Epic 5 Tenant queries -> `Contracts/Queries`, `Server/Projections`, `src/Hexalith.Tenants/Controllers`, `src/Hexalith.Tenants/Queries`.
+- Epic 5 Tenant queries and projection safety -> `Contracts/Queries`, `Server/Projections`, `src/Hexalith.Tenants/Controllers`, `src/Hexalith.Tenants/Queries`, cursor/pagination utilities, projection write policy, and projection recovery tests.
 - Epic 6 Testing package -> `src/Hexalith.Tenants.Testing`, `tests/Hexalith.Tenants.Testing.Tests`.
-- Epic 7 Deployment/observability -> `AppHost`, `Aspire`, `ServiceDefaults`, `Telemetry`, `Health`.
+- Epic 7 Deployment/observability/production auth -> `AppHost`, `Aspire`, `ServiceDefaults`, `Telemetry`, `Health`, `Configuration`, `Validation`, auth tests, production auth docs, and deployment smoke tests.
 - Epic 8 Documentation/adoption -> `docs/`, `README.md`, sample project.
-- Epic 9 Query hardening -> `Queries`, query controller tests, cursor/pagination utilities.
-- Epic 10 Projection durability -> host projection state store, projection write policy, projection recovery tests.
-- Epic 11 Production auth -> `Configuration`, `Validation`, auth tests, production auth docs.
-- Epic 12 Phase 2 UI sequencing -> `docs/tenants-ui-*`, future FrontComposer adapter module only after readiness.
+- Epic 9 Phase 2 UI readiness -> `docs/tenants-ui-*`, dependency maps, UX specifications, acceptance evidence plans, and future FrontComposer adapter module only after readiness.
 
 **Cross-Cutting Concerns:**
 
@@ -744,7 +741,7 @@ The project structure supports the decisions. The package split maps cleanly to 
 ### Requirements Coverage Validation ✅
 
 **Epic/Feature Coverage:**
-All 12 epics have architectural support. Epics 1-8 map to the backend/package/documentation MVP. Epics 9-11 map to query hardening, projection durability, and production auth readiness. Epic 12 is correctly scoped as Phase 2 UI sequencing.
+All 9 selected epics have architectural support. Epics 1-8 map to the backend/package/documentation MVP, with query hardening, projection durability, and production auth readiness represented inside Epics 5 and 7. Epic 9 is correctly scoped as Phase 2 UI readiness and dependency sequencing, not shippable UI implementation.
 
 **Functional Requirements Coverage:**
 All FR groups are covered:

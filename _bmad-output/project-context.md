@@ -1,10 +1,10 @@
 ---
 project_name: 'Hexalith.Tenants'
 user_name: 'Jerome'
-date: '2026-05-20'
+date: '2026-05-31'
 sections_completed: ['technology_stack', 'language_rules', 'framework_rules', 'testing_rules', 'code_quality', 'workflow_rules', 'critical_rules']
 existing_patterns_found: 47
-rule_count: 315
+rule_count: 322
 status: 'complete'
 optimized_for_llm: true
 ---
@@ -34,11 +34,12 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### DAPR
 - **DAPR SDK `1.17.9`** — `Dapr.Client`, `Dapr.AspNetCore`, `Dapr.Actors`, `Dapr.Actors.AspNetCore` (keep on the same version family). Before bumping, verify Tier 2 (`Server.Tests`) and Tier 3 (`IntegrationTests`) pass against the new version.
-- **`CommunityToolkit.Aspire.Hosting.Dapr 13.0.0`** is the DAPR sidecar integration for Aspire — not the obsolete `Aspire.Hosting.Dapr` workload package.
+- **`CommunityToolkit.Aspire.Hosting.Dapr 13.3.0-preview.1.260514-0647`** is the DAPR sidecar integration for Aspire — not the obsolete `Aspire.Hosting.Dapr` workload package. Treat the API as preview-sensitive.
 
 ### .NET Aspire
-- **`Aspire.Hosting 13.3.3`** (stable). The following preview integrations are intentional because no stable equivalent currently exists: `Aspire.Hosting.Docker` + `Aspire.Hosting.Kubernetes` (`13.1.2-preview.1.26125.13`), `Aspire.Hosting.Keycloak` (`13.3.3-preview.1.26264.13`). Before promoting any to a stable version, verify `Aspire.AppHost.Sdk` compatibility.
-- **Other Aspire packages**: `Aspire.Hosting.Azure.AppContainers 13.1.2` (Azure Container Apps deploy target), `Aspire.Hosting.Redis 13.1.1` (DAPR state store backing), `Aspire.Hosting.Testing 13.3.3` (integration tests).
+- **`Aspire.Hosting 13.3.5`** (stable) and **`Aspire.Hosting.Testing 13.3.5`**. AppHost still uses `Aspire.AppHost.Sdk/13.3.3`; verify SDK compatibility before changing Aspire package families.
+- The following preview integrations are intentional because no stable equivalent currently exists: `Aspire.Hosting.Docker` + `Aspire.Hosting.Kubernetes` (`13.1.2-preview.1.26125.13`), `Aspire.Hosting.Keycloak` (`13.3.5-preview.1.26270.6`). Before promoting any to a stable version, verify `Aspire.AppHost.Sdk` compatibility.
+- **Other Aspire packages**: `Aspire.Hosting.Azure.AppContainers 13.1.2` (Azure Container Apps deploy target), `Aspire.Hosting.Redis 13.1.1` (DAPR state store backing).
 - **Aspire CLI is the orchestrator**. Do not install the obsolete Aspire workload (`dotnet workload install aspire`); use `Aspire.AppHost.Sdk` + Aspire CLI. AppHost lives in `src/Hexalith.Tenants.AppHost`; topology edits require an Aspire restart.
 
 ### Application Frameworks
@@ -52,7 +53,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **`xunit.v3 3.2.2`** — this is xUnit **v3**, NOT v2. The API differs (lifecycle, assertions, runners). Never switch to `xunit` (v2 packages); they cannot coexist meaningfully.
 - **Shouldly `4.3.0`** for assertions — never use `Assert.*` directly even though xUnit allows it.
 - **NSubstitute `6.0.0-rc.1`** — RC pinned for .NET 10 compatibility. Allowed to bump only when 6.0.0 stable ships with verified .NET 10 support.
-- **Testcontainers `4.10.0`**, **coverlet.collector `10.0.1`**, **Microsoft.NET.Test.Sdk `18.5.1`**, **Microsoft.AspNetCore.Mvc.Testing `10.0.8`**, **YamlDotNet `17.1.0`** (used for DAPR component YAML fixtures in tests).
+- **Testcontainers `4.10.0`**, **coverlet.collector `10.0.1`**, **Microsoft.NET.Test.Sdk `18.5.1`**, **Microsoft.AspNetCore.Mvc.Testing `10.0.8`**, **YamlDotNet `18.0.0`** (used for DAPR component YAML fixtures in tests).
 - All test projects inherit `tests/Directory.Build.props` (`IsPackable=false`, `IsTestProject=true`, global `using Xunit`, suppresses `IDE1006;CA2007;xUnit1051`). Do not add per-file `using Xunit;`.
 
 ### Publishing
@@ -60,7 +61,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Containers via .NET SDK** (no Dockerfiles). Opt in per project with `<EnableContainer>true</EnableContainer>` + `<ContainerRepository>image-name</ContainerRepository>`. Defaults from `Directory.Build.targets`: `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`, registry `registry.hexalith.com`, user `app` (non-root), port 8080.
 
 ### Tooling Notes
-- **Ripgrep NOT installed on the dev box** — `Glob`/`Grep` tools silently return empty. Until fixed (`winget install BurntSushi.ripgrep`), use `Bash` + `find`/`ls`/`grep -rn`. `Read` tool works normally.
+- **Ripgrep is available in this workspace** — prefer `rg` / `rg --files` for code and file searches.
 
 ---
 
@@ -83,7 +84,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **No `_` prefix on records** — records use PascalCase positional parameters.
 
 ### Records vs Classes
-- **`record` for immutable contracts** — Commands (`public record CreateTenant(string TenantId, string Name, string? Description);`), Events (`public record TenantCreated(...) : IEventPayload;`), Rejections (implement `IRejectionEvent`).
+- **`record` for immutable contracts** — Commands (`public record CreateTenant(string TenantId, string Name, string? Description);`), Events (`public record TenantCreated(...) : IEventPayload;`), Rejections (implement `IRejectionEvent`), query contracts, and read DTOs.
 - **`class` for stateful types** — Aggregates (`TenantAggregate`), State (`TenantState`), Projections, Validators.
 - **No `class` keyword + `IEventPayload`** — events are always records.
 
@@ -92,7 +93,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Pure function**: no I/O, no DAPR, no async, no captured state. Reflection-based discovery requires the `static` modifier.
 - **`ArgumentNullException.ThrowIfNull(command)`** (and on `envelope` when present) at the top — guard clauses are not optional even though `.editorconfig` lowers CA1062 to warning.
 - **Never throw for business rule violations** — return `DomainResult.Rejection([new XxxRejection(...)])` instead. Exceptions in Handle bypass EventStore's idempotency cache, causing duplicate-command replay.
-- **`AggregateId` comes from `envelope.AggregateId`**, not from the command body. The platform tenant is `"system"` and the domain is `"tenants"` — agents must never hard-code these.
+- **`AggregateId` comes from `envelope.AggregateId`**, not from the command body. Prefer `TenantIdentity.DefaultTenantId`, `TenantIdentity.Domain`, `TenantIdentity.GlobalAdministratorsDomain`, and `TenantIdentity.GlobalAdministratorsAggregateId` instead of hard-coding identity literals.
 - **`switch` expressions with `_ when` guards** are the idiomatic shape (see existing Handle methods).
 
 ### Apply Methods (State)
@@ -124,8 +125,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Identity Scheme
 - **Platform `TenantId` is `"system"`** — a static deployment prerequisite, not dynamic. Must be pre-registered in EventStore's `appsettings.json` domain service registry AND in the IdP's JWT claims (`eventstore:tenant = "system"`). The quickstart treats this as a hard prerequisite — agents must not assume it's auto-provisioned.
-- **Domain is `"tenants"`**. **AggregateId** is the managed tenant ID for `TenantAggregate`, or the literal `"global-administrators"` for `GlobalAdministratorsAggregate` (singleton).
-- **Actor ID format**: `"{tenant}:{domain}:{aggregateId}"` → e.g., `"system:tenants:acme-corp"`.
+- **Tenant domain is `"tenants"`**. **AggregateId** is the managed tenant ID for `TenantAggregate`.
+- **Global administrator domain is `"global-administrators"`** and the singleton aggregate ID is also `"global-administrators"`. Do not route global-administrator events as normal tenant-domain events.
+- **Actor ID format**: `"{tenant}:{domain}:{aggregateId}"` → e.g., `"system:tenants:acme-corp"` or `"system:global-administrators:global-administrators"`.
 - **Every event payload must include `TenantId` as a top-level field.** (Envelope `TenantId` is always `"system"`; consumers identify the managed tenant only from the payload field.)
 - **IDs are ULIDs, not GUIDs.** `messageId`, `correlationId`, `aggregateId`, `causationId` must parse via `Ulid.TryParse`. Never `Guid.TryParse` — ULIDs and GUIDs share a 36-char shape coincidentally. This is inherited from EventStore (Epic 2 R2-A7).
 
@@ -160,6 +162,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Layer 2 — Domain RBAC**: Inside aggregate `Handle` methods, check `state.Users[envelope.UserId]` against required `TenantRole` via `IsAuthorized(state, userId, requiredRole)`. Enforces Reader/Contributor/Owner hierarchy.
 - **Layer 2b — Query-side row filtering**: `GetUserTenantsQuery` handler filters result rows based on requester scope (self / TenantOwner-of-target-tenant / GlobalAdmin).
 - **GlobalAdmin override**: indicated by `actor:globalAdmin` extension metadata on `CommandEnvelope`; `IsGlobalAdmin(envelope)` returns true and Handle bypasses per-tenant RBAC. Never trust user-supplied claims — the extension is populated by EventStore's claims transformation.
+- **Client-submitted reserved extensions are untrusted**. Never consume `actor:globalAdmin` or equivalent authority flags unless they came from trusted server-side claims transformation.
 - **Use `envelope.UserId` (JWT `sub`) for user identity.** Never `name` or `email`.
 - **Architectural boundary**: Tenants is the source of truth for membership — it cannot self-authorize. Layer 2 (domain RBAC in Handle) is canonical for Tenants' OWN authorization. EventStore's `IRbacValidator`/`ITenantValidator` interfaces exist for **consuming** services, not for Tenants. Refactoring Handle-method RBAC into a validator behavior introduces a circular dependency.
 
@@ -191,9 +194,11 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Single command endpoint**: `POST /api/commands` (EventStore's `CommandsController`).
 - **Query endpoints** on Tenants host: `GET /api/tenants`, `GET /api/tenants/{tenantId}`, `GET /api/tenants/{tenantId}/users`, `GET /api/users/{userId}/tenants`, `GET /api/tenants/{tenantId}/audit`.
 - **Internal query dispatch** uses EventStore's `SubmitQuery`/`QueryRouter` (MediatR). Query contracts implement `IQueryContract` with `QueryType`/`Domain`/`ProjectionType`. Controllers translate REST → `SubmitQuery`.
+- **Query controllers are thin adapters**: validate route/query input, derive authenticated user from JWT `sub`, validate signed opaque cursors, then dispatch `SubmitQuery`. Query authorization and filtering belongs in projection/query handling, not controller branching.
 - **Error responses follow RFC 7807 Problem Details.** Rejection events are mapped to HTTP status codes by a `RejectionToHttpStatusMapper` middleware (404 for not-found, 409 for conflict, 422 for other domain rejections). The `type` field carries the rejection event type name for programmatic consumer handling. New rejection events need a mapping registration — verify whether the mapper is reflection-driven or explicit before adding rejections that should map to a non-default (422) status.
 - **JSON: camelCase** (`JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase`).
 - **List responses**: `{ "items": [...], "cursor": "next-page-token", "hasMore": true }` — cursor-based pagination only, never offset/limit.
+- **Cursors are signed, opaque, and scope-bound**. Never add offset/limit pagination or cursors that can be replayed across tenants/users/query shapes.
 - **ETag pre-check** at controller level: `If-None-Match` → `304 Not Modified` (served by `CachingProjectionActor`).
 
 ### MediatR Pipeline (Command Path)
@@ -261,7 +266,19 @@ Order: `FluentValidation → AuthorizationBehavior → SubmitCommandHandler → 
 - **Tier 1** (`Server.Tests/Aggregates/`): Handle method rejects when `envelope.UserId` is not in `state.Users`.
 - **Tier 2** (`Server.Tests/Authorization/`): `AuthorizationBehavior` rejects requests with mismatched tenant scope in JWT claims.
 - **Tier 2/3** (`IntegrationTests/CrossTenantIsolationTests.cs`): API-level — create TenantA/UserX-Owner, TenantB/UserY-Owner, attempt cross-tenant ops with the wrong scope, assert `403 Forbidden` on command AND query paths.
-- **Additionally assert**: pagination cursors don't encode other tenants' IDs; error response bodies (RFC 7807 Problem Details) don't leak cross-tenant data.
+- **Additionally assert**: signed opaque cursors reject tampering and scope mismatch; pagination cursors don't encode or replay other tenants' IDs; error response bodies (RFC 7807 Problem Details) don't leak cross-tenant data.
+
+**Query pagination/cursor behavior**:
+- Cover cursor tampering, scope mismatch, tenant/user mismatch, page-size clamping, disabled tenant behavior, and orphaned membership behavior when touching query code.
+- Cursor tests should verify both rejection shape and absence of cross-tenant identifiers in the response body.
+
+**Projection write safety**:
+- Projection write tests must verify ETag/concurrency behavior and final stored state, not only returned HTTP status or handler result.
+- Retry tests must prove optimistic-concurrency conflicts merge or preserve existing projection state according to the projection-specific policy; never accept last-write-wins as an incidental outcome.
+
+**Auth/RBAC changes**:
+- Authorization changes require coverage at the API gate, aggregate/domain RBAC, global-admin override, and query-side row filtering layers.
+- Tests must prove client-supplied `actor:globalAdmin` or reserved extensions cannot grant authority.
 
 **Naming convention — `tests/Hexalith.Tenants.Contracts.Tests/NamingConventionTests.cs`** (Tier 1):
 - Reflection over `Contracts.Commands`/`.Events`/`.Events.Rejections` verifies verb/past-verb/`Rejection` suffix conventions.
@@ -309,6 +326,11 @@ Order: `FluentValidation → AuthorizationBehavior → SubmitCommandHandler → 
 ---
 
 ## Code Quality & Style Rules
+
+### Formatting & Analyzer Governance
+- Keep `.editorconfig` formatting: CRLF, UTF-8, 4-space indentation, trimmed trailing whitespace, and final newline.
+- Keep warnings clean because `TreatWarningsAsErrors=true`; fix compiler/analyzer warnings instead of suppressing locally.
+- Do not add StyleCop, SonarAnalyzer, Roslynator, XML-documentation enforcement, or analyzer packages from sibling repos unless the task explicitly changes Tenants governance.
 
 ### Project Dependency Direction (Hard Architectural Constraint)
 **Rule: never add a reference that flows away from `Contracts`.** The allowed edges below; any reverse edge fails the build and breaks semver.
@@ -390,6 +412,7 @@ logger.LogInformation($"Tenant {tenantId} created with name {name}");
 - **Use `sub` as the authenticated user identifier** — never `name`, `email`, or other user-controllable claims.
 - **Tenant validation happens BEFORE state rehydration** (see Framework → MediatR Pipeline Step 2). Don't reorder; this is a security-critical checkpoint.
 - **DAPR access control is deny-by-default**; new service-to-service paths require explicit caller AppId in the receiver's config.
+- **Do not introduce direct Redis, database, broker, or storage coupling** into domain/server packages when EventStore/DAPR abstractions already own the boundary.
 
 ### Extension Methods (DI Registration)
 - **Pattern**: `AddHexalithTenants(this IServiceCollection services)` + overload `(this IServiceCollection services, Action<HexalithTenantsOptions> configureOptions)` — both return `IServiceCollection` for chaining. Match the existing pattern in `src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs`.
@@ -419,6 +442,10 @@ logger.LogInformation($"Tenant {tenantId} created with name {name}");
 ---
 
 ## Development Workflow Rules
+
+### Repository Root
+- Work from the actual repo root `Hexalith.Tenants/`, not the parent BMad workspace. Solution, package, source, tests, and repo-local `_bmad-output/` files live under that directory.
+- Use `Hexalith.Tenants.slnx` for solution-level commands.
 
 ### Conventional Commits (Required — semantic-release Depends On It)
 Format: `<type>(<optional scope>): <description>`
@@ -468,9 +495,10 @@ Format: `<type>(<optional scope>): <description>`
 - **Never skip git hooks** (`--no-verify`) or signing (`--no-gpg-sign`) without explicit user approval.
 
 ### Pre-Commit Verification (Required)
-- **Run `dotnet build && dotnet test`** (at minimum the affected Tier 1 projects) before committing. No green, no commit.
+- **Validate narrowly first**, then broaden when touching shared contracts, auth, AppHost, DAPR, projections, or public APIs. At minimum, run the affected build/test projects before committing. No green, no commit.
 - For Tier 2 changes: `dapr init` must be run beforehand; expect Docker running.
 - For Aspire/AppHost changes: validate with `aspire run` and Aspire CLI diagnostics before pushing.
+- Production-auth and Keycloak changes require smoke/integration evidence with Keycloak enabled; `EnableKeycloak=false` is dev-mode only.
 
 ### Code Review Expectation (Reviewer-Driven Patches Are the Norm)
 - **Senior code review is a mandatory pipeline stage**, not a rubber stamp. Inherited from `Hexalith.EventStore` culture: Epic 2 had a 5/5 reviewer-found patch rate.
@@ -484,6 +512,7 @@ Format: `<type>(<optional scope>): <description>`
 
 ### Submodules
 - **`Hexalith.EventStore`, `Hexalith.AI.Tools`, `Hexalith.Builds`, `Hexalith.Commons`, `Hexalith.FrontComposer`** are root-level submodules. Initialize with `git submodule update --init` — NEVER `--recursive`.
+- Treat submodules as separate roots unless the task explicitly targets them. Do not mix their code, tests, generated artifacts, or package governance into unrelated Tenants changes.
 - **Modifying a submodule**: commit inside the submodule first (separate repo), push, then update the parent's submodule pointer in a follow-up commit. Submodule changes propagate to all consumers of that submodule.
 - **`Hexalith.EventStore` is the framework dependency** — changes there affect Tenants, FrontComposer, and any other Hexalith repo using EventStore. Coordinate breaking changes before publishing.
 
@@ -502,8 +531,10 @@ Format: `<type>(<optional scope>): <description>`
 - **Planning artifacts** live in `_bmad-output/planning-artifacts/` (PRD, architecture, epics, product brief, sprint change proposals, implementation-readiness reports).
 - **Implementation artifacts** live in `_bmad-output/implementation-artifacts/` (sprint status, story files like `2-3-tenant-aggregate-lifecycle.md`).
 - **Both are untracked** — don't commit `_bmad-output/` to PRs.
+- Update BMad artifacts when the workflow requires it, but do not mix BMad artifact churn into unrelated code PRs.
 - **`_bmad/` is BMAD framework tooling** (tracked). Do not modify framework files (`_bmad/bmm/`, `_bmad/cis/`, etc.) without explicit user approval — changes affect every BMAD-using repo.
 - **Story spec files** are the source of truth for an in-flight story. Implementation must satisfy all Acceptance Criteria in the story file before merge.
+- **`sprint-status.yaml`** should be updated only through the relevant BMad workflow.
 - **Implementation Readiness Reports** validate that PRD/architecture/epics align before a sprint starts. The latest report is in `_bmad-output/planning-artifacts/implementation-readiness-report-{date}.md`.
 
 ### Pull Request Etiquette
@@ -526,14 +557,15 @@ _The highest-stakes rules from all categories above. If an agent has time for on
 ### Security & Multi-Tenancy
 - **Tenant validation MUST happen before state rehydration** in the AggregateActor pipeline (Step 2 before Step 3). Never reorder.
 - **Never trust user-controllable JWT claims as identity.** Use `envelope.UserId` from JWT `sub` only. Never `name`, `email`, `display_name`.
-- **Sanitize `CommandEnvelope.Extensions` at the API boundary** before they enter the pipeline.
+- **Sanitize `CommandEnvelope.Extensions` at the API boundary** before they enter the pipeline. Never trust client-submitted `actor:globalAdmin` or other reserved extensions.
 - **Never log event payloads, command payloads, secrets, JWT tokens, or PII** at any level.
 - **Cross-tenant isolation tests** (Tier 1 + Tier 2 + Tier 2/3) are non-negotiable for NFR5 (zero leaks). Cursor tokens and error bodies must also be tested for leaks.
 
 ### Domain Correctness
 - **Never throw for business rule violations.** Return `DomainResult.Rejection([new XxxRejection(...)])`. Exceptions bypass EventStore's idempotency cache and cause duplicate-command replay.
-- **`AggregateId` comes from `envelope.AggregateId`**, not from the command body. Platform tenant is `"system"`; domain is `"tenants"` — never hard-code these in commands or events.
+- **`AggregateId` comes from `envelope.AggregateId`**, not from the command body. Use `TenantIdentity` constants instead of adding new hard-coded platform tenant/domain/global-admin literals.
 - **Every event payload must include `TenantId` as a top-level field** (envelope `TenantId` is always `"system"`).
+- **Global administrators use the separate `global-administrators` domain** and singleton aggregate ID. Do not route global-admin events as normal tenant-domain events.
 - **IDs are ULIDs, not GUIDs** — `Ulid.TryParse`, never `Guid.TryParse` on `messageId`/`correlationId`/`aggregateId`/`causationId`.
 - **Rejection event payloads carry structured data only** — IDs, enums, counts. Never English strings (they're persisted forever).
 - **Empty-tenant bootstrap exception**: `AddUserToTenant` skips owner-only RBAC when `state.HasMembershipHistory == false`. Preserve this.
@@ -544,6 +576,7 @@ _The highest-stakes rules from all categories above. If an agent has time for on
 - **`GlobalAdministratorsAggregate`** — plural "Administrators." Easy to mistype.
 - **Handle methods are `public static`** and discovered by signature (2-arg or 3-arg with `CommandEnvelope`). Renaming `Handle` or changing return type breaks dispatch.
 - **Use `CachingProjectionActor`** for projection state; cross-tenant index path remains conditional pending Story 5.2 fan-in verification.
+- **Projection writes must preserve optimistic concurrency and ETag behavior.** Do not collapse retry/merge logic to last-write-wins.
 - **`Hexalith.Tenants` host must expose the `/process` domain processor route** — AggregateActor invokes it via DAPR. Missing route stalls pipeline at Step 4.
 - **Bootstrap goes through the full MediatR pipeline**, never a shortcut. Multi-instance N-1 rejections at Information level are the contract.
 
@@ -553,9 +586,12 @@ _The highest-stakes rules from all categories above. If an agent has time for on
 - **Never run `git submodule update --init --recursive`** — nested submodules break the build.
 - **Never install the obsolete Aspire workload** (`dotnet workload install aspire`). Use Aspire CLI + `Aspire.AppHost.Sdk`.
 - **Dependency direction never reverses** toward `Contracts`. Cross-module references are same-tier (`Tenants.{Tier} → EventStore.{Tier}`).
+- **Do not add direct Redis/database/broker coupling** when EventStore/DAPR already owns the infrastructure boundary.
 
 ### Test Integrity
 - **Never disable the conformance test, naming-convention tests, or serialization round-trip tests** to ship a change. They are release blockers.
+- **Never skip auth/isolation or projection write-safety tests** to make a story pass.
+- **Use signed opaque scoped cursors**; never add offset/limit pagination or replayable cross-scope cursors.
 - **Never use `Assert.*`** — Shouldly only.
 - **Never write Tier 2/3 tests that assert only HTTP status or mock-call counts** — inspect state-store end-state.
 - **Never `Thread.Sleep` / `Task.Delay`** to wait for async state — poll observable state with a bounded timeout.
@@ -571,6 +607,8 @@ _The highest-stakes rules from all categories above. If an agent has time for on
 
 ### Style & Code Quality
 - **K&R brace style** — opening `{` on same line. Diverges from EventStore's Allman; don't "fix."
+- **Prefer existing project boundaries over new abstractions.** Add shared abstractions only when they match an established boundary or remove real duplication.
+- **Controllers are adapters**: route/query validation, authenticated identity extraction, cursor validation, and dispatch. Domain logic belongs in aggregates; read logic belongs in projections/query handlers.
 - **Default to `sealed`** for new types. Exceptions are aggregates/state/projections/read models (open for EventStore inheritance).
 - **`System.Text.Json` only** — never Newtonsoft.Json. Use the shared `JsonSerializerOptions` factory; never inline `new JsonSerializerOptions()`.
 - **`DateTimeOffset`** (not `DateTime`) for timestamps; field name convention `{Action}At`.
@@ -578,7 +616,7 @@ _The highest-stakes rules from all categories above. If an agent has time for on
 - **XML docs not enforced** — add only when the comment carries non-trivial context, OR when matching the existing public DI extension pattern.
 
 ### Tooling
-- **Ripgrep NOT installed on the dev box** — `Glob`/`Grep` tools silently return empty. Use `Bash` + `find` / `grep -rn` until fixed.
+- **Use ripgrep first** — `rg` / `rg --files` are available and should be preferred for code and file searches.
 
 ---
 
@@ -600,4 +638,4 @@ _The highest-stakes rules from all categories above. If an agent has time for on
 - Review periodically for outdated rules (especially the version pins and preview-Aspire notes).
 - Remove rules that become obvious or stop preventing real mistakes.
 
-Last Updated: 2026-05-20
+Last Updated: 2026-05-31
