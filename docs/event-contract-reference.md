@@ -374,8 +374,8 @@ Published on topic: `tenants.events`
 {
     "TenantId": "acme-corp",
     "UserId": "jane-doe",
-    "OldRole": 2,
-    "NewRole": 1
+    "OldRole": "TenantContributor",
+    "NewRole": "TenantOwner"
 }
 ```
 

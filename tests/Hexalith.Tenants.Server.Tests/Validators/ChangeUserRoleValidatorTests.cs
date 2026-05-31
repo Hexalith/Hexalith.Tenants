@@ -23,4 +23,9 @@ public class ChangeUserRoleValidatorTests {
     public void Should_have_error_when_NewRole_is_invalid_enum()
         => _validator.TestValidate(new ChangeUserRole("acme", "user-1", (TenantRole)99))
             .ShouldHaveValidationErrorFor(x => x.NewRole);
+
+    [Fact]
+    public void Should_have_error_when_NewRole_is_Unknown()
+        => _validator.TestValidate(new ChangeUserRole("acme", "user-1", TenantRole.Unknown))
+            .ShouldHaveValidationErrorFor(x => x.NewRole);
 }

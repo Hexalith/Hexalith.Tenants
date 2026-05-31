@@ -467,17 +467,20 @@ public class TenantAggregateTests {
 
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test tenant", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         state.Apply(new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+        state.Apply(new UserAddedToTenant("acme", "user-2", TenantRole.TenantOwner));
         state.HasMembershipHistory.ShouldBeTrue();
         state.Apply(new UserRoleChanged("acme", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor));
         state.Apply(new TenantConfigurationSet("acme", "billing.plan", "pro"));
 
         state.Users["user-1"].ShouldBe(TenantRole.TenantContributor);
+        state.Users["user-2"].ShouldBe(TenantRole.TenantOwner);
         state.Configuration["billing.plan"].ShouldBe("pro");
 
         state.Apply(new UserRemovedFromTenant("acme", "user-1"));
         state.Apply(new TenantConfigurationRemoved("acme", "billing.plan"));
 
         state.Users.ContainsKey("user-1").ShouldBeFalse();
+        state.Users["user-2"].ShouldBe(TenantRole.TenantOwner);
         state.HasMembershipHistory.ShouldBeTrue();
         state.Configuration.ContainsKey("billing.plan").ShouldBeFalse();
     }
@@ -717,6 +720,63 @@ public class TenantAggregateTests {
         roleEvt.NewRole.ShouldBe(TenantRole.TenantContributor);
     }
 
+    [Theory]
+    [InlineData(TenantRole.TenantReader, TenantRole.TenantContributor)]
+    [InlineData(TenantRole.TenantReader, TenantRole.TenantOwner)]
+    [InlineData(TenantRole.TenantContributor, TenantRole.TenantReader)]
+    [InlineData(TenantRole.TenantContributor, TenantRole.TenantOwner)]
+    [InlineData(TenantRole.TenantOwner, TenantRole.TenantReader)]
+    [InlineData(TenantRole.TenantOwner, TenantRole.TenantContributor)]
+    public async Task ChangeUserRole_allows_all_assignable_role_transitions(TenantRole oldRole, TenantRole newRole) {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "target-user", oldRole));
+        state.Apply(new UserAddedToTenant("acme", "bystander-user", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("acme", "target-user", newRole),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        UserRoleChanged evt = result.Events[0].ShouldBeOfType<UserRoleChanged>();
+        evt.UserId.ShouldBe("target-user");
+        evt.OldRole.ShouldBe(oldRole);
+        evt.NewRole.ShouldBe(newRole);
+
+        state.Apply(evt);
+        state.Users["target-user"].ShouldBe(newRole);
+        state.Users["owner-user"].ShouldBe(TenantRole.TenantOwner);
+        state.Users["bystander-user"].ShouldBe(TenantRole.TenantReader);
+    }
+
+    [Fact]
+    public async Task ChangeUserRole_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "reader-user", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("body-tenant", "reader-user", TenantRole.TenantContributor),
+            actorUserId: "owner-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRoleChanged evt = result.Events[0].ShouldBeOfType<UserRoleChanged>();
+        evt.TenantId.ShouldBe("envelope-tenant");
+        evt.UserId.ShouldBe("reader-user");
+        evt.OldRole.ShouldBe(TenantRole.TenantReader);
+        evt.NewRole.ShouldBe(TenantRole.TenantContributor);
+    }
+
     // Test 23: ChangeUserRole on null state → TenantNotFoundRejection (AC #5)
     [Fact]
     public async Task ChangeUserRole_on_null_state_produces_TenantNotFoundRejection() {
@@ -727,6 +787,20 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task ChangeUserRole_not_found_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("body-tenant", "user-1", TenantRole.TenantContributor),
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantNotFoundRejection rejection = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 24: ChangeUserRole on disabled tenant → TenantDisabledRejection (AC #5)
@@ -745,6 +819,50 @@ public class TenantAggregateTests {
         _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
     }
 
+    [Fact]
+    public async Task ChangeUserRole_disabled_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new TenantDisabled("envelope-tenant", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("body-tenant", "reader-user", TenantRole.TenantContributor),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantDisabledRejection rejection = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
+    }
+
+    [Fact]
+    public async Task ChangeUserRole_disabled_state_wins_over_RBAC_membership_same_role_and_role_validation() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("acme", "reader-user", TenantRole.TenantReader));
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope unauthorizedInvalidRole = CreateCommand(
+            new ChangeUserRole("acme", "missing-user", TenantRole.Unknown),
+            actorUserId: "unknown-user");
+        CommandEnvelope sameRole = CreateCommand(
+            new ChangeUserRole("acme", "reader-user", TenantRole.TenantReader),
+            actorUserId: "reader-user");
+
+        DomainResult unauthorizedInvalidRoleResult = await aggregate.ProcessAsync(unauthorizedInvalidRole, currentState: state);
+        DomainResult sameRoleResult = await aggregate.ProcessAsync(sameRole, currentState: state);
+
+        foreach (DomainResult result in new[] { unauthorizedInvalidRoleResult, sameRoleResult }) {
+            result.IsRejection.ShouldBeTrue();
+            TenantDisabledRejection rejection = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+            rejection.TenantId.ShouldBe("acme");
+        }
+    }
+
     // Test 25: ChangeUserRole when user not member → UserNotInTenantRejection (AC #5)
     [Fact]
     public async Task ChangeUserRole_when_user_not_member_produces_UserNotInTenantRejection() {
@@ -759,6 +877,26 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+    }
+
+    [Fact]
+    public async Task ChangeUserRole_not_member_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("body-tenant", "missing-user", TenantRole.TenantContributor),
+            actorUserId: "owner-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        UserNotInTenantRejection rejection = result.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
+        rejection.UserId.ShouldBe("missing-user");
     }
 
     // Test 26: ChangeUserRole with same role → NoOp (AC #5)
@@ -793,6 +931,28 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+    }
+
+    [Fact]
+    public async Task ChangeUserRole_role_escalation_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "reader-user", TenantRole.TenantReader));
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("body-tenant", "reader-user", (TenantRole)99),
+            actorUserId: "owner-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        RoleEscalationRejection rejection = result.Events[0].ShouldBeOfType<RoleEscalationRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
+        rejection.UserId.ShouldBe("reader-user");
+        rejection.AttemptedRole.ShouldBe((TenantRole)99);
     }
 
     // Test 28: AddUserToTenant on disabled tenant with existing member → TenantDisabledRejection (verifies switch arm ordering) (AC #1, #2)
@@ -1120,7 +1280,10 @@ public class TenantAggregateTests {
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("reader-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+        rejection.CommandName.ShouldBe(nameof(ChangeUserRole));
     }
 
     // R11: ChangeUserRole by Contributor → InsufficientPermissionsRejection (AC #2)
@@ -1136,7 +1299,33 @@ public class TenantAggregateTests {
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
-        _ = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe("contributor-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantContributor);
+        rejection.CommandName.ShouldBe(nameof(ChangeUserRole));
+    }
+
+    [Fact]
+    public async Task RBAC_ChangeUserRole_insufficient_permissions_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "reader-user", TenantRole.TenantReader));
+        state.Apply(new UserAddedToTenant("envelope-tenant", "target-user", TenantRole.TenantContributor));
+
+        CommandEnvelope cmd = CreateCommand(
+            new ChangeUserRole("body-tenant", "target-user", TenantRole.TenantOwner),
+            actorUserId: "reader-user",
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
+        rejection.ActorUserId.ShouldBe("reader-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantReader);
+        rejection.CommandName.ShouldBe(nameof(ChangeUserRole));
     }
 
     // R12: ChangeUserRole by Owner → Success (AC #3)

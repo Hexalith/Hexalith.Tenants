@@ -188,23 +188,24 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
     public static DomainResult Handle(ChangeUserRole command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
         return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin) — must precede domain checks so unauthorized users get rejection, not NoOp
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
-                    command.TenantId, envelope.UserId,
+                    tenantId, envelope.UserId,
                     state.Users.TryGetValue(envelope.UserId, out TenantRole changeRole) ? changeRole : null,
                     nameof(ChangeUserRole))]),
             _ when !IsAssignableRole(command.NewRole)
-                => DomainResult.Rejection([new RoleEscalationRejection(command.TenantId, command.UserId, command.NewRole)]),
+                => DomainResult.Rejection([new RoleEscalationRejection(tenantId, command.UserId, command.NewRole)]),
             _ when !state.Users.ContainsKey(command.UserId)
-                => DomainResult.Rejection([new UserNotInTenantRejection(command.TenantId, command.UserId)]),
+                => DomainResult.Rejection([new UserNotInTenantRejection(tenantId, command.UserId)]),
             _ when state.Users[command.UserId] == command.NewRole
                 => DomainResult.NoOp(),
-            _ => DomainResult.Success([new UserRoleChanged(command.TenantId, command.UserId, state.Users[command.UserId], command.NewRole)]),
+            _ => DomainResult.Success([new UserRoleChanged(tenantId, command.UserId, state.Users[command.UserId], command.NewRole)]),
         };
     }
 

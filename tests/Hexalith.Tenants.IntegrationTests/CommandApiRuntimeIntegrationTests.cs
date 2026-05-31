@@ -135,6 +135,45 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Process_endpoint_dispatches_ChangeUserRole_with_current_state() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Tenant from /process", DateTimeOffset.UtcNow));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "reader-user", TenantRole.TenantReader));
+
+        var request = new DomainServiceRequest(
+            new CommandEnvelope(
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                "system",
+                "tenants",
+                "acme",
+                nameof(ChangeUserRole),
+                JsonSerializer.SerializeToUtf8Bytes(new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor)),
+                UniqueIdHelper.GenerateSortableUniqueStringId(),
+                null,
+                "owner-user",
+                null),
+            state);
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/process", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
+        _ = result.ShouldNotBeNull();
+        result.IsRejection.ShouldBeFalse();
+        result.Events.Count.ShouldBe(1);
+        result.Events[0].EventTypeName.ShouldEndWith(nameof(UserRoleChanged));
+        UserRoleChanged? payload = JsonSerializer.Deserialize<UserRoleChanged>(result.Events[0].Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.UserId.ShouldBe("reader-user");
+        payload.OldRole.ShouldBe(TenantRole.TenantReader);
+        payload.NewRole.ShouldBe(TenantRole.TenantContributor);
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_problem_details_for_domain_rejection() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
@@ -349,6 +388,52 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_accepts_ChangeUserRole_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "change-role-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateChangeUserRoleRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(ChangeUserRole));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        ChangeUserRole? payload = JsonSerializer.Deserialize<ChangeUserRole>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.UserId.ShouldBe("alice");
+        payload.NewRole.ShouldBe(TenantRole.TenantOwner);
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_422_problem_details_for_AddUserToTenant_role_escalation() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
@@ -372,6 +457,46 @@ public class CommandApiRuntimeIntegrationTests {
             useTestAuthentication: false);
         using HttpClient client = CreateJwtClient(factory);
         Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateAddUserToTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Role Escalation Rejection");
+        details.Status.ShouldBe(422);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/role-escalation-rejection");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("role-escalation-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(RoleEscalationRejection).FullName);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_422_problem_details_for_ChangeUserRole_role_escalation() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: RoleEscalationRejection", "change-role-escalation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(RoleEscalationRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateChangeUserRoleRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
@@ -1451,6 +1576,17 @@ public class CommandApiRuntimeIntegrationTests {
             "tenants",
             "acme",
             nameof(RemoveUserFromTenant),
+            payload);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateChangeUserRoleRequest() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new ChangeUserRole("acme", "alice", TenantRole.TenantOwner));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(ChangeUserRole),
             payload);
     }
 

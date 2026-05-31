@@ -72,6 +72,40 @@ public class TenantSubmitCommandValidatorTests {
     }
 
     [Fact]
+    public void ChangeUserRole_payload_with_unknown_role_fails_validation() {
+        SubmitCommand command = CreateCommand(new ChangeUserRole("acme", "user-1", TenantRole.Unknown));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.NewRole");
+    }
+
+    [Fact]
+    public void ChangeUserRole_payload_with_missing_role_fails_validation() {
+        SubmitCommand command = CreateCommand(
+            nameof(ChangeUserRole),
+            """{"TenantId":"acme","UserId":"user-1"}"""u8.ToArray());
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.NewRole");
+    }
+
+    [Fact]
+    public void ChangeUserRole_payload_with_unrecognized_role_name_fails_validation() {
+        SubmitCommand command = CreateCommand(
+            nameof(ChangeUserRole),
+            """{"TenantId":"acme","UserId":"user-1","NewRole":"GlobalAdministrator"}"""u8.ToArray());
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == nameof(SubmitCommand.Payload));
+    }
+
+    [Fact]
     public void SetTenantConfiguration_payload_with_empty_key_fails_validation() {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", string.Empty, "value"));
 
