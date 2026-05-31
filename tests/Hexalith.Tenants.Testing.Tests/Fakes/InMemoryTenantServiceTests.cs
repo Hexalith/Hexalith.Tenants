@@ -305,19 +305,30 @@ public class InMemoryTenantServiceTests {
     // ─── Additional: NoOp and Rejection do NOT mutate state ───
 
     [Fact]
-    public void NoOp_result_does_not_mutate_state() {
+    public void Duplicate_lifecycle_rejection_does_not_mutate_state_or_event_history() {
         var svc = new InMemoryTenantService();
         _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
         _ = svc.ProcessCommand(new DisableTenant("acme"));
 
         int eventCountBefore = svc.EventHistory.Count;
 
-        // DisableTenant on already disabled tenant → NoOp
-        DomainResult result = svc.ProcessCommand(new DisableTenant("acme"));
-        result.IsNoOp.ShouldBeTrue();
+        DomainResult duplicateDisable = svc.ProcessCommand(new DisableTenant("acme"));
+        duplicateDisable.IsRejection.ShouldBeTrue();
+        TenantLifecycleStateAlreadySetRejection disableRejection = duplicateDisable.Events[0].ShouldBeOfType<TenantLifecycleStateAlreadySetRejection>();
+        disableRejection.CurrentStatus.ShouldBe(TenantStatus.Disabled);
+        disableRejection.RequestedStatus.ShouldBe(TenantStatus.Disabled);
 
-        // EventHistory should not have grown
-        svc.EventHistory.Count.ShouldBe(eventCountBefore);
+        _ = svc.ProcessCommand(new EnableTenant("acme"));
+        int eventCountAfterEnable = svc.EventHistory.Count;
+
+        DomainResult duplicateEnable = svc.ProcessCommand(new EnableTenant("acme"));
+        duplicateEnable.IsRejection.ShouldBeTrue();
+        TenantLifecycleStateAlreadySetRejection enableRejection = duplicateEnable.Events[0].ShouldBeOfType<TenantLifecycleStateAlreadySetRejection>();
+        enableRejection.CurrentStatus.ShouldBe(TenantStatus.Active);
+        enableRejection.RequestedStatus.ShouldBe(TenantStatus.Active);
+
+        eventCountAfterEnable.ShouldBe(eventCountBefore + 1);
+        svc.EventHistory.Count.ShouldBe(eventCountAfterEnable);
     }
 
     [Fact]

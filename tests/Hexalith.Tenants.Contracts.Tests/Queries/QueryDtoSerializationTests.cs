@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Serialization;
 
 using Shouldly;
 
@@ -11,7 +12,7 @@ namespace Hexalith.Tenants.Contracts.Tests.Queries;
 public class QueryDtoSerializationTests {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new TenantStatusJsonConverter(), new JsonStringEnumConverter() },
     };
 
     [Fact]
@@ -86,6 +87,16 @@ public class QueryDtoSerializationTests {
         string memberJson = JsonSerializer.Serialize(member, JsonOptions);
 
         memberJson.ShouldContain("\"TenantOwner\"");
+    }
+
+    [Fact]
+    public void TenantSummary_with_unrecognized_status_deserializes_to_Unknown() {
+        const string json = """{"tenantId":"tenant-1","name":"Test","status":"Suspended"}""";
+
+        TenantSummary? summary = JsonSerializer.Deserialize<TenantSummary>(json, JsonOptions);
+
+        _ = summary.ShouldNotBeNull();
+        summary.Status.ShouldBe(TenantStatus.Unknown);
     }
 
     [Fact]

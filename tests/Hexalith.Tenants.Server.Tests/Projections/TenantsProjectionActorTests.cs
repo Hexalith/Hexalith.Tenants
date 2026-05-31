@@ -10,6 +10,7 @@ using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Projections;
 
@@ -27,7 +28,7 @@ public class TenantsProjectionActorTests {
 
     private static readonly JsonSerializerOptions _jsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+        Converters = { new TenantStatusJsonConverter(), new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
 
     // --- Test Fixtures ---

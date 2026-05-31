@@ -56,7 +56,7 @@ development_status:
   2-2-manage-global-administrator-assignments: done
   2-3-authorize-global-administrators-for-cross-tenant-governance: done
   2-4-create-and-update-tenants: done
-  2-5-disable-and-re-enable-tenants: backlog
+  2-5-disable-and-re-enable-tenants: done
   2-6-return-structured-tenant-governance-rejections: backlog
   2-7-preserve-command-source-of-truth-when-pub-sub-is-unavailable: backlog
   epic-2-retrospective: optional

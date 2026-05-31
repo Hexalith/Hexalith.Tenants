@@ -90,6 +90,11 @@ public sealed class TenantState {
         MarkReplayOnlyEventHandled();
     }
 
+    public void Apply(TenantLifecycleStateAlreadySetRejection e) {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
     public void Apply(TenantNotFoundRejection e) {
         ArgumentNullException.ThrowIfNull(e);
         MarkReplayOnlyEventHandled();

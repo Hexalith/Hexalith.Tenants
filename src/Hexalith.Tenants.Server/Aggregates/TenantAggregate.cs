@@ -36,7 +36,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         string tenantId = envelope.AggregateId;
         return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantContributor)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
@@ -56,7 +56,13 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             ? GlobalAdminRequired(tenantId, envelope, state, nameof(DisableTenant))
             : state switch {
                 null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
-                { Status: TenantStatus.Disabled } => DomainResult.NoOp(),
+                { Status: TenantStatus.Disabled } => DomainResult.Rejection([
+                    new TenantLifecycleStateAlreadySetRejection(
+                        tenantId,
+                        TenantStatus.Disabled,
+                        TenantStatus.Disabled,
+                        nameof(DisableTenant)),
+                ]),
                 _ => DomainResult.Success([new TenantDisabled(tenantId, DateTimeOffset.UtcNow)]),
             };
     }
@@ -69,7 +75,13 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             ? GlobalAdminRequired(tenantId, envelope, state, nameof(EnableTenant))
             : state switch {
                 null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
-                { Status: TenantStatus.Active } => DomainResult.NoOp(),
+                { Status: TenantStatus.Active } => DomainResult.Rejection([
+                    new TenantLifecycleStateAlreadySetRejection(
+                        tenantId,
+                        TenantStatus.Active,
+                        TenantStatus.Active,
+                        nameof(EnableTenant)),
+                ]),
                 _ => DomainResult.Success([new TenantEnabled(tenantId, DateTimeOffset.UtcNow)]),
             };
     }
@@ -79,7 +91,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(envelope);
         return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin OR first user bootstrap on empty tenant)
             _ when !IsGlobalAdmin(envelope)
                 && state.HasMembershipHistory
@@ -101,7 +113,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(envelope);
         return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin)
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
@@ -122,7 +134,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(command.Value);
         return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: TenantOwner only (skip if GlobalAdmin)
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
@@ -157,7 +169,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(command.Key);
         return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: TenantOwner only (skip if GlobalAdmin)
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)
@@ -177,7 +189,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(envelope);
         return state switch {
             null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            { Status: not TenantStatus.Active } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
             // RBAC: Owner only (skip if GlobalAdmin) — must precede domain checks so unauthorized users get rejection, not NoOp
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantOwner)

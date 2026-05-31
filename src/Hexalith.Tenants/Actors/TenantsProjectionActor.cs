@@ -11,6 +11,7 @@ using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
@@ -32,7 +33,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
     private static readonly JsonSerializerOptions s_queryJsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new TenantStatusJsonConverter(), new JsonStringEnumConverter() },
     };
 
     private readonly DaprClient _daprClient;

@@ -8,6 +8,8 @@ using Dapr.Actors.Client;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 
 using Shouldly;
@@ -147,6 +149,107 @@ public class DaprEndToEndTests {
     }
 
     [DaprFact]
+    public async Task Duplicate_DisableTenant_is_rejected_end_to_end_without_duplicate_TenantDisabled_event() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create and disable the tenant once.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-dup-disable-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Disable Target", "Will be disabled once"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope firstDisableCmd = CreateTenantCommand(new DisableTenant(tenantId));
+        CommandProcessingResult firstDisableResult = await proxy.ProcessCommandAsync(firstDisableCmd);
+        firstDisableResult.Accepted.ShouldBeTrue("Setup: first DisableTenant must succeed");
+
+        string expectedTopic = firstDisableCmd.AggregateIdentity.PubSubTopic;
+        int tenantDisabledEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(TenantDisabled).FullName);
+
+        // Act — submit the duplicate disable command.
+        CommandEnvelope duplicateDisableCmd = CreateTenantCommand(new DisableTenant(tenantId));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(duplicateDisableCmd);
+
+        // Assert — the duplicate is a structured rejection and no second TenantDisabled event is published.
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeFalse("Duplicate DisableTenant should be rejected");
+        result.EventCount.ShouldBe(1, "Duplicate DisableTenant should persist one rejection event");
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantDisabled).FullName).ShouldBe(tenantDisabledEventsBefore);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantLifecycleStateAlreadySetRejection).FullName).ShouldBe(1);
+    }
+
+    [DaprFact]
+    public async Task Duplicate_EnableTenant_is_rejected_end_to_end_without_duplicate_TenantEnabled_event() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create, disable, and re-enable the tenant once.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-dup-enable-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Enable Target", "Will be enabled once"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope disableCmd = CreateTenantCommand(new DisableTenant(tenantId));
+        CommandProcessingResult disableResult = await proxy.ProcessCommandAsync(disableCmd);
+        disableResult.Accepted.ShouldBeTrue("Setup: DisableTenant must succeed");
+
+        CommandEnvelope firstEnableCmd = CreateTenantCommand(new EnableTenant(tenantId));
+        CommandProcessingResult firstEnableResult = await proxy.ProcessCommandAsync(firstEnableCmd);
+        firstEnableResult.Accepted.ShouldBeTrue("Setup: first EnableTenant must succeed");
+
+        string expectedTopic = firstEnableCmd.AggregateIdentity.PubSubTopic;
+        int tenantEnabledEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(TenantEnabled).FullName);
+
+        // Act — submit the duplicate enable command.
+        CommandEnvelope duplicateEnableCmd = CreateTenantCommand(new EnableTenant(tenantId));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(duplicateEnableCmd);
+
+        // Assert — the duplicate is a structured rejection and no second TenantEnabled event is published.
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeFalse("Duplicate EnableTenant should be rejected");
+        result.EventCount.ShouldBe(1, "Duplicate EnableTenant should persist one rejection event");
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantEnabled).FullName).ShouldBe(tenantEnabledEventsBefore);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantLifecycleStateAlreadySetRejection).FullName).ShouldBe(1);
+    }
+
+    [DaprFact]
+    public async Task UpdateTenant_on_disabled_tenant_is_rejected_end_to_end_without_TenantUpdated_event() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create and disable the tenant.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-disabled-update-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Disabled Update Target", "Cannot be updated while disabled"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope disableCmd = CreateTenantCommand(new DisableTenant(tenantId));
+        CommandProcessingResult disableResult = await proxy.ProcessCommandAsync(disableCmd);
+        disableResult.Accepted.ShouldBeTrue("Setup: DisableTenant must succeed");
+
+        // Act — submit a non-recovery state-changing command.
+        CommandEnvelope updateCmd = CreateTenantCommand(new UpdateTenant(tenantId, "Blocked Update", "Should be rejected"));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(updateCmd);
+
+        // Assert — disabled tenants reject non-enable mutations immediately.
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeFalse("UpdateTenant should be rejected while the tenant is disabled");
+        result.EventCount.ShouldBe(1, "UpdateTenant should persist one TenantDisabledRejection event");
+        string expectedTopic = updateCmd.AggregateIdentity.PubSubTopic;
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantUpdated).FullName).ShouldBe(0);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantDisabledRejection).FullName).ShouldBe(1);
+    }
+
+    [DaprFact]
     public async Task BootstrapGlobalAdmin_succeeds_end_to_end_with_events_published() {
         _fixture.SkipIfUnavailable();
 
@@ -206,6 +309,13 @@ public class DaprEndToEndTests {
         => factory.CreateActorProxy<IAggregateActor>(
             new ActorId(command.AggregateIdentity.ActorId),
             nameof(AggregateActor));
+
+    private int CountPublishedEvents(string topic, string tenantId, string? eventTypeName)
+        => _fixture.EventPublisher
+            .GetEventsForTopic(topic)
+            .Count(e =>
+                e.AggregateId == tenantId
+                && e.EventTypeName == eventTypeName);
 
     private static CommandEnvelope CreateTenantCommand<T>(T command) where T : notnull
         => new(

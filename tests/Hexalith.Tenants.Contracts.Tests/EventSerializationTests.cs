@@ -72,6 +72,10 @@ public class EventSerializationTests {
             return TenantRole.TenantContributor;
         }
 
+        if (paramType == typeof(TenantStatus)) {
+            return TenantStatus.Disabled;
+        }
+
         if (paramType == typeof(int)) {
             return name switch {
                 "CurrentCount" => 42,

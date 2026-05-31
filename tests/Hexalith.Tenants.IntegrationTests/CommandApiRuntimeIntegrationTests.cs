@@ -245,6 +245,94 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_accepts_DisableTenant_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "disable-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateDisableTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(DisableTenant));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        DisableTenant? payload = JsonSerializer.Deserialize<DisableTenant>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_accepts_EnableTenant_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "enable-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateEnableTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(EnableTenant));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        EnableTenant? payload = JsonSerializer.Deserialize<EnableTenant>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_409_problem_details_for_duplicate_CreateTenant() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
@@ -286,6 +374,47 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_returns_409_problem_details_for_duplicate_lifecycle_state() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: TenantLifecycleStateAlreadySetRejection", "disable-duplicate"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(TenantLifecycleStateAlreadySetRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateDisableTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Tenant Lifecycle State Already Set Rejection");
+        details.Status.ShouldBe(409);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/tenant-lifecycle-state-already-set-rejection");
+        details.Extensions.ShouldContainKey("correlationId");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant-lifecycle-state-already-set-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(TenantLifecycleStateAlreadySetRejection).FullName);
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_404_problem_details_for_missing_UpdateTenant() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
@@ -324,6 +453,46 @@ public class CommandApiRuntimeIntegrationTests {
         details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant-not-found-rejection");
         details.Extensions.ShouldContainKey("rejectionType");
         details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(TenantNotFoundRejection).FullName);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_422_problem_details_for_disabled_tenant_command() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: TenantDisabledRejection", "update-disabled"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(TenantDisabledRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Tenant Disabled Rejection");
+        details.Status.ShouldBe(422);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/tenant-disabled-rejection");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant-disabled-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(TenantDisabledRejection).FullName);
     }
 
     [Fact]
@@ -913,6 +1082,28 @@ public class CommandApiRuntimeIntegrationTests {
             nameof(UpdateTenant),
             payload,
             Extensions: extensions);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateDisableTenantRequest() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new DisableTenant("acme"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(DisableTenant),
+            payload);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateEnableTenantRequest() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new EnableTenant("acme"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(EnableTenant),
+            payload);
     }
 
     private static Dictionary<string, string> GlobalAdminExtensions()

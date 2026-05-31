@@ -70,7 +70,7 @@ This document covers the **payload fields** — the domain-specific content insi
 
 **Example of a backward-compatible change:** In a future v1.1, a new optional field `tags` could be added to `TenantCreated`. Existing subscribers continue working because System.Text.Json ignores unknown properties by default (`JsonSerializerOptions.UnmappedMemberHandling` defaults to `Skip`).
 
-**Forward-compatible enum handling (fail-closed):** Enums serialize **by name** and reserve ordinal `0` as a non-privileged `Unknown` sentinel (TEN-1/TEN-2). A payload with a missing role/status deserializes to `Unknown`; an unrecognized name throws `JsonException`. Subscribers must treat `Unknown` (and any unrecognized value) as **fail-closed** — deny access and do not treat the tenant as active — never as a usable role or as `Active`. Do **not** map unknown roles to `TenantReader`. Phase 2 may add roles; new names are additive and old payloads remain decodable by name.
+**Forward-compatible enum handling (fail-closed):** Enums serialize **by name** and reserve ordinal `0` as a non-privileged `Unknown` sentinel (TEN-1/TEN-2). A payload with a missing role/status deserializes to `Unknown`; an unrecognized role name throws `JsonException`, while an unrecognized tenant status name materializes as `TenantStatus.Unknown`. Subscribers must treat `Unknown` (and any unrecognized value) as **fail-closed** — deny access and do not treat the tenant as active — never as a usable role or as `Active`. Do **not** map unknown roles to `TenantReader`. Phase 2 may add roles; new names are additive and old payloads remain decodable by name.
 
 ---
 
@@ -89,7 +89,7 @@ Defines the permission level of a user within a tenant. Serialized **by name** (
 
 ### TenantStatus
 
-Defines the operational state of a tenant. Serialized **by name** (e.g. `"Active"`) via `[JsonConverter(typeof(JsonStringEnumConverter<TenantStatus>))]`. Ordinal `0` is the non-active `Unknown` sentinel: an absent or unrecognized status never defaults to `Active` (TEN-2).
+Defines the operational state of a tenant. Serialized **by name** (e.g. `"Active"`) via `TenantStatusJsonConverter`. Ordinal `0` is the non-active `Unknown` sentinel: an absent or unrecognized status never defaults to `Active` (TEN-2).
 
 | Ordinal | Name       | Description                                                          |
 | ------- | ---------- | -------------------------------------------------------------------- |
@@ -218,10 +218,10 @@ Published on topic: `tenants.events`
 
 </details>
 
-**Rejections:** `TenantNotFoundRejection`
-**NoOp:** If the tenant is already disabled, no event is produced.
+**Rejections:** `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`
+**Duplicate lifecycle state:** If the tenant is already disabled, `TenantLifecycleStateAlreadySetRejection` is produced with the current and requested status.
 
-> No domain-level permission check. The Phase 2 auth plugin will enforce authorization at the pipeline level.
+> Requires trusted global administrator authority.
 
 ---
 
@@ -256,10 +256,10 @@ Published on topic: `tenants.events`
 
 </details>
 
-**Rejections:** `TenantNotFoundRejection`
-**NoOp:** If the tenant is already active, no event is produced.
+**Rejections:** `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`
+**Duplicate lifecycle state:** If the tenant is already active, `TenantLifecycleStateAlreadySetRejection` is produced with the current and requested status.
 
-> No domain-level permission check. The Phase 2 auth plugin will enforce authorization at the pipeline level.
+> Requires trusted global administrator authority.
 
 ---
 
@@ -588,6 +588,7 @@ Rejection events are produced when a command violates a business rule. All rejec
 | `TenantAlreadyExistsRejection`            | `TenantId`                                             | 409         | Use a different tenant ID, or query the existing tenant                                                                    |
 | `TenantNotFoundRejection`                 | `TenantId`                                             | 404         | Ensure CreateTenant has been processed for this tenant ID                                                                  |
 | `TenantDisabledRejection`                 | `TenantId`                                             | 422         | Enable the tenant with EnableTenant before sending commands                                                                |
+| `TenantLifecycleStateAlreadySetRejection` | `TenantId`, `CurrentStatus`, `RequestedStatus`, `CommandName` | 409         | Do not repeat a lifecycle command when the tenant is already in the requested state                                         |
 | `GlobalAdminAlreadyBootstrappedRejection` | `TenantId`                                             | 422         | Bootstrap already completed — proceed with normal operations                                                               |
 | `LastGlobalAdministratorRejection`        | `TenantId`, `UserId`                                   | 422         | Add another global administrator before removing the last one                                                              |
 | `UserAlreadyInTenantRejection`            | `TenantId`, `UserId`, `ExistingRole`                   | 409         | User is already a member — use ChangeUserRole to modify their role                                                         |
@@ -629,8 +630,8 @@ The `title` is derived from the HTTP status code (`"Not Found"` for 404, `"Confl
 | --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CreateTenant`              | `TenantCreated`              | `TenantAlreadyExistsRejection`                                                                                                                      |
 | `UpdateTenant`              | `TenantUpdated`              | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
-| `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`                                                                                                                           |
-| `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`                                                                                                                           |
+| `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`                                                                                |
+| `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`                                                                                |
 | `AddUserToTenant`           | `UserAddedToTenant`          | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
 | `RemoveUserFromTenant`      | `UserRemovedFromTenant`      | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection`                                |
 | `ChangeUserRole`            | `UserRoleChanged`            | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection`     |

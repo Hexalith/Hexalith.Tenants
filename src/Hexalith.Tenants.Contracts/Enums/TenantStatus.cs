@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using Hexalith.Tenants.Contracts.Serialization;
+
 namespace Hexalith.Tenants.Contracts.Enums;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace Hexalith.Tenants.Contracts.Enums;
 /// an absent or unrecognized status deserializes here rather than defaulting to <see cref="Active"/>.
 /// Serialized by name so consuming services never treat a missing status as an active tenant (TEN-2).
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<TenantStatus>))]
+[JsonConverter(typeof(TenantStatusJsonConverter))]
 public enum TenantStatus {
     Unknown = 0,
     Active,

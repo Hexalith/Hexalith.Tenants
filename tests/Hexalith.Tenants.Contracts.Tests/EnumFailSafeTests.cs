@@ -57,6 +57,16 @@ public sealed class EnumFailSafeTests {
     }
 
     [Fact]
+    public void TenantSummary_with_unrecognized_status_name_deserializes_to_Unknown() {
+        const string json = """{"TenantId":"acme","Name":"Acme","Status":"Suspended"}""";
+
+        TenantSummary? summary = JsonSerializer.Deserialize<TenantSummary>(json);
+
+        _ = summary.ShouldNotBeNull();
+        summary.Status.ShouldBe(TenantStatus.Unknown);
+    }
+
+    [Fact]
     public void TenantStatus_serializes_by_name_not_integer() {
         string json = JsonSerializer.Serialize(new TenantSummary("acme", "Acme", TenantStatus.Active));
 

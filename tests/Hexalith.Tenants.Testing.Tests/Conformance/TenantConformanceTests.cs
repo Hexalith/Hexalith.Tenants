@@ -6,6 +6,7 @@ using Hexalith.EventStore.Contracts.Results;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Testing.Fakes;
 using Hexalith.Tenants.Testing.Helpers;
@@ -983,11 +984,11 @@ public sealed class TenantConformanceTests {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 4.7: NoOp conformance tests
+    // 4.7: NoOp and duplicate lifecycle conformance tests
     // ═══════════════════════════════════════════════════════════
 
     [Fact]
-    public void NoOp_DisableTenant_AlreadyDisabled() {
+    public void Rejection_DisableTenant_AlreadyDisabled() {
         // Arrange
         var svc = new InMemoryTenantService();
         _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
@@ -1005,10 +1006,13 @@ public sealed class TenantConformanceTests {
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
+        TenantLifecycleStateAlreadySetRejection rejection = aggregateResult.Events[0].ShouldBeOfType<TenantLifecycleStateAlreadySetRejection>();
+        rejection.CurrentStatus.ShouldBe(TenantStatus.Disabled);
+        rejection.RequestedStatus.ShouldBe(TenantStatus.Disabled);
     }
 
     [Fact]
-    public void NoOp_EnableTenant_AlreadyActive() {
+    public void Rejection_EnableTenant_AlreadyActive() {
         // Arrange
         var svc = new InMemoryTenantService();
         _ = svc.ProcessCommand(new CreateTenant("acme", "Acme", null));
@@ -1024,6 +1028,9 @@ public sealed class TenantConformanceTests {
 
         // Assert
         AssertEventsEqual(aggregateResult, serviceResult);
+        TenantLifecycleStateAlreadySetRejection rejection = aggregateResult.Events[0].ShouldBeOfType<TenantLifecycleStateAlreadySetRejection>();
+        rejection.CurrentStatus.ShouldBe(TenantStatus.Active);
+        rejection.RequestedStatus.ShouldBe(TenantStatus.Active);
     }
 
     [Fact]

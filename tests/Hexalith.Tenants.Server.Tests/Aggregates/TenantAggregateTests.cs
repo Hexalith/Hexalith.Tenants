@@ -247,9 +247,9 @@ public class TenantAggregateTests {
         rejection.TenantId.ShouldBe("envelope-tenant");
     }
 
-    // Test 8: DisableTenant on already disabled tenant → NoOp (AC #4 idempotent)
+    // Test 8: DisableTenant on already disabled tenant -> structured duplicate-state rejection
     [Fact]
-    public async Task DisableTenant_on_already_disabled_tenant_produces_NoOp() {
+    public async Task DisableTenant_on_already_disabled_tenant_produces_TenantLifecycleStateAlreadySetRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -259,8 +259,13 @@ public class TenantAggregateTests {
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
-        result.IsNoOp.ShouldBeTrue();
-        result.Events.Count.ShouldBe(0);
+        result.IsRejection.ShouldBeTrue();
+        TenantLifecycleStateAlreadySetRejection rejection = result.Events[0].ShouldBeOfType<TenantLifecycleStateAlreadySetRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.CurrentStatus.ShouldBe(TenantStatus.Disabled);
+        rejection.RequestedStatus.ShouldBe(TenantStatus.Disabled);
+        rejection.CommandName.ShouldBe(nameof(DisableTenant));
+        result.Events.ShouldNotContain(e => e is TenantDisabled);
     }
 
     [Fact]
@@ -349,9 +354,9 @@ public class TenantAggregateTests {
         rejection.TenantId.ShouldBe("envelope-tenant");
     }
 
-    // Test 11: EnableTenant on already active tenant → NoOp (AC #6 idempotent)
+    // Test 11: EnableTenant on already active tenant -> structured duplicate-state rejection
     [Fact]
-    public async Task EnableTenant_on_already_active_tenant_produces_NoOp() {
+    public async Task EnableTenant_on_already_active_tenant_produces_TenantLifecycleStateAlreadySetRejection() {
         var aggregate = new TenantAggregate();
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
@@ -360,8 +365,13 @@ public class TenantAggregateTests {
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
-        result.IsNoOp.ShouldBeTrue();
-        result.Events.Count.ShouldBe(0);
+        result.IsRejection.ShouldBeTrue();
+        TenantLifecycleStateAlreadySetRejection rejection = result.Events[0].ShouldBeOfType<TenantLifecycleStateAlreadySetRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.CurrentStatus.ShouldBe(TenantStatus.Active);
+        rejection.RequestedStatus.ShouldBe(TenantStatus.Active);
+        rejection.CommandName.ShouldBe(nameof(EnableTenant));
+        result.Events.ShouldNotContain(e => e is TenantEnabled);
     }
 
     [Fact]
@@ -738,6 +748,58 @@ public class TenantAggregateTests {
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+    }
+
+    [Fact]
+    public async Task Tenant_scoped_commands_on_unknown_status_fail_closed_with_TenantDisabledRejection() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+        state.Status = TenantStatus.Unknown;
+
+        DomainResult updateResult = await aggregate.ProcessAsync(
+            CreateCommand(new UpdateTenant("acme", "New Name", "New Desc"), isGlobalAdmin: true),
+            currentState: state);
+        DomainResult addResult = await aggregate.ProcessAsync(
+            CreateCommand(new AddUserToTenant("acme", "new-user", TenantRole.TenantReader), isGlobalAdmin: true),
+            currentState: state);
+        DomainResult removeResult = await aggregate.ProcessAsync(
+            CreateCommand(new RemoveUserFromTenant("acme", "reader-user"), isGlobalAdmin: true),
+            currentState: state);
+        DomainResult changeRoleResult = await aggregate.ProcessAsync(
+            CreateCommand(new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor), isGlobalAdmin: true),
+            currentState: state);
+        DomainResult setConfigResult = await aggregate.ProcessAsync(
+            CreateCommand(new SetTenantConfiguration("acme", "billing.plan", "pro"), isGlobalAdmin: true),
+            currentState: state);
+        DomainResult removeConfigResult = await aggregate.ProcessAsync(
+            CreateCommand(new RemoveTenantConfiguration("acme", "billing.plan"), isGlobalAdmin: true),
+            currentState: state);
+
+        DomainResult[] results =
+        [
+            updateResult,
+            addResult,
+            removeResult,
+            changeRoleResult,
+            setConfigResult,
+            removeConfigResult,
+        ];
+
+        foreach (DomainResult result in results) {
+            result.IsRejection.ShouldBeTrue();
+            result.Events.Count.ShouldBe(1);
+            TenantDisabledRejection rejection = result.Events[0].ShouldBeOfType<TenantDisabledRejection>();
+            rejection.TenantId.ShouldBe("acme");
+        }
+
+        results.SelectMany(r => r.Events).Any(e =>
+            e is TenantUpdated
+                or UserAddedToTenant
+                or UserRemovedFromTenant
+                or UserRoleChanged
+                or TenantConfigurationSet
+                or TenantConfigurationRemoved)
+            .ShouldBeFalse();
     }
 
     // ===== Story 3.2: Role Behavior Enforcement (RBAC) Tests =====
