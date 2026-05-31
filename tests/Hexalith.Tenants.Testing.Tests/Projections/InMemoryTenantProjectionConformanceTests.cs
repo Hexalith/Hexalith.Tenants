@@ -50,7 +50,7 @@ public sealed class InMemoryTenantProjectionConformanceTests {
     [Fact]
     public void TenantScopedEvents_on_empty_projection_are_routed_not_dropped() {
         IEventPayload[] events = [
-            new TenantUpdated("ghost", "Name", "Desc"),
+            new TenantUpdated("ghost", "Name", "Desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")),
             new TenantDisabled("ghost", When),
             new TenantEnabled("ghost", When),
             new UserAddedToTenant("ghost", "user", TenantRole.TenantReader),

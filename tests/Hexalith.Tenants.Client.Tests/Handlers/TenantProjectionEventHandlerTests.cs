@@ -173,7 +173,7 @@ public class TenantProjectionEventHandlerTests {
             new TenantCreated("acme", "Acme Corp", "Old Desc", DateTimeOffset.UtcNow),
             CreateContext("acme", "msg-1"));
 
-        var @event = new TenantUpdated("acme", "New Name", "New Desc");
+        var @event = new TenantUpdated("acme", "New Name", "New Desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00"));
 
         // Act
         await handler.HandleAsync(@event, CreateContext("acme", "msg-2"));

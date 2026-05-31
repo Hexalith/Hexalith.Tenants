@@ -553,7 +553,7 @@ public class ProjectionWriteConformanceTests
                 "evt-4-cfg-set",
                 t0.AddSeconds(3)),
             ProjectionWriteConformanceFixture.CreateEvent(
-                new TenantUpdated(ProjectionWriteConformanceFixture.TenantId, "Acme Renamed", null),
+                new TenantUpdated(ProjectionWriteConformanceFixture.TenantId, "Acme Renamed", null, DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")),
                 "evt-5-updated",
                 t0.AddSeconds(4)),
             ProjectionWriteConformanceFixture.CreateEvent(
@@ -670,7 +670,7 @@ public class ProjectionWriteConformanceTests
                 "incoming-cfg",
                 t0.AddSeconds(3)),
             ProjectionWriteConformanceFixture.CreateEvent(
-                new TenantUpdated(ProjectionWriteConformanceFixture.TenantId, "Acme Renamed", null),
+                new TenantUpdated(ProjectionWriteConformanceFixture.TenantId, "Acme Renamed", null, DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")),
                 "incoming-update",
                 t0.AddSeconds(4)));
 

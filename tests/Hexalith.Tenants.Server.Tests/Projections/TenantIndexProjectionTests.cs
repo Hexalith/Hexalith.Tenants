@@ -45,7 +45,7 @@ public class TenantIndexProjectionTests {
             new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.Parse("2026-01-01T00:00:00Z")),
             new TenantCreated("beta", "Beta Inc", "desc", DateTimeOffset.Parse("2026-01-02T00:00:00Z")),
             new TenantCreated("gamma", "Gamma LLC", null, DateTimeOffset.Parse("2026-01-03T00:00:00Z")),
-            new TenantUpdated("acme", "Acme Updated", "new desc"),
+            new TenantUpdated("acme", "Acme Updated", "new desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")),
             new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner),
             new UserAddedToTenant("beta", "user1", TenantRole.TenantReader),
             new UserAddedToTenant("acme", "user2", TenantRole.TenantContributor),

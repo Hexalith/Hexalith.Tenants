@@ -43,7 +43,7 @@ public class TenantProjectionTests {
         object[] events = new object[]
         {
             new TenantCreated("acme", "Acme Corp", "Original", createdAt),
-            new TenantUpdated("acme", "Acme Updated", "New desc"),
+            new TenantUpdated("acme", "Acme Updated", "New desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")),
             new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner),
             new UserRoleChanged("acme", "user1", TenantRole.TenantOwner, TenantRole.TenantContributor),
             new UserRemovedFromTenant("acme", "user1"),

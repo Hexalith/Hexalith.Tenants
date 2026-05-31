@@ -18,6 +18,10 @@ using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Events.Rejections;
+
+using CommandApiResponse = Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse;
+using SubmitPipelineCommand = Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -123,7 +127,7 @@ public class CommandApiRuntimeIntegrationTests {
     [Fact]
     public async Task Commands_endpoint_returns_202_when_jwt_has_eventstore_tenant_claim() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
 
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
@@ -142,14 +146,190 @@ public class CommandApiRuntimeIntegrationTests {
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         _ = await router.Received(1).RouteCommandAsync(
-            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == "system"),
+            Arg.Is<SubmitPipelineCommand>(c => c != null && c.Tenant == "system"),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_accepts_CreateTenant_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "create-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        response.Headers.Location.ShouldNotBeNull();
+        response.Headers.RetryAfter?.Delta.ShouldBe(TimeSpan.FromSeconds(1));
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(CreateTenant));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        CreateTenant? payload = JsonSerializer.Deserialize<CreateTenant>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.Name.ShouldBe("Acme Corp");
+        payload.Description.ShouldBe("Tenant from command API");
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_accepts_UpdateTenant_and_routes_story_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "update-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "acme", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("tenants");
+        capturedCommand.AggregateId.ShouldBe("acme");
+        capturedCommand.CommandType.ShouldBe(nameof(UpdateTenant));
+        capturedCommand.UserId.ShouldBe("global-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        UpdateTenant? payload = JsonSerializer.Deserialize<UpdateTenant>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.TenantId.ShouldBe("acme");
+        payload.Name.ShouldBe("Acme Updated");
+        payload.Description.ShouldBe("Updated tenant metadata");
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_409_problem_details_for_duplicate_CreateTenant() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: TenantAlreadyExistsRejection", "create-duplicate"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(TenantAlreadyExistsRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateCreateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Tenant Already Exists Rejection");
+        details.Status.ShouldBe(409);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/tenant-already-exists-rejection");
+        details.Extensions.ShouldContainKey("correlationId");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant-already-exists-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(TenantAlreadyExistsRejection).FullName);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_404_problem_details_for_missing_UpdateTenant() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "Domain rejection: TenantNotFoundRejection", "update-missing"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                1,
+                typeof(TenantNotFoundRejection).FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Tenant Not Found Rejection");
+        details.Status.ShouldBe(404);
+        details.Type.ShouldBe("https://hexalith.io/problems/domain-rejections/tenant-not-found-rejection");
+        details.Extensions.ShouldContainKey("correlationId");
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant-not-found-rejection");
+        details.Extensions.ShouldContainKey("rejectionType");
+        details.Extensions["rejectionType"]?.ToString().ShouldBe(typeof(TenantNotFoundRejection).FullName);
     }
 
     [Fact]
     public async Task Commands_endpoint_ignores_client_supplied_globalAdmin_extension_when_jwt_is_not_global_admin() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
 
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
@@ -179,7 +359,7 @@ public class CommandApiRuntimeIntegrationTests {
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         _ = await router.Received(1).RouteCommandAsync(
-            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c =>
+            Arg.Is<SubmitPipelineCommand>(c =>
                 c != null
                 && !c.IsGlobalAdmin
                 && c.Extensions != null
@@ -191,7 +371,7 @@ public class CommandApiRuntimeIntegrationTests {
     [Fact]
     public async Task Commands_endpoint_marks_submit_command_global_admin_when_jwt_has_global_admin_claim() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
 
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
@@ -217,7 +397,7 @@ public class CommandApiRuntimeIntegrationTests {
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         _ = await router.Received(1).RouteCommandAsync(
-            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c =>
+            Arg.Is<SubmitPipelineCommand>(c =>
                 c != null
                 && c.IsGlobalAdmin
                 && c.UserId == "global-admin"
@@ -228,7 +408,7 @@ public class CommandApiRuntimeIntegrationTests {
     [Fact]
     public async Task Commands_endpoint_returns_202_when_jwt_uses_tenants_source_claim() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
 
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
@@ -248,7 +428,7 @@ public class CommandApiRuntimeIntegrationTests {
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         _ = await router.Received(1).RouteCommandAsync(
-            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == "system"),
+            Arg.Is<SubmitPipelineCommand>(c => c != null && c.Tenant == "system"),
             Arg.Any<CancellationToken>());
     }
 
@@ -718,6 +898,19 @@ public class CommandApiRuntimeIntegrationTests {
             "tenants",
             "acme",
             nameof(CreateTenant),
+            payload,
+            Extensions: extensions);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateUpdateTenantRequest(
+        Dictionary<string, string>? extensions = null) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new UpdateTenant("acme", "Acme Updated", "Updated tenant metadata"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "tenants",
+            "acme",
+            nameof(UpdateTenant),
             payload,
             Extensions: extensions);
     }

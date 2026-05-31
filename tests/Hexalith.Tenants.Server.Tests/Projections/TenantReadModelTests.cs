@@ -30,7 +30,7 @@ public class TenantReadModelTests {
         var model = new TenantReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", "Original", DateTimeOffset.UtcNow));
 
-        model.Apply(new TenantUpdated("acme", "Acme Updated", "New desc"));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "New desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
         model.Name.ShouldBe("Acme Updated");
         model.Description.ShouldBe("New desc");
@@ -126,7 +126,7 @@ public class TenantReadModelTests {
         var createdAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
 
         model.Apply(new TenantCreated("acme", "Acme Corp", "Original", createdAt));
-        model.Apply(new TenantUpdated("acme", "Acme Updated", "New desc"));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "New desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
         model.Apply(new UserAddedToTenant("acme", "user2", TenantRole.TenantReader));
         model.Apply(new UserRoleChanged("acme", "user2", TenantRole.TenantReader, TenantRole.TenantContributor));

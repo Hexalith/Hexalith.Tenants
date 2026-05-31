@@ -165,6 +165,7 @@ Updates a tenant's name and description.
 | `TenantId`    | string  | The updated tenant's ID |
 | `Name`        | string  | New display name        |
 | `Description` | string? | New description         |
+| `UpdatedAt`   | DateTimeOffset | Server-generated update timestamp |
 
 Published on topic: `tenants.events`
 
@@ -175,7 +176,8 @@ Published on topic: `tenants.events`
 {
     "TenantId": "acme-corp",
     "Name": "Acme Corporation International",
-    "Description": "Updated business tenant"
+    "Description": "Updated business tenant",
+    "UpdatedAt": "2026-03-19T15:45:00+00:00"
 }
 ```
 

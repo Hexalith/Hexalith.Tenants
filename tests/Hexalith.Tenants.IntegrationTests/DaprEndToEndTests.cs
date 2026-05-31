@@ -55,6 +55,38 @@ public class DaprEndToEndTests {
     }
 
     [DaprFact]
+    public async Task UpdateTenant_succeeds_end_to_end_with_events_published() {
+        _fixture.SkipIfUnavailable();
+
+        // Arrange — create tenant first, then update metadata on the same aggregate actor.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-update-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(
+            new CreateTenant(tenantId, "Update Target", "Original metadata"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        // Act
+        CommandEnvelope updateCmd = CreateTenantCommand(
+            new UpdateTenant(tenantId, "Updated Target", "Updated metadata"));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(updateCmd);
+
+        // Assert
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeTrue(
+            $"UpdateTenant should be accepted but got error: {result.ErrorMessage}"
+            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+        result.EventCount.ShouldBe(1, "UpdateTenant should produce 1 TenantUpdated event");
+
+        string expectedTopic = updateCmd.AggregateIdentity.PubSubTopic;
+        _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
+        _fixture.EventPublisher.GetEventsForTopic(expectedTopic)
+            .ShouldContain(e => e.EventTypeName.EndsWith("TenantUpdated", StringComparison.Ordinal));
+    }
+
+    [DaprFact]
     public async Task DisableTenant_succeeds_end_to_end_with_events_published() {
         _fixture.SkipIfUnavailable();
 

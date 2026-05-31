@@ -35,7 +35,7 @@ public class TenantAuditProjectionTests {
             "actor-1");
         ProjectionEventDto[] events = [
             malformed,
-            CreateEvent(new TenantUpdated("tenant-1", "Acme Updated", null), "evt-good", timestamp.AddMinutes(1)),
+            CreateEvent(new TenantUpdated("tenant-1", "Acme Updated", null, timestamp.AddMinutes(1)), "evt-good", timestamp.AddMinutes(1)),
         ];
 
         TenantAuditReadModel result = TenantAuditProjection.ProjectAuditEvents(events);
@@ -64,7 +64,7 @@ public class TenantAuditProjectionTests {
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         ProjectionEventDto[] events = [
             CreateEvent(new TenantCreated("tenant-1", "Acme", null, timestamp), "evt-1", timestamp),
-            CreateEvent(new TenantUpdated("tenant-1", "Acme Updated", null), "evt-2", timestamp.AddMinutes(1)),
+            CreateEvent(new TenantUpdated("tenant-1", "Acme Updated", null, timestamp.AddMinutes(1)), "evt-2", timestamp.AddMinutes(1)),
             CreateEvent(new UserAddedToTenant("tenant-1", "user-1", Contracts.Enums.TenantRole.TenantReader), "evt-3", timestamp.AddMinutes(2)),
         ];
 

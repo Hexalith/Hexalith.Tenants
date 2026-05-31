@@ -126,7 +126,9 @@ public class TenantAggregateTests {
 
         CommandEnvelope cmd = CreateCommand(new UpdateTenant("acme", "New Name", "New Desc"));
 
+        DateTimeOffset before = DateTimeOffset.UtcNow;
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+        DateTimeOffset after = DateTimeOffset.UtcNow;
 
         result.IsSuccess.ShouldBeTrue();
         result.Events.Count.ShouldBe(1);
@@ -134,6 +136,7 @@ public class TenantAggregateTests {
         ((TenantUpdated)evt).TenantId.ShouldBe("acme");
         ((TenantUpdated)evt).Name.ShouldBe("New Name");
         ((TenantUpdated)evt).Description.ShouldBe("New Desc");
+        ((TenantUpdated)evt).UpdatedAt.ShouldBeInRange(before, after);
     }
 
     // Test 4: UpdateTenant on non-existent tenant → Rejection (AC #7)

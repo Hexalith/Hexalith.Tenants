@@ -44,7 +44,7 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
                     envelope.UserId,
                     GetActorRole(state, envelope.UserId),
                     nameof(UpdateTenant))]),
-            _ => DomainResult.Success([new TenantUpdated(tenantId, command.Name, command.Description)]),
+            _ => DomainResult.Success([new TenantUpdated(tenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]),
         };
     }
 

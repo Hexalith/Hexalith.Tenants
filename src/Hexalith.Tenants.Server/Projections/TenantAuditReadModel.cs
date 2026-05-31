@@ -73,6 +73,7 @@ public sealed class TenantAuditReadModel {
             }),
             nameof(TenantUpdated) => CreateAdministrativeEntry(evt, Deserialize<TenantUpdated>(evt.Payload), eventType, e => new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["name"] = e.Name,
+                ["updatedAt"] = e.UpdatedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             }),
             nameof(TenantDisabled) => CreateAdministrativeEntry(evt, Deserialize<TenantDisabled>(evt.Payload), eventType, e => new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["disabledAt"] = e.DisabledAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),

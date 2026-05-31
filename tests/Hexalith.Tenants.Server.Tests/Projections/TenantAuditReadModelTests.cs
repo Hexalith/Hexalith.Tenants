@@ -30,7 +30,7 @@ public class TenantAuditReadModelTests {
             "GlobalAdministratorRemoved",
             TenantIdentity.DefaultTenantId];
         yield return [new TenantCreated("tenant-1", "Acme", null, Timestamp), AuditEventCategory.Administrative, "TenantCreated", "tenant-1"];
-        yield return [new TenantUpdated("tenant-1", "Acme Updated", null), AuditEventCategory.Administrative, "TenantUpdated", "tenant-1"];
+        yield return [new TenantUpdated("tenant-1", "Acme Updated", null, Timestamp), AuditEventCategory.Administrative, "TenantUpdated", "tenant-1"];
         yield return [new TenantDisabled("tenant-1", Timestamp), AuditEventCategory.Administrative, "TenantDisabled", "tenant-1"];
         yield return [new TenantEnabled("tenant-1", Timestamp), AuditEventCategory.Administrative, "TenantEnabled", "tenant-1"];
         yield return [new TenantConfigurationSet("tenant-1", "theme", "dark"), AuditEventCategory.Administrative, "TenantConfigurationSet", "tenant-1"];
@@ -68,6 +68,9 @@ public class TenantAuditReadModelTests {
         model.Apply(CreateEvent(
             new GlobalAdministratorRemoved(TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp.AddMinutes(1)),
             messageId: "evt-4"));
+        model.Apply(CreateEvent(
+            new TenantUpdated("tenant-1", "Acme Updated", null, Timestamp.AddMinutes(2)),
+            messageId: "evt-5"));
 
         model.Entries[0].NarrativePayload["userId"].ShouldBe("user-1");
         model.Entries[0].NarrativePayload["oldRole"].ShouldBe("TenantReader");
@@ -80,6 +83,7 @@ public class TenantAuditReadModelTests {
         model.Entries[3].NarrativePayload["userId"].ShouldBe("admin-2");
         model.Entries[3].NarrativePayload["actorUserId"].ShouldBe("admin-1");
         model.Entries[3].NarrativePayload["removedAt"].ShouldBe(Timestamp.AddMinutes(1).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        model.Entries[4].NarrativePayload["updatedAt"].ShouldBe(Timestamp.AddMinutes(2).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

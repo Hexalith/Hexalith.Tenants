@@ -45,7 +45,7 @@ public sealed class InMemoryTenantProjectionTests {
         projection.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
         // Act
-        projection.Apply(new TenantUpdated("acme", "Acme Inc", "Updated description"));
+        projection.Apply(new TenantUpdated("acme", "Acme Inc", "Updated description", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
         // Assert
         TenantReadModel? tenant = projection.GetTenant("acme");

@@ -12,7 +12,7 @@ public class TenantIndexReadModelTests {
     public void Apply_DuplicateTenantCreated_PreservesExistingTenantState() {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
-        model.Apply(new TenantUpdated("acme", "Acme Updated", "updated desc"));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "updated desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         model.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
 
         model.Apply(new TenantCreated("acme", "Stale Name", null, DateTimeOffset.UtcNow));
@@ -29,7 +29,7 @@ public class TenantIndexReadModelTests {
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.Parse("2026-01-01T00:00:00Z")));
         model.Apply(new TenantCreated("beta", "Beta Inc", "desc", DateTimeOffset.Parse("2026-01-02T00:00:00Z")));
         model.Apply(new TenantCreated("gamma", "Gamma LLC", null, DateTimeOffset.Parse("2026-01-03T00:00:00Z")));
-        model.Apply(new TenantUpdated("acme", "Acme Updated", "new desc"));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "new desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
         model.Apply(new UserAddedToTenant("beta", "user1", TenantRole.TenantReader));
         model.Apply(new UserAddedToTenant("acme", "user2", TenantRole.TenantContributor));
@@ -127,7 +127,7 @@ public class TenantIndexReadModelTests {
         var model = new TenantIndexReadModel();
         model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
 
-        model.Apply(new TenantUpdated("acme", "Acme Updated", "new desc"));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "new desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
         model.Tenants["acme"].Name.ShouldBe("Acme Updated");
         model.Tenants["acme"].Status.ShouldBe(TenantStatus.Active);
@@ -138,7 +138,7 @@ public class TenantIndexReadModelTests {
     public void Apply_TenantUpdatedWhenNotInIndex_NoException() {
         var model = new TenantIndexReadModel();
 
-        model.Apply(new TenantUpdated("acme", "Acme Updated", "desc"));
+        model.Apply(new TenantUpdated("acme", "Acme Updated", "desc", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
         model.Tenants.ShouldBeEmpty();
     }
