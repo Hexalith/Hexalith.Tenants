@@ -18,13 +18,15 @@ public class TenantAggregateTests {
     private static CommandEnvelope CreateCommand<T>(
         T command,
         string actorUserId = "test-user",
-        bool isGlobalAdmin = false)
-        where T : notnull
-        => new(
+        bool isGlobalAdmin = false,
+        string? aggregateId = null)
+        where T : notnull {
+        string commandTenantId = ((dynamic)command).TenantId;
+        return new(
             Guid.NewGuid().ToString(),
             "system",
             "tenants",
-            ((dynamic)command).TenantId,
+            aggregateId ?? commandTenantId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
             Guid.NewGuid().ToString(),
@@ -33,6 +35,7 @@ public class TenantAggregateTests {
             isGlobalAdmin
                 ? new Dictionary<string, string> { ["actor:globalAdmin"] = "true" }
                 : null);
+    }
 
     private static TenantState CreateStateWithRoles() {
         var state = new TenantState();
@@ -49,7 +52,7 @@ public class TenantAggregateTests {
     [Fact]
     public async Task CreateTenant_with_no_prior_state_produces_TenantCreated() {
         var aggregate = new TenantAggregate();
-        CommandEnvelope cmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"));
+        CommandEnvelope cmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
@@ -71,12 +74,45 @@ public class TenantAggregateTests {
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
-        CommandEnvelope cmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test"));
+        CommandEnvelope cmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantAlreadyExistsRejection>();
+    }
+
+    [Fact]
+    public async Task CreateTenant_without_globalAdmin_produces_InsufficientPermissionsRejection() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new CreateTenant("acme", "Acme Corp", "Test tenant"),
+            actorUserId: "tenant-owner");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("tenant-owner");
+        rejection.ActorRole.ShouldBeNull();
+        rejection.CommandName.ShouldBe(nameof(CreateTenant));
+        result.Events.ShouldNotContain(e => e is TenantCreated);
+    }
+
+    [Fact]
+    public async Task CreateTenant_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new CreateTenant("body-tenant", "Acme Corp", "Test tenant"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantCreated evt = result.Events[0].ShouldBeOfType<TenantCreated>();
+        evt.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 3: UpdateTenant on active tenant → Success (AC #3)
@@ -111,6 +147,39 @@ public class TenantAggregateTests {
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
     }
 
+    [Fact]
+    public async Task UpdateTenant_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("body-tenant", "New Name", "New Desc"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantUpdated evt = result.Events[0].ShouldBeOfType<TenantUpdated>();
+        evt.TenantId.ShouldBe("envelope-tenant");
+    }
+
+    [Fact]
+    public async Task UpdateTenant_not_found_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new UpdateTenant("body-tenant", "Name", "Desc"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantNotFoundRejection rejection = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
+    }
+
     // Test 5: UpdateTenant on disabled tenant → Rejection (AC #5)
     [Fact]
     public async Task UpdateTenant_on_disabled_tenant_produces_rejection() {
@@ -134,7 +203,7 @@ public class TenantAggregateTests {
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
-        CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"));
+        CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
@@ -151,12 +220,27 @@ public class TenantAggregateTests {
     [Fact]
     public async Task DisableTenant_on_nonexistent_tenant_produces_rejection() {
         var aggregate = new TenantAggregate();
-        CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"));
+        CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task DisableTenant_not_found_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new DisableTenant("body-tenant"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantNotFoundRejection rejection = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 8: DisableTenant on already disabled tenant → NoOp (AC #4 idempotent)
@@ -167,12 +251,50 @@ public class TenantAggregateTests {
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
 
-        CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"));
+        CommandEnvelope cmd = CreateCommand(new DisableTenant("acme"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsNoOp.ShouldBeTrue();
         result.Events.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task DisableTenant_without_globalAdmin_produces_InsufficientPermissionsRejection() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        CommandEnvelope cmd = CreateCommand(
+            new DisableTenant("acme"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("owner-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantOwner);
+        rejection.CommandName.ShouldBe(nameof(DisableTenant));
+        result.Events.ShouldNotContain(e => e is TenantDisabled);
+    }
+
+    [Fact]
+    public async Task DisableTenant_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+
+        CommandEnvelope cmd = CreateCommand(
+            new DisableTenant("body-tenant"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantDisabled evt = result.Events[0].ShouldBeOfType<TenantDisabled>();
+        evt.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 9: EnableTenant on disabled tenant → Success (AC #6)
@@ -183,7 +305,7 @@ public class TenantAggregateTests {
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
         state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
 
-        CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"));
+        CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
@@ -200,12 +322,27 @@ public class TenantAggregateTests {
     [Fact]
     public async Task EnableTenant_on_nonexistent_tenant_produces_rejection() {
         var aggregate = new TenantAggregate();
-        CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"));
+        CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
         result.IsRejection.ShouldBeTrue();
         _ = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+    }
+
+    [Fact]
+    public async Task EnableTenant_not_found_rejection_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        CommandEnvelope cmd = CreateCommand(
+            new EnableTenant("body-tenant"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        TenantNotFoundRejection rejection = result.Events[0].ShouldBeOfType<TenantNotFoundRejection>();
+        rejection.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 11: EnableTenant on already active tenant → NoOp (AC #6 idempotent)
@@ -215,12 +352,52 @@ public class TenantAggregateTests {
         var state = new TenantState();
         state.Apply(new TenantCreated("acme", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
 
-        CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"));
+        CommandEnvelope cmd = CreateCommand(new EnableTenant("acme"), isGlobalAdmin: true);
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
         result.IsNoOp.ShouldBeTrue();
         result.Events.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task EnableTenant_without_globalAdmin_produces_InsufficientPermissionsRejection() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+        state.Apply(new TenantDisabled("acme", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(
+            new EnableTenant("acme"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("owner-user");
+        rejection.ActorRole.ShouldBe(TenantRole.TenantOwner);
+        rejection.CommandName.ShouldBe(nameof(EnableTenant));
+        result.Events.ShouldNotContain(e => e is TenantEnabled);
+    }
+
+    [Fact]
+    public async Task EnableTenant_uses_envelope_aggregate_id_when_command_tenantId_differs() {
+        var aggregate = new TenantAggregate();
+        var state = new TenantState();
+        state.Apply(new TenantCreated("envelope-tenant", "Acme Corp", "Test", DateTimeOffset.Parse("2026-01-15T10:30:00+00:00")));
+        state.Apply(new TenantDisabled("envelope-tenant", DateTimeOffset.UtcNow));
+
+        CommandEnvelope cmd = CreateCommand(
+            new EnableTenant("body-tenant"),
+            isGlobalAdmin: true,
+            aggregateId: "envelope-tenant");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantEnabled evt = result.Events[0].ShouldBeOfType<TenantEnabled>();
+        evt.TenantId.ShouldBe("envelope-tenant");
     }
 
     // Test 12: State replay — Create → Update → Disable → Enable (AC #8)
@@ -229,7 +406,7 @@ public class TenantAggregateTests {
         var aggregate = new TenantAggregate();
 
         // Step 1: Create tenant
-        CommandEnvelope createCmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"));
+        CommandEnvelope createCmd = CreateCommand(new CreateTenant("acme", "Acme Corp", "Test tenant"), isGlobalAdmin: true);
         DomainResult createResult = await aggregate.ProcessAsync(createCmd, currentState: null);
         createResult.IsSuccess.ShouldBeTrue();
 
@@ -254,7 +431,7 @@ public class TenantAggregateTests {
         state.Description.ShouldBe("Updated Desc");
 
         // Step 3: Disable tenant
-        CommandEnvelope disableCmd = CreateCommand(new DisableTenant("acme"));
+        CommandEnvelope disableCmd = CreateCommand(new DisableTenant("acme"), isGlobalAdmin: true);
         DomainResult disableResult = await aggregate.ProcessAsync(disableCmd, currentState: state);
         disableResult.IsSuccess.ShouldBeTrue();
 
@@ -262,7 +439,7 @@ public class TenantAggregateTests {
         state.Status.ShouldBe(TenantStatus.Disabled);
 
         // Step 4: Enable tenant
-        CommandEnvelope enableCmd = CreateCommand(new EnableTenant("acme"));
+        CommandEnvelope enableCmd = CreateCommand(new EnableTenant("acme"), isGlobalAdmin: true);
         DomainResult enableResult = await aggregate.ProcessAsync(enableCmd, currentState: state);
         enableResult.IsSuccess.ShouldBeTrue();
 

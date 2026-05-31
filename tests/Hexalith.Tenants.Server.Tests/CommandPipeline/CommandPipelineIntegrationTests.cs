@@ -59,6 +59,22 @@ public class CommandPipelineIntegrationTests {
         evt.Description.ShouldBe("Enterprise tenant");
     }
 
+    [Fact]
+    public async Task CreateTenant_without_globalAdmin_end_to_end_produces_InsufficientPermissionsRejection() {
+        var aggregate = new TenantAggregate();
+
+        CommandEnvelope cmd = CreateTenantCommand(
+            new CreateTenant("acme", "Acme Corp", "Enterprise tenant"),
+            isGlobalAdmin: false);
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("sub");
+        rejection.CommandName.ShouldBe(nameof(CreateTenant));
+    }
+
     // --- DisableTenant / EnableTenant end-to-end (AC #10, Task 4.3) ---
 
     [Fact]
@@ -143,20 +159,24 @@ public class CommandPipelineIntegrationTests {
             JsonSerializer.SerializeToUtf8Bytes(command),
             UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
-            "test-user",
+            "sub",
             null);
 
-    private static CommandEnvelope CreateTenantCommand<T>(T command)
-        where T : notnull
-        => new(
-            Guid.NewGuid().ToString(),
-            "system",
-            "tenants",
-            ((dynamic)command).TenantId,
+    private static CommandEnvelope CreateTenantCommand<T>(T command, bool isGlobalAdmin = true)
+        where T : notnull {
+        string aggregateId = ((dynamic)command).TenantId;
+        return new(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            TenantIdentity.DefaultTenantId,
+            TenantIdentity.Domain,
+            aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
-            "test-user",
-            null);
+            "sub",
+            isGlobalAdmin
+                ? new Dictionary<string, string> { ["actor:globalAdmin"] = "true" }
+                : null);
+    }
 }

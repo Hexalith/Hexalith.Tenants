@@ -29,6 +29,70 @@ public class InMemoryTenantServiceTests {
         evt.Description.ShouldBe("A test tenant");
     }
 
+    [Fact]
+    public void CreateTenant_without_globalAdmin_returns_InsufficientPermissionsRejection() {
+        var svc = new InMemoryTenantService();
+
+        DomainResult result = svc.ProcessCommand(
+            new CreateTenant("acme", "Acme Corp", "A test tenant"),
+            userId: "non-global",
+            isGlobalAdmin: false);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.ActorUserId.ShouldBe("non-global");
+        rejection.CommandName.ShouldBe(nameof(CreateTenant));
+        svc.GetTenantState("acme").ShouldBeNull();
+    }
+
+    [Fact]
+    public void GlobalAdmin_can_create_disable_and_enable_without_tenant_membership() {
+        var svc = new InMemoryTenantService();
+
+        DomainResult createResult = svc.ProcessCommand(
+            new CreateTenant("acme", "Acme Corp", null),
+            userId: "global-admin",
+            isGlobalAdmin: true);
+        DomainResult disableResult = svc.ProcessCommand(
+            new DisableTenant("acme"),
+            userId: "global-admin",
+            isGlobalAdmin: true);
+        DomainResult enableResult = svc.ProcessCommand(
+            new EnableTenant("acme"),
+            userId: "global-admin",
+            isGlobalAdmin: true);
+
+        createResult.IsSuccess.ShouldBeTrue();
+        _ = createResult.Events[0].ShouldBeOfType<TenantCreated>();
+        disableResult.IsSuccess.ShouldBeTrue();
+        _ = disableResult.Events[0].ShouldBeOfType<TenantDisabled>();
+        enableResult.IsSuccess.ShouldBeTrue();
+        _ = enableResult.Events[0].ShouldBeOfType<TenantEnabled>();
+    }
+
+    [Fact]
+    public void NonGlobal_actor_cannot_disable_or_enable_tenant() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+
+        DomainResult disableResult = svc.ProcessCommand(
+            new DisableTenant("acme"),
+            userId: "owner",
+            isGlobalAdmin: false);
+        DomainResult enableResult = svc.ProcessCommand(
+            new EnableTenant("acme"),
+            userId: "owner",
+            isGlobalAdmin: false);
+
+        disableResult.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection disableRejection = disableResult.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        disableRejection.CommandName.ShouldBe(nameof(DisableTenant));
+        enableResult.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection enableRejection = enableResult.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        enableRejection.CommandName.ShouldBe(nameof(EnableTenant));
+    }
+
     // ─── 3.3: CreateTenant + AddUserToTenant produces correct events with maintained state ───
 
     [Fact]

@@ -23,43 +23,55 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
         string tenantId = envelope.AggregateId;
-        return state is not null
-            ? DomainResult.Rejection([new TenantAlreadyExistsRejection(tenantId)])
-            : DomainResult.Success([new TenantCreated(tenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
+        return !IsGlobalAdmin(envelope)
+            ? GlobalAdminRequired(tenantId, envelope, state, nameof(CreateTenant))
+            : state is not null
+                ? DomainResult.Rejection([new TenantAlreadyExistsRejection(tenantId)])
+                : DomainResult.Success([new TenantCreated(tenantId, command.Name, command.Description, DateTimeOffset.UtcNow)]);
     }
 
     public static DomainResult Handle(UpdateTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
         return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(command.TenantId)]),
+            null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+            { Status: TenantStatus.Disabled } => DomainResult.Rejection([new TenantDisabledRejection(tenantId)]),
             _ when !IsGlobalAdmin(envelope)
                 && !IsAuthorized(state, envelope.UserId, TenantRole.TenantContributor)
                 => DomainResult.Rejection([new InsufficientPermissionsRejection(
-                    command.TenantId, envelope.UserId,
-                    state.Users.TryGetValue(envelope.UserId, out TenantRole role) ? role : null,
+                    tenantId,
+                    envelope.UserId,
+                    GetActorRole(state, envelope.UserId),
                     nameof(UpdateTenant))]),
-            _ => DomainResult.Success([new TenantUpdated(command.TenantId, command.Name, command.Description)]),
+            _ => DomainResult.Success([new TenantUpdated(tenantId, command.Name, command.Description)]),
         };
     }
 
-    public static DomainResult Handle(DisableTenant command, TenantState? state) {
+    public static DomainResult Handle(DisableTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
-        return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Disabled } => DomainResult.NoOp(),
-            _ => DomainResult.Success([new TenantDisabled(command.TenantId, DateTimeOffset.UtcNow)]),
-        };
+        ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
+        return !IsGlobalAdmin(envelope)
+            ? GlobalAdminRequired(tenantId, envelope, state, nameof(DisableTenant))
+            : state switch {
+                null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+                { Status: TenantStatus.Disabled } => DomainResult.NoOp(),
+                _ => DomainResult.Success([new TenantDisabled(tenantId, DateTimeOffset.UtcNow)]),
+            };
     }
 
-    public static DomainResult Handle(EnableTenant command, TenantState? state) {
+    public static DomainResult Handle(EnableTenant command, TenantState? state, CommandEnvelope envelope) {
         ArgumentNullException.ThrowIfNull(command);
-        return state switch {
-            null => DomainResult.Rejection([new TenantNotFoundRejection(command.TenantId)]),
-            { Status: TenantStatus.Active } => DomainResult.NoOp(),
-            _ => DomainResult.Success([new TenantEnabled(command.TenantId, DateTimeOffset.UtcNow)]),
-        };
+        ArgumentNullException.ThrowIfNull(envelope);
+        string tenantId = envelope.AggregateId;
+        return !IsGlobalAdmin(envelope)
+            ? GlobalAdminRequired(tenantId, envelope, state, nameof(EnableTenant))
+            : state switch {
+                null => DomainResult.Rejection([new TenantNotFoundRejection(tenantId)]),
+                { Status: TenantStatus.Active } => DomainResult.NoOp(),
+                _ => DomainResult.Success([new TenantEnabled(tenantId, DateTimeOffset.UtcNow)]),
+            };
     }
 
     public static DomainResult Handle(AddUserToTenant command, TenantState? state, CommandEnvelope envelope) {
@@ -190,6 +202,20 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
 
     private static bool IsAuthorized(TenantState state, string actorUserId, TenantRole minimumRole)
         => state.Users.TryGetValue(actorUserId, out TenantRole actorRole) && MeetsMinimumRole(actorRole, minimumRole);
+
+    private static DomainResult GlobalAdminRequired(
+        string tenantId,
+        CommandEnvelope envelope,
+        TenantState? state,
+        string commandName)
+        => DomainResult.Rejection([new InsufficientPermissionsRejection(
+            tenantId,
+            envelope.UserId,
+            GetActorRole(state, envelope.UserId),
+            commandName)]);
+
+    private static TenantRole? GetActorRole(TenantState? state, string actorUserId)
+        => state is not null && state.Users.TryGetValue(actorUserId, out TenantRole role) ? role : null;
 
     /// <summary>
     /// Checks if the actor's role meets or exceeds the minimum required role.

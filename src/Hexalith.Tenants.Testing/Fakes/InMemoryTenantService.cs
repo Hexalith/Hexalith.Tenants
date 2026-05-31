@@ -54,30 +54,38 @@ public sealed class InMemoryTenantService {
     // ─── Tenant Commands (no envelope needed) ───
 
     /// <summary>Processes a CreateTenant command.</summary>
-    public DomainResult ProcessCommand(CreateTenant command) {
+    public DomainResult ProcessCommand(CreateTenant command, string userId = SystemTenantId, bool isGlobalAdmin = true) {
         ArgumentNullException.ThrowIfNull(command);
-        CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, "system", false);
-        TenantState? state = GetOrDefaultTenantState(command.TenantId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
+        string aggregateId = envelope.AggregateId;
+        TenantState? state = GetOrDefaultTenantState(aggregateId);
         DomainResult result = TenantAggregate.Handle(command, state, envelope);
-        ApplyTenantEvents(command.TenantId, result);
+        ApplyTenantEvents(aggregateId, result);
         return result;
     }
 
     /// <summary>Processes a DisableTenant command.</summary>
-    public DomainResult ProcessCommand(DisableTenant command) {
+    public DomainResult ProcessCommand(DisableTenant command, string userId = SystemTenantId, bool isGlobalAdmin = true) {
         ArgumentNullException.ThrowIfNull(command);
-        TenantState? state = GetOrDefaultTenantState(command.TenantId);
-        DomainResult result = TenantAggregate.Handle(command, state);
-        ApplyTenantEvents(command.TenantId, result);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
+        string aggregateId = envelope.AggregateId;
+        TenantState? state = GetOrDefaultTenantState(aggregateId);
+        DomainResult result = TenantAggregate.Handle(command, state, envelope);
+        ApplyTenantEvents(aggregateId, result);
         return result;
     }
 
     /// <summary>Processes an EnableTenant command.</summary>
-    public DomainResult ProcessCommand(EnableTenant command) {
+    public DomainResult ProcessCommand(EnableTenant command, string userId = SystemTenantId, bool isGlobalAdmin = true) {
         ArgumentNullException.ThrowIfNull(command);
-        TenantState? state = GetOrDefaultTenantState(command.TenantId);
-        DomainResult result = TenantAggregate.Handle(command, state);
-        ApplyTenantEvents(command.TenantId, result);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
+        string aggregateId = envelope.AggregateId;
+        TenantState? state = GetOrDefaultTenantState(aggregateId);
+        DomainResult result = TenantAggregate.Handle(command, state, envelope);
+        ApplyTenantEvents(aggregateId, result);
         return result;
     }
 
@@ -210,8 +218,8 @@ public sealed class InMemoryTenantService {
 
         DomainResult result = command switch {
             CreateTenant c => TenantAggregate.Handle(c, state, envelope),
-            DisableTenant c => TenantAggregate.Handle(c, state),
-            EnableTenant c => TenantAggregate.Handle(c, state),
+            DisableTenant c => TenantAggregate.Handle(c, state, envelope),
+            EnableTenant c => TenantAggregate.Handle(c, state, envelope),
             UpdateTenant c => TenantAggregate.Handle(c, state, envelope),
             AddUserToTenant c => TenantAggregate.Handle(c, state, envelope),
             RemoveUserFromTenant c => TenantAggregate.Handle(c, state, envelope),
