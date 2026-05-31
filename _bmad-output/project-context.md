@@ -30,7 +30,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **EventStore is a git submodule** at `Hexalith.EventStore/`, referenced via the `HexalithEventStoreRoot` MSBuild property which auto-detects 4 layouts (Tenants-as-submodule-of-EventStore, EventStore-as-submodule-of-Tenants, sibling submodules in an app repo, fallback nested). This dual topology is intentional — do not switch to `PackageReference` or relocate the submodule.
 - Initialize with `git submodule update --init` (no `--recursive`). Uninitialized submodules produce cryptic missing-target build errors.
 - Tenants builds on EventStore types: `EventStoreAggregate<T>`, `CommandEnvelope`, `DomainResult`, `IEventPayload`, `IRejectionEvent`, `IQueryContract`, `CachingProjectionActor`.
-- **Root-level submodules only**: `Hexalith.EventStore`, `Hexalith.AI.Tools`, `Hexalith.Commons`, `Hexalith.FrontComposer`. Never run recursive submodule init — nested submodules break the build.
+- **Root-level submodules only**: `Hexalith.EventStore`, `Hexalith.AI.Tools`, `Hexalith.Builds`, `Hexalith.Commons`, `Hexalith.FrontComposer`. Never run recursive submodule init — nested submodules break the build.
 
 ### DAPR
 - **DAPR SDK `1.17.9`** — `Dapr.Client`, `Dapr.AspNetCore`, `Dapr.Actors`, `Dapr.Actors.AspNetCore` (keep on the same version family). Before bumping, verify Tier 2 (`Server.Tests`) and Tier 3 (`IntegrationTests`) pass against the new version.
@@ -483,7 +483,7 @@ Format: `<type>(<optional scope>): <description>`
 - **ID validation rule** (Epic 2 R2-A7): `Ulid.TryParse` for identifiers; never `Guid.TryParse` on `messageId`/`correlationId`/`aggregateId`/`causationId`.
 
 ### Submodules
-- **`Hexalith.EventStore`, `Hexalith.AI.Tools`, `Hexalith.Commons`, `Hexalith.FrontComposer`** are root-level submodules. Initialize with `git submodule update --init` — NEVER `--recursive`.
+- **`Hexalith.EventStore`, `Hexalith.AI.Tools`, `Hexalith.Builds`, `Hexalith.Commons`, `Hexalith.FrontComposer`** are root-level submodules. Initialize with `git submodule update --init` — NEVER `--recursive`.
 - **Modifying a submodule**: commit inside the submodule first (separate repo), push, then update the parent's submodule pointer in a follow-up commit. Submodule changes propagate to all consumers of that submodule.
 - **`Hexalith.EventStore` is the framework dependency** — changes there affect Tenants, FrontComposer, and any other Hexalith repo using EventStore. Coordinate breaking changes before publishing.
 

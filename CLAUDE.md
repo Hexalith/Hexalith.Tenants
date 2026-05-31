@@ -54,11 +54,12 @@ Only initialize submodules declared at the root of this repository:
 - `Hexalith.EventStore`
 - `Hexalith.Commons`
 - `Hexalith.AI.Tools`
+- `Hexalith.Builds`
 - `Hexalith.FrontComposer`
 
 Use:
 ```
-git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.FrontComposer
+git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
 ```
 
 Never initialize nested submodules. Do not run `git submodule update --init --recursive`, `git submodule foreach --recursive`, or any equivalent command that initializes submodules inside the root-level submodules. If a nested submodule appears uninitialized, leave it alone unless a human explicitly requests otherwise.
