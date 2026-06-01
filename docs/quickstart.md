@@ -2,9 +2,9 @@
 
 # Quickstart
 
-Clone the repository, run the application with .NET Aspire, send your first tenant management command, and see the resulting event. This guide follows the same developer experience pattern as the [EventStore quickstart](../Hexalith.EventStore/docs/getting-started/quickstart.md).
+Clone the repository, run the application with .NET Aspire, send your first tenant management command through the EventStore command gateway, and inspect the command outcome. This guide follows the same developer experience pattern as the [EventStore quickstart](../Hexalith.EventStore/docs/getting-started/quickstart.md).
 
-> **Time estimate:** ~15 minutes with prerequisites installed. The 30-minute target assumes prerequisites are already set up — the clock starts at "clone".
+> **Time estimate:** within 30 minutes from clone to first command when the prerequisites below are already installed. Installing .NET, Docker, or DAPR for the first time is outside that clock and depends on your workstation.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ Before you begin, verify that the following tools are installed and working. Run
 dotnet --version
 ```
 
-Expected: `10.x.xxx` (any 10.x version)
+Expected: `10.0.300` or a later `10.0.xxx` patch version. The repository pins SDK `10.0.300` in [`global.json`](../global.json) with `rollForward: latestPatch`.
 
 If not installed, download from [https://dot.net](https://dot.net/download).
 
@@ -32,7 +32,9 @@ Expected: CLI version and runtime version both present.
 dapr init
 ```
 
-> **Note:** Run `dapr init` (full init, not `--slim`) — the Aspire topology requires the full DAPR runtime with Redis, placement, and scheduler. The existing local tests expect Redis on `localhost:6379`, placement on `50005` on Linux or `6050` on Windows, and scheduler on `50006` on Linux or `6060` on Windows.
+> **Note:** Run `dapr init` (full init, not `--slim`) for this local quickstart. Full init provides Redis, actor placement, and scheduler. `dapr init --slim` excludes those local services; use slim mode only when you provide placement, scheduler, `statestore`, and `pubsub` separately. Deployment-specific DAPR details live in [`deploy/dapr`](../deploy/dapr/README.md).
+
+The existing local tests expect Redis on `localhost:6379`, placement on `50005` on Linux or `6050` on Windows, and scheduler on `50006` on Linux or `6060` on Windows.
 
 If not installed, follow the [DAPR Getting Started guide](https://docs.dapr.io/getting-started/).
 
@@ -50,6 +52,19 @@ Docker Desktop must be running. The Aspire AppHost launches containers for Redis
 
 If not installed, download Docker Desktop from [https://docs.docker.com/get-started/get-docker/](https://docs.docker.com/get-started/get-docker/).
 
+### Root-Level Submodules
+
+Only initialize the root-level submodules used by this repository:
+
+```bash
+git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
+git submodule status Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
+```
+
+Expected: each line starts with a commit hash or a leading space. A leading `-` means the submodule is not initialized; rerun the command above.
+
+> **Do not use recursive initialization.** Do not run `git submodule update --init --recursive`; nested submodules are intentionally left alone for this repository.
+
 ### About the `system` Tenant
 
 Hexalith.Tenants operates as a platform-level service within EventStore's multi-tenant model. All tenant management commands run under the `system` tenant context — this is a platform tenant that manages other tenants, not a user-facing tenant.
@@ -65,6 +80,8 @@ git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
 git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
 ```
+
+Do not add `--recursive`.
 
 > **Windows users:** The repository contains submodule paths such as `Hexalith.Tenants/Hexalith.EventStore/src/...`. If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
 
@@ -86,6 +103,17 @@ dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.cspro
 
 Once the application starts, the terminal output includes the Aspire dashboard URL. Open it in your browser — the dashboard shows all running services and their endpoints.
 
+Before sending a command, confirm the dashboard shows these local resources as running or healthy:
+
+- `eventstore`: EventStore command gateway, including `POST /api/v1/commands`
+- `tenants`: Tenants domain processor for `/process` and query endpoints
+- `keycloak`: local identity provider, unless you explicitly set `EnableKeycloak=false`
+- `redis`: local state store backing DAPR actor and projection state
+- `sample`: consuming service subscribed to tenant events
+- DAPR sidecars for `eventstore`, `tenants`, and `sample`
+
+If `eventstore` or `tenants` is missing or unhealthy, do not submit the first command yet. Check the AppHost resource details first; common causes are Docker not running, DAPR not initialized, port conflicts from old sidecars, or uninitialized submodules.
+
 ## Get an Access Token
 
 The EventStore command gateway requires a JWT token for authentication. The default local AppHost starts Keycloak with a sample realm and user.
@@ -102,7 +130,7 @@ curl -s -X POST "{keycloak-url}/realms/hexalith/protocol/openid-connect/token" \
   | jq -r .access_token
 ```
 
-If `jq` is not installed, copy the `access_token` value from the JSON response. The token includes the direct `eventstore:tenant=system`, `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims required for tenant-management commands.
+If `jq` is not installed, copy the `access_token` value from the JSON response. The token includes the direct `eventstore:tenant=system`, `eventstore:domain=global-administrators`, `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims required for the two quickstart commands.
 
 If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. That fallback uses the development signing key in `src/Hexalith.Tenants/appsettings.Development.json`.
 
@@ -143,6 +171,41 @@ Copy the output token — you need it in the next step.
 >
 > **Production note:** Production deployments use OIDC authority-based JWT validation, not the local HMAC signing key. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
 
+## Validate Before the First Command
+
+Do these checks before you submit `BootstrapGlobalAdmin`. They catch the common local setup failures while the system is still idle.
+
+### Verify the EventStore command gateway
+
+Find the `eventstore` service URL in the Aspire dashboard, then confirm the OpenAPI document exposes the command gateway route:
+
+```bash
+curl -fsS "{eventstore-url}/swagger/v1/swagger.json" | rg '"/api/v1/commands"'
+```
+
+Expected: a match for `/api/v1/commands`. If the request fails, the EventStore resource is not reachable yet; check AppHost health, Docker, DAPR initialization, and port conflicts before continuing. Do not switch to a Tenants-specific command URL; tenant commands are submitted through the EventStore-owned `POST /api/v1/commands` route.
+
+### Verify the token and `system` tenant claim
+
+Use the token from the previous step to call the status endpoint with a correlation ID that has not been used:
+
+```bash
+TOKEN="{paste-token-here}"
+curl -i -H "Authorization: Bearer $TOKEN" \
+  "{eventstore-url}/api/v1/commands/status/01JQK000000000000000009999"
+```
+
+Expected: `404 Not Found` with a problem-details body saying no command status exists for that correlation ID. That proves the gateway accepted the token and searched the authorized tenant scope.
+
+Fix these outcomes before submitting a tenant command:
+
+| Result | Meaning | Fix |
+| ------ | ------- | --- |
+| `401 Unauthorized` | Missing, expired, malformed, wrong issuer, wrong audience, or wrong signing key token | Re-acquire the Keycloak token or regenerate the local HMAC token after confirming the AppHost auth mode. |
+| `403 Forbidden` with no tenant authorization claims | Token lacks an effective `eventstore:tenant=system` claim | Use the `admin-user` local Keycloak account or a local HMAC token with `tenants: ["system"]`. |
+| `403 Forbidden` with tenant mismatch | Token tenant is not exactly `system` for the platform command path | Use the local platform administrator token; do not submit tenant-management commands under `tenant-a`, `tenant-b`, or differently cased `System`. |
+| Connection failure | EventStore is not reachable | Wait for the AppHost resource, then check Docker, DAPR full init, and AppHost resource details. |
+
 ## Send Your First Commands
 
 ### Open Swagger UI
@@ -155,11 +218,11 @@ Find the `eventstore` service in the Aspire dashboard and open its URL. Append `
 
 ### Step 1: Bootstrap the Global Administrator
 
-Before creating tenants, you must authorize an administrator. Expand the **POST /api/v1/commands** endpoint, click **Try it out**, and submit:
+Before creating tenants, you must authorize an administrator. In the EventStore Swagger UI, expand the **POST /api/v1/commands** endpoint, click **Try it out**, and submit:
 
 ```json
 {
-    "messageId": "01JQK000000000000000000001",
+    "messageId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y1",
     "tenant": "system",
     "domain": "global-administrators",
     "aggregateId": "global-administrators",
@@ -180,7 +243,7 @@ Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
 
 ```json
 {
-    "messageId": "01JQK000000000000000000002",
+    "messageId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y2",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",
@@ -198,16 +261,16 @@ Now create a tenant. In the same **POST /api/v1/commands** endpoint, submit:
 Click **Execute**. The API returns `202 Accepted`. The response body contains a correlation ID:
 
 ```json
-{ "correlationId": "01JQK000000000000000000002" }
+{ "correlationId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y2" }
 ```
 
 The `Location` header points to the status polling endpoint (`/api/v1/commands/status/{correlationId}`). You can poll this endpoint until you see a terminal status:
 
 ```json
 {
-    "correlationId": "01JQK000000000000000000002",
+    "correlationId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y2",
     "status": "Completed",
-    "statusCode": 5,
+    "statusCode": 4,
     "timestamp": "2026-03-19T12:00:01Z",
     "aggregateId": "my-first-tenant",
     "eventCount": 1,
@@ -216,7 +279,7 @@ The `Location` header points to the status polling endpoint (`/api/v1/commands/s
 }
 ```
 
-`status: "Completed"` with `eventCount: 1` confirms the `TenantCreated` event was stored and published. A `status: "Rejected"` response means a business rule rejected the command — check `rejectionEventType` for the reason.
+`status: "Completed"` with `eventCount: 1` confirms the `TenantCreated` event was stored and published. A `status: "Rejected"` response means a business rule rejected the command; check `rejectionEventType` for the reason and use the corrective actions below. Infrastructure failures use `failureReason` instead.
 
 ### Verify the Event
 
@@ -232,8 +295,8 @@ You can also check the command status via the URL in the `Location` header from 
 
 If you've run this before:
 
-- **BootstrapGlobalAdmin** will return a rejection (`GlobalAdminAlreadyBootstrappedRejection`) — this is correct behavior, the admin was already created.
-- **CreateTenant** with the same ID will return a rejection (`TenantAlreadyExistsRejection`) — use a different `aggregateId` and `TenantId`, e.g., `my-second-tenant`.
+- **BootstrapGlobalAdmin** may reach `status: "Rejected"` with `rejectionEventType` ending in `GlobalAdminAlreadyBootstrappedRejection`. This is correct behavior: the admin was already created. Continue to `CreateTenant`.
+- **CreateTenant** with the same ID may reach `status: "Rejected"` with `rejectionEventType` ending in `TenantAlreadyExistsRejection`. Use a different `aggregateId` and matching `payload.TenantId`, e.g., `my-second-tenant`.
 
 ### Try More Commands
 
@@ -243,7 +306,7 @@ Create a multi-step workflow — add a user to your new tenant:
 
 ```json
 {
-    "messageId": "01JQK000000000000000000003",
+    "messageId": "01JQK7YQ7YQ7YQ7YQ7YQ7YQ7Y3",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "my-first-tenant",

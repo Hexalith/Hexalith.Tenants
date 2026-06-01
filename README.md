@@ -18,9 +18,9 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 
 ## Quickstart
 
-Get from clone to your first tenant in about 15 minutes:
+Get from clone to your first tenant command within 30 minutes when local prerequisites are already installed:
 
-**[Quickstart Guide](docs/quickstart.md)** — ~15 minutes with prerequisites installed, ~45 minutes including first-time prerequisite setup.
+**[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET 10, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
 ### See It In Action
 

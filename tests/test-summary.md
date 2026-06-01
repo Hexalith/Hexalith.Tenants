@@ -3,34 +3,33 @@
 ## Generated Tests
 
 ### API Tests
-- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` - HTTP query boundary coverage for safe 403/404/400 ProblemDetails, malformed cursors, and signed cursor scope mismatches before query routing.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` - Source-backed validation of the documented EventStore command gateway route, command status route, package names, contract-deserializable first command JSON requests, and success/rejection response interpretation.
 
 ### E2E Tests
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` - Query-side authorization and isolation coverage for direct tenant details, tenant users, tenant lists, user memberships, audit queries, pagination, global-admin access, unauthorized callers, stale memberships, orphan rows, and corrupted audit rows.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryCursorCodecTests.cs` - Opaque cursor encoding, tamper rejection, query-type mismatch, requester/target-user scope binding, and oversized cursor rejection.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPolicyTests.cs` - Standard and audit page-size boundary coverage.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPayloadParserTests.cs` - Pagination payload parsing and malformed payload fallback coverage.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` - End-to-end quickstart documentation contract coverage for prerequisite checks, local AppHost topology paths, DAPR/Docker/submodule setup, local auth assumptions, and command journey signals.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs` - Existing topology and local Keycloak coverage for DAPR component names/scopes, EventStore domain-service routing, local/production DAPR guidance, and `admin-user` authorization for the quickstart command domains.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs` - Existing root solution/submodule/path guard coverage for the quickstart's source and submodule assumptions.
 
 ## Coverage
-- Story 5.5 acceptance criteria: 5/5 covered by projection actor, cursor, pagination, and HTTP boundary tests.
-- Query endpoints covered: 5/5 (`list-tenants`, `get-tenant`, `get-tenant-users`, `get-user-tenants`, `get-tenant-audit`).
-- Authorization cases covered: unauthorized, member reader/contributor/owner, partially authorized TenantOwner, missing/malformed user, global-admin, unknown-role filtering in detail/list/member DTOs, stale membership, orphan index, and audit-only admin cases.
-- Cursor isolation covered: malformed cursor, tampered cursor, wrong query type, wrong requester, wrong target user, wrong tenant, wrong audit filter, empty-state cursor rejection, hidden-row pagination, and raw cursor/body redaction.
-- UI workflows: N/A, story 5.5 has no UI surface.
+- Story 8.1 acceptance criteria: 5/5 covered by quickstart documentation-contract, topology, local auth, and solution/submodule guard tests.
+- Quickstart prerequisite categories covered: .NET SDK, Docker, full DAPR local runtime, root-level submodules, AppHost startup, EventStore command gateway, local Keycloak/HMAC token assumptions, and tenant/auth claim failure triage.
+- First command path covered: `BootstrapGlobalAdmin` against `global-administrators`, `CreateTenant` against `tenants`, EventStore `POST /api/v1/commands`, `GET /api/v1/commands/status/{correlationId}`, contract-deserializable payloads, ULID-shaped message IDs, and matching `aggregateId`/`payload.TenantId`.
+- Success and error outcomes covered: `202 Accepted`, `Location` status polling, `Completed` with status code `4`, tenant query verification, `Rejected`, `rejectionEventType`, `failureReason`, `GlobalAdminAlreadyBootstrappedRejection`, and `TenantAlreadyExistsRejection`.
+- UI workflows: N/A, Story 8.1 has no UI surface.
 
 ## Validation
-- `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter "FullyQualifiedName~TenantsProjectionActorTests|FullyQualifiedName~TenantQueryCursorCodecTests|FullyQualifiedName~TenantQueryPaginationPolicyTests|FullyQualifiedName~TenantQueryPaginationPayloadParserTests" --no-restore -m:1 -nr:false` compiled successfully, then VSTest aborted on sandbox socket setup (`SocketException (13): Permission denied`).
-- `dotnet test tests/Hexalith.Tenants.IntegrationTests/ --filter FullyQualifiedName~TenantsQueryControllerIntegrationTests --no-restore -m:1 -nr:false` compiled successfully, then VSTest aborted on sandbox socket setup (`SocketException (13): Permission denied`).
-- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Projections.TenantsProjectionActorTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryCursorCodecTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryPaginationPolicyTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryPaginationPayloadParserTests` passed: 146 total, 0 failed, 0 skipped.
-- `tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests` passed: 40 total, 0 failed, 0 skipped.
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter FullyQualifiedName~QuickstartDocumentationTests --no-restore -m:1 -nr:false` compiled successfully, then VSTest aborted in this sandbox with `SocketException (13): Permission denied`.
+- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests` passed: 5 total, 0 failed, 0 skipped.
+- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests` passed: 22 total, 0 failed, 0 skipped.
+- `dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --filter FullyQualifiedName~SolutionStructureTests --no-restore -m:1 -nr:false` compiled successfully, then VSTest aborted in this sandbox with `SocketException (13): Permission denied`.
+- `tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Contracts.Tests.SolutionStructureTests` passed: 6 total, 0 failed, 0 skipped.
 - `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 -nr:false` passed with 0 warnings and 0 errors.
 
 ## Checklist
 - [x] API tests generated if applicable.
-- [x] E2E/query workflow tests generated for the implemented feature.
+- [x] E2E tests generated for the implemented quickstart/documentation feature.
 - [x] Tests use standard xUnit v3 and Shouldly APIs.
-- [x] Tests cover happy path and critical error cases.
-- [x] Tests use semantic HTTP assertions and production query/cursor surfaces.
-- [x] No hardcoded waits or sleeps.
+- [x] Tests cover the happy path and critical prerequisite/auth/rejection error cases.
+- [x] Tests use source-backed route/path assertions instead of hardcoded waits or sleeps.
 - [x] Tests are independent and order-free.
 - [x] Test summary created with coverage metrics.

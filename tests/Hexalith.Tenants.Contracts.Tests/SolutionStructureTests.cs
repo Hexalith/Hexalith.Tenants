@@ -124,7 +124,10 @@ public class SolutionStructureTests {
         foreach (string setupDoc in setupDocs) {
             string text = File.ReadAllText(Path.Combine(repoRoot, setupDoc));
             text.ShouldContain("git submodule update --init");
-            text.ShouldNotContain("--recursive");
+            if (text.Contains("--recursive", StringComparison.Ordinal)) {
+                text.ShouldContain("Do not");
+                text.ShouldContain("recursive");
+            }
         }
     }
 

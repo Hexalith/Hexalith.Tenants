@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Xml.Linq;
 
 using Microsoft.Extensions.Configuration;
@@ -261,6 +262,24 @@ public class EventPublicationConfigurationTests {
         combined.ShouldContain("wrong component name");
         combined.ShouldContain("wrong component scope");
         combined.ShouldContain("denied service invocation");
+    }
+
+    [Fact]
+    public void LocalKeycloakRealm_AdminUserAuthorizesQuickstartCommandDomains() {
+        string realmPath = RepositoryPath("src", "Hexalith.Tenants.AppHost", "KeycloakRealms", "hexalith-realm.json");
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(realmPath));
+
+        JsonElement adminUser = document.RootElement
+            .GetProperty("users")
+            .EnumerateArray()
+            .Single(user => user.GetProperty("username").GetString() == "admin-user");
+
+        JsonElement attributes = adminUser.GetProperty("attributes");
+        attributes.GetProperty("tenants").EnumerateArray().Select(value => value.GetString()).OfType<string>().ShouldContain("system");
+        attributes.GetProperty("domains").EnumerateArray().Select(value => value.GetString()).OfType<string>().ShouldBe(
+            ["global-administrators", "tenants", "orders", "inventory", "counter"],
+            ignoreOrder: true);
+        attributes.GetProperty("permissions").EnumerateArray().Select(value => value.GetString()).OfType<string>().ShouldContain("command:submit");
     }
 
     [Fact]

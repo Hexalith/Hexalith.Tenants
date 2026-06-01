@@ -116,3 +116,110 @@ dev-story, then auto-application of the discovered gap. Tests only — no story 
 - [x] No hardcoded waits or sleeps; deterministic stub, no `Thread.Sleep`/`Task.Delay`.
 - [x] Test is independent and order-free (own factory instance per test).
 - [x] Summary updated; tests saved to existing project directory; coverage + validation recorded.
+
+---
+
+# Test Automation Summary — Story 8.1
+
+**Story:** 8.1 — Create a Prerequisite-Validated Quickstart
+**Workflow:** dev-story · **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source/static documentation checks
+
+## Scope
+
+Documentation hardening plus local-auth fixture validation for the prerequisite-validated quickstart. No production runtime behavior was changed.
+
+## Generated / Updated Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs` —
+  `LocalKeycloakRealm_AdminUserAuthorizesQuickstartCommandDomains`
+  pins the local Keycloak `admin-user` realm claims required by the quickstart:
+  `eventstore:tenant=system`, domains `global-administrators` and `tenants`, and `command:submit`.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs` —
+  updated the submodule setup guardrail to allow explicit negative `--recursive` warnings while still requiring root-level `git submodule update --init` guidance.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Targeted tests via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~EventPublicationConfigurationTests|FullyQualifiedName~BootstrapConfigurationTests"` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+| Targeted tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -class Hexalith.Tenants.Server.Tests.Configuration.BootstrapConfigurationTests -parallel none -noLogo -noColor` | Passed: 19 total, 0 failed, 0 skipped. |
+| Release build | `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Full direct xUnit suite | Contracts, Client, Testing, Server, Sample, and Integration test assemblies under `bin/Release/net10.0` with `-parallel none` | Passed: 1306 total, 0 failed, 26 skipped. Skips were DAPR/performance prerequisite-gated. |
+| Source/static checks | `rg`/file existence checks for solution, AppHost, production auth docs, DAPR docs, sample project, scripts, EventStore command/status routes, AppHost resources, appsettings registrations, query routes, ULID-shaped examples | Passed. |
+
+## Live Environment Limitation
+
+- `dapr --version` is available: CLI `1.17.1`, runtime `1.17.8`.
+- Docker API access is denied in this sandbox: `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`.
+- Because Docker/AppHost infrastructure is unavailable, the quickstart was not live-run through first command submission. The guide now documents this as a prerequisite failure mode and the validation record does not claim live execution.
+
+---
+
+# Test Automation Summary — Story 8.1 QA Generate E2E Tests
+
+**Story:** 8.1 — Create a Prerequisite-Validated Quickstart
+**Workflow:** qa-generate-e2e-tests · **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source/static documentation checks
+
+## Scope
+
+QA gap analysis of Story 8.1's quickstart journey against existing test coverage, then auto-application of discovered test gaps. Tests only.
+
+## Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Local topology and DAPR contracts | `EventPublicationConfigurationTests` covered DAPR component names/scopes, domain-service routing, and local Keycloak `admin-user` claims. | Covered. |
+| Root solution/submodule assumptions | `SolutionStructureTests` covered root-level submodules and non-recursive guidance. | Covered. |
+| Quickstart command examples and prerequisite journey | No focused test parsed `docs/quickstart.md` to prove prerequisite checks, documented routes, command JSON examples, local paths, and success/rejection signals stayed current. | **Gap found and closed.** |
+| Browser UI workflow | Story 8.1 has no UI surface. | N/A. |
+
+## Generated Tests
+
+### API Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` —
+  validates the documented EventStore command gateway and status routes against EventStore source, deserializes first-command JSON examples into the real command contracts, verifies package names and ULID-shaped message IDs, and pins success/rejection interpretation.
+
+### E2E Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` —
+  covers the prerequisite-validated quickstart journey end-to-end at the documentation-contract layer: .NET SDK, Docker, full DAPR local runtime, root-level submodules, AppHost path, EventStore gateway, local auth assumptions, `BootstrapGlobalAdmin`, `CreateTenant`, follow-up `AddUserToTenant`, and corrective action signals.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs` —
+  reused for source-backed topology and local Keycloak coverage.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs` —
+  reused for solution and submodule guard coverage.
+
+## Coverage
+
+- Story 8.1 acceptance criteria: 5/5 covered by documentation-contract, topology, local auth, and solution/submodule tests.
+- First command path covered: `BootstrapGlobalAdmin` against `global-administrators`, `CreateTenant` against `tenants`, EventStore `POST /api/v1/commands`, `GET /api/v1/commands/status/{correlationId}`, contract-deserializable payloads, ULID-shaped message IDs, and matching `aggregateId`/`payload.TenantId`.
+- Critical error cases covered: missing prerequisite triage, `401`, `403`, connection failure, structured command rejection via `rejectionEventType`, `GlobalAdminAlreadyBootstrappedRejection`, and `TenantAlreadyExistsRejection`.
+- UI workflows: N/A, Story 8.1 has no browser UI surface.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter FullyQualifiedName~QuickstartDocumentationTests --no-restore -m:1 -nr:false` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+| Server targeted via xUnit runner | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests` | Passed: 5 total, 0 failed, 0 skipped. |
+| Server documentation/topology via xUnit runner | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests` | Passed: 22 total, 0 failed, 0 skipped. |
+| Contracts targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --filter FullyQualifiedName~SolutionStructureTests --no-restore -m:1 -nr:false` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+| Contracts targeted via xUnit runner | `tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Contracts.Tests.SolutionStructureTests` | Passed: 6 total, 0 failed, 0 skipped. |
+| Release build | `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 -nr:false` | Passed: 0 warnings, 0 errors. |
+
+## Checklist
+
+- [x] API tests generated where applicable.
+- [x] E2E tests generated for the non-UI quickstart journey.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy path.
+- [x] Tests cover critical prerequisite/auth/rejection error cases.
+- [x] Tests use source-backed route/path assertions; semantic UI locators are N/A.
+- [x] Tests have clear descriptions.
+- [x] No hardcoded waits or sleeps.
+- [x] Tests are independent and order-free.
+- [x] Test summary created.
+- [x] Tests saved to appropriate directories.
+- [x] Summary includes coverage metrics.

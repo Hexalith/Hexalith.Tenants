@@ -101,7 +101,7 @@
       ],
       "attributes": {
         "tenants": ["system", "tenant-a", "tenant-b"],
-        "domains": ["tenants", "orders", "inventory", "counter"],
+        "domains": ["global-administrators", "tenants", "orders", "inventory", "counter"],
         "permissions": ["command:submit", "command:replay", "command:query"]
       }
     },
