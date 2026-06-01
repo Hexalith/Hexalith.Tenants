@@ -1,0 +1,21 @@
+Archived old epic 7-9 story artifacts at 2026-06-01T14:38:14Z
+Reason: current epics.md story titles conflict with existing implementation artifacts; user requested archive old stories.
+
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/7-1-aspire-hosting-and-apphost.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/7-1-aspire-hosting-and-apphost.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/7-2-opentelemetry-instrumentation-and-health-checks.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/7-2-opentelemetry-instrumentation-and-health-checks.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/7-3-stateless-scaling-and-snapshot-configuration.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/7-3-stateless-scaling-and-snapshot-configuration.md
+7.4 -> no existing story artifact
+7.5 -> no existing story artifact
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/8-1-quickstart-guide-and-readme.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/8-1-quickstart-guide-and-readme.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/8-2-event-contract-reference-and-technical-documentation.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/8-2-event-contract-reference-and-technical-documentation.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/8-3-aha-moment-demo-and-project-documentation.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/8-3-aha-moment-demo-and-project-documentation.md
+8.4 -> no existing story artifact
+8.5 -> no existing story artifact
+8.6 -> no existing story artifact
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/9-1-opaque-signed-query-cursors.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/9-1-opaque-signed-query-cursors.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/9-2-stable-cursor-pagination-under-role-and-membership-changes.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/9-2-stable-cursor-pagination-under-role-and-membership-changes.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/9-3-query-policy-for-disabled-tenants-and-orphan-memberships.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/9-3-query-policy-for-disabled-tenants-and-orphan-memberships.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/9-4-actor-layer-query-guardrails.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/9-4-actor-layer-query-guardrails.md
+/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/9-5-shared-pagination-bounds-and-cursor-utilities.md -> /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/archive/story-automator-20260601T143814Z-old-epics-7-9/9-5-shared-pagination-bounds-and-cursor-utilities.md
+9.6 -> no existing story artifact
+9.7 -> no existing story artifact

@@ -1,6 +1,6 @@
 ---
-stateFile: "/home/administrator/projects/hexalith/tenants/_bmad-output/story-automator/orchestration-1-20260531-113112.md"
-createdAt: "2026-05-31T11:31:59Z"
+stateFile: "/home/administrator/projects/hexalith/tenants/_bmad-output/story-automator/orchestration-7-20260601-143204.md"
+createdAt: "2026-06-01T14:32:28Z"
 ---
 
 # Agents Plan: Tenants - Epic Breakdown
@@ -8,14 +8,14 @@ createdAt: "2026-05-31T11:31:59Z"
 ```json
 {
   "version": "1.0.0",
-  "stateFile": "/home/administrator/projects/hexalith/tenants/_bmad-output/story-automator/orchestration-1-20260531-113112.md",
-  "epic": "1",
+  "stateFile": "/home/administrator/projects/hexalith/tenants/_bmad-output/story-automator/orchestration-7-20260601-143204.md",
+  "epic": "7",
   "epicName": "Tenants - Epic Breakdown",
-  "createdAt": "2026-05-31T11:31:59Z",
+  "createdAt": "2026-06-01T14:32:28Z",
   "stories": [
     {
-      "storyId": "1.1",
-      "title": "Establish EventStore-Native Solution Structure",
+      "storyId": "7.1",
+      "title": "Provide Aspire Hosting Extensions for Tenants",
       "complexity": "high",
       "tasks": {
         "create": {
@@ -37,8 +37,100 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "1.2",
-      "title": "Configure Central Build and Package Governance",
+      "storyId": "7.2",
+      "title": "Configure DAPR Components for Local and Production Deployment",
+      "complexity": "high",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "7.3",
+      "title": "Validate Production Authentication and EventStore Tenant Claims",
+      "complexity": "high",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "7.4",
+      "title": "Expose Tenant Command and Event Metrics with OpenTelemetry",
+      "complexity": "high",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "7.5",
+      "title": "Prove Stateless Operation, Health, and Startup Reconstruction",
+      "complexity": "high",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "8.1",
+      "title": "Create a Prerequisite-Validated Quickstart",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -60,146 +152,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "1.3",
-      "title": "Add CI Quality Gates for Build, Test, Coverage, and Package Validation",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "1.4",
-      "title": "Verify Consumer Package Reference Experience",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "2.1",
-      "title": "Bootstrap the Initial Global Administrator",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "2.2",
-      "title": "Manage Global Administrator Assignments",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "2.3",
-      "title": "Authorize Global Administrators for Cross-Tenant Governance",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "2.4",
-      "title": "Create and Update Tenants",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "2.5",
-      "title": "Disable and Re-Enable Tenants",
+      "storyId": "8.2",
+      "title": "Publish the Event Contract Reference",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -221,8 +175,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "2.6",
-      "title": "Return Structured Tenant Governance Rejections",
+      "storyId": "8.3",
+      "title": "Document the Sample Consuming Service Walkthrough",
       "complexity": "high",
       "tasks": {
         "create": {
@@ -244,77 +198,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "2.7",
-      "title": "Preserve Command Source of Truth When Pub/Sub Is Unavailable",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "3.1",
-      "title": "Add Users to a Tenant with Explicit Roles",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "3.2",
-      "title": "Remove Users from a Tenant",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "3.3",
-      "title": "Change Tenant User Roles with Escalation Protection",
+      "storyId": "8.4",
+      "title": "Produce the Reactive Access \"Aha Moment\" Demo",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -336,8 +221,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "3.4",
-      "title": "Enforce Tenant-Scoped Role Behavior",
+      "storyId": "8.5",
+      "title": "Document Cross-Aggregate Timing and Eventual Consistency",
       "complexity": "high",
       "tasks": {
         "create": {
@@ -359,8 +244,31 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "3.5",
-      "title": "Set Tenant Configuration Entries",
+      "storyId": "8.6",
+      "title": "Document Compensating Command Patterns",
+      "complexity": "low",
+      "tasks": {
+        "create": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "dev": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "auto": {
+          "primary": "codex",
+          "fallback": "claude"
+        },
+        "review": {
+          "primary": "codex",
+          "fallback": "claude"
+        }
+      }
+    },
+    {
+      "storyId": "9.1",
+      "title": "Map Fluent UI and FrontComposer Dependencies for Tenant Admin Screens",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -382,8 +290,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "3.6",
-      "title": "Remove Tenant Configuration Entries",
+      "storyId": "9.2",
+      "title": "Specify the Operations Shell and Read-Only Access Review Surfaces",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -405,8 +313,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "3.7",
-      "title": "Enforce Tenant Configuration Limits",
+      "storyId": "9.3",
+      "title": "Define Truth State, Freshness, and Unavailable Action Patterns",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -428,9 +336,9 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "3.8",
-      "title": "Reject Conflicting Concurrent Tenant Modifications",
-      "complexity": "high",
+      "storyId": "9.4",
+      "title": "Specify the RemoveUserFromTenant Command-Capable Journey",
+      "complexity": "low",
       "tasks": {
         "create": {
           "primary": "codex",
@@ -451,9 +359,9 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "4.1",
-      "title": "Publish Tenant Domain Events as CloudEvents",
-      "complexity": "high",
+      "storyId": "9.5",
+      "title": "Specify Audit Evidence and Compensating Recovery UI Patterns",
+      "complexity": "low",
       "tasks": {
         "create": {
           "primary": "codex",
@@ -474,8 +382,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "4.2",
-      "title": "Expose Consumer DI Registration for Tenant Client Services",
+      "storyId": "9.6",
+      "title": "Specify Responsive Operational Layout and Visual System Usage",
       "complexity": "medium",
       "tasks": {
         "create": {
@@ -497,77 +405,8 @@ createdAt: "2026-05-31T11:31:59Z"
       }
     },
     {
-      "storyId": "4.3",
-      "title": "Register Tenant Event Handlers in Under Twenty Lines",
-      "complexity": "medium",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "4.4",
-      "title": "Build a Local Consumer Projection from Tenant Events",
-      "complexity": "high",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "4.5",
-      "title": "React to Tenant Access, Lifecycle, and Configuration Changes",
-      "complexity": "medium",
-      "tasks": {
-        "create": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "dev": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "auto": {
-          "primary": "codex",
-          "fallback": "claude"
-        },
-        "review": {
-          "primary": "codex",
-          "fallback": "claude"
-        }
-      }
-    },
-    {
-      "storyId": "4.6",
-      "title": "Provide Idempotent Consumer Guidance and Sample Service",
+      "storyId": "9.7",
+      "title": "Define Accessibility, Localization, and UI Acceptance Evidence",
       "complexity": "medium",
       "tasks": {
         "create": {
