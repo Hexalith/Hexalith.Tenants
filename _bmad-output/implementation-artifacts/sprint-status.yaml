@@ -101,7 +101,7 @@ development_status:
   epic-6: in-progress
   6-1-provide-in-memory-tenant-test-fakes: done
   6-2-reuse-production-aggregate-logic-in-testing-fakes: done
-  6-3-add-production-fake-conformance-tests: backlog
+  6-3-add-production-fake-conformance-tests: done
   6-4-support-consumer-tenant-isolation-tests: backlog
   epic-6-retrospective: optional
 

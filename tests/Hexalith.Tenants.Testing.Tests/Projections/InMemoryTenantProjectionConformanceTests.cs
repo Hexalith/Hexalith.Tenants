@@ -24,6 +24,35 @@ public sealed class InMemoryTenantProjectionConformanceTests {
         nameof(GlobalAdministratorSet), nameof(GlobalAdministratorRemoved),
     };
 
+    private static readonly IReadOnlyDictionary<string, Action> BehavioralAssertions = new Dictionary<string, Action>(StringComparer.Ordinal) {
+        [nameof(TenantCreated)] = () => {
+            var projection = new InMemoryTenantProjection();
+            projection.Apply(new TenantCreated("ghost", "Ghost", null, When));
+            _ = projection.GetTenant("ghost").ShouldNotBeNull();
+        },
+        [nameof(TenantUpdated)] = () => AssertTenantScopedEventRoutes(new TenantUpdated("ghost", "Name", "Desc", When)),
+        [nameof(TenantDisabled)] = () => AssertTenantScopedEventRoutes(new TenantDisabled("ghost", When)),
+        [nameof(TenantEnabled)] = () => AssertTenantScopedEventRoutes(new TenantEnabled("ghost", When)),
+        [nameof(UserAddedToTenant)] = () => AssertTenantScopedEventRoutes(new UserAddedToTenant("ghost", "user", TenantRole.TenantReader)),
+        [nameof(UserRemovedFromTenant)] = () => AssertTenantScopedEventRoutes(new UserRemovedFromTenant("ghost", "user")),
+        [nameof(UserRoleChanged)] = () => AssertTenantScopedEventRoutes(new UserRoleChanged("ghost", "user", TenantRole.TenantReader, TenantRole.TenantOwner)),
+        [nameof(TenantConfigurationSet)] = () => AssertTenantScopedEventRoutes(new TenantConfigurationSet("ghost", "key", "value")),
+        [nameof(TenantConfigurationRemoved)] = () => AssertTenantScopedEventRoutes(new TenantConfigurationRemoved("ghost", "key")),
+        [nameof(GlobalAdministratorSet)] = () => {
+            var projection = new InMemoryTenantProjection();
+            projection.Apply(new GlobalAdministratorSet("system", "admin-1"));
+            projection.GetGlobalAdministrators().Administrators.Contains("admin-1")
+                .ShouldBeTrue("GlobalAdministratorSet must route into the global-administrator read model.");
+        },
+        [nameof(GlobalAdministratorRemoved)] = () => {
+            var projection = new InMemoryTenantProjection();
+            projection.Apply(new GlobalAdministratorSet("system", "admin-1"));
+            projection.Apply(new GlobalAdministratorRemoved("system", "admin-1"));
+            projection.GetGlobalAdministrators().Administrators.Contains("admin-1")
+                .ShouldBeFalse("GlobalAdministratorRemoved must route into the global-administrator read model.");
+        },
+    };
+
     private static IEnumerable<string> DiscoverSuccessEventNames() =>
         typeof(TenantCreated).Assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract
@@ -43,6 +72,25 @@ public sealed class InMemoryTenantProjectionConformanceTests {
 
         List<string> stale = ExpectedHandledEvents.Except(discovered).OrderBy(n => n, StringComparer.Ordinal).ToList();
         stale.ShouldBeEmpty($"ExpectedHandledEvents lists removed event(s): {string.Join(", ", stale)}.");
+    }
+
+    [Fact]
+    public void All_success_events_have_behavioral_routing_assertions() {
+        List<string> missingAssertions = ExpectedHandledEvents
+            .Except(BehavioralAssertions.Keys)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+        missingAssertions.ShouldBeEmpty($"Success event(s) have no behavioral projection assertion: {string.Join(", ", missingAssertions)}.");
+
+        List<string> staleAssertions = BehavioralAssertions.Keys
+            .Except(ExpectedHandledEvents)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+        staleAssertions.ShouldBeEmpty($"Behavioral projection assertion(s) reference removed event(s): {string.Join(", ", staleAssertions)}.");
+
+        foreach (Action assertion in BehavioralAssertions.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => x.Value)) {
+            assertion();
+        }
     }
 
     // Behavioral guard: tenant-scoped success events route through GetOrThrow, so applying them to an
@@ -82,9 +130,18 @@ public sealed class InMemoryTenantProjectionConformanceTests {
         var projection = new InMemoryTenantProjection();
 
         projection.Apply(new GlobalAdministratorSet("system", "admin-1"));
-        projection.GetGlobalAdministrators().Administrators.ShouldContain("admin-1");
+        projection.GetGlobalAdministrators().Administrators.Contains("admin-1")
+            .ShouldBeTrue("GlobalAdministratorSet must route into the global-administrator read model.");
 
         projection.Apply(new GlobalAdministratorRemoved("system", "admin-1"));
-        projection.GetGlobalAdministrators().Administrators.ShouldNotContain("admin-1");
+        projection.GetGlobalAdministrators().Administrators.Contains("admin-1")
+            .ShouldBeFalse("GlobalAdministratorRemoved must route into the global-administrator read model.");
+    }
+
+    private static void AssertTenantScopedEventRoutes(IEventPayload evt) {
+        var projection = new InMemoryTenantProjection();
+        _ = Should.Throw<InvalidOperationException>(
+            () => projection.Apply(evt),
+            $"{evt.GetType().Name} must route through GetOrThrow on a missing tenant, not be silently dropped.");
     }
 }
