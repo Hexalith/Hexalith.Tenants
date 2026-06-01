@@ -2,105 +2,232 @@
 
 # Compensating Commands
 
-How to correct mistakes in an event-sourced system where events are immutable.
+Compensating commands are deliberate follow-up commands that correct current tenant state while preserving the original event history. Submit them through the EventStore command gateway at `POST /api/v1/commands`, then verify the command outcome with `GET /api/v1/commands/status/{correlationId}`.
 
-## What Are Compensating Commands?
+Compensation is not hidden undo, event deletion, event mutation, projection editing, direct state-store repair, rollback, or a shortcut around normal authorization. A corrective command is handled by the same aggregate rules as any other command. If it succeeds, a new event is appended. If it is rejected, EventStore records the rejected command outcome, but the tenant audit projection does not show a successful corrective audit event.
 
-Compensating commands are commands that undo or correct a previous operation by issuing a **new command** that moves state to the desired outcome. They do not erase history — they add to it.
+## Source-Backed Rules
 
-## Why There Is No "Undo"
+These rules are anchored in the current Tenants contracts and aggregate behavior:
 
-In event sourcing, events are **immutable facts**. Once `UserRemovedFromTenant` is stored, it cannot be deleted, modified, or rolled back. The event stream is an append-only log.
+- `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs` defines the command success, rejection, and `NoOp` behavior.
+- `src/Hexalith.Tenants.Server/Aggregates/TenantState.cs` applies stored events to current tenant state.
+- `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs` builds audit rows from successful tenant events.
+- `src/Hexalith.Tenants.Contracts/Queries/TenantAuditEntry.cs` defines the audit query row shape.
+- `docs/event-contract-reference.md` is the command, event, enum, and rejection reference.
 
-Corrections are always **new events** that represent the corrective action. The original event remains in the stream as a permanent record of what happened.
+Event-sourced tenant events are immutable facts. When a tenant access or configuration mistake is corrected, the original event remains in history and the correction appends a new event only if the corrective command succeeds. Tenant query and audit rows are projection-backed, so command status is the immediate proof of the command outcome; tenant audit query rows are proof that the successful corrective event has projected after catch-up. For projection timing, see [Cross-Aggregate Timing](cross-aggregate-timing.md).
 
-## Worked Example: Removing the Wrong User
+## Worked Example: Wrong User Removed
 
-Sofia is a GlobalAdministrator managing the `acme-corp` tenant. She needs to remove a contractor (`jdoe-consulting`) but accidentally removes the wrong user (`jdoe-contractor`).
+Sofia is a trusted global administrator for the `acme-corp` tenant. She intended to remove `contractor-b`, but she submitted `RemoveUserFromTenant` for `contractor-a`.
 
-### Step 1: The Mistake
-
-Sofia removes `jdoe-contractor` from `acme-corp`:
+### Mistake: RemoveUserFromTenant
 
 ```json
 {
-    "messageId": "01JQK000000000000000000021",
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-corp",
     "commandType": "RemoveUserFromTenant",
     "payload": {
         "TenantId": "acme-corp",
-        "UserId": "jdoe-contractor"
+        "UserId": "contractor-a"
     }
 }
 ```
 
-This produces `UserRemovedFromTenant` — the user is now removed from the tenant.
+If accepted, this produces `UserRemovedFromTenant` for `contractor-a`. That event is not removed or rewritten.
 
-### Step 2: Sofia Realizes the Mistake
+### Correction: AddUserToTenant With Explicit TenantRole
 
-She meant to remove `jdoe-consulting`, not `jdoe-contractor`. The `UserRemovedFromTenant` event is already persisted and cannot be undone.
-
-### Step 3: Compensate — Re-add the Correct User
-
-Sofia issues `AddUserToTenant` to restore `jdoe-contractor`:
+Sofia restores `contractor-a` by issuing a new `AddUserToTenant` command with the intended current role:
 
 ```json
 {
-    "messageId": "01JQK000000000000000000022",
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAX",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-corp",
     "commandType": "AddUserToTenant",
     "payload": {
         "TenantId": "acme-corp",
-        "UserId": "jdoe-contractor",
+        "UserId": "contractor-a",
         "Role": "TenantContributor"
     }
 }
 ```
 
-This produces `UserAddedToTenant`, restoring the user with the `TenantContributor` role.
+If accepted, this produces `UserAddedToTenant` with `TenantRole.TenantContributor`.
 
-### Step 4: Remove the Intended User
+The role is explicit for three reasons:
 
-Sofia now removes the correct user:
+- `UserRemovedFromTenant` carries `TenantId` and `UserId`, but it does not carry the removed user's role.
+- Earlier `UserAddedToTenant` and `UserRoleChanged` events can help the operator choose a role, but intervening business decisions can make an old role stale.
+- The correction must state the intended current role. The system does not automatically restore historical roles without a new command.
+
+If the original task still requires removing `contractor-b`, Sofia submits the intended removal separately:
 
 ```json
 {
-    "messageId": "01JQK000000000000000000023",
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAY",
     "tenant": "system",
     "domain": "tenants",
     "aggregateId": "acme-corp",
     "commandType": "RemoveUserFromTenant",
     "payload": {
         "TenantId": "acme-corp",
-        "UserId": "jdoe-consulting"
+        "UserId": "contractor-b"
     }
 }
 ```
 
-This produces `UserRemovedFromTenant` for the intended user.
+The durable history now shows the mistake, the correction, and the intended removal as separate facts:
 
-## Why the Role Must Be Explicitly Specified
+1. `UserRemovedFromTenant` for `contractor-a`.
+2. `UserAddedToTenant` for `contractor-a` with `TenantContributor`.
+3. `UserRemovedFromTenant` for `contractor-b`.
 
-In Step 3, Sofia must explicitly specify `"Role": "TenantContributor"` in the compensating `AddUserToTenant` command. The system does **not** auto-restore the previous role. Here's why:
+## Common Correction Scenarios
 
-1. **`UserRemovedFromTenant` does not carry role information.** The removal event records only which user was removed, not what role they had. The previous role exists only in earlier events (`UserAddedToTenant` or the last `UserRoleChanged`).
+### Mistaken User Removal
 
-2. **Auto-restore could assign a stale role.** If the user's role changed between when they were originally added and when they were removed, auto-restoring the "previous" role could assign a role that no longer reflects business intent.
+Safe command path:
 
-3. **The decision must be explicit.** The human (or calling service) must decide which role to assign based on **current business context**, not historical state. The event history provides the information needed to make this decision, but the decision itself is deliberate.
+- Use `AddUserToTenant` with explicit `TenantRole.TenantOwner`, `TenantRole.TenantContributor`, or `TenantRole.TenantReader` to restore the wrongly removed user.
+- Use `RemoveUserFromTenant` for the intended user only if that removal is still required.
 
-## The Audit Trail
+Expected rejection cases:
 
-The event stream after this correction contains three events in order:
+- `TenantNotFoundRejection` if the tenant aggregate does not exist.
+- `TenantDisabledRejection` if the tenant is disabled.
+- `UserAlreadyInTenantRejection` if the restore target is already a member.
+- `UserNotInTenantRejection` if the intended removal target is not a member.
+- `RoleEscalationRejection` if the submitted role is not assignable, including `TenantRole.Unknown`.
+- `InsufficientPermissionsRejection` if the actor is not a tenant owner or trusted global administrator.
 
-1. `UserRemovedFromTenant` — jdoe-contractor removed (the mistake)
-2. `UserAddedToTenant` — jdoe-contractor re-added with TenantContributor role (the correction)
-3. `UserRemovedFromTenant` — jdoe-consulting removed (the intended action)
+### Wrong Role Assignment
 
-Each event envelope records timestamp and actor (`userId`) metadata. The complete sequence is preserved — the mistake, the correction, when each happened, and who performed each action.
+Safe command path:
 
-This is an advantage of event sourcing over CRUD: in a CRUD system, corrections overwrite state and the history of the mistake is lost. In event sourcing, the full audit trail is permanent and queryable.
+```json
+{
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAZ",
+    "tenant": "system",
+    "domain": "tenants",
+    "aggregateId": "acme-corp",
+    "commandType": "ChangeUserRole",
+    "payload": {
+        "TenantId": "acme-corp",
+        "UserId": "contractor-a",
+        "NewRole": "TenantReader"
+    }
+}
+```
+
+Use `ChangeUserRole` with explicit `NewRole`. If `NewRole` equals the user's current role, the aggregate returns `NoOp`; no new correction event is produced.
+
+Expected rejection or no-op cases:
+
+- `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, or `InsufficientPermissionsRejection`.
+- `NoOp` for same-role requests.
+
+### Configuration Mistake
+
+Safe command path:
+
+```json
+{
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FB0",
+    "tenant": "system",
+    "domain": "tenants",
+    "aggregateId": "acme-corp",
+    "commandType": "SetTenantConfiguration",
+    "payload": {
+        "TenantId": "acme-corp",
+        "Key": "sample.access.mode",
+        "Value": "read-only"
+    }
+}
+```
+
+Use `SetTenantConfiguration` to overwrite a key with the intended value. Use `RemoveTenantConfiguration` if the key should no longer exist:
+
+```json
+{
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FB1",
+    "tenant": "system",
+    "domain": "tenants",
+    "aggregateId": "acme-corp",
+    "commandType": "RemoveTenantConfiguration",
+    "payload": {
+        "TenantId": "acme-corp",
+        "Key": "sample.access.mode"
+    }
+}
+```
+
+Expected rejection or no-op cases:
+
+- `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `ConfigurationKeyNotFoundRejection`, or `InsufficientPermissionsRejection`.
+- `NoOp` when `SetTenantConfiguration` submits the same key and same value already stored.
+
+### Tenant Lifecycle Correction
+
+Safe command path:
+
+```json
+{
+    "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FB2",
+    "tenant": "system",
+    "domain": "tenants",
+    "aggregateId": "acme-corp",
+    "commandType": "EnableTenant",
+    "payload": {
+        "TenantId": "acme-corp"
+    }
+}
+```
+
+Use `EnableTenant` after an accidental `DisableTenant`, or `DisableTenant` after accidental enablement. Both are trusted global administrator operations. If a correction requires a member or configuration command, enable the tenant first; most member and configuration commands reject disabled tenants with `TenantDisabledRejection`.
+
+Expected rejection cases:
+
+- `TenantNotFoundRejection`.
+- `TenantLifecycleStateAlreadySetRejection` if the tenant is already in the requested lifecycle state.
+- `InsufficientPermissionsRejection` if the actor is not a trusted global administrator.
+
+Lifecycle duplicate-state rejections serialize `TenantStatus` values by enum name:
+
+```json
+{
+    "TenantId": "acme-corp",
+    "CurrentStatus": "Disabled",
+    "RequestedStatus": "Disabled",
+    "CommandName": "DisableTenant"
+}
+```
+
+## Audit and Verification
+
+Use two evidence sources:
+
+1. EventStore command status proves the submitted command outcome. A successful correction reaches a success terminal status with the corrective event stored and published. A rejected correction reaches a rejected command outcome and names the rejection event.
+2. Tenant audit query rows prove successful corrective events after projections catch up. `TenantAuditReadModel` creates rows for `UserAddedToTenant`, `UserRemovedFromTenant`, `UserRoleChanged`, `TenantConfigurationSet`, `TenantConfigurationRemoved`, `TenantDisabled`, and `TenantEnabled`.
+
+Rejected compensating commands do not produce successful corrective audit events. Treat the rejection as feedback to choose a valid explicit command, role, value, lifecycle operation, or actor authority.
+
+Keep correction examples support-safe. Do not capture or paste raw bearer tokens, decoded JWT payloads, secrets, real tenant or user data, full serialized event payload dumps, or stack traces in tickets, docs, or runbooks.
+
+## Drift Checks
+
+When command names, role names, lifecycle statuses, rejection behavior, or EventStore command-envelope fields change, update this guide and the related documentation tests in the same change. Re-check the command contracts, `TenantAggregate`, `TenantState`, `TenantAuditReadModel`, `TenantAuditEntry`, and [Event Contract Reference](event-contract-reference.md) before publishing new compensating-command snippets.
+
+Related guides:
+
+- [Quickstart Guide](quickstart.md)
+- [Event Contract Reference](event-contract-reference.md)
+- [Cross-Aggregate Timing](cross-aggregate-timing.md)
+- [Sample Consuming Service Walkthrough](sample-consuming-service-walkthrough.md)
+- ["Aha Moment" Demo](demo.md)

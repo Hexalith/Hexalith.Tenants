@@ -136,6 +136,7 @@ When architecture or event-flow implementation changes, update this guide and it
 Related guides:
 
 - [Event Contract Reference](event-contract-reference.md)
+- [Compensating Commands](compensating-commands.md)
 - [Idempotent Event Processing](idempotent-event-processing.md)
 - [Sample Consuming Service Walkthrough](sample-consuming-service-walkthrough.md)
 - ["Aha Moment" Demo](demo.md)

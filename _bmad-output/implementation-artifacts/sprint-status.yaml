@@ -126,7 +126,7 @@ development_status:
   8-3-document-the-sample-consuming-service-walkthrough: done
   8-4-produce-the-reactive-access-aha-moment-demo: done
   8-5-document-cross-aggregate-timing-and-eventual-consistency: done
-  8-6-document-compensating-command-patterns: backlog
+  8-6-document-compensating-command-patterns: done
   epic-8-retrospective: optional
 
   # Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely

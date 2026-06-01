@@ -1,5 +1,55 @@
 # Test Automation Summary
 
+## Story 8.6 QA Generate E2E Tests - Compensating Command Patterns
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source-backed documentation checks
+
+### Scope
+
+QA automation for source-backed compensating-command documentation after mistaken user removal, wrong role assignment, configuration mistakes, and tenant lifecycle mistakes. No production command contracts, aggregate behavior, projection behavior, package references, or deployment configuration were changed.
+
+### Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| EventStore command route drift | The guide documented `POST /api/v1/commands` and status polling, but Story 8.6's own tests did not bind those strings to the EventStore controller route attributes. | **Gap found and closed.** |
+| Scenario-specific rejection/no-op coverage | Existing tests verified command, role, rejection, and `NoOp` terms existed somewhere in the guide, but did not prove each correction scenario listed its own safe command path and expected rejection/no-op cases. | **Gap found and closed.** |
+| Browser UI E2E | Story 8.6 has no browser UI surface. | N/A. |
+
+### Generated Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/CompensatingCommandsDocumentationTests.cs` - validates current command names, role enum values, rejection/no-op terms, source-file references, EventStore command request JSON examples, enum-name deserialization, hidden-undo exclusions, audit-versus-rejection language, support-safe sample content, and related-document navigation.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/CompensatingCommandsDocumentationTests.cs` - added `Compensating_guide_command_gateway_and_status_routes_match_EventStore_source`, binding the guide to `CommandsController` and `CommandStatusController` route attributes.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/CompensatingCommandsDocumentationTests.cs` - added `Compensating_guide_covers_each_scenario_with_safe_commands_and_expected_errors`, proving mistaken removal, wrong role, configuration, and lifecycle sections each carry the expected command path plus rejection/no-op guidance.
+
+### Coverage
+
+- Story 8.6 acceptance criteria: 5/5 covered by the rewritten compensating-command guide, navigation updates, source-backed documentation tests, and aggregate behavior regression tests.
+- Happy path covered: mistaken removal corrected by explicit `AddUserToTenant`, intended `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`, and `EnableTenant` command examples.
+- Critical drift/error cases covered: `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `ConfigurationLimitExceededRejection`, `ConfigurationKeyNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`, same-role `NoOp`, and same-value configuration `NoOp`.
+- UI workflows: N/A; Story 8.6 has no browser UI surface.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --filter FullyQualifiedName~CompensatingCommandsDocumentationTests --no-restore` | Aborted before execution with sandbox `SocketException (13): Permission denied`. |
+| Server test assembly build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Story 8.6 documentation tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.CompensatingCommandsDocumentationTests -parallel none -noLogo -noColor` | Passed: 9 total, 0 failed, 0 skipped. |
+| Documentation namespace regression | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -namespace Hexalith.Tenants.Server.Tests.Documentation -parallel none -noLogo -noColor` | Passed: 42 total, 0 failed, 0 skipped. |
+| Aggregate behavior regression | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Aggregates.TenantAggregateTests -parallel none -noLogo -noColor` | Passed: 140 total, 0 failed, 0 skipped. |
+| Full direct xUnit regression suite | Contracts, Client, Testing, Server, Sample, and Integration test assemblies under `bin/Debug/net10.0` with `-parallel none` | Passed: 1349 total, 0 failed, 27 skipped. Skips were DAPR/performance prerequisite-gated. |
+
+### Checklist
+
+- [x] Source-backed documentation tests generated.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover explicit correction command examples, auditability, route drift, scenario-specific rejection/no-op drift, and support-safe sample constraints.
+- [x] Focused aggregate tests anchor documented command behavior.
+- [x] Direct xUnit fallback used where VSTest cannot open sockets.
+- [x] Full direct xUnit regression suite passes with only prerequisite-gated skips.
+
 ## Story 8.5 QA Generate E2E Tests - Cross-Aggregate Timing
 
 **Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01

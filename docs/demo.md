@@ -197,6 +197,7 @@ For implementation details, see the [Sample Consuming Service Walkthrough](sampl
 - [Sample Consuming Service Walkthrough](sample-consuming-service-walkthrough.md)
 - [Idempotent Event Processing](idempotent-event-processing.md)
 - [Cross-Aggregate Timing](cross-aggregate-timing.md)
+- [Compensating Commands](compensating-commands.md)
 
 ## Troubleshooting
 
