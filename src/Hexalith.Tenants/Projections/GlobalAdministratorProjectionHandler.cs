@@ -21,6 +21,7 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
     public const string GlobalAdministratorsProjectionKey = "projection:global-administrators:singleton";
     public const string GlobalAdministratorsAggregateId = "global-administrators";
     public const string SystemTenantId = "system";
+    internal const string TenantAuditProjectionKeyPrefix = "audit:";
 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
@@ -35,8 +36,12 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
+        TenantAuditReadModel auditState = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+        cancellationToken.ThrowIfCancellationRequested();
+
         GlobalAdministratorReadModel state = new();
-        foreach (ProjectionEventDto? evt in request.Events ?? []) {
+        foreach (ProjectionEventDto? evt in events) {
             if (evt is null) {
                 continue;
             }
@@ -50,6 +55,13 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
             StateStoreName,
             GlobalAdministratorsProjectionKey,
             state,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await daprClient.SaveStateAsync(
+            StateStoreName,
+            TenantAuditProjectionKeyPrefix + request.TenantId,
+            auditState,
             cancellationToken: cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 

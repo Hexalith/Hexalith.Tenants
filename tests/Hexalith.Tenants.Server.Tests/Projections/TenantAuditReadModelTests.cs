@@ -87,6 +87,25 @@ public class TenantAuditReadModelTests {
     }
 
     [Fact]
+    public void Apply_exposes_explicit_target_scope_and_outcome_evidence() {
+        var model = new TenantAuditReadModel();
+
+        model.Apply(CreateEvent(new UserRoleChanged("tenant-1", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor)));
+        model.Apply(CreateEvent(new TenantConfigurationSet("tenant-1", "feature-x", "enabled"), messageId: "evt-2"));
+        model.Apply(CreateEvent(new TenantCreated("tenant-1", "Acme", null, Timestamp), messageId: "evt-3"));
+
+        model.Entries[0].Target.ShouldBe("user-1");
+        model.Entries[0].Scope.ShouldBe("tenant-1");
+        model.Entries[0].Outcome.ShouldBe("UserRoleChanged");
+        model.Entries[1].Target.ShouldBe("feature-x");
+        model.Entries[1].Scope.ShouldBe("tenant-1");
+        model.Entries[1].Outcome.ShouldBe("TenantConfigurationSet");
+        model.Entries[2].Target.ShouldBe("tenant-1");
+        model.Entries[2].Scope.ShouldBe("tenant-1");
+        model.Entries[2].Outcome.ShouldBe("TenantCreated");
+    }
+
+    [Fact]
     public void New_model_has_empty_entries() {
         var model = new TenantAuditReadModel();
 

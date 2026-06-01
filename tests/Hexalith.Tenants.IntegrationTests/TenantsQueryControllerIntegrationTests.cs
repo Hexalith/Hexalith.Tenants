@@ -1,5 +1,6 @@
 #pragma warning disable CA2007
 
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -915,6 +916,48 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task GetTenantAudit_returns_400_when_route_tenant_id_is_invalid() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/-bad/audit");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_returns_401_when_authenticated_identity_has_no_subject() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryNoSubjectWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/audit");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_returns_400_before_routing_when_date_window_is_invalid() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+        DateTimeOffset from = new(2026, 5, 15, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/tenants/tenant-1/audit?from={EscapeDate(from)}&to={EscapeDate(to)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
     [Theory]
     [InlineData("/api/tenants?cursor=not-a-protected-cursor")]
     [InlineData("/api/tenants/tenant-1/users?cursor=not-a-protected-cursor")]
@@ -1013,6 +1056,39 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
+    public async Task GetTenantAudit_returns_400_before_routing_when_signed_cursor_query_type_does_not_match() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+        DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddHours(1);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetTenantUsersQuery.QueryType,
+            TenantQueryCursorScopes.GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative),
+            "00000000000000000001:evt-secret");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/tenants/tenant-1/audit?from={EscapeDate(from)}&to={EscapeDate(to)}&category=Administrative&cursor={Uri.EscapeDataString(cursor)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+        body.ShouldNotContain(cursor);
+        body.ShouldNotContain(GetTenantUsersQuery.QueryType);
+        body.ShouldNotContain("evt-secret");
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
     public async Task Paginated_query_returns_400_before_routing_when_cursor_key_was_rotated() {
         IQueryRouter router = Substitute.For<IQueryRouter>();
 
@@ -1089,20 +1165,157 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
-    public async Task GetTenantAudit_returns_payload_when_query_succeeds() {
-        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
-        IQueryRouter router = CreateRouter(
-            "get-tenant-audit",
-            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+    public async Task GetTenantAudit_returns_400_before_routing_when_signed_cursor_date_scope_does_not_match() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+        DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddHours(1);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetTenantAuditQuery.QueryType,
+            TenantQueryCursorScopes.GetTenantAudit("tenant-1", from.AddMinutes(1), to, AuditEventCategory.Administrative),
+            "00000000000000000001:evt-secret");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/tenants/tenant-1/audit?from={EscapeDate(from)}&to={EscapeDate(to)}&category=Administrative&cursor={Uri.EscapeDataString(cursor)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+        body.ShouldNotContain(cursor);
+        body.ShouldNotContain("evt-secret");
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_returns_paginated_payload_shape_and_dispatches_audit_query() {
+        DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddHours(1);
+        JsonElement payload = JsonSerializer.SerializeToElement(new PaginatedResult<TenantAuditEntry>(
+            Items:
+            [
+                new(
+                    EventId: "evt-001",
+                    EventType: "UserRoleChanged",
+                    Category: AuditEventCategory.Access,
+                    ActorId: "admin-user",
+                    Timestamp: from.AddMinutes(5),
+                    TenantId: "tenant-1",
+                    NarrativePayload: new Dictionary<string, string> {
+                        ["userId"] = "member-user",
+                        ["oldRole"] = "TenantReader",
+                        ["newRole"] = "TenantContributor",
+                    }),
+            ],
+            Cursor: "opaque-next-page",
+            HasMore: true), s_queryJsonOptions);
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantAuditQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
         using HttpClient client = CreateAuthenticatedClient(factory);
 
-        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/audit");
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/tenants/tenant-1/audit?from={EscapeDate(from)}&to={EscapeDate(to)}&category=Access&pageSize=1001");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
-        result.TryGetProperty("items", out _).ShouldBeTrue();
+        result.GetProperty("items").GetArrayLength().ShouldBe(1);
+        JsonElement firstItem = result.GetProperty("items")[0];
+        firstItem.GetProperty("eventId").GetString().ShouldBe("evt-001");
+        firstItem.GetProperty("eventType").GetString().ShouldBe("UserRoleChanged");
+        firstItem.GetProperty("category").GetString().ShouldBe("Access");
+        firstItem.GetProperty("actorId").GetString().ShouldBe("admin-user");
+        firstItem.GetProperty("tenantId").GetString().ShouldBe("tenant-1");
+        firstItem.GetProperty("target").GetString().ShouldBe("member-user");
+        firstItem.GetProperty("scope").GetString().ShouldBe("tenant-1");
+        firstItem.GetProperty("outcome").GetString().ShouldBe("UserRoleChanged");
+        firstItem.TryGetProperty("timestamp", out _).ShouldBeTrue();
+        JsonElement narrative = firstItem.GetProperty("narrativePayload");
+        narrative.GetProperty("userId").GetString().ShouldBe("member-user");
+        narrative.GetProperty("oldRole").GetString().ShouldBe("TenantReader");
+        narrative.GetProperty("newRole").GetString().ShouldBe("TenantContributor");
+        result.GetProperty("cursor").GetString().ShouldBe("opaque-next-page");
+        result.GetProperty("hasMore").GetBoolean().ShouldBeTrue();
+
+        SubmitQuery query = routedQueries.Single();
+        query.Tenant.ShouldBe("system");
+        query.Domain.ShouldBe(GetTenantAuditQuery.Domain);
+        query.AggregateId.ShouldBe("tenant-1");
+        query.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
+        query.EntityId.ShouldBe("tenant-1");
+        query.UserId.ShouldBe("test-user");
+        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.AuditMaximumPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+        ReadPayloadDateTimeOffset(query, "from").ShouldBe(from);
+        ReadPayloadDateTimeOffset(query, "to").ShouldBe(to);
+        ReadPayloadString(query, "category").ShouldBe("Access");
+    }
+
+    [Theory]
+    [InlineData("", TenantQueryPaginationPolicy.AuditDefaultPageSize)]
+    [InlineData("?pageSize=250", 250)]
+    [InlineData("?pageSize=0", TenantQueryPaginationPolicy.AuditDefaultPageSize)]
+    [InlineData("?pageSize=-5", TenantQueryPaginationPolicy.AuditDefaultPageSize)]
+    [InlineData("?pageSize=1001", TenantQueryPaginationPolicy.AuditMaximumPageSize)]
+    public async Task GetTenantAudit_forwards_bounded_page_size_in_query_payload(string queryString, int expectedPageSize) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantAuditQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/audit" + queryString);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(expectedPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_forwards_valid_signed_cursor_in_query_payload() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset to = from.AddHours(1);
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantAuditQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetTenantAuditQuery.QueryType,
+            TenantQueryCursorScopes.GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative),
+            "00000000000000000001:evt-001");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/tenants/tenant-1/audit?from={EscapeDate(from)}&to={EscapeDate(to)}&category=Administrative&cursor={Uri.EscapeDataString(cursor)}&pageSize=25");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(25);
+        ReadPayloadCursor(query).ShouldBe(cursor);
+        ReadPayloadDateTimeOffset(query, "from").ShouldBe(from);
+        ReadPayloadDateTimeOffset(query, "to").ShouldBe(to);
+        ReadPayloadString(query, "category").ShouldBe("Administrative");
     }
 
     private static HttpClient CreateAuthenticatedClient(WebApplicationFactory<TenantBootstrapOptions> factory) {
@@ -1147,11 +1360,26 @@ public class TenantsQueryControllerIntegrationTests {
         return document.RootElement.GetProperty("pageSize").GetInt32();
     }
 
+    private static DateTimeOffset? ReadPayloadDateTimeOffset(SubmitQuery query, string propertyName) {
+        using JsonDocument document = JsonDocument.Parse(query.Payload);
+        JsonElement property = document.RootElement.GetProperty(propertyName);
+        return property.ValueKind == JsonValueKind.Null ? null : property.GetDateTimeOffset();
+    }
+
+    private static string? ReadPayloadString(SubmitQuery query, string propertyName) {
+        using JsonDocument document = JsonDocument.Parse(query.Payload);
+        JsonElement property = document.RootElement.GetProperty(propertyName);
+        return property.ValueKind == JsonValueKind.Null ? null : property.GetString();
+    }
+
     private static string? ReadPayloadCursor(SubmitQuery query) {
         using JsonDocument document = JsonDocument.Parse(query.Payload);
         JsonElement cursor = document.RootElement.GetProperty("cursor");
         return cursor.ValueKind == JsonValueKind.Null ? null : cursor.GetString();
     }
+
+    private static string EscapeDate(DateTimeOffset value)
+        => Uri.EscapeDataString(value.ToString("O", CultureInfo.InvariantCulture));
 
     private static void AssertProblemDetailsDoesNotLeakQueryData(string body, bool allowCursorReasonText) {
         body.ShouldNotContain("items", Case.Insensitive);

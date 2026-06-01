@@ -43,6 +43,32 @@ public class GlobalAdministratorProjectionHandlerTests {
     }
 
     [Fact]
+    public async Task ProjectAsync_GlobalAdministratorEvents_WriteSystemAuditStateAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ProjectionRequest request = CreateRequest(
+            new GlobalAdministratorSet("system", "admin-1", "bootstrapper"),
+            new GlobalAdministratorRemoved("system", "admin-1", "admin-2"));
+
+        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+
+        await daprClient.Received(1).SaveStateAsync(
+            StateStoreName,
+            "audit:system",
+            Arg.Is<TenantAuditReadModel>(m =>
+                m != null
+                && m.Entries.Count == 2
+                && m.Entries[0].EventId == "evt-1"
+                && m.Entries[0].EventType == nameof(GlobalAdministratorSet)
+                && m.Entries[0].ActorId == "actor-1"
+                && m.Entries[0].TenantId == "system"
+                && m.Entries[0].Target == "admin-1"
+                && m.Entries[1].EventType == nameof(GlobalAdministratorRemoved)),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task ProjectAsync_MultipleAdministratorsSet_WritesAllAdministratorsAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         ProjectionRequest request = CreateRequest(
@@ -222,11 +248,11 @@ public class GlobalAdministratorProjectionHandlerTests {
     }
 
     private static ProjectionRequest CreateRequest(params object[] events) {
-        ProjectionEventDto[] dtos = [.. events.Select(CreateEventDto)];
+        ProjectionEventDto[] dtos = [.. events.Select((e, index) => CreateEventDto(e, $"evt-{index + 1}"))];
         return new ProjectionRequest("system", "global-administrators", "global-administrators", dtos);
     }
 
-    private static ProjectionEventDto CreateEventDto(object @event) {
+    private static ProjectionEventDto CreateEventDto(object @event, string messageId = "evt-1") {
         string typeName = @event switch {
             GlobalAdministratorSet => "Hexalith.Tenants.Contracts.Events.GlobalAdministratorSet",
             GlobalAdministratorRemoved => "Hexalith.Tenants.Contracts.Events.GlobalAdministratorRemoved",
@@ -239,6 +265,8 @@ public class GlobalAdministratorProjectionHandlerTests {
             "json",
             1L,
             DateTimeOffset.UtcNow,
-            "corr-1");
+            "corr-1",
+            messageId,
+            "actor-1");
     }
 }

@@ -181,7 +181,60 @@ public class QueryDtoSerializationTests {
         deserialized.Timestamp.ShouldBe(original.Timestamp);
         deserialized.TenantId.ShouldBe(original.TenantId);
         deserialized.NarrativePayload["name"].ShouldBe("Acme");
+        deserialized.Target.ShouldBe("tenant-1");
+        deserialized.Scope.ShouldBe("tenant-1");
+        deserialized.Outcome.ShouldBe("TenantCreated");
         json.ShouldContain("\"Administrative\"");
         json.ShouldNotContain("\":1");
+    }
+
+    [Fact]
+    public void PaginatedResult_of_TenantAuditEntry_round_trip_uses_camelCase_shape_and_string_enums() {
+        PaginatedResult<TenantAuditEntry> original = new(
+            Items:
+            [
+                new(
+                    EventId: "evt-001",
+                    EventType: "UserRoleChanged",
+                    Category: AuditEventCategory.Access,
+                    ActorId: "admin-1",
+                    Timestamp: new DateTimeOffset(2026, 5, 14, 10, 30, 0, TimeSpan.Zero),
+                    TenantId: "tenant-1",
+                    NarrativePayload: new Dictionary<string, string> {
+                        ["userId"] = "user-1",
+                        ["oldRole"] = "TenantReader",
+                        ["newRole"] = "TenantContributor",
+                    }),
+            ],
+            Cursor: "opaque-cursor",
+            HasMore: true);
+
+        string json = JsonSerializer.Serialize(original, JsonOptions);
+        PaginatedResult<TenantAuditEntry>? deserialized = JsonSerializer.Deserialize<PaginatedResult<TenantAuditEntry>>(json, JsonOptions);
+
+        _ = deserialized.ShouldNotBeNull();
+        deserialized.Items.Count.ShouldBe(1);
+        deserialized.Items[0].EventId.ShouldBe("evt-001");
+        deserialized.Items[0].Category.ShouldBe(AuditEventCategory.Access);
+        deserialized.Items[0].NarrativePayload["newRole"].ShouldBe("TenantContributor");
+        deserialized.Cursor.ShouldBe("opaque-cursor");
+        deserialized.HasMore.ShouldBeTrue();
+
+        using var document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        root.TryGetProperty("items", out JsonElement items).ShouldBeTrue();
+        root.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
+        root.GetProperty("hasMore").GetBoolean().ShouldBeTrue();
+        JsonElement firstItem = items[0];
+        firstItem.GetProperty("eventId").GetString().ShouldBe("evt-001");
+        firstItem.GetProperty("eventType").GetString().ShouldBe("UserRoleChanged");
+        firstItem.GetProperty("category").GetString().ShouldBe("Access");
+        firstItem.GetProperty("actorId").GetString().ShouldBe("admin-1");
+        firstItem.GetProperty("tenantId").GetString().ShouldBe("tenant-1");
+        firstItem.GetProperty("target").GetString().ShouldBe("user-1");
+        firstItem.GetProperty("scope").GetString().ShouldBe("tenant-1");
+        firstItem.GetProperty("outcome").GetString().ShouldBe("UserRoleChanged");
+        firstItem.GetProperty("narrativePayload").GetProperty("userId").GetString().ShouldBe("user-1");
+        firstItem.TryGetProperty("EventId", out _).ShouldBeFalse();
     }
 }

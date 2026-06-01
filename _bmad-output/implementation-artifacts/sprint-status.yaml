@@ -94,7 +94,7 @@ development_status:
   5-7-query-a-paginated-tenant-list: done
   5-8-query-tenant-details-and-tenant-users: done
   5-9-query-the-tenants-a-user-belongs-to: done
-  5-10-query-tenant-access-audit-history: backlog
+  5-10-query-tenant-access-audit-history: done
   epic-5-retrospective: optional
 
   # Epic 6: Developers Can Test Tenant Behavior Without Infrastructure
