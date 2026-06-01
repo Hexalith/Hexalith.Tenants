@@ -1,25 +1,13 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Hexalith.Tenants "Aha Moment" Demo — automated reactive access revocation demo.
+    Hexalith.Tenants "Aha Moment" demo automation.
 
 .DESCRIPTION
-    Sends the 6-step demo sequence to the running AppHost topology, demonstrating
-    reactive cross-service access revocation via event-sourced tenant management.
-
-    Prerequisites: The AppHost must be running before executing this script.
-    Start it with: dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
-
-.PARAMETER BaseUrl
-    The CommandApi base URL (e.g., https://localhost:7234). Required.
-    Also accepts COMMANDAPI_URL environment variable.
-
-.PARAMETER SampleUrl
-    The Sample service base URL (e.g., https://localhost:7235). Required.
-    Also accepts SAMPLE_URL environment variable.
-
-.EXAMPLE
-    ./scripts/demo.ps1 -BaseUrl https://localhost:7234 -SampleUrl https://localhost:7235
+    Runs the add-user to remove-user reactive access proof against a running AppHost.
+    The default local AppHost uses Keycloak. Supply a token from the quickstart flow
+    with -Token or TOKEN. Use -HmacDevToken only when the AppHost was started with
+    EnableKeycloak=false.
 #>
 
 param(
@@ -27,232 +15,304 @@ param(
     [string]$BaseUrl = $env:COMMANDAPI_URL,
 
     [Parameter()]
-    [string]$SampleUrl = $env:SAMPLE_URL
+    [string]$SampleUrl = $env:SAMPLE_URL,
+
+    [Parameter()]
+    [string]$TenantsUrl = $env:TENANTS_URL,
+
+    [Parameter()]
+    [string]$Token = $env:TOKEN,
+
+    [Parameter()]
+    [switch]$HmacDevToken,
+
+    [Parameter()]
+    [int]$TimeoutSeconds = 30
 )
 
 $ErrorActionPreference = 'Stop'
 
-# --- Validate required parameters ---
 if ([string]::IsNullOrWhiteSpace($BaseUrl) -or [string]::IsNullOrWhiteSpace($SampleUrl)) {
-    Write-Host "ERROR: --BaseUrl and --SampleUrl are required." -ForegroundColor Red
-    Write-Host "Find your service URLs in the Aspire dashboard (typically https://localhost:17225)." -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Example:" -ForegroundColor Yellow
-    Write-Host "  ./scripts/demo.ps1 -BaseUrl https://localhost:7234 -SampleUrl https://localhost:7235" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Or set environment variables:" -ForegroundColor Yellow
-    Write-Host '  $env:COMMANDAPI_URL = "https://localhost:7234"' -ForegroundColor Yellow
-    Write-Host '  $env:SAMPLE_URL = "https://localhost:7235"' -ForegroundColor Yellow
+    Write-Host "ERROR: -BaseUrl and -SampleUrl are required." -ForegroundColor Red
+    Write-Host "Find dynamic endpoints in the Aspire dashboard resources: eventstore and sample." -ForegroundColor Yellow
     exit 1
+}
+
+if ([string]::IsNullOrWhiteSpace($Token) -and -not $HmacDevToken) {
+    Write-Host "ERROR: provide TOKEN/-Token from Keycloak, or pass -HmacDevToken only when EnableKeycloak=false." -ForegroundColor Red
+    exit 1
+}
+
+function ConvertTo-Base64Url {
+    param([byte[]]$Bytes)
+    [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+}
+
+function New-HmacDevToken {
+    $header = @{ alg = "HS256"; typ = "JWT" } | ConvertTo-Json -Compress
+    $exp = [int](Get-Date -Date (Get-Date).AddHours(8).ToUniversalTime() -UFormat %s)
+    $payload = @{ sub = "admin-user"; iss = "hexalith-dev"; aud = "hexalith-eventstore"; tenants = @("system"); exp = $exp } | ConvertTo-Json -Compress
+
+    $headerB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($header))
+    $payloadB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($payload))
+    $signingInput = "$headerB64.$payloadB64"
+    $key = [System.Text.Encoding]::UTF8.GetBytes("DevOnlySigningKey-AtLeast32Chars!")
+    $hmac = [System.Security.Cryptography.HMACSHA256]::new($key)
+    $sig = ConvertTo-Base64Url($hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($signingInput)))
+    "$signingInput.$sig"
+}
+
+function New-Ulid {
+    $alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+    $value = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    $chars = New-Object char[] 26
+
+    for ($i = 9; $i -ge 0; $i--) {
+        $index = [int]($value % 32)
+        $chars[$i] = $alphabet[$index]
+        $value = [Math]::Floor($value / 32)
+    }
+
+    $bytes = New-Object byte[] 16
+    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    for ($i = 0; $i -lt 16; $i++) {
+        $chars[$i + 10] = $alphabet[[int]($bytes[$i] % 32)]
+    }
+
+    -join $chars
+}
+
+if ($HmacDevToken) {
+    $Token = New-HmacDevToken
 }
 
 $BaseUrl = $BaseUrl.TrimEnd('/')
 $SampleUrl = $SampleUrl.TrimEnd('/')
+$TenantsUrl = $TenantsUrl.TrimEnd('/')
 $CommandEndpoint = "$BaseUrl/api/v1/commands"
+$StatusEndpoint = "$BaseUrl/api/v1/commands/status"
+$Headers = @{
+    Authorization = "Bearer $Token"
+}
 
-# --- Generate unique IDs to avoid conflicts on re-run ---
 $timestamp = Get-Date -Format "yyyyMMddHHmmss"
 $tenantId = "acme-demo-$timestamp"
 $userId = "jane-doe-$timestamp"
+$commandsAccepted = 0
+$statusSummary = [System.Collections.Generic.List[string]]::new()
 
-# --- Generate JWT token ---
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Hexalith.Tenants - Aha Moment Demo" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "CommandApi: $BaseUrl" -ForegroundColor Gray
+Write-Host "EventStore: $BaseUrl" -ForegroundColor Gray
 Write-Host "Sample:     $SampleUrl" -ForegroundColor Gray
+if (-not [string]::IsNullOrWhiteSpace($TenantsUrl)) {
+    Write-Host "Tenants:    $TenantsUrl" -ForegroundColor Gray
+}
 Write-Host "Tenant ID:  $tenantId" -ForegroundColor Gray
 Write-Host "User ID:    $userId" -ForegroundColor Gray
 Write-Host ""
 
-Write-Host "[Setup] Generating JWT token..." -ForegroundColor Yellow
-$header = @{alg = "HS256"; typ = "JWT" } | ConvertTo-Json -Compress
-$exp = [int](Get-Date -Date (Get-Date).AddHours(8).ToUniversalTime() -UFormat %s)
-$payload = @{sub = "admin-user"; iss = "hexalith-dev"; aud = "hexalith-tenants"; tenants = @("system"); exp = $exp } | ConvertTo-Json -Compress
+function Test-ServiceHealth {
+    param(
+        [string]$Name,
+        [string]$Url
+    )
 
-function ConvertTo-Base64Url($bytes) { [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_') }
-
-$headerB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($header))
-$payloadB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($payload))
-$signingInput = "$headerB64.$payloadB64"
-
-# Dev signing key — must match the key configured in quickstart.md and AppHost dev settings.
-# If you get 401 Unauthorized, verify the key has not changed in docs/quickstart.md.
-$key = [System.Text.Encoding]::UTF8.GetBytes("this-is-a-development-signing-key-minimum-32-chars")
-$hmac = New-Object System.Security.Cryptography.HMACSHA256(, $key)
-$sig = ConvertTo-Base64Url($hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($signingInput)))
-$token = "$signingInput.$sig"
-
-$headers = @{
-    Authorization  = "Bearer $token"
-    "Content-Type" = "application/json"
+    Write-Host "[Setup] Checking $Name health..." -ForegroundColor Yellow
+    try {
+        $null = Invoke-RestMethod -Uri "$Url/health" -Method Get -SkipCertificateCheck -TimeoutSec 5
+        Write-Host "[Setup] $Name is reachable." -ForegroundColor Green
+    }
+    catch {
+        try {
+            $null = Invoke-RestMethod -Uri "$Url/alive" -Method Get -SkipCertificateCheck -TimeoutSec 5
+            Write-Host "[Setup] $Name is reachable." -ForegroundColor Green
+        }
+        catch {
+            Write-Host "ERROR: $Name is not reachable at $Url/health or $Url/alive." -ForegroundColor Red
+            exit 1
+        }
+    }
 }
 
-Write-Host "[Setup] JWT token generated." -ForegroundColor Green
-Write-Host ""
+function Wait-CommandStatus {
+    param(
+        [string]$CorrelationId,
+        [string]$Label
+    )
 
-# --- Prerequisite check ---
-Write-Host "[Setup] Checking CommandApi is reachable..." -ForegroundColor Yellow
-try {
-    $null = Invoke-RestMethod -Uri "$BaseUrl/health" -Method Get -SkipCertificateCheck -TimeoutSec 5
-    Write-Host "[Setup] CommandApi is healthy." -ForegroundColor Green
-}
-catch {
-    Write-Host "ERROR: CommandApi is not reachable at $BaseUrl/health" -ForegroundColor Red
-    Write-Host "Ensure the AppHost is running:" -ForegroundColor Yellow
-    Write-Host "  dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj" -ForegroundColor Yellow
-    exit 1
-}
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -le $deadline) {
+        $response = $null
+        try {
+            $response = Invoke-RestMethod -Uri "$StatusEndpoint/$CorrelationId" -Headers $Headers -Method Get -SkipCertificateCheck -TimeoutSec 10
+        }
+        catch {
+            Start-Sleep -Seconds 1
+            continue
+        }
 
-Write-Host "[Setup] Checking Sample service is reachable..." -ForegroundColor Yellow
-try {
-    $null = Invoke-RestMethod -Uri "$SampleUrl/health" -Method Get -SkipCertificateCheck -TimeoutSec 5
-    Write-Host "[Setup] Sample service is healthy." -ForegroundColor Green
-}
-catch {
-    Write-Host "ERROR: Sample service is not reachable at $SampleUrl/health" -ForegroundColor Red
-    exit 1
-}
+        $status = [string]$response.status
+        if ($status -eq "Completed") {
+            Write-Host "  Status: Completed ($Label)" -ForegroundColor Green
+            $statusSummary.Add("${Label}=Completed:$CorrelationId")
+            return
+        }
 
-$commandsSent = 0
-$accessVerified = $false
+        if ($status -eq "Rejected") {
+            $rejection = $response.rejectionEventType ?? "Rejected"
+            Write-Host "  Status: Rejected ($Label) - $rejection" -ForegroundColor Yellow
+            $statusSummary.Add("${Label}=Rejected:$CorrelationId")
+            return
+        }
+
+        if ($status -in @("PublishFailed", "TimedOut")) {
+            Write-Host "  Status: $status ($Label)" -ForegroundColor Red
+            $statusSummary.Add("${Label}=${status}:$CorrelationId")
+            throw "Command failed: $Label"
+        }
+
+        Start-Sleep -Seconds 1
+    }
+
+    throw "Timed out waiting for command status: $Label ($CorrelationId)"
+}
 
 function Send-Command {
     param(
-        [string]$StepName,
-        [string]$Body
+        [string]$Label,
+        [hashtable]$Request
     )
+
     Write-Host ""
-    Write-Host "--- $StepName ---" -ForegroundColor Cyan
-    Write-Host "POST $CommandEndpoint" -ForegroundColor Gray
-    try {
-        $response = Invoke-RestMethod -Uri $CommandEndpoint -Method Post -Body $Body -Headers $headers -SkipCertificateCheck -TimeoutSec 30
-        $script:commandsSent++
-        Write-Host "  202 Accepted — correlationId: $($response.correlationId ?? 'unknown')" -ForegroundColor Green
-        return $response
+    Write-Host "--- $Label ---" -ForegroundColor Cyan
+    $body = $Request | ConvertTo-Json -Depth 5
+    $response = Invoke-RestMethod -Uri $CommandEndpoint -Method Post -Body $body -Headers ($Headers + @{ "Content-Type" = "application/json" }) -SkipCertificateCheck -TimeoutSec 30
+    $script:commandsAccepted++
+
+    $correlationId = [string]$response.correlationId
+    if ([string]::IsNullOrWhiteSpace($correlationId)) {
+        throw "Command accepted but correlationId was not found in the response."
     }
-    catch {
-        $statusCode = if ($_.Exception.Response) { $_.Exception.Response.StatusCode.value__ } else { 0 }
-        Write-Host "  Response: $statusCode" -ForegroundColor Yellow
-        if ($statusCode -eq 422) {
-            Write-Host "  Command rejected (business rule). This may be expected on re-runs." -ForegroundColor Yellow
+
+    Write-Host "  202 Accepted - status: $StatusEndpoint/$correlationId" -ForegroundColor Green
+    Wait-CommandStatus -CorrelationId $correlationId -Label $Label
+}
+
+function Wait-Access {
+    param(
+        [string]$Expected,
+        [string]$Label
+    )
+
+    Write-Host ""
+    Write-Host "--- $Label ---" -ForegroundColor Cyan
+    Write-Host "GET $SampleUrl/access/$tenantId/$userId" -ForegroundColor Gray
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $lastAccess = ""
+
+    while ((Get-Date) -le $deadline) {
+        try {
+            $response = Invoke-RestMethod -Uri "$SampleUrl/access/$tenantId/$userId" -Method Get -SkipCertificateCheck -TimeoutSec 10
+            $lastAccess = [string]$response.access
+            if ($lastAccess -eq $Expected) {
+                if ($response.role) {
+                    Write-Host "  Access: $lastAccess | Role: $($response.role)" -ForegroundColor Green
+                }
+                else {
+                    Write-Host "  Access: $lastAccess | Reason: $($response.reason)" -ForegroundColor Magenta
+                }
+
+                return
+            }
         }
-        else {
-            Write-Host "  Error: $_" -ForegroundColor Red
+        catch {
+            $lastAccess = "unavailable"
         }
-        return $null
+
+        Start-Sleep -Seconds 1
     }
+
+    throw "Timed out waiting for access '$Expected'. Last response access='$lastAccess'."
 }
 
-# --- Step 1: Bootstrap Global Admin ---
-Send-Command -StepName "Step 1: Bootstrap Global Admin" -Body (@{
-        messageId   = "demo-$timestamp-01-bootstrap"
-        tenant      = "system"
-        domain      = "tenants"
-        aggregateId = "global-administrators"
-        commandType = "BootstrapGlobalAdmin"
-        payload     = @{ UserId = "admin-user" }
-    } | ConvertTo-Json -Depth 3)
+Test-ServiceHealth -Name "EventStore" -Url $BaseUrl
+Test-ServiceHealth -Name "Sample" -Url $SampleUrl
 
-Start-Sleep -Seconds 2
-
-# --- Step 2: Create a Tenant ---
-Send-Command -StepName "Step 2: Create Tenant '$tenantId'" -Body (@{
-        messageId   = "demo-$timestamp-02-create-tenant"
-        tenant      = "system"
-        domain      = "tenants"
-        aggregateId = $tenantId
-        commandType = "CreateTenant"
-        payload     = @{ TenantId = $tenantId; Name = "Acme Demo Corp"; Description = "Demo tenant for aha moment" }
-    } | ConvertTo-Json -Depth 3)
-
-Start-Sleep -Seconds 2
-
-# --- Step 3: Add a User with TenantContributor Role ---
-Send-Command -StepName "Step 3: Add User '$userId' with TenantContributor Role" -Body (@{
-        messageId   = "demo-$timestamp-03-add-user"
-        tenant      = "system"
-        domain      = "tenants"
-        aggregateId = $tenantId
-        commandType = "AddUserToTenant"
-        payload     = @{ TenantId = $tenantId; UserId = $userId; Role = 1 }
-    } | ConvertTo-Json -Depth 3)
-
-Start-Sleep -Seconds 2
-
-# --- Step 4: Verify Access Granted ---
-Write-Host ""
-Write-Host "--- Step 4: Verify Access Granted ---" -ForegroundColor Cyan
-Write-Host "GET $SampleUrl/access/$tenantId/$userId" -ForegroundColor Gray
-try {
-    $accessResult = Invoke-RestMethod -Uri "$SampleUrl/access/$tenantId/$userId" -Method Get -SkipCertificateCheck -TimeoutSec 10
-    Write-Host "  Access: $($accessResult.access ?? 'unknown') | Role: $($accessResult.role ?? 'unknown')" -ForegroundColor Green
-}
-catch {
-    Write-Host "  Error checking access: $_" -ForegroundColor Yellow
-    Write-Host "  Event may not have propagated yet. Retrying in 3 seconds..." -ForegroundColor Yellow
-    Start-Sleep -Seconds 3
-    try {
-        $accessResult = Invoke-RestMethod -Uri "$SampleUrl/access/$tenantId/$userId" -Method Get -SkipCertificateCheck -TimeoutSec 10
-        Write-Host "  Access: $($accessResult.access ?? 'unknown') | Role: $($accessResult.role ?? 'unknown')" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "  Still unable to check access: $_" -ForegroundColor Red
-    }
+Send-Command -Label "Bootstrap Global Admin" -Request @{
+    messageId = New-Ulid
+    tenant = "system"
+    domain = "global-administrators"
+    aggregateId = "global-administrators"
+    commandType = "BootstrapGlobalAdmin"
+    payload = @{ UserId = "admin-user" }
 }
 
-Start-Sleep -Seconds 2
-
-# --- Step 5: Remove the User — THE AHA MOMENT ---
-Send-Command -StepName "Step 5: Remove User '$userId' — THE AHA MOMENT" -Body (@{
-        messageId   = "demo-$timestamp-05-remove-user"
-        tenant      = "system"
-        domain      = "tenants"
-        aggregateId = $tenantId
-        commandType = "RemoveUserFromTenant"
-        payload     = @{ TenantId = $tenantId; UserId = $userId }
-    } | ConvertTo-Json -Depth 3)
-
-Start-Sleep -Seconds 2
-
-# --- Step 6: Verify Access Denied ---
-Write-Host ""
-Write-Host "--- Step 6: Verify Access DENIED ---" -ForegroundColor Cyan
-Write-Host "GET $SampleUrl/access/$tenantId/$userId" -ForegroundColor Gray
-try {
-    $accessResult = Invoke-RestMethod -Uri "$SampleUrl/access/$tenantId/$userId" -Method Get -SkipCertificateCheck -TimeoutSec 10
-    $actualAccess = $accessResult.access ?? 'unknown'
-    Write-Host "  Access: $actualAccess | Reason: $($accessResult.reason ?? 'unknown')" -ForegroundColor Magenta
-    if ($actualAccess -eq 'denied') { $script:accessVerified = $true }
+Send-Command -Label "Create Tenant" -Request @{
+    messageId = New-Ulid
+    tenant = "system"
+    domain = "tenants"
+    aggregateId = $tenantId
+    commandType = "CreateTenant"
+    payload = @{ TenantId = $tenantId; Name = "Acme Demo Corp"; Description = "Demo tenant for aha moment" }
 }
-catch {
-    Write-Host "  Error checking access: $_" -ForegroundColor Yellow
-    Start-Sleep -Seconds 3
-    try {
-        $accessResult = Invoke-RestMethod -Uri "$SampleUrl/access/$tenantId/$userId" -Method Get -SkipCertificateCheck -TimeoutSec 10
-        $actualAccess = $accessResult.access ?? 'unknown'
-        Write-Host "  Access: $actualAccess | Reason: $($accessResult.reason ?? 'unknown')" -ForegroundColor Magenta
-        if ($actualAccess -eq 'denied') { $script:accessVerified = $true }
+
+Send-Command -Label "Add User" -Request @{
+    messageId = New-Ulid
+    tenant = "system"
+    domain = "tenants"
+    aggregateId = $tenantId
+    commandType = "AddUserToTenant"
+    payload = @{ TenantId = $tenantId; UserId = $userId; Role = "TenantContributor" }
+}
+
+Wait-Access -Expected "granted" -Label "Verify Access Granted"
+
+Send-Command -Label "Remove User" -Request @{
+    messageId = New-Ulid
+    tenant = "system"
+    domain = "tenants"
+    aggregateId = $tenantId
+    commandType = "RemoveUserFromTenant"
+    payload = @{ TenantId = $tenantId; UserId = $userId }
+}
+
+Wait-Access -Expected "denied" -Label "Verify Access Denied"
+
+$queryEvidence = "not requested"
+if (-not [string]::IsNullOrWhiteSpace($TenantsUrl)) {
+    $tenantStatus = try {
+        (Invoke-WebRequest -Uri "$TenantsUrl/api/tenants/$tenantId" -Headers $Headers -Method Get -SkipCertificateCheck -TimeoutSec 10).StatusCode
     }
     catch {
-        Write-Host "  Still unable to check access: $_" -ForegroundColor Red
+        $_.Exception.Response.StatusCode.value__
     }
+
+    $auditStatus = try {
+        (Invoke-WebRequest -Uri "$TenantsUrl/api/tenants/$tenantId/audit" -Headers $Headers -Method Get -SkipCertificateCheck -TimeoutSec 10).StatusCode
+    }
+    catch {
+        $_.Exception.Response.StatusCode.value__
+    }
+
+    $queryEvidence = "tenant=$tenantStatus audit=$auditStatus"
 }
 
-# --- Summary ---
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Demo Complete" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Commands sent:        $commandsSent" -ForegroundColor White
-$transitionStatus = if ($accessVerified) { 'granted -> denied (VERIFIED)' } else { 'UNVERIFIED — check logs' }
-$transitionColor = if ($accessVerified) { 'Green' } else { 'Yellow' }
-Write-Host "  Access transitions:   $transitionStatus" -ForegroundColor $transitionColor
-Write-Host "  Demo cycle:           COMPLETED" -ForegroundColor Green
+Write-Host "  Commands accepted:    $commandsAccepted"
+foreach ($item in $statusSummary) {
+    $parts = $item.Split(":", 2)
+    Write-Host "  Command status:       $($parts[0]) ($StatusEndpoint/$($parts[1]))"
+}
+Write-Host "  Access transition:    granted -> denied (verified)" -ForegroundColor Green
+Write-Host "  Query evidence:       $queryEvidence"
 Write-Host ""
-Write-Host "  The consuming service automatically revoked access" -ForegroundColor Yellow
-Write-Host "  via DAPR pub/sub — no custom integration needed." -ForegroundColor Yellow
-Write-Host ""
+Write-Host "  The sample subscribing service revoked local access via tenants.events." -ForegroundColor Yellow
+Write-Host "  No Tenants/EventStore polling is used by the access endpoint." -ForegroundColor Yellow

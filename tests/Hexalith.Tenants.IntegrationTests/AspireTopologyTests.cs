@@ -1,13 +1,23 @@
 #pragma warning disable CA2007
 
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
+using Hexalith.EventStore.Models;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
+
+using Microsoft.IdentityModel.Tokens;
 
 using Shouldly;
 
@@ -20,7 +30,16 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Collection("AspireTopology")]
 [Trait("Category", "Integration")]
 public class AspireTopologyTests {
+    private const string JwtAudience = "hexalith-eventstore";
+    private const string JwtIssuer = "hexalith-dev";
+    private const string JwtSigningKey = "DevOnlySigningKey-AtLeast32Chars!";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
+    private static readonly JsonSerializerOptions CommandPayloadJsonOptions = new() {
+        Converters = { new JsonStringEnumConverter() },
+    };
+    private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly TimeSpan CommandStatusTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan SampleProjectionTimeout = TimeSpan.FromSeconds(60);
 
     private readonly AspireTopologyFixture _fixture;
 
@@ -82,6 +101,207 @@ public class AspireTopologyTests {
         result.Events[0].EventTypeName.ShouldEndWith("TenantCreated");
     }
 
+    [DaprFact]
+    public async Task Aha_moment_demo_revokes_sample_access_from_tenant_events() {
+        _fixture.SkipIfUnavailable();
+
+        string token = CreateDemoJwt();
+        string tenantId = $"aha-{Guid.NewGuid():N}";
+        string userId = $"jane-{Guid.NewGuid():N}";
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
+        CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
+            _fixture.CommandApiClient,
+            CreateCommand(
+                "global-administrators",
+                "global-administrators",
+                nameof(BootstrapGlobalAdmin),
+                new BootstrapGlobalAdmin("admin-user")),
+            token,
+            timeout.Token);
+
+        (bootstrapStatus.Status == "Completed"
+            || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
+            .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
+
+        CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
+            _fixture.CommandApiClient,
+            CreateCommand(
+                "tenants",
+                tenantId,
+                nameof(CreateTenant),
+                new CreateTenant(tenantId, "Aha Moment Demo Tenant", "Created by Story 8.4 E2E test")),
+            token,
+            timeout.Token);
+        createStatus.Status.ShouldBe("Completed");
+
+        CommandStatusResponse addStatus = await SubmitAndWaitForTerminalStatusAsync(
+            _fixture.CommandApiClient,
+            CreateCommand(
+                "tenants",
+                tenantId,
+                nameof(AddUserToTenant),
+                new AddUserToTenant(tenantId, userId, TenantRole.TenantContributor)),
+            token,
+            timeout.Token);
+        addStatus.Status.ShouldBe("Completed");
+
+        JsonElement granted = await WaitForAccessAsync(tenantId, userId, "granted", timeout.Token);
+        GetStringProperty(granted, "role").ShouldBe(nameof(TenantRole.TenantContributor));
+
+        CommandStatusResponse removeStatus = await SubmitAndWaitForTerminalStatusAsync(
+            _fixture.CommandApiClient,
+            CreateCommand(
+                "tenants",
+                tenantId,
+                nameof(RemoveUserFromTenant),
+                new RemoveUserFromTenant(tenantId, userId)),
+            token,
+            timeout.Token);
+        removeStatus.Status.ShouldBe("Completed");
+
+        JsonElement denied = await WaitForAccessAsync(tenantId, userId, "denied", timeout.Token);
+        GetStringProperty(denied, "reason").ShouldBe("User is not a member");
+    }
+
     private static Dictionary<string, string> GlobalAdminExtensions()
         => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateCommand<TPayload>(
+        string domain,
+        string aggregateId,
+        string commandType,
+        TPayload payload)
+        where TPayload : class {
+        ArgumentNullException.ThrowIfNull(payload);
+
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            domain,
+            aggregateId,
+            commandType,
+            JsonSerializer.SerializeToElement(payload, CommandPayloadJsonOptions));
+    }
+
+    private static async Task<CommandStatusResponse> SubmitAndWaitForTerminalStatusAsync(
+        HttpClient client,
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request,
+        string token,
+        CancellationToken cancellationToken) {
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/v1/commands") {
+            Content = JsonContent.Create(request, options: WebJsonOptions),
+        };
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using HttpResponseMessage response = await client.SendAsync(message, cancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse? accepted = await response.Content.ReadFromJsonAsync<Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse>(
+            WebJsonOptions,
+            cancellationToken);
+        _ = accepted.ShouldNotBeNull();
+        accepted.CorrelationId.ShouldNotBeNullOrWhiteSpace();
+
+        return await WaitForTerminalStatusAsync(client, accepted.CorrelationId, token, cancellationToken);
+    }
+
+    private static async Task<CommandStatusResponse> WaitForTerminalStatusAsync(
+        HttpClient client,
+        string correlationId,
+        string token,
+        CancellationToken cancellationToken) {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(CommandStatusTimeout);
+        CommandStatusResponse? lastStatus = null;
+
+        while (DateTimeOffset.UtcNow <= deadline) {
+            using var message = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/commands/status/{correlationId}");
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using HttpResponseMessage response = await client.SendAsync(message, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.OK) {
+                lastStatus = await response.Content.ReadFromJsonAsync<CommandStatusResponse>(
+                    WebJsonOptions,
+                    cancellationToken);
+                _ = lastStatus.ShouldNotBeNull();
+
+                if (lastStatus.Status is "Completed" or "Rejected" or "PublishFailed" or "TimedOut") {
+                    return lastStatus;
+                }
+            }
+            else {
+                response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+
+        throw new TimeoutException(
+            $"Command {correlationId} did not reach a terminal status within {CommandStatusTimeout}. Last status: {lastStatus?.Status ?? "not found"}.");
+    }
+
+    private async Task<JsonElement> WaitForAccessAsync(
+        string tenantId,
+        string userId,
+        string expectedAccess,
+        CancellationToken cancellationToken) {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(SampleProjectionTimeout);
+        string lastAccess = "not found";
+
+        while (DateTimeOffset.UtcNow <= deadline) {
+            using HttpResponseMessage response = await _fixture.SampleClient.GetAsync(
+                $"/access/{tenantId}/{userId}",
+                cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.OK) {
+                JsonElement body = await response.Content.ReadFromJsonAsync<JsonElement>(
+                    WebJsonOptions,
+                    cancellationToken);
+                lastAccess = GetStringProperty(body, "access") ?? "missing";
+                if (lastAccess == expectedAccess) {
+                    return body.Clone();
+                }
+            }
+            else {
+                response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+
+        throw new TimeoutException(
+            $"Sample projection did not report access '{expectedAccess}' for {tenantId}/{userId} within {SampleProjectionTimeout}. Last access: {lastAccess}.");
+    }
+
+    private static string? GetStringProperty(JsonElement element, string propertyName) {
+        foreach (JsonProperty property in element.EnumerateObject()) {
+            if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase)) {
+                return property.Value.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static string CreateDemoJwt() {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        Claim[] claims =
+        [
+            new("sub", "admin-user"),
+            new("tenants", "[\"system\"]"),
+            new("domains", "[\"global-administrators\",\"tenants\"]"),
+            new("permissions", "[\"command:submit\"]"),
+            new("roles", "[\"GlobalAdministrator\"]"),
+        ];
+
+        var token = new JwtSecurityToken(
+            issuer: JwtIssuer,
+            audience: JwtAudience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(10),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
 }

@@ -1,278 +1,357 @@
 #!/usr/bin/env bash
 #
-# Hexalith.Tenants "Aha Moment" Demo — automated reactive access revocation demo.
+# Hexalith.Tenants "Aha Moment" demo automation.
 #
-# Prerequisites: The AppHost must be running before executing this script.
-# Start it with: dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+# Prerequisites:
+#   dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
+#   TOKEN=<quickstart-keycloak-token>
 #
 # Usage:
-#   ./scripts/demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235
-#
-# Environment variables (alternative to flags):
-#   COMMANDAPI_URL=https://localhost:7234  SAMPLE_URL=https://localhost:7235  ./scripts/demo.sh
+#   TOKEN=<redacted> ./scripts/demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235 --tenants-url https://localhost:7236
+#   ./scripts/demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235 --token <redacted>
+#   ./scripts/demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235 --hmac-dev-token
 
 set -euo pipefail
 
-# --- Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
 GRAY='\033[0;37m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 BASE_URL="${COMMANDAPI_URL:-}"
 SAMPLE_URL="${SAMPLE_URL:-}"
+TENANTS_URL="${TENANTS_URL:-}"
+TOKEN="${TOKEN:-}"
+USE_HMAC_DEV_TOKEN=false
+TIMEOUT_SECONDS=30
 
-# --- Parse arguments ---
+show_help() {
+    echo "Usage: $0 --base-url <eventstore-url> --sample-url <sample-url> [options]"
+    echo ""
+    echo "Required:"
+    echo "  --base-url       EventStore command gateway base URL"
+    echo "  --sample-url     Sample service base URL"
+    echo ""
+    echo "Options:"
+    echo "  --tenants-url    Tenants query API base URL for current-state/audit evidence"
+    echo "  --token          JWT token from the quickstart Keycloak flow"
+    echo "  --hmac-dev-token Generate an HMAC token for the explicit EnableKeycloak=false fallback"
+    echo "  --timeout        Projection wait timeout in seconds (default: 30)"
+    echo "  -h, --help       Show this help message"
+    echo ""
+    echo "Environment alternatives: COMMANDAPI_URL, SAMPLE_URL, TENANTS_URL, TOKEN"
+}
+
 while [[ $# -gt 0 ]]; do
-    case $1 in
+    case "$1" in
         --base-url)
-            if [[ $# -lt 2 || "$2" == --* ]]; then
-                echo -e "${RED}ERROR: --base-url requires a value.${NC}"
-                exit 1
-            fi
-            BASE_URL="$2"
+            BASE_URL="${2:-}"
             shift 2
             ;;
         --sample-url)
-            if [[ $# -lt 2 || "$2" == --* ]]; then
-                echo -e "${RED}ERROR: --sample-url requires a value.${NC}"
-                exit 1
-            fi
-            SAMPLE_URL="$2"
+            SAMPLE_URL="${2:-}"
+            shift 2
+            ;;
+        --tenants-url)
+            TENANTS_URL="${2:-}"
+            shift 2
+            ;;
+        --token)
+            TOKEN="${2:-}"
+            shift 2
+            ;;
+        --hmac-dev-token)
+            USE_HMAC_DEV_TOKEN=true
+            shift
+            ;;
+        --timeout)
+            TIMEOUT_SECONDS="${2:-30}"
             shift 2
             ;;
         -h|--help)
-            echo "Usage: $0 --base-url <URL> --sample-url <URL>"
-            echo ""
-            echo "Options:"
-            echo "  --base-url    CommandApi base URL (e.g., https://localhost:7234)"
-            echo "  --sample-url  Sample service base URL (e.g., https://localhost:7235)"
-            echo "  -h, --help    Show this help message"
-            echo ""
-            echo "Environment variables (alternative to flags):"
-            echo "  COMMANDAPI_URL  CommandApi base URL"
-            echo "  SAMPLE_URL      Sample service base URL"
+            show_help
             exit 0
             ;;
         *)
-            echo -e "${RED}Unknown argument: $1${NC}"
+            echo -e "${RED}ERROR: Unknown argument: $1${NC}"
+            show_help
             exit 1
             ;;
     esac
 done
 
-# --- Validate required parameters ---
 if [[ -z "$BASE_URL" || -z "$SAMPLE_URL" ]]; then
     echo -e "${RED}ERROR: --base-url and --sample-url are required.${NC}"
-    echo -e "${YELLOW}Find your service URLs in the Aspire dashboard (typically https://localhost:17225).${NC}"
-    echo ""
-    echo -e "${YELLOW}Example:${NC}"
-    echo -e "${YELLOW}  ./scripts/demo.sh --base-url https://localhost:7234 --sample-url https://localhost:7235${NC}"
-    echo ""
-    echo -e "${YELLOW}Or set environment variables:${NC}"
-    echo -e "${YELLOW}  export COMMANDAPI_URL=https://localhost:7234${NC}"
-    echo -e "${YELLOW}  export SAMPLE_URL=https://localhost:7235${NC}"
+    echo -e "${YELLOW}Find dynamic endpoints in the Aspire dashboard resources: eventstore and sample.${NC}"
     exit 1
 fi
 
-# --- Validate required tools ---
+if [[ -z "$TOKEN" && "$USE_HMAC_DEV_TOKEN" != true ]]; then
+    echo -e "${RED}ERROR: provide TOKEN/--token from Keycloak, or pass --hmac-dev-token only when EnableKeycloak=false.${NC}"
+    exit 1
+fi
+
 for cmd in curl openssl; do
-    if ! command -v "$cmd" &> /dev/null; then
-        echo -e "${RED}ERROR: '$cmd' is required but not found. Please install it and retry.${NC}"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo -e "${RED}ERROR: '$cmd' is required but was not found.${NC}"
         exit 1
     fi
 done
 
+HAS_JQ=false
+if command -v jq >/dev/null 2>&1; then
+    HAS_JQ=true
+fi
+
 BASE_URL="${BASE_URL%/}"
 SAMPLE_URL="${SAMPLE_URL%/}"
+TENANTS_URL="${TENANTS_URL%/}"
 COMMAND_ENDPOINT="$BASE_URL/api/v1/commands"
+STATUS_ENDPOINT="$BASE_URL/api/v1/commands/status"
 
-# --- Create temp file for curl responses ---
+json_field() {
+    local json="$1"
+    local field="$2"
+    local fallback="${3:-unknown}"
+
+    if [[ -z "$json" ]]; then
+        echo "$fallback"
+        return
+    fi
+
+    if $HAS_JQ; then
+        echo "$json" | jq -r ".$field // \"$fallback\"" 2>/dev/null || echo "$fallback"
+    else
+        echo "$json" | sed -nE "s/.*\"$field\"[[:space:]]*:[[:space:]]*\"?([^\",}]+)\"?.*/\\1/p" | head -n 1
+    fi
+}
+
+generate_ulid() {
+    local alphabet="0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+    local value
+    value=$(($(date +%s%3N)))
+    local time_part=""
+    for _ in {1..10}; do
+        local index=$((value % 32))
+        time_part="${alphabet:index:1}$time_part"
+        value=$((value / 32))
+    done
+
+    local random_hex
+    random_hex=$(openssl rand -hex 16)
+    local random_part=""
+    for i in $(seq 1 16); do
+        local byte_hex="${random_hex:$(((i - 1) * 2)):2}"
+        local index=$((16#$byte_hex % 32))
+        random_part="${random_part}${alphabet:index:1}"
+    done
+
+    echo "${time_part}${random_part}"
+}
+
+generate_hmac_token() {
+    local header payload signature exp
+    header=$(printf '{"alg":"HS256","typ":"JWT"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+    exp=$(($(date +%s) + 28800))
+    payload=$(printf '{"sub":"admin-user","iss":"hexalith-dev","aud":"hexalith-eventstore","tenants":["system"],"exp":%s}' "$exp" \
+        | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+    signature=$(printf '%s.%s' "$header" "$payload" \
+        | openssl dgst -sha256 -hmac "DevOnlySigningKey-AtLeast32Chars!" -binary \
+        | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+    printf '%s.%s.%s' "$header" "$payload" "$signature"
+}
+
+if [[ "$USE_HMAC_DEV_TOKEN" == true ]]; then
+    TOKEN="$(generate_hmac_token)"
+fi
+
 TMPFILE=$(mktemp /tmp/hexalith_demo_XXXXXX.json)
 trap 'rm -f "$TMPFILE"' EXIT
 
-# --- Generate unique IDs to avoid conflicts on re-run ---
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 TENANT_ID="acme-demo-$TIMESTAMP"
 USER_ID="jane-doe-$TIMESTAMP"
 
-# --- Generate JWT token ---
 echo ""
 echo -e "${CYAN}========================================${NC}"
 echo -e "${CYAN}  Hexalith.Tenants - Aha Moment Demo${NC}"
 echo -e "${CYAN}========================================${NC}"
 echo ""
-echo -e "${GRAY}CommandApi: $BASE_URL${NC}"
+echo -e "${GRAY}EventStore: $BASE_URL${NC}"
 echo -e "${GRAY}Sample:     $SAMPLE_URL${NC}"
+if [[ -n "$TENANTS_URL" ]]; then
+    echo -e "${GRAY}Tenants:    $TENANTS_URL${NC}"
+fi
 echo -e "${GRAY}Tenant ID:  $TENANT_ID${NC}"
 echo -e "${GRAY}User ID:    $USER_ID${NC}"
 echo ""
 
-# Dev signing key — must match the key configured in docs/quickstart.md and AppHost dev settings.
-# If you get 401 Unauthorized, verify the key has not changed in docs/quickstart.md.
-echo -e "${YELLOW}[Setup] Generating JWT token...${NC}"
-HEADER=$(echo -n '{"alg":"HS256","typ":"JWT"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-EXP=$(($(date +%s) + 28800))
-PAYLOAD=$(echo -n "{\"sub\":\"admin-user\",\"iss\":\"hexalith-dev\",\"aud\":\"hexalith-tenants\",\"tenants\":[\"system\"],\"exp\":$EXP}" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl dgst -sha256 -hmac "this-is-a-development-signing-key-minimum-32-chars" -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-TOKEN="$HEADER.$PAYLOAD.$SIG"
-echo -e "${GREEN}[Setup] JWT token generated.${NC}"
-echo ""
-
-# --- Prerequisite check ---
-echo -e "${YELLOW}[Setup] Checking CommandApi is reachable...${NC}"
-if curl -sfk --max-time 5 "$BASE_URL/health" > /dev/null 2>&1; then
-    echo -e "${GREEN}[Setup] CommandApi is healthy.${NC}"
-else
-    echo -e "${RED}ERROR: CommandApi is not reachable at $BASE_URL/health${NC}"
-    echo -e "${YELLOW}Ensure the AppHost is running:${NC}"
-    echo -e "${YELLOW}  dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj${NC}"
-    exit 1
-fi
-
-echo -e "${YELLOW}[Setup] Checking Sample service is reachable...${NC}"
-if curl -sfk --max-time 5 "$SAMPLE_URL/health" > /dev/null 2>&1; then
-    echo -e "${GREEN}[Setup] Sample service is healthy.${NC}"
-else
-    echo -e "${RED}ERROR: Sample service is not reachable at $SAMPLE_URL/health${NC}"
-    exit 1
-fi
-
-COMMANDS_SENT=0
-ACCESS_VERIFIED=false
-
-# --- Helper: check for jq ---
-HAS_JQ=false
-if command -v jq &> /dev/null; then
-    HAS_JQ=true
-fi
-
-format_json() {
-    if $HAS_JQ; then
-        echo "$1" | jq . 2>/dev/null || echo "$1"
+check_health() {
+    local name="$1"
+    local url="$2"
+    echo -e "${YELLOW}[Setup] Checking $name health...${NC}"
+    if curl -sfk --max-time 5 "$url/health" >/dev/null 2>&1 || curl -sfk --max-time 5 "$url/alive" >/dev/null 2>&1; then
+        echo -e "${GREEN}[Setup] $name is reachable.${NC}"
     else
-        echo "$1"
+        echo -e "${RED}ERROR: $name is not reachable at $url/health or $url/alive.${NC}"
+        exit 1
     fi
 }
 
-safe_jq() {
-    local json="$1"
-    local query="$2"
-    local fallback="${3:-unknown}"
-    if $HAS_JQ && [[ -n "$json" ]]; then
-        echo "$json" | jq -r "$query" 2>/dev/null || echo "$fallback"
-    else
-        echo "$fallback"
-    fi
+check_health "EventStore" "$BASE_URL"
+check_health "Sample" "$SAMPLE_URL"
+
+COMMANDS_ACCEPTED=0
+STATUS_SUMMARY=()
+
+poll_status() {
+    local correlation_id="$1"
+    local label="$2"
+    local deadline=$((SECONDS + TIMEOUT_SECONDS))
+    local response status rejection
+
+    while (( SECONDS <= deadline )); do
+        response=$(curl -sk --max-time 10 \
+            -H "Authorization: Bearer $TOKEN" \
+            "$STATUS_ENDPOINT/$correlation_id" 2>/dev/null || true)
+        status=$(json_field "$response" "status" "")
+
+        case "$status" in
+            Completed)
+                echo -e "${GREEN}  Status: Completed ($label)${NC}"
+                STATUS_SUMMARY+=("$label:Completed:$correlation_id")
+                return 0
+                ;;
+            Rejected)
+                rejection=$(json_field "$response" "rejectionEventType" "Rejected")
+                echo -e "${YELLOW}  Status: Rejected ($label) - $rejection${NC}"
+                STATUS_SUMMARY+=("$label:Rejected:$correlation_id")
+                return 0
+                ;;
+            PublishFailed|TimedOut)
+                echo -e "${RED}  Status: $status ($label)${NC}"
+                STATUS_SUMMARY+=("$label:$status:$correlation_id")
+                return 1
+                ;;
+        esac
+
+        sleep 1
+    done
+
+    echo -e "${RED}  Timed out waiting for command status: $label ($correlation_id)${NC}"
+    return 1
 }
 
 send_command() {
-    local step_name="$1"
+    local label="$1"
     local body="$2"
+    local response http_code correlation_id
 
     echo ""
-    echo -e "${CYAN}--- $step_name ---${NC}"
-    echo -e "${GRAY}POST $COMMAND_ENDPOINT${NC}"
-
-    HTTP_CODE=$(curl -sk -o "$TMPFILE" -w "%{http_code}" \
+    echo -e "${CYAN}--- $label ---${NC}"
+    http_code=$(curl -sk -o "$TMPFILE" -w "%{http_code}" \
         -X POST "$COMMAND_ENDPOINT" \
         -H "Authorization: Bearer $TOKEN" \
         -H "Content-Type: application/json" \
         -d "$body" \
         --max-time 30)
+    response=$(cat "$TMPFILE" 2>/dev/null || true)
 
-    RESPONSE=$(cat "$TMPFILE" 2>/dev/null || echo "")
-
-    if [[ "$HTTP_CODE" == "202" ]]; then
-        COMMANDS_SENT=$((COMMANDS_SENT + 1))
-        CORR_ID=$(safe_jq "$RESPONSE" '.correlationId // "unknown"')
-        echo -e "${GREEN}  202 Accepted — correlationId: $CORR_ID${NC}"
-    elif [[ "$HTTP_CODE" == "422" ]]; then
-        echo -e "${YELLOW}  $HTTP_CODE — Command rejected (business rule). This may be expected on re-runs.${NC}"
-    else
-        echo -e "${RED}  $HTTP_CODE — Error${NC}"
-        if [[ -n "$RESPONSE" ]]; then
-            format_json "$RESPONSE"
-        fi
+    if [[ "$http_code" != "202" ]]; then
+        echo -e "${RED}  HTTP $http_code from command gateway.${NC}"
+        return 1
     fi
+
+    COMMANDS_ACCEPTED=$((COMMANDS_ACCEPTED + 1))
+    correlation_id=$(json_field "$response" "correlationId" "")
+    if [[ -z "$correlation_id" ]]; then
+        echo -e "${RED}  Command accepted but correlationId was not found in the response.${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}  202 Accepted - status: $STATUS_ENDPOINT/$correlation_id${NC}"
+    poll_status "$correlation_id" "$label"
 }
 
-# --- Step 1: Bootstrap Global Admin ---
-send_command "Step 1: Bootstrap Global Admin" \
-    "{\"messageId\":\"demo-$TIMESTAMP-01-bootstrap\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"global-administrators\",\"commandType\":\"BootstrapGlobalAdmin\",\"payload\":{\"UserId\":\"admin-user\"}}"
+wait_for_access() {
+    local expected="$1"
+    local label="$2"
+    local deadline=$((SECONDS + TIMEOUT_SECONDS))
+    local response access role reason
 
-sleep 2
+    echo ""
+    echo -e "${CYAN}--- $label ---${NC}"
+    echo -e "${GRAY}GET $SAMPLE_URL/access/$TENANT_ID/$USER_ID${NC}"
 
-# --- Step 2: Create a Tenant ---
-send_command "Step 2: Create Tenant '$TENANT_ID'" \
-    "{\"messageId\":\"demo-$TIMESTAMP-02-create-tenant\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"CreateTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"Name\":\"Acme Demo Corp\",\"Description\":\"Demo tenant for aha moment\"}}"
+    while (( SECONDS <= deadline )); do
+        response=$(curl -sk --max-time 10 "$SAMPLE_URL/access/$TENANT_ID/$USER_ID" 2>/dev/null || true)
+        access=$(json_field "$response" "access" "")
 
-sleep 2
+        if [[ "$access" == "$expected" ]]; then
+            role=$(json_field "$response" "role" "")
+            reason=$(json_field "$response" "reason" "")
+            if [[ -n "$role" && "$role" != "unknown" ]]; then
+                echo -e "${GREEN}  Access: $access | Role: $role${NC}"
+            else
+                echo -e "${MAGENTA}  Access: $access | Reason: $reason${NC}"
+            fi
+            return 0
+        fi
 
-# --- Step 3: Add a User with TenantContributor Role ---
-send_command "Step 3: Add User '$USER_ID' with TenantContributor Role" \
-    "{\"messageId\":\"demo-$TIMESTAMP-03-add-user\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"AddUserToTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"UserId\":\"$USER_ID\",\"Role\":1}}"
+        sleep 1
+    done
 
-sleep 2
+    echo -e "${RED}  Timed out waiting for access '$expected'. Last response access='$access'.${NC}"
+    return 1
+}
 
-# --- Step 4: Verify Access Granted ---
-echo ""
-echo -e "${CYAN}--- Step 4: Verify Access Granted ---${NC}"
-echo -e "${GRAY}GET $SAMPLE_URL/access/$TENANT_ID/$USER_ID${NC}"
+bootstrap_message_id=$(generate_ulid)
+create_message_id=$(generate_ulid)
+add_message_id=$(generate_ulid)
+remove_message_id=$(generate_ulid)
 
-ACCESS_RESPONSE=$(curl -sk --max-time 10 "$SAMPLE_URL/access/$TENANT_ID/$USER_ID" 2>/dev/null || echo "")
-if [[ -z "$ACCESS_RESPONSE" ]]; then
-    echo -e "${YELLOW}  Event may not have propagated yet. Retrying in 3 seconds...${NC}"
-    sleep 3
-    ACCESS_RESPONSE=$(curl -sk --max-time 10 "$SAMPLE_URL/access/$TENANT_ID/$USER_ID" 2>/dev/null || echo "")
+send_command "Bootstrap Global Admin" \
+    "{\"messageId\":\"$bootstrap_message_id\",\"tenant\":\"system\",\"domain\":\"global-administrators\",\"aggregateId\":\"global-administrators\",\"commandType\":\"BootstrapGlobalAdmin\",\"payload\":{\"UserId\":\"admin-user\"}}"
+
+send_command "Create Tenant" \
+    "{\"messageId\":\"$create_message_id\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"CreateTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"Name\":\"Acme Demo Corp\",\"Description\":\"Demo tenant for aha moment\"}}"
+
+send_command "Add User" \
+    "{\"messageId\":\"$add_message_id\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"AddUserToTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"UserId\":\"$USER_ID\",\"Role\":\"TenantContributor\"}}"
+
+wait_for_access "granted" "Verify Access Granted"
+
+send_command "Remove User" \
+    "{\"messageId\":\"$remove_message_id\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"RemoveUserFromTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"UserId\":\"$USER_ID\"}}"
+
+wait_for_access "denied" "Verify Access Denied"
+
+QUERY_EVIDENCE="not requested"
+if [[ -n "$TENANTS_URL" ]]; then
+    tenant_http=$(curl -sk -o /dev/null -w "%{http_code}" \
+        -H "Authorization: Bearer $TOKEN" \
+        "$TENANTS_URL/api/tenants/$TENANT_ID" 2>/dev/null || true)
+    audit_http=$(curl -sk -o /dev/null -w "%{http_code}" \
+        -H "Authorization: Bearer $TOKEN" \
+        "$TENANTS_URL/api/tenants/$TENANT_ID/audit" 2>/dev/null || true)
+    QUERY_EVIDENCE="tenant=$tenant_http audit=$audit_http"
 fi
 
-ACCESS=$(safe_jq "$ACCESS_RESPONSE" '.access // "unknown"')
-ROLE=$(safe_jq "$ACCESS_RESPONSE" '.role // "unknown"')
-echo -e "${GREEN}  Access: $ACCESS | Role: $ROLE${NC}"
-
-sleep 2
-
-# --- Step 5: Remove the User — THE AHA MOMENT ---
-send_command "Step 5: Remove User '$USER_ID' — THE AHA MOMENT" \
-    "{\"messageId\":\"demo-$TIMESTAMP-05-remove-user\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"RemoveUserFromTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"UserId\":\"$USER_ID\"}}"
-
-sleep 2
-
-# --- Step 6: Verify Access Denied ---
-echo ""
-echo -e "${CYAN}--- Step 6: Verify Access DENIED ---${NC}"
-echo -e "${GRAY}GET $SAMPLE_URL/access/$TENANT_ID/$USER_ID${NC}"
-
-ACCESS_RESPONSE=$(curl -sk --max-time 10 "$SAMPLE_URL/access/$TENANT_ID/$USER_ID" 2>/dev/null || echo "")
-if [[ -z "$ACCESS_RESPONSE" ]]; then
-    echo -e "${YELLOW}  Event may not have propagated yet. Retrying in 3 seconds...${NC}"
-    sleep 3
-    ACCESS_RESPONSE=$(curl -sk --max-time 10 "$SAMPLE_URL/access/$TENANT_ID/$USER_ID" 2>/dev/null || echo "")
-fi
-
-ACCESS=$(safe_jq "$ACCESS_RESPONSE" '.access // "unknown"')
-REASON=$(safe_jq "$ACCESS_RESPONSE" '.reason // "unknown"')
-echo -e "${MAGENTA}  Access: $ACCESS | Reason: $REASON${NC}"
-if [[ "$ACCESS" == "denied" ]]; then ACCESS_VERIFIED=true; fi
-
-# --- Summary ---
 echo ""
 echo -e "${CYAN}========================================${NC}"
 echo -e "${CYAN}  Demo Complete${NC}"
 echo -e "${CYAN}========================================${NC}"
 echo ""
-echo -e "  Commands sent:        $COMMANDS_SENT"
-if $ACCESS_VERIFIED; then
-    echo -e "${GREEN}  Access transitions:   granted -> denied (VERIFIED)${NC}"
-else
-    echo -e "${YELLOW}  Access transitions:   UNVERIFIED — check logs${NC}"
-fi
-echo -e "${GREEN}  Demo cycle:           COMPLETED${NC}"
+echo -e "  Commands accepted:    $COMMANDS_ACCEPTED"
+for item in "${STATUS_SUMMARY[@]}"; do
+    IFS=":" read -r label status correlation <<< "$item"
+    echo -e "  Command status:       $label = $status ($STATUS_ENDPOINT/$correlation)"
+done
+echo -e "${GREEN}  Access transition:    granted -> denied (verified)${NC}"
+echo -e "  Query evidence:       $QUERY_EVIDENCE"
 echo ""
-echo -e "${YELLOW}  The consuming service automatically revoked access${NC}"
-echo -e "${YELLOW}  via DAPR pub/sub — no custom integration needed.${NC}"
-echo ""
+echo -e "${YELLOW}  The sample subscribing service revoked local access via tenants.events.${NC}"
+echo -e "${YELLOW}  No Tenants/EventStore polling is used by the access endpoint.${NC}"

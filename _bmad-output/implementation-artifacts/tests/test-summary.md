@@ -455,3 +455,126 @@ QA gap analysis of Story 8.2's event contract reference coverage against the exi
 - [x] Test summary created.
 - [x] Tests saved to appropriate directories.
 - [x] Summary includes coverage metrics.
+
+---
+
+# Test Automation Summary - Story 8.4 Reactive Access Aha Moment Demo
+
+**Story:** 8.4 - Produce the Reactive Access "Aha Moment" Demo
+**Workflow:** dev-story - **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source/static documentation checks
+
+## Scope
+
+Validated the demo documentation and automation entry points for the reactive access proof: EventStore command/status routes, Tenants query routes, sample subscriber observation, script payload correctness, local auth mode separation, eventual-consistency wording, and support-safe output.
+
+## Generated Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/AhaMomentDemoDocumentationTests.cs` - validates current topology references, command JSON payloads, script command drift fixes, auth guidance, support-safe assets, one-live-subscriber wording, eventual consistency, and related-guide links.
+
+## Coverage
+
+- Story 8.4 acceptance criteria: 5/5 covered by source-backed documentation/script tests plus existing Client/Sample projection and subscription tests.
+- Demo command path covered: `POST /api/v1/commands`, `GET /api/v1/commands/status/{correlationId}`, ULID-shaped command IDs, `global-administrators` bootstrap domain, tenant command `aggregateId == payload.TenantId`, and `TenantContributor` enum-name payloads.
+- Observation path covered: Aspire resources `eventstore`, `tenants`, and `sample`; Sample `/access/{tenantId}/{userId}`; DAPR topic `tenants.events`; `MapTenantEventSubscription()`; Tenants current-state and audit query surfaces.
+- Safety covered: no raw JWT-like tokens, no `client_secret`, no full event payload logging guidance, and explicit Keycloak versus `EnableKeycloak=false` HMAC fallback separation.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Script syntax | `bash -n scripts/demo.sh` | Passed. |
+| Script syntax | `pwsh -NoProfile -Command '$ErrorActionPreference="Stop"; $null = [scriptblock]::Create((Get-Content -Raw scripts/demo.ps1)); "pwsh syntax ok"'` | Passed. |
+| Server documentation tests via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --filter FullyQualifiedName~Documentation --no-restore` | MSBuild/VSTest aborted before execution in this sandbox with `SocketException (13): Permission denied`. |
+| Server build | `dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Sample build | `dotnet build samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Client build | `dotnet build tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Focused Story 8.4 documentation tests via xUnit runner | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.AhaMomentDemoDocumentationTests` | Passed: 6 total, 0 failed, 0 skipped. |
+| Existing related documentation tests via xUnit runner | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests -class Hexalith.Tenants.Server.Tests.Documentation.SampleConsumingServiceWalkthroughDocumentationTests -class Hexalith.Tenants.Server.Tests.Documentation.EventContractReferenceDocumentationTests` | Passed: 18 total, 0 failed, 0 skipped. |
+| Full Server direct xUnit regression | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none` | Passed: 704 total, 0 failed, 0 skipped. |
+| Full Client direct xUnit regression | `tests/Hexalith.Tenants.Client.Tests/bin/Debug/net10.0/Hexalith.Tenants.Client.Tests -noLogo -noColor -parallel none` | Passed: 92 total, 0 failed, 0 skipped. |
+| Full Sample direct xUnit regression | `samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests -noLogo -noColor -parallel none` | Passed: 31 total, 0 failed, 0 skipped. |
+| Live AppHost demo prerequisite check | `docker info --format '{{.ServerVersion}}'` | Blocked: permission denied connecting to `unix:///var/run/docker.sock`. DAPR CLI 1.17.1/runtime 1.17.8 and Aspire CLI 13.3.5 are installed, but live Docker-backed AppHost execution was not available in this sandbox. |
+
+## Checklist
+
+- [x] Source-backed documentation tests generated.
+- [x] Tests cover command examples, scripts, auth mode split, support safety, and eventual consistency.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests are independent and order-free.
+- [x] Source-backed tests and focused regressions pass.
+- [x] Live infrastructure limitation recorded without claiming live execution.
+
+---
+
+# Test Automation Summary - Story 8.4 QA Generate E2E Tests
+
+**Story:** 8.4 - Produce the Reactive Access "Aha Moment" Demo
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + Aspire/DAPR-gated integration tests
+
+## Scope
+
+QA gap analysis of Story 8.4's reactive access demo coverage, then auto-application of discovered test gaps. Tests only.
+
+## Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Demo docs and scripts | `AhaMomentDemoDocumentationTests` parsed command JSON, checked route/topology references, auth split, support safety, eventual consistency, and script drift fixes. | Covered. |
+| Sample/client projection behavior | Existing Client and Sample tests covered `MapTenantEventSubscription()`, event processing, projection updates, `/access`, and support-safe logging. | Covered. |
+| Full AppHost reactive access proof | No generated test exercised the demo path through the Aspire topology: EventStore command gateway -> `tenants.events` -> Sample `/access` transition. | **Gap found and closed.** |
+
+## Generated Tests
+
+### API Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/AhaMomentDemoDocumentationTests.cs` -
+  `Demo_has_Aspire_E2E_coverage_for_reactive_access_transition` pins that Story 8.4 has a source-backed Aspire E2E test covering bootstrap, create tenant, add user, remove user, command/status routes, and `granted -> denied` access evidence.
+
+### E2E Tests
+
+- [x] `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` -
+  `Aha_moment_demo_revokes_sample_access_from_tenant_events` submits the full demo command flow to `POST /api/v1/commands`, polls `GET /api/v1/commands/status/{correlationId}`, waits for Sample `/access/{tenantId}/{userId}` to report `granted`, removes the user, then waits for `denied` from the Sample local projection.
+
+## Coverage
+
+- Story 8.4 acceptance criteria: 5/5 covered across documentation-contract tests, source-backed client/sample tests, and the new Aspire-gated demo E2E test.
+- Happy path covered: bootstrap global admin, create tenant, add contributor, observe local access granted, remove user, observe local access denied.
+- Critical error/drift cases covered: already-bootstrapped global admin is accepted as rerunnable setup, the Aspire E2E token includes the required `GlobalAdministrator` role claim for privileged tenant commands, stale command domains/message IDs/script payloads are rejected by documentation tests, and Docker/DAPR prerequisites gate live AppHost execution without false pass claims.
+- UI workflows: N/A; Story 8.4 has no browser UI surface.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Integration build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Server targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~AhaMomentDemoDocumentationTests -m:1 /nr:false /p:BuildInParallel=false` | Built, then VSTest aborted before execution with `SocketException (13): Permission denied`. |
+| Integration targeted via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~Aha_moment_demo_revokes_sample_access_from_tenant_events -m:1 /nr:false /p:BuildInParallel=false` | Built, then VSTest aborted before execution with `SocketException (13): Permission denied`. |
+| Story 8.4 documentation tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.AhaMomentDemoDocumentationTests -parallel none -noLogo -noColor` | Passed: 8 total, 0 failed, 0 skipped. |
+| Aspire topology tests via xUnit runner | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -class Hexalith.Tenants.IntegrationTests.AspireTopologyTests -parallel none -noLogo -noColor` | Passed with prerequisite skips: 5 total, 0 failed, 5 skipped. New Story 8.4 E2E test skipped because DAPR integration prerequisites are unavailable. |
+| Client focused related tests | `dotnet tests/Hexalith.Tenants.Client.Tests/bin/Debug/net10.0/Hexalith.Tenants.Client.Tests.dll -class Hexalith.Tenants.Client.Tests.Subscription.TenantEventProcessorTests -class Hexalith.Tenants.Client.Tests.Subscription.TenantEventSubscriptionEndpointsTests -class Hexalith.Tenants.Client.Tests.Handlers.TenantProjectionEventHandlerTests -parallel none -noLogo -noColor` | Passed: 38 total, 0 failed, 0 skipped. |
+| Sample focused related tests | `dotnet samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests.dll -class Hexalith.Tenants.Sample.Tests.Endpoints.AccessCheckEndpointsTests -class Hexalith.Tenants.Sample.Tests.Registration.SampleRegistrationTests -class Hexalith.Tenants.Sample.Tests.Handlers.SampleLoggingEventHandlerTests -parallel none -noLogo -noColor` | Passed: 24 total, 0 failed, 0 skipped. |
+| Live prerequisite check | `dapr --version`; `docker info --format '{{.ServerVersion}}'` | DAPR available: CLI 1.17.1, runtime 1.17.8. Docker blocked: permission denied connecting to `unix:///var/run/docker.sock`, so live AppHost execution was not claimed. |
+
+## Senior Review Addendum
+
+- Fixed HMAC fallback token drift in `scripts/demo.sh`, `scripts/demo.ps1`, and `AspireTopologyTests`: fallback demo tokens now target the EventStore command gateway's `hexalith-eventstore` development auth settings.
+- Added `Hmac_fallback_tokens_target_the_EventStore_command_gateway` to keep the scripts from regressing to Tenants-only development auth values.
+- Re-ran script syntax, Server/Integration single-node builds, direct xUnit Story 8.4 documentation tests, Aspire topology tests with prerequisite skips, and focused Client/Sample projection tests successfully.
+
+## Checklist
+
+- [x] API tests generated where applicable.
+- [x] E2E tests generated for the non-UI reactive access workflow.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy path.
+- [x] Tests cover critical rerun/drift/prerequisite cases.
+- [x] Semantic UI locators are N/A; tests use HTTP API calls and source-backed documentation assertions.
+- [x] Tests have clear descriptions.
+- [x] No hardcoded sleeps in generated source-backed tests; the Aspire E2E uses bounded polling for asynchronous command/projection completion.
+- [x] Tests are independent and order-free.
+- [x] Test summary created.
+- [x] Tests saved to appropriate directories.
+- [x] Summary includes coverage metrics.
