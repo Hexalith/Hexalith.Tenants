@@ -17,13 +17,16 @@ using Shouldly;
 namespace Hexalith.Tenants.IntegrationTests;
 
 /// <summary>
-/// Tier 3 performance test for Story 7.3, AC #6.
+/// Tier 3 scheduled performance evidence for Story 7.5, AC5 (NFR13 startup reconstruction).
 /// Verifies that cold-start actor rehydration completes within 30 seconds
 /// for a tenant aggregate seeded with 500,000 events (1,000 tenants x 500 events average)
 /// using a 50-event snapshot interval.
 ///
-/// This test is marked with [Trait("Category", "Performance")] and runs on nightly CI schedule only,
-/// NOT on every PR. It requires a running DAPR sidecar with Redis state store.
+/// This is the scheduled performance lane: it is guarded by <see cref="DaprPerformanceFactAttribute"/>
+/// (HEXALITH_TENANTS_RUN_PERFORMANCE_TESTS=1 plus DAPR prerequisites), so it is skipped on ordinary PR
+/// and Tier 1 runs and only contributes the NFR13 30-second claim when the benchmark actually executes.
+/// It requires a running DAPR sidecar with Redis state store. NFR11 tenant/user-volume load evidence is
+/// a separate release/scheduled concern and is not asserted here.
 /// </summary>
 [Collection("TenantsDaprTest")]
 [Trait("Category", "Performance")]

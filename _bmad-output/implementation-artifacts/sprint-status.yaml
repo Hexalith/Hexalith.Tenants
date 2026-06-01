@@ -111,7 +111,7 @@ development_status:
   7-2-configure-dapr-components-for-local-and-production-deployment: done
   7-3-validate-production-authentication-and-eventstore-tenant-claims: done
   7-4-expose-tenant-command-and-event-metrics-with-opentelemetry: done
-  7-5-prove-stateless-operation-health-and-startup-reconstruction: backlog
+  7-5-prove-stateless-operation-health-and-startup-reconstruction: done
   7-6a-validate-production-auth-smoke-tests: backlog
   7-6b-validate-dapr-component-and-service-invocation-smoke-tests: backlog
   7-6c-validate-health-and-dependency-readiness-smoke-tests: backlog

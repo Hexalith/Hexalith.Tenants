@@ -17,8 +17,8 @@ internal sealed class DaprStateStoreHealthCheck(DaprClient daprClient) : IHealth
                 .ConfigureAwait(false);
             return HealthCheckResult.Healthy();
         }
-        catch (Exception ex) {
-            return HealthCheckResult.Unhealthy("DAPR state store is unreachable", ex);
+        catch (Exception) {
+            return HealthCheckResult.Unhealthy("DAPR state store is unreachable");
         }
     }
 }

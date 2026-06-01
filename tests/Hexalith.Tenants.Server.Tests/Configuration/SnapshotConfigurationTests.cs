@@ -24,6 +24,22 @@ public class SnapshotConfigurationTests {
     }
 
     [Fact]
+    public void AppSettings_SnapshotConfiguration_ShouldLeaveGlobalAdministratorsOnEventStoreDefault() {
+        // Story 7.5 AC4: the global administrator singleton state must use the EventStore default
+        // snapshot interval (100) — there is no per-domain override for it — so only the tenants
+        // domain carries the documented 50-event interval.
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: false)
+            .Build();
+
+        var options = new SnapshotOptions();
+        configuration.GetSection("EventStore:Snapshots").Bind(options);
+
+        options.DomainIntervals.ShouldNotContainKey("global-administrators");
+        options.DefaultInterval.ShouldBe(100);
+    }
+
+    [Fact]
     public void AppSettings_SnapshotConfiguration_ShouldPassValidation() {
         // Arrange
         IConfigurationRoot configuration = new ConfigurationBuilder()

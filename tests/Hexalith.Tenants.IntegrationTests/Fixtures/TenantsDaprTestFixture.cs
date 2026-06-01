@@ -10,16 +10,20 @@ using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
 using Hexalith.EventStore.Testing.Fakes;
+using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.DomainProcessing;
 using Hexalith.Tenants.Contracts.Identity;
+using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
@@ -316,6 +320,13 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
         // Register domain service request handler for /process endpoint
         _ = builder.Services.AddScoped<DomainServiceRequestHandler>();
+
+        // Register the Tenants projection actor so restart/reconstruction tests exercise the
+        // production query actor path, not only direct DAPR state-store reads.
+        _ = builder.Services.AddDataProtection()
+            .SetApplicationName("Hexalith.Tenants.IntegrationTests");
+        builder.Services.TryAddSingleton<ITenantQueryCursorCodec, TenantQueryCursorCodec>();
+        builder.Services.AddActors(options => options.Actors.RegisterActor<TenantsProjectionActor>());
 
         _testHost = builder.Build();
 

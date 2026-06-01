@@ -40,7 +40,7 @@ public class DaprStateStoreHealthCheckTests {
 
         result.Status.ShouldBe(HealthStatus.Unhealthy);
         result.Description.ShouldBe("DAPR state store is unreachable");
-        _ = result.Exception.ShouldBeOfType<DaprException>();
+        result.Exception.ShouldBeNull();
     }
 
     [Fact]
@@ -55,7 +55,8 @@ public class DaprStateStoreHealthCheckTests {
         HealthCheckResult result = await healthCheck.CheckHealthAsync(context);
 
         result.Status.ShouldBe(HealthStatus.Unhealthy);
-        _ = result.Exception.ShouldBeOfType<TaskCanceledException>();
+        result.Description.ShouldBe("DAPR state store is unreachable");
+        result.Exception.ShouldBeNull();
     }
 
     [Fact]
@@ -70,7 +71,8 @@ public class DaprStateStoreHealthCheckTests {
         HealthCheckResult result = await healthCheck.CheckHealthAsync(context);
 
         result.Status.ShouldBe(HealthStatus.Unhealthy);
-        _ = result.Exception.ShouldBeOfType<HttpRequestException>();
+        result.Description.ShouldBe("DAPR state store is unreachable");
+        result.Exception.ShouldBeNull();
     }
 
     private static HealthCheckContext CreateContext()

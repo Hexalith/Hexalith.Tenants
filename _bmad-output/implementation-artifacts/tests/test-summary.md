@@ -46,3 +46,73 @@
 - [x] Test summary created.
 - [x] Tests saved to appropriate directories.
 - [x] Summary includes coverage metrics.
+
+---
+
+# Test Automation Summary — Story 7.5
+
+**Story:** 7.5 — Prove Stateless Operation, Health, and Startup Reconstruction
+**Workflow:** qa-generate-e2e-tests · **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + `WebApplicationFactory` (infra-free) / `[DaprFact]` (Tier 2/3)
+
+## Scope
+
+QA gap analysis of Story 7.5's five acceptance criteria against the tests already produced by
+dev-story, then auto-application of the discovered gap. Tests only — no story validation or code review.
+
+## Gap Analysis
+
+| AC | Existing coverage | Verdict |
+|----|-------------------|---------|
+| AC1 — readiness/liveness contract | `HealthEndpointsTests` (registration name/tag/FailureStatus; `/ready` 503 unhealthy; `/ready` 200 healthy; `/alive` 200 while `/ready` 503) + `DaprStateStoreHealthCheckTests` (healthy + 3 failure exceptions) | **Gap found** — the Development JSON response writer (`WriteHealthCheckJsonResponse`, exposed by `MapDefaultEndpoints` on `/health` + `/ready`) was untested production code. AC1 + Technical Guardrails require health output be *support-safe*; completion notes claimed it but nothing asserted it. **Closed.** |
+| AC2 — restart reconstruction | aggregate reactivation reload + projection fresh-client reload | Covered |
+| AC3 — no instance-local state | architecture assertion: no writable static fields in host assembly | Covered |
+| AC4 — snapshot baseline | `tenants=50`, default `100`, validation passes, no `TenantDomainIntervals`, no global-admin override | Covered |
+| AC5 — scheduled startup reconstruction perf | `SnapshotPerformanceTests` guarded by `DaprPerformanceFactAttribute` | Covered (correctly scoped; benchmark stays in scheduled lane) |
+
+## Generated Tests
+
+### Endpoint / API Tests
+
+- [x] `tests/Hexalith.Tenants.IntegrationTests/HealthEndpointsTests.cs` —
+  `Ready_development_json_response_is_support_safe_and_hides_exception_internals`
+
+  Boots the real Tenants host in the `Development` environment, swaps the readiness check for a stub
+  that fails with an exception carrying an embedded secret
+  (`Server=tenants-db;Password=SUPER-SECRET-TOKEN-12345`), hits `/ready`, and asserts the dev JSON body:
+  - returns HTTP 503 with `application/json`;
+  - **surfaces** the status (`Unhealthy`) and safe category description (`DAPR state store is unreachable`);
+  - **never leaks** the exception message, embedded secret, `Password=`, a stack trace, or the exception type name.
+
+  Supporting infrastructure extended in the same file: `HealthWebApplicationFactory` now accepts an
+  environment + failing description/exception; `StubReadinessCheck` propagates them.
+
+## Coverage
+
+- AC1 health endpoints: support-safe Development output path now covered (previously 0 tests).
+- All five ACs now have happy-path + critical-error automated evidence in the implementation lane
+  (AC5 remains scheduled-lane evidence by design).
+
+## Validation Results
+
+| Lane | Command (filter) | Result |
+|------|------------------|--------|
+| Integration (AC1 health, infra-free) | `IntegrationTests --filter FullyQualifiedName~HealthEndpointsTests` | **Passed 5, Failed 0, Skipped 0** |
+| Server (AC1 health + AC4 snapshot + AC3 architecture) | `Server.Tests --filter Health\|SnapshotConfigurationTests\|StatelessHostStateTests` | **Passed 9, Failed 0, Skipped 0** |
+| Build | `dotnet build Hexalith.Tenants.IntegrationTests` | **0 Warning(s), 0 Error(s)** |
+
+> Tier 2/3 `[DaprFact]` tests (AC2 restart, AC5 perf) require `dapr init` + Docker and were not re-run
+> in this QA pass; they are unchanged by this gap fix. The 500K-event benchmark stays in the scheduled
+> lane behind `HEXALITH_TENANTS_RUN_PERFORMANCE_TESTS=1` and is not claimed here.
+
+## Checklist
+
+- [x] API/endpoint tests generated (support-safe health output).
+- [x] E2E/UI tests: N/A — Story 7.5 has no browser UI surface.
+- [x] Tests use standard xUnit v3 + Shouldly APIs.
+- [x] Tests cover happy path (healthy/dev-JSON surfaces status).
+- [x] Tests cover critical error case (failing dependency must not leak secrets/internals).
+- [x] Clear descriptive test name; Given/When/Then-style comments.
+- [x] No hardcoded waits or sleeps; deterministic stub, no `Thread.Sleep`/`Task.Delay`.
+- [x] Test is independent and order-free (own factory instance per test).
+- [x] Summary updated; tests saved to existing project directory; coverage + validation recorded.

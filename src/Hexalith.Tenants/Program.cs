@@ -41,10 +41,14 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddDaprClient();
+// Readiness dependency: a Tenants instance is only "ready" for traffic once its DAPR state
+// store is reachable. The probe self-reports Unhealthy on failure; registering the failure
+// status as Unhealthy (not Degraded) guarantees that even an unexpected throw classifies the
+// readiness dependency as Unhealthy → HTTP 503 on /ready, never Degraded → HTTP 200 (Story 7.5 AC1).
 builder.Services.AddHealthChecks()
     .AddCheck<DaprStateStoreHealthCheck>(
         "dapr-statestore",
-        failureStatus: HealthStatus.Degraded,
+        failureStatus: HealthStatus.Unhealthy,
         tags: ["ready"]);
 // Domain service only — do NOT register AddEventStoreServer or server-side EventStore extensions here.
 // AggregateActor must only be hosted by the EventStore, not domain services.
