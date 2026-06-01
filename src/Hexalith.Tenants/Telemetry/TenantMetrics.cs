@@ -20,6 +20,9 @@ internal static class TenantMetrics {
     private static readonly Histogram<double> _projectionQueryDuration =
         _meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
 
+    private static readonly Histogram<double> _eventProcessingDuration =
+        _meter.CreateHistogram<double>("tenants.event.processing.duration", "ms", "Tenant event projection processing duration");
+
     private static readonly Counter<long> _projectionWriteConflicts =
         _meter.CreateCounter<long>("tenants.projection.write.conflicts", "{attempt}", "Projection write optimistic concurrency conflicts");
 
@@ -52,6 +55,37 @@ internal static class TenantMetrics {
         "TenantReadModel",
         "TenantAuditReadModel",
         "TenantIndexReadModel",
+        "tenant",
+        "global-administrators",
+    ], StringComparer.Ordinal);
+
+    private static readonly HashSet<string> _knownProjectionCategories =
+    new([
+        "tenant",
+        "global-administrators",
+        "unknown",
+    ], StringComparer.Ordinal);
+
+    private static readonly HashSet<string> _knownTelemetryOutcomes =
+    new([
+        "success",
+        "rejection",
+        "noop",
+        "failure",
+        "forbidden",
+        "unknown-query",
+        "completed",
+        "unsupported-domain",
+        "invalid-identity",
+        "retry-recovered",
+        "retry-exhausted",
+    ], StringComparer.Ordinal);
+
+    private static readonly HashSet<string> _knownProjectionStages =
+    new([
+        "domain-processing",
+        "projection-dispatch",
+        "projection-query",
     ], StringComparer.Ordinal);
 
     private static readonly HashSet<string> _knownProjectionWriteReasons =
@@ -74,10 +108,21 @@ internal static class TenantMetrics {
     /// <param name="commandType">The command type name (sanitized against known types).</param>
     /// <param name="success">Whether the handler completed without throwing.</param>
     public static void RecordCommandDuration(double milliseconds, string commandType, bool success)
+        => RecordCommandDuration(milliseconds, commandType, success, success ? "success" : "failure");
+
+    /// <summary>
+    /// Records the duration of a tenant command processing operation.
+    /// </summary>
+    /// <param name="milliseconds">The duration in milliseconds.</param>
+    /// <param name="commandType">The command type name (sanitized against known types).</param>
+    /// <param name="success">Whether the handler completed without throwing.</param>
+    /// <param name="outcome">The bounded domain outcome.</param>
+    public static void RecordCommandDuration(double milliseconds, string commandType, bool success, string outcome)
         => _commandDuration.Record(
             milliseconds,
             new KeyValuePair<string, object?>("command_type", SanitizeCommandType(commandType)),
-            new KeyValuePair<string, object?>("success", success));
+            new KeyValuePair<string, object?>("success", success),
+            new KeyValuePair<string, object?>("outcome", SanitizeOutcome(outcome)));
 
     /// <summary>
     /// Records the duration of a projection query execution.
@@ -85,9 +130,40 @@ internal static class TenantMetrics {
     /// <param name="milliseconds">The duration in milliseconds.</param>
     /// <param name="queryType">The query type identifier.</param>
     public static void RecordQueryDuration(double milliseconds, string queryType)
+        => RecordQueryDuration(milliseconds, queryType, "success");
+
+    /// <summary>
+    /// Records the duration of a projection query execution.
+    /// </summary>
+    /// <param name="milliseconds">The duration in milliseconds.</param>
+    /// <param name="queryType">The query type identifier.</param>
+    /// <param name="outcome">The bounded query outcome.</param>
+    public static void RecordQueryDuration(double milliseconds, string queryType, string outcome)
         => _projectionQueryDuration.Record(
             milliseconds,
-            new KeyValuePair<string, object?>("query_type", SanitizeQueryType(queryType)));
+            new KeyValuePair<string, object?>("query_type", SanitizeQueryType(queryType)),
+            new KeyValuePair<string, object?>("outcome", SanitizeOutcome(outcome)));
+
+    /// <summary>
+    /// Records tenant event projection processing duration.
+    /// </summary>
+    /// <param name="milliseconds">The duration in milliseconds.</param>
+    /// <param name="domain">The bounded domain.</param>
+    /// <param name="projectionType">The bounded projection category.</param>
+    /// <param name="stage">The bounded processing stage.</param>
+    /// <param name="outcome">The bounded processing outcome.</param>
+    public static void RecordEventProcessingDuration(
+        double milliseconds,
+        string domain,
+        string projectionType,
+        string stage,
+        string outcome)
+        => _eventProcessingDuration.Record(
+            milliseconds,
+            new KeyValuePair<string, object?>("domain", SanitizeProjectionDomain(domain)),
+            new KeyValuePair<string, object?>("projection_type", SanitizeProjectionCategory(projectionType)),
+            new KeyValuePair<string, object?>("stage", SanitizeProjectionStage(stage)),
+            new KeyValuePair<string, object?>("outcome", SanitizeOutcome(outcome)));
 
     /// <summary>
     /// Records a projection write optimistic concurrency conflict attempt.
@@ -130,6 +206,18 @@ internal static class TenantMetrics {
 
     private static string SanitizeProjectionType(string projectionType)
         => !string.IsNullOrEmpty(projectionType) && _knownProjectionTypes.Contains(projectionType) ? projectionType : "unknown";
+
+    private static string SanitizeProjectionCategory(string projectionType)
+        => !string.IsNullOrEmpty(projectionType) && _knownProjectionCategories.Contains(projectionType) ? projectionType : "unknown";
+
+    private static string SanitizeProjectionDomain(string domain)
+        => domain is "tenants" or "global-administrators" ? domain : "unknown";
+
+    private static string SanitizeProjectionStage(string stage)
+        => !string.IsNullOrEmpty(stage) && _knownProjectionStages.Contains(stage) ? stage : "unknown";
+
+    private static string SanitizeOutcome(string outcome)
+        => !string.IsNullOrEmpty(outcome) && _knownTelemetryOutcomes.Contains(outcome) ? outcome : "failure";
 
     private static string SanitizeProjectionWriteReason(string reason)
         => !string.IsNullOrEmpty(reason) && _knownProjectionWriteReasons.Contains(reason) ? reason : "unknown";

@@ -29,7 +29,13 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     internal const string TenantAuditProjectionKeyPrefix = "audit:";
     internal const string TenantIndexProjectionKey = "projection:tenant-index:singleton";
     internal const string TenantProjectionKeyPrefix = "projection:tenants:";
+    private const string FailureOutcome = "failure";
+    private const string ForbiddenOutcome = "forbidden";
+    private const string ProjectionQueryStage = "projection-query";
+    private const string RejectionOutcome = "rejection";
+    private const string SuccessOutcome = "success";
     private const string TenantQueryEnvelopeAuthorizationStage = "TenantQueryEnvelopeAuthorization";
+    private const string UnknownQueryOutcome = "unknown-query";
 
     private static readonly JsonSerializerOptions s_queryJsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -67,8 +73,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         using Activity? activity = TenantActivitySource.Instance.StartActivity(
             TenantActivitySource.QueryExecute, ActivityKind.Internal);
         var stopwatch = Stopwatch.StartNew();
+        string outcome = FailureOutcome;
 
         _ = (activity?.SetTag(TenantActivitySource.TagQueryType, envelope.QueryType));
+        _ = (activity?.SetTag(TenantActivitySource.TagTenantId, envelope.TenantId));
+        _ = (activity?.SetTag(TenantActivitySource.TagDomain, envelope.Domain));
+        _ = (activity?.SetTag(TenantActivitySource.TagAggregateId, envelope.AggregateId));
+        _ = (activity?.SetTag(TenantActivitySource.TagCorrelationId, envelope.CorrelationId));
+        _ = (activity?.SetTag(TenantActivitySource.TagStage, ProjectionQueryStage));
 
         try {
             if (IsRoleSensitiveQuery(envelope.QueryType) && string.IsNullOrWhiteSpace(envelope.UserId)) {
@@ -78,6 +90,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                     envelope.QueryType,
                     QueryAdapterFailureReason.Forbidden,
                     TenantQueryEnvelopeAuthorizationStage);
+                outcome = ForbiddenOutcome;
                 return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
             }
 
@@ -91,15 +104,18 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
                 _ => new QueryResult(false, default, ErrorMessage: $"Unknown query type: {envelope.QueryType}"),
             };
 
+            outcome = GetQueryOutcome(envelope.QueryType, result);
             return result;
         }
         catch (Exception ex) {
             _ = (activity?.SetStatus(ActivityStatusCode.Error, ex.Message));
+            outcome = FailureOutcome;
             throw;
         }
         finally {
             stopwatch.Stop();
-            TenantMetrics.RecordQueryDuration(stopwatch.Elapsed.TotalMilliseconds, envelope.QueryType);
+            _ = (activity?.SetTag(TenantActivitySource.TagOutcome, outcome));
+            TenantMetrics.RecordQueryDuration(stopwatch.Elapsed.TotalMilliseconds, envelope.QueryType, outcome);
         }
     }
 
@@ -113,6 +129,21 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             "get-tenant-users" or
             "get-user-tenants" or
             "get-tenant-audit";
+
+    private static string GetQueryOutcome(string? queryType, QueryResult result) {
+        if (result.Success) {
+            return SuccessOutcome;
+        }
+
+        if (!IsRoleSensitiveQuery(queryType)) {
+            return UnknownQueryOutcome;
+        }
+
+        return string.Equals(result.ErrorMessage, QueryAdapterFailureReason.Forbidden, StringComparison.Ordinal)
+            || string.Equals(result.ErrorMessage, "Forbidden", StringComparison.Ordinal)
+            ? ForbiddenOutcome
+            : RejectionOutcome;
+    }
 
     private static (string? Cursor, int PageSize) DeserializePaginationPayload(byte[]? payload) {
         TenantQueryPaginationPayload pagination = TenantQueryPaginationPayloadParser.DeserializeStandardPayload(payload);

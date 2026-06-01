@@ -75,13 +75,25 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
         Activity activity = FindActivity("get-tenant");
         activity.GetTagItem(TenantActivitySource.TagQueryType).ShouldBe("get-tenant");
+        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("success");
+        activity.GetTagItem(TenantActivitySource.TagStage).ShouldBe("projection-query");
+        activity.GetTagItem(TenantActivitySource.TagCorrelationId).ShouldNotBeNull();
+        activity.GetTagItem(TenantActivitySource.TagDomain).ShouldBe("tenants");
+        activity.GetTagItem(TenantActivitySource.TagAggregateId).ShouldBe("tenant-1");
         activity.Status.ShouldBe(ActivityStatusCode.Unset);
 
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) = FindMetric(
             "tenants.projection.query.duration",
-            tags => HasTag(tags, "query_type", "get-tenant"));
+            tags => HasTag(tags, "query_type", "get-tenant") && HasTag(tags, "outcome", "success"));
         Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["query_type"].ShouldBe("get-tenant");
+        tags["outcome"].ShouldBe("success");
+        tags.Keys.ShouldNotContain("tenant_id");
+        tags.Keys.ShouldNotContain("aggregate_id");
+        tags.Keys.ShouldNotContain("correlation_id");
+        tags.Keys.ShouldNotContain("causation_id");
+        tags.Keys.ShouldNotContain("user_id");
+        tags.Keys.ShouldNotContain("message_id");
     }
 
     [Fact]
@@ -92,11 +104,32 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
         QueryResult result = await actor.QueryAsync(CreateEnvelope("unknown-query"));
 
         result.Success.ShouldBeFalse();
+        Activity activity = FindActivity("unknown-query");
+        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("unknown-query");
+
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) = FindMetric(
             "tenants.projection.query.duration",
-            tags => HasTag(tags, "query_type", "unknown"));
+            tags => HasTag(tags, "query_type", "unknown") && HasTag(tags, "outcome", "unknown-query"));
         Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["query_type"].ShouldBe("unknown");
+        tags["outcome"].ShouldBe("unknown-query");
+    }
+
+    [Fact]
+    public async Task QueryAsync_ForbiddenQueryResult_ShouldRecordForbiddenOutcome() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupNoGlobalAdmin(daprClient);
+        TenantsProjectionActor actor = CreateActor(daprClient);
+
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-2"));
+
+        result.Success.ShouldBeFalse();
+        Activity activity = FindActivity("get-tenant");
+        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("forbidden");
+
+        _ = FindMetric(
+            "tenants.projection.query.duration",
+            tags => HasTag(tags, "query_type", "get-tenant") && HasTag(tags, "outcome", "forbidden"));
     }
 
     [Fact]
@@ -114,10 +147,11 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
         Activity activity = FindActivity("get-tenant");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
         activity.StatusDescription.ShouldBe("State store unavailable");
+        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("failure");
 
         _ = FindMetric(
             "tenants.projection.query.duration",
-            tags => HasTag(tags, "query_type", "get-tenant"));
+            tags => HasTag(tags, "query_type", "get-tenant") && HasTag(tags, "outcome", "failure"));
     }
 
     private (string Name, double Value, KeyValuePair<string, object?>[] Tags) FindMetric(

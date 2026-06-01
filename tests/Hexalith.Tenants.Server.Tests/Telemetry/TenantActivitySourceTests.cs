@@ -51,6 +51,15 @@ public class TenantActivitySourceTests : IDisposable {
     }
 
     [Fact]
+    public void StartActivity_ProjectionProject_ShouldCreateSpanWithCorrectName() {
+        using Activity? activity = TenantActivitySource.Instance.StartActivity(
+            TenantActivitySource.ProjectionProject, ActivityKind.Internal);
+
+        _ = activity.ShouldNotBeNull();
+        activity.OperationName.ShouldBe("Tenants.Projection.Project");
+    }
+
+    [Fact]
     public void Activity_ShouldAcceptCommandTags() {
         using Activity? activity = TenantActivitySource.Instance.StartActivity(
             TenantActivitySource.CommandProcess, ActivityKind.Internal);
@@ -74,6 +83,31 @@ public class TenantActivitySourceTests : IDisposable {
         _ = activity.SetTag(TenantActivitySource.TagQueryType, "get-tenant");
 
         activity.GetTagItem(TenantActivitySource.TagQueryType).ShouldBe("get-tenant");
+    }
+
+    [Fact]
+    public void Activity_ShouldAcceptProjectionDispatchTags() {
+        using Activity? activity = TenantActivitySource.Instance.StartActivity(
+            TenantActivitySource.ProjectionProject, ActivityKind.Internal);
+
+        _ = activity.ShouldNotBeNull();
+        _ = activity.SetTag(TenantActivitySource.TagStage, "projection-dispatch");
+        _ = activity.SetTag(TenantActivitySource.TagTenantId, "system");
+        _ = activity.SetTag(TenantActivitySource.TagDomain, "tenants");
+        _ = activity.SetTag(TenantActivitySource.TagAggregateId, "tenant-1");
+        _ = activity.SetTag(TenantActivitySource.TagProjectionType, "tenant");
+        _ = activity.SetTag(TenantActivitySource.TagEventCount, 1);
+        _ = activity.SetTag(TenantActivitySource.TagCausationIdStatus, "unavailable-from-projection-dto");
+        _ = activity.SetTag(TenantActivitySource.TagOutcome, "completed");
+
+        activity.GetTagItem(TenantActivitySource.TagStage).ShouldBe("projection-dispatch");
+        activity.GetTagItem(TenantActivitySource.TagTenantId).ShouldBe("system");
+        activity.GetTagItem(TenantActivitySource.TagDomain).ShouldBe("tenants");
+        activity.GetTagItem(TenantActivitySource.TagAggregateId).ShouldBe("tenant-1");
+        activity.GetTagItem(TenantActivitySource.TagProjectionType).ShouldBe("tenant");
+        activity.GetTagItem(TenantActivitySource.TagEventCount).ShouldBe(1);
+        activity.GetTagItem(TenantActivitySource.TagCausationIdStatus).ShouldBe("unavailable-from-projection-dto");
+        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("completed");
     }
 
     [Fact]
