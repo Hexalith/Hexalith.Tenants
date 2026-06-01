@@ -102,7 +102,7 @@ development_status:
   6-1-provide-in-memory-tenant-test-fakes: done
   6-2-reuse-production-aggregate-logic-in-testing-fakes: done
   6-3-add-production-fake-conformance-tests: done
-  6-4-support-consumer-tenant-isolation-tests: backlog
+  6-4-support-consumer-tenant-isolation-tests: done
   epic-6-retrospective: optional
 
   # Epic 7: Operators Can Deploy, Secure, and Observe Production Tenants

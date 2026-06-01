@@ -303,6 +303,42 @@ For event envelope fields, delivery semantics, and ordering limits, see [Event C
 
 For a complete working example of a consuming service, see the sample at [`samples/Hexalith.Tenants.Sample/`](../samples/Hexalith.Tenants.Sample/).
 
+### Test Tenant Isolation Without Infrastructure
+
+Install the Testing package in your consuming service test project when you need fast tenant setup and event replay without DAPR, Docker, Aspire, HTTP, or a live EventStore:
+
+```bash
+dotnet add package Hexalith.Tenants.Testing
+```
+
+Use `TenantIsolationTestHelpers` to create independent tenant contexts, replay only the events for the tenant under test, simulate duplicate delivery, and assert local grant/revoke behavior in your own projection:
+
+```csharp
+InMemoryTenantService tenants = TenantIsolationTestHelpers.CreateServiceWithTenants(
+    new Dictionary<string, IReadOnlyDictionary<string, TenantRole>> {
+        ["tenant-a"] = new Dictionary<string, TenantRole> {
+            ["shared-user"] = TenantRole.TenantOwner,
+            ["reader"] = TenantRole.TenantReader,
+        },
+        ["tenant-b"] = new Dictionary<string, TenantRole> {
+            ["shared-user"] = TenantRole.TenantReader,
+        },
+    });
+
+IReadOnlyList<IEventPayload> tenantAEvents = TenantIsolationTestHelpers.GetTenantEvents(tenants, "tenant-a");
+IReadOnlyList<IEventPayload> duplicateTenantAEvents = TenantIsolationTestHelpers.DuplicateDelivery(tenantAEvents);
+
+consumerProjection.ApplyEvents(duplicateTenantAEvents);
+consumerProjection.IsAuthorized("tenant-a", "shared-user", TenantRole.TenantOwner).ShouldBeTrue();
+consumerProjection.IsAuthorized("tenant-b", "shared-user", TenantRole.TenantOwner).ShouldBeFalse();
+
+_ = TenantIsolationTestHelpers.RemoveUser(tenants, "tenant-a", "reader");
+consumerProjection.ApplyEvents(TenantIsolationTestHelpers.GetTenantEvents(tenants, "tenant-a"));
+consumerProjection.IsAuthorized("tenant-a", "reader", TenantRole.TenantReader).ShouldBeFalse();
+```
+
+`Hexalith.Tenants.Testing` provides aggregate-level fake parity: command validation, successful event production, and state transitions execute through the same aggregate logic used by the service. Consuming services are still responsible for testing their own projection-level and query-level isolation, including deduplication behavior and tenant-scoped reads. Keep idempotency assertions aligned with the guidance in [Idempotent Event Processing](idempotent-event-processing.md) rather than duplicating those patterns in each test.
+
 ## Troubleshooting
 
 ### AppHost Startup Failures

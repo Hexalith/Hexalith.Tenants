@@ -4,30 +4,27 @@
 
 ### API Tests
 
-- [x] `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs` - Story 6.3 production/fake conformance coverage for tenant lifecycle, tenant profile, membership, role, configuration, and global-administrator command sequences.
-- [x] `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs` - TEN-4 projection drift guard for every non-rejection success event payload in `Contracts.Events`.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantIsolationTestHelpersTests.cs` - Consumer-facing tenant isolation helper coverage for in-memory multi-tenant setup, role checks, event selection, duplicate delivery, and user revocation.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs` - Existing production/fake conformance coverage continues to verify command-driven fake parity for tenant lifecycle, membership, roles, configuration, and global-administrator flows.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Projections/InMemoryTenantProjectionConformanceTests.cs` - Existing projection drift guard continues to cover every non-rejection success event payload in `Contracts.Events`.
 
 ### E2E Tests
 
-- [x] `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs` - End-to-end in-memory command workflows executed through both direct production aggregate logic and `InMemoryTenantService`.
-- [ ] UI E2E not applicable: Story 6.3 covers a .NET testing package surface and has no browser UI workflow.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantIsolationTestHelpersTests.cs` - End-to-end consumer-style in-memory workflows replay tenant-scoped event sequences through a minimal local projection without DAPR, Docker, Aspire, HTTP, polling, or a live EventStore.
+- [ ] UI E2E not applicable: Story 6.4 covers a .NET Testing package helper surface and has no browser UI workflow.
 
 ## Coverage
 
-- Story 6.3 acceptance criteria: 6/6 covered by Tier 1 conformance and projection drift tests.
-- Command contracts covered: 12/12 discovered commands under `src/Hexalith.Tenants.Contracts/Commands`.
-- Command families covered: tenant lifecycle, tenant profile, membership, role, configuration, and global administration.
-- Production/fake equivalence covered: result kind, ordered event/rejection type sequence, stable non-time event fields, tenant aggregate state, and global-administrator state.
-- Authorization/business-rule variants covered: global admin, non-global admin, tenant contributor, tenant owner, unauthorized actor, missing tenant/member/key, disabled tenant, duplicate operation, invalid role, idempotent no-op, max key count, and first-user bootstrap behavior.
-- Projection success events covered: 11/11 discovered non-rejection `IEventPayload` types.
-- Infrastructure scope: Tier 1 only; no DAPR, Aspire, Docker, Redis, broker, HTTP host, or live EventStore process required.
+- Story 6.4 acceptance criteria: 5/5 covered by Tier 1 helper tests and quickstart documentation.
+- Helper scenarios covered: fresh multi-tenant service creation, explicitly supplied service seeding, independent tenant memberships, same-user different-role access checks, disabled/enabled lifecycle setup, tenant-specific configuration, payload `TenantId` event selection, duplicate delivery simulation, role-map extraction, and grant/revoke replay.
+- Critical error/isolation cases covered: tenant A events do not populate tenant B projection state, tenant A owner role does not authorize tenant B contributor access, user removal revokes access after replay, and duplicate event delivery remains idempotent in the consumer projection fixture.
+- Existing parity coverage retained: 12/12 discovered commands under `src/Hexalith.Tenants.Contracts/Commands` and 11/11 discovered non-rejection `IEventPayload` types.
+- Infrastructure scope: Tier 1 only; no DAPR, Aspire, Docker, Redis, broker, HTTP host, Testcontainers, polling loop, or live EventStore process required.
 
 ## Validation
 
 - `dotnet test tests/Hexalith.Tenants.Testing.Tests/ --configuration Release --no-restore /m:1 /nr:false -p:NuGetAudit=false` compiled successfully, then VSTest aborted on sandbox socket setup with `SocketException (13): Permission denied`.
-- `tests/Hexalith.Tenants.Testing.Tests/bin/Release/net10.0/Hexalith.Tenants.Testing.Tests -noLogo -noColor -class Hexalith.Tenants.Testing.Tests.Conformance.TenantConformanceTests -class Hexalith.Tenants.Testing.Tests.Projections.InMemoryTenantProjectionConformanceTests` passed: 122 total, 0 errors, 0 failed, 0 skipped.
-- `tests/Hexalith.Tenants.Testing.Tests/bin/Release/net10.0/Hexalith.Tenants.Testing.Tests -noLogo -noColor` passed: 175 total, 0 errors, 0 failed, 0 skipped.
-- `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore /m:1 /nr:false -p:NuGetAudit=false` passed with 0 warnings and 0 errors.
+- `tests/Hexalith.Tenants.Testing.Tests/bin/Release/net10.0/Hexalith.Tenants.Testing.Tests -noLogo -noColor` passed: 181 total, 0 errors, 0 failed, 0 skipped.
 
 ## Checklist
 
@@ -36,7 +33,7 @@
 - [x] Tests use standard xUnit v3 and Shouldly APIs.
 - [x] Tests cover happy paths.
 - [x] Tests cover critical error cases.
-- [x] Tests use service/helper APIs; UI locators do not apply.
+- [x] Tests use semantic/service-level APIs; UI locators do not apply.
 - [x] Tests have clear descriptions.
 - [x] No hardcoded waits or sleeps.
 - [x] Tests are independent and order-free.
