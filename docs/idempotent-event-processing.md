@@ -8,6 +8,8 @@ Without idempotency protection, duplicate events cause incorrect state: a user a
 
 Subscriber endpoints must return success only after the event has been handled safely. `MapTenantEventSubscription()` returns `200 OK` for processed, duplicate, unknown, or intentionally unhandled events, but returns a server error for invalid payloads so DAPR can redeliver according to the pub/sub component policy. If a handler throws, `TenantEventProcessor` removes the in-progress `MessageId` claim and lets the exception escape; the failed delivery is not marked complete, so a corrected redelivery with the same `MessageId` can run.
 
+For the larger timing window around command status, publication, subscriber delivery, and local projection lag, see [Cross-Aggregate Timing](cross-aggregate-timing.md).
+
 ## How Hexalith.Tenants.Client Handles It
 
 `TenantEventProcessor` tracks processed `MessageId` values in a `ConcurrentDictionary`. The `MessageId` is the event identifier set by EventStore at persistence time. When a duplicate event arrives, the processor returns `TenantEventProcessingResult.Duplicate` and does not dispatch handlers again.

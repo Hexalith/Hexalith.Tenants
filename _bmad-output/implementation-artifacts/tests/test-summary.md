@@ -1,5 +1,57 @@
 # Test Automation Summary
 
+## Story 8.5 QA Generate E2E Tests - Cross-Aggregate Timing
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + YamlDotNet source checks
+
+### Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Command lifecycle drift | The guide asserted command statuses with static strings and cited `CommandStatusController.cs`, but tests did not bind those claims to the actual EventStore `CommandStatus` enum. | **Gap found and closed.** |
+| DAPR pub/sub drift | The guide asserted topic/dead-letter behavior and cited component YAML, while separate configuration tests covered YAML. Story 8.5's own documentation tests did not bind the timing guide to those source contracts. | **Gap found and closed.** |
+| Subscriber/local projection behavior | Existing Client and Sample tests cover processed, duplicate, unknown, invalid payload, retry, fail-closed access, disable/enable, role change, removal, and configuration projection workflows. | Covered. |
+| Browser UI E2E | Story 8.5 has no browser UI surface. | N/A. |
+
+### Generated Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs` - added `Timing_guide_matches_current_EventStore_command_status_contract`, binding guide claims to the current `CommandStatus` enum, terminal-status extension behavior, and controller documentation.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs` - added `Timing_guide_matches_current_DAPR_pubsub_component_contracts`, binding guide claims to local and production DAPR pub/sub component YAML for `pubsub`, `deadletter.tenants.events`, scopes, `sample=tenants.events`, and `resiliency.yaml` inbound retry policy.
+
+### Coverage
+
+- Story 8.5 acceptance criteria: 5/5 remain covered.
+- Added drift coverage for EventStore command statuses: `Received`, `Processing`, `EventsStored`, `EventsPublished`, `Completed`, `Rejected`, `PublishFailed`, and `TimedOut`.
+- Added drift coverage for DAPR component contracts: local/prod pubsub component name, dead-letter enablement, dead-letter topic, app scopes, production subscription scope, and pub/sub inbound retry resiliency.
+- API tests: documentation/source-contract tests only; no new runtime HTTP API surface was introduced by this documentation story.
+- E2E/UI tests: N/A; no browser UI surface.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server targeted via VSTest | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~CrossAggregateTimingDocumentationTests -m:1 /nr:false /p:BuildInParallel=false` | Built, then VSTest aborted before execution with `SocketException (13): Permission denied`. |
+| Story 8.5 documentation tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.CrossAggregateTimingDocumentationTests -parallel none -noLogo -noColor` | Passed: 7 total, 0 failed, 0 skipped. |
+| Documentation namespace regression | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -namespace Hexalith.Tenants.Server.Tests.Documentation -parallel none -noLogo -noColor` | Passed: 33 total, 0 failed, 0 skipped. |
+| Client focused related tests | `dotnet tests/Hexalith.Tenants.Client.Tests/bin/Debug/net10.0/Hexalith.Tenants.Client.Tests.dll -class Hexalith.Tenants.Client.Tests.Subscription.TenantEventProcessorTests -class Hexalith.Tenants.Client.Tests.Subscription.TenantEventSubscriptionEndpointsTests -parallel none -noLogo -noColor` | Passed: 22 total, 0 failed, 0 skipped. |
+| Sample focused related tests | `dotnet samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests.dll -class Hexalith.Tenants.Sample.Tests.Endpoints.AccessCheckEndpointsTests -class Hexalith.Tenants.Sample.Tests.Endpoints.TenantConfigurationEndpointsTests -class Hexalith.Tenants.Sample.Tests.Registration.SampleRegistrationTests -parallel none -noLogo -noColor` | Passed: 23 total, 0 failed, 0 skipped. |
+
+### Checklist
+
+- [x] API/source-contract tests generated where applicable.
+- [x] E2E/UI tests generated if UI exists: N/A, no UI surface.
+- [x] Tests use standard xUnit v3, Shouldly, and existing YamlDotNet test dependency.
+- [x] Tests cover the happy path timing claims.
+- [x] Tests cover critical drift/error cases: command status changes and DAPR pub/sub component contract changes.
+- [x] Tests use proper locators: N/A for non-UI story.
+- [x] Tests have clear descriptions.
+- [x] No hardcoded waits or sleeps.
+- [x] Tests are independent and order-free.
+- [x] Test summary updated.
+- [x] Tests saved to the existing documentation test directory.
+- [x] Summary includes coverage metrics.
+
 ## Generated Tests
 
 ### API Tests
@@ -46,6 +98,53 @@
 - [x] Test summary created.
 - [x] Tests saved to appropriate directories.
 - [x] Summary includes coverage metrics.
+
+---
+
+# Test Automation Summary - Story 8.5 Cross-Aggregate Timing
+
+**Story:** 8.5 - Document Cross-Aggregate Timing and Eventual Consistency
+**Workflow:** dev-story - **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source-backed documentation checks
+
+## Scope
+
+Source-backed timing documentation for EventStore command status, event persistence, DAPR pub/sub delivery, subscriber processing, Tenants query projections, consuming-service local projections, stale reads, and support-safe diagnostics. No production runtime behavior was changed.
+
+## Generated Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs` - validates command lifecycle/status terms, source file citations, Mermaid flow coverage, source-of-truth versus projection wording, DAPR pub/sub/dead-letter/resiliency contracts, at-least-once/idempotency/order guidance, unsafe wait/security exclusions, and cross-document navigation links.
+
+## Coverage
+
+- Story 8.5 acceptance criteria: 5/5 covered by the rewritten timing guide, navigation updates, source-backed documentation tests, and focused Client/Sample projection tests.
+- Happy path covered: command submission, aggregate handling, event storage, publication, subscriber processing, local projection save, and local access/configuration reads.
+- Critical drift/error cases covered: `PublishFailed`, republish/drain recovery, subscriber redelivery, DAPR dead-letter topic configuration, stale local projections, fail-closed access decisions, support-safe diagnostics, no `Thread.Sleep`/fixed-delay correctness, no synchronous subscriber enforcement claim, and no cross-service ordering assumption.
+- UI workflows: N/A; Story 8.5 has no browser UI surface.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Red test proof | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.CrossAggregateTimingDocumentationTests -parallel none -noLogo -noColor` before doc rewrite | Failed: 5 total, 5 failed, confirming the prior guide and README navigation were incomplete. |
+| Server targeted via VSTest | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~CrossAggregateTimingDocumentationTests -m:1 /nr:false /p:BuildInParallel=false` | Built, then VSTest aborted before execution with `SocketException (13): Permission denied`. |
+| Story 8.5 documentation tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.CrossAggregateTimingDocumentationTests -parallel none -noLogo -noColor` | Passed: 7 total, 0 failed, 0 skipped. |
+| Documentation namespace regression | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -namespace Hexalith.Tenants.Server.Tests.Documentation -parallel none -noLogo -noColor` | Passed: 33 total, 0 failed, 0 skipped. |
+| Client focused related tests | `dotnet tests/Hexalith.Tenants.Client.Tests/bin/Debug/net10.0/Hexalith.Tenants.Client.Tests.dll -class Hexalith.Tenants.Client.Tests.Subscription.TenantEventProcessorTests -class Hexalith.Tenants.Client.Tests.Subscription.TenantEventSubscriptionEndpointsTests -parallel none -noLogo -noColor` | Passed: 22 total, 0 failed, 0 skipped. |
+| Sample focused related tests | `dotnet samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests.dll -class Hexalith.Tenants.Sample.Tests.Endpoints.AccessCheckEndpointsTests -class Hexalith.Tenants.Sample.Tests.Endpoints.TenantConfigurationEndpointsTests -class Hexalith.Tenants.Sample.Tests.Registration.SampleRegistrationTests -parallel none -noLogo -noColor` | Passed: 23 total, 0 failed, 0 skipped. |
+| Debug build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Full direct xUnit suite | Contracts, Client, Testing, Server, Sample, and Integration test assemblies under `bin/Debug/net10.0` with `-parallel none` | Passed: 1338 total, 0 failed, 27 skipped. Skips were DAPR/performance prerequisite-gated. |
+| Live prerequisite check | `dapr --version`; `docker ps --format '{{.Names}}'`; `dotnet aspire --version` | DAPR available: CLI 1.17.1, runtime 1.17.8. Docker blocked: permission denied connecting to `unix:///var/run/docker.sock`. Aspire CLI unavailable: `dotnet-aspire does not exist`. Live AppHost timing proof was not claimed. |
+
+## Checklist
+
+- [x] Source-backed documentation tests generated.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover command lifecycle, subscriber timing, projection lag, recovery, and support-safe diagnostics.
+- [x] Focused Client/Sample tests anchor the timing claims.
+- [x] Direct xUnit fallback used where VSTest cannot open sockets.
+- [x] Full direct xUnit regression suite passes with only prerequisite-gated skips.
+- [x] Live infrastructure limitation recorded without claiming live execution.
 
 ---
 

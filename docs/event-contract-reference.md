@@ -38,6 +38,8 @@ All events are published via DAPR pub/sub as [CloudEvents 1.0](https://cloudeven
 
 The durable EventStore stream is the source of truth. Pub/sub publication happens after event storage and is asynchronous. If pub/sub is temporarily unavailable after a tenant event is stored, the command can still be accepted, the event remains committed, and EventStore drain recovery republishes the stored sequence range when the channel recovers. Operators should monitor `PublishFailed` command status transitions and related structured logs/metrics as delivery diagnostics, not as evidence that the source event was rolled back.
 
+For command-status timing, subscriber lag, stale reads, and recovery guidance, see [Cross-Aggregate Timing](cross-aggregate-timing.md).
+
 Commands that encounter infrastructure failures during processing (e.g., state rehydration errors, event persistence failures) produce events routed to the dead letter topic **`deadletter.tenants.events`**. Operators should monitor this topic for processing failures. Note: DAPR pub/sub may also have its own dead letter behavior for subscriber delivery failures, configured at the DAPR component level.
 
 DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see duplicate deliveries after retry or recovery. Do not depend on exactly-once publication or cross-service subscriber delivery order; use `MessageId` for duplicate detection and use `SequenceNumber` only as aggregate-local ordering metadata within one aggregate stream.

@@ -24,6 +24,8 @@ Get from clone to your first tenant command within 30 minutes when local prerequ
 
 **[Sample Consuming Service Walkthrough](docs/sample-consuming-service-walkthrough.md)** — source-backed guide for copying the sample service's event subscription, local projection, access-check, and configuration-read patterns.
 
+**[Cross-Aggregate Timing](docs/cross-aggregate-timing.md)** — timing-window and eventual-consistency guidance for command status, event publication, subscriber delivery, local projections, stale reads, diagnostics, and fail-closed consumers.
+
 ### See It In Action
 
 Watch reactive cross-service access revocation in action: add a user to a tenant, then remove them — and see the consuming service automatically revoke access via DAPR pub/sub events, with zero custom integration code.
@@ -70,6 +72,7 @@ docs/
   production-auth-readiness.md       # Deployment auth checklist and smoke-test evidence
   demo.md                            # "Aha Moment" demo walkthrough
   event-contract-reference.md        # Event schemas and audit patterns
+  cross-aggregate-timing.md          # Timing windows and eventual consistency
   idempotent-event-processing.md     # Event handling patterns
   sample-consuming-service-walkthrough.md # Sample service adoption walkthrough
 
