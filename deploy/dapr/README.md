@@ -1,0 +1,60 @@
+# Tenants DAPR Deployment Templates
+
+This folder contains production-oriented DAPR templates for deploying Hexalith.Tenants beside Hexalith.EventStore. The application-facing contract is stable across local and production modes:
+
+- AppIds: `eventstore`, `tenants`, `eventstore-admin`, `eventstore-admin-ui`, `sample`
+- State store component: `statestore`
+- Pub/sub component: `pubsub`
+- Event topic: `tenants.events`
+- Dead-letter topic: `deadletter.tenants.events`
+
+The templates intentionally keep infrastructure choice in DAPR YAML. Do not add Redis, broker, database, or cloud-provider SDK references to Tenants domain packages.
+
+## Local Development Mode
+
+Normal local development should run full `dapr init` before the Aspire AppHost starts. Full init provides Redis, actor placement, and scheduler services used by EventStore aggregate actors and Tenants projection flows.
+
+Expected local ports used by existing tests:
+
+- Redis: `localhost:6379`
+- Placement: `50005` on Linux, `6050` on Windows
+- Scheduler: `50006` on Linux, `6060` on Windows
+
+Local AppHost components live in `src/Hexalith.Tenants.AppHost/DaprComponents`. The local access-control files are labelled local-only and are allow-by-default for developer ergonomics.
+
+## Slim Self-Hosted Mode
+
+`dapr init --slim` does not install Redis, placement, scheduler, or Zipkin. Operators using slim mode must provide these prerequisites before actor flows can work:
+
+- A state store component named `statestore` with `actorStateStore: "true"`
+- A pub/sub component named `pubsub`
+- A placement service reachable by all actor-hosting sidecars
+- A scheduler service reachable by DAPR sidecars
+
+Actor startup failures in slim mode usually mean placement, scheduler, or the actor state store is missing. Check those prerequisites before changing application code.
+
+## Production Mode
+
+Apply the templates in this folder after replacing the placeholders with environment or secret-store values suitable for your platform:
+
+- `statestore.yaml` is scoped to `eventstore`, `tenants`, and `eventstore-admin`.
+- `pubsub.yaml` is scoped to `eventstore` and `sample`; `eventstore` publishes tenant events and `sample` subscribes in demo deployments.
+- `accesscontrol.tenants.yaml` is bound only to the Tenants sidecar. It uses `defaultAction: deny` and allows only `eventstore` to call `POST /process` and `POST /project`.
+- `accesscontrol.eventstore.yaml` is bound only to the EventStore sidecar. It keeps Admin.Server delegation explicit and does not grant Tenants, Sample, or Admin UI broad EventStore invocation rights.
+- `accesscontrol.eventstore-admin.yaml` is bound only to Admin.Server and exposes no peer DAPR invocation policies.
+- `resiliency.yaml` preserves the local retry and timeout intent for sidecar, state-store, and pub/sub operations.
+
+## Failure Triage
+
+| Symptom | Likely issue | What to check |
+| --- | --- | --- |
+| Actor calls fail at startup | missing placement | Verify placement is reachable on the expected port and sidecars use the correct placement address. |
+| Actor reminders or scheduled actor work fail | missing scheduler | Verify scheduler is reachable on the expected port and sidecars use the correct scheduler address. |
+| State operations fail with component not found | missing state store or wrong component name | Confirm a component named `statestore` is loaded and scoped to the calling AppId. |
+| Events do not publish or subscribe | missing pub/sub or wrong component name | Confirm a component named `pubsub` is loaded and scoped to `eventstore` and subscriber AppIds. |
+| EventStore cannot call Tenants domain processing | wrong AppId or denied service invocation | Confirm EventStore sidecar AppId is `eventstore`, Tenants sidecar AppId is `tenants`, and `accesscontrol.tenants.yaml` allows `POST /process`. |
+| EventStore cannot call Tenants projection dispatch | wrong AppId or denied service invocation | Confirm `accesscontrol.tenants.yaml` allows `POST /project` only from `eventstore`. |
+| Component exists but calls still fail | wrong component scope | Confirm `scopes` contains the app ID that uses the component. |
+| Access-control failures appear in sidecar logs | denied service invocation | Check the receiver-specific `Configuration` file bound to the called sidecar, not the caller sidecar. |
+
+Do not treat static YAML validation as live deployment proof. Live smoke tests still need a prepared environment with DAPR, Redis or the selected production backing services, placement, scheduler, mTLS, and the selected orchestration platform.

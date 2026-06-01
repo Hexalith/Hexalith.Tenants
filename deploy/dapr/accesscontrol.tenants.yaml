@@ -1,0 +1,31 @@
+# DAPR Access Control Configuration for the Tenants sidecar -- Production
+# ======================================================================
+# Bind this Configuration only to the tenants receiver sidecar.
+#
+# Tenants exposes two internal service-invocation endpoints for EventStore:
+#   POST /process -- domain command processing
+#   POST /project -- projection dispatch
+#
+# Public command/query endpoints continue to use ASP.NET authentication and
+# authorization. DAPR sidecar access control is the caller gate for these
+# internal routes.
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: accesscontrol-tenants
+spec:
+  accessControl:
+    defaultAction: deny
+    trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+    policies:
+      - appId: eventstore
+        defaultAction: deny
+        trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+        namespace: "{env:DAPR_NAMESPACE|hexalith}"
+        operations:
+          - name: /process
+            httpVerb: ['POST']
+            action: allow
+          - name: /project
+            httpVerb: ['POST']
+            action: allow

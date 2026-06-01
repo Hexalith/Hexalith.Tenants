@@ -1,0 +1,24 @@
+# DAPR Access Control Configuration for the EventStore sidecar -- Production
+# =========================================================================
+# Bind this Configuration only to the eventstore receiver sidecar.
+#
+# EventStore remains the command gateway and aggregate actor host. Admin.Server may
+# delegate reads and writes to EventStore; Tenants, Sample, and Admin.UI are not
+# granted broad service-invocation access to EventStore.
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: accesscontrol-eventstore
+spec:
+  accessControl:
+    defaultAction: deny
+    trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+    policies:
+      - appId: eventstore-admin
+        defaultAction: deny
+        trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+        namespace: "{env:DAPR_NAMESPACE|hexalith}"
+        operations:
+          - name: /**
+            httpVerb: ['GET', 'POST', 'PUT']
+            action: allow

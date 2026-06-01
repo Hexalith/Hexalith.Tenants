@@ -1,0 +1,38 @@
+# DAPR Pub/Sub Component -- Production Template
+# =============================================
+# Redis-backed pub/sub template for tenant domain events. Provider choice belongs in
+# this component YAML; Tenants domain packages must not depend on Redis, brokers, or
+# cloud-provider SDKs.
+#
+# Component contract:
+#   name: pubsub
+#   event topic: tenants.events
+#   dead-letter topic: deadletter.tenants.events
+#   scopes: eventstore publishes, sample subscribes
+#
+# Replace placeholders through your platform secret/environment mechanism before deployment.
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "{env:TENANTS_REDIS_HOST}"
+    - name: redisPassword
+      value: "{secretKeyRef:tenants-redis-password}"
+    - name: enableTLS
+      value: "{env:TENANTS_REDIS_ENABLE_TLS|true}"
+    - name: enableDeadLetter
+      value: "true"
+    - name: deadLetterTopic
+      value: "deadletter.tenants.events"
+    - name: publishingScopes
+      value: "sample="
+    - name: subscriptionScopes
+      value: "sample=tenants.events"
+scopes:
+  - eventstore
+  - sample

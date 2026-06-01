@@ -13,7 +13,7 @@ metadata:
   name: accesscontrol-eventstore-admin
 spec:
   accessControl:
-    defaultAction: allow  # Allow-by-default in self-hosted mode; change to deny with mTLS
+    defaultAction: allow  # Local-only allow-by-default; production uses deploy/dapr/accesscontrol.eventstore-admin.yaml
     trustDomain: "public"
     policies:
       - appId: eventstore-admin-ui

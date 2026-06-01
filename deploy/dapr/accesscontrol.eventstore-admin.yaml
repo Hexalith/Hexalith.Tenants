@@ -1,0 +1,16 @@
+# DAPR Access Control Configuration for the Admin.Server sidecar -- Production
+# =============================================================================
+# Bind this Configuration only to the eventstore-admin receiver sidecar.
+#
+# Admin.Server is HTTP-facing and delegates to EventStore. It should not expose an
+# inbound DAPR service-invocation surface to peer workloads in the standard
+# production topology.
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: accesscontrol-eventstore-admin
+spec:
+  accessControl:
+    defaultAction: deny
+    trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+    policies: []

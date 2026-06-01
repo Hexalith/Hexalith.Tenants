@@ -1,5 +1,5 @@
 # WARNING: Local development only.
-# Production MUST use deny-by-default with mTLS.
+# Production MUST use receiver-specific deny-by-default configs with mTLS.
 # See deploy/dapr/ for production templates.
 apiVersion: dapr.io/v1alpha1
 kind: Configuration

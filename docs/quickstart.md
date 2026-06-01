@@ -32,7 +32,7 @@ Expected: CLI version and runtime version both present.
 dapr init
 ```
 
-> **Note:** Run `dapr init` (full init, not `--slim`) — the Aspire topology requires the full DAPR runtime with placement service and Redis.
+> **Note:** Run `dapr init` (full init, not `--slim`) — the Aspire topology requires the full DAPR runtime with Redis, placement, and scheduler. The existing local tests expect Redis on `localhost:6379`, placement on `50005` on Linux or `6050` on Windows, and scheduler on `50006` on Linux or `6060` on Windows.
 
 If not installed, follow the [DAPR Getting Started guide](https://docs.dapr.io/getting-started/).
 
@@ -365,7 +365,29 @@ If you see DAPR-related errors, ensure you've run the full initialization:
 dapr init
 ```
 
-Use `dapr init` (not `--slim`) — the Aspire topology requires the placement service.
+Use `dapr init` (not `--slim`) — the Aspire topology requires Redis, placement, and scheduler. Slim self-hosted mode (`dapr init --slim`) is for operators who provide placement, scheduler, and the `statestore`/`pubsub` components themselves before actor flows start.
+
+Expected local ports used by existing tests:
+
+| Dependency | Linux | Windows |
+| ---------- | ----- | ------- |
+| Redis | `localhost:6379` | `localhost:6379` |
+| Placement | `50005` | `6050` |
+| Scheduler | `50006` | `6060` |
+
+### DAPR Configuration Triage
+
+| Symptom | Likely issue | Action |
+| ------- | ------------ | ------ |
+| Actor startup fails before command processing | missing placement | Confirm full `dapr init` ran or provide placement for slim mode |
+| Actor reminder/scheduler errors appear | missing scheduler | Confirm scheduler is reachable on the expected port |
+| State calls report a missing component | missing state store or wrong component name | Confirm the component is named `statestore` and scoped to the calling AppId |
+| Event publishing/subscription fails | missing pub/sub or wrong component name | Confirm the component is named `pubsub` and scoped to `eventstore` and subscriber AppIds |
+| Tenants `/process` or `/project` invocation fails | wrong AppId or denied service invocation | Confirm EventStore uses AppId `eventstore`, Tenants uses AppId `tenants`, and the receiver access-control template allows the route |
+| Component exists but a sidecar cannot use it | wrong component scope | Add only the required AppId to the component `scopes` list |
+| Sidecar logs show access-control denial | denied service invocation | Inspect the called sidecar's DAPR `Configuration`, not the caller's |
+
+Production DAPR templates and additional triage guidance live in [`deploy/dapr`](../deploy/dapr/README.md).
 
 **Build fails on Windows with path-too-long**
 
