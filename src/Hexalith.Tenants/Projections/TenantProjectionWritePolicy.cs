@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Dapr.Client;
 
 using Hexalith.EventStore.Contracts.Projections;
+using Hexalith.Tenants.Telemetry;
 
 using Microsoft.Extensions.Logging;
 
@@ -23,6 +24,7 @@ internal static partial class TenantProjectionWritePolicy {
         string key,
         string stateKeyCategory,
         string operationContext,
+        ProjectionWriteDiagnosticsContext diagnosticsContext,
         IReadOnlyCollection<ProjectionEventDto?> events,
         Func<TValue> defaultFactory,
         Action<TValue, ProjectionEventDto> applyEvent,
@@ -34,6 +36,7 @@ internal static partial class TenantProjectionWritePolicy {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(stateKeyCategory);
         ArgumentException.ThrowIfNullOrWhiteSpace(operationContext);
+        ArgumentNullException.ThrowIfNull(diagnosticsContext);
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(defaultFactory);
         ArgumentNullException.ThrowIfNull(applyEvent);
@@ -84,10 +87,21 @@ internal static partial class TenantProjectionWritePolicy {
             }
 
             if (attempt == MaxAttempts) {
+                TenantMetrics.RecordProjectionWriteConflict(
+                    stateKeyCategory,
+                    diagnosticsContext.ProjectionType,
+                    RetryExhaustedReason,
+                    success: false);
+
                 RetryExhausted(
                     logger,
                     storeName,
                     stateKeyCategory,
+                    diagnosticsContext.TenantId,
+                    diagnosticsContext.Domain,
+                    diagnosticsContext.AggregateId,
+                    diagnosticsContext.ProjectionType,
+                    ProjectionWriteDiagnosticsContext.CausationIdStatusUnavailable,
                     attempt,
                     MaxAttempts,
                     operationContext,
@@ -100,10 +114,21 @@ internal static partial class TenantProjectionWritePolicy {
                     $"{stateKeyCategory} projection write exceeded optimistic concurrency retry limit after {MaxAttempts} attempts.");
             }
 
+            TenantMetrics.RecordProjectionWriteConflict(
+                stateKeyCategory,
+                diagnosticsContext.ProjectionType,
+                ConflictReason,
+                success: true);
+
             OptimisticConcurrencyConflict(
                 logger,
                 storeName,
                 stateKeyCategory,
+                diagnosticsContext.TenantId,
+                diagnosticsContext.Domain,
+                diagnosticsContext.AggregateId,
+                diagnosticsContext.ProjectionType,
+                ProjectionWriteDiagnosticsContext.CausationIdStatusUnavailable,
                 attempt,
                 MaxAttempts,
                 operationContext,
@@ -123,6 +148,7 @@ internal static partial class TenantProjectionWritePolicy {
         string key,
         string stateKeyCategory,
         string operationContext,
+        ProjectionWriteDiagnosticsContext diagnosticsContext,
         IReadOnlyCollection<ProjectionEventDto?> events,
         TValue incomingState,
         Func<TValue> defaultFactory,
@@ -135,6 +161,7 @@ internal static partial class TenantProjectionWritePolicy {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(stateKeyCategory);
         ArgumentException.ThrowIfNullOrWhiteSpace(operationContext);
+        ArgumentNullException.ThrowIfNull(diagnosticsContext);
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(incomingState);
         ArgumentNullException.ThrowIfNull(defaultFactory);
@@ -169,10 +196,21 @@ internal static partial class TenantProjectionWritePolicy {
             }
 
             if (attempt == MaxAttempts) {
+                TenantMetrics.RecordProjectionWriteConflict(
+                    stateKeyCategory,
+                    diagnosticsContext.ProjectionType,
+                    RetryExhaustedReason,
+                    success: false);
+
                 RetryExhausted(
                     logger,
                     storeName,
                     stateKeyCategory,
+                    diagnosticsContext.TenantId,
+                    diagnosticsContext.Domain,
+                    diagnosticsContext.AggregateId,
+                    diagnosticsContext.ProjectionType,
+                    ProjectionWriteDiagnosticsContext.CausationIdStatusUnavailable,
                     attempt,
                     MaxAttempts,
                     operationContext,
@@ -185,10 +223,21 @@ internal static partial class TenantProjectionWritePolicy {
                     $"{stateKeyCategory} projection write exceeded optimistic concurrency retry limit after {MaxAttempts} attempts.");
             }
 
+            TenantMetrics.RecordProjectionWriteConflict(
+                stateKeyCategory,
+                diagnosticsContext.ProjectionType,
+                ConflictReason,
+                success: true);
+
             OptimisticConcurrencyConflict(
                 logger,
                 storeName,
                 stateKeyCategory,
+                diagnosticsContext.TenantId,
+                diagnosticsContext.Domain,
+                diagnosticsContext.AggregateId,
+                diagnosticsContext.ProjectionType,
+                ProjectionWriteDiagnosticsContext.CausationIdStatusUnavailable,
                 attempt,
                 MaxAttempts,
                 operationContext,
@@ -256,11 +305,16 @@ internal static partial class TenantProjectionWritePolicy {
     [LoggerMessage(
         EventId = 100101,
         Level = LogLevel.Warning,
-        Message = "Projection state optimistic concurrency conflict for state store {StateStoreName}, key category {StateKeyCategory}, attempt {AttemptCount} of {MaxAttempts}, operation {OperationContext}, reason {Reason}, correlation ID {CorrelationId}, message IDs {MessageIds}, event types {EventTypes}.")]
+        Message = "Projection state optimistic concurrency conflict for state store {StateStoreName}, key category {StateKeyCategory}, tenant {TenantId}, domain {Domain}, aggregate {AggregateId}, projection type {ProjectionType}, causation ID status {CausationIdStatus}, attempt {AttemptCount} of {MaxAttempts}, operation {OperationContext}, reason {Reason}, correlation ID {CorrelationId}, message IDs {MessageIds}, event types {EventTypes}.")]
     private static partial void OptimisticConcurrencyConflict(
         ILogger logger,
         string stateStoreName,
         string stateKeyCategory,
+        string tenantId,
+        string domain,
+        string aggregateId,
+        string projectionType,
+        string causationIdStatus,
         int attemptCount,
         int maxAttempts,
         string operationContext,
@@ -272,11 +326,16 @@ internal static partial class TenantProjectionWritePolicy {
     [LoggerMessage(
         EventId = 100102,
         Level = LogLevel.Error,
-        Message = "Projection state optimistic concurrency retry exhausted for state store {StateStoreName}, key category {StateKeyCategory}, attempts {AttemptCount} of {MaxAttempts}, operation {OperationContext}, reason {Reason}, correlation ID {CorrelationId}, message IDs {MessageIds}, event types {EventTypes}.")]
+        Message = "Projection state optimistic concurrency retry exhausted for state store {StateStoreName}, key category {StateKeyCategory}, tenant {TenantId}, domain {Domain}, aggregate {AggregateId}, projection type {ProjectionType}, causation ID status {CausationIdStatus}, attempts {AttemptCount} of {MaxAttempts}, operation {OperationContext}, reason {Reason}, correlation ID {CorrelationId}, message IDs {MessageIds}, event types {EventTypes}.")]
     private static partial void RetryExhausted(
         ILogger logger,
         string stateStoreName,
         string stateKeyCategory,
+        string tenantId,
+        string domain,
+        string aggregateId,
+        string projectionType,
+        string causationIdStatus,
         int attemptCount,
         int maxAttempts,
         string operationContext,

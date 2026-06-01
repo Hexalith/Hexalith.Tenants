@@ -111,6 +111,21 @@ public class ProjectionWriteConformanceTests
         saved.Members["user-1"].ShouldBe(TenantRole.TenantOwner);
         saved.Configuration["external"].ShouldBe("kept");
         saved.Configuration["feature"].ShouldBe("enabled");
+
+        IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
+        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(1);
+        fixture.GetLogEntries(RetryExhaustedEventIdInt).ShouldBeEmpty();
+        AssertProjectionWriteDiagnostic(
+            conflicts[0],
+            LogLevel.Warning,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant read-model",
+            nameof(TenantReadModel),
+            attemptCount: 1,
+            reason: "guarded-save-conflict",
+            "corr-1",
+            "evt-created",
+            nameof(TenantCreated));
     }
 
     [Fact]
@@ -188,6 +203,19 @@ public class ProjectionWriteConformanceTests
         // Conflict warning emitted; retry-exhausted NOT emitted.
         fixture.GetLogEntries(ConflictEventIdInt).ShouldContain(e => e.Level == LogLevel.Warning);
         fixture.GetLogEntries(RetryExhaustedEventIdInt).ShouldBeEmpty();
+        AssertProjectionWriteDiagnostic(
+            fixture.GetLogEntries(ConflictEventIdInt).Single(),
+            LogLevel.Warning,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant index",
+            nameof(TenantIndexReadModel),
+            attemptCount: 1,
+            reason: "guarded-save-conflict",
+            "corr-1",
+            "evt-c-1",
+            nameof(TenantCreated),
+            expectedTenantId: IncomingTenantId,
+            expectedAggregateId: IncomingTenantId);
     }
 
     [Fact]
@@ -284,6 +312,7 @@ public class ProjectionWriteConformanceTests
             LogLevel.Warning,
             ProjectionWriteConformanceFixture.StateStoreName,
             "tenant index",
+            nameof(TenantIndexReadModel),
             attemptCount: 1,
             reason: "guarded-save-conflict",
             SafeCorrelationId,
@@ -296,6 +325,7 @@ public class ProjectionWriteConformanceTests
             LogLevel.Error,
             ProjectionWriteConformanceFixture.StateStoreName,
             "tenant index",
+            nameof(TenantIndexReadModel),
             TenantProjectionWritePolicy.MaxAttempts,
             "retry-exhausted",
             SafeCorrelationId,
@@ -427,6 +457,11 @@ public class ProjectionWriteConformanceTests
         conflictEntry.StructuredState.ShouldNotBeNull();
         conflictEntry.StructuredState!["StateStoreName"].ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
         conflictEntry.StructuredState["StateKeyCategory"].ShouldBe("tenant read-model");
+        conflictEntry.StructuredState["TenantId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
+        conflictEntry.StructuredState["Domain"].ShouldBe("tenants");
+        conflictEntry.StructuredState["AggregateId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
+        conflictEntry.StructuredState["ProjectionType"].ShouldBe(nameof(TenantReadModel));
+        conflictEntry.StructuredState["CausationIdStatus"].ShouldBe("unavailable-from-projection-dto");
         conflictEntry.StructuredState["AttemptCount"].ShouldBe(1);
         conflictEntry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
         conflictEntry.StructuredState["OperationContext"].ShouldBe("TenantProjectionHandler.ProjectAsync");
@@ -439,6 +474,11 @@ public class ProjectionWriteConformanceTests
         exhaustedEntry.StructuredState.ShouldNotBeNull();
         exhaustedEntry.StructuredState!["StateStoreName"].ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
         exhaustedEntry.StructuredState["StateKeyCategory"].ShouldBe("tenant read-model");
+        exhaustedEntry.StructuredState["TenantId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
+        exhaustedEntry.StructuredState["Domain"].ShouldBe("tenants");
+        exhaustedEntry.StructuredState["AggregateId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
+        exhaustedEntry.StructuredState["ProjectionType"].ShouldBe(nameof(TenantReadModel));
+        exhaustedEntry.StructuredState["CausationIdStatus"].ShouldBe("unavailable-from-projection-dto");
         exhaustedEntry.StructuredState["AttemptCount"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
         exhaustedEntry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
         exhaustedEntry.StructuredState["OperationContext"].ShouldBe("TenantProjectionHandler.ProjectAsync");
@@ -648,6 +688,7 @@ public class ProjectionWriteConformanceTests
             LogLevel.Warning,
             ProjectionWriteConformanceFixture.StateStoreName,
             "tenant audit",
+            nameof(TenantAuditReadModel),
             attemptCount: 1,
             reason: "guarded-save-conflict",
             SafeCorrelationId,
@@ -661,6 +702,7 @@ public class ProjectionWriteConformanceTests
             LogLevel.Error,
             ProjectionWriteConformanceFixture.StateStoreName,
             "tenant audit",
+            nameof(TenantAuditReadModel),
             TenantProjectionWritePolicy.MaxAttempts,
             "retry-exhausted",
             SafeCorrelationId,
@@ -761,6 +803,22 @@ public class ProjectionWriteConformanceTests
         savedDuplicate.Timestamp.ShouldBe(timestamp.AddMinutes(2));
         savedDuplicate.NarrativePayload.Count.ShouldBe(1);
         savedDuplicate.NarrativePayload["source"].ShouldBe("persisted");
+
+        IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
+        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(1);
+        fixture.GetLogEntries(RetryExhaustedEventIdInt).ShouldBeEmpty();
+        AssertProjectionWriteDiagnostic(
+            conflicts[0],
+            LogLevel.Warning,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant audit",
+            nameof(TenantAuditReadModel),
+            attemptCount: 1,
+            reason: "guarded-save-conflict",
+            "corr-1",
+            "evt-added",
+            nameof(UserAddedToTenant),
+            "TenantProjectionHandler.ProjectAsync:tenant-1");
     }
 
     [Fact]
@@ -1046,17 +1104,25 @@ public class ProjectionWriteConformanceTests
         LogLevel expectedLevel,
         string stateStoreName,
         string stateKeyCategory,
+        string projectionType,
         int attemptCount,
         string reason,
         string correlationId,
         string expectedMessageId,
         string expectedEventType,
-        string operationContext = "TenantProjectionHandler.ProjectAsync")
+        string operationContext = "TenantProjectionHandler.ProjectAsync",
+        string expectedTenantId = ProjectionWriteConformanceFixture.TenantId,
+        string expectedAggregateId = ProjectionWriteConformanceFixture.TenantId)
     {
         entry.Level.ShouldBe(expectedLevel);
         entry.StructuredState.ShouldNotBeNull();
         entry.StructuredState!["StateStoreName"].ShouldBe(stateStoreName);
         entry.StructuredState["StateKeyCategory"].ShouldBe(stateKeyCategory);
+        entry.StructuredState["TenantId"].ShouldBe(expectedTenantId);
+        entry.StructuredState["Domain"].ShouldBe("tenants");
+        entry.StructuredState["AggregateId"].ShouldBe(expectedAggregateId);
+        entry.StructuredState["ProjectionType"].ShouldBe(projectionType);
+        entry.StructuredState["CausationIdStatus"].ShouldBe("unavailable-from-projection-dto");
         entry.StructuredState["AttemptCount"].ShouldBe(attemptCount);
         entry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
         entry.StructuredState["OperationContext"].ShouldBe(operationContext);

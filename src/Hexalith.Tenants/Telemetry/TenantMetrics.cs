@@ -20,6 +20,9 @@ internal static class TenantMetrics {
     private static readonly Histogram<double> _projectionQueryDuration =
         _meter.CreateHistogram<double>("tenants.projection.query.duration", "ms", "Projection query processing duration");
 
+    private static readonly Counter<long> _projectionWriteConflicts =
+        _meter.CreateCounter<long>("tenants.projection.write.conflicts", "{attempt}", "Projection write optimistic concurrency conflicts");
+
     private static readonly HashSet<string> _knownCommandTypes = new([
         "CreateTenant",
         "UpdateTenant",
@@ -44,6 +47,26 @@ internal static class TenantMetrics {
         "get-tenant-audit",
     ], StringComparer.Ordinal);
 
+    private static readonly HashSet<string> _knownProjectionTypes =
+    new([
+        "TenantReadModel",
+        "TenantAuditReadModel",
+        "TenantIndexReadModel",
+    ], StringComparer.Ordinal);
+
+    private static readonly HashSet<string> _knownProjectionWriteReasons =
+    new([
+        "guarded-save-conflict",
+        "retry-exhausted",
+    ], StringComparer.Ordinal);
+
+    private static readonly HashSet<string> _knownStateKeyCategories =
+    new([
+        "tenant read-model",
+        "tenant audit",
+        "tenant index",
+    ], StringComparer.Ordinal);
+
     /// <summary>
     /// Records the duration of a tenant command processing operation.
     /// </summary>
@@ -66,6 +89,25 @@ internal static class TenantMetrics {
             milliseconds,
             new KeyValuePair<string, object?>("query_type", SanitizeQueryType(queryType)));
 
+    /// <summary>
+    /// Records a projection write optimistic concurrency conflict attempt.
+    /// </summary>
+    /// <param name="stateKeyCategory">The bounded state key category.</param>
+    /// <param name="projectionType">The bounded projection type.</param>
+    /// <param name="reason">The bounded conflict reason.</param>
+    /// <param name="success">Whether the conflict remained recoverable for the caller.</param>
+    public static void RecordProjectionWriteConflict(
+        string stateKeyCategory,
+        string projectionType,
+        string reason,
+        bool success)
+        => _projectionWriteConflicts.Add(
+            1,
+            new KeyValuePair<string, object?>("state_key_category", SanitizeStateKeyCategory(stateKeyCategory)),
+            new KeyValuePair<string, object?>("projection_type", SanitizeProjectionType(projectionType)),
+            new KeyValuePair<string, object?>("reason", SanitizeProjectionWriteReason(reason)),
+            new KeyValuePair<string, object?>("success", success));
+
     private static string SanitizeCommandType(string commandType) {
         if (string.IsNullOrWhiteSpace(commandType)) {
             return "unknown";
@@ -85,4 +127,13 @@ internal static class TenantMetrics {
 
     private static string SanitizeQueryType(string queryType)
         => !string.IsNullOrEmpty(queryType) && _knownQueryTypes.Contains(queryType) ? queryType : "unknown";
+
+    private static string SanitizeProjectionType(string projectionType)
+        => !string.IsNullOrEmpty(projectionType) && _knownProjectionTypes.Contains(projectionType) ? projectionType : "unknown";
+
+    private static string SanitizeProjectionWriteReason(string reason)
+        => !string.IsNullOrEmpty(reason) && _knownProjectionWriteReasons.Contains(reason) ? reason : "unknown";
+
+    private static string SanitizeStateKeyCategory(string stateKeyCategory)
+        => !string.IsNullOrEmpty(stateKeyCategory) && _knownStateKeyCategories.Contains(stateKeyCategory) ? stateKeyCategory : "unknown";
 }

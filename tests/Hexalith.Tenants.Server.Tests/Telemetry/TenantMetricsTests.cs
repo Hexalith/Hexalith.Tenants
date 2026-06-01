@@ -20,6 +20,7 @@ public class TenantMetricsTests : IDisposable {
             }
         };
         _listener.SetMeasurementEventCallback<double>((instrument, value, tags, _) => _recordings.Add((instrument.Name, value, tags.ToArray())));
+        _listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) => _recordings.Add((instrument.Name, value, tags.ToArray())));
         _listener.Start();
     }
 
@@ -131,6 +132,48 @@ public class TenantMetricsTests : IDisposable {
 
         Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
         tags["success"].ShouldBe(false);
+    }
+
+    [Fact]
+    public void RecordProjectionWriteConflict_WithKnownDimensions_ShouldRecordLowCardinalityTagsOnly() {
+        TenantMetrics.RecordProjectionWriteConflict("tenant index", "TenantIndexReadModel", "guarded-save-conflict", success: true);
+        _listener.RecordObservableInstruments();
+
+        (string Name, double Value, KeyValuePair<string, object?>[] Tags) =
+            FindRecording(
+                "tenants.projection.write.conflicts",
+                tags =>
+                    HasTag(tags, "state_key_category", "tenant index")
+                    && HasTag(tags, "projection_type", "TenantIndexReadModel")
+                    && HasTag(tags, "reason", "guarded-save-conflict")
+                    && HasTag(tags, "success", true));
+
+        Name.ShouldBe("tenants.projection.write.conflicts");
+        Value.ShouldBe(1);
+
+        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
+        tags.Keys.ShouldNotContain("tenant_id");
+        tags.Keys.ShouldNotContain("aggregate_id");
+        tags.Keys.ShouldNotContain("correlation_id");
+        tags.Keys.ShouldNotContain("message_ids");
+        tags.Keys.ShouldNotContain("event_types");
+    }
+
+    [Fact]
+    public void RecordProjectionWriteConflict_WithUnknownDimensions_ShouldSanitizeToUnknown() {
+        TenantMetrics.RecordProjectionWriteConflict("tenant-123-unbounded", "CustomProjection-456", "custom-reason-789", success: false);
+        _listener.RecordObservableInstruments();
+
+        (string Name, double _, KeyValuePair<string, object?>[] Tags) =
+            FindRecording(
+                "tenants.projection.write.conflicts",
+                tags =>
+                    HasTag(tags, "state_key_category", "unknown")
+                    && HasTag(tags, "projection_type", "unknown")
+                    && HasTag(tags, "reason", "unknown")
+                    && HasTag(tags, "success", false));
+
+        Name.ShouldBe("tenants.projection.write.conflicts");
     }
 
     private (string Name, double Value, KeyValuePair<string, object?>[] Tags) FindRecording(
