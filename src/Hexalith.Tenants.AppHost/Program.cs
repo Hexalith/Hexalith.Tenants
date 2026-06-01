@@ -1,5 +1,6 @@
 using CommunityToolkit.Aspire.Hosting.Dapr;
 
+using Hexalith.Tenants.AppHost;
 using Hexalith.Tenants.Aspire;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
@@ -25,16 +26,16 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
 // Add EventStore (command gateway) with DAPR sidecar.
 // The EventStore receives commands from clients and dispatches to domain services
 // (including Tenants) via DAPR service invocation.
-IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore>("eventstore");
+IResourceBuilder<ProjectResource> eventStore = builder.AddProject<HexalithEventStore>("eventstore");
 _ = eventStore.WithEnvironment("EventStore__Publisher__TopicOverrides__global-administrators", "tenants.events");
 
 // Add EventStore Admin Server and Admin UI for event store inspection.
-IResourceBuilder<ProjectResource> adminServer = builder.AddProject<Projects.Hexalith_EventStore_Admin_Server_Host>("eventstore-admin");
-IResourceBuilder<ProjectResource> adminUI = builder.AddProject<Projects.Hexalith_EventStore_Admin_UI>("eventstore-admin-ui");
+IResourceBuilder<ProjectResource> adminServer = builder.AddProject<HexalithEventStoreAdminServerHost>("eventstore-admin");
+IResourceBuilder<ProjectResource> adminUI = builder.AddProject<HexalithEventStoreAdminUI>("eventstore-admin-ui");
 
 // Add Tenants project and wire DAPR topology via Aspire extension.
 // The Tenants extension provisions shared DAPR state store and pub/sub components.
-IResourceBuilder<ProjectResource> tenants = builder.AddProject<Projects.Hexalith_Tenants>("tenants");
+IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants");
 HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(tenants, accessControlConfigPath);
 
 // Wire EventStore with DAPR sidecar sharing the same state store and pub/sub.
@@ -124,7 +125,7 @@ else {
 
 // Add Sample consuming service with DAPR sidecar for pub/sub event subscription.
 // The Sample is a subscriber only — it does NOT reference StateStore (only Tenants needs actor state).
-_ = builder.AddProject<Projects.Hexalith_Tenants_Sample>("sample")
+_ = builder.AddProject<HexalithTenantsSample>("sample")
     .WithDaprSidecar(sidecar => sidecar
         .WithOptions(new DaprSidecarOptions {
             AppId = "sample",

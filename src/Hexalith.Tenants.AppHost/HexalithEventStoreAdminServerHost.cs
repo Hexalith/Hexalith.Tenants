@@ -1,8 +1,9 @@
-using Aspire.Hosting;
+using Projects;
 
-namespace Projects;
+namespace Hexalith.Tenants.AppHost;
 
-public class Hexalith_EventStore_Admin_Server_Host : IProjectMetadata {
+public class HexalithEventStoreAdminServerHost : IProjectMetadata {
+
     public string ProjectPath => ProjectMetadataPaths.GetProjectPath(
         "Hexalith.EventStore",
         "src",

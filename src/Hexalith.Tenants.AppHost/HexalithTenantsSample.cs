@@ -1,8 +1,9 @@
-using Aspire.Hosting;
+using Projects;
 
-namespace Projects;
+namespace Hexalith.Tenants.AppHost;
 
-public class Hexalith_Tenants_Sample : IProjectMetadata {
+public class HexalithTenantsSample : IProjectMetadata {
+
     public string ProjectPath => ProjectMetadataPaths.GetProjectPath(
         "samples",
         "Hexalith.Tenants.Sample",
