@@ -137,7 +137,7 @@ development_status:
   9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: done
   9-3-define-truth-state-freshness-and-unavailable-action-patterns: done
   9-4-specify-the-removeuserfromtenant-command-capable-journey: done
-  9-5-specify-audit-evidence-and-compensating-recovery-ui-patterns: backlog
+  9-5-specify-audit-evidence-and-compensating-recovery-ui-patterns: done
   9-6-specify-responsive-operational-layout-and-visual-system-usage: backlog
   9-7-define-accessibility-localization-and-ui-acceptance-evidence: backlog
   epic-9-retrospective: optional
