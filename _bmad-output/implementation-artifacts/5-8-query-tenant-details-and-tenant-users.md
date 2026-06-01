@@ -4,7 +4,7 @@ baseline_commit: 6e2b87a
 
 # Story 5.8: Query Tenant Details and Tenant Users
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -242,9 +242,11 @@ GPT-5 Codex
 
 - 2026-06-01: `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter "FullyQualifiedName~TenantsProjectionActorTests|FullyQualifiedName~TenantQueryPaginationPolicyTests|FullyQualifiedName~TenantQueryPaginationPayloadParserTests|FullyQualifiedName~TenantQueryCursorCodecTests"` initially hit MSBuild/VSTest socket restrictions; reran with `DOTNET_CLI_HOME=/tmp`, `MSBUILDDISABLENODEREUSE=1`, `NUGET_PACKAGES=/home/administrator/.nuget/packages`, local-cache restore, and direct xUnit v3 executables.
 - 2026-06-01: `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -class Hexalith.Tenants.Server.Tests.Projections.TenantsProjectionActorTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryPaginationPolicyTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryPaginationPayloadParserTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryCursorCodecTests` passed: 170 tests, 0 failures.
-- 2026-06-01: `tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests` passed: 57 tests, 0 failures.
+- 2026-06-01: `tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests` passed: 59 tests, 0 failures.
 - 2026-06-01: `tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests -class Hexalith.Tenants.Contracts.Tests.Queries.QueryDtoSerializationTests` passed: 5 tests, 0 failures.
 - 2026-06-01: `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore` passed with 0 warnings and 0 errors.
+- 2026-06-01 review: `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter "FullyQualifiedName~TenantsProjectionActorTests|FullyQualifiedName~TenantQueryPaginationPolicyTests|FullyQualifiedName~TenantQueryPaginationPayloadParserTests|FullyQualifiedName~TenantQueryCursorCodecTests" --no-restore` was blocked by MSBuild named-pipe/socket setup (`SocketException (13): Permission denied`) before test execution.
+- 2026-06-01 review: Direct xUnit v3 executables passed for server focused tests (170 tests), integration controller tests (59 tests), and contract query DTO serialization tests (5 tests), all with 0 failures.
 
 ### Completion Notes List
 
@@ -258,9 +260,38 @@ GPT-5 Codex
 
 - `_bmad-output/implementation-artifacts/5-8-query-tenant-details-and-tenant-users.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/tests/test-summary.md`
 - `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs`
 - `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs`
+
+## Senior Developer Review (AI)
+
+Reviewer: GPT-5 Codex on 2026-06-01
+
+### Review Findings
+
+- [x] MEDIUM: Story File List omitted `_bmad-output/implementation-artifacts/tests/test-summary.md`, even though git shows it changed for story 5.8. Fixed by adding it to the File List.
+- [x] LOW: `CreateTenantReadModel` in `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` had malformed indentation in a touched test helper. Fixed to match repository formatting expectations.
+- [x] LOW: Story and sprint tracking remained in `review` after all critical review checks passed. Fixed by setting the story and sprint status to `done`.
+
+### Checklist Validation
+
+- [x] Story file loaded from `_bmad-output/implementation-artifacts/5-8-query-tenant-details-and-tenant-users.md`.
+- [x] Story Status verified as reviewable (`review`) before review and updated to `done`.
+- [x] Epic and Story IDs resolved as 5.8.
+- [x] Story context located in `_bmad-output/project-context.md`.
+- [x] Epic/architecture context located in `_bmad-output/planning-artifacts/architecture.md`.
+- [x] Tech stack detected: .NET 10, C# latest, ASP.NET Core, MediatR, DAPR, xUnit v3, Shouldly, NSubstitute.
+- [x] Docs fallback performed against Microsoft Learn for ASP.NET Core ProblemDetails/action results and System.Text.Json camelCase/string enum behavior.
+- [x] Acceptance Criteria cross-checked against controller, actor, DTO, cursor, pagination, and tests.
+- [x] File List reviewed and corrected for completeness.
+- [x] Tests identified and mapped to ACs; no blocking test gap remains.
+- [x] Code quality and security review performed on changed source-test files and relevant production query files.
+- [x] Sprint status synced for `5-8-query-tenant-details-and-tenant-users`.
+- [x] Story saved successfully.
+- [x] Outcome: Approve after automatic fixes.
 
 ### Change Log
 
 - 2026-06-01: Completed story 5.8 by hardening tenant detail/users actor and HTTP-boundary evidence while preserving existing production contracts.
+- 2026-06-01: Senior developer review completed; fixed File List completeness, touched-test formatting, and story/sprint status sync.
