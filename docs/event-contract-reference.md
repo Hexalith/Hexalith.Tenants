@@ -645,6 +645,14 @@ Domain command rejections returned from `POST /api/v1/commands` use [RFC 7807 Pr
 
 The `title`, `detail`, HTTP status, and `correctiveAction` are composed by EventStore's HTTP boundary/catalog. Persisted rejection events remain structured data only. Problem Details responses must not echo raw command payload JSON, serialized rejection event payload JSON, bearer tokens, stack traces, local paths, or sensitive tenant/user values.
 
+### Optimistic Concurrency Conflicts
+
+Persistence-level optimistic concurrency conflicts are EventStore command-pipeline outcomes, not Tenants domain rejection events. EventStore retries state-store conflicts that occur before a successful `EventsStored` checkpoint up to `EventStore:CommandConcurrency:MaxPersistenceConflictRetries` times; the default is `1`.
+
+Each retry rehydrates the latest aggregate state and invokes Tenants domain logic again, so membership, role, and configuration commands evaluate against the ordered event sequence already committed by the winning command. If the retry limit is exhausted, command status is `Rejected` with `FailureReason == "ConcurrencyConflict"`, and the public command endpoint returns sanitized HTTP `409` ProblemDetails with `Retry-After: 1` and the request correlation ID. The response does not expose aggregate IDs, tenant IDs, state-store keys, ETags, payloads, stack traces, tokens, or local paths.
+
+Idempotency records are written only after a terminal command result is known. Replaying a duplicate causation ID after success, domain rejection, no-op, publish-failed, or terminal concurrency conflict returns the cached terminal result and does not append duplicate tenant events.
+
 ---
 
 ## Quick Reference

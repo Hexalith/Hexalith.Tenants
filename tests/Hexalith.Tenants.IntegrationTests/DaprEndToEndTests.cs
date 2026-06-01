@@ -128,6 +128,187 @@ public class DaprEndToEndTests {
     }
 
     [DaprFact]
+    public async Task Duplicate_RemoveUserFromTenant_is_rejected_end_to_end_without_duplicate_UserRemoved_event() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create the tenant, add a user, and remove that user once.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-dup-remove-user-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Remove Target", "Remove user once"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope addUserCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantReader));
+        CommandProcessingResult addUserResult = await proxy.ProcessCommandAsync(addUserCmd);
+        addUserResult.Accepted.ShouldBeTrue("Setup: AddUserToTenant must succeed");
+
+        CommandEnvelope firstRemoveCmd = CreateTenantCommand(new RemoveUserFromTenant(tenantId, "alice"));
+        CommandProcessingResult firstRemoveResult = await proxy.ProcessCommandAsync(firstRemoveCmd);
+        firstRemoveResult.Accepted.ShouldBeTrue("Setup: first RemoveUserFromTenant must succeed");
+
+        string expectedTopic = firstRemoveCmd.AggregateIdentity.PubSubTopic;
+        int userRemovedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(UserRemovedFromTenant).FullName);
+
+        // Act — submit the duplicate remove command after retry rehydration would observe the missing user.
+        CommandEnvelope duplicateRemoveCmd = CreateTenantCommand(new RemoveUserFromTenant(tenantId, "alice"));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(duplicateRemoveCmd);
+
+        // Assert — the duplicate is structured and no second UserRemovedFromTenant event is produced.
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeFalse("Duplicate RemoveUserFromTenant should be rejected");
+        result.EventCount.ShouldBe(1, "Duplicate RemoveUserFromTenant should persist one rejection event");
+        CountPublishedEvents(expectedTopic, tenantId, typeof(UserRemovedFromTenant).FullName).ShouldBe(userRemovedEventsBefore);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(UserNotInTenantRejection).FullName).ShouldBe(1);
+
+        _ = await AssertPersistedOnceAsync<UserNotInTenantRejection>(
+            proxy,
+            duplicateRemoveCmd,
+            expectedSequence: 4);
+    }
+
+    [DaprFact]
+    public async Task Duplicate_ChangeUserRole_converges_to_noop_end_to_end_without_duplicate_UserRoleChanged_event() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create the tenant, add a user, and change the user's role once.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-dup-change-role-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Role Target", "Change role once"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope addUserCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantReader));
+        CommandProcessingResult addUserResult = await proxy.ProcessCommandAsync(addUserCmd);
+        addUserResult.Accepted.ShouldBeTrue("Setup: AddUserToTenant must succeed");
+
+        CommandEnvelope firstChangeCmd = CreateTenantCommand(new ChangeUserRole(tenantId, "alice", TenantRole.TenantContributor));
+        CommandProcessingResult firstChangeResult = await proxy.ProcessCommandAsync(firstChangeCmd);
+        firstChangeResult.Accepted.ShouldBeTrue("Setup: first ChangeUserRole must succeed");
+
+        string expectedTopic = firstChangeCmd.AggregateIdentity.PubSubTopic;
+        int roleChangedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(UserRoleChanged).FullName);
+        long sequenceBeforeDuplicate = await proxy.GetCurrentSequenceAsync();
+
+        // Act — submit the duplicate role change after retry rehydration would observe the new role.
+        CommandEnvelope duplicateChangeCmd = CreateTenantCommand(new ChangeUserRole(tenantId, "alice", TenantRole.TenantContributor));
+        CommandProcessingResult result = await proxy.ProcessCommandAsync(duplicateChangeCmd);
+
+        // Assert — same-role retry is a deterministic no-op, not an unordered overwrite.
+        _ = result.ShouldNotBeNull();
+        result.Accepted.ShouldBeTrue("Duplicate same-role ChangeUserRole should converge to a no-op");
+        result.EventCount.ShouldBe(0);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(UserRoleChanged).FullName).ShouldBe(roleChangedEventsBefore);
+        (await proxy.GetCurrentSequenceAsync()).ShouldBe(sequenceBeforeDuplicate);
+    }
+
+    [DaprFact]
+    public async Task SetTenantConfiguration_same_key_updates_preserve_ordered_persisted_state() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create a tenant, then apply same-key configuration updates through the actor pipeline.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-config-order-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Configuration Target", "Ordered config E2E"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope firstSetCmd = CreateTenantCommand(new SetTenantConfiguration(tenantId, "billing.plan", "pro"));
+        CommandEnvelope secondSetCmd = CreateTenantCommand(new SetTenantConfiguration(tenantId, "billing.plan", "enterprise"));
+
+        // Act
+        CommandProcessingResult firstResult = await proxy.ProcessCommandAsync(firstSetCmd);
+        CommandProcessingResult secondResult = await proxy.ProcessCommandAsync(secondSetCmd);
+
+        // Assert — persisted actor state remains gapless and final state is the last ordered event.
+        firstResult.Accepted.ShouldBeTrue("First SetTenantConfiguration should be accepted");
+        firstResult.EventCount.ShouldBe(1);
+        secondResult.Accepted.ShouldBeTrue("Second SetTenantConfiguration should be accepted");
+        secondResult.EventCount.ShouldBe(1);
+
+        EventEnvelope firstPersisted = await AssertPersistedOnceAsync<TenantConfigurationSet>(
+            proxy,
+            firstSetCmd,
+            expectedSequence: 2);
+        EventEnvelope secondPersisted = await AssertPersistedOnceAsync<TenantConfigurationSet>(
+            proxy,
+            secondSetCmd,
+            expectedSequence: 3);
+
+        TenantConfigurationSet firstPayload = JsonSerializer.Deserialize<TenantConfigurationSet>(firstPersisted.Payload)!;
+        TenantConfigurationSet secondPayload = JsonSerializer.Deserialize<TenantConfigurationSet>(secondPersisted.Payload)!;
+
+        firstPayload.Key.ShouldBe("billing.plan");
+        firstPayload.Value.ShouldBe("pro");
+        secondPayload.Key.ShouldBe("billing.plan");
+        secondPayload.Value.ShouldBe("enterprise");
+
+        string expectedTopic = secondSetCmd.AggregateIdentity.PubSubTopic;
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantConfigurationSet).FullName)
+            .ShouldBe(2, "both ordered configuration updates should be observable without losing a persisted event");
+    }
+
+    [DaprFact]
+    public async Task RemoveTenantConfiguration_after_set_preserves_order_and_duplicate_remove_is_rejected() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        // Arrange — create a tenant, set a configuration key, then remove the same key.
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string tenantId = $"t-config-remove-{Guid.NewGuid():N}";
+
+        CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Configuration Remove Target", "Remove config E2E"));
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
+        CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
+        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+
+        CommandEnvelope setCmd = CreateTenantCommand(new SetTenantConfiguration(tenantId, "billing.plan", "pro"));
+        CommandProcessingResult setResult = await proxy.ProcessCommandAsync(setCmd);
+        setResult.Accepted.ShouldBeTrue("Setup: SetTenantConfiguration must succeed");
+
+        CommandEnvelope removeCmd = CreateTenantCommand(new RemoveTenantConfiguration(tenantId, "billing.plan"));
+        CommandProcessingResult removeResult = await proxy.ProcessCommandAsync(removeCmd);
+
+        // Assert — set and remove are persisted in a gapless ordered stream.
+        removeResult.Accepted.ShouldBeTrue("RemoveTenantConfiguration should be accepted for an existing key");
+        removeResult.EventCount.ShouldBe(1);
+        _ = await AssertPersistedOnceAsync<TenantConfigurationSet>(
+            proxy,
+            setCmd,
+            expectedSequence: 2);
+        _ = await AssertPersistedOnceAsync<TenantConfigurationRemoved>(
+            proxy,
+            removeCmd,
+            expectedSequence: 3);
+
+        string expectedTopic = removeCmd.AggregateIdentity.PubSubTopic;
+        int removedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(TenantConfigurationRemoved).FullName);
+
+        // Act — submit the duplicate remove after retry rehydration would observe the missing key.
+        CommandEnvelope duplicateRemoveCmd = CreateTenantCommand(new RemoveTenantConfiguration(tenantId, "billing.plan"));
+        CommandProcessingResult duplicateRemoveResult = await proxy.ProcessCommandAsync(duplicateRemoveCmd);
+
+        // Assert — the duplicate remove is observable as a structured rejection without another remove event.
+        duplicateRemoveResult.Accepted.ShouldBeFalse("Duplicate RemoveTenantConfiguration should be rejected");
+        duplicateRemoveResult.EventCount.ShouldBe(1);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantConfigurationRemoved).FullName).ShouldBe(removedEventsBefore);
+        CountPublishedEvents(expectedTopic, tenantId, typeof(ConfigurationKeyNotFoundRejection).FullName).ShouldBe(1);
+
+        _ = await AssertPersistedOnceAsync<ConfigurationKeyNotFoundRejection>(
+            proxy,
+            duplicateRemoveCmd,
+            expectedSequence: 4);
+    }
+
+    [DaprFact]
     public async Task UpdateTenant_succeeds_end_to_end_with_events_published() {
         _fixture.SkipIfUnavailable();
 

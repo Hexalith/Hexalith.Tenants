@@ -70,7 +70,7 @@ development_status:
   3-5-set-tenant-configuration-entries: done
   3-6-remove-tenant-configuration-entries: done
   3-7-enforce-tenant-configuration-limits: done
-  3-8-reject-conflicting-concurrent-tenant-modifications: backlog
+  3-8-reject-conflicting-concurrent-tenant-modifications: done
   epic-3-retrospective: optional
 
   # Epic 4: Consuming Services Can React to Tenant Events

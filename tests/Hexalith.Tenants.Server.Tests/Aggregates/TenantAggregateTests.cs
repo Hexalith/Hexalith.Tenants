@@ -2449,4 +2449,137 @@ public class TenantAggregateTests {
         handleMethods.Length.ShouldBeGreaterThanOrEqualTo(1,
             "TenantAggregate must have at least one 3-param Handle(Command, State?, CommandEnvelope) method for RBAC enforcement");
     }
+
+    // Story 3.8: retry rehydration must observe membership already added by the winning command.
+    [Fact]
+    public async Task Concurrent_AddUserToTenant_retry_observes_existing_member_and_rejects_duplicate() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+        var command = new AddUserToTenant("acme", "new-user", TenantRole.TenantReader);
+
+        DomainResult winningResult = await aggregate.ProcessAsync(
+            CreateCommand(command, actorUserId: "owner-user"),
+            currentState: state);
+        winningResult.IsSuccess.ShouldBeTrue();
+        state.Apply(winningResult.Events[0].ShouldBeOfType<UserAddedToTenant>());
+
+        DomainResult retryResult = await aggregate.ProcessAsync(
+            CreateCommand(command, actorUserId: "owner-user"),
+            currentState: state);
+
+        retryResult.IsRejection.ShouldBeTrue();
+        UserAlreadyInTenantRejection rejection = retryResult.Events[0].ShouldBeOfType<UserAlreadyInTenantRejection>();
+        rejection.UserId.ShouldBe("new-user");
+        rejection.ExistingRole.ShouldBe(TenantRole.TenantReader);
+        state.Users["new-user"].ShouldBe(TenantRole.TenantReader);
+    }
+
+    // Story 3.8: retry rehydration must observe membership already removed by the winning command.
+    [Fact]
+    public async Task Concurrent_RemoveUserFromTenant_retry_observes_missing_member_and_rejects_duplicate() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+        var command = new RemoveUserFromTenant("acme", "reader-user");
+
+        DomainResult winningResult = await aggregate.ProcessAsync(
+            CreateCommand(command, actorUserId: "owner-user"),
+            currentState: state);
+        winningResult.IsSuccess.ShouldBeTrue();
+        state.Apply(winningResult.Events[0].ShouldBeOfType<UserRemovedFromTenant>());
+
+        DomainResult retryResult = await aggregate.ProcessAsync(
+            CreateCommand(command, actorUserId: "owner-user"),
+            currentState: state);
+
+        retryResult.IsRejection.ShouldBeTrue();
+        UserNotInTenantRejection rejection = retryResult.Events[0].ShouldBeOfType<UserNotInTenantRejection>();
+        rejection.UserId.ShouldBe("reader-user");
+        state.Users.ContainsKey("reader-user").ShouldBeFalse();
+    }
+
+    // Story 3.8: a same-role retry converges to NoOp instead of producing duplicate role events.
+    [Fact]
+    public async Task Concurrent_ChangeUserRole_retry_observes_new_role_and_returns_NoOp() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+        var command = new ChangeUserRole("acme", "reader-user", TenantRole.TenantContributor);
+
+        DomainResult winningResult = await aggregate.ProcessAsync(
+            CreateCommand(command, actorUserId: "owner-user"),
+            currentState: state);
+        winningResult.IsSuccess.ShouldBeTrue();
+        state.Apply(winningResult.Events[0].ShouldBeOfType<UserRoleChanged>());
+
+        DomainResult retryResult = await aggregate.ProcessAsync(
+            CreateCommand(command, actorUserId: "owner-user"),
+            currentState: state);
+
+        retryResult.IsNoOp.ShouldBeTrue();
+        retryResult.Events.ShouldBeEmpty();
+        state.Users["reader-user"].ShouldBe(TenantRole.TenantContributor);
+    }
+
+    // Story 3.8: ordered same-key configuration writes produce an ordered final state.
+    [Fact]
+    public async Task Concurrent_SetTenantConfiguration_same_key_retry_preserves_ordered_final_state() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        DomainResult firstResult = await aggregate.ProcessAsync(
+            CreateCommand(new SetTenantConfiguration("acme", "billing.plan", "pro"), actorUserId: "owner-user"),
+            currentState: state);
+        firstResult.IsSuccess.ShouldBeTrue();
+        state.Apply(firstResult.Events[0].ShouldBeOfType<TenantConfigurationSet>());
+
+        DomainResult secondResult = await aggregate.ProcessAsync(
+            CreateCommand(new SetTenantConfiguration("acme", "billing.plan", "enterprise"), actorUserId: "owner-user"),
+            currentState: state);
+        secondResult.IsSuccess.ShouldBeTrue();
+        state.Apply(secondResult.Events[0].ShouldBeOfType<TenantConfigurationSet>());
+
+        state.Configuration["billing.plan"].ShouldBe("enterprise");
+    }
+
+    // Story 3.8: duplicate same-key/same-value configuration retry converges without a duplicate event.
+    [Fact]
+    public async Task Concurrent_SetTenantConfiguration_same_value_retry_returns_NoOp_without_duplicate_event() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+
+        DomainResult firstResult = await aggregate.ProcessAsync(
+            CreateCommand(new SetTenantConfiguration("acme", "billing.plan", "pro"), actorUserId: "owner-user"),
+            currentState: state);
+        firstResult.IsSuccess.ShouldBeTrue();
+        state.Apply(firstResult.Events[0].ShouldBeOfType<TenantConfigurationSet>());
+
+        DomainResult retryResult = await aggregate.ProcessAsync(
+            CreateCommand(new SetTenantConfiguration("acme", "billing.plan", "pro"), actorUserId: "owner-user"),
+            currentState: state);
+
+        retryResult.IsNoOp.ShouldBeTrue();
+        retryResult.Events.ShouldBeEmpty();
+        state.Configuration["billing.plan"].ShouldBe("pro");
+    }
+
+    // Story 3.8: remove followed by set is a valid ordered sequence and not an untracked overwrite.
+    [Fact]
+    public async Task Concurrent_RemoveThenSetTenantConfiguration_retry_preserves_ordered_final_state() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRoles();
+        state.Apply(new TenantConfigurationSet("acme", "billing.plan", "pro"));
+
+        DomainResult removeResult = await aggregate.ProcessAsync(
+            CreateCommand(new RemoveTenantConfiguration("acme", "billing.plan"), actorUserId: "owner-user"),
+            currentState: state);
+        removeResult.IsSuccess.ShouldBeTrue();
+        state.Apply(removeResult.Events[0].ShouldBeOfType<TenantConfigurationRemoved>());
+
+        DomainResult setResult = await aggregate.ProcessAsync(
+            CreateCommand(new SetTenantConfiguration("acme", "billing.plan", "enterprise"), actorUserId: "owner-user"),
+            currentState: state);
+        setResult.IsSuccess.ShouldBeTrue();
+        state.Apply(setResult.Events[0].ShouldBeOfType<TenantConfigurationSet>());
+
+        state.Configuration["billing.plan"].ShouldBe("enterprise");
+    }
 }

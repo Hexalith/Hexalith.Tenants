@@ -484,6 +484,52 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_returns_sanitized_problem_details_for_concurrency_conflict() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(false, "ConcurrencyConflict", "conflict-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "acme",
+                EventCount: null,
+                RejectionEventType: null,
+                FailureReason: "ConcurrencyConflict",
+                TimeoutDuration: null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        using HttpClient client = CreateJwtClient(factory);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateUpdateTenantRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+        string problemJson = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Headers.RetryAfter?.Delta.ShouldBe(TimeSpan.FromSeconds(1));
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(problemJson, ProblemDetailsJsonOptions);
+        _ = details.ShouldNotBeNull();
+        details.Type.ShouldBe("https://hexalith.io/problems/concurrency-conflict");
+        details.Title.ShouldBe("Conflict");
+        details.Status.ShouldBe(409);
+        details.Detail.ShouldBe("A concurrency conflict occurred. Please retry the command.");
+        details.Instance.ShouldBe("/api/v1/commands");
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.CorrelationId).ShouldNotBeNullOrWhiteSpace();
+
+        foreach (string forbiddenValue in SensitiveProblemDetailsLeakMarkers().Concat(["acme", "StateStore", "ETag"])) {
+            problemJson.Contains(forbiddenValue, StringComparison.OrdinalIgnoreCase)
+                .ShouldBeFalse($"Concurrency ProblemDetails leaked '{forbiddenValue}'");
+        }
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_202_when_jwt_has_eventstore_tenant_claim() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())

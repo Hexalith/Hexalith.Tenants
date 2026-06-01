@@ -115,6 +115,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 builder.Services.AddExceptionHandler<AuthorizationServiceUnavailableHandler>();
 builder.Services.AddExceptionHandler<AuthorizationExceptionHandler>();
+builder.Services.AddExceptionHandler<ConcurrencyConflictExceptionHandler>();
 builder.Services.AddExceptionHandler<DomainCommandRejectedExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryNotFoundExceptionHandler>();
 builder.Services.AddExceptionHandler<QueryExecutionFailedExceptionHandler>();
