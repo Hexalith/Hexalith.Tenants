@@ -2,11 +2,14 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Handlers;
+using Hexalith.Tenants.Client.Registration;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Client.Subscription;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using Shouldly;
@@ -51,7 +54,7 @@ public class TenantEventProcessorTests {
         ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
-            provider,
+            provider.GetRequiredService<IServiceScopeFactory>(),
             registry,
             NullLogger<TenantEventProcessor>.Instance);
 
@@ -137,7 +140,7 @@ public class TenantEventProcessorTests {
         IReadOnlyDictionary<string, Type> registry = BuildRegistry();
         using ServiceProvider provider = new ServiceCollection().BuildServiceProvider();
         var processor = new TenantEventProcessor(
-            provider,
+            provider.GetRequiredService<IServiceScopeFactory>(),
             registry,
             NullLogger<TenantEventProcessor>.Instance);
 
@@ -184,7 +187,7 @@ public class TenantEventProcessorTests {
 
         using ServiceProvider provider = services.BuildServiceProvider();
         var processor = new TenantEventProcessor(
-            provider,
+            provider.GetRequiredService<IServiceScopeFactory>(),
             registry,
             NullLogger<TenantEventProcessor>.Instance);
 
@@ -220,7 +223,7 @@ public class TenantEventProcessorTests {
         using ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
-            provider,
+            provider.GetRequiredService<IServiceScopeFactory>(),
             registry,
             NullLogger<TenantEventProcessor>.Instance);
 
@@ -234,6 +237,58 @@ public class TenantEventProcessorTests {
         TenantLocalState? state = await store.GetAsync("acme");
         _ = state.ShouldNotBeNull();
         trackingHandler.HandledEvents.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_DispatchesSelectedCustomHandlersOnlyForMatchingEventType() {
+        // Arrange
+        var sink = new TrackingSink();
+        var services = new ServiceCollection();
+        _ = services.AddSingleton(sink);
+        _ = services.AddSingleton<ILogger<TenantEventProcessor>>(NullLogger<TenantEventProcessor>.Instance);
+        _ = services
+            .AddHexalithTenants()
+            .AddTenantEventHandler<UserAddedToTenant, SelectedUserAddedHandler>();
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        TenantEventProcessor processor = provider.GetRequiredService<TenantEventProcessor>();
+
+        TenantEventEnvelope unrelatedEnvelope = CreateEnvelope("msg-1", new TenantDisabled("acme", DateTimeOffset.UtcNow));
+        TenantEventEnvelope selectedEnvelope = CreateEnvelope("msg-2", new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        // Act
+        TenantEventProcessingResult unrelatedResult = await processor.ProcessAsync(unrelatedEnvelope);
+        TenantEventProcessingResult selectedResult = await processor.ProcessAsync(selectedEnvelope);
+
+        // Assert
+        unrelatedResult.ShouldBe(TenantEventProcessingResult.Processed);
+        selectedResult.ShouldBe(TenantEventProcessingResult.Processed);
+        sink.HandledEventTypeNames.ShouldBe([nameof(UserAddedToTenant)]);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_ResolvesCustomHandlersThroughEventScope() {
+        // Arrange
+        var sink = new TrackingSink();
+        var services = new ServiceCollection();
+        _ = services.AddSingleton(sink);
+        _ = services.AddSingleton<ILogger<TenantEventProcessor>>(NullLogger<TenantEventProcessor>.Instance);
+        _ = services.AddScoped<ScopedTenantEventDependency>();
+        _ = services
+            .AddHexalithTenants()
+            .AddTenantEventHandler<UserAddedToTenant, ScopedDependencyHandler>();
+
+        using ServiceProvider provider = services.BuildServiceProvider();
+        TenantEventProcessor processor = provider.GetRequiredService<TenantEventProcessor>();
+        TenantEventEnvelope envelope = CreateEnvelope("msg-1", new UserAddedToTenant("acme", "user-1", TenantRole.TenantReader));
+
+        // Act
+        TenantEventProcessingResult result = await processor.ProcessAsync(envelope);
+
+        // Assert
+        result.ShouldBe(TenantEventProcessingResult.Processed);
+        sink.DependencyIds.Count.ShouldBe(1);
+        sink.DependencyIds[0].ShouldNotBe(Guid.Empty);
     }
 
     private sealed class ThrowOnceHandler : ITenantEventHandler<TenantCreated> {
@@ -254,6 +309,47 @@ public class TenantEventProcessorTests {
 
         public Task HandleAsync(TenantCreated @event, TenantEventContext context, CancellationToken cancellationToken = default) {
             HandledEvents++;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TrackingSink {
+        public List<Guid> DependencyIds { get; } = [];
+
+        public List<string> HandledEventTypeNames { get; } = [];
+    }
+
+    private sealed class ScopedTenantEventDependency {
+        public Guid Id { get; } = Guid.NewGuid();
+    }
+
+    private sealed class SelectedUserAddedHandler : ITenantEventHandler<UserAddedToTenant> {
+        private readonly TrackingSink _sink;
+
+        public SelectedUserAddedHandler(TrackingSink sink) {
+            ArgumentNullException.ThrowIfNull(sink);
+            _sink = sink;
+        }
+
+        public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default) {
+            _sink.HandledEventTypeNames.Add(nameof(UserAddedToTenant));
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class ScopedDependencyHandler : ITenantEventHandler<UserAddedToTenant> {
+        private readonly ScopedTenantEventDependency _dependency;
+        private readonly TrackingSink _sink;
+
+        public ScopedDependencyHandler(ScopedTenantEventDependency dependency, TrackingSink sink) {
+            ArgumentNullException.ThrowIfNull(dependency);
+            ArgumentNullException.ThrowIfNull(sink);
+            _dependency = dependency;
+            _sink = sink;
+        }
+
+        public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default) {
+            _sink.DependencyIds.Add(_dependency.Id);
             return Task.CompletedTask;
         }
     }

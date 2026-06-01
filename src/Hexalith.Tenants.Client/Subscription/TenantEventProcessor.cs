@@ -21,31 +21,31 @@ public class TenantEventProcessor {
     }
 
     private static readonly MethodInfo _dispatchMethod = typeof(TenantEventProcessor)
-        .GetMethod(nameof(DispatchAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        .GetMethod(nameof(DispatchAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     private readonly IReadOnlyDictionary<string, Type> _eventTypeRegistry;
     private readonly ILogger<TenantEventProcessor> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     // NOTE: This dictionary grows unboundedly. For MVP, this is acceptable (consuming services are
     // typically restarted periodically). Production deployments should consider a bounded LRU cache
     // or external deduplication store.
     private readonly ConcurrentDictionary<string, ProcessingState> _processedMessageIds = new(StringComparer.Ordinal);
-    private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TenantEventProcessor"/> class.
     /// </summary>
-    /// <param name="serviceProvider">The service provider for resolving event handlers.</param>
+    /// <param name="serviceScopeFactory">The service scope factory for resolving event handlers.</param>
     /// <param name="eventTypeRegistry">The mapping of event type names to their CLR types.</param>
     /// <param name="logger">The logger.</param>
     public TenantEventProcessor(
-        IServiceProvider serviceProvider,
+        IServiceScopeFactory serviceScopeFactory,
         IReadOnlyDictionary<string, Type> eventTypeRegistry,
         ILogger<TenantEventProcessor> logger) {
-        ArgumentNullException.ThrowIfNull(serviceProvider);
+        ArgumentNullException.ThrowIfNull(serviceScopeFactory);
         ArgumentNullException.ThrowIfNull(eventTypeRegistry);
         ArgumentNullException.ThrowIfNull(logger);
-        _serviceProvider = serviceProvider;
+        _serviceScopeFactory = serviceScopeFactory;
         _eventTypeRegistry = eventTypeRegistry;
         _logger = logger;
     }
@@ -100,7 +100,8 @@ public class TenantEventProcessor {
                 envelope.CorrelationId);
 
             MethodInfo genericDispatch = _dispatchMethod.MakeGenericMethod(eventType);
-            int handlerCount = await ((Task<int>)genericDispatch.Invoke(this, [@event, context, cancellationToken])!).ConfigureAwait(false);
+            using IServiceScope scope = _serviceScopeFactory.CreateScope();
+            int handlerCount = await ((Task<int>)genericDispatch.Invoke(null, [scope.ServiceProvider, @event, context, cancellationToken])!).ConfigureAwait(false);
             if (handlerCount == 0) {
                 _logger.LogWarning("No handlers registered for event type '{EventTypeName}' — skipping", envelope.EventTypeName);
                 _processedMessageIds[envelope.MessageId] = ProcessingState.Completed;
@@ -116,9 +117,13 @@ public class TenantEventProcessor {
         }
     }
 
-    private async Task<int> DispatchAsync<TEvent>(TEvent @event, TenantEventContext context, CancellationToken cancellationToken)
+    private static async Task<int> DispatchAsync<TEvent>(
+        IServiceProvider serviceProvider,
+        TEvent @event,
+        TenantEventContext context,
+        CancellationToken cancellationToken)
         where TEvent : IEventPayload {
-        ITenantEventHandler<TEvent>[] handlers = _serviceProvider.GetServices<ITenantEventHandler<TEvent>>().ToArray();
+        ITenantEventHandler<TEvent>[] handlers = serviceProvider.GetServices<ITenantEventHandler<TEvent>>().ToArray();
         foreach (ITenantEventHandler<TEvent> handler in handlers) {
             await handler.HandleAsync(@event, context, cancellationToken).ConfigureAwait(false);
         }

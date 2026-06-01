@@ -261,13 +261,24 @@ dotnet add package Hexalith.Tenants.Contracts
 dotnet add package Hexalith.Tenants.Client
 ```
 
-Register tenant client services in your DI container:
+Register tenant client services and the event types your service handles in your DI container:
 
 ```csharp
-builder.Services.AddHexalithTenants();
+builder.Services
+    .AddHexalithTenants()
+    .AddTenantEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
+    .AddTenantEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>();
+
+WebApplication app = builder.Build();
+
+app.UseCloudEvents();
+app.MapSubscribeHandler();
+app.MapTenantEventSubscription();
 ```
 
-This registers event handlers, projection stores, options validation, and DAPR client integration. By default, the Client package binds the `Tenants` configuration section and subscribes through DAPR pub/sub component `pubsub` on topic `tenants.events`. The `Hexalith.Tenants.Contracts` package provides the event types (`TenantCreated`, `TenantUpdated`, etc.) and the `Hexalith.Tenants.Client` package provides the DI registration and event handling infrastructure.
+This registers projection stores, options validation, DAPR client integration, and selected typed handlers. By default, the Client package binds the `Tenants` configuration section and subscribes through DAPR pub/sub component `pubsub` on the shared topic `tenants.events`. Consumers select event types by registering `ITenantEventHandler<TEvent>` implementations through `AddTenantEventHandler<TEvent, THandler>()`; do not create one DAPR topic per event type. DAPR pub/sub is at-least-once delivery, so handlers must be idempotent and must not assume cross-service ordering.
+
+Troubleshooting should use bounded metadata such as message ID, event type, tenant ID, and correlation ID. Do not log full event payloads; tenant configuration and user identifiers may be sensitive.
 
 For event handling patterns and idempotent processing, see [Idempotent Event Processing](idempotent-event-processing.md).
 

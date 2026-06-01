@@ -65,6 +65,8 @@ public class SampleLoggingEventHandlerTests {
             Arg.Any<object>(),
             Arg.Any<Exception?>(),
             Arg.Any<Func<object, Exception?, string>>());
+        LoggedState(logger).ShouldNotContain("user1");
+        LoggedState(logger).ShouldNotContain(nameof(TenantRole.TenantContributor));
     }
 
     [Fact]
@@ -84,6 +86,7 @@ public class SampleLoggingEventHandlerTests {
             Arg.Any<object>(),
             Arg.Any<Exception?>(),
             Arg.Any<Func<object, Exception?, string>>());
+        LoggedState(logger).ShouldNotContain("user1");
     }
 
     [Fact]
@@ -109,4 +112,9 @@ public class SampleLoggingEventHandlerTests {
     public void Constructor_NullLogger_ThrowsArgumentNullException() =>
         // Act & Assert
         Should.Throw<ArgumentNullException>(() => new SampleLoggingEventHandler(null!));
+
+    private static string LoggedState(ILogger<SampleLoggingEventHandler> logger) {
+        object? state = logger.ReceivedCalls().Single().GetArguments()[2];
+        return state?.ToString() ?? string.Empty;
+    }
 }

@@ -1,4 +1,3 @@
-using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Client.Registration;
 using Hexalith.Tenants.Client.Subscription;
 using Hexalith.Tenants.Contracts.Events;
@@ -8,13 +7,11 @@ using Hexalith.Tenants.Sample.Handlers;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // 1. Register all tenant client services (DaprClient, options, event handlers, projections)
-builder.Services.AddHexalithTenants();
-
-// 2. Register sample-specific logging handler (demonstrates extensibility)
-builder.Services.AddSingleton<SampleLoggingEventHandler>();
-builder.Services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(sp => sp.GetRequiredService<SampleLoggingEventHandler>());
-builder.Services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(sp => sp.GetRequiredService<SampleLoggingEventHandler>());
-builder.Services.AddSingleton<ITenantEventHandler<TenantDisabled>>(sp => sp.GetRequiredService<SampleLoggingEventHandler>());
+builder.Services
+    .AddHexalithTenants()
+    .AddTenantEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
+    .AddTenantEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()
+    .AddTenantEventHandler<TenantDisabled, SampleLoggingEventHandler>();
 
 WebApplication app = builder.Build();
 

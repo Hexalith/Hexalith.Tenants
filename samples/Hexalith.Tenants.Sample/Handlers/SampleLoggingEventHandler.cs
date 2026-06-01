@@ -22,8 +22,8 @@ public class SampleLoggingEventHandler :
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         _logger.LogInformation(
-            "[Sample] User {UserId} added to tenant {TenantId} with role {Role}",
-            @event.UserId, context.TenantId, @event.Role);
+            "[Sample] UserAddedToTenant processed for tenant {TenantId}; message {MessageId}; correlation {CorrelationId}",
+            context.TenantId, context.MessageId, context.CorrelationId);
         return Task.CompletedTask;
     }
 
@@ -31,8 +31,8 @@ public class SampleLoggingEventHandler :
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         _logger.LogWarning(
-            "[Sample] User {UserId} REMOVED from tenant {TenantId} — revoking access",
-            @event.UserId, context.TenantId);
+            "[Sample] UserRemovedFromTenant processed for tenant {TenantId}; revoking projected access; message {MessageId}; correlation {CorrelationId}",
+            context.TenantId, context.MessageId, context.CorrelationId);
         return Task.CompletedTask;
     }
 
@@ -40,8 +40,8 @@ public class SampleLoggingEventHandler :
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         _logger.LogWarning(
-            "[Sample] Tenant {TenantId} DISABLED — blocking all operations",
-            context.TenantId);
+            "[Sample] TenantDisabled processed for tenant {TenantId}; blocking projected access; message {MessageId}; correlation {CorrelationId}",
+            context.TenantId, context.MessageId, context.CorrelationId);
         return Task.CompletedTask;
     }
 }

@@ -16,6 +16,10 @@ namespace Hexalith.Tenants.Client.Registration;
 /// Extension methods for registering tenant client services in the dependency injection container.
 /// </summary>
 public static class TenantServiceCollectionExtensions {
+    private sealed class TenantEventHandlerRegistrationMarker<TEvent, THandler>
+        where TEvent : IEventPayload
+        where THandler : class, ITenantEventHandler<TEvent>;
+
     private sealed class TenantEventInfrastructureMarker;
     private sealed class TenantOptionsValidationMarker;
 
@@ -55,6 +59,31 @@ public static class TenantServiceCollectionExtensions {
         EnsureEventHandlerRegistrations(services);
 
         _ = services.Configure(configureOptions);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a selected tenant event handler for the specified event payload type.
+    /// </summary>
+    /// <typeparam name="TEvent">The tenant event payload type to handle.</typeparam>
+    /// <typeparam name="THandler">The handler implementation type.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddTenantEventHandler<TEvent, THandler>(this IServiceCollection services)
+        where TEvent : IEventPayload
+        where THandler : class, ITenantEventHandler<TEvent> {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddScoped<THandler>();
+
+        Type markerType = typeof(TenantEventHandlerRegistrationMarker<TEvent, THandler>);
+        if (services.Any(s => s.ServiceType == markerType)) {
+            return services;
+        }
+
+        _ = services.AddSingleton(markerType);
+        _ = services.AddScoped<ITenantEventHandler<TEvent>>(sp => sp.GetRequiredService<THandler>());
 
         return services;
     }

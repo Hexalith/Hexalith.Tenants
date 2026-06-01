@@ -47,7 +47,7 @@ public class AccessCheckEndpointsTests {
         ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
-            provider,
+            provider.GetRequiredService<IServiceScopeFactory>(),
             BuildRegistry(),
             NullLogger<TenantEventProcessor>.Instance);
 

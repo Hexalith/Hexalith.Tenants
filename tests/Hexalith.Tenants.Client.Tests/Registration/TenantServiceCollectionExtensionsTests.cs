@@ -432,6 +432,69 @@ public class TenantServiceCollectionExtensionsTests {
     }
 
     [Fact]
+    public void AddTenantEventHandler_ReturnsSameServiceCollection() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        IServiceCollection result = services.AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>();
+
+        // Assert
+        result.ShouldBeSameAs(services);
+    }
+
+    [Fact]
+    public void AddTenantEventHandler_ThrowsOnNullServices() =>
+        // Assert — must use static call syntax (extension method on null is invalid)
+        Should.Throw<ArgumentNullException>(() =>
+            TenantServiceCollectionExtensions.AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>(null!));
+
+    [Fact]
+    public void AddTenantEventHandler_RegistersSelectedTypedHandler() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        _ = services.AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>();
+
+        // Assert
+        services.Count(s => s.ServiceType == typeof(MultiEventHandler)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>)).ShouldBe(1);
+        services.ShouldNotContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantDisabled>));
+    }
+
+    [Fact]
+    public void AddTenantEventHandler_SupportsOneHandlerForMultipleSelectedEvents() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        _ = services
+            .AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>()
+            .AddTenantEventHandler<TenantDisabled, MultiEventHandler>();
+
+        // Assert
+        services.Count(s => s.ServiceType == typeof(MultiEventHandler)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<TenantDisabled>)).ShouldBe(1);
+    }
+
+    [Fact]
+    public void AddTenantEventHandler_DuplicateRegistrationIsIdempotent() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        _ = services
+            .AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>()
+            .AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>();
+
+        // Assert
+        services.Count(s => s.ServiceType == typeof(MultiEventHandler)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>)).ShouldBe(1);
+    }
+
+    [Fact]
     public void AddHexalithTenants_InMemoryTenantProjectionStoreIsDefaultImplementation() {
         // Arrange
         IServiceCollection services = new ServiceCollection();
@@ -542,5 +605,15 @@ public class TenantServiceCollectionExtensionsTests {
         }
 
         throw new InvalidOperationException("Could not locate Hexalith.Tenants repository root.");
+    }
+
+    private sealed class MultiEventHandler :
+        ITenantEventHandler<UserAddedToTenant>,
+        ITenantEventHandler<TenantDisabled> {
+        public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task HandleAsync(TenantDisabled @event, TenantEventContext context, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }
