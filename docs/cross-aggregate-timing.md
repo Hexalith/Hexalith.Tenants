@@ -12,7 +12,7 @@ When a tenant command is processed (e.g., `RemoveUserFromTenant`), the event is 
 2. Subscribing services have **not yet** received or processed the event
 3. During this window, a subscribing service's local projection still reflects the old state
 
-Under normal load, the propagation window is typically **50–200ms**. Under pub/sub backpressure, subscriber downtime, or pub/sub infrastructure outage, it can extend to low seconds or until recovery completes.
+The exact propagation window depends on pub/sub health, subscriber availability, and projection catch-up. Under pub/sub backpressure, subscriber downtime, or pub/sub infrastructure outage, it can extend until recovery completes.
 
 If pub/sub publication fails after the event has been stored, command processing does not roll back the event. Operators should expect a `PublishFailed` command status or structured warning/metric, followed by EventStore drain recovery republishing the persisted sequence range when pub/sub is available again. During that outage, downstream projections can be stale, but the aggregate event stream remains durable and can be used for projection catch-up.
 
@@ -25,16 +25,16 @@ The following diagram shows the consumer-facing event propagation flow. The sync
 ```mermaid
 sequenceDiagram
     participant Client
-    participant CommandApi
+    participant Gateway as EventStore command gateway
     participant EventStore as Event Store
     participant PubSub as DAPR Pub/Sub
     participant ServiceA as Service A
     participant ServiceB as Service B
 
-    Client->>CommandApi: POST /api/v1/commands
-    CommandApi->>EventStore: Store events atomically
-    EventStore-->>CommandApi: Events persisted
-    CommandApi-->>Client: 202 Accepted (correlationId)
+    Client->>Gateway: POST /api/v1/commands
+    Gateway->>EventStore: Store events atomically
+    EventStore-->>Gateway: Events persisted
+    Gateway-->>Client: 202 Accepted (correlationId)
 
     Note over Client,EventStore: Synchronous boundary — state committed
 
@@ -56,7 +56,7 @@ Subscribing services should treat tenant state as **eventually consistent**. Fol
 
 **Event ordering guarantees:**
 
-- **Within a single aggregate instance**, events are **stored** in strict order — the aggregate version (sequence number) is monotonically increasing. Note that DAPR pub/sub does not guarantee delivery order; events may be redelivered out of sequence. Consumers must resequence using `aggregateVersion`, not delivery order.
+- **Within a single aggregate instance**, events are **stored** in strict order — the envelope `SequenceNumber` is monotonically increasing. Note that DAPR pub/sub does not guarantee delivery order; events may be redelivered out of sequence. Consumers must use `SequenceNumber` only within one aggregate stream, not as a global order across services, tenants, aggregate types, subscriber instances, or redelivery attempts.
 - **Across different aggregates** and **across different subscribing services**, there is **no ordering guarantee**. Do not assume events arrive in the same order across different services.
 
 **Design handlers to be idempotent.** DAPR pub/sub guarantees at-least-once delivery, meaning events may arrive more than once. See [Idempotent Event Processing](idempotent-event-processing.md) for patterns.

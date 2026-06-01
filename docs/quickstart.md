@@ -44,9 +44,9 @@ docker info
 
 Expected: Docker daemon information (Engine version, etc.).
 
-Docker Desktop must be running. The Aspire AppHost launches containers for Redis (DAPR state store) and the DAPR sidecar.
+Docker Desktop must be running. The Aspire AppHost launches containers for Redis, Keycloak, and DAPR sidecars.
 
-> **Tip:** Allocate at least 4 GB of memory to Docker Desktop. The full topology (CommandApi + DAPR sidecar + Redis) can exceed lower memory limits.
+> **Tip:** Allocate at least 4 GB of memory to Docker Desktop. The full topology (EventStore command gateway + Tenants + Sample + DAPR sidecars + Redis + Keycloak) can exceed lower memory limits.
 
 If not installed, download Docker Desktop from [https://docs.docker.com/get-started/get-docker/](https://docs.docker.com/get-started/get-docker/).
 
@@ -54,7 +54,7 @@ If not installed, download Docker Desktop from [https://docs.docker.com/get-star
 
 Hexalith.Tenants operates as a platform-level service within EventStore's multi-tenant model. All tenant management commands run under the `system` tenant context — this is a platform tenant that manages other tenants, not a user-facing tenant.
 
-For local development, the Aspire AppHost topology handles the `system` tenant configuration automatically. You do not need to manually deploy EventStore or configure JWT tenant claims — the development signing key and in-memory state store are preconfigured.
+For local development, the Aspire AppHost topology handles the `system` tenant configuration automatically. By default it starts a local Keycloak realm that emits `eventstore:tenant=system` for the sample administrator. You do not need to manually deploy EventStore or configure JWT tenant claims.
 
 ## Clone and Build
 
@@ -76,21 +76,35 @@ dotnet build Hexalith.Tenants.slnx --configuration Release
 
 ## Run the Application
 
-Start the Aspire AppHost, which launches the CommandApi with its DAPR sidecar, Redis state store, and the sample consuming service:
+Start the Aspire AppHost, which launches the EventStore command gateway, the Tenants domain service, Keycloak, Redis, DAPR sidecars, and the sample consuming service:
 
 ```bash
 dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
 ```
 
-> **Note:** The first run takes longer than usual because .NET restores NuGet packages and Docker pulls container images for Redis and the DAPR sidecar.
+> **Note:** The first run takes longer than usual because .NET restores NuGet packages and Docker pulls container images for Redis, Keycloak, and the DAPR sidecars.
 
 Once the application starts, the terminal output includes the Aspire dashboard URL. Open it in your browser — the dashboard shows all running services and their endpoints.
 
 ## Get an Access Token
 
-The CommandApi requires a JWT token for authentication. The Tenants project uses a development signing key for local development (no external identity provider needed).
+The EventStore command gateway requires a JWT token for authentication. The default local AppHost starts Keycloak with a sample realm and user.
 
-Generate a JWT token using PowerShell or bash. The token includes the `system` tenant claim required for tenant management commands.
+Find the `keycloak` base URL in the Aspire dashboard, then request a token with the local sample credentials:
+
+```bash
+curl -s -X POST "{keycloak-url}/realms/hexalith/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password" \
+  -d "client_id=hexalith-eventstore" \
+  -d "username=admin-user" \
+  -d "password=admin-pass" \
+  | jq -r .access_token
+```
+
+If `jq` is not installed, copy the `access_token` value from the JSON response. The token includes the direct `eventstore:tenant=system`, `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims required for tenant-management commands.
+
+If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. That fallback uses the development signing key in `src/Hexalith.Tenants/appsettings.Development.json`.
 
 **PowerShell:**
 
@@ -125,7 +139,7 @@ echo "$header.$payload.$sig"
 
 Copy the output token — you need it in the next step.
 
-> **How it works:** The development configuration (`appsettings.Development.json`) uses a hardcoded HMAC-SHA256 signing key with issuer `hexalith-dev` and audience `hexalith-tenants`. The `tenants: ["system"]` value is a source claim that EventStore normalizes into the downstream `eventstore:tenant=system` claim required for tenant-management commands. This token is valid for 8 hours. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
+> **How it works:** The default local Keycloak realm is imported from `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` and is configured for the `hexalith-eventstore` audience used by the AppHost. The `EnableKeycloak=false` fallback uses a hardcoded HMAC-SHA256 signing key with issuer `hexalith-dev` and audience `hexalith-tenants`; the `tenants: ["system"]` source claim is normalized by EventStore into `eventstore:tenant=system`. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
 >
 > **Production note:** Production deployments use OIDC authority-based JWT validation, not the local HMAC signing key. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
 
@@ -305,7 +319,7 @@ Or change the port in the AppHost configuration.
 
 **Docker resource limits**
 
-The topology (CommandApi + DAPR sidecar + Redis) can exceed default Docker Desktop memory allocation. Increase Docker memory to 4 GB or more in Docker Desktop Settings > Resources.
+The topology (EventStore command gateway + Tenants + Sample + DAPR sidecars + Redis + Keycloak) can exceed default Docker Desktop memory allocation. Increase Docker memory to 4 GB or more in Docker Desktop Settings > Resources.
 
 **DAPR not initialized**
 

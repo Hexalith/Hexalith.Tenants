@@ -18,7 +18,7 @@ These are the same prerequisites as the [Quickstart](quickstart.md#prerequisites
 
 ## Start the Topology
 
-Start the Aspire AppHost, which launches the CommandApi, the Sample consuming service, DAPR sidecars, and Redis:
+Start the Aspire AppHost, which launches the EventStore command gateway, the Tenants domain service, the Sample consuming service, Keycloak, DAPR sidecars, and Redis:
 
 ```bash
 dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
@@ -38,12 +38,12 @@ Open this URL in your browser. This is the **Aspire dashboard**. You will use it
 
 In the Aspire dashboard:
 
-1. Click **commandapi** to find the CommandApi base URL (e.g., `https://localhost:{port}`)
+1. Click **eventstore** to find the EventStore command gateway base URL (e.g., `https://localhost:{port}`)
 2. Click **sample** to find the Sample service base URL
 
 Note these URLs for the remaining steps.
 
-> **Aspire assigns ports dynamically** — your ports will differ from the examples below. Replace `{commandapi-url}` and `{sample-url}` with your actual URLs throughout this guide.
+> **Aspire assigns ports dynamically** — your ports will differ from the examples below. Replace `{eventstore-url}` and `{sample-url}` with your actual URLs throughout this guide.
 
 ## Get a JWT Token
 
@@ -53,7 +53,7 @@ Generate a JWT token following the [Quickstart JWT section](quickstart.md#get-an
 
 ### Set Up Swagger UI
 
-Open `{commandapi-url}/swagger` in your browser. Click the **Authorize** button (top right), paste your JWT token in the **Value** field (do not include the `Bearer` prefix — Swagger adds it automatically), and click **Authorize**, then **Close**.
+Open `{eventstore-url}/swagger` in your browser. Click the **Authorize** button (top right), paste your JWT token in the **Value** field (do not include the `Bearer` prefix — Swagger adds it automatically), and click **Authorize**, then **Close**.
 
 You are now authenticated for all subsequent requests.
 
@@ -74,7 +74,7 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
 }
 ```
 
-**Observe:** CommandApi returns `202 Accepted`. No Sample service log entry — GlobalAdmin events don't trigger sample handlers.
+**Observe:** The EventStore command gateway returns `202 Accepted`. No Sample service log entry — GlobalAdmin events don't trigger sample handlers.
 
 > **Important:** The `UserId` in the payload must match the `sub` claim in your JWT token. The quickstart JWT scripts use `"admin-user"` as the `sub` claim.
 
@@ -95,7 +95,7 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
 }
 ```
 
-**Observe:** CommandApi returns `202 Accepted`.
+**Observe:** The EventStore command gateway returns `202 Accepted`.
 
 > **Re-running the demo?** If you've run this before, `BootstrapGlobalAdmin` will return `GlobalAdminAlreadyBootstrappedRejection` (safe to ignore — bootstrap already done) and `CreateTenant` will return `TenantAlreadyExistsRejection`. Use a different tenant ID (e.g., `acme-demo-2`) and matching `aggregateId`.
 
@@ -118,11 +118,11 @@ Expand **POST /api/v1/commands**, click **Try it out**, and submit:
 
 > **Roles:** Use the enum names `TenantOwner`, `TenantContributor`, or `TenantReader`. `Unknown` is the fail-closed sentinel and is rejected by the aggregate.
 
-**Observe** (Aspire dashboard → `sample` → Logs): `[Sample] User jane-doe added to tenant acme-demo with role TenantContributor`
+**Observe** (Aspire dashboard → `sample` → Logs): `[Sample] UserAddedToTenant processed for tenant acme-demo; message ...; correlation ...`
 
 ### Step 4: Verify Access in Sample Service
 
-**Wait for the log:** Before checking the endpoint, confirm you see the `[Sample] User jane-doe added to tenant acme-demo...` log message in the Aspire dashboard → `sample` → Logs. This confirms the event has been processed by the local projection.
+**Wait for the log:** Before checking the endpoint, confirm you see the `[Sample] UserAddedToTenant processed for tenant acme-demo...` log message in the Aspire dashboard → `sample` → Logs. This confirms the event has been processed by the local projection.
 
 Open `{sample-url}/access/acme-demo/jane-doe` in your browser (find `{sample-url}` from the Aspire dashboard → `sample` → Endpoints).
 
@@ -153,7 +153,7 @@ Open `{sample-url}/access/acme-demo/jane-doe` in your browser (find `{sample-url
 }
 ```
 
-**Observe** (Aspire dashboard → `sample` → Logs): `[Sample] User jane-doe REMOVED from tenant acme-demo — revoking access`
+**Observe** (Aspire dashboard → `sample` → Logs): `[Sample] UserRemovedFromTenant processed for tenant acme-demo; revoking projected access; message ...; correlation ...`
 
 **Observe:** `{sample-url}/access/acme-demo/jane-doe` now returns:
 
@@ -170,26 +170,26 @@ Open `{sample-url}/access/acme-demo/jane-doe` in your browser (find `{sample-url
 
 ### Step 6: Verify Current State and Understand the Audit Trail
 
-**Wait for the log:** Before checking access, confirm you see the `[Sample] User jane-doe REMOVED from tenant acme-demo...` log message in the Aspire dashboard → `sample` → Logs. This confirms the revocation event has been processed by the local projection.
+**Wait for the log:** Before checking access, confirm you see the `[Sample] UserRemovedFromTenant processed for tenant acme-demo...` log message in the Aspire dashboard → `sample` → Logs. This confirms the revocation event has been processed by the local projection.
 
-Open `{commandapi-url}/api/tenants/acme-demo` in the Swagger UI (authenticated) or append `?access_token={token}` for browser access.
+Open `{eventstore-url}/api/tenants/acme-demo` in the Swagger UI (authenticated) or append `?access_token={token}` for browser access.
 
 **Observe:** Tenant details showing the current state — the tenant exists with an empty members list (jane-doe was added then removed).
 
 **Audit trail note:** The query endpoint above shows the CURRENT projection state, not the event history. The full audit trail — `TenantCreated` → `UserAddedToTenant` → `UserRemovedFromTenant` with timestamps and actor IDs — lives in the event store. In the event-sourced model, no state change is ever lost: the add, the remove, who did it, and when are all preserved as immutable events.
 
-> **Audit query endpoint:** The API exposes `GET /api/tenants/{tenantId}/audit` for date-range audit queries (FR29), but this endpoint returns `501 Not Implemented` in the current MVP. A future release will project the event stream into a queryable audit log. For event schema details and temporal auditability patterns, see [Event Contract Reference](event-contract-reference.md).
+> **Audit query endpoint:** The API exposes `GET /api/tenants/{tenantId}/audit` for date-range audit queries. It is restricted to global administrators and returns projection-backed audit rows when the tenant audit projection has processed matching events. For event schema details and temporal auditability patterns, see [Event Contract Reference](event-contract-reference.md).
 
 ## What Just Happened?
 
 Here's the architecture behind the demo:
 
-1. **CommandApi** processed each command and stored events atomically in the event store
+1. The **EventStore command gateway** processed each command and stored events atomically in the event store
 2. Events were **published asynchronously** via DAPR pub/sub to the `tenants.events` topic
 3. The **Sample service** received each event via its subscription endpoint
 4. The Sample's `SampleLoggingEventHandler` logged the event
 5. The Sample's local projection (`ITenantProjectionStore`) was updated automatically
-6. The `/access` endpoint reads from the **local projection** — no calls back to CommandApi
+6. The `/access` endpoint reads from the **local projection** — no synchronous calls back to Tenants or EventStore
 
 **Multi-service note:** This demo shows one subscribing service for simplicity. In production, any number of services can subscribe to the same `tenants.events` topic — each would independently receive the `UserRemovedFromTenant` event and revoke access in its own local projection simultaneously. The architecture supports this with zero additional configuration — each new subscriber just adds `AddHexalithTenants()` and a DAPR pub/sub subscription.
 
@@ -224,7 +224,7 @@ Event propagation is asynchronous — wait 1–2 seconds for the event to reach 
 
 ### Access Endpoint Returns 500 Error
 
-The local projection uses DAPR state store (Redis). Verify Redis is running: `docker ps | grep redis`. If Redis crashed, restart the AppHost.
+The sample uses the Client package's default in-memory `ITenantProjectionStore`. Restarting the sample clears projected state until events are replayed or delivered again. Check the `sample` logs for invalid payload or handler failures, and restart the AppHost if the sample process is unhealthy.
 
 ### First Command Fails With Connection Error (not 401/4xx)
 

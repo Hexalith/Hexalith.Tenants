@@ -40,7 +40,7 @@ DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see
 
 The Client package's built-in local projection is runtime state for the consuming service. It lets the service answer tenant-aware access, lifecycle, and configuration behavior checks from its own process/store instead of synchronously querying Tenants for every decision. `UserAddedToTenant`, `UserRoleChanged`, `UserRemovedFromTenant`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, and `TenantConfigurationRemoved` are applied by `TenantProjectionEventHandler` to `TenantLocalState`; the projection also keeps bounded `LastEvent` metadata for diagnostics: last message ID, aggregate-local sequence number, timestamp, and correlation ID. EventStore remains the durable source of truth, and each consuming service processes `tenants.events` independently; lifecycle/configuration reactions are eventually consistent with the tenant event stream, so do not assume immediate read-after-write visibility or matching observation time across services. Scaled-out services should use a bounded shared deduplication store and durable projection store when duplicate suppression or projection state must survive process restarts or coordinate across instances.
 
-Commands are submitted via the CommandApi. See the [Quickstart Guide](quickstart.md) for command submission details.
+Commands are submitted through the EventStore command gateway. See the [Quickstart Guide](quickstart.md) for command submission details.
 
 ## Identity Scheme
 

@@ -74,14 +74,14 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4: Consuming Services Can React to Tenant Events
-  epic-4: in-progress
+  epic-4: done
   4-1-publish-tenant-domain-events-as-cloudevents: done
   4-2-expose-consumer-di-registration-for-tenant-client-services: done
   4-3-register-tenant-event-handlers-in-under-twenty-lines: done
   4-4-build-a-local-consumer-projection-from-tenant-events: done
   4-5-react-to-tenant-access-lifecycle-and-configuration-changes: done
   4-6-provide-idempotent-consumer-guidance-and-sample-service: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # Epic 5: Operators and Developers Can Query Tenant State and Audit Access
   epic-5: backlog
