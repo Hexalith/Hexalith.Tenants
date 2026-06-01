@@ -68,11 +68,21 @@ public class ProjectionDispatcherTests {
         IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
 
         // Tenant handler writes the per-tenant projection key through a guarded ETag save.
+        await daprClient.Received(1).GetStateAndETagAsync<TenantReadModel>(
+            "statestore",
+            "projection:tenants:tenant-1");
         await daprClient.Received(1).TrySaveStateAsync(
             "statestore",
             "projection:tenants:tenant-1",
             Arg.Any<TenantReadModel>(),
-            Arg.Any<string>(),
+            string.Empty,
+            Arg.Is<Dapr.Client.StateOptions>(o => o != null && o.Concurrency == ConcurrencyMode.FirstWrite),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+        await daprClient.DidNotReceive().SaveStateAsync(
+            "statestore",
+            "projection:tenants:tenant-1",
+            Arg.Any<TenantReadModel>(),
             Arg.Any<Dapr.Client.StateOptions>(),
             Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
