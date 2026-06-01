@@ -445,15 +445,33 @@ public class TenantsProjectionActorTests {
 
     // --- Q21: GetTenant with non-existent tenantId ---
     [Fact]
-    public async Task GetTenant_non_existent_returns_errorAsync() {
+    public async Task GetTenant_non_admin_for_missing_tenant_returns_forbiddenAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         _ = daprClient.GetStateAsync<TenantReadModel>(
             TenantsProjectionActor.StateStoreName,
             Arg.Any<string>())
             .Returns(Task.FromResult<TenantReadModel>(null!)!);
+        SetupNoGlobalAdmin(daprClient);
 
         TenantsProjectionActor actor = CreateActor(daprClient);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", aggregateId: "nonexistent"));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetTenant_global_admin_for_missing_tenant_returns_not_foundAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        _ = daprClient.GetStateAsync<TenantReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            Arg.Any<string>())
+            .Returns(Task.FromResult<TenantReadModel>(null!)!);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "admin-1", aggregateId: "nonexistent"));
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage!.ShouldContain("not found");
@@ -472,6 +490,56 @@ public class TenantsProjectionActorTests {
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage!.ShouldContain("Forbidden");
+    }
+
+    [Theory]
+    [InlineData(TenantRole.TenantReader, true)]
+    [InlineData(TenantRole.TenantContributor, true)]
+    [InlineData(TenantRole.TenantOwner, true)]
+    [InlineData(TenantRole.Unknown, false)]
+    public async Task GetTenant_member_authorization_treats_only_concrete_roles_as_membersAsync(
+        TenantRole role,
+        bool expectedSuccess) {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = role });
+        SetupTenantState(daprClient, "tenant-1", model);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-1"));
+
+        result.Success.ShouldBe(expectedSuccess);
+        if (expectedSuccess) {
+            TenantDetail? detail = DeserializePayload<TenantDetail>(result);
+            _ = detail.ShouldNotBeNull();
+            detail.TenantId.ShouldBe("tenant-1");
+        }
+        else {
+            result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+            result.PayloadBytes.ShouldBeNull();
+        }
+    }
+
+    [Fact]
+    public async Task GetTenant_filters_unknown_role_rows_from_detail_membersAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantReadModel model = CreateTenantReadModel(members: new() {
+            ["user-1"] = TenantRole.TenantOwner,
+            ["hidden-user"] = TenantRole.Unknown,
+        });
+        SetupTenantState(daprClient, "tenant-1", model);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-1"));
+
+        result.Success.ShouldBeTrue();
+        TenantDetail? detail = DeserializePayload<TenantDetail>(result);
+        _ = detail.ShouldNotBeNull();
+        detail.Members.Select(m => m.UserId).ShouldBe(["user-1"]);
+        string body = result.GetPayload().GetRawText();
+        body.ShouldNotContain("hidden-user");
+        body.ShouldNotContain("Unknown");
     }
 
     // --- Q18: GetTenantAudit returns audit entries for GlobalAdmin ---
@@ -788,6 +856,106 @@ public class TenantsProjectionActorTests {
         PaginatedResult<TenantMember>? page = DeserializePayload<PaginatedResult<TenantMember>>(result);
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_global_admin_bypasses_membershipAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        Dictionary<string, TenantRole> members = new() {
+            ["user-1"] = TenantRole.TenantReader,
+            ["user-2"] = TenantRole.TenantContributor,
+        };
+        TenantReadModel model = CreateTenantReadModel(members: members);
+        SetupTenantState(daprClient, "tenant-1", model);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "admin-1"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantMember>? page = DeserializePayload<PaginatedResult<TenantMember>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Select(i => i.UserId).ShouldBe(["user-1", "user-2"]);
+    }
+
+    [Theory]
+    [InlineData(TenantRole.TenantReader, true)]
+    [InlineData(TenantRole.TenantContributor, true)]
+    [InlineData(TenantRole.TenantOwner, true)]
+    [InlineData(TenantRole.Unknown, false)]
+    public async Task GetTenantUsers_member_authorization_treats_only_concrete_roles_as_membersAsync(
+        TenantRole role,
+        bool expectedSuccess) {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = role, ["user-2"] = TenantRole.TenantReader });
+        SetupTenantState(daprClient, "tenant-1", model);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "user-1"));
+
+        result.Success.ShouldBe(expectedSuccess);
+        if (expectedSuccess) {
+            PaginatedResult<TenantMember>? page = DeserializePayload<PaginatedResult<TenantMember>>(result);
+            _ = page.ShouldNotBeNull();
+            page.Items.Select(i => i.UserId).ShouldContain("user-2");
+        }
+        else {
+            result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+            result.PayloadBytes.ShouldBeNull();
+        }
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_non_admin_for_missing_tenant_returns_forbidden_without_page_metadataAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        _ = daprClient.GetStateAsync<TenantReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            Arg.Any<string>())
+            .Returns(Task.FromResult<TenantReadModel>(null!)!);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", aggregateId: "hidden-tenant"));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_filters_unknown_role_rows_before_paginationAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantReadModel model = CreateTenantReadModel(members: new() {
+            ["user-1"] = TenantRole.TenantOwner,
+            ["user-2"] = TenantRole.Unknown,
+            ["user-3"] = TenantRole.TenantReader,
+        });
+        SetupTenantState(daprClient, "tenant-1", model);
+        SetupNoGlobalAdmin(daprClient);
+
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-users",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<TenantMember>? firstPage = DeserializePayload<PaginatedResult<TenantMember>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.UserId).ShouldBe(["user-1"]);
+        firstPage.HasMore.ShouldBeTrue();
+        _ = firstPage.Cursor.ShouldNotBeNull();
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-users",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        PaginatedResult<TenantMember>? secondPage = DeserializePayload<PaginatedResult<TenantMember>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.UserId).ShouldBe(["user-3"]);
+        secondPage.Items.Select(i => i.UserId).ShouldNotContain("user-2");
+        secondPage.HasMore.ShouldBeFalse();
+        secondPage.Cursor.ShouldBeNull();
     }
 
     [Fact]
@@ -1153,6 +1321,92 @@ public class TenantsProjectionActorTests {
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(0);
         page.HasMore.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_excludes_unknown_roles_and_does_not_use_them_as_owner_authorityAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["owner-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantOwner,
+                ["tenant-002"] = TenantRole.Unknown,
+            },
+            ["user-2"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.TenantReader,
+                ["tenant-003"] = TenantRole.Unknown,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "owner-1", aggregateId: "index", entityId: "user-2"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        page.HasMore.ShouldBeFalse();
+        page.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_rejects_cursor_issued_for_different_requesterAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["owner-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner, ["tenant-002"] = TenantRole.TenantOwner },
+            ["owner-2"] = new() { ["tenant-001"] = TenantRole.TenantOwner, ["tenant-002"] = TenantRole.TenantOwner },
+            ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-002"] = TenantRole.TenantReader },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        string foreignRequesterCursor = cursorCodec.Encode(
+            GetUserTenantsQuery.QueryType,
+            TenantQueryCursorScopes.GetUserTenants("owner-2", "user-2"),
+            "tenant-001");
+
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "user-2",
+            payload: CreatePaginationPayload(cursor: foreignRequesterCursor)));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.PayloadBytes.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_rejects_invalid_cursor_before_empty_missing_target_responseAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(1, new() {
+            ["owner-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        string wrongTargetCursor = cursorCodec.Encode(
+            GetUserTenantsQuery.QueryType,
+            TenantQueryCursorScopes.GetUserTenants("owner-1", "other-target"),
+            "tenant-001");
+
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "missing-target",
+            payload: CreatePaginationPayload(cursor: wrongTargetCursor)));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.PayloadBytes.ShouldBeNull();
     }
 
     // --- Q15: GetUserTenants for own user works ---
@@ -1605,6 +1859,30 @@ public class TenantsProjectionActorTests {
         page.HasMore.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task ListTenants_rejects_invalid_cursor_before_empty_index_responseAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        string wrongUserCursor = cursorCodec.Encode(
+            ListTenantsQuery.QueryType,
+            TenantQueryCursorScopes.ListTenants("other-user"),
+            "tenant-001");
+
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(cursor: wrongUserCursor)));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.PayloadBytes.ShouldBeNull();
+        _ = await daprClient.DidNotReceive().GetStateAsync<TenantIndexReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantIndexProjectionKey,
+            cancellationToken: Arg.Any<CancellationToken>());
+    }
+
     // --- Q10: GlobalAdmin ListTenants returns all tenants ---
     [Fact]
     public async Task ListTenants_global_admin_returns_all() {
@@ -1719,6 +1997,45 @@ public class TenantsProjectionActorTests {
         PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task ListTenants_non_admin_excludes_unknown_role_memberships_before_paginationAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["user-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.Unknown,
+                ["tenant-003"] = TenantRole.TenantContributor,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        page.HasMore.ShouldBeTrue();
+        page.Cursor.ShouldNotBeNullOrWhiteSpace();
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(cursor: page.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? secondPage = DeserializePayload<PaginatedResult<TenantSummary>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-003"]);
+        secondPage.HasMore.ShouldBeFalse();
+        secondPage.Cursor.ShouldBeNull();
     }
 
     // --- Q11: Pagination returns correct first page ---

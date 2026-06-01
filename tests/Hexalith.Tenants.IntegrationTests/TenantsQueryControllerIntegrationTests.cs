@@ -12,6 +12,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
+using Hexalith.Tenants.Queries;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -454,6 +455,8 @@ public class TenantsQueryControllerIntegrationTests {
         _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(403);
         details.Title.ShouldBe("Forbidden");
+        string body = await response.Content.ReadAsStringAsync();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: false);
     }
 
     [Fact]
@@ -497,6 +500,8 @@ public class TenantsQueryControllerIntegrationTests {
         _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(403);
         details.Title.ShouldBe("Forbidden");
+        string body = await response.Content.ReadAsStringAsync();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: false);
     }
 
     [Fact]
@@ -542,8 +547,58 @@ public class TenantsQueryControllerIntegrationTests {
         JsonElement root = bodyDocument.RootElement;
         root.TryGetProperty("items", out _).ShouldBeFalse();
         root.TryGetProperty("hasMore", out _).ShouldBeFalse();
+        root.TryGetProperty("cursor", out _).ShouldBeFalse();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
+        body.ShouldNotContain("not-a-protected-cursor");
 
         // The router must not be invoked when the cursor is rejected at the controller boundary.
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Theory]
+    [InlineData("/api/tenants?cursor={cursor}", "list-tenants", "user:other-user")]
+    [InlineData("/api/tenants/tenant-1/users?cursor={cursor}", "get-tenant-users", "tenant:tenant-2")]
+    [InlineData("/api/users/user-2/tenants?cursor={cursor}", "get-user-tenants", "requester:other-user|target-user:user-2")]
+    [InlineData("/api/users/user-2/tenants?cursor={cursor}", "get-user-tenants", "requester:test-user|target-user:user-3")]
+    [InlineData("/api/tenants/tenant-1/audit?cursor={cursor}", "get-tenant-audit", "tenant:tenant-2|from:|to:|category:")]
+    [InlineData("/api/tenants/tenant-1/audit?category=Administrative&cursor={cursor}", "get-tenant-audit", "tenant:tenant-1|from:|to:|category:Access")]
+    public async Task Paginated_queries_return_400_before_routing_when_signed_cursor_scope_does_not_match(
+        string pathTemplate,
+        string queryType,
+        string foreignScope) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pathTemplate);
+        ArgumentException.ThrowIfNullOrWhiteSpace(queryType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(foreignScope);
+
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(queryType, foreignScope, "position-1");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            pathTemplate.Replace("{cursor}", Uri.EscapeDataString(cursor), StringComparison.Ordinal));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+
+        using JsonDocument bodyDocument = JsonDocument.Parse(body);
+        JsonElement root = bodyDocument.RootElement;
+        root.TryGetProperty("items", out _).ShouldBeFalse();
+        root.TryGetProperty("hasMore", out _).ShouldBeFalse();
+        root.TryGetProperty("cursor", out _).ShouldBeFalse();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
+        body.ShouldNotContain(cursor);
+        body.ShouldNotContain(foreignScope);
+
         await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
 
@@ -579,6 +634,22 @@ public class TenantsQueryControllerIntegrationTests {
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return router;
+    }
+
+    private static void AssertProblemDetailsDoesNotLeakQueryData(string body, bool allowCursorReasonText) {
+        body.ShouldNotContain("items", Case.Insensitive);
+        if (!allowCursorReasonText) {
+            body.ShouldNotContain("cursor", Case.Insensitive);
+        }
+
+        body.ShouldNotContain("hasMore", Case.Insensitive);
+        body.ShouldNotContain("Tenant One");
+        body.ShouldNotContain("tenant-secret");
+        body.ShouldNotContain("member-user");
+        body.ShouldNotContain("evt-secret");
+        body.ShouldNotContain("Bearer ", Case.Insensitive);
+        body.ShouldNotContain(JwtSigningKey);
+        body.ShouldNotContain(SmokeJwtSigningKey);
     }
 
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)

@@ -150,9 +150,10 @@ internal static class TenantQueryCursorScopes {
         return $"tenant:{EscapeSegment(tenantId)}";
     }
 
-    public static string GetUserTenants(string targetUserId) {
+    public static string GetUserTenants(string requesterUserId, string targetUserId) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(requesterUserId);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetUserId);
-        return $"target-user:{EscapeSegment(targetUserId)}";
+        return $"requester:{EscapeSegment(requesterUserId)}|target-user:{EscapeSegment(targetUserId)}";
     }
 
     public static string GetTenantAudit(

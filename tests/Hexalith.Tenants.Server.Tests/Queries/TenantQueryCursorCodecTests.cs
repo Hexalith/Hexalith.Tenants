@@ -16,7 +16,7 @@ public class TenantQueryCursorCodecTests {
 
         TenantQueryCursorScopes.ListTenants("user-1").ShouldBe("user:user-1");
         TenantQueryCursorScopes.GetTenantUsers("tenant-1").ShouldBe("tenant:tenant-1");
-        TenantQueryCursorScopes.GetUserTenants("user-2").ShouldBe("target-user:user-2");
+        TenantQueryCursorScopes.GetUserTenants("user-1", "user-2").ShouldBe("requester:user-1|target-user:user-2");
         TenantQueryCursorScopes
             .GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative)
             .ShouldBe("tenant:tenant-1|from:2026-05-14T10:00:00.0000000Z|to:2026-05-14T11:00:00.0000000Z|category:Administrative");

@@ -229,7 +229,10 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
     private static HashSet<string> GetUserTenantIds(TenantIndexReadModel indexModel, string userId) {
         if (indexModel.UserTenants.TryGetValue(userId, out Dictionary<string, TenantRole>? tenants)) {
-            return new HashSet<string>(tenants.Keys, StringComparer.Ordinal);
+            return tenants
+                .Where(kvp => IsConcreteTenantRole(kvp.Value))
+                .Select(kvp => kvp.Key)
+                .ToHashSet(StringComparer.Ordinal);
         }
 
         return [];
@@ -241,7 +244,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         Dictionary<string, TenantRole> targetUserTenants,
         bool canViewAllTargetTenants) {
         if (canViewAllTargetTenants) {
-            return targetUserTenants;
+            return targetUserTenants.Where(kvp => IsConcreteTenantRole(kvp.Value));
         }
 
         if (!indexModel.UserTenants.TryGetValue(requesterUserId, out Dictionary<string, TenantRole>? requesterTenants)) {
@@ -253,8 +256,14 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             .Select(kvp => kvp.Key)
             .ToHashSet(StringComparer.Ordinal);
 
-        return targetUserTenants.Where(kvp => requesterOwnedTenantIds.Contains(kvp.Key));
+        return targetUserTenants.Where(kvp => IsConcreteTenantRole(kvp.Value) && requesterOwnedTenantIds.Contains(kvp.Key));
     }
+
+    private static bool IsConcreteTenantRole(TenantRole role)
+        => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
+
+    private static IEnumerable<KeyValuePair<string, TenantRole>> GetConcreteMembers(TenantReadModel model)
+        => model.Members.Where(kvp => IsConcreteTenantRole(kvp.Value));
 
     private static PaginatedResult<TResult> Paginate<TSource, TResult>(
         IEnumerable<KeyValuePair<string, TSource>> items,
@@ -306,7 +315,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
-            return new QueryResult(false, default, ErrorMessage: "Tenant not found");
+            return await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false)
+                ? new QueryResult(false, default, ErrorMessage: "Tenant not found")
+                : new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 
         if (!await IsAuthorizedForTenantAsync(envelope.UserId, model, cancellationToken).ConfigureAwait(false)) {
@@ -319,7 +330,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             model.Name,
             model.Description,
             model.Status,
-            model.Members.Select(m => new TenantMember(m.Key, m.Value)).ToList(),
+            GetConcreteMembers(model).Select(m => new TenantMember(m.Key, m.Value)).ToList(),
             model.Configuration.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
             model.CreatedAt);
 
@@ -391,7 +402,9 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
-            return new QueryResult(false, default, ErrorMessage: "Tenant not found");
+            return await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false)
+                ? new QueryResult(false, default, ErrorMessage: "Tenant not found")
+                : new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 
         if (!await IsAuthorizedForTenantAsync(envelope.UserId, model, cancellationToken).ConfigureAwait(false)) {
@@ -406,7 +419,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         PaginatedResult<TenantMember> result = ProtectCursor(
             Paginate(
-                model.Members,
+                GetConcreteMembers(model),
                 cursor,
                 pageSize,
                 kvp => kvp.Key,
@@ -439,6 +452,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
         bool canViewAllTargetTenants = isSelfLookup
             || await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false);
 
+        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        string scope = TenantQueryCursorScopes.GetUserTenants(envelope.UserId, targetUserId);
+        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(GetUserTenantsQuery.QueryType, "get-user-tenants", envelope.AggregateId, envelope.UserId, failureReason);
+        }
+
         if (indexModel is null
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -466,12 +485,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             }
 
             orphanTenantIds.Add(visibleUserTenant.Key);
-        }
-
-        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
-        string scope = TenantQueryCursorScopes.GetUserTenants(targetUserId);
-        if (!_cursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
-            return InvalidCursorResult(GetUserTenantsQuery.QueryType, "get-user-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         // Emit repair warnings only after the request is otherwise valid, and only once per
@@ -511,6 +524,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
     private async Task<QueryResult> HandleListTenantsAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
+        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(ListTenantsQuery.QueryType, "list-tenants", envelope.AggregateId, envelope.UserId, failureReason);
+        }
+
         TenantIndexReadModel? indexModel = await _daprClient
             .GetStateAsync<TenantIndexReadModel>(
                 StateStoreName,
@@ -538,12 +557,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             tenants = indexModel.Tenants.Where(t => userTenantIds.Contains(t.Key));
         }
 
-        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
-        string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
-        if (!_cursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
-            return InvalidCursorResult(ListTenantsQuery.QueryType, "list-tenants", envelope.AggregateId, envelope.UserId, failureReason);
-        }
-
         PaginatedResult<TenantSummary> result = ProtectCursor(
             Paginate(
                 tenants,
@@ -561,7 +574,7 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
     }
 
     private async Task<bool> IsAuthorizedForTenantAsync(string userId, TenantReadModel model, CancellationToken cancellationToken) {
-        if (model.Members.ContainsKey(userId)) {
+        if (model.Members.TryGetValue(userId, out TenantRole role) && IsConcreteTenantRole(role)) {
             return true;
         }
 

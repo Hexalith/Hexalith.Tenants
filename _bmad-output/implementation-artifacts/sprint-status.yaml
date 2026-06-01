@@ -89,7 +89,7 @@ development_status:
   5-2-persist-the-shared-tenant-index-projection-without-silent-write-loss: done
   5-3-persist-the-tenant-audit-projection-without-silent-write-loss: done
   5-4-expose-projection-write-conflict-diagnostics-and-recovery-evidence: done
-  5-5-enforce-query-side-authorization-and-isolation: backlog
+  5-5-enforce-query-side-authorization-and-isolation: done
   5-6-provide-safe-cursor-based-pagination-for-query-endpoints: backlog
   5-7-query-a-paginated-tenant-list: backlog
   5-8-query-tenant-details-and-tenant-users: backlog

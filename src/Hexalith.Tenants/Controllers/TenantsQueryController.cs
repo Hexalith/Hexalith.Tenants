@@ -213,7 +213,7 @@ public sealed partial class TenantsQueryController(
         IActionResult? cursorValidation = ValidateSubmittedCursor(
             cursor,
             GetUserTenantsQuery.QueryType,
-            TenantQueryCursorScopes.GetUserTenants(userId),
+            TenantQueryCursorScopes.GetUserTenants(authenticatedUserId, userId),
             "get-user-tenants",
             correlationId,
             tenantId: string.Empty,
