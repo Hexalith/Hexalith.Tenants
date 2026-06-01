@@ -172,6 +172,18 @@ public class TenantIndexReadModelTests {
     }
 
     [Fact]
+    public void Apply_UserAddedToTenant_ReplayOverwritesExistingMembershipRole() {
+        var model = new TenantIndexReadModel();
+        model.Apply(new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
+        model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantReader));
+
+        model.Apply(new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner));
+
+        model.UserTenants["user1"].Count.ShouldBe(1);
+        model.UserTenants["user1"]["acme"].ShouldBe(TenantRole.TenantOwner);
+    }
+
+    [Fact]
     public void Apply_UserAddedToTenantWhenTenantNotInIndex_IgnoresEvent() {
         var model = new TenantIndexReadModel();
 

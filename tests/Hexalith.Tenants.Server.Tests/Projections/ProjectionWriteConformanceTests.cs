@@ -175,8 +175,15 @@ public class ProjectionWriteConformanceTests
         // Attempt-count invariants (AC7).
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(2);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(2);
-        fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, 0).ETag.ShouldBe("index-etag-1");
-        fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, 1).ETag.ShouldBe("index-etag-2");
+        SaveAttempt save1 = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, 0);
+        SaveAttempt save2 = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, 1);
+        save1.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
+        save2.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
+        save1.ETag.ShouldBe("index-etag-1");
+        save2.ETag.ShouldBe("index-etag-2");
+        save1.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
+        save2.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
+        fixture.StateStore.PlainSaveAttempts.ShouldBeEmpty();
 
         // Conflict warning emitted; retry-exhausted NOT emitted.
         fixture.GetLogEntries(ConflictEventIdInt).ShouldContain(e => e.Level == LogLevel.Warning);
@@ -193,7 +200,9 @@ public class ProjectionWriteConformanceTests
         var fixture = new ProjectionWriteConformanceFixture();
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         const string SensitiveTenantName = "Confidential Acquisitions Beta Tenant";
+        const string SensitiveTenantDescription = "Bearer token abc.secret.tenant-description";
         const string SensitiveUserId = "actor-payload-secret-xyz";
+        const string SensitiveConfigKey = "secret-config";
         const string SensitiveConfigValue = "api-key-leak-canary-7f9c";
         const string SafeCorrelationId = "corr-test-1";
         const string SafeMessageId = "evt-test-1";
@@ -211,13 +220,13 @@ public class ProjectionWriteConformanceTests
 
         ProjectionRequest request = ProjectionWriteConformanceFixture.CreateRequest(
             ProjectionWriteConformanceFixture.CreateEvent(
-                new TenantCreated(ProjectionWriteConformanceFixture.TenantId, SensitiveTenantName, null, timestamp),
+                new TenantCreated(ProjectionWriteConformanceFixture.TenantId, SensitiveTenantName, SensitiveTenantDescription, timestamp),
                 SafeMessageId,
                 timestamp,
                 correlationId: SafeCorrelationId,
                 userId: SensitiveUserId),
             ProjectionWriteConformanceFixture.CreateEvent(
-                new TenantConfigurationSet(ProjectionWriteConformanceFixture.TenantId, "secret-config", SensitiveConfigValue),
+                new TenantConfigurationSet(ProjectionWriteConformanceFixture.TenantId, SensitiveConfigKey, SensitiveConfigValue),
                 "evt-config-1",
                 timestamp.AddSeconds(1),
                 correlationId: SafeCorrelationId,
@@ -247,7 +256,7 @@ public class ProjectionWriteConformanceTests
         // R-007 negative-content gate (AC3, AC11). Iterate over every captured log AND
         // every structured-state value to prove no sensitive content leaks through any
         // channel (formatted message OR individual key/value pairs).
-        string[] forbidden = [SensitiveTenantName, SensitiveUserId, SensitiveConfigValue];
+        string[] forbidden = [SensitiveTenantName, SensitiveTenantDescription, SensitiveUserId, SensitiveConfigKey, SensitiveConfigValue];
         foreach (CapturedLog entry in fixture.Logger.Entries)
         {
             foreach (string secret in forbidden)
@@ -269,12 +278,29 @@ public class ProjectionWriteConformanceTests
         }
 
         // Positive structured-field assertions (AC11 prefers structured over substring).
+        CapturedLog conflictEntry = conflicts[0];
+        AssertProjectionWriteDiagnostic(
+            conflictEntry,
+            LogLevel.Warning,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant index",
+            attemptCount: 1,
+            reason: "guarded-save-conflict",
+            SafeCorrelationId,
+            SafeMessageId,
+            nameof(TenantCreated));
+
         CapturedLog exhaustedEntry = exhausted.Single();
-        exhaustedEntry.StructuredState.ShouldNotBeNull();
-        exhaustedEntry.StructuredState!["StateKeyCategory"].ShouldBe("tenant index");
-        exhaustedEntry.StructuredState["AttemptCount"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        exhaustedEntry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        exhaustedEntry.StructuredState["CorrelationId"].ShouldBe(SafeCorrelationId);
+        AssertProjectionWriteDiagnostic(
+            exhaustedEntry,
+            LogLevel.Error,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant index",
+            TenantProjectionWritePolicy.MaxAttempts,
+            "retry-exhausted",
+            SafeCorrelationId,
+            "evt-config-1",
+            nameof(TenantConfigurationSet));
     }
 
     [Fact]
@@ -462,6 +488,51 @@ public class ProjectionWriteConformanceTests
         eventTypes.ShouldContain("Synthetic.EventType7");
         eventTypes.ShouldContain("+17 more");
         eventTypes.ShouldNotContain("Synthetic.EventType8");
+    }
+
+    [Fact]
+    public async Task TenantIndex_RetryExhaustion_BoundsLoggedMessageIdsAndEventTypesAsync()
+    {
+        var fixture = new ProjectionWriteConformanceFixture();
+        fixture.EnqueueSuccessfulTenantDetailSave();
+        fixture.EnqueueSuccessfulAuditSave();
+        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        {
+            fixture.StateStore.EnqueueRead<TenantIndexReadModel>(
+                ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
+                null,
+                $"index-etag-{attempt + 1}");
+            fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, false);
+        }
+
+        ProjectionEventDto[] events = [.. Enumerable.Range(0, 25).Select(i => new ProjectionEventDto(
+            $"Synthetic.IndexEventType{i}",
+            Encoding.UTF8.GetBytes("{}"),
+            "json",
+            1,
+            new DateTimeOffset(2026, 5, 14, 10, 0, 0, TimeSpan.Zero).AddSeconds(i),
+            "corr-index-bounded",
+            $"idx-evt-{i:00}",
+            "actor-safe"))];
+        ProjectionRequest request = ProjectionWriteConformanceFixture.CreateRequest(events);
+
+        _ = await Should.ThrowAsync<InvalidOperationException>(
+            () => fixture.RunProjectionHandlerAsync(request));
+
+        CapturedLog exhaustedEntry = fixture.GetLogEntries(RetryExhaustedEventIdInt).Single();
+        exhaustedEntry.StructuredState.ShouldNotBeNull();
+        exhaustedEntry.StructuredState!["StateKeyCategory"].ShouldBe("tenant index");
+        string messageIds = exhaustedEntry.StructuredState["MessageIds"]?.ToString() ?? string.Empty;
+        string eventTypes = exhaustedEntry.StructuredState["EventTypes"]?.ToString() ?? string.Empty;
+
+        messageIds.ShouldContain("idx-evt-00");
+        messageIds.ShouldContain("idx-evt-19");
+        messageIds.ShouldContain("+5 more");
+        messageIds.ShouldNotContain("idx-evt-20");
+        eventTypes.ShouldContain("Synthetic.IndexEventType0");
+        eventTypes.ShouldContain("Synthetic.IndexEventType7");
+        eventTypes.ShouldContain("+17 more");
+        eventTypes.ShouldNotContain("Synthetic.IndexEventType8");
     }
 
     [Fact]
@@ -809,5 +880,29 @@ public class ProjectionWriteConformanceTests
                 new UserRoleChanged(ProjectionWriteConformanceFixture.TenantId, "user-3", TenantRole.TenantReader, TenantRole.TenantOwner),
                 "evt-role",
                 timestamp.AddMinutes(3)));
+    }
+
+    private static void AssertProjectionWriteDiagnostic(
+        CapturedLog entry,
+        LogLevel expectedLevel,
+        string stateStoreName,
+        string stateKeyCategory,
+        int attemptCount,
+        string reason,
+        string correlationId,
+        string expectedMessageId,
+        string expectedEventType)
+    {
+        entry.Level.ShouldBe(expectedLevel);
+        entry.StructuredState.ShouldNotBeNull();
+        entry.StructuredState!["StateStoreName"].ShouldBe(stateStoreName);
+        entry.StructuredState["StateKeyCategory"].ShouldBe(stateKeyCategory);
+        entry.StructuredState["AttemptCount"].ShouldBe(attemptCount);
+        entry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+        entry.StructuredState["OperationContext"].ShouldBe("TenantProjectionHandler.ProjectAsync");
+        entry.StructuredState["Reason"].ShouldBe(reason);
+        entry.StructuredState["CorrelationId"].ShouldBe(correlationId);
+        entry.StructuredState["MessageIds"]!.ToString().ShouldNotBeNull().ShouldContain(expectedMessageId);
+        entry.StructuredState["EventTypes"]!.ToString().ShouldNotBeNull().ShouldContain(expectedEventType);
     }
 }

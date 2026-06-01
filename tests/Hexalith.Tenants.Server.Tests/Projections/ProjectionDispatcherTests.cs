@@ -98,6 +98,21 @@ public class ProjectionDispatcherTests {
             Arg.Is<Dapr.Client.StateOptions>(o => o != null && o.Concurrency == ConcurrencyMode.FirstWrite),
             Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
+        await daprClient.Received(1).TrySaveStateAsync(
+            "statestore",
+            "projection:tenant-index:singleton",
+            Arg.Any<TenantIndexReadModel>(),
+            string.Empty,
+            Arg.Is<Dapr.Client.StateOptions>(o => o != null && o.Concurrency == ConcurrencyMode.FirstWrite),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
+        await daprClient.DidNotReceive().SaveStateAsync(
+            "statestore",
+            "projection:tenant-index:singleton",
+            Arg.Any<TenantIndexReadModel>(),
+            Arg.Any<Dapr.Client.StateOptions>(),
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<CancellationToken>());
         // ...and the global-admin singleton must NOT be touched.
         await daprClient.DidNotReceive().SaveStateAsync(
             "statestore",
