@@ -158,6 +158,12 @@ public class TenantConfigurationEndpointsTests {
     }
 
     [Fact]
+    public async Task GetSampleConfigurationAsync_NullStore_ThrowsArgumentNullException() =>
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentNullException>(
+            () => TenantConfigurationEndpoints.GetSampleConfigurationAsync("acme", null!, CancellationToken.None));
+
+    [Fact]
     public async Task GetSampleConfigurationAsync_WhitespaceTenantId_ReturnsBadRequest() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();

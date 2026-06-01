@@ -304,6 +304,34 @@ public class TenantProjectionEventHandlerTests {
     }
 
     [Fact]
+    public async Task HandleAsync_DuplicateConfigurationPayloads_KeepEquivalentState() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        var set = new TenantConfigurationSet("acme", "sample.theme", "blue");
+        var removed = new TenantConfigurationRemoved("acme", "sample.theme");
+
+        // Act
+        await handler.HandleAsync(set, CreateContext("acme", "msg-set-1"));
+        await handler.HandleAsync(set, CreateContext("acme", "msg-set-2"));
+        TenantLocalState? afterDuplicateSet = await store.GetAsync("acme");
+
+        await handler.HandleAsync(removed, CreateContext("acme", "msg-removed-1"));
+        await handler.HandleAsync(removed, CreateContext("acme", "msg-removed-2"));
+        TenantLocalState? afterDuplicateRemove = await store.GetAsync("acme");
+
+        // Assert
+        _ = afterDuplicateSet.ShouldNotBeNull();
+        afterDuplicateSet.Configuration.Count.ShouldBe(1);
+        afterDuplicateSet.Configuration["sample.theme"].ShouldBe("blue");
+
+        _ = afterDuplicateRemove.ShouldNotBeNull();
+        afterDuplicateRemove.Configuration.ShouldNotContainKey("sample.theme");
+        _ = afterDuplicateRemove.LastEvent.ShouldNotBeNull();
+        afterDuplicateRemove.LastEvent.LastMessageId.ShouldBe("msg-removed-2");
+    }
+
+    [Fact]
     public async Task HandleAsync_UserIdentifiersRemainCaseSensitive() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();

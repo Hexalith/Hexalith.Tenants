@@ -1,10 +1,12 @@
+using Hexalith.Tenants.Sample.Endpoints;
+
+using Shouldly;
+
 namespace Hexalith.Tenants.Sample.Tests;
 
-public class ScaffoldingSmokeTests
-{
+public class ScaffoldingSmokeTests {
     [Fact]
-    public void Test_project_is_discoverable()
-    {
-        Assert.True(true);
+    public void Sample_test_project_references_sample_application() {
+        typeof(AccessCheckEndpoints).Assembly.GetName().Name.ShouldBe("Hexalith.Tenants.Sample");
     }
 }

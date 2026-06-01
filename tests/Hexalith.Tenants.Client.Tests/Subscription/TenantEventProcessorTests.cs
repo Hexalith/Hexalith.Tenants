@@ -269,6 +269,40 @@ public class TenantEventProcessorTests {
     }
 
     [Fact]
+    public async Task ProcessAsync_InvalidPayload_AllowsRetryWithSameMessageId() {
+        // Arrange
+        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        using (provider) {
+            var invalidEnvelope = new TenantEventEnvelope(
+                "msg-1",
+                "acme",
+                "system",
+                typeof(TenantCreated).FullName!,
+                1,
+                DateTimeOffset.UtcNow,
+                "corr-1",
+                "json",
+                [1, 2, 3]);
+            TenantEventEnvelope correctedEnvelope = CreateEnvelope(
+                "msg-1",
+                new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow));
+
+            // Act
+            TenantEventProcessingResult invalidResult = await processor.ProcessAsync(invalidEnvelope);
+            TenantLocalState? stateBeforeRetry = await store.GetAsync("acme");
+            TenantEventProcessingResult retryResult = await processor.ProcessAsync(correctedEnvelope);
+            TenantLocalState? stateAfterRetry = await store.GetAsync("acme");
+
+            // Assert
+            invalidResult.ShouldBe(TenantEventProcessingResult.FailedInvalidPayload);
+            stateBeforeRetry.ShouldBeNull();
+            retryResult.ShouldBe(TenantEventProcessingResult.Processed);
+            _ = stateAfterRetry.ShouldNotBeNull();
+            stateAfterRetry.Name.ShouldBe("Acme Corp");
+        }
+    }
+
+    [Fact]
     public async Task ProcessAsync_PayloadTenantIdMismatch_ReturnsFailedInvalidPayloadAndDoesNotProject() {
         // Arrange
         (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();

@@ -36,9 +36,9 @@ The durable EventStore stream is the source of truth. Pub/sub publication happen
 
 Commands that encounter infrastructure failures during processing (e.g., state rehydration errors, event persistence failures) produce events routed to the dead letter topic **`deadletter.tenants.events`**. Operators should monitor this topic for processing failures. Note: DAPR pub/sub may also have its own dead letter behavior for subscriber delivery failures, configured at the DAPR component level.
 
-DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see duplicate deliveries after retry or recovery. Do not depend on exactly-once publication or cross-service subscriber delivery order; use the event envelope metadata to deduplicate and resequence per aggregate.
+DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see duplicate deliveries after retry or recovery. Do not depend on exactly-once publication or cross-service subscriber delivery order; use `MessageId` for duplicate detection and use `SequenceNumber` only as aggregate-local ordering metadata within one aggregate stream.
 
-The Client package's built-in local projection is runtime state for the consuming service. It lets the service answer tenant-aware access, lifecycle, and configuration behavior checks from its own process/store instead of synchronously querying Tenants for every decision. `UserAddedToTenant`, `UserRoleChanged`, `UserRemovedFromTenant`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, and `TenantConfigurationRemoved` are applied by `TenantProjectionEventHandler` to `TenantLocalState`; the projection also keeps bounded last-event metadata for diagnostics. EventStore remains the durable source of truth, and each consuming service processes `tenants.events` independently; lifecycle/configuration reactions are eventually consistent with the tenant event stream, so do not assume immediate read-after-write visibility or matching observation time across services.
+The Client package's built-in local projection is runtime state for the consuming service. It lets the service answer tenant-aware access, lifecycle, and configuration behavior checks from its own process/store instead of synchronously querying Tenants for every decision. `UserAddedToTenant`, `UserRoleChanged`, `UserRemovedFromTenant`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, and `TenantConfigurationRemoved` are applied by `TenantProjectionEventHandler` to `TenantLocalState`; the projection also keeps bounded `LastEvent` metadata for diagnostics: last message ID, aggregate-local sequence number, timestamp, and correlation ID. EventStore remains the durable source of truth, and each consuming service processes `tenants.events` independently; lifecycle/configuration reactions are eventually consistent with the tenant event stream, so do not assume immediate read-after-write visibility or matching observation time across services. Scaled-out services should use a bounded shared deduplication store and durable projection store when duplicate suppression or projection state must survive process restarts or coordinate across instances.
 
 Commands are submitted via the CommandApi. See the [Quickstart Guide](quickstart.md) for command submission details.
 
@@ -392,7 +392,7 @@ Published on topic: `tenants.events`
 
 #### SetTenantConfiguration
 
-Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter their local projection reads by owned prefix to process only their own namespace - for example, `key.startsWith("billing.")` for the Billing service. The sample consumer uses the same pattern for `sample.` keys and ignores unrelated namespaces without polling, sync jobs, or per-request Tenants API calls.
+Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter their local projection reads by owned prefix to process only their own namespace - for example, `key.StartsWith("billing.", StringComparison.Ordinal)` for the Billing service. The sample consumer uses the same pattern for `sample.` keys and ignores unrelated namespaces without polling, sync jobs, or per-request Tenants API calls.
 
 **Command fields:**
 
@@ -676,8 +676,10 @@ Idempotency records are written only after a terminal command result is known. R
 
 ## Idempotency
 
-All events include `MessageId` and `SequenceNumber` in the event envelope. Consumers should use these fields for deduplication.
+All events include `MessageId` and `SequenceNumber` in the event envelope. Consumers should use `MessageId` for deduplication.
 
 DAPR pub/sub guarantees **at-least-once delivery**, not exactly-once. Network retries, sidecar restarts, and redelivery can cause the same event to arrive multiple times. Without deduplication, this can lead to incorrect state.
+
+`SequenceNumber` can help reason about ordering inside one aggregate stream, such as one managed tenant aggregate. It must not be treated as global ordering across services, tenants, aggregate types, subscriber instances, or redelivery attempts. The sample-consuming-service and Client projection rely on idempotent set/remove operations and bounded last-event metadata rather than global ordering.
 
 For detailed idempotent processing patterns, including message-level deduplication and handler-level idempotency, see [Idempotent Event Processing](idempotent-event-processing.md).

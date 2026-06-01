@@ -123,6 +123,37 @@ public class TenantEventSubscriptionEndpointsTests {
     }
 
     [Fact]
+    public async Task MapTenantEventSubscription_PayloadTenantIdMismatch_ReturnsProblemResponse() {
+        // Arrange
+        var sink = new TrackingSink();
+        await using WebApplication app = CreateApp(
+            services => {
+                _ = services.AddSingleton(sink);
+                _ = services
+                    .AddHexalithTenants()
+                    .AddTenantEventHandler<TenantCreated, TrackingTenantCreatedHandler>();
+            });
+        RouteEndpoint endpoint = GetTenantEventEndpoint(app);
+        var envelope = new TenantEventEnvelope(
+            "msg-mismatch",
+            "acme",
+            "system",
+            typeof(TenantCreated).FullName!,
+            1,
+            _occurredAt,
+            "corr-1",
+            "json",
+            JsonSerializer.SerializeToUtf8Bytes(new TenantCreated("beta", "Beta Corp", null, _occurredAt)));
+
+        // Act
+        int statusCode = await PostEnvelopeAsync(endpoint, app.Services, envelope);
+
+        // Assert
+        statusCode.ShouldBe(StatusCodes.Status500InternalServerError);
+        sink.TenantIds.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void MapTenantEventSubscription_MapsConfiguredPubSubTopicToPostEndpoint() {
         // Arrange
         using WebApplication app = CreateApp(

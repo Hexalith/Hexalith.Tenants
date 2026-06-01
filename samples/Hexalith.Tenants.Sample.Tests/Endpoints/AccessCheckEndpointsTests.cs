@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Text.Json;
 
 using Hexalith.EventStore.Contracts.Events;
@@ -198,6 +199,26 @@ public class AccessCheckEndpointsTests {
 
         // Assert
         ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(404);
+    }
+
+    [Fact]
+    public void CheckAccessAsync_DependsOnProjectionStoreInsteadOfSynchronousTenantApiClient() {
+        // Arrange
+        Type[] parameterTypes = typeof(AccessCheckEndpoints)
+            .GetMethod(nameof(AccessCheckEndpoints.CheckAccessAsync))!
+            .GetParameters()
+            .Select(static parameter => parameter.ParameterType)
+            .ToArray();
+
+        // Act
+        string[] parameterTypeNames = parameterTypes
+            .Select(static type => type.FullName ?? type.Name)
+            .ToArray();
+
+        // Assert
+        parameterTypes.ShouldContain(typeof(ITenantProjectionStore));
+        parameterTypes.ShouldNotContain(typeof(HttpClient));
+        parameterTypeNames.ShouldNotContain("Dapr.Client.DaprClient");
     }
 
     [Fact]
