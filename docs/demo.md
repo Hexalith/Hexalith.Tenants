@@ -197,7 +197,8 @@ Here's the architecture behind the demo:
 
 - **[Quickstart Guide](quickstart.md)** — Full setup and first tenant creation walkthrough
 - **[Event Contract Reference](event-contract-reference.md)** — Complete event schemas, field semantics, and temporal audit patterns
-- **[Sample Service Source](../samples/Hexalith.Tenants.Sample/)** — See how the consuming service is implemented (12 lines of DI config)
+- **[Sample Consuming Service Walkthrough](sample-consuming-service-walkthrough.md)** — How the sample subscription, projection, access check, and configuration endpoint are implemented
+- **[Sample Service Source](../samples/Hexalith.Tenants.Sample/)** — See how the consuming service stays under 20 meaningful tenant registration lines
 
 ## Troubleshooting
 

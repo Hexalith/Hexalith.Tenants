@@ -22,6 +22,8 @@ Get from clone to your first tenant command within 30 minutes when local prerequ
 
 **[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET 10, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
+**[Sample Consuming Service Walkthrough](docs/sample-consuming-service-walkthrough.md)** — source-backed guide for copying the sample service's event subscription, local projection, access-check, and configuration-read patterns.
+
 ### See It In Action
 
 Watch reactive cross-service access revocation in action: add a user to a tenant, then remove them — and see the consuming service automatically revoke access via DAPR pub/sub events, with zero custom integration code.
@@ -69,6 +71,7 @@ docs/
   demo.md                            # "Aha Moment" demo walkthrough
   event-contract-reference.md        # Event schemas and audit patterns
   idempotent-event-processing.md     # Event handling patterns
+  sample-consuming-service-walkthrough.md # Sample service adoption walkthrough
 
 scripts/
   demo.ps1                           # PowerShell demo automation

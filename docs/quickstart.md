@@ -338,33 +338,16 @@ dotnet add package Hexalith.Tenants.Contracts
 dotnet add package Hexalith.Tenants.Client
 ```
 
-Register tenant client services and the event types your service handles in your DI container:
+The sample consuming service shows the complete pattern: package references,
+DI registration, typed tenant event handlers, DAPR subscription mapping, local
+projection updates, access checks, configuration reads, and production adaptation
+boundaries.
 
-```csharp
-builder.Services
-    .AddHexalithTenants()
-    .AddTenantEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
-    .AddTenantEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()
-    .AddTenantEventHandler<TenantDisabled, SampleLoggingEventHandler>();
-
-WebApplication app = builder.Build();
-
-app.UseCloudEvents();
-app.MapSubscribeHandler();
-app.MapTenantEventSubscription();
-```
-
-This is the same registration path used by [`samples/Hexalith.Tenants.Sample/Program.cs`](../samples/Hexalith.Tenants.Sample/Program.cs). It registers projection stores, options validation, DAPR client integration, and selected typed handlers. By default, the Client package binds the `Tenants` configuration section and subscribes through DAPR pub/sub component `pubsub` on the shared topic `tenants.events`. Consumers select event types by registering `ITenantEventHandler<TEvent>` implementations through `AddTenantEventHandler<TEvent, THandler>()`; do not create one DAPR topic per event type. DAPR pub/sub is at-least-once delivery, so handlers must be idempotent and must not assume cross-service ordering.
-
-The built-in local projection updates `TenantLocalState` through `ITenantProjectionStore` so a consuming service can make tenant-aware runtime decisions without synchronously querying Tenants on every request. Add/remove/role/lifecycle/configuration reactions come from this local projection: membership events grant or revoke local capability, lifecycle events block or resume local operations after projection catch-up, and configuration events set or remove locally cached keys. The default store is in-memory and suitable for local or single-instance samples; scaled-out consumers should register a durable `ITenantProjectionStore` before calling `AddHexalithTenants()`. EventStore remains the durable source of truth, and local projection reads are eventually consistent with tenant commands.
-
-Configuration keys are dot-delimited by convention. Consumers should read only keys under their owned namespace/prefix, such as `sample.` or `billing.`, and ignore unrelated keys unless that namespace is explicitly handled. The sample reaction path uses event subscription plus the local projection; it does not require polling, sync jobs, or per-request Tenants API calls.
-
-Troubleshooting should use bounded metadata such as message ID, event type, tenant ID, and correlation ID. Do not log full event payloads; tenant configuration and user identifiers may be sensitive.
+Use the [Sample Consuming Service Walkthrough](sample-consuming-service-walkthrough.md)
+as the source-backed guide for copying the pattern from
+[`samples/Hexalith.Tenants.Sample/`](../samples/Hexalith.Tenants.Sample/).
 
 For event envelope fields, delivery semantics, and ordering limits, see [Event Contract Reference](event-contract-reference.md). For event handling patterns and idempotent processing, see [Idempotent Event Processing](idempotent-event-processing.md).
-
-For a complete working example of a consuming service, see the sample at [`samples/Hexalith.Tenants.Sample/`](../samples/Hexalith.Tenants.Sample/).
 
 ### Test Tenant Isolation Without Infrastructure
 

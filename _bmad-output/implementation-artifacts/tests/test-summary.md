@@ -226,6 +226,146 @@ QA gap analysis of Story 8.1's quickstart journey against existing test coverage
 
 ---
 
+# Test Automation Summary — Story 8.3
+
+**Story:** 8.3 — Document the Sample Consuming Service Walkthrough  
+**Workflow:** dev-story · **Date:** 2026-06-01  
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source/static documentation checks
+
+## Scope
+
+Documentation story for the existing sample consuming service. No runtime
+behavior or package dependencies changed.
+
+## Generated Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/SampleConsumingServiceWalkthroughDocumentationTests.cs` —
+  validates that `docs/sample-consuming-service-walkthrough.md` references the
+  real sample/AppHost/test files, documents the current subscription calls,
+  keeps the registration snippet synchronized with `samples/Hexalith.Tenants.Sample/Program.cs`,
+  covers projection events/access/configuration behavior, and rejects JWT-like
+  tokens or sensitive logging guidance. Review added assertions that the
+  `/tenants/events` route is documented as the `MapTenantEventSubscription()`
+  endpoint rather than an `HexalithTenantsOptions` default, and that demo
+  navigation uses the current under-20-lines registration wording.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server focused build | `dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~SampleConsumingServiceWalkthroughDocumentationTests -m:1 /nr:false /p:UseSharedCompilation=false` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+| Server documentation via xUnit runner | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -namespace Hexalith.Tenants.Server.Tests.Documentation -noLogo -noColor` | Passed: 17 total, 0 failed, 0 skipped. |
+| Server full via xUnit runner | `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor` | Passed: 697 total, 0 failed, 0 skipped. |
+| Sample tests via xUnit runner | `samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests -noLogo -noColor` | Passed: 31 total, 0 failed, 0 skipped. |
+| Solution build | `dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Tier 1 direct xUnit | Contracts, Client, and Testing test assemblies under `bin/Debug/net10.0` | Passed: 378 total, 0 failed, 0 skipped. |
+| Integration direct xUnit | `tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests -noLogo -noColor` | Passed: 217 total, 0 failed, 26 skipped. Skips were DAPR/performance prerequisite-gated. |
+| Full direct xUnit regression | Contracts, Client, Testing, Server, Sample, and Integration test assemblies under `bin/Debug/net10.0` | Passed: 1323 total, 0 failed, 26 skipped. |
+| Senior review focused Server build | `dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Senior review focused Server documentation via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.SampleConsumingServiceWalkthroughDocumentationTests -parallel none -noLogo -noColor` | Passed: 6 total, 0 failed, 0 skipped. |
+| Senior review focused Sample build | `dotnet build samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Senior review focused Sample tests via xUnit runner | `dotnet samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests.dll -class Hexalith.Tenants.Sample.Tests.Endpoints.AccessCheckEndpointsTests -class Hexalith.Tenants.Sample.Tests.Endpoints.TenantConfigurationEndpointsTests -class Hexalith.Tenants.Sample.Tests.Registration.SampleRegistrationTests -class Hexalith.Tenants.Sample.Tests.Handlers.SampleLoggingEventHandlerTests -parallel none -noLogo -noColor` | Passed: 30 total, 0 failed, 0 skipped. |
+| Senior review focused VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~SampleConsumingServiceWalkthroughDocumentationTests -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+
+## Checklist
+
+- [x] Source-backed documentation tests generated.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover registration, projection events, access behavior, configuration behavior, adaptation guidance, and security posture.
+- [x] Tests verify documented C# registration snippet against sample source.
+- [x] Review assertions cover route/options wording and navigation registration wording.
+- [x] No live Docker, DAPR sidecar, AppHost, or pub/sub execution claimed for this documentation story; prerequisite-gated integration tests skipped as designed.
+
+---
+
+# Test Automation Summary — Story 8.3 QA Generate E2E Tests
+
+**Story:** 8.3 — Document the Sample Consuming Service Walkthrough  
+**Workflow:** qa-generate-e2e-tests · **Date:** 2026-06-01  
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source/static documentation checks
+
+## Scope
+
+QA gap analysis of the sample consuming service walkthrough and its existing
+sample API coverage. Tests only; no story validation or production code review.
+
+## Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Walkthrough source synchronization | `SampleConsumingServiceWalkthroughDocumentationTests` pins required sample/AppHost/test files, subscription calls, projection events, adaptation guidance, sensitive-data exclusions, and the C# registration snippet against `Program.cs`. | Covered. |
+| Access workflow API behavior | `AccessCheckEndpointsTests` covers granted access, non-member denial, disabled/unknown tenant denial, unknown/out-of-range roles, unknown tenant `404`, bad IDs `400`, projection-store dependency, and event-pipeline updates for user add/remove/role-change and tenant disable/enable. | Covered. |
+| Configuration workflow API behavior | `TenantConfigurationEndpointsTests` covers sample namespace filtering, unknown tenant `404`, bad tenant ID `400`, projection-store dependency, event-pipeline set/update/remove behavior, unrelated namespace hiding, and repeated remove idempotency. | Covered. |
+| Support-safe sample logging | `SampleLoggingEventHandlerTests` covers registered event handling, log levels, and no raw sample user ID or role in user-event logs. | Covered. |
+| Browser UI workflow | Story 8.3 has no browser UI surface. | N/A. |
+
+No additional test-code gaps were found during this QA pass.
+
+## Generated / Validated Tests
+
+### API Tests
+
+- [x] `samples/Hexalith.Tenants.Sample.Tests/Endpoints/AccessCheckEndpointsTests.cs` —
+  validates the projection-backed access endpoint happy path plus critical
+  fail-closed and event-pipeline cases.
+- [x] `samples/Hexalith.Tenants.Sample.Tests/Endpoints/TenantConfigurationEndpointsTests.cs` —
+  validates the projection-backed configuration endpoint happy path plus
+  namespace filtering, missing tenant, invalid input, and idempotent remove cases.
+- [x] `samples/Hexalith.Tenants.Sample.Tests/Handlers/SampleLoggingEventHandlerTests.cs` —
+  validates support-safe sample logging behavior for handled events.
+- [x] `samples/Hexalith.Tenants.Sample.Tests/Registration/SampleRegistrationTests.cs` —
+  validates the under-20-lines registration target used by the walkthrough.
+
+### E2E Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/SampleConsumingServiceWalkthroughDocumentationTests.cs` —
+  covers the non-UI walkthrough workflow end to end at the documentation-contract
+  layer: package/setup guidance, subscription mapping, projection behavior,
+  access/configuration documentation, adaptation boundaries, security posture,
+  and source-checked snippets.
+
+## Coverage
+
+- Story 8.3 acceptance criteria: 5/5 covered by source-backed documentation
+  tests and sample endpoint workflow tests.
+- API workflows covered: access grant, access denial, bad request, not found,
+  projection event add/remove/role-change/disable/enable, configuration
+  set/update/remove, and namespace filtering.
+- Critical error cases covered: blank identifiers, unknown tenants, disabled or
+  unknown tenant status, non-members, unknown/out-of-range roles, unrelated
+  configuration namespaces, repeated removes, synchronous-client dependency
+  regression, JWT-like token leakage, and sensitive logging guidance.
+- UI workflows: N/A, Story 8.3 has no browser UI surface.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Sample focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Server targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~SampleConsumingServiceWalkthroughDocumentationTests -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+| Sample targeted via VSTest | `dotnet test samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~AccessCheckEndpointsTests\|FullyQualifiedName~TenantConfigurationEndpointsTests\|FullyQualifiedName~SampleRegistrationTests\|FullyQualifiedName~SampleLoggingEventHandlerTests" -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Built, then VSTest aborted on sandbox socket setup: `SocketException (13): Permission denied`. |
+| Server targeted via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.SampleConsumingServiceWalkthroughDocumentationTests -parallel none -noLogo -noColor` | Passed: 5 total, 0 failed, 0 skipped. |
+| Sample targeted via xUnit runner | `dotnet samples/Hexalith.Tenants.Sample.Tests/bin/Debug/net10.0/Hexalith.Tenants.Sample.Tests.dll -class Hexalith.Tenants.Sample.Tests.Endpoints.AccessCheckEndpointsTests -class Hexalith.Tenants.Sample.Tests.Endpoints.TenantConfigurationEndpointsTests -class Hexalith.Tenants.Sample.Tests.Registration.SampleRegistrationTests -class Hexalith.Tenants.Sample.Tests.Handlers.SampleLoggingEventHandlerTests -parallel none -noLogo -noColor` | Passed: 30 total, 0 failed, 0 skipped. |
+
+## Checklist
+
+- [x] API tests generated/validated where applicable.
+- [x] E2E tests generated/validated for the non-UI walkthrough workflow.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy paths.
+- [x] Tests cover critical fail-closed, invalid-input, drift, and sensitive-data cases.
+- [x] Semantic UI locators are N/A; tests use source-backed documentation assertions and sample endpoint calls.
+- [x] Tests have clear descriptions.
+- [x] No hardcoded waits or sleeps.
+- [x] Tests are independent and order-free.
+- [x] Test summary created.
+- [x] Tests saved to appropriate directories.
+- [x] Summary includes coverage metrics.
+
+---
+
 # Test Summary - Story 8.2 Publish the Event Contract Reference
 
 **Date:** 2026-06-01
