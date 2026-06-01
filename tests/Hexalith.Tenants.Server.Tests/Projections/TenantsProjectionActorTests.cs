@@ -1989,6 +1989,25 @@ public class TenantsProjectionActorTests {
     }
 
     [Fact]
+    public async Task ListTenants_absent_index_returns_standard_empty_pageAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(pageSize: 20)));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.ShouldBeEmpty();
+        page.Cursor.ShouldBeNull();
+        page.HasMore.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task ListTenants_rejects_invalid_cursor_before_empty_index_responseAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
@@ -2028,6 +2047,86 @@ public class TenantsProjectionActorTests {
         PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task ListTenants_global_admin_orders_by_ordinal_tenant_id_and_cursor_advances_from_last_visible_itemAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = new();
+        indexModel.Apply(new Contracts.Events.TenantCreated("tenant-010", "Tenant 10", null, DateTimeOffset.UtcNow));
+        indexModel.Apply(new Contracts.Events.TenantCreated("tenant-002", "Tenant 2", null, DateTimeOffset.UtcNow));
+        indexModel.Apply(new Contracts.Events.TenantCreated("tenant-001", "Tenant 1", null, DateTimeOffset.UtcNow));
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(pageSize: 2)));
+
+        firstResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? firstPage = DeserializePayload<PaginatedResult<TenantSummary>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-001", "tenant-002"]);
+        firstPage.HasMore.ShouldBeTrue();
+        _ = firstPage.Cursor.ShouldNotBeNull();
+        cursorCodec.TryDecode(
+            firstPage.Cursor,
+            ListTenantsQuery.QueryType,
+            TenantQueryCursorScopes.ListTenants("admin-1"),
+            out string? decodedPosition,
+            out _).ShouldBeTrue();
+        decodedPosition.ShouldBe("tenant-002");
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 2)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? secondPage = DeserializePayload<PaginatedResult<TenantSummary>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.TenantId).ShouldBe(["tenant-010"]);
+        secondPage.HasMore.ShouldBeFalse();
+        secondPage.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ListTenants_status_reflects_latest_successfully_projected_lifecycle_eventAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
+        indexModel.Apply(new Contracts.Events.TenantDisabled("tenant-001", DateTimeOffset.UtcNow));
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult disabledResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index"));
+
+        disabledResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? disabledPage = DeserializePayload<PaginatedResult<TenantSummary>>(disabledResult);
+        _ = disabledPage.ShouldNotBeNull();
+        disabledPage.Items[0].Status.ShouldBe(TenantStatus.Disabled);
+
+        // Tenant-list status is projection state only; it can lag the source event stream until
+        // the lifecycle event is successfully projected.
+        indexModel.Apply(new Contracts.Events.TenantEnabled("tenant-001", DateTimeOffset.UtcNow));
+
+        QueryResult enabledResult = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index"));
+
+        enabledResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? enabledPage = DeserializePayload<PaginatedResult<TenantSummary>>(enabledResult);
+        _ = enabledPage.ShouldNotBeNull();
+        enabledPage.Items[0].Status.ShouldBe(TenantStatus.Active);
     }
 
     // --- Q13: Last page has HasMore=false ---
@@ -2087,6 +2186,56 @@ public class TenantsProjectionActorTests {
         await AssertNoStateWriteAsync(daprClient);
     }
 
+    [Theory]
+    [InlineData(1, 1, true)]
+    [InlineData(25, 25, true)]
+    [InlineData(0, TenantQueryPaginationPolicy.StandardDefaultPageSize, true)]
+    [InlineData(-5, TenantQueryPaginationPolicy.StandardDefaultPageSize, true)]
+    [InlineData(101, TenantQueryPaginationPolicy.StandardMaximumPageSize, true)]
+    public async Task ListTenants_page_size_policy_accepts_valid_values_and_bounds_invalid_valuesAsync(
+        int requestedPageSize,
+        int expectedItemCount,
+        bool expectedHasMore) {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(101);
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(pageSize: requestedPageSize)));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Count.ShouldBe(expectedItemCount);
+        page.HasMore.ShouldBe(expectedHasMore);
+    }
+
+    [Fact]
+    public async Task ListTenants_non_object_pagination_payload_uses_standard_default_first_pageAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(25);
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "admin-1",
+            aggregateId: "index",
+            payload: "[]"u8.ToArray()));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Count.ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
+        page.HasMore.ShouldBeTrue();
+    }
+
     [Fact]
     public async Task ListTenants_pagination_payload_omitting_page_size_uses_standard_defaultAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
@@ -2126,6 +2275,32 @@ public class TenantsProjectionActorTests {
         PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task ListTenants_non_admin_without_matching_memberships_returns_standard_empty_pageAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(2, new() {
+            ["other-user"] = new() {
+                ["tenant-001"] = TenantRole.TenantOwner,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "list-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            payload: CreatePaginationPayload(pageSize: 20)));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<TenantSummary>? page = DeserializePayload<PaginatedResult<TenantSummary>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.ShouldBeEmpty();
+        page.Cursor.ShouldBeNull();
+        page.HasMore.ShouldBeFalse();
     }
 
     [Fact]

@@ -12,6 +12,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
+using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 
@@ -71,6 +72,88 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
         result.TryGetProperty("items", out _).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_standard_paginated_tenant_summary_shape_and_dispatches_index_query() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new {
+            items = new[] { new { tenantId = "tenant-001", name = "Tenant One", status = "Disabled" } },
+            cursor = (string?)null,
+            hasMore = false,
+        });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            ListTenantsQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenant-index"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(1);
+        JsonElement firstItem = result.GetProperty("items")[0];
+        firstItem.GetProperty("tenantId").GetString().ShouldBe("tenant-001");
+        firstItem.GetProperty("name").GetString().ShouldBe("Tenant One");
+        firstItem.GetProperty("status").GetString().ShouldBe("Disabled");
+        result.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        result.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+
+        SubmitQuery query = routedQueries.Single();
+        query.Tenant.ShouldBe("system");
+        query.Domain.ShouldBe(ListTenantsQuery.Domain);
+        query.AggregateId.ShouldBe("index");
+        query.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        query.EntityId.ShouldBe("test-user");
+        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
+    }
+
+    [Theory]
+    [InlineData("", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=25", 25)]
+    [InlineData("?pageSize=0", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=-5", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=101", TenantQueryPaginationPolicy.StandardMaximumPageSize)]
+    public async Task ListTenants_forwards_bounded_page_size_in_query_payload(string queryString, int expectedPageSize) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            ListTenantsQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenant-index"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants" + queryString);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(expectedPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ListTenants_returns_standard_empty_page_shape_without_treating_no_matches_as_error() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        IQueryRouter router = CreateRouter(
+            ListTenantsQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenant-index"));
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(0);
+        result.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        result.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
     }
 
     [Fact]
@@ -695,6 +778,37 @@ public class TenantsQueryControllerIntegrationTests {
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return router;
+    }
+
+    private static IQueryRouter CreateCapturingRouter(
+        string queryType,
+        QueryRouterResult result,
+        ICollection<SubmitQuery> routedQueries) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(queryType);
+        ArgumentNullException.ThrowIfNull(routedQueries);
+
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+        _ = router.RouteQueryAsync(
+                Arg.Is<SubmitQuery>(q => q != null && string.Equals(q.QueryType, queryType, StringComparison.Ordinal)),
+                Arg.Any<CancellationToken>())
+            .Returns(call => {
+                SubmitQuery? routedQuery = call.Arg<SubmitQuery>();
+                ArgumentNullException.ThrowIfNull(routedQuery);
+                routedQueries.Add(routedQuery);
+                return result;
+            });
+        return router;
+    }
+
+    private static int ReadPayloadPageSize(SubmitQuery query) {
+        using JsonDocument document = JsonDocument.Parse(query.Payload);
+        return document.RootElement.GetProperty("pageSize").GetInt32();
+    }
+
+    private static string? ReadPayloadCursor(SubmitQuery query) {
+        using JsonDocument document = JsonDocument.Parse(query.Payload);
+        JsonElement cursor = document.RootElement.GetProperty("cursor");
+        return cursor.ValueKind == JsonValueKind.Null ? null : cursor.GetString();
     }
 
     private static void AssertProblemDetailsDoesNotLeakQueryData(string body, bool allowCursorReasonText) {
