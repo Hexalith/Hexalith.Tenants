@@ -4,6 +4,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Contracts.Authorization;
+using Hexalith.Tenants.Authorization;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -170,10 +171,8 @@ public class TenantClaimContractTests {
         validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
     }
 
-    // P9: extended to cover every global-admin claim shape that `GlobalAdministratorHelper`
-    // accepts and the boolean parser's casing contract. A regression that tightens the helper
-    // (e.g., dropping role-based shapes, requiring exact `true` casing) would otherwise show up
-    // only when a production IdP emitted the dropped shape.
+    // Story 7.3: Tenants keeps EventStore's shared global-admin tenant bypass intact, but wraps it
+    // with a host-level production contract that still requires eventstore:tenant=system.
     [Theory]
     [InlineData("global_admin", "true")]
     [InlineData("global_admin", "True")]
@@ -185,22 +184,21 @@ public class TenantClaimContractTests {
     [InlineData("roles", "[\"GlobalAdministrator\"]")]
     [InlineData("roles", "GlobalAdministrator other-role")]
     [InlineData("roles", "user,GlobalAdministrator")]
-    public async Task GlobalAdministratorMissingTenantClaimIsAuthorizedForSystemTenant(string claimType, string claimValue) {
-        // Global administrators bypass tenant matching in ClaimsTenantValidator. This test locks
-        // the documented host behavior across every accepted global-admin claim shape so the
-        // global-admin tenant-claim contract cannot regress silently. The Tenants host does NOT
-        // register the EventStore rate limiter, so the "anonymous" partition fallback consequence
-        // does not apply here — see docs/production-auth-claim-contract.md#global-administrators.
+    public async Task TenantsGlobalAdministratorMissingTenantClaimFailsClosedForSystemTenant(string claimType, string claimValue) {
         ClaimsPrincipal principal = CreatePrincipal(
             new Claim("sub", "admin-user"),
             new Claim(claimType, claimValue));
 
         ClaimsPrincipal result = await _transformation.TransformAsync(principal);
-        TenantValidationResult validation = await new ClaimsTenantValidator()
+        TenantValidationResult sharedValidation = await new ClaimsTenantValidator()
+            .ValidateAsync(result, "system", CancellationToken.None);
+        TenantValidationResult tenantsValidation = await new TenantsSystemTenantValidator(new ClaimsTenantValidator())
             .ValidateAsync(result, "system", CancellationToken.None);
 
         TenantClaims(result).ShouldBeEmpty();
-        validation.IsAuthorized.ShouldBeTrue();
+        sharedValidation.IsAuthorized.ShouldBeTrue();
+        tenantsValidation.IsAuthorized.ShouldBeFalse();
+        tenantsValidation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
     }
 
     // P10: extended to cover the boolean-parser deny shapes alongside the no-claim case. The
@@ -229,6 +227,21 @@ public class TenantClaimContractTests {
         TenantClaims(result).ShouldBeEmpty();
         validation.IsAuthorized.ShouldBeFalse();
         validation.ReasonCode.ShouldBe(AuthorizationFailureReason.PrincipalNotMember);
+    }
+
+    [Fact]
+    public async Task TenantsGlobalAdministratorSystemTenantClaimDoesNotAuthorizeNonSystemRequestTenant() {
+        ClaimsPrincipal principal = CreatePrincipal(
+            new Claim("sub", "admin-user"),
+            new Claim("global_admin", "true"),
+            new Claim(TenantClaimType, "system"));
+
+        ClaimsPrincipal result = await _transformation.TransformAsync(principal);
+        TenantValidationResult validation = await new TenantsSystemTenantValidator(new ClaimsTenantValidator())
+            .ValidateAsync(result, "tenant-a", CancellationToken.None);
+
+        validation.IsAuthorized.ShouldBeFalse();
+        validation.ReasonCode.ShouldBe(AuthorizationFailureReason.TenantMismatch);
     }
 
     // Pins docs/production-auth-claim-contract.md:13 — "Do not use `name` as the trusted subject."

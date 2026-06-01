@@ -109,7 +109,7 @@ development_status:
   epic-7: in-progress
   7-1-provide-aspire-hosting-extensions-for-tenants: done
   7-2-configure-dapr-components-for-local-and-production-deployment: done
-  7-3-validate-production-authentication-and-eventstore-tenant-claims: backlog
+  7-3-validate-production-authentication-and-eventstore-tenant-claims: done
   7-4-expose-tenant-command-and-event-metrics-with-opentelemetry: backlog
   7-5-prove-stateless-operation-health-and-startup-reconstruction: backlog
   7-6a-validate-production-auth-smoke-tests: backlog

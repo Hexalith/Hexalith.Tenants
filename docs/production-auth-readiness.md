@@ -74,7 +74,7 @@ Run these checks before release. Store only the pass/fail result, test name, HTT
 | Token issuer | Token `iss` equals configured `Issuer`. | Wrong issuer returns `401 Unauthorized`. | Smoke test or manual request returns 401 at authentication. | Do not commit decoded production tokens. |
 | Token audience | Token `aud` equals configured `Audience`. | Wrong audience returns `401 Unauthorized`. | Smoke test or manual request returns 401 at authentication. | Do not commit decoded production tokens. |
 | Token subject | Token has non-empty `sub`. | Missing subject fails authentication or authorization before dispatch. | ProblemDetails reason code, when present, is safe. | Redact subject IDs. |
-| Tenant claim | Effective principal contains `eventstore:tenant=system`. | Missing, blank, or wrong tenant claim returns `403 Forbidden` before dispatch. | ProblemDetails `reasonCode` is `principal_not_member` or `tenant_mismatch`. | Redact real tenant and user identifiers. |
+| Tenant claim | Effective principal contains `eventstore:tenant=system`, including global-administrator operators, and protected requests use the `system` request tenant. | Missing, blank, wrong-cased, wrong tenant claim, or non-`system` request tenant returns `403 Forbidden` before dispatch. | ProblemDetails `reasonCode` is `principal_not_member` or `tenant_mismatch`. | Redact real tenant and user identifiers. |
 | Query endpoint | A valid token can call one protected Tenants query endpoint, such as `GET /api/tenants`. | Invalid token returns 401; wrong tenant returns 403; query router is not invoked for denied calls. | `TenantsQueryControllerIntegrationTests` or manual HTTP status. | Do not store bearer tokens or full response data from production tenants. |
 | Command endpoint | A valid token can reach `POST /api/v1/commands` when EventStore command infrastructure is available. | Missing/wrong auth returns 401 or 403 before command routing. | `CommandApiRuntimeIntegrationTests` or operator-run deployment test. | Use placeholder command IDs and non-production tenant data in transcripts. |
 | Rate-limit partition | If routed through a host that registers EventStore rate limiting, partitioning uses normalized subject/client and tenant context and does not log tokens. | Tenants host alone cannot prove this today because it does not register the EventStore rate limiter. | Record EventStore-host evidence or note the Tenants boundary deferral. | Do not log token contents or raw tenant/user identifiers. |
@@ -95,7 +95,7 @@ Redaction rule: keep the test transcript limited to command, test names, pass/fa
 dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter FullyQualifiedName~CommandApiRuntimeIntegrationTests
 ```
 
-Expected evidence: valid real-JWT command requests reach the mocked command router, while missing, blank, or wrong tenant claims fail before routing.
+Expected evidence: valid real-JWT command requests reach the mocked command router, while missing, blank, wrong-cased, wrong, global-administrator missing-tenant, or non-`system` request-tenant cases fail before routing.
 
 Redaction rule: test command IDs are generated; do not replace them with production correlation IDs or payloads in committed evidence.
 

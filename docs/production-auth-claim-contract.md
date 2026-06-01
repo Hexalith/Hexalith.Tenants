@@ -6,7 +6,7 @@ Hexalith.Tenants uses EventStore authentication and authorization infrastructure
 
 ## Required Downstream Claims
 
-Tenant-management commands and queries run against the EventStore tenant `system` and domain `tenants`. After EventStore claims transformation, the effective authenticated principal must include:
+Tenant-management commands and queries run against the EventStore tenant `system` and domain `tenants`. The request tenant must be `system`; managed tenant IDs belong in the aggregate ID, route, query payload, or command payload depending on the operation. After EventStore claims transformation, the effective authenticated principal must include:
 
 | Claim | Required value | Purpose |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ For Tenants deployment, `eventstore:tenant=system` is the safest production cont
 - `role` (or `ClaimTypes.Role`) equal to `GlobalAdministrator`, `global-administrator`, or `global-admin`
 - `roles` JSON array or space/comma-delimited string containing any of those role values
 
-`ClaimsTenantValidator` and `ClaimsRbacValidator` bypass tenant matching and RBAC for global administrators, so a global-admin token without an `eventstore:tenant` claim is authorized for tenant-management commands and queries. The rate-limit fallback to the `anonymous` partition does NOT apply on the Tenants host today because EventStore rate limiting is not registered (see [Rate-Limit Boundary](#rate-limit-boundary)). Provision global-administrator tokens with `eventstore:tenant=system` anyway so audit logs and partitioning behave consistently if the EventStore host is later added.
+EventStore's shared `ClaimsTenantValidator` and `ClaimsRbacValidator` still recognize those global-administrator shapes as a bypass for generic EventStore tenant/RBAC matching. The Tenants host adds a narrower production guard before that shared validator: protected Tenants command and query requests must still target the `system` request tenant and have an effective non-blank `eventstore:tenant=system` claim, including global-administrator requests. A global-admin token without that claim, or with a non-`system` request tenant, fails closed with `403 Forbidden` before command/query dispatch. The rate-limit fallback to the `anonymous` partition does NOT apply on the Tenants host today because EventStore rate limiting is not registered (see [Rate-Limit Boundary](#rate-limit-boundary)).
 
 ## Identifier Casing Contract
 
@@ -88,7 +88,7 @@ dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.cs
 dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~TenantsQueryControllerIntegrationTests|FullyQualifiedName~CommandApiRuntimeIntegrationTests"
 ```
 
-5. Verify negative cases. Non-global-admin tokens with missing, blank, or wrong tenant claims must return `403 Forbidden` and must not reach command/query dispatch. The ProblemDetails `reasonCode` extension distinguishes the failure mode: `principal_not_member` for missing/blank tenant claims, `tenant_mismatch` for wrong-tenant claims.
+5. Verify negative cases. Tokens with missing, blank, wrong-cased, or wrong tenant claims, including global-administrator-shaped tokens, must return `403 Forbidden` and must not reach command/query dispatch. Requests using a non-`system` request tenant must also fail before dispatch. The ProblemDetails `reasonCode` extension distinguishes the failure mode: `principal_not_member` for missing/blank tenant claims, `tenant_mismatch` for wrong or wrong-cased tenant claims and non-`system` request tenants.
 
 ## Rate-Limit Boundary
 

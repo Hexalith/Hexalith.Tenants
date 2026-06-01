@@ -207,6 +207,35 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Theory]
+    [InlineData("tenants", "system tenant-a", null, null)]
+    [InlineData("tenant_id", "system", null, null)]
+    [InlineData("tid", "system", null, null)]
+    [InlineData("tenant_id", "system", "tid", "tenant-a")]
+    public async Task ListTenants_returns_200_when_production_like_smoke_jwt_uses_supported_source_claim_shape(
+        string claim1Type, string claim1Value, string? claim2Type, string? claim2Value) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        IQueryRouter router = CreateRouter(
+            "list-tenants",
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
+        var claims = new List<Claim> { new(claim1Type, claim1Value) };
+        if (claim2Type is not null) {
+            claims.Add(new Claim(claim2Type, claim2Value!));
+        }
+
+        string token = CreateSmokeJwt("admin-user", claims: claims);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        _ = await router.Received(1).RouteQueryAsync(
+            Arg.Is<SubmitQuery>(q => q != null && q.Tenant == "system"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
     [InlineData("missing-token")]
     [InlineData("malformed-token")]
     [InlineData("invalid-signature")]
@@ -292,8 +321,10 @@ public class TenantsQueryControllerIntegrationTests {
 
     [Theory]
     [InlineData("missing-tenant", "principal_not_member")]
+    [InlineData("global-admin-missing-tenant", "principal_not_member")]
     [InlineData("blank-tenant", "principal_not_member")]
     [InlineData("wrong-tenant", "tenant_mismatch")]
+    [InlineData("wrong-cased-tenant", "tenant_mismatch")]
     public async Task ListTenants_production_like_smoke_authorization_rejects_tenant_claim_failures_safely(
         string tokenCase,
         string expectedReasonCode) {
@@ -302,8 +333,10 @@ public class TenantsQueryControllerIntegrationTests {
         await using var factory = new TenantsQueryJwtWebApplicationFactory(router, useSmokeAuthentication: true);
         string token = tokenCase switch {
             "missing-tenant" => CreateSmokeJwt("admin-user", claims: Array.Empty<Claim>()),
+            "global-admin-missing-tenant" => CreateSmokeJwt("admin-user", claims: [new Claim("global_admin", "true")]),
             "blank-tenant" => CreateSmokeJwt("admin-user", claims: [new Claim("eventstore:tenant", " ")]),
             "wrong-tenant" => CreateSmokeJwt("admin-user", claims: [new Claim("eventstore:tenant", "tenant-a")]),
+            "wrong-cased-tenant" => CreateSmokeJwt("admin-user", claims: [new Claim("eventstore:tenant", "System")]),
             _ => throw new InvalidOperationException($"Unknown token case '{tokenCase}'."),
         };
         using HttpClient client = CreateClientWithBearer(factory, token);

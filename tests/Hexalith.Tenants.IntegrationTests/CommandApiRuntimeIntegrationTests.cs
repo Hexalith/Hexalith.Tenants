@@ -1493,6 +1493,29 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_returns_403_when_global_admin_jwt_tenant_claim_is_missing() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            Substitute.For<ICommandStatusStore>(),
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt("admin-user", claims: [new Claim("global_admin", "true")]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("principal_not_member");
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+    }
+
+    [Fact]
     public async Task Commands_endpoint_returns_403_when_direct_eventstore_tenant_claim_is_blank_even_with_source_alias() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
@@ -1521,13 +1544,15 @@ public class CommandApiRuntimeIntegrationTests {
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
-    // P10: triangulate the cross-tenant gate by varying which side mismatches. Both rows must yield
-    // 403 + tenant_mismatch — proving the check site compares the claim against the request tenant,
-    // not against the URL/route or against a hard-coded tenant.
+    // Story 7.3: protected Tenants command requests require the platform tenant claim
+    // eventstore:tenant=system before routing. A request for another tenant fails even when the
+    // token and request tenant match each other.
     [Theory]
     [InlineData("tenant-a", "system")]
     [InlineData("system", "tenant-a")]
-    public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_does_not_match_request_tenant(string claimTenant, string requestTenant) {
+    [InlineData("System", "system")]
+    [InlineData("tenant-a", "tenant-a")]
+    public async Task Commands_endpoint_returns_403_when_jwt_tenant_claim_does_not_satisfy_system_contract(string claimTenant, string requestTenant) {
         ICommandRouter router = Substitute.For<ICommandRouter>();
 
         await using var factory = new CommandApiWebApplicationFactory(
@@ -1549,15 +1574,37 @@ public class CommandApiRuntimeIntegrationTests {
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
-    // P8: companion to the 403 cross-tenant theory — proves the validator does equality (claim
-    // matches request tenant), not a hard-coded `system` whitelist. With a hard-coded check, the
-    // `tenant-a` row would 403 even when the JWT carries `eventstore:tenant=tenant-a` and the
-    // request body says `tenant=tenant-a`. The router is mocked to return 202 so any failure
-    // localizes to the tenant validator.
-    [Theory]
-    [InlineData("system")]
-    [InlineData("tenant-a")]
-    public async Task Commands_endpoint_returns_202_when_jwt_tenant_claim_matches_request_tenant(string tenant) {
+    [Fact]
+    public async Task Commands_endpoint_returns_403_when_global_admin_jwt_uses_system_claim_with_non_system_request_tenant() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            Substitute.For<ICommandStatusStore>(),
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "admin-user",
+            claims:
+            [
+                new Claim("global_admin", "true"),
+                new Claim("eventstore:tenant", "system"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: "tenant-a");
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        _ = details.ShouldNotBeNull();
+        details.Extensions.ShouldContainKey("reasonCode");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("tenant_mismatch");
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task Commands_endpoint_returns_202_when_jwt_tenant_claim_satisfies_system_contract() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         _ = router.RouteCommandAsync(Arg.Any<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
@@ -1570,15 +1617,15 @@ public class CommandApiRuntimeIntegrationTests {
             statusStore,
             Substitute.For<ICommandArchiveStore>(),
             useTestAuthentication: false);
-        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", tenant)]);
+        string token = CreateJwt("admin-user", claims: [new Claim("eventstore:tenant", "system")]);
         using HttpClient client = CreateClientWithBearer(factory, token);
-        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest(tenant: tenant);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateBootstrapRequest();
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
         _ = await router.Received(1).RouteCommandAsync(
-            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == tenant),
+            Arg.Is<Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand>(c => c != null && c.Tenant == "system"),
             Arg.Any<CancellationToken>());
     }
 

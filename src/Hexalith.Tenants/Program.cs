@@ -18,6 +18,7 @@ using Hexalith.EventStore.Indexes;
 using Hexalith.EventStore.Server.Pipeline;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.EventStore.Validation;
+using Hexalith.Tenants.Authorization;
 using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
@@ -90,7 +91,8 @@ builder.Services.Configure<CommandStatusOptions>(
     builder.Configuration.GetSection("EventStore:CommandStatus"));
 builder.Services.TryAddSingleton<ICommandStatusStore, DaprCommandStatusStore>();
 builder.Services.TryAddSingleton<ICommandArchiveStore, DaprCommandArchiveStore>();
-builder.Services.TryAddScoped<ITenantValidator, ClaimsTenantValidator>();
+builder.Services.TryAddScoped<ClaimsTenantValidator>();
+builder.Services.TryAddScoped<ITenantValidator, TenantsSystemTenantValidator>();
 builder.Services.TryAddScoped<IRbacValidator, ClaimsRbacValidator>();
 
 // ExtensionMetadataSanitizer required by CommandsController
