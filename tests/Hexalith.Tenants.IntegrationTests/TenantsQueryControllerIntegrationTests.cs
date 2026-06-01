@@ -8,12 +8,15 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Queries;
 
 using Microsoft.AspNetCore.Authentication;
@@ -42,6 +45,10 @@ public class TenantsQueryControllerIntegrationTests {
     private const string SmokeJwtAudience = "hexalith-tenants";
     private const string SmokeJwtIssuer = "https://identity.smoke.example.test/realms/hexalith";
     private const string SmokeJwtSigningKey = "this-is-a-smoke-test-signing-key-minimum-32-chars";
+    private static readonly JsonSerializerOptions s_queryJsonOptions = new() {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new TenantStatusJsonConverter(), new JsonStringEnumConverter() },
+    };
 
     [Fact]
     public async Task ListTenants_returns_401_when_authorization_header_is_missing() {
@@ -432,11 +439,25 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
-    public async Task GetTenant_returns_200_when_authorization_header_has_valid_jwt_and_tenant_exists() {
-        JsonElement payload = JsonSerializer.SerializeToElement(new { tenantId = "tenant-1", name = "Tenant One" });
-        IQueryRouter router = CreateRouter(
-            "get-tenant",
-            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"));
+    public async Task GetTenant_returns_typed_payload_shape_and_dispatches_tenant_query() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new TenantDetail(
+            TenantId: "tenant-1",
+            Name: "Tenant One",
+            Description: "Primary tenant",
+            Status: TenantStatus.Disabled,
+            Members:
+            [
+                new TenantMember("member-user", TenantRole.TenantReader),
+            ],
+            Configuration: new Dictionary<string, string> {
+                ["billing-plan"] = "enterprise",
+            },
+            CreatedAt: new DateTimeOffset(2026, 5, 15, 10, 0, 0, TimeSpan.Zero)), s_queryJsonOptions);
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
 
         await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
         using HttpClient client = CreateJwtClient(factory);
@@ -446,6 +467,24 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
         result.GetProperty("tenantId").GetString().ShouldBe("tenant-1");
+        result.GetProperty("name").GetString().ShouldBe("Tenant One");
+        result.GetProperty("description").GetString().ShouldBe("Primary tenant");
+        result.GetProperty("status").GetString().ShouldBe("Disabled");
+        result.GetProperty("members").GetArrayLength().ShouldBe(1);
+        result.GetProperty("members")[0].GetProperty("userId").GetString().ShouldBe("member-user");
+        result.GetProperty("members")[0].GetProperty("role").GetString().ShouldBe("TenantReader");
+        result.GetProperty("configuration").GetProperty("billing-plan").GetString().ShouldBe("enterprise");
+        result.TryGetProperty("createdAt", out _).ShouldBeTrue();
+
+        SubmitQuery query = routedQueries.Single();
+        query.Tenant.ShouldBe("system");
+        query.Domain.ShouldBe(GetTenantQuery.Domain);
+        query.AggregateId.ShouldBe("tenant-1");
+        query.QueryType.ShouldBe(GetTenantQuery.QueryType);
+        query.EntityId.ShouldBe("tenant-1");
+        query.UserId.ShouldBe("admin-user");
+        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.Payload.ShouldBeEmpty();
     }
 
     [Fact]
@@ -562,6 +601,146 @@ public class TenantsQueryControllerIntegrationTests {
         _ = details.ShouldNotBeNull();
         details.Status.ShouldBe(404);
         details.Title.ShouldBe("Not Found");
+        string body = await response.Content.ReadAsStringAsync();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: false);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_returns_401_when_authorization_header_is_missing() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        using HttpClient client = factory.CreateClient();
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/users");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_returns_paginated_payload_shape_and_dispatches_tenant_query() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new PaginatedResult<TenantMember>(
+            Items:
+            [
+                new("member-user", TenantRole.TenantOwner),
+            ],
+            Cursor: null,
+            HasMore: false), s_queryJsonOptions);
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantUsersQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/users");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(1);
+        result.GetProperty("items")[0].GetProperty("userId").GetString().ShouldBe("member-user");
+        result.GetProperty("items")[0].GetProperty("role").GetString().ShouldBe("TenantOwner");
+        result.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        result.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+
+        SubmitQuery query = routedQueries.Single();
+        query.Tenant.ShouldBe("system");
+        query.Domain.ShouldBe(GetTenantUsersQuery.Domain);
+        query.AggregateId.ShouldBe("tenant-1");
+        query.QueryType.ShouldBe(GetTenantUsersQuery.QueryType);
+        query.EntityId.ShouldBe("tenant-1");
+        query.UserId.ShouldBe("test-user");
+        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=25", 25)]
+    [InlineData("?pageSize=0", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=-5", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=101", TenantQueryPaginationPolicy.StandardMaximumPageSize)]
+    public async Task GetTenantUsers_forwards_bounded_page_size_in_query_payload(string queryString, int expectedPageSize) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantUsersQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/users" + queryString);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(expectedPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_forwards_valid_signed_cursor_in_query_payload() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetTenantUsersQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenants"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetTenantUsersQuery.QueryType,
+            TenantQueryCursorScopes.GetTenantUsers("tenant-1"),
+            "member-user");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/tenants/tenant-1/users?cursor={Uri.EscapeDataString(cursor)}&pageSize=25");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(25);
+        ReadPayloadCursor(query).ShouldBe(cursor);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_returns_403_problem_details_when_projection_forbids_access() {
+        IQueryRouter router = CreateRouter(
+            GetTenantUsersQuery.QueryType,
+            new QueryRouterResult(false, null, false, "Forbidden"));
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant-1/users");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        string body = await response.Content.ReadAsStringAsync();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: false);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_returns_404_problem_details_when_projection_reports_not_found() {
+        IQueryRouter router = CreateRouter(
+            GetTenantUsersQuery.QueryType,
+            new QueryRouterResult(false, null, false, "Tenant not found"));
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/missing-tenant/users");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        string body = await response.Content.ReadAsStringAsync();
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: false);
     }
 
     [Fact]
