@@ -106,8 +106,8 @@ development_status:
   epic-6-retrospective: done
 
   # Epic 7: Operators Can Deploy, Secure, and Observe Production Tenants
-  epic-7: backlog
-  7-1-provide-aspire-hosting-extensions-for-tenants: backlog
+  epic-7: in-progress
+  7-1-provide-aspire-hosting-extensions-for-tenants: done
   7-2-configure-dapr-components-for-local-and-production-deployment: backlog
   7-3-validate-production-authentication-and-eventstore-tenant-claims: backlog
   7-4-expose-tenant-command-and-event-metrics-with-opentelemetry: backlog

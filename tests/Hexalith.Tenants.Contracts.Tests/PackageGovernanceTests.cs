@@ -384,6 +384,33 @@ public class PackageGovernanceTests {
     }
 
     [Fact]
+    public void Aspire_package_exposes_hosting_composition_only() {
+        string repoRoot = FindRepoRoot();
+        string projectPath = "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj";
+        XDocument project = XDocument.Load(Path.Combine(repoRoot, projectPath));
+
+        string[] packageReferences = project
+            .Descendants("PackageReference")
+            .Select(reference => reference.Attribute("Include")?.Value)
+            .Where(packageId => !string.IsNullOrWhiteSpace(packageId))
+            .Select(packageId => packageId!)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        string[] projectReferences = project
+            .Descendants("ProjectReference")
+            .Select(reference => reference.Attribute("Include")?.Value)
+            .Where(referencePath => !string.IsNullOrWhiteSpace(referencePath))
+            .Select(referencePath => referencePath!)
+            .ToArray();
+
+        packageReferences.ShouldBe([
+            "Aspire.Hosting",
+            "CommunityToolkit.Aspire.Hosting.Dapr",
+        ]);
+        projectReferences.ShouldBeEmpty($"{projectPath}: Aspire package must not reference host, server, domain, command, query, auth, projection, or test projects.");
+    }
+
+    [Fact]
     public void Coverage_gate_script_enforces_overall_and_named_isolation_thresholds() {
         string repoRoot = FindRepoRoot();
         string script = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-coverage.py"));
