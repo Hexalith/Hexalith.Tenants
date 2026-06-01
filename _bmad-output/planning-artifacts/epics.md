@@ -266,7 +266,7 @@ NFR24: MVP error messages and documentation are English-only. Phase 2 Admin UI a
 
 - Operational telemetry must use OpenTelemetry and structured logging with correlation, tenant, domain, aggregate, causation, command/event type, and stage metadata.
 
-- DAPR/EventStore resource names follow conventions: AppId `tenants`, state store `tenants-eventstore`, topic `tenants.events`, dead letter topic `deadletter.tenants.events`, and actor identity `system:tenants:{aggregateId}`.
+- DAPR/EventStore resource names follow conventions: AppId `tenants`, DAPR state-store component `statestore`, topic `tenants.events`, dead letter topic `deadletter.tenants.events`, and actor identity `system:tenants:{aggregateId}`.
 
 - Events are immutable past-tense facts implementing EventStore payload contracts; they are not commands or status messages.
 

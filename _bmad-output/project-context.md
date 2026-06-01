@@ -178,7 +178,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Pub/sub uses CloudEvents 1.0.**
 - **Resource naming** (convention-derived by EventStore's `NamingConventionEngine` — single source of truth):
   - AppId: `tenants`
-  - State store: `tenants-eventstore`
+  - DAPR state-store component: `statestore`
   - Topic: `tenants.events` (single topic for all tenant events; consumers filter by event type)
   - Dead letter: `deadletter.tenants.events`
 - **Access control is deny-by-default.** When adding service invocation paths, update the receiving service's DAPR config and verify caller app IDs.

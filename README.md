@@ -12,6 +12,7 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 - **User-Role Management** — Add and remove users from tenants with role-based access (Owner, Contributor, Reader) and role behavior enforcement
 - **Global Administration** — Bootstrap a global administrator to authorize initial tenant operations
 - **Tenant Configuration** — Set and manage per-tenant key-value configuration with domain events for every change
+- **Tenant Query and Audit APIs** — Query tenant lists, tenant details, user memberships, and tenant audit history through protected cursor-paginated endpoints
 - **Event-Driven Integration** — Subscribe to tenant domain events (`TenantCreated`, `UserAddedToTenant`, etc.) in consuming services via DAPR pub/sub
 - **In-Memory Testing Fakes** — Production-parity domain logic with in-memory stores for fast, reliable tests without infrastructure dependencies
 

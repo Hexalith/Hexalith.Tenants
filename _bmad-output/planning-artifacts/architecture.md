@@ -368,7 +368,7 @@ No direct database table/column naming is owned by Hexalith.Tenants. Durable sta
 Agents must name DAPR/EventStore resources through existing conventions:
 
 - AppId: `tenants`
-- State store: `tenants-eventstore`
+- DAPR state-store component: `statestore`
 - Topic: `tenants.events`
 - Dead letter topic: `deadletter.tenants.events`
 - Actor identity: `system:tenants:{aggregateId}`

@@ -23,6 +23,7 @@ Comprehensive reference for all tenant domain commands, events, and rejection ev
     - [Rejection Table](#rejection-table)
     - [InsufficientPermissionsRejection Detail](#insufficientpermissionsrejection-detail)
     - [RFC 7807 Problem Details](#rfc-7807-problem-details)
+- [Query API Reference](#query-api-reference)
 - [Quick Reference](#quick-reference)
 - [Idempotency](#idempotency)
 
@@ -654,6 +655,41 @@ Persistence-level optimistic concurrency conflicts are EventStore command-pipeli
 Each retry rehydrates the latest aggregate state and invokes Tenants domain logic again, so membership, role, and configuration commands evaluate against the ordered event sequence already committed by the winning command. If the retry limit is exhausted, command status is `Rejected` with `FailureReason == "ConcurrencyConflict"`, and the public command endpoint returns sanitized HTTP `409` ProblemDetails with `Retry-After: 1` and the request correlation ID. The response does not expose aggregate IDs, tenant IDs, state-store keys, ETags, payloads, stack traces, tokens, or local paths.
 
 Idempotency records are written only after a terminal command result is known. Replaying a duplicate causation ID after success, domain rejection, no-op, publish-failed, or terminal concurrency conflict returns the cached terminal result and does not append duplicate tenant events.
+
+---
+
+## Query API Reference
+
+Tenant query endpoints are protected REST adapters over EventStore `SubmitQuery`. Controllers validate route/query input, derive the authenticated user from JWT `sub`, validate signed opaque cursors, then dispatch to the projection actor. Query authorization and row filtering are handled by the projection/query path.
+
+| Endpoint | Query contract | Response |
+| --- | --- | --- |
+| `GET /api/tenants` | `ListTenantsQuery` | `PaginatedResult<TenantSummary>` |
+| `GET /api/tenants/{tenantId}` | `GetTenantQuery` | `TenantDetail` |
+| `GET /api/tenants/{tenantId}/users` | `GetTenantUsersQuery` | `PaginatedResult<TenantMember>` |
+| `GET /api/users/{userId}/tenants` | `GetUserTenantsQuery` | `PaginatedResult<UserTenantMembership>` |
+| `GET /api/tenants/{tenantId}/audit` | `GetTenantAuditQuery` | `PaginatedResult<TenantAuditEntry>` |
+
+Paginated responses use the standard shape `{ "items": [...], "cursor": "...", "hasMore": true }`. Standard query endpoints default to page size `20` and clamp at `100`. Audit queries default to page size `100` and clamp at `1000`.
+
+Cursors are signed, opaque, and bound to the query type and authorization scope. A cursor generated for a different tenant, target user, requester, date range, category, or query shape is rejected with a safe validation error and must not reveal embedded tenant IDs, user IDs, filters, or internal state.
+
+`GET /api/tenants/{tenantId}/audit` accepts optional `from`, `to`, `category`, `cursor`, and `pageSize` query parameters. Audit rows are projection-backed and include:
+
+| Field | Meaning |
+| --- | --- |
+| `eventId` | Event reference used for stable ordering and support correlation |
+| `eventType` | Tenant event type that produced the audit row |
+| `category` | Audit category, serialized by enum name |
+| `actorId` | Support-safe actor identifier from event metadata |
+| `timestamp` | Event timestamp |
+| `tenantId` | Tenant scope for the audit row |
+| `target` | Best-effort target derived from narrative payload (`userId`, `key`, or tenant ID) |
+| `scope` | Tenant scope for the row |
+| `outcome` | Event type outcome |
+| `narrativePayload` | Support-safe key/value summary, not a raw event payload dump |
+
+Global-administrator events are also projected into system-scoped audit state under `audit:system`, so `GlobalAdministratorSet` and `GlobalAdministratorRemoved` can be queried through the same audit contract when the system tenant scope is requested.
 
 ---
 

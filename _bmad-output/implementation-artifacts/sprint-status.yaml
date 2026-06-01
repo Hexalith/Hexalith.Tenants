@@ -84,7 +84,7 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Operators and Developers Can Query Tenant State and Audit Access
-  epic-5: in-progress
+  epic-5: done
   5-1-persist-per-tenant-detail-projections-without-silent-write-loss: done
   5-2-persist-the-shared-tenant-index-projection-without-silent-write-loss: done
   5-3-persist-the-tenant-audit-projection-without-silent-write-loss: done
@@ -95,7 +95,7 @@ development_status:
   5-8-query-tenant-details-and-tenant-users: done
   5-9-query-the-tenants-a-user-belongs-to: done
   5-10-query-tenant-access-audit-history: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 
   # Epic 6: Developers Can Test Tenant Behavior Without Infrastructure
   epic-6: backlog
