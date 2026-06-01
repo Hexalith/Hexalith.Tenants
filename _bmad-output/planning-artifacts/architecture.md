@@ -296,7 +296,7 @@ Resolves fail-open defaults and consumer-contract gaps raised in the Parties rev
 
 ### API & Communication Patterns
 
-Commands use EventStore command submission, with `POST /api/v1/commands` or the repository's current EventStore command route as the command gateway. Command handling returns success, rejection, or no-op through EventStore domain result semantics.
+Commands use EventStore command submission, with `POST /api/v1/commands` or the repository's current EventStore command route as the command gateway. Command handling returns success, rejection, or no-op through EventStore domain result semantics. Persistence-level optimistic concurrency conflicts are EventStore command-pipeline outcomes: conflicts before a successful `EventsStored` checkpoint are retried according to `EventStore:CommandConcurrency:MaxPersistenceConflictRetries` (default `1`) after fresh aggregate rehydration; exhausted conflicts surface as sanitized HTTP `409` Problem Details with command status `Rejected` and `FailureReason == "ConcurrencyConflict"`.
 
 Queries are explicit REST endpoints backed by EventStore query contracts:
 

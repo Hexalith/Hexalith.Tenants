@@ -62,7 +62,7 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Tenant Owners Can Manage Access and Configuration Safely
-  epic-3: in-progress
+  epic-3: done
   3-1-add-users-to-a-tenant-with-explicit-roles: done
   3-2-remove-users-from-a-tenant: done
   3-3-change-tenant-user-roles-with-escalation-protection: done
@@ -71,7 +71,7 @@ development_status:
   3-6-remove-tenant-configuration-entries: done
   3-7-enforce-tenant-configuration-limits: done
   3-8-reject-conflicting-concurrent-tenant-modifications: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4: Consuming Services Can React to Tenant Events
   epic-4: backlog
