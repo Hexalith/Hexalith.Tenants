@@ -2,41 +2,43 @@
 
 ## Story
 
-Story 5.1: Persist Per-Tenant Detail Projections Without Silent Write Loss
+Story 5.3: Persist the Tenant Audit Projection Without Silent Write Loss
 
 ## Generated Tests
 
 ### API Tests
 
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs` - validates tenant-detail optimistic concurrency, reload-and-reapply behavior, retry exhaustion, no downstream audit/index writes after terminal tenant-detail failure, support-safe diagnostics, and bounded diagnostic message/event sampling.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs` - validates the DAPR projection dispatch boundary uses `GetStateAndETagAsync` plus guarded `TrySaveStateAsync` with `ConcurrencyMode.FirstWrite` for the per-tenant detail key, and does not use plain `SaveStateAsync`.
-- [x] Existing `TenantProjectionHandlerTests` continue to cover focused handler behavior for existing state, missing state, retries, audit/index sequencing, cancellation, and failure paths.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionWriteConformanceTests.cs` - validates tenant-audit optimistic concurrency, conflict reload-and-merge behavior, persisted-authoritative duplicate `EventId` handling, deterministic timestamp/EventId ordering, retry exhaustion diagnostics, bounded diagnostic message/event sampling, support-safe exclusion of payload user IDs, malformed payload handling, and replay idempotency.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` - validates recovered audit entries remain queryable through `get-tenant-audit` by date range, category filtering, and protected cursor pagination.
+- [x] Existing `TenantProjectionHandlerTests`, `TenantAuditReadModelTests`, `TenantAuditProjectionTests`, and `ProjectionDispatcherTests` continue to cover focused handler behavior, audit classification, invariant failures, and guarded DAPR state-store write shape.
 
 ### E2E Tests
 
-- [x] No browser UI exists for this story. The applicable end-to-end path is the projection request through `TenantProjectionHandler.ProjectAsync` into the production write policy and DAPR state-store adapter boundary.
+- [x] No browser UI exists for this story. The applicable end-to-end path is the projection request through `TenantProjectionHandler.ProjectAsync` into the production write policy, then the existing actor query path for recovered audit entries.
 
 ## Coverage
 
-- Story acceptance criteria: 2/2 covered by projection conformance and dispatcher tests.
-- API/projection paths: tenant detail guarded writes, audit guarded writes, singleton index guarded writes, and DAPR dispatch shape covered.
-- Happy path: tenant detail read/reapply/save succeeds with loaded state and ETag.
-- Critical error cases: guarded-save conflict retry, retry exhaustion, downstream write suppression after tenant-detail exhaustion, safe structured diagnostics, and bounded diagnostic overflow covered.
+- Story acceptance criteria: 7/7 covered by projection conformance, handler, actor query, read-model, projection, and dispatcher tests.
+- Audit conflict recovery: covered with stale ETag conflict, fresh reload containing concurrent entries, final A+B+C/D preservation, `ConcurrencyMode.FirstWrite`, fresh ETags, and deterministic ordering.
+- Duplicate/replay semantics: covered for persisted-authoritative duplicate `EventId`, distinct same-timestamp entries, replay after audit save, malformed JSON skip behavior, and missing `MessageId`/`UserId` invariant failures.
+- Retry exhaustion: covered with observable `InvalidOperationException`, EventIds `100101` and `100102`, support-safe structured fields, no downstream index writes after audit terminal failure, and bounded `MessageIds`/`EventTypes`.
 - UI features: 0/0 applicable.
 
 ## Validation
 
-- [x] `MSBUILDDISABLENODEREUSE=1 dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter "FullyQualifiedName~ProjectionWriteConformanceTests|FullyQualifiedName~TenantProjectionHandlerTests|FullyQualifiedName~ProjectionDispatcherTests" -m:1 -nr:false /p:NuGetAudit=false` - built successfully, then VSTest aborted before executing tests because the sandbox denied its TCP listener (`SocketException (13): Permission denied`).
-- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Projections.ProjectionWriteConformanceTests -class Hexalith.Tenants.Server.Tests.Projections.TenantProjectionHandlerTests -class Hexalith.Tenants.Server.Tests.Projections.ProjectionDispatcherTests` - passed: 47 total, 0 errors, 0 failed, 0 skipped.
-- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none` - passed: 579 total, 0 errors, 0 failed, 0 skipped.
+- [x] `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter "FullyQualifiedName~ProjectionWriteConformanceTests|FullyQualifiedName~TenantProjectionHandlerTests|FullyQualifiedName~ProjectionDispatcherTests|FullyQualifiedName~TenantsProjectionActorTests"` - blocked before test execution by the sandbox's MSBuild named-pipe/socket restriction (`SocketException (13): Permission denied`).
+- [x] `MSBUILDDISABLENODEREUSE=1 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --no-restore -m:1 -nr:false /p:UseSharedCompilation=false /p:NuGetAudit=false` - passed: 0 warnings, 0 errors.
+- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Server.Tests/bin/Release/net10.0/Hexalith.Tenants.Server.Tests -class Hexalith.Tenants.Server.Tests.Projections.ProjectionWriteConformanceTests -class Hexalith.Tenants.Server.Tests.Projections.TenantProjectionHandlerTests -class Hexalith.Tenants.Server.Tests.Projections.ProjectionDispatcherTests -class Hexalith.Tenants.Server.Tests.Projections.TenantsProjectionActorTests -parallel none -noLogo` - passed: 142 total, 0 errors, 0 failed, 0 skipped.
+- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Server.Tests/bin/Release/net10.0/Hexalith.Tenants.Server.Tests -parallel none -noLogo` - passed: 582 total, 0 errors, 0 failed, 0 skipped.
+- [x] `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 -nodeReuse:false` - passed: 0 warnings, 0 errors.
 
 ## Checklist Validation
 
 - [x] API tests generated where applicable.
 - [x] E2E tests generated where UI exists; no UI exists for this story.
 - [x] Tests use standard project APIs: xUnit v3, Shouldly, NSubstitute, and existing projection fixture patterns.
-- [x] Tests cover the happy path for tenant-detail projection reads, event application, and guarded saves.
-- [x] Tests cover critical error cases: optimistic-concurrency conflicts, retry exhaustion, safe diagnostics, bounded diagnostic fields, and prevention of audit/index writes after tenant-detail terminal failure.
+- [x] Tests cover happy path audit projection persistence, recovered-entry queryability, and guarded saves.
+- [x] Tests cover critical error cases: optimistic-concurrency conflicts, duplicate/replay idempotency, retry exhaustion, safe diagnostics, bounded diagnostic fields, malformed payloads, and invariant failures.
 - [x] All generated tests run successfully through the direct xUnit runner.
 - [x] Tests use clear descriptions.
 - [x] Tests use semantic API/projection boundaries where applicable.

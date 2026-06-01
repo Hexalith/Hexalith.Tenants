@@ -536,6 +536,153 @@ public class ProjectionWriteConformanceTests
     }
 
     [Fact]
+    public async Task Audit_RetryExhaustion_FailsObservably_WithSupportSafeBoundedDiagnosticsAsync()
+    {
+        var fixture = new ProjectionWriteConformanceFixture();
+        fixture.EnqueueSuccessfulTenantDetailSave();
+        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        {
+            fixture.StateStore.EnqueueRead<TenantAuditReadModel>(
+                ProjectionWriteConformanceFixture.TenantAuditProjectionKey,
+                null,
+                $"audit-etag-{attempt + 1}");
+            fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, false);
+        }
+
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        const string SensitiveTenantName = "Confidential Audit Tenant";
+        const string SensitiveTenantDescription = "raw-token-value-not-for-logs";
+        const string SensitiveUserId = "payload-user-secret-audit";
+        const string SensitivePayloadUserId = "target-user-secret-audit";
+        const string SensitiveConfigKey = "secret-config";
+        const string SensitiveConfigValue = "audit-api-key-leak-canary";
+        const string SafeCorrelationId = "corr-audit-bounded";
+
+        ProjectionEventDto[] events = [
+            ProjectionWriteConformanceFixture.CreateEvent(
+                new TenantCreated(
+                    ProjectionWriteConformanceFixture.TenantId,
+                    SensitiveTenantName,
+                    SensitiveTenantDescription,
+                    timestamp),
+                "audit-msg-00",
+                timestamp,
+                correlationId: SafeCorrelationId,
+                userId: SensitiveUserId),
+            ProjectionWriteConformanceFixture.CreateEvent(
+                new TenantConfigurationSet(
+                    ProjectionWriteConformanceFixture.TenantId,
+                    SensitiveConfigKey,
+                    SensitiveConfigValue),
+                "audit-msg-01",
+                timestamp.AddSeconds(1),
+                correlationId: SafeCorrelationId,
+                userId: SensitiveUserId),
+            ProjectionWriteConformanceFixture.CreateEvent(
+                new UserAddedToTenant(
+                    ProjectionWriteConformanceFixture.TenantId,
+                    SensitivePayloadUserId,
+                    TenantRole.TenantReader),
+                "audit-msg-02",
+                timestamp.AddSeconds(2),
+                correlationId: SafeCorrelationId,
+                userId: SensitiveUserId),
+            .. Enumerable.Range(0, 25).Select(i => new ProjectionEventDto(
+                $"Synthetic.AuditEventType{i}",
+                Encoding.UTF8.GetBytes("{}"),
+                "json",
+                1,
+                timestamp.AddSeconds(i + 3),
+                SafeCorrelationId,
+                $"audit-msg-{i + 3:00}",
+                SensitiveUserId)),
+        ];
+        ProjectionRequest request = ProjectionWriteConformanceFixture.CreateRequest(events);
+
+        InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(
+            () => fixture.RunProjectionHandlerAsync(request));
+
+        fixture.StateStore.MarkTerminalFailure(ProjectionWriteConformanceFixture.TenantAuditProjectionKey);
+
+        exception.Message.ShouldContain("tenant audit");
+        exception.Message.ShouldContain($"{TenantProjectionWritePolicy.MaxAttempts} attempts");
+
+        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey)
+            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+        fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey)
+            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
+        fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
+
+        IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
+        IReadOnlyList<CapturedLog> exhausted = fixture.GetLogEntries(RetryExhaustedEventIdInt);
+        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(TenantProjectionWritePolicy.MaxAttempts - 1);
+        exhausted.Count(e => e.Level == LogLevel.Error).ShouldBe(1);
+
+        foreach (CapturedLog entry in fixture.Logger.Entries)
+        {
+            foreach (string secret in new[]
+            {
+                SensitiveTenantName,
+                SensitiveTenantDescription,
+                SensitiveUserId,
+                SensitivePayloadUserId,
+                SensitiveConfigKey,
+                SensitiveConfigValue,
+            })
+            {
+                entry.Message.ShouldNotContain(secret);
+                entry.StateText.ShouldNotContain(secret);
+                if (entry.StructuredState is not null)
+                {
+                    foreach (object? value in entry.StructuredState.Values)
+                    {
+                        value?.ToString()?.ShouldNotContain(secret);
+                    }
+                }
+            }
+        }
+
+        AssertProjectionWriteDiagnostic(
+            conflicts[0],
+            LogLevel.Warning,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant audit",
+            attemptCount: 1,
+            reason: "guarded-save-conflict",
+            SafeCorrelationId,
+            "audit-msg-00",
+            nameof(TenantCreated),
+            "TenantProjectionHandler.ProjectAsync:tenant-1");
+
+        CapturedLog exhaustedEntry = exhausted.Single();
+        AssertProjectionWriteDiagnostic(
+            exhaustedEntry,
+            LogLevel.Error,
+            ProjectionWriteConformanceFixture.StateStoreName,
+            "tenant audit",
+            TenantProjectionWritePolicy.MaxAttempts,
+            "retry-exhausted",
+            SafeCorrelationId,
+            "audit-msg-19",
+            "Synthetic.AuditEventType4",
+            "TenantProjectionHandler.ProjectAsync:tenant-1");
+
+        string messageIds = exhaustedEntry.StructuredState!["MessageIds"]?.ToString() ?? string.Empty;
+        string eventTypes = exhaustedEntry.StructuredState["EventTypes"]?.ToString() ?? string.Empty;
+        messageIds.ShouldContain("audit-msg-00");
+        messageIds.ShouldContain("audit-msg-19");
+        messageIds.ShouldContain("+8 more");
+        messageIds.ShouldNotContain("audit-msg-20");
+        eventTypes.ShouldContain(nameof(TenantCreated));
+        eventTypes.ShouldContain(nameof(TenantConfigurationSet));
+        eventTypes.ShouldContain(nameof(UserAddedToTenant));
+        eventTypes.ShouldContain("Synthetic.AuditEventType4");
+        eventTypes.ShouldContain("+20 more");
+        eventTypes.ShouldNotContain("Synthetic.AuditEventType5");
+    }
+
+    [Fact]
     public async Task Audit_ConflictThenSuccess_PreservesPersistedAuthoritativeDuplicateAndOrdersByTimestampThenEventIdAsync()
     {
         // P8: prove "persisted wins" against payload MISMATCH. Persisted entry uses
@@ -589,6 +736,18 @@ public class ProjectionWriteConformanceTests
                 userId: "actor-incoming"));
 
         _ = await fixture.RunProjectionHandlerAsync(request);
+
+        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(2);
+        fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(2);
+        SaveAttempt firstAuditSave = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, 0);
+        SaveAttempt secondAuditSave = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, 1);
+        firstAuditSave.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
+        secondAuditSave.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
+        firstAuditSave.ETag.ShouldBe("audit-etag-1");
+        secondAuditSave.ETag.ShouldBe("audit-etag-2");
+        firstAuditSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
+        secondAuditSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
+        fixture.StateStore.PlainSaveAttempts.ShouldBeEmpty();
 
         SaveAttempt finalAuditSave = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, 1);
         TenantAuditReadModel saved = (TenantAuditReadModel)finalAuditSave.Value;
@@ -891,7 +1050,8 @@ public class ProjectionWriteConformanceTests
         string reason,
         string correlationId,
         string expectedMessageId,
-        string expectedEventType)
+        string expectedEventType,
+        string operationContext = "TenantProjectionHandler.ProjectAsync")
     {
         entry.Level.ShouldBe(expectedLevel);
         entry.StructuredState.ShouldNotBeNull();
@@ -899,7 +1059,7 @@ public class ProjectionWriteConformanceTests
         entry.StructuredState["StateKeyCategory"].ShouldBe(stateKeyCategory);
         entry.StructuredState["AttemptCount"].ShouldBe(attemptCount);
         entry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        entry.StructuredState["OperationContext"].ShouldBe("TenantProjectionHandler.ProjectAsync");
+        entry.StructuredState["OperationContext"].ShouldBe(operationContext);
         entry.StructuredState["Reason"].ShouldBe(reason);
         entry.StructuredState["CorrelationId"].ShouldBe(correlationId);
         entry.StructuredState["MessageIds"]!.ToString().ShouldNotBeNull().ShouldContain(expectedMessageId);
