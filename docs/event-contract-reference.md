@@ -8,12 +8,15 @@ Comprehensive reference for all tenant domain commands, events, and rejection ev
 
 - [Event Delivery Model](#event-delivery-model)
 - [Identity Scheme](#identity-scheme)
+- [Contract Inventory](#contract-inventory)
 - [Three-Outcome Model](#three-outcome-model)
 - [Event Envelope Metadata](#event-envelope-metadata)
+- [Serialization Shape](#serialization-shape)
 - [Contract Stability](#contract-stability)
 - [Enums](#enums)
     - [TenantRole](#tenantrole)
     - [TenantStatus](#tenantstatus)
+    - [AuditEventCategory](#auditeventcategory)
 - [TenantAggregate](#tenantaggregate)
     - [Tenant Lifecycle](#tenant-lifecycle)
     - [User-Role Management](#user-role-management)
@@ -55,6 +58,70 @@ All tenant domain events use the following identity components:
 
 The canonical composite identity is `system:tenants:{managedTenantId}` for managed tenant aggregates and `system:global-administrators:global-administrators` for the global administrator aggregate. Both aggregate families publish on the shared `tenants.events` topic; consumers filter by event type rather than by topic.
 
+## Contract Inventory
+
+All public contracts in this reference are owned by package `Hexalith.Tenants.Contracts`. The tables below are the source-backed index for commands, success events, rejections, queries, DTOs, and enums. Detailed field tables appear in the aggregate, rejection, query, and enum sections that follow.
+
+### Command Contracts
+
+| Contract | Package | Owning aggregate/domain | Fields | Intended caller | Success or rejection outcome |
+| --- | --- | --- | --- | --- | --- |
+| `CreateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Trusted global administrator through the command gateway | `TenantCreated`; `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection` |
+| `UpdateTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Name`, `Description?` | Tenant contributor/owner or trusted global administrator | `TenantUpdated`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection` |
+| `DisableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantDisabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
+| `EnableTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId` | Trusted global administrator | `TenantEnabled`; `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection` |
+| `AddUserToTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId`, `Role` | Tenant owner or trusted global administrator; first tenant member bootstrap is allowed | `UserAddedToTenant`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
+| `RemoveUserFromTenant` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId` | Tenant owner or trusted global administrator | `UserRemovedFromTenant`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection` |
+| `ChangeUserRole` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `UserId`, `NewRole` | Tenant owner or trusted global administrator | `UserRoleChanged`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
+| `SetTenantConfiguration` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Key`, `Value` | Tenant owner or trusted global administrator | `TenantConfigurationSet`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection` |
+| `RemoveTenantConfiguration` | `Hexalith.Tenants.Contracts` | `TenantAggregate` / `tenants` | `TenantId`, `Key` | Tenant owner or trusted global administrator | `TenantConfigurationRemoved`; `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationKeyNotFoundRejection`, `InsufficientPermissionsRejection` |
+| `BootstrapGlobalAdmin` | `Hexalith.Tenants.Contracts` | `GlobalAdministratorsAggregate` / `global-administrators` | `UserId` | Startup/bootstrap host configuration or operator bootstrap path, not a public REST shortcut | `GlobalAdministratorSet`; `GlobalAdminAlreadyBootstrappedRejection` |
+| `SetGlobalAdministrator` | `Hexalith.Tenants.Contracts` | `GlobalAdministratorsAggregate` / `global-administrators` | `UserId` | Existing global administrator | `GlobalAdministratorSet`; `InsufficientPermissionsRejection`, `GlobalAdministratorAlreadyExistsRejection` |
+| `RemoveGlobalAdministrator` | `Hexalith.Tenants.Contracts` | `GlobalAdministratorsAggregate` / `global-administrators` | `UserId` | Existing global administrator | `GlobalAdministratorRemoved`; `InsufficientPermissionsRejection`, `GlobalAdministratorNotFoundRejection`, `LastGlobalAdministratorRejection` |
+
+### Success Event Contracts
+
+Every success event below is published to `tenants.events`. The EventStore envelope contains the event identity and version metadata; the payload contains the managed tenant identity as top-level `TenantId`. For global-administrator events that managed tenant identity is the platform tenant `system`.
+
+| Contract | Package | Producing command(s) | Payload fields | Timestamp fields | Intended consumer use |
+| --- | --- | --- | --- | --- | --- |
+| `TenantCreated` | `Hexalith.Tenants.Contracts` | `CreateTenant` | `TenantId`, `Name`, `Description?`, `CreatedAt` | `CreatedAt` | Create or refresh local tenant lifecycle/configuration projections |
+| `TenantUpdated` | `Hexalith.Tenants.Contracts` | `UpdateTenant` | `TenantId`, `Name`, `Description?`, `UpdatedAt` | `UpdatedAt` | Refresh tenant display metadata |
+| `TenantDisabled` | `Hexalith.Tenants.Contracts` | `DisableTenant` | `TenantId`, `DisabledAt` | `DisabledAt` | Stop tenant-scoped access or background work |
+| `TenantEnabled` | `Hexalith.Tenants.Contracts` | `EnableTenant` | `TenantId`, `EnabledAt` | `EnabledAt` | Resume tenant-scoped access or background work |
+| `UserAddedToTenant` | `Hexalith.Tenants.Contracts` | `AddUserToTenant` | `TenantId`, `UserId`, `Role` | None | Grant local access for the user/tenant pair |
+| `UserRemovedFromTenant` | `Hexalith.Tenants.Contracts` | `RemoveUserFromTenant` | `TenantId`, `UserId` | None | Revoke local access for the user/tenant pair |
+| `UserRoleChanged` | `Hexalith.Tenants.Contracts` | `ChangeUserRole` | `TenantId`, `UserId`, `OldRole`, `NewRole` | None | Update local authorization decisions |
+| `TenantConfigurationSet` | `Hexalith.Tenants.Contracts` | `SetTenantConfiguration` | `TenantId`, `Key`, `Value` | None | Apply namespaced tenant configuration values |
+| `TenantConfigurationRemoved` | `Hexalith.Tenants.Contracts` | `RemoveTenantConfiguration` | `TenantId`, `Key` | None | Remove local configuration values |
+| `GlobalAdministratorSet` | `Hexalith.Tenants.Contracts` | `BootstrapGlobalAdmin`, `SetGlobalAdministrator` | `TenantId`, `UserId`, `ActorUserId`, `SetAt` | `SetAt` | Update support/admin authorization projections |
+| `GlobalAdministratorRemoved` | `Hexalith.Tenants.Contracts` | `RemoveGlobalAdministrator` | `TenantId`, `UserId`, `ActorUserId`, `RemovedAt` | `RemovedAt` | Update support/admin authorization projections |
+
+### Query and DTO Contracts
+
+All query contracts implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name.
+
+| Query contract | Package | `QueryType` | `Domain` | `ProjectionType` | Response shape | Intended REST adapter | Intended consumer |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `ListTenantsQuery` | `Hexalith.Tenants.Contracts` | `list-tenants` | `tenants` | `tenant-index` | `PaginatedResult<TenantSummary>` | `GET /api/tenants` | Administrative tenant list screens and service inventory jobs |
+| `GetTenantQuery` | `Hexalith.Tenants.Contracts` | `get-tenant` | `tenants` | `tenants` | `TenantDetail` | `GET /api/tenants/{tenantId}` | Tenant details, lifecycle, membership, and configuration readers |
+| `GetTenantUsersQuery` | `Hexalith.Tenants.Contracts` | `get-tenant-users` | `tenants` | `tenants` | `PaginatedResult<TenantMember>` | `GET /api/tenants/{tenantId}/users` | Tenant access review screens and owner tooling |
+| `GetUserTenantsQuery` | `Hexalith.Tenants.Contracts` | `get-user-tenants` | `tenants` | `tenant-index` | `PaginatedResult<UserTenantMembership>` | `GET /api/users/{userId}/tenants` | User access review screens and self-service access views |
+| `GetTenantAuditQuery` | `Hexalith.Tenants.Contracts` | `get-tenant-audit` | `tenants` | `tenants` | `PaginatedResult<TenantAuditEntry>` | `GET /api/tenants/{tenantId}/audit` | Support, audit, and compliance evidence workflows |
+
+| DTO | Fields |
+| --- | --- |
+| `PaginatedResult<T>` | `Items`, `Cursor?`, `HasMore` |
+| `TenantSummary` | `TenantId`, `Name`, `Status` |
+| `TenantDetail` | `TenantId`, `Name`, `Description?`, `Status`, `Members`, `Configuration`, `CreatedAt` |
+| `TenantMember` | `UserId`, `Role` |
+| `UserTenantMembership` | `TenantId`, `Name`, `Status`, `Role` |
+| `TenantAuditEntry` | `EventId`, `EventType`, `Category`, `ActorId`, `Timestamp`, `TenantId`, `NarrativePayload`, computed `Target`, computed `Scope`, computed `Outcome` |
+
+### Rejection and Enum Contracts
+
+The rejection table later in this document lists all 14 public rejection contracts, their structured fields, and HTTP boundary mappings. Public enum contracts are `TenantRole`, `TenantStatus`, and `AuditEventCategory`; their values and serialization behavior are documented in [Enums](#enums).
+
 ## Three-Outcome Model
 
 Every command produces exactly one of three outcomes:
@@ -69,7 +136,34 @@ Every command produces exactly one of three outcomes:
 
 All events are wrapped in EventStore's event envelope, which provides CloudEvents 1.0 compliance. Each envelope includes metadata fields: `MessageId`, `SequenceNumber`, `Timestamp`, `CorrelationId`, `CausationId`, `UserId`, and more.
 
+Consumers commonly need these envelope fields:
+
+| Metadata | Meaning for consumers |
+| --- | --- |
+| CloudEvents `id` | DAPR CloudEvents event identifier. Tenants publication stamps it from the command correlation ID plus aggregate-local sequence number. |
+| CloudEvents `source` | Event source, currently `hexalith-eventstore/{tenantId}/{domain}`. |
+| CloudEvents `type` | Fully-qualified event payload type name. Use it for event type filtering. |
+| CloudEvents `specversion` | CloudEvents version; DAPR pub/sub uses CloudEvents 1.0. |
+| EventStore `MessageId` | Stable persisted event identifier. Prefer this for deduplication. |
+| EventStore `SequenceNumber` | Aggregate-local stream sequence/aggregate version. Use only within one aggregate stream. |
+| EventStore `Timestamp` | Server persistence timestamp. |
+| EventStore `CorrelationId` | Request/trace correlation ID from the command pipeline. |
+| EventStore `CausationId` | Originating command message ID/idempotency key. |
+| EventStore `UserId` | Authenticated actor user ID captured by EventStore. |
+
 This document covers the **payload fields** — the domain-specific content inside each event. For the full envelope schema, see the [EventStore Event Envelope documentation](../Hexalith.EventStore/docs/concepts/event-envelope.md) ([GitHub link](https://github.com/Hexalith/Hexalith.EventStore/blob/main/docs/concepts/event-envelope.md)).
+
+## Serialization Shape
+
+Event payload bytes persisted by EventStore use `System.Text.Json` with default `System.Text.Json` options, so the domain payload examples in this reference use PascalCase contract property names such as `TenantId`, `CreatedAt`, `ActorUserId`, and `UpdatedAt` rather than REST/web camelCase. EventStore gateway HTTP command requests and some REST responses use web defaults at their own boundary; do not infer event payload casing from command-request examples.
+
+Tenant contract enums add explicit converters:
+
+- `TenantRole` uses `[JsonConverter(typeof(JsonStringEnumConverter<TenantRole>))]`, so values serialize by name, for example `"TenantContributor"`.
+- `TenantStatus` uses `TenantStatusJsonConverter`, so values serialize by name and unknown or non-string input reads as `TenantStatus.Unknown`.
+- `AuditEventCategory` appears in query DTOs and API responses by enum name at the HTTP boundary.
+
+Timestamp fields are `DateTimeOffset`. Examples use an explicit offset such as `"2026-03-19T14:30:00+00:00"` so subscribers preserve timezone information.
 
 ## Contract Stability
 
@@ -103,6 +197,15 @@ Defines the operational state of a tenant. Serialized **by name** (e.g. `"Active
 | `0`     | `Unknown`  | Non-active sentinel — absent/unrecognized status is never active     |
 | `1`     | `Active`   | Tenant is operational                                                |
 | `2`     | `Disabled` | Tenant is suspended — commands that modify tenant state are rejected |
+
+### AuditEventCategory
+
+Categorizes audit query rows. It is used by `TenantAuditEntry.Category` and the `GetTenantAuditQuery` REST adapter filter.
+
+| Name | Description |
+| --- | --- |
+| `Access` | Access and role management event |
+| `Administrative` | Tenant administration and configuration event |
 
 ---
 
@@ -225,7 +328,7 @@ Published on topic: `tenants.events`
 
 </details>
 
-**Rejections:** `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`
+**Rejections:** `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`
 **Duplicate lifecycle state:** If the tenant is already disabled, `TenantLifecycleStateAlreadySetRejection` is produced with the current and requested status.
 
 > Requires trusted global administrator authority.
@@ -263,7 +366,7 @@ Published on topic: `tenants.events`
 
 </details>
 
-**Rejections:** `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`
+**Rejections:** `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`
 **Duplicate lifecycle state:** If the tenant is already active, `TenantLifecycleStateAlreadySetRejection` is produced with the current and requested status.
 
 > Requires trusted global administrator authority.
@@ -393,7 +496,7 @@ Published on topic: `tenants.events`
 
 #### SetTenantConfiguration
 
-Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter their local projection reads by owned prefix to process only their own namespace - for example, `key.StartsWith("billing.", StringComparison.Ordinal)` for the Billing service. The sample consumer uses the same pattern for `sample.` keys and ignores unrelated namespaces without polling, sync jobs, or per-request Tenants API calls.
+Sets a configuration key-value pair on a tenant. Requires a tenant owner or trusted global administrator; tenant contributors cannot change tenant configuration. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter their local projection reads by owned prefix to process only their own namespace - for example, `key.StartsWith("billing.", StringComparison.Ordinal)` for the Billing service. The sample consumer uses the same pattern for `sample.` keys and ignores unrelated namespaces without polling, sync jobs, or per-request Tenants API calls.
 
 **Command fields:**
 
@@ -435,7 +538,7 @@ Published on topic: `tenants.events`
 
 #### RemoveTenantConfiguration
 
-Removes a configuration key from a tenant.
+Removes a configuration key from a tenant. Requires a tenant owner or trusted global administrator; tenant contributors cannot remove tenant configuration.
 
 **Command fields:**
 
@@ -620,6 +723,20 @@ Rejection events are produced when a command violates a business rule. All rejec
 | `ConfigurationLimitExceededRejection`          | `TenantId`, `LimitType`, `CurrentCount`, `MaxAllowed`         | 422         | Review the rejection detail, correct the request, and retry when appropriate.                    |
 | `ConfigurationKeyNotFoundRejection`            | `TenantId`, `Key`                                             | 404         | Verify the configuration key and tenant context, then retry with an existing key.                |
 
+<details>
+<summary>Structured rejection JSON example</summary>
+
+```json
+{
+    "TenantId": "acme-corp",
+    "CurrentStatus": "Disabled",
+    "RequestedStatus": "Disabled",
+    "CommandName": "DisableTenant"
+}
+```
+
+</details>
+
 ### InsufficientPermissionsRejection Detail
 
 The `ActorRole` field is **nullable**:
@@ -699,8 +816,8 @@ Global-administrator events are also projected into system-scoped audit state un
 | --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CreateTenant`              | `TenantCreated`              | `TenantAlreadyExistsRejection`, `InsufficientPermissionsRejection`                                                                                  |
 | `UpdateTenant`              | `TenantUpdated`              | `TenantNotFoundRejection`, `TenantDisabledRejection`, `InsufficientPermissionsRejection`                                                            |
-| `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`                                                                                |
-| `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`                                                                                |
+| `DisableTenant`             | `TenantDisabled`             | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`                                            |
+| `EnableTenant`              | `TenantEnabled`              | `TenantNotFoundRejection`, `TenantLifecycleStateAlreadySetRejection`, `InsufficientPermissionsRejection`                                            |
 | `AddUserToTenant`           | `UserAddedToTenant`          | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserAlreadyInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection` |
 | `RemoveUserFromTenant`      | `UserRemovedFromTenant`      | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `InsufficientPermissionsRejection`                                |
 | `ChangeUserRole`            | `UserRoleChanged`            | `TenantNotFoundRejection`, `TenantDisabledRejection`, `UserNotInTenantRejection`, `RoleEscalationRejection`, `InsufficientPermissionsRejection`     |

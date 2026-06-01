@@ -223,3 +223,95 @@ QA gap analysis of Story 8.1's quickstart journey against existing test coverage
 - [x] Test summary created.
 - [x] Tests saved to appropriate directories.
 - [x] Summary includes coverage metrics.
+
+---
+
+# Test Summary - Story 8.2 Publish the Event Contract Reference
+
+**Date:** 2026-06-01
+
+## Scope
+
+Validated `docs/event-contract-reference.md` against the public `Hexalith.Tenants.Contracts` command, success event, rejection, query, DTO, and enum surface. Added source-backed documentation tests for inventory drift, DAPR/CloudEvents guidance, serialization shape, JSON examples, enum converter behavior, known drift-prone contracts, and authorization/rejection outcome drift.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --filter FullyQualifiedName~EventContractReferenceDocumentationTests --no-restore` | MSBuild/VSTest aborted before execution in this sandbox with `SocketException (13): Permission denied`. |
+| Server build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Focused documentation tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.EventContractReferenceDocumentationTests -parallel none -noLogo -noColor` | Passed: 7 total, 0 failed, 0 skipped. |
+| Tier 1 contract tests via xUnit runner | `dotnet tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests.dll -namespace Hexalith.Tenants.Contracts.Tests -parallel none -noLogo -noColor` | Passed: 92 total, 0 failed, 0 skipped. |
+| Full solution build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Full direct xUnit regression | Contracts, Client, Testing, Server, Sample, and Integration test assemblies under `bin/Debug/net10.0` with `-parallel none` | Passed: 1316 total, 0 failed, 26 skipped. Skips were DAPR/performance prerequisite-gated. |
+
+## Infrastructure Notes
+
+- No Docker, DAPR sidecar, AppHost, or live pub/sub execution was required for Story 8.2.
+- `dotnet test` remained blocked by sandbox socket restrictions, so validation used single-node `dotnet build` plus direct xUnit v3 runner execution.
+
+---
+
+# Test Automation Summary — Story 8.2 QA Generate E2E Tests
+
+**Story:** 8.2 — Publish the Event Contract Reference
+**Workflow:** qa-generate-e2e-tests · **Date:** 2026-06-01
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + source/static documentation checks
+
+## Scope
+
+QA gap analysis of Story 8.2's event contract reference coverage against the existing documentation tests, then auto-application of discovered test gaps. Tests only.
+
+## Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Public contract inventory | `EventContractReferenceDocumentationTests` reflected command, success event, rejection, query, and enum type names. | Covered for names. |
+| Public contract fields and enum values | Existing coverage could pass if a public contract field was added, removed, or renamed while the reference still listed the type. Generic `PaginatedResult<T>` was not part of the reflected inventory. | **Gap found and closed.** |
+| DAPR/CloudEvents/ordering guidance | Existing focused assertions covered `tenants.events`, CloudEvents 1.0, at-least-once delivery, idempotency, and aggregate-local ordering language. | Covered. |
+| JSON examples and enum converters | Existing tests parsed fenced JSON and deserialized enum examples through real contracts. | Covered. |
+| Browser UI workflow | Story 8.2 has no UI surface. | N/A. |
+
+## Generated Tests
+
+### API Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/EventContractReferenceDocumentationTests.cs` —
+  `Event_contract_reference_documents_every_public_contract_member_and_enum_value` reflects every public documented contract property, accepts nullable field notation such as `Cursor?` and `ActorRole?`, includes `PaginatedResult<T>`, and asserts all enum values remain documented.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/EventContractReferenceDocumentationTests.cs` —
+  `Event_contract_reference_matches_source_backed_authorization_and_rejection_outcomes` pins drift-prone command authorization and rejection outcome rows to `TenantAggregate` behavior.
+
+### E2E Tests
+
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/EventContractReferenceDocumentationTests.cs` —
+  covers the non-UI contract-reference workflow end to end at the documentation-contract layer: public type inventory, field/member drift, enum values, DAPR topic and CloudEvents guidance, ordering limits, structured rejection data, JSON validity, and converter-backed enum examples.
+
+## Coverage
+
+- Story 8.2 acceptance criteria: 5/5 covered by source-backed documentation tests.
+- Public surface drift covered: 12 commands, 11 success events, 14 rejections, 5 query contracts, public query DTOs including `PaginatedResult<T>`, and 3 public enums.
+- Critical error cases covered: stale/missing contract fields, stale enum values, invalid JSON examples, placeholder values in JSON, unsafe global-ordering implication, missing at-least-once/idempotency guidance, missing drift-prone contracts, and stale command authorization/rejection outcomes.
+- UI workflows: N/A, Story 8.2 has no browser UI surface.
+
+## Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server targeted via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --filter FullyQualifiedName~EventContractReferenceDocumentationTests --no-restore` | MSBuild/VSTest aborted before execution in this sandbox with `SocketException (13): Permission denied`. |
+| Server build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_HOME=/tmp NUGET_PACKAGES=/home/administrator/.nuget/packages dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Server targeted via xUnit runner | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -class Hexalith.Tenants.Server.Tests.Documentation.EventContractReferenceDocumentationTests -parallel none -noLogo -noColor` | Passed: 7 total, 0 failed, 0 skipped. |
+
+## Checklist
+
+- [x] API tests generated where applicable.
+- [x] E2E tests generated for the non-UI contract-reference workflow.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy path.
+- [x] Tests cover critical stale-doc/error cases.
+- [x] Semantic UI locators are N/A; tests use source-backed contract reflection and documentation parsing.
+- [x] Tests have clear descriptions.
+- [x] No hardcoded waits or sleeps.
+- [x] Tests are independent and order-free.
+- [x] Test summary created.
+- [x] Tests saved to appropriate directories.
+- [x] Summary includes coverage metrics.
