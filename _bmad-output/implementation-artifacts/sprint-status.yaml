@@ -134,7 +134,7 @@ development_status:
   # do not use Epic 9 stories as product UI delivery work until converted into separate Phase 2 UI implementation stories.
   epic-9: in-progress
   9-1-map-fluent-ui-and-frontcomposer-dependencies-for-tenant-admin-screens: done
-  9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: backlog
+  9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: done
   9-3-define-truth-state-freshness-and-unavailable-action-patterns: backlog
   9-4-specify-the-removeuserfromtenant-command-capable-journey: backlog
   9-5-specify-audit-evidence-and-compensating-recovery-ui-patterns: backlog
