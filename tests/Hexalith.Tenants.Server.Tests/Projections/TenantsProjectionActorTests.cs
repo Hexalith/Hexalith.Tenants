@@ -699,6 +699,45 @@ public class TenantsProjectionActorTests {
     }
 
     [Fact]
+    public async Task GetTenantAudit_between_page_data_changes_follow_exclusive_lower_boundAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
+        TenantAuditReadModel model = CreateAuditModel(
+            CreateAuditEntry("evt-002", "TenantCreated", AuditEventCategory.Administrative, timestamp),
+            CreateAuditEntry("evt-004", "TenantUpdated", AuditEventCategory.Administrative, timestamp.AddMinutes(2)));
+        SetupAuditState(daprClient, "tenant-1", model);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-audit",
+            userId: "admin-1",
+            payload: CreateAuditPayload(category: "administrative", pageSize: 1)));
+
+        PaginatedResult<TenantAuditEntry>? firstPage = DeserializePayload<PaginatedResult<TenantAuditEntry>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(e => e.EventId).ShouldBe(["evt-002"]);
+        firstPage.HasMore.ShouldBeTrue();
+        _ = firstPage.Cursor.ShouldNotBeNull();
+
+        model.Entries.Add(CreateAuditEntry("evt-001", "TenantUpdated", AuditEventCategory.Administrative, timestamp));
+        model.Entries.Add(CreateAuditEntry("evt-003", "TenantUpdated", AuditEventCategory.Administrative, timestamp.AddMinutes(1)));
+        _ = model.Entries.RemoveAll(e => e.EventId == "evt-004");
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-audit",
+            userId: "admin-1",
+            payload: CreateAuditPayload(category: "administrative", cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantAuditEntry>? secondPage = DeserializePayload<PaginatedResult<TenantAuditEntry>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(e => e.EventId).ShouldBe(["evt-003"]);
+        secondPage.Items.ShouldAllBe(e => e.EventId != "evt-001" && e.EventId != "evt-004");
+        secondPage.HasMore.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task GetTenantAudit_rejects_from_greater_than_toAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
@@ -723,6 +762,29 @@ public class TenantsProjectionActorTests {
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage!.ShouldContain("Invalid cursor");
+    }
+
+    [Fact]
+    public async Task GetTenantAudit_rejects_invalid_cursor_after_global_admin_before_audit_state_readAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-audit",
+            userId: "admin-1",
+            payload: CreateAuditPayload(cursor: "not-a-valid-cursor")));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.PayloadBytes.ShouldBeNull();
+        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.GlobalAdminProjectionKey);
+        _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+            cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -924,6 +986,34 @@ public class TenantsProjectionActorTests {
     }
 
     [Fact]
+    public async Task GetTenantUsers_rejects_invalid_cursor_before_missing_tenant_responseAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        string wrongTenantCursor = cursorCodec.Encode(
+            GetTenantUsersQuery.QueryType,
+            TenantQueryCursorScopes.GetTenantUsers("other-tenant"),
+            "user-001");
+
+        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-users",
+            aggregateId: "missing-tenant",
+            payload: CreatePaginationPayload(cursor: wrongTenantCursor)));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.PayloadBytes.ShouldBeNull();
+        _ = await daprClient.DidNotReceive().GetStateAsync<TenantReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantProjectionKeyPrefix + "missing-tenant",
+            cancellationToken: Arg.Any<CancellationToken>());
+        _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.GlobalAdminProjectionKey,
+            cancellationToken: Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task GetTenantUsers_filters_unknown_role_rows_before_paginationAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         TenantReadModel model = CreateTenantReadModel(members: new() {
@@ -995,6 +1085,45 @@ public class TenantsProjectionActorTests {
         PaginatedResult<TenantMember>? secondPage = DeserializePayload<PaginatedResult<TenantMember>>(secondResult);
         _ = secondPage.ShouldNotBeNull();
         secondPage.Items.Select(i => i.UserId).ShouldBe(["user-2"]);
+    }
+
+    [Fact]
+    public async Task GetTenantUsers_between_page_member_changes_follow_exclusive_lower_boundAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantReadModel model = CreateTenantReadModel(members: new() {
+            ["user-002"] = TenantRole.TenantOwner,
+            ["user-004"] = TenantRole.TenantReader,
+        });
+        SetupTenantState(daprClient, "tenant-1", model);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-users",
+            userId: "user-002",
+            payload: CreatePaginationPayload(pageSize: 1)));
+
+        PaginatedResult<TenantMember>? firstPage = DeserializePayload<PaginatedResult<TenantMember>>(firstResult);
+        _ = firstPage.ShouldNotBeNull();
+        firstPage.Items.Select(i => i.UserId).ShouldBe(["user-002"]);
+        firstPage.HasMore.ShouldBeTrue();
+        _ = firstPage.Cursor.ShouldNotBeNull();
+
+        model.Apply(new Contracts.Events.UserAddedToTenant("tenant-1", "user-001", TenantRole.TenantReader));
+        model.Apply(new Contracts.Events.UserAddedToTenant("tenant-1", "user-003", TenantRole.TenantReader));
+        model.Apply(new Contracts.Events.UserRemovedFromTenant("tenant-1", "user-004"));
+
+        QueryResult secondResult = await actor.QueryAsync(CreateEnvelope(
+            "get-tenant-users",
+            userId: "user-002",
+            payload: CreatePaginationPayload(cursor: firstPage.Cursor, pageSize: 10)));
+
+        secondResult.Success.ShouldBeTrue();
+        PaginatedResult<TenantMember>? secondPage = DeserializePayload<PaginatedResult<TenantMember>>(secondResult);
+        _ = secondPage.ShouldNotBeNull();
+        secondPage.Items.Select(i => i.UserId).ShouldBe(["user-003"]);
+        secondPage.Items.ShouldAllBe(i => i.UserId != "user-001" && i.UserId != "user-004");
+        secondPage.HasMore.ShouldBeFalse();
     }
 
     [Theory]

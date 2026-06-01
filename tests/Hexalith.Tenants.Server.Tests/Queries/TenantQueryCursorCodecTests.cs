@@ -23,6 +23,16 @@ public class TenantQueryCursorCodecTests {
     }
 
     [Fact]
+    public void Cursor_scopes_escape_user_controlled_segments_once_to_prevent_collisions() {
+        string escapedListScope = TenantQueryCursorScopes.ListTenants(@"user\1|target-user:admin");
+        string unescapedDifferentScope = TenantQueryCursorScopes.GetUserTenants(@"user\1", "admin");
+
+        escapedListScope.ShouldBe(@"user:user\\1\ptarget-user\cadmin");
+        unescapedDifferentScope.ShouldBe(@"requester:user\\1|target-user:admin");
+        escapedListScope.ShouldNotBe(unescapedDifferentScope);
+    }
+
+    [Fact]
     public void TryDecode_accepts_existing_list_tenants_query_scope_and_logical_position_shape() {
         ITenantQueryCursorCodec codec = CreateCodec();
         string scope = TenantQueryCursorScopes.ListTenants("user-1");
@@ -44,6 +54,23 @@ public class TenantQueryCursorCodecTests {
         cursor.ShouldNotContain("tenant-001");
         cursor.ShouldNotContain("list-tenants");
         cursor.ShouldNotContain("user-1");
+    }
+
+    [Fact]
+    public void Encode_does_not_expose_raw_scope_segments_or_audit_position() {
+        ITenantQueryCursorCodec codec = CreateCodec();
+        string scope = TenantQueryCursorScopes.GetTenantAudit(
+            "tenant-secret",
+            new DateTimeOffset(2026, 5, 14, 10, 0, 0, TimeSpan.Zero),
+            null,
+            AuditEventCategory.Access);
+
+        string cursor = codec.Encode(GetTenantAuditQuery.QueryType, scope, "0635788912000000000:evt-secret");
+
+        cursor.ShouldNotContain(GetTenantAuditQuery.QueryType);
+        cursor.ShouldNotContain("tenant-secret");
+        cursor.ShouldNotContain("evt-secret");
+        cursor.ShouldNotContain("Access");
     }
 
     [Fact]
@@ -125,6 +152,20 @@ public class TenantQueryCursorCodecTests {
         position.ShouldBeNull();
         // Either the protector rejects the MAC (tamper-or-key-rotation) or the decoded JSON is unparseable (malformed).
         failureReason.ShouldBeOneOf("tamper-or-key-rotation", "malformed");
+    }
+
+    [Fact]
+    public void TryDecode_rejects_cursor_after_data_protection_key_rotation_equivalent() {
+        ITenantQueryCursorCodec originalCodec = CreateCodec();
+        ITenantQueryCursorCodec rotatedKeyCodec = CreateCodec();
+        string scope = TenantQueryCursorScopes.ListTenants("user-1");
+        string cursor = originalCodec.Encode(ListTenantsQuery.QueryType, scope, "tenant-001");
+
+        bool decoded = rotatedKeyCodec.TryDecode(cursor, ListTenantsQuery.QueryType, scope, out string? position, out string? failureReason);
+
+        decoded.ShouldBeFalse();
+        position.ShouldBeNull();
+        failureReason.ShouldBe("tamper-or-key-rotation");
     }
 
     [Fact]

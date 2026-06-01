@@ -12,10 +12,12 @@ using System.Text.Json;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
+using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -552,6 +554,65 @@ public class TenantsQueryControllerIntegrationTests {
         body.ShouldNotContain("not-a-protected-cursor");
 
         // The router must not be invoked when the cursor is rejected at the controller boundary.
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task Paginated_query_returns_400_before_routing_when_signed_cursor_query_type_does_not_match() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetTenantUsersQuery.QueryType,
+            TenantQueryCursorScopes.ListTenants("test-user"),
+            "tenant-secret");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync($"/api/tenants?cursor={Uri.EscapeDataString(cursor)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+        body.ShouldNotContain(cursor);
+        body.ShouldNotContain(GetTenantUsersQuery.QueryType);
+        body.ShouldNotContain("tenant-secret");
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task Paginated_query_returns_400_before_routing_when_cursor_key_was_rotated() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec rotatedKeyCodec = new TenantQueryCursorCodec(new EphemeralDataProtectionProvider());
+        string cursor = rotatedKeyCodec.Encode(
+            ListTenantsQuery.QueryType,
+            TenantQueryCursorScopes.ListTenants("test-user"),
+            "tenant-secret");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync($"/api/tenants?cursor={Uri.EscapeDataString(cursor)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+        body.ShouldNotContain(cursor);
+        body.ShouldNotContain("tenant-secret");
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
         await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
     }
 

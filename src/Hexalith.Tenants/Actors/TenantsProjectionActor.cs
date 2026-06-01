@@ -352,6 +352,11 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             return new QueryResult(false, default, ErrorMessage: query.ErrorMessage);
         }
 
+        string scope = TenantQueryCursorScopes.GetTenantAudit(envelope.AggregateId, query.From, query.To, query.Category);
+        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
         TenantAuditReadModel? model = await _daprClient
             .GetStateAsync<TenantAuditReadModel>(
@@ -376,11 +381,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
             entries = entries.Where(e => e.Category == query.Category.Value);
         }
 
-        string scope = TenantQueryCursorScopes.GetTenantAudit(envelope.AggregateId, query.From, query.To, query.Category);
-        if (!_cursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
-            return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
-        }
-
         cancellationToken.ThrowIfCancellationRequested();
         PaginatedResult<TenantAuditEntry> result = ProtectCursor(
             PaginateAuditEntries(entries, cursor, query.PageSize, cancellationToken),
@@ -393,6 +393,12 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
     private async Task<QueryResult> HandleGetTenantUsersAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        string scope = TenantQueryCursorScopes.GetTenantUsers(envelope.AggregateId);
+        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+            return InvalidCursorResult(GetTenantUsersQuery.QueryType, "get-tenant-users", envelope.AggregateId, envelope.UserId, failureReason);
+        }
+
         TenantReadModel? model = await _daprClient
             .GetStateAsync<TenantReadModel>(
                 StateStoreName,
@@ -409,12 +415,6 @@ public sealed partial class TenantsProjectionActor : CachingProjectionActor {
 
         if (!await IsAuthorizedForTenantAsync(envelope.UserId, model, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
-        }
-
-        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
-        string scope = TenantQueryCursorScopes.GetTenantUsers(envelope.AggregateId);
-        if (!_cursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
-            return InvalidCursorResult(GetTenantUsersQuery.QueryType, "get-tenant-users", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         PaginatedResult<TenantMember> result = ProtectCursor(

@@ -102,6 +102,9 @@ public sealed class TenantQueryCursorCodec(IDataProtectionProvider dataProtectio
                 return false;
             }
 
+            // Cursor v1 intentionally has no wall-clock lifetime. It remains valid while the Data
+            // Protection key can unprotect it; tampering or key rotation is the safe invalidation path.
+
             if (!string.Equals(payload.QueryType, queryType, StringComparison.Ordinal)) {
                 failureReason = "wrong-query-type";
                 return false;
