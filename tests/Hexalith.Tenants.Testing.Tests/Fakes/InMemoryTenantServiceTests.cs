@@ -151,6 +151,161 @@ public class InMemoryTenantServiceTests {
         state.HasMembershipHistory.ShouldBeTrue();
     }
 
+    [Fact]
+    public void ChangeUserRole_updates_membership_and_records_success_event() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("acme", "owner", TenantRole.TenantOwner),
+            userId: "admin",
+            isGlobalAdmin: true);
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("acme", "reader", TenantRole.TenantReader),
+            userId: "owner");
+
+        DomainResult result = svc.ProcessCommand(
+            new ChangeUserRole("acme", "reader", TenantRole.TenantContributor),
+            userId: "owner");
+
+        result.IsSuccess.ShouldBeTrue();
+        UserRoleChanged evt = result.Events[0].ShouldBeOfType<UserRoleChanged>();
+        evt.TenantId.ShouldBe("acme");
+        evt.UserId.ShouldBe("reader");
+        evt.OldRole.ShouldBe(TenantRole.TenantReader);
+        evt.NewRole.ShouldBe(TenantRole.TenantContributor);
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Users["reader"].ShouldBe(TenantRole.TenantContributor);
+        svc.EventHistory[^1].ShouldBeOfType<UserRoleChanged>();
+    }
+
+    [Fact]
+    public void ChangeUserRole_same_role_returns_noop_without_appending_event() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("acme", "owner", TenantRole.TenantOwner),
+            userId: "admin",
+            isGlobalAdmin: true);
+        _ = svc.ProcessCommand(
+            new AddUserToTenant("acme", "reader", TenantRole.TenantReader),
+            userId: "owner");
+        int eventCountBefore = svc.EventHistory.Count;
+
+        DomainResult result = svc.ProcessCommand(
+            new ChangeUserRole("acme", "reader", TenantRole.TenantReader),
+            userId: "owner");
+
+        result.IsNoOp.ShouldBeTrue();
+        result.Events.ShouldBeEmpty();
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Users["reader"].ShouldBe(TenantRole.TenantReader);
+        svc.EventHistory.Count.ShouldBe(eventCountBefore);
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_then_RemoveTenantConfiguration_updates_state_and_event_history() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+
+        DomainResult setResult = svc.ProcessCommand(
+            new SetTenantConfiguration("acme", "theme", "dark"),
+            userId: "admin",
+            isGlobalAdmin: true);
+        DomainResult removeResult = svc.ProcessCommand(
+            new RemoveTenantConfiguration("acme", "theme"),
+            userId: "admin",
+            isGlobalAdmin: true);
+
+        setResult.IsSuccess.ShouldBeTrue();
+        TenantConfigurationSet setEvent = setResult.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        setEvent.TenantId.ShouldBe("acme");
+        setEvent.Key.ShouldBe("theme");
+        setEvent.Value.ShouldBe("dark");
+
+        removeResult.IsSuccess.ShouldBeTrue();
+        TenantConfigurationRemoved removeEvent = removeResult.Events[0].ShouldBeOfType<TenantConfigurationRemoved>();
+        removeEvent.TenantId.ShouldBe("acme");
+        removeEvent.Key.ShouldBe("theme");
+
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Configuration.ShouldNotContainKey("theme");
+        svc.EventHistory[^2].ShouldBeOfType<TenantConfigurationSet>();
+        svc.EventHistory[^1].ShouldBeOfType<TenantConfigurationRemoved>();
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_same_value_returns_noop_without_appending_event() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(
+            new SetTenantConfiguration("acme", "theme", "dark"),
+            userId: "admin",
+            isGlobalAdmin: true);
+        int eventCountBefore = svc.EventHistory.Count;
+
+        DomainResult result = svc.ProcessCommand(
+            new SetTenantConfiguration("acme", "theme", "dark"),
+            userId: "admin",
+            isGlobalAdmin: true);
+
+        result.IsNoOp.ShouldBeTrue();
+        result.Events.ShouldBeEmpty();
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Configuration["theme"].ShouldBe("dark");
+        svc.EventHistory.Count.ShouldBe(eventCountBefore);
+    }
+
+    [Fact]
+    public void RemoveTenantConfiguration_missing_key_returns_structured_rejection_without_mutating_state() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = svc.ProcessCommand(
+            new SetTenantConfiguration("acme", "theme", "dark"),
+            userId: "admin",
+            isGlobalAdmin: true);
+        int eventCountBefore = svc.EventHistory.Count;
+
+        DomainResult result = svc.ProcessCommand(
+            new RemoveTenantConfiguration("acme", "timezone"),
+            userId: "admin",
+            isGlobalAdmin: true);
+
+        result.IsRejection.ShouldBeTrue();
+        ConfigurationKeyNotFoundRejection rejection = result.Events[0].ShouldBeOfType<ConfigurationKeyNotFoundRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.Key.ShouldBe("timezone");
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Configuration["theme"].ShouldBe("dark");
+        state.Configuration.ShouldNotContainKey("timezone");
+        svc.EventHistory.Count.ShouldBe(eventCountBefore);
+    }
+
+    [Fact]
+    public void Invalid_configuration_returns_structured_rejection_without_mutating_state() {
+        var svc = new InMemoryTenantService();
+        _ = svc.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        int eventCountBefore = svc.EventHistory.Count;
+
+        DomainResult result = svc.ProcessCommand(
+            new SetTenantConfiguration("acme", new string('K', 257), "value"),
+            userId: "admin",
+            isGlobalAdmin: true);
+
+        result.IsRejection.ShouldBeTrue();
+        ConfigurationLimitExceededRejection rejection = result.Events[0].ShouldBeOfType<ConfigurationLimitExceededRejection>();
+        rejection.TenantId.ShouldBe("acme");
+        rejection.LimitType.ShouldBe("KeyLength");
+        TenantState? state = svc.GetTenantState("acme");
+        _ = state.ShouldNotBeNull();
+        state.Configuration.ShouldBeEmpty();
+        svc.EventHistory.Count.ShouldBe(eventCountBefore);
+    }
+
     // ─── 3.4: Duplicate tenant creation returns TenantAlreadyExistsRejection ───
 
     [Fact]
@@ -255,6 +410,27 @@ public class InMemoryTenantServiceTests {
 
         stateA.Name.ShouldBe("Tenant A");
         stateB.Name.ShouldBe("Tenant B");
+    }
+
+    [Fact]
+    public void New_InMemoryTenantService_instance_starts_empty_and_does_not_share_state() {
+        var first = new InMemoryTenantService();
+        _ = first.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        _ = first.ProcessCommand(
+            new AddUserToTenant("acme", "owner", TenantRole.TenantOwner),
+            userId: "admin",
+            isGlobalAdmin: true);
+
+        var second = new InMemoryTenantService();
+
+        first.GetTenantState("acme").ShouldNotBeNull();
+        first.EventHistory.Count.ShouldBe(2);
+        second.GetTenantState("acme").ShouldBeNull();
+        second.EventHistory.ShouldBeEmpty();
+
+        DomainResult secondCreate = second.ProcessCommand(new CreateTenant("acme", "Acme Corp", null));
+        secondCreate.IsSuccess.ShouldBeTrue();
+        second.EventHistory.Count.ShouldBe(1);
     }
 
     [Fact]

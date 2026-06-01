@@ -1,6 +1,8 @@
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Testing.Fakes;
 using Hexalith.Tenants.Testing.Helpers;
 
@@ -61,7 +63,7 @@ public class TenantTestHelpersTests {
 
     [Fact]
     public void CreateCommandEnvelope_builds_valid_envelope_with_correct_fields() {
-        var command = new Hexalith.Tenants.Contracts.Commands.CreateTenant("acme", "Acme Corp", null);
+        var command = new CreateTenant("acme", "Acme Corp", null);
 
         CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(
             command,
@@ -85,7 +87,7 @@ public class TenantTestHelpersTests {
 
     [Fact]
     public void CreateCommandEnvelope_without_globalAdmin_has_null_extensions() {
-        var command = new Hexalith.Tenants.Contracts.Commands.CreateTenant("acme", "Acme Corp", null);
+        var command = new CreateTenant("acme", "Acme Corp", null);
 
         CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(
             command,
@@ -93,6 +95,24 @@ public class TenantTestHelpersTests {
             userId: "test-user",
             isGlobalAdmin: false);
 
+        envelope.Extensions.ShouldBeNull();
+    }
+
+    [Fact]
+    public void CreateCommandEnvelope_for_global_administrators_uses_global_admin_identity() {
+        var command = new SetGlobalAdministrator("admin-user");
+
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(
+            command,
+            aggregateId: TenantIdentity.GlobalAdministratorsAggregateId,
+            userId: "global-admin",
+            isGlobalAdmin: false);
+
+        envelope.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
+        envelope.Domain.ShouldBe(TenantIdentity.GlobalAdministratorsDomain);
+        envelope.AggregateId.ShouldBe(TenantIdentity.GlobalAdministratorsAggregateId);
+        envelope.CommandType.ShouldBe(nameof(SetGlobalAdministrator));
+        envelope.UserId.ShouldBe("global-admin");
         envelope.Extensions.ShouldBeNull();
     }
 }

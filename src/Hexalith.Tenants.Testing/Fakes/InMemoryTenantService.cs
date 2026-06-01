@@ -23,9 +23,7 @@ namespace Hexalith.Tenants.Testing.Fakes;
 /// Do not wrap it in a Tenants-owned result type (TEN-5).
 /// </remarks>
 public sealed class InMemoryTenantService {
-    private const string DefaultDomain = "tenants";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
-    private const string SystemTenantId = "system";
 
     private readonly List<IEventPayload> _eventHistory = [];
     private readonly Dictionary<string, TenantState> _tenantStates = [];
@@ -55,7 +53,7 @@ public sealed class InMemoryTenantService {
     // ─── Tenant Commands (no envelope needed) ───
 
     /// <summary>Processes a CreateTenant command.</summary>
-    public DomainResult ProcessCommand(CreateTenant command, string userId = SystemTenantId, bool isGlobalAdmin = true) {
+    public DomainResult ProcessCommand(CreateTenant command, string userId = TenantIdentity.DefaultTenantId, bool isGlobalAdmin = true) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -67,7 +65,7 @@ public sealed class InMemoryTenantService {
     }
 
     /// <summary>Processes a DisableTenant command.</summary>
-    public DomainResult ProcessCommand(DisableTenant command, string userId = SystemTenantId, bool isGlobalAdmin = true) {
+    public DomainResult ProcessCommand(DisableTenant command, string userId = TenantIdentity.DefaultTenantId, bool isGlobalAdmin = true) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -79,7 +77,7 @@ public sealed class InMemoryTenantService {
     }
 
     /// <summary>Processes an EnableTenant command.</summary>
-    public DomainResult ProcessCommand(EnableTenant command, string userId = SystemTenantId, bool isGlobalAdmin = true) {
+    public DomainResult ProcessCommand(EnableTenant command, string userId = TenantIdentity.DefaultTenantId, bool isGlobalAdmin = true) {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         CommandEnvelope envelope = CreateEnvelope(command, command.TenantId, userId, isGlobalAdmin);
@@ -240,8 +238,8 @@ public sealed class InMemoryTenantService {
     private static CommandEnvelope CreateEnvelope<T>(T command, string aggregateId, string userId, bool isGlobalAdmin)
         where T : notnull => new(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
-            SystemTenantId,
-            DefaultDomain,
+            TenantIdentity.DefaultTenantId,
+            TenantIdentity.Domain,
             aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),

@@ -4,48 +4,43 @@
 
 ### API Tests
 
-- [x] `src/Hexalith.Tenants.Contracts/Queries/TenantAuditEntry.cs` - additive explicit `target`, `scope`, and `outcome` audit evidence fields.
-- [x] `src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs` - global-administrator events persist system-scoped audit state under `audit:system`.
-- [x] `tests/Hexalith.Tenants.Contracts.Tests/Queries/QueryDtoSerializationTests.cs` - `TenantAuditEntry` and `PaginatedResult<TenantAuditEntry>` public JSON shape, camelCase fields, string enum serialization, and explicit target/scope/outcome fields.
-- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` - `GET /api/tenants/{tenantId}/audit` response shape, `SubmitQuery` dispatch values, page-size forwarding and clamping, valid cursor forwarding, invalid route ID, missing subject, invalid category, invalid date window, non-admin `403` ProblemDetails, invalid cursor rejection, query-type mismatch, tenant/category scope mismatch, and date-range scope mismatch before routing.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditReadModelTests.cs` - audit entry classification, actor metadata requirements, deterministic sorting, unknown-event tolerance, and support-safe narrative payloads.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditProjectionTests.cs` - audit projection coverage for lifecycle, membership, role, configuration, and global-admin events, malformed payload tolerance, invariant failure propagation, support-safe configuration narratives, and timestamp/event ID ordering.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionHandlerTests.cs` - global-administrator projection writes support-safe system audit rows.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/ProjectionDispatcherTests.cs` - dispatcher still routes global-administrator projection requests through the updated handler.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Projections/TenantsProjectionActorTests.cs` - audit query authorization, empty result behavior, inclusive date boundaries, category filtering, stable pagination, cursor round trip, cursor mismatch rejection before audit-state reads, between-page consistency, tenant mismatch filtering, page-size defaults, max-size clamping, and system-scoped global-administrator audit query behavior.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs` - Public in-memory fake command API coverage for lifecycle, membership, role, configuration, rejection, no-op, event-history, cross-tenant isolation, and per-instance isolation flows.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Helpers/TenantTestHelpersTests.cs` - Public helper API coverage for bootstrap, tenant creation, tenant-with-owner setup, explicit command envelopes, global-admin envelope metadata, and global-administrator aggregate identity.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Conformance/TenantConformanceTests.cs` - Existing reflection-driven conformance coverage that compares fake output with production aggregate output for tenant/global-administrator commands.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/ScaffoldingSmokeTests.cs` - Smoke coverage now asserts the Testing assembly is discoverable with Shouldly instead of a placeholder assertion.
 
 ### E2E Tests
 
-- [ ] Not applicable: story 5.10 exposes an API/query surface and no UI workflow exists in the repository for tenant audit history.
+- [x] `tests/Hexalith.Tenants.Testing.Tests/Fakes/InMemoryTenantServiceTests.cs` - End-to-end in-memory developer workflows for create, add-user, remove-user, change-role, set/remove configuration, duplicate commands, disabled tenants, missing tenants, missing configuration keys, invalid configuration limits, and isolated fresh-service setup.
+- [ ] UI E2E not applicable: Story 6.1 exposes a `.NET` testing package surface and has no browser UI workflow.
 
 ## Coverage
 
-- API endpoint: 1/1 covered for Story 5.10 (`GET /api/tenants/{tenantId}/audit`).
-- Audit event categories: lifecycle, membership, role, configuration, and global-admin events covered, including the actual global-admin projection write path.
-- Authorization cases: global administrator success, non-global-admin forbidden, missing authenticated subject, and safe forbidden ProblemDetails covered.
-- Filtering cases: tenant isolation, `from`/`to` inclusive boundaries, empty ranges, invalid date window, optional category, invalid category, and mismatched stored tenant IDs covered.
-- Cursor/pagination cases: default audit page size 100, valid page size forwarding, non-positive fallback, maximum 1,000 clamping, protected cursor forwarding, invalid cursor, query-type mismatch, tenant scope mismatch, date-range scope mismatch, category scope mismatch, stable ordering, and between-page changes covered.
-- UI workflows: N/A, no UI surface exists for this story.
+- Story 6.1 acceptance criteria: 6/6 covered by Tier 1 testing-package tests and existing TEN-5 documentation checks.
+- Public fake command surface covered: create, disable, enable, add user, remove user, change role, set configuration, remove configuration, bootstrap global admin, set global admin, and remove global admin.
+- Public fake identity constants: review verified `InMemoryTenantService` uses `TenantIdentity.DefaultTenantId` and `TenantIdentity.Domain` rather than local platform literal constants.
+- Structured rejection coverage: duplicate tenant, duplicate user, disabled tenant, insufficient permissions, role escalation, missing tenant, invalid configuration limit, missing configuration key, and lifecycle already-set rejection.
+- No-op coverage: repeated configuration value and unchanged role.
+- Isolation coverage: tenant A vs tenant B state separation and fresh `InMemoryTenantService` instances starting empty.
+- Infrastructure coverage: Tier 1 only; no DAPR, Aspire, Docker, Redis, broker, HTTP host, or EventStore process required.
 
 ## Validation
 
-- `dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --filter FullyQualifiedName~QueryDtoSerializationTests --no-restore /m:1 /nr:false -p:WarningsNotAsErrors=NU1900` compiled successfully, then VSTest aborted on sandbox socket setup (`System.Net.Sockets.SocketException (13): Permission denied`).
-- `tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests -class Hexalith.Tenants.Contracts.Tests.Queries.QueryDtoSerializationTests -noLogo -parallel none` passed: 8 total, 0 failed, 0 skipped.
-- `dotnet build tests/Hexalith.Tenants.Server.Tests/ --no-restore /m:1 /nr:false -p:WarningsNotAsErrors=NU1900` passed with 0 warnings and 0 errors.
-- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -class Hexalith.Tenants.Server.Tests.Projections.TenantAuditReadModelTests -class Hexalith.Tenants.Server.Tests.Projections.TenantAuditProjectionTests -class Hexalith.Tenants.Server.Tests.Projections.TenantsProjectionActorTests -class Hexalith.Tenants.Server.Tests.Projections.GlobalAdministratorProjectionHandlerTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryPaginationPolicyTests -class Hexalith.Tenants.Server.Tests.Queries.TenantQueryCursorCodecTests -noLogo -parallel none` passed: 203 total, 0 failed, 0 skipped.
-- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -class Hexalith.Tenants.Server.Tests.Projections.ProjectionDispatcherTests -noLogo -parallel none` passed: 10 total, 0 failed, 0 skipped.
-- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -class Hexalith.Tenants.Server.Tests.Projections.GlobalAdministratorProjectionHandlerTests -class Hexalith.Tenants.Server.Tests.Projections.TenantAuditReadModelTests -noLogo -parallel none` passed: 30 total, 0 failed, 0 skipped.
-- `dotnet build tests/Hexalith.Tenants.IntegrationTests/ --no-restore /m:1 /nr:false -p:WarningsNotAsErrors=NU1900` passed with 0 warnings and 0 errors.
-- `tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -noLogo -parallel none` passed: 81 total, 0 failed, 0 skipped.
-- `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore /m:1 /nr:false -p:WarningsNotAsErrors=NU1900` passed with 0 warnings and 0 errors.
+- `dotnet test tests/Hexalith.Tenants.Testing.Tests/ --configuration Release --no-restore /m:1 /nr:false -p:NuGetAudit=false` compiled successfully, then VSTest aborted on sandbox socket setup (`SocketException (13): Permission denied`).
+- `tests/Hexalith.Tenants.Testing.Tests/bin/Release/net10.0/Hexalith.Tenants.Testing.Tests -noLogo -noColor -parallel none` passed: 107 total, 0 errors, 0 failed, 0 skipped.
+- `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore /m:1 /nr:false -p:NuGetAudit=false` passed with 0 warnings and 0 errors.
 
 ## Checklist
 
 - [x] API tests generated if applicable.
-- [x] E2E/UI tests marked not applicable because no UI exists for this story.
+- [x] E2E workflow tests generated for the implemented in-memory testing-package feature.
 - [x] Tests use standard xUnit v3 and Shouldly APIs.
-- [x] Tests cover happy path and critical error cases.
-- [x] Tests use semantic HTTP assertions and production query/cursor surfaces.
+- [x] Tests cover happy paths.
+- [x] Tests cover critical error cases.
+- [x] Tests use proper service/helper APIs; no UI locators apply.
+- [x] Tests have clear descriptions.
 - [x] No hardcoded waits or sleeps.
 - [x] Tests are independent and order-free.
-- [x] Test summary created with coverage metrics.
+- [x] Test summary created.
+- [x] Tests saved to appropriate directories.
+- [x] Summary includes coverage metrics.
