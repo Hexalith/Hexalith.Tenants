@@ -2,9 +2,9 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact
-Last reviewed: 2026-05-20
+Last reviewed: 2026-06-01
 
-This backlog turns the Epic 12 dependency map into copy-forward candidate Tenants Admin UI stories. It is planning output only: it does not create sprint-status entries, implementation story files, UI screens, `Hexalith.FrontComposer` components, backend endpoints, command/query contracts, package changes, submodule pointer changes, or Phase 1 release gates.
+This backlog turns the reconciled dependency map into copy-forward candidate Tenants Admin UI stories. It is planning output only: it does not create sprint-status entries, implementation story files, UI screens, `Hexalith.FrontComposer` components, backend endpoints, command/query contracts, package changes, submodule pointer changes, or Phase 1 release gates.
 
 Rows use current repository terminology. `Hexalith.FrontComposer` is the checked-out UI dependency. `FrontShell`, `@hexalith/ui`, `useCommand`, `<AuditTimeline>`, and `<ConsequencePreview>` are legacy or UX aliases until current `Hexalith.FrontComposer` evidence proves a concrete contract.
 

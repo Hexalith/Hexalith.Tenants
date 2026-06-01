@@ -130,9 +130,10 @@ development_status:
   epic-8-retrospective: done
 
   # Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
-  # planning-only: do not mark Epic 9 stories ready-for-dev until converted into Phase 2 UI implementation stories.
-  epic-9: backlog
-  9-1-map-fluent-ui-and-frontcomposer-dependencies-for-tenant-admin-screens: backlog
+  # planning-only: ready-for-dev means planning/documentation story readiness, not Phase 2 UI implementation readiness.
+  # do not use Epic 9 stories as product UI delivery work until converted into separate Phase 2 UI implementation stories.
+  epic-9: in-progress
+  9-1-map-fluent-ui-and-frontcomposer-dependencies-for-tenant-admin-screens: done
   9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: backlog
   9-3-define-truth-state-freshness-and-unavailable-action-patterns: backlog
   9-4-specify-the-removeuserfromtenant-command-capable-journey: backlog

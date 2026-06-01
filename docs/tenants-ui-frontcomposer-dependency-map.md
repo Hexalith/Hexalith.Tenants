@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact
-Last reviewed: 2026-05-20
+Last reviewed: 2026-06-01
 
 This map sequences the Hexalith.Tenants Phase 2 Admin UI against the current checked-out `Hexalith.FrontComposer` submodule. It uses `Hexalith.FrontComposer` for the current repository and source evidence. `FrontShell`, `@hexalith/ui`, `useCommand`, `useProjection`, `<PageLayout>`, `<AuditTimeline>`, and `<ConsequencePreview>` appear only as UX/planning aliases from older design language.
 
@@ -11,6 +11,7 @@ This document is not a Phase 1 backend blocker. Backend query, projection, autho
 ## Evidence Scope
 
 - FrontComposer checkout evidence was inspected from root-level submodule `Hexalith.FrontComposer` at commit `17c3605`.
+- Story 9.1 rechecked `Hexalith.FrontComposer/Directory.Packages.props` on 2026-06-01. The current pinned UI package is `Microsoft.FluentUI.AspNetCore.Components` `5.0.0-rc.3-26138.1`; future implementation stories must verify exact Fluent UI Blazor v5 RC component parameters against the pinned package and current official/component reference before coding.
 - Story 12.2 rechecked current source names under `Hexalith.FrontComposer/src` for `AuditTimeline`, `ConsequencePreview`, and Storybook evidence; no verified source path was found in this checkout.
 - No nested submodules were initialized or updated for this map.
 - Evidence paths are repo-relative. Missing or unverified evidence is recorded as `evidence: missing`.
@@ -97,6 +98,55 @@ Current source evidence is missing or incomplete for:
 - Tenants-specific accessibility and localization proof for future UI screens.
 - A confirmed Tenants-compatible full-width/constrained page layout contract.
 - A confirmed toast batching policy for rapid command confirmation bursts.
+
+## Story 9.1 Reconciliation Addendum
+
+Story 9.1 reconciles this existing map instead of creating another dependency-map artifact. It is planning/readiness documentation only. It does not implement Tenants Admin UI screens, FrontComposer components, backend endpoints, commands, queries, package references, generated UI files, domain-contract annotations, or submodule pointer changes. Backend MVP and Phase 1 package/release work remain independent from the UI dependency readiness recorded here.
+
+### Fluent UI API Verification Prerequisite
+
+The current checked-out FrontComposer package pin is `Microsoft.FluentUI.AspNetCore.Components` `5.0.0-rc.3-26138.1` in `Hexalith.FrontComposer/Directory.Packages.props`. Because the map depends on Fluent UI Blazor v5 RC-era APIs, future UI implementation stories must verify exact component names, parameters, event callbacks, templating hooks, localization behavior, accessibility behavior, and CSS/token support against that pinned package plus current official/component docs before claiming a Fluent UI API as ready. Stable v4 examples, React Fluent UI examples, or legacy `@hexalith/ui` aliases are not sufficient implementation evidence.
+
+Current Story 9.1 source inspection confirmed these local evidence buckets under `Hexalith.FrontComposer/src`: `Components/DataGrid`, `Components/Rendering`, `Contracts/Rendering`, `Components/Layout`, `Components/EventStore`, `Components/Lifecycle`, `State/PendingCommands`, `Services/Feedback`, `Components/Badges`, and `Resources`. No current source path was found for `AuditTimeline`, `ConsequencePreview`, or Storybook coverage.
+
+### Command Endpoint Route Evidence
+
+Command-capable future rows in `docs/tenants-ui-phase-2-story-backlog.md` carry `endpoint:POST /api/v1/commands`. This matches the verified FrontComposer integration surface: `EventStoreOptions.CommandEndpointPath` defaults to `/api/v1/commands` (`Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Infrastructure/EventStore/EventStoreOptions.cs`), which is the route `EventStoreCommandClient` posts to and the route Phase 2 UI will consume through that client. It is also consistent with `architecture.md` (`POST /api/v1/commands`) and the Epic 8 docs `event-contract-reference.md` and `cross-aggregate-timing.md`. `project-context.md` records a `POST /api/commands` `CommandsController` alias; future implementation stories must confirm the deployed gateway route against the pinned FrontComposer `EventStoreOptions` and the consuming host before coding rather than assuming the unversioned alias.
+
+### Read-Only Surface Consumption Map
+
+Generated FrontComposer composition is appropriate only for low-risk, read-only, projection-backed surfaces where Tenants remains the source of truth and the UI does not imply durable command success. These rows keep backend contracts unchanged and carry literal `blockedBy` values for unresolved UI readiness.
+
+| Planned surface | FrontComposer and Fluent UI basis | Generated composition boundary | Required future prerequisites | Readiness and `blockedBy` |
+| --- | --- | --- | --- | --- |
+| Tenant list read-only foundation | `FC-TBL` projection/DataGrid primitives; `FC-LYT` shell layout; Fluent UI v5 DataGrid/API verification before implementation. | Generated/read-only list composition may project `GET /api/tenants` rows, status/freshness labels, empty/loading states, and navigation affordances only. Lifecycle commands remain separate command stories. | Layout variant, status/freshness semantics, accessible row navigation, localized labels/timestamps, component reference evidence, and no-color-only status treatment. | `planning-only`; copy `blockedBy: [FC-LYT, FC-A11Y, FC-L10N, FC-DOC]` from `ui-01-tenant-list-read-only`. |
+| Tenant detail overview | `FC-TBL`/rendering primitives plus `FC-LYT`; Fluent UI tab/card/detail component APIs require pinned-package verification. | Generated/read-only detail composition may show overview, member summary, configuration summary, and audit entry points without implying command completion or source-of-truth mutation. | Layout, status/role tokens, accessibility, localization, and docs evidence for overview sections and navigation. | `planning-only`; copy `blockedBy: [FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-03-tenant-detail-overview-read-only`. |
+| Member table | `FC-TBL` projection/DataGrid primitives; role/status display may use badge evidence only when the story names the fallback. | Generated/read-only table composition may render `GET /api/tenants/{tenantId}/users` with role/status semantics. Add/remove/change-role actions are custom command flows, not generated CRUD. | Role/status semantic mapping, keyboard/focus behavior, localized role/status labels, and component docs. | `planning-only`; copy `blockedBy: [FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-04-user-management-member-table`. |
+| Configuration read-only view | `FC-TBL` projection/DataGrid primitives for key/value display; Fluent UI data display APIs require pinned-package verification. | Generated/read-only composition may show current configuration values. Set/remove/high-impact classification flows remain custom command stories. | Layout, table accessibility, localized key/value and empty/error copy, component docs, and explicit handling for sensitive value display if later required. | `planning-only`; copy `blockedBy: [FC-LYT, FC-A11Y, FC-L10N, FC-DOC]` from `ui-05-tenant-configuration-read-only`. |
+| User lookup and My Tenants read-only lookup | `FC-TBL` projection/DataGrid primitives for `GET /api/users/{userId}/tenants`; status/role badges need token confirmation. | Generated/read-only lookup may show authorized tenant memberships. Cross-tenant revoke/remove actions are custom high-risk flows and must not be generated from query rows. | Layout, role/status tokens, accessibility, localization, docs evidence, and authorization-safe empty/error states. | `planning-only`; copy `blockedBy: [FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-02-my-tenants-and-user-search-read-only`. |
+| Global administrator list | `FC-TBL` projection/table primitives; platform-level role/status display must not be treated as ordinary tenant membership. | Generated/read-only table composition may review platform administrator access only. Grant/remove global administrator workflows are custom command flows. | Platform-access language, role/status tokens, keyboard/focus behavior, localization, documentation, and explicit governance distinction from tenant membership. | `planning-only`; copy `blockedBy: [FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-06-global-admin-read-only`. |
+| Audit fallback | `FC-TBL` may support an approved flat audit list fallback; `FC-AUD` reusable audit timeline evidence remains missing. | A fallback may be DataGrid-backed and flat only when product/UX approves accessibility, localization, loading, replacement path, and follow-up `FC-AUD` work. It must not claim `<AuditTimeline>` availability. | `FC-AUD`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC`, plus performance evidence for the 500-row target or an approved bounded-rendering fallback. | `blocked` or `planning-only` by slice; copy `blockedBy: [FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-11-audit-trail-flat-timeline` or `ui-12-tenant-detail-audit-tab`. |
+
+### High-Risk Workflow Dependency Map
+
+High-risk workflows require custom components, custom overrides, or explicit fallback decisions. They must not reshape immutable Tenants domain contracts, annotate command/query contracts for UI generation, infer durable success from SignalR notifications, or create backend consequence endpoints. Consequence input must come from already-loaded projection/read-model data or be marked `needs-confirmation`.
+
+| Workflow | Required custom readiness | Unresolved dependency artifacts | Future-story status rule |
+| --- | --- | --- | --- |
+| Remove user from tenant | Custom destructive flow with scoped ordered consequence copy, source-of-truth member re-query, command lifecycle feedback, and one-at-a-time or batching policy. | `FC-CNS`, `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC`; owner split: Product/UX for fallback copy and `Hexalith.FrontComposer` for reusable component/API evidence. | Tenant-scoped destructive flow remains `planning-only` or `blocked` until fallback approval; copy `blockedBy: [FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-14-user-management-remove-user`. |
+| Change role | Custom command flow with role semantics, command lifecycle feedback, projection/status reconciliation, and no generated CRUD mutation. | `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC`; layout remains unresolved through `FC-LYT` when the story consumes non-default placement. | `planning-only` until command lifecycle, role/status tokens, accessibility, localization, and docs are confirmed; copy from `ui-09-user-management-add-or-change-role`. |
+| Disable or enable tenant | Custom platform-wide high-impact flow with ordered consequence preview, role/status impact, re-enable language, command feedback, degraded-state recovery, and audit-evidence expectations. | `FC-CNS`, `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC`, plus `FC-LYT` for layout. | `blocked` until reusable evidence or approved fallback exists; copy `blockedBy: [FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-13-disable-or-enable-tenant`. |
+| Remove global administrator | Custom platform-governance flow, distinct from tenant membership, with platform-access consequence copy, global-admin count context, focus/announcement behavior, command feedback, and audit expectation. | `FC-CNS`, `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC`, plus `FC-LYT` for layout. | `blocked` until platform-access fallback is approved or reusable component evidence exists; copy `blockedBy: [FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` from `ui-15-global-admin-command-management`. |
+| High-impact configuration changes | Custom command flow with product/UX classification of high-impact keys, ordered consequence copy when classified high impact, command lifecycle feedback, and source-of-truth re-query. | `FC-CNS` when classified high impact; always evaluate `FC-CMD`, `FC-CNC`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, `FC-DOC`, and layout through `FC-LYT`. | `blocked` while high-impact classification and preview policy remain deferred; copy from `ui-10-tenant-configuration-edit`. |
+| Command lifecycle feedback and degraded-state recovery | Custom feedback behavior covering optimistic, confirming, confirmed, rejected, idempotent, needs-review, SignalR-disconnected, polling-unavailable, and stale-confirmation states. | `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, `FC-DOC`; `FC-TOK` when visible status semantics depend on tokens. | Command-capable stories remain `planning-only` or `blocked` until the Tenants-compatible reusable contract or approved fallback is recorded. |
+
+### Story 9.1 Consumption Validation
+
+- Dependency IDs remain stable and are defined in the Dependency ID Catalog only once: `FC-TBL`, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-AUD`, `FC-CNS`, `FC-TOK`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`.
+- `docs/tenants-ui-phase-2-story-backlog.md` already provides literal `blockedBy: [...]` arrays for the future rows. Story 9.1 treats that backlog as the copy-forward source for row readiness and does not duplicate candidate rows here.
+- The only valid row readiness values for future stories are `ready`, `ready-with-approved-fallback`, `planning-only`, and `blocked`. Rows with non-empty `blockedBy`, proposed fallbacks, deferred fallbacks, missing owners, or missing evidence cannot be `ready` or `ready-with-approved-fallback`.
+- Every missing or unproven dependency has an owner in the catalog or addendum, a readiness state, fallback/blocking policy, evidence or `evidence: missing`, and `Phase 1 blocker` set to `No`.
+- Component, hook/alias, token, layout, accessibility, localization, and documentation prerequisites are represented by the existing dependency IDs: component/data grid through `FC-TBL`, command/hook aliases through `FC-CMD` and `FC-CNC`, tokens through `FC-TOK`, layout through `FC-LYT`, accessibility through `FC-A11Y`, localization through `FC-L10N`, and docs/reference evidence through `FC-DOC`.
 
 ## Future Story Author Checklist
 
