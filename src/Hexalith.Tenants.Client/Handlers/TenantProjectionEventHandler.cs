@@ -125,6 +125,11 @@ public class TenantProjectionEventHandler :
         try {
             TenantLocalState state = await GetOrCreateStateAsync(context.TenantId, cancellationToken).ConfigureAwait(false);
             apply(state, @event);
+            state.LastEvent = new TenantProjectionEventMetadata(
+                context.MessageId,
+                context.SequenceNumber,
+                context.Timestamp,
+                context.CorrelationId);
             await _store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
         }
         finally {

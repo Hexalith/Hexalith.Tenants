@@ -26,6 +26,7 @@ app.MapTenantEventSubscription();
 
 // 6. Map sample access-check endpoint
 app.MapAccessCheckEndpoints();
+app.MapTenantConfigurationEndpoints();
 
 // 7. Liveness/health endpoints for Aspire topology verification (Sample does not use
 //    ServiceDefaults). /alive matches the ASP.NET Core liveness convention used by the

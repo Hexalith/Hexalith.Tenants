@@ -23,6 +23,8 @@ public class TenantEventProcessor {
     private static readonly MethodInfo _dispatchMethod = typeof(TenantEventProcessor)
         .GetMethod(nameof(DispatchAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
 
+    private static readonly ConcurrentDictionary<Type, PropertyInfo?> _tenantIdProperties = new();
+
     private readonly IReadOnlyDictionary<string, Type> _eventTypeRegistry;
     private readonly ILogger<TenantEventProcessor> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -92,6 +94,15 @@ public class TenantEventProcessor {
                 return TenantEventProcessingResult.FailedInvalidPayload;
             }
 
+            if (!TryGetPayloadTenantId(@event, out string? payloadTenantId)
+                || !string.Equals(payloadTenantId, envelope.AggregateId, StringComparison.Ordinal)) {
+                _logger.LogWarning(
+                    "Rejected event {MessageId} because payload tenant ID does not match aggregate ID",
+                    envelope.MessageId);
+                _ = _processedMessageIds.TryRemove(envelope.MessageId, out _);
+                return TenantEventProcessingResult.FailedInvalidPayload;
+            }
+
             var context = new TenantEventContext(
                 envelope.AggregateId,
                 envelope.MessageId,
@@ -129,5 +140,14 @@ public class TenantEventProcessor {
         }
 
         return handlers.Length;
+    }
+
+    private static bool TryGetPayloadTenantId(IEventPayload @event, out string? tenantId) {
+        PropertyInfo? property = _tenantIdProperties.GetOrAdd(
+            @event.GetType(),
+            static eventType => eventType.GetProperty("TenantId", BindingFlags.Instance | BindingFlags.Public));
+
+        tenantId = property?.GetValue(@event) as string;
+        return !string.IsNullOrWhiteSpace(tenantId);
     }
 }

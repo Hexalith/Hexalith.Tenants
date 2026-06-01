@@ -22,10 +22,10 @@ public class TenantEventProcessorTests {
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
             .ToDictionary(t => t.FullName!, t => t);
 
-    private static TenantEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event)
+    private static TenantEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event, string aggregateId = "acme")
         where TEvent : IEventPayload => new(
             messageId,
-            "acme",
+            aggregateId,
             "system",
             typeof(TEvent).FullName!,
             1,
@@ -185,8 +185,18 @@ public class TenantEventProcessorTests {
                 CreateEnvelope("msg-disabled", new TenantDisabled("acme", DateTimeOffset.UtcNow)));
             TenantEventProcessingResult enabled = await processor.ProcessAsync(
                 CreateEnvelope("msg-enabled", new TenantEnabled("acme", DateTimeOffset.UtcNow)));
+            TenantEventProcessingResult configurationSet = await processor.ProcessAsync(
+                CreateEnvelope("msg-config-set", new TenantConfigurationSet("acme", "sample.theme", "blue")));
+            TenantEventProcessingResult configurationUpdated = await processor.ProcessAsync(
+                CreateEnvelope("msg-config-updated", new TenantConfigurationSet("acme", "sample.theme", "green")));
+            TenantEventProcessingResult unrelatedConfigurationSet = await processor.ProcessAsync(
+                CreateEnvelope("msg-config-unrelated", new TenantConfigurationSet("acme", "billing.plan", "enterprise")));
+            TenantEventProcessingResult configurationRemoved = await processor.ProcessAsync(
+                CreateEnvelope("msg-config-removed", new TenantConfigurationRemoved("acme", "sample.theme")));
             TenantEventProcessingResult removed = await processor.ProcessAsync(
                 CreateEnvelope("msg-removed", new UserRemovedFromTenant("acme", "user1")));
+            TenantEventProcessingResult repeatedRemoved = await processor.ProcessAsync(
+                CreateEnvelope("msg-removed-again", new UserRemovedFromTenant("acme", "user1")));
 
             // Assert
             created.ShouldBe(TenantEventProcessingResult.Processed);
@@ -195,7 +205,12 @@ public class TenantEventProcessorTests {
             changed.ShouldBe(TenantEventProcessingResult.Processed);
             disabled.ShouldBe(TenantEventProcessingResult.Processed);
             enabled.ShouldBe(TenantEventProcessingResult.Processed);
+            configurationSet.ShouldBe(TenantEventProcessingResult.Processed);
+            configurationUpdated.ShouldBe(TenantEventProcessingResult.Processed);
+            unrelatedConfigurationSet.ShouldBe(TenantEventProcessingResult.Processed);
+            configurationRemoved.ShouldBe(TenantEventProcessingResult.Processed);
             removed.ShouldBe(TenantEventProcessingResult.Processed);
+            repeatedRemoved.ShouldBe(TenantEventProcessingResult.Processed);
 
             TenantLocalState? state = await store.GetAsync("acme");
             _ = state.ShouldNotBeNull();
@@ -203,6 +218,10 @@ public class TenantEventProcessorTests {
             state.Description.ShouldBe("Updated");
             state.Status.ShouldBe(TenantStatus.Active);
             state.Members.ShouldNotContainKey("user1");
+            state.Configuration.ShouldNotContainKey("sample.theme");
+            state.Configuration["billing.plan"].ShouldBe("enterprise");
+            _ = state.LastEvent.ShouldNotBeNull();
+            state.LastEvent.LastMessageId.ShouldBe("msg-removed-again");
         }
     }
 
@@ -246,6 +265,37 @@ public class TenantEventProcessorTests {
 
             // Assert
             result.ShouldBe(TenantEventProcessingResult.FailedInvalidPayload);
+        }
+    }
+
+    [Fact]
+    public async Task ProcessAsync_PayloadTenantIdMismatch_ReturnsFailedInvalidPayloadAndDoesNotProject() {
+        // Arrange
+        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        using (provider) {
+            TenantEventEnvelope mismatchedEnvelope = CreateEnvelope(
+                "msg-1",
+                new TenantCreated("beta", "Beta Corp", null, DateTimeOffset.UtcNow),
+                "acme");
+            TenantEventEnvelope correctedEnvelope = CreateEnvelope(
+                "msg-1",
+                new TenantCreated("beta", "Beta Corp", null, DateTimeOffset.UtcNow),
+                "beta");
+
+            // Act
+            TenantEventProcessingResult mismatch = await processor.ProcessAsync(mismatchedEnvelope);
+            TenantLocalState? acmeState = await store.GetAsync("acme");
+            TenantLocalState? betaStateBeforeRetry = await store.GetAsync("beta");
+            TenantEventProcessingResult retry = await processor.ProcessAsync(correctedEnvelope);
+            TenantLocalState? betaStateAfterRetry = await store.GetAsync("beta");
+
+            // Assert
+            mismatch.ShouldBe(TenantEventProcessingResult.FailedInvalidPayload);
+            acmeState.ShouldBeNull();
+            betaStateBeforeRetry.ShouldBeNull();
+            retry.ShouldBe(TenantEventProcessingResult.Processed);
+            _ = betaStateAfterRetry.ShouldNotBeNull();
+            betaStateAfterRetry.Name.ShouldBe("Beta Corp");
         }
     }
 

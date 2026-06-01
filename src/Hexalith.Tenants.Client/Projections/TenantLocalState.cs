@@ -23,6 +23,7 @@ public class TenantLocalState {
         Name = other.Name;
         Description = other.Description;
         Status = other.Status;
+        LastEvent = other.LastEvent;
         Members = new Dictionary<string, TenantRole>(other.Members, StringComparer.Ordinal);
         Configuration = new Dictionary<string, string>(other.Configuration, StringComparer.Ordinal);
     }
@@ -47,6 +48,11 @@ public class TenantLocalState {
     /// sentinel) so a state built before <c>TenantCreated</c> is applied never reads as active (TEN-2).
     /// </summary>
     public TenantStatus Status { get; set; } = TenantStatus.Unknown;
+
+    /// <summary>
+    /// Gets or sets bounded metadata for the last event applied to this local projection.
+    /// </summary>
+    public TenantProjectionEventMetadata? LastEvent { get; set; }
 
     /// <summary>
     /// Gets the tenant members mapped by user ID to their role.

@@ -72,9 +72,9 @@ The built-in `TenantProjectionEventHandler` uses only idempotent operations (dic
 
 `Hexalith.Tenants.Client` includes a built-in `TenantProjectionEventHandler` that maintains `TenantLocalState` through the consumer-facing `ITenantProjectionStore`. The default `InMemoryTenantProjectionStore` is useful for local development, samples, and single-instance consumers. Scaled-out services should provide their own durable `ITenantProjectionStore` implementation so all instances observe a consistent local projection without adding a Client package dependency on Redis, SQL, or another database.
 
-The local projection is runtime state for the consuming service. It should be used for fast tenant-aware decisions inside that service, while EventStore remains the durable source of truth. Do not call back to the Tenants host synchronously for every access decision; subscribe to the shared `tenants.events` topic and filter by event type through typed handlers.
+The local projection is runtime state for the consuming service. It should be used for fast tenant-aware access, lifecycle, and configuration reactions inside that service, while EventStore remains the durable source of truth. Do not call back to the Tenants host synchronously for every access or configuration decision; subscribe to the shared `tenants.events` topic and filter by event type through typed handlers.
 
-Each consuming service processes events independently. DAPR pub/sub is at-least-once, and subscribers can lag or recover at different times, so consumers must not assume cross-service ordering or immediate read-after-write visibility.
+Each consuming service processes events independently. DAPR pub/sub is at-least-once, and subscribers can lag or recover at different times, so consumers must not assume cross-service ordering or immediate read-after-write visibility. `TenantDisabled` and `TenantEnabled` should be treated as eventually consistent availability signals, and tenant configuration reads should be filtered by the consumer-owned dot-delimited prefix, such as `sample.` or `billing.`, so unrelated namespaces remain hidden unless explicitly handled.
 
 ## Production Considerations
 

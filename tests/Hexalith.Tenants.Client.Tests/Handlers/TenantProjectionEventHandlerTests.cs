@@ -11,6 +11,14 @@ public class TenantProjectionEventHandlerTests {
     private static TenantEventContext CreateContext(string tenantId, string messageId = "msg-1")
         => new(tenantId, messageId, 1, DateTimeOffset.UtcNow, "corr-1");
 
+    private static TenantEventContext CreateContext(
+        string tenantId,
+        string messageId,
+        long sequenceNumber,
+        DateTimeOffset timestamp,
+        string correlationId)
+        => new(tenantId, messageId, sequenceNumber, timestamp, correlationId);
+
     [Fact]
     public async Task HandleAsync_TenantCreated_InitializesState() {
         // Arrange
@@ -28,6 +36,27 @@ public class TenantProjectionEventHandlerTests {
         state.Name.ShouldBe("Acme Corp");
         state.Description.ShouldBe("A description");
         state.Status.ShouldBe(TenantStatus.Active);
+    }
+
+    [Fact]
+    public async Task HandleAsync_AppliedEvent_CapturesBoundedLastEventMetadata() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        DateTimeOffset timestamp = DateTimeOffset.Parse("2026-06-01T09:15:00+00:00");
+        var context = CreateContext("acme", "msg-42", 42, timestamp, "corr-42");
+
+        // Act
+        await handler.HandleAsync(new TenantCreated("acme", "Acme Corp", null, timestamp), context);
+
+        // Assert
+        TenantLocalState? state = await store.GetAsync("acme");
+        _ = state.ShouldNotBeNull();
+        _ = state.LastEvent.ShouldNotBeNull();
+        state.LastEvent.LastMessageId.ShouldBe("msg-42");
+        state.LastEvent.LastSequenceNumber.ShouldBe(42);
+        state.LastEvent.LastUpdatedAt.ShouldBe(timestamp);
+        state.LastEvent.LastCorrelationId.ShouldBe("corr-42");
     }
 
     [Fact]
@@ -142,6 +171,30 @@ public class TenantProjectionEventHandlerTests {
         TenantLocalState? state = await store.GetAsync("acme");
         _ = state.ShouldNotBeNull();
         state.Configuration.ShouldNotContainKey("billing.plan");
+    }
+
+    [Fact]
+    public async Task HandleAsync_DuplicateTenantConfigurationRemoved_IsHarmlessAndUpdatesMetadata() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        await handler.HandleAsync(
+            new TenantConfigurationSet("acme", "sample.theme", "blue"),
+            CreateContext("acme", "msg-1"));
+
+        var @event = new TenantConfigurationRemoved("acme", "sample.theme");
+
+        // Act
+        await handler.HandleAsync(@event, CreateContext("acme", "msg-2", 2, DateTimeOffset.Parse("2026-06-01T10:00:00+00:00"), "corr-2"));
+        await handler.HandleAsync(@event, CreateContext("acme", "msg-3", 3, DateTimeOffset.Parse("2026-06-01T10:01:00+00:00"), "corr-3"));
+
+        // Assert
+        TenantLocalState? state = await store.GetAsync("acme");
+        _ = state.ShouldNotBeNull();
+        state.Configuration.ShouldNotContainKey("sample.theme");
+        _ = state.LastEvent.ShouldNotBeNull();
+        state.LastEvent.LastMessageId.ShouldBe("msg-3");
+        state.LastEvent.LastSequenceNumber.ShouldBe(3);
     }
 
     [Fact]

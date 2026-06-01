@@ -46,6 +46,7 @@ public class AccessCheckEndpointsTests {
         _ = services.AddSingleton<ITenantEventHandler<TenantEnabled>>(handler);
         _ = services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(handler);
         _ = services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<UserRoleChanged>>(handler);
         ServiceProvider provider = services.BuildServiceProvider();
 
         var processor = new TenantEventProcessor(
@@ -258,6 +259,56 @@ public class AccessCheckEndpointsTests {
 
             // Assert
             removed.ShouldBe(TenantEventProcessingResult.Processed);
+            ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
+            string json = SerializeResultValue(result);
+            json.ShouldContain("\"Access\":\"denied\"");
+            json.ShouldContain("\"Reason\":\"User is not a member\"");
+        }
+    }
+
+    [Fact]
+    public async Task CheckAccessAsync_UserRoleChangedEventPipeline_UsesUpdatedProjectedRole() {
+        // Arrange
+        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        using (provider) {
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-created", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow)));
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-added", new UserAddedToTenant("acme", "user1", TenantRole.TenantReader)));
+
+            // Act
+            TenantEventProcessingResult changed = await processor.ProcessAsync(
+                CreateEnvelope("msg-changed", new UserRoleChanged("acme", "user1", TenantRole.TenantReader, TenantRole.TenantContributor)));
+            IResult result = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+
+            // Assert
+            changed.ShouldBe(TenantEventProcessingResult.Processed);
+            ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
+            string json = SerializeResultValue(result);
+            json.ShouldContain("\"Access\":\"granted\"");
+            json.ShouldContain("\"Role\":\"TenantContributor\"");
+        }
+    }
+
+    [Fact]
+    public async Task CheckAccessAsync_RepeatedUserRemovedEventPipeline_RemainsDeniedWithoutError() {
+        // Arrange
+        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        using (provider) {
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-created", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow)));
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-added", new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner)));
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-removed-1", new UserRemovedFromTenant("acme", "user1")));
+
+            // Act
+            TenantEventProcessingResult repeatedRemove = await processor.ProcessAsync(
+                CreateEnvelope("msg-removed-2", new UserRemovedFromTenant("acme", "user1")));
+            IResult result = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+
+            // Assert
+            repeatedRemove.ShouldBe(TenantEventProcessingResult.Processed);
             ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
             string json = SerializeResultValue(result);
             json.ShouldContain("\"Access\":\"denied\"");

@@ -1,4 +1,5 @@
 using Hexalith.Tenants.Client.Projections;
+using Hexalith.Tenants.Contracts.Enums;
 
 using Shouldly;
 
@@ -35,6 +36,38 @@ public class InMemoryTenantProjectionStoreTests {
     }
 
     [Fact]
+    public async Task SaveAsync_ClonesNestedProjectionStateAndLastEventOnWrite() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var timestamp = DateTimeOffset.Parse("2026-06-01T10:00:00+00:00");
+        var state = new TenantLocalState {
+            TenantId = "acme",
+            Name = "Acme Corp",
+            LastEvent = new TenantProjectionEventMetadata("msg-1", 1, timestamp, "corr-1"),
+            Members = { ["user1"] = TenantRole.TenantOwner },
+            Configuration = { ["sample.theme"] = "blue" },
+        };
+
+        // Act
+        await store.SaveAsync(state);
+        state.Members["user1"] = TenantRole.Unknown;
+        state.Configuration["sample.theme"] = "green";
+        state.LastEvent = new TenantProjectionEventMetadata("msg-mutated", 99, timestamp.AddMinutes(1), "corr-mutated");
+
+        TenantLocalState? result = await store.GetAsync("acme");
+
+        // Assert
+        _ = result.ShouldNotBeNull();
+        result.Members["user1"].ShouldBe(TenantRole.TenantOwner);
+        result.Configuration["sample.theme"].ShouldBe("blue");
+        _ = result.LastEvent.ShouldNotBeNull();
+        result.LastEvent.LastMessageId.ShouldBe("msg-1");
+        result.LastEvent.LastSequenceNumber.ShouldBe(1);
+        result.LastEvent.LastUpdatedAt.ShouldBe(timestamp);
+        result.LastEvent.LastCorrelationId.ShouldBe("corr-1");
+    }
+
+    [Fact]
     public async Task SaveAsync_OverwritesExistingState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
@@ -66,6 +99,37 @@ public class InMemoryTenantProjectionStoreTests {
         // Assert
         _ = reloaded.ShouldNotBeNull();
         reloaded.Name.ShouldBe("Original");
+    }
+
+    [Fact]
+    public async Task GetAsync_ReturnedStateDoesNotMutateStoredNestedProjectionState() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var timestamp = DateTimeOffset.Parse("2026-06-01T10:00:00+00:00");
+        await store.SaveAsync(new TenantLocalState {
+            TenantId = "acme",
+            LastEvent = new TenantProjectionEventMetadata("msg-1", 1, timestamp, "corr-1"),
+            Members = { ["user1"] = TenantRole.TenantOwner },
+            Configuration = { ["sample.theme"] = "blue" },
+        });
+
+        // Act
+        TenantLocalState? retrieved = await store.GetAsync("acme");
+        _ = retrieved.ShouldNotBeNull();
+        retrieved.Members["user1"] = TenantRole.Unknown;
+        retrieved.Configuration["sample.theme"] = "green";
+        retrieved.LastEvent = new TenantProjectionEventMetadata("msg-mutated", 99, timestamp.AddMinutes(1), "corr-mutated");
+        TenantLocalState? reloaded = await store.GetAsync("acme");
+
+        // Assert
+        _ = reloaded.ShouldNotBeNull();
+        reloaded.Members["user1"].ShouldBe(TenantRole.TenantOwner);
+        reloaded.Configuration["sample.theme"].ShouldBe("blue");
+        _ = reloaded.LastEvent.ShouldNotBeNull();
+        reloaded.LastEvent.LastMessageId.ShouldBe("msg-1");
+        reloaded.LastEvent.LastSequenceNumber.ShouldBe(1);
+        reloaded.LastEvent.LastUpdatedAt.ShouldBe(timestamp);
+        reloaded.LastEvent.LastCorrelationId.ShouldBe("corr-1");
     }
 
     [Fact]

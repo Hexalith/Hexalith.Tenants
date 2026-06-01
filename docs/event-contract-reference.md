@@ -38,7 +38,7 @@ Commands that encounter infrastructure failures during processing (e.g., state r
 
 DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see duplicate deliveries after retry or recovery. Do not depend on exactly-once publication or cross-service subscriber delivery order; use the event envelope metadata to deduplicate and resequence per aggregate.
 
-The Client package's built-in local projection is runtime state for the consuming service. It lets the service answer tenant-aware access or behavior checks from its own process/store instead of synchronously querying Tenants for every decision. EventStore remains the durable source of truth, and each consuming service processes `tenants.events` independently; do not assume immediate read-after-write visibility or matching observation time across services.
+The Client package's built-in local projection is runtime state for the consuming service. It lets the service answer tenant-aware access, lifecycle, and configuration behavior checks from its own process/store instead of synchronously querying Tenants for every decision. `UserAddedToTenant`, `UserRoleChanged`, `UserRemovedFromTenant`, `TenantDisabled`, `TenantEnabled`, `TenantConfigurationSet`, and `TenantConfigurationRemoved` are applied by `TenantProjectionEventHandler` to `TenantLocalState`; the projection also keeps bounded last-event metadata for diagnostics. EventStore remains the durable source of truth, and each consuming service processes `tenants.events` independently; lifecycle/configuration reactions are eventually consistent with the tenant event stream, so do not assume immediate read-after-write visibility or matching observation time across services.
 
 Commands are submitted via the CommandApi. See the [Quickstart Guide](quickstart.md) for command submission details.
 
@@ -392,7 +392,7 @@ Published on topic: `tenants.events`
 
 #### SetTenantConfiguration
 
-Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter by key prefix to process only their own namespace - for example, `key.startsWith("billing.")` for the Billing service.
+Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter their local projection reads by owned prefix to process only their own namespace - for example, `key.startsWith("billing.")` for the Billing service. The sample consumer uses the same pattern for `sample.` keys and ignores unrelated namespaces without polling, sync jobs, or per-request Tenants API calls.
 
 **Command fields:**
 
