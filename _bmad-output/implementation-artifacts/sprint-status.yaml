@@ -120,14 +120,14 @@ development_status:
   epic-7-retrospective: optional
 
   # Epic 8: Developers Can Adopt Through Documentation and Demo Evidence
-  epic-8: in-progress
+  epic-8: done
   8-1-create-a-prerequisite-validated-quickstart: done
   8-2-publish-the-event-contract-reference: done
   8-3-document-the-sample-consuming-service-walkthrough: done
   8-4-produce-the-reactive-access-aha-moment-demo: done
   8-5-document-cross-aggregate-timing-and-eventual-consistency: done
   8-6-document-compensating-command-patterns: done
-  epic-8-retrospective: optional
+  epic-8-retrospective: done
 
   # Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
   # planning-only: do not mark Epic 9 stories ready-for-dev until converted into Phase 2 UI implementation stories.

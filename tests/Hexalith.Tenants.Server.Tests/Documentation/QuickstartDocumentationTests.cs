@@ -52,6 +52,7 @@ public class QuickstartDocumentationTests {
             "src/Hexalith.Tenants.AppHost/Program.cs",
             "src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json",
             "src/Hexalith.Tenants/appsettings.Development.json",
+            "Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json",
             "docs/quickstart.md",
             "docs/production-auth-claim-contract.md",
             "docs/production-auth-readiness.md",
@@ -82,6 +83,26 @@ public class QuickstartDocumentationTests {
         quickstart.ShouldContain("curl -fsS \"{eventstore-url}/swagger/v1/swagger.json\" | rg '\"/api/v1/commands\"'");
         quickstart.ShouldNotContain("POST /api/commands");
         quickstart.ShouldNotContain("GET /api/commands/status");
+    }
+
+    [Fact]
+    public void Quickstart_hmac_fallback_targets_EventStore_development_auth_settings() {
+        string quickstart = ReadQuickstart();
+        string eventStoreDevelopmentSettings = File.ReadAllText(RepositoryPath("Hexalith.EventStore", "src", "Hexalith.EventStore", "appsettings.Development.json"));
+        string tenantsDevelopmentSettings = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants", "appsettings.Development.json"));
+
+        eventStoreDevelopmentSettings.ShouldContain("\"Audience\": \"hexalith-eventstore\"");
+        eventStoreDevelopmentSettings.ShouldContain("\"SigningKey\": \"DevOnlySigningKey-AtLeast32Chars!\"");
+        tenantsDevelopmentSettings.ShouldContain("\"Audience\": \"hexalith-tenants\"");
+
+        quickstart.ShouldContain("Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json");
+        quickstart.ShouldContain("aud=\"hexalith-eventstore\"");
+        quickstart.ShouldContain("aud\":\"hexalith-eventstore\"");
+        quickstart.ShouldContain("DevOnlySigningKey-AtLeast32Chars!");
+        quickstart.ShouldContain("audience `hexalith-eventstore`");
+        quickstart.ShouldNotContain("aud=\"hexalith-tenants\"");
+        quickstart.ShouldNotContain("aud\":\"hexalith-tenants\"");
+        quickstart.ShouldNotContain("this-is-a-development-signing-key-minimum-32-chars");
     }
 
     [Fact]

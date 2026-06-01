@@ -132,14 +132,14 @@ curl -s -X POST "{keycloak-url}/realms/hexalith/protocol/openid-connect/token" \
 
 If `jq` is not installed, copy the `access_token` value from the JSON response. The token includes the direct `eventstore:tenant=system`, `eventstore:domain=global-administrators`, `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims required for the two quickstart commands.
 
-If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. That fallback uses the development signing key in `src/Hexalith.Tenants/appsettings.Development.json`.
+If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. The quickstart submits commands to the EventStore command gateway, so that fallback uses the development issuer, audience, and signing key from `Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json`.
 
 **PowerShell:**
 
 ```powershell
 $header = @{alg="HS256";typ="JWT"} | ConvertTo-Json -Compress
 $exp = [int](Get-Date -Date (Get-Date).AddHours(8).ToUniversalTime() -UFormat %s)
-$payload = @{sub="admin-user";iss="hexalith-dev";aud="hexalith-tenants";tenants=@("system");exp=$exp} | ConvertTo-Json -Compress
+$payload = @{sub="admin-user";iss="hexalith-dev";aud="hexalith-eventstore";tenants=@("system");exp=$exp} | ConvertTo-Json -Compress
 
 function ConvertTo-Base64Url($bytes) { [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+','-').Replace('/','_') }
 
@@ -147,7 +147,7 @@ $headerB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($header))
 $payloadB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($payload))
 $signingInput = "$headerB64.$payloadB64"
 
-$key = [System.Text.Encoding]::UTF8.GetBytes("this-is-a-development-signing-key-minimum-32-chars")
+$key = [System.Text.Encoding]::UTF8.GetBytes("DevOnlySigningKey-AtLeast32Chars!")
 $hmac = New-Object System.Security.Cryptography.HMACSHA256(,$key)
 $sig = ConvertTo-Base64Url($hmac.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($signingInput)))
 
@@ -160,14 +160,14 @@ Write-Output $token
 ```bash
 header=$(echo -n '{"alg":"HS256","typ":"JWT"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')
 exp=$(($(date +%s) + 28800))
-payload=$(echo -n "{\"sub\":\"admin-user\",\"iss\":\"hexalith-dev\",\"aud\":\"hexalith-tenants\",\"tenants\":[\"system\"],\"exp\":$exp}" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-sig=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "this-is-a-development-signing-key-minimum-32-chars" -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+payload=$(echo -n "{\"sub\":\"admin-user\",\"iss\":\"hexalith-dev\",\"aud\":\"hexalith-eventstore\",\"tenants\":[\"system\"],\"exp\":$exp}" | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+sig=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "DevOnlySigningKey-AtLeast32Chars!" -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
 echo "$header.$payload.$sig"
 ```
 
 Copy the output token — you need it in the next step.
 
-> **How it works:** The default local Keycloak realm is imported from `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` and is configured for the `hexalith-eventstore` audience used by the AppHost. The `EnableKeycloak=false` fallback uses a hardcoded HMAC-SHA256 signing key with issuer `hexalith-dev` and audience `hexalith-tenants`; the `tenants: ["system"]` source claim is normalized by EventStore into `eventstore:tenant=system`. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
+> **How it works:** The default local Keycloak realm is imported from `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` and is configured for the `hexalith-eventstore` audience used by the AppHost. The `EnableKeycloak=false` fallback uses EventStore's local HMAC-SHA256 settings with issuer `hexalith-dev` and audience `hexalith-eventstore`; the `tenants: ["system"]` source claim is normalized by EventStore into `eventstore:tenant=system`. For production IdP mappings, see [Production Auth Claim Contract](production-auth-claim-contract.md).
 >
 > **Production note:** Production deployments use OIDC authority-based JWT validation, not the local HMAC signing key. Before release, run the [Production Auth Readiness](production-auth-readiness.md) checklist and smoke tests.
 
