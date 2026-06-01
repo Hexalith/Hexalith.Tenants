@@ -1,49 +1,52 @@
 # Test Automation Summary
 
+## Story
+
+Story 4.2: Expose Consumer DI Registration for Tenant Client Services
+
 ## Generated Tests
 
 ### API Tests
-- [x] Not directly applicable for Story 4.1. The story validates the EventStore publisher boundary and DAPR actor command path, not a public REST controller surface.
-- [x] Existing `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs` verifies Tenants runtime/AppHost configuration for `pubsub`, `tenants.events`, and `deadletter.tenants.events`.
+- [x] Not directly applicable. This story covers Client package DI registration and options behavior, not a public REST/API endpoint.
 
 ### E2E Tests
-- [x] `tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs` - `BootstrapGlobalAdmin_succeeds_end_to_end_with_events_published` now asserts global-administrator events publish to `tenants.events`, not `global-administrators.events`, while preserving `system` tenant and `global-administrators` envelope domain.
-- [x] Existing `tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs` - `GlobalAdministrator_events_publish_to_shared_tenants_events_topic_with_global_domain_preserved` covers `BootstrapGlobalAdmin`, `SetGlobalAdministrator`, and `RemoveGlobalAdministrator` on the shared topic.
-- [x] Existing `tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs` - lifecycle, membership, role, configuration, structured rejection, and publish-failure recovery paths remain covered through DAPR actor E2E workflows.
+- [x] Not directly applicable. This story has no UI workflow or live DAPR sidecar flow; the consumer-facing behavior is validated through the package registration surface.
 
-### Publisher Boundary Tests
-- [x] Existing `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Events/EventPublisherTests.cs` covers DAPR `PublishEventAsync` metadata for CloudEvents `type`, `source`, and `id`.
-- [x] Existing `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Events/EventPublisherTests.cs` verifies domain topic overrides publish to `tenants.events` while preserving the original envelope domain.
-- [x] Existing `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Configuration/EventPublisherOptionsTests.cs` covers shared-topic and dead-letter derivation with domain overrides.
-- [x] Existing `tests/Hexalith.Tenants.Contracts.Tests/EventSerializationTests.cs` verifies all event and rejection payload contracts expose top-level `TenantId`.
+### Registration and Options Tests
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added action-overload chaining coverage.
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added review regression coverage proving action-supplied options apply after existing manual options configuration and after default configuration binding.
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added guard for `HexalithTenantsOptions.ConfigurationSectionName == "Tenants"`.
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added regression coverage proving the stale `CommandApiAppId` option is not exposed.
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added invalid action-supplied options coverage for `PubSubName` and `TopicName`.
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added startup validation coverage through `IStartupValidator`.
+- [x] `tests/Hexalith.Tenants.Client.Tests/Registration/TenantServiceCollectionExtensionsTests.cs` - added idempotency coverage for options validators and startup validators.
 
 ## Coverage
-- CloudEvents publisher metadata: 3/3 required keys covered (`cloudevent.type`, `cloudevent.source`, `cloudevent.id`).
-- Shared topic convention: 2/2 aggregate families covered (`tenants`, `global-administrators`) for publication/configuration tests.
-- Story event families: 5/5 covered across contract, publisher, and DAPR E2E tests (lifecycle, membership, role, configuration, global administrators).
-- Critical error cases: structured rejection publication, publish-failure source-of-truth preservation, topic override regression, and dead-letter topic naming.
-- UI E2E: 0/0 applicable; Story 4.1 is backend DAPR/EventStore publication behavior.
+
+- Registration extension methods: 2/2 overloads covered for chaining, null guards, and options behavior.
+- Required options: 2/2 covered for defaults, configured values, invalid configuration values, and invalid action values.
+- Startup validation: covered through `IStartupValidator.Validate()`.
+- Consumer dependency boundary: covered by existing Client project reference and inline package version governance tests.
+- UI workflows: 0/0 applicable.
+- API endpoints: 0/0 applicable.
 
 ## Validation
-- [x] `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 /nodeReuse:false` - passed with 0 warnings and 0 errors.
-- [x] `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj --no-restore -m:1 /nodeReuse:false` - passed with 0 warnings and 0 errors.
-- [x] `dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --configuration Release --no-build -m:1 /nodeReuse:false` - VSTest aborted before executing tests because the sandbox denies its TCP listener (`SocketException (13): Permission denied`).
-- [x] `dotnet test tests/Hexalith.Tenants.Server.Tests/ --configuration Release --no-build -m:1 /nodeReuse:false` - VSTest aborted before executing tests because the sandbox denies its TCP listener (`SocketException (13): Permission denied`).
-- [x] `dotnet test tests/Hexalith.Tenants.IntegrationTests/ --configuration Release --no-build -m:1 /nodeReuse:false` - VSTest aborted before executing tests because the sandbox denies its TCP listener (`SocketException (13): Permission denied`).
-- [x] `dotnet test Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/ --no-build -m:1 /nodeReuse:false` - VSTest aborted before executing tests because the sandbox denies its TCP listener (`SocketException (13): Permission denied`).
-- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Contracts.Tests.EventSerializationTests` - passed: 52 total, 0 failed, 0 skipped.
-- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Server.Tests/bin/Release/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` - passed: 2 total, 0 failed, 0 skipped.
-- [x] Direct xUnit fallback: `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/bin/Debug/net10.0/Hexalith.EventStore.Server.Tests -noLogo -noColor -parallel none -class Hexalith.EventStore.Server.Tests.Configuration.EventPublisherOptionsTests -class Hexalith.EventStore.Server.Tests.Events.EventPublisherTests` - passed: 33 total, 0 failed, 0 skipped.
-- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests` - discovered 17 tests, 0 failed, 17 skipped because DAPR Redis, placement, and scheduler prerequisites are unavailable locally.
+
+- [x] `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --no-restore -m:1 /nodeReuse:false /p:UseSharedCompilation=false` - passed with 0 warnings and 0 errors.
+- [x] `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-restore -m:1 /nodeReuse:false /p:UseSharedCompilation=false` - built successfully, then VSTest aborted before executing tests because the sandbox denied its TCP listener (`SocketException (13): Permission denied`).
+- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Client.Tests/bin/Debug/net10.0/Hexalith.Tenants.Client.Tests -noLogo -noColor -parallel none` - passed: 66 total, 0 errors, 0 failed, 0 skipped.
+- [x] `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 /nodeReuse:false /p:UseSharedCompilation=false` - passed with 0 warnings and 0 errors.
+- [x] Direct xUnit fallback: `tests/Hexalith.Tenants.Client.Tests/bin/Release/net10.0/Hexalith.Tenants.Client.Tests -noLogo -noColor -parallel none` - passed: 66 total, 0 errors, 0 failed, 0 skipped.
 
 ## Checklist Validation
-- [x] API tests generated or retained where applicable.
-- [x] E2E tests generated for backend DAPR command workflows; UI is not in scope.
-- [x] Tests use standard project APIs: xUnit v3, Shouldly, DAPR actor proxies, `CommandEnvelope`, fake publisher, and EventStore publisher tests.
-- [x] Tests cover happy paths for tenant lifecycle and global-administrator publication.
-- [x] Tests cover critical error cases for structured rejections, publish failure, dead-letter topic naming, and legacy topic regression.
-- [x] Generated tests compile and are discoverable; full DAPR execution is gated by unavailable local infrastructure.
-- [x] Tests use clear descriptions and semantic domain assertions.
+
+- [x] API tests generated if applicable; no API endpoint exists for this story.
+- [x] E2E tests generated if UI exists; no UI exists for this story.
+- [x] Tests use standard project APIs: xUnit v3 and Shouldly.
+- [x] Tests cover happy path: default registration, configured registration, and chaining.
+- [x] Tests cover critical error cases: invalid `PubSubName`, invalid `TopicName`, and startup validation failure.
+- [x] All generated tests run successfully through the direct xUnit runner.
+- [x] Tests use clear descriptions.
 - [x] No hardcoded waits or sleeps were added.
-- [x] Tests are independent and allocate unique aggregate IDs per run.
-- [x] Summary includes coverage metrics and validation evidence.
+- [x] Tests are independent and have no order dependency.
+- [x] Test summary created with coverage metrics.

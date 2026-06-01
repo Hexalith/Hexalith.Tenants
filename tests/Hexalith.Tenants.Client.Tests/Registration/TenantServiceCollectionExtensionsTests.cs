@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Xml.Linq;
+
 using Dapr.Client;
 
 using Hexalith.Tenants.Client.Configuration;
@@ -63,6 +66,7 @@ public class TenantServiceCollectionExtensionsTests {
         using ServiceProvider provider = services.BuildServiceProvider();
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("mypubsub");
+        options.TopicName.ShouldBe("tenants.events");
     }
 
     [Fact]
@@ -97,6 +101,18 @@ public class TenantServiceCollectionExtensionsTests {
     }
 
     [Fact]
+    public void AddHexalithTenants_WithAction_ReturnsSameServiceCollection() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        IServiceCollection result = services.AddHexalithTenants(_ => { });
+
+        // Assert
+        result.ShouldBeSameAs(services);
+    }
+
+    [Fact]
     public void AddHexalithTenants_DefaultOptionsValues() {
         // Arrange — no config section
         IServiceCollection services = CreateServiceCollectionWithConfig();
@@ -109,7 +125,21 @@ public class TenantServiceCollectionExtensionsTests {
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("pubsub");
         options.TopicName.ShouldBe("tenants.events");
-        options.CommandApiAppId.ShouldBe("commandapi");
+    }
+
+    [Fact]
+    public void HexalithTenantsOptions_UsesTenantsConfigurationSectionName() =>
+        HexalithTenantsOptions.ConfigurationSectionName.ShouldBe("Tenants");
+
+    [Fact]
+    public void HexalithTenantsOptions_DoesNotExposeStaleCommandApiAppIdOption() {
+        // Act
+        PropertyInfo? property = typeof(HexalithTenantsOptions).GetProperty(
+            "CommandApiAppId",
+            BindingFlags.Instance | BindingFlags.Public);
+
+        // Assert
+        property.ShouldBeNull();
     }
 
     [Fact]
@@ -148,7 +178,6 @@ public class TenantServiceCollectionExtensionsTests {
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("pubsub");
         options.TopicName.ShouldBe("tenants.events");
-        options.CommandApiAppId.ShouldBe("commandapi");
     }
 
     [Fact]
@@ -163,6 +192,133 @@ public class TenantServiceCollectionExtensionsTests {
         using ServiceProvider provider = services.BuildServiceProvider();
         HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
         options.PubSubName.ShouldBe("custom");
+    }
+
+    [Fact]
+    public void AddHexalithTenants_WithAction_BindsConfiguredTopicName() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+
+        // Act
+        _ = services.AddHexalithTenants(o => o.TopicName = "custom.topic");
+
+        // Assert
+        using ServiceProvider provider = services.BuildServiceProvider();
+        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
+        options.TopicName.ShouldBe("custom.topic");
+    }
+
+    [Fact]
+    public void AddHexalithTenants_WithAction_AppliesAfterExistingOptionsConfiguration() {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+        _ = services.Configure<HexalithTenantsOptions>(options => options.PubSubName = "preconfigured");
+
+        // Act
+        _ = services.AddHexalithTenants(options => options.PubSubName = "explicit");
+
+        // Assert
+        using ServiceProvider provider = services.BuildServiceProvider();
+        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
+        options.PubSubName.ShouldBe("explicit");
+    }
+
+    [Fact]
+    public void AddHexalithTenants_WithAction_AppliesAfterDefaultConfigurationBinding() {
+        // Arrange
+        IServiceCollection services = CreateServiceCollectionWithConfig(
+            new Dictionary<string, string?> {
+                ["Tenants:PubSubName"] = "configured",
+            });
+        _ = services.AddHexalithTenants();
+
+        // Act
+        _ = services.AddHexalithTenants(options => options.PubSubName = "explicit");
+
+        // Assert
+        using ServiceProvider provider = services.BuildServiceProvider();
+        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
+        options.PubSubName.ShouldBe("explicit");
+    }
+
+    [Theory]
+    [InlineData("Tenants:PubSubName", "HexalithTenantsOptions.PubSubName")]
+    [InlineData("Tenants:TopicName", "HexalithTenantsOptions.TopicName")]
+    public void AddHexalithTenants_InvalidConfiguredOptionsThrowOptionsValidationException(
+        string configurationKey,
+        string expectedFailure) {
+        // Arrange
+        IServiceCollection services = CreateServiceCollectionWithConfig(
+            new Dictionary<string, string?> {
+                [configurationKey] = " ",
+            });
+        _ = services.AddHexalithTenants();
+
+        // Act
+        using ServiceProvider provider = services.BuildServiceProvider();
+        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
+            () => provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value);
+
+        // Assert
+        exception.Failures.ShouldContain(failure => failure.Contains(expectedFailure, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true, "HexalithTenantsOptions.PubSubName")]
+    [InlineData(false, "HexalithTenantsOptions.TopicName")]
+    public void AddHexalithTenants_WithAction_InvalidOptionsThrowOptionsValidationException(
+        bool invalidatePubSubName,
+        string expectedFailure) {
+        // Arrange
+        IServiceCollection services = new ServiceCollection();
+        _ = services.AddHexalithTenants(options => {
+            if (invalidatePubSubName) {
+                options.PubSubName = " ";
+            }
+            else {
+                options.TopicName = " ";
+            }
+        });
+
+        // Act
+        using ServiceProvider provider = services.BuildServiceProvider();
+        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
+            () => provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value);
+
+        // Assert
+        exception.Failures.ShouldContain(failure => failure.Contains(expectedFailure, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AddHexalithTenants_InvalidOptionsFailStartupValidation() {
+        // Arrange
+        IServiceCollection services = CreateServiceCollectionWithConfig(
+            new Dictionary<string, string?> {
+                ["Tenants:PubSubName"] = " ",
+            });
+        _ = services.AddHexalithTenants();
+
+        // Act
+        using ServiceProvider provider = services.BuildServiceProvider();
+        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
+            () => provider.GetRequiredService<IStartupValidator>().Validate());
+
+        // Assert
+        exception.Failures.ShouldContain(failure => failure.Contains("HexalithTenantsOptions.PubSubName", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AddHexalithTenants_RegistersOptionsValidationOnce() {
+        // Arrange
+        IServiceCollection services = CreateServiceCollectionWithConfig();
+
+        // Act
+        _ = services.AddHexalithTenants();
+        _ = services.AddHexalithTenants();
+
+        // Assert
+        services.Count(s => s.ServiceType == typeof(IValidateOptions<HexalithTenantsOptions>)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(IStartupValidator)).ShouldBe(1);
     }
 
     [Fact]
@@ -303,6 +459,58 @@ public class TenantServiceCollectionExtensionsTests {
         services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
     }
 
+    [Fact]
+    public void AddHexalithTenants_UsesSingleConfigurationSectionNameConstant() {
+        // Arrange
+        IServiceCollection services = CreateServiceCollectionWithConfig(
+            new Dictionary<string, string?> {
+                [$"{HexalithTenantsOptions.ConfigurationSectionName}:PubSubName"] = "sectionpubsub",
+            });
+
+        // Act
+        _ = services.AddHexalithTenants();
+
+        // Assert
+        using ServiceProvider provider = services.BuildServiceProvider();
+        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
+        options.PubSubName.ShouldBe("sectionpubsub");
+    }
+
+    [Fact]
+    public void ClientProject_DoesNotReferenceServerHostOrAppHostProjects() {
+        // Arrange
+        XDocument project = XDocument.Load(ClientProjectPath());
+
+        // Act
+        string[] projectReferences = project
+            .Descendants("ProjectReference")
+            .Select(reference => reference.Attribute("Include")?.Value)
+            .OfType<string>()
+            .ToArray();
+
+        // Assert
+        projectReferences.ShouldNotContain(reference => reference.Contains("Hexalith.Tenants.Server", StringComparison.Ordinal));
+        projectReferences.ShouldNotContain(reference => reference.Contains("Hexalith.Tenants.AppHost", StringComparison.Ordinal));
+        projectReferences.ShouldNotContain(reference => reference.Contains(@"Hexalith.Tenants\Hexalith.Tenants.csproj", StringComparison.Ordinal));
+        projectReferences.ShouldNotContain(reference => reference.Contains("Hexalith.Tenants/Hexalith.Tenants.csproj", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ClientProject_DoesNotUseInlinePackageVersions() {
+        // Arrange
+        XDocument project = XDocument.Load(ClientProjectPath());
+
+        // Act
+        string[] packageReferencesWithVersions = project
+            .Descendants("PackageReference")
+            .Where(reference => reference.Attribute("Version") is not null)
+            .Select(reference => reference.Attribute("Include")?.Value ?? reference.Attribute("Update")?.Value ?? "<unknown>")
+            .ToArray();
+
+        // Assert
+        packageReferencesWithVersions.ShouldBeEmpty();
+    }
+
     private static IServiceCollection CreateServiceCollectionWithConfig(
         Dictionary<string, string?>? configValues = null) {
         var services = new ServiceCollection();
@@ -319,4 +527,20 @@ public class TenantServiceCollectionExtensionsTests {
     private static ServiceDescriptor GetRequiredDescriptor(IServiceCollection services, Type serviceType) =>
         services.FirstOrDefault(s => s.ServiceType == serviceType)
         ?? throw new ShouldAssertException($"Expected descriptor for service type '{serviceType}'.");
+
+    private static string ClientProjectPath()
+        => Path.Combine(FindRepoRoot(), "src", "Hexalith.Tenants.Client", "Hexalith.Tenants.Client.csproj");
+
+    private static string FindRepoRoot() {
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+        while (current is not null) {
+            if (File.Exists(Path.Combine(current.FullName, "Hexalith.Tenants.slnx"))) {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new InvalidOperationException("Could not locate Hexalith.Tenants repository root.");
+    }
 }

@@ -7,6 +7,7 @@ using Hexalith.Tenants.Contracts.Events;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Client.Registration;
@@ -16,6 +17,7 @@ namespace Hexalith.Tenants.Client.Registration;
 /// </summary>
 public static class TenantServiceCollectionExtensions {
     private sealed class TenantEventInfrastructureMarker;
+    private sealed class TenantOptionsValidationMarker;
 
     /// <summary>
     /// Registers tenant client services in the dependency injection container with configuration bound from appsettings.
@@ -31,7 +33,7 @@ public static class TenantServiceCollectionExtensions {
         // Opportunistic configuration binding
         IConfiguration? configuration = TryGetConfiguration(services);
         if (configuration is not null && !HasTenantOptionsConfiguration(services)) {
-            _ = services.Configure<HexalithTenantsOptions>(configuration.GetSection("Tenants"));
+            _ = services.Configure<HexalithTenantsOptions>(configuration.GetSection(HexalithTenantsOptions.ConfigurationSectionName));
         }
 
         return services;
@@ -52,10 +54,7 @@ public static class TenantServiceCollectionExtensions {
         EnsureCoreRegistrations(services);
         EnsureEventHandlerRegistrations(services);
 
-        // Idempotency: skip duplicate options configuration (same sentinel as parameterless overload)
-        if (!HasTenantOptionsConfiguration(services)) {
-            _ = services.Configure(configureOptions);
-        }
+        _ = services.Configure(configureOptions);
 
         return services;
     }
@@ -73,6 +72,14 @@ public static class TenantServiceCollectionExtensions {
         }
 
         _ = services.AddOptions<HexalithTenantsOptions>();
+
+        if (services.Any(s => s.ServiceType == typeof(TenantOptionsValidationMarker))) {
+            return;
+        }
+
+        _ = services.AddOptions<HexalithTenantsOptions>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<HexalithTenantsOptions>, ValidateHexalithTenantsOptions>());
+        _ = services.AddSingleton<TenantOptionsValidationMarker>();
     }
 
     private static void EnsureEventHandlerRegistrations(IServiceCollection services) {

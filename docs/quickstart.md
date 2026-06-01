@@ -133,7 +133,7 @@ Copy the output token — you need it in the next step.
 
 ### Open Swagger UI
 
-Find the `commandapi` service in the Aspire dashboard and open its URL. Append `/swagger` to the URL to open the Swagger UI.
+Find the `eventstore` service in the Aspire dashboard and open its URL. Append `/swagger` to the URL to open the Swagger UI.
 
 1. Click the **Authorize** button at the top of the page
 2. In the **Value** field, paste the token you generated — do not include the `Bearer` prefix, Swagger adds it automatically
@@ -267,7 +267,7 @@ Register tenant client services in your DI container:
 builder.Services.AddHexalithTenants();
 ```
 
-This registers event handlers, projection stores, and DAPR client integration. The `Hexalith.Tenants.Contracts` package provides the event types (`TenantCreated`, `TenantUpdated`, etc.) and the `Hexalith.Tenants.Client` package provides the DI registration and event handling infrastructure.
+This registers event handlers, projection stores, options validation, and DAPR client integration. By default, the Client package binds the `Tenants` configuration section and subscribes through DAPR pub/sub component `pubsub` on topic `tenants.events`. The `Hexalith.Tenants.Contracts` package provides the event types (`TenantCreated`, `TenantUpdated`, etc.) and the `Hexalith.Tenants.Client` package provides the DI registration and event handling infrastructure.
 
 For event handling patterns and idempotent processing, see [Idempotent Event Processing](idempotent-event-processing.md).
 
