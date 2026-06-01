@@ -93,7 +93,7 @@ development_status:
   5-6-provide-safe-cursor-based-pagination-for-query-endpoints: done
   5-7-query-a-paginated-tenant-list: done
   5-8-query-tenant-details-and-tenant-users: done
-  5-9-query-the-tenants-a-user-belongs-to: backlog
+  5-9-query-the-tenants-a-user-belongs-to: done
   5-10-query-tenant-access-audit-history: backlog
   epic-5-retrospective: optional
 

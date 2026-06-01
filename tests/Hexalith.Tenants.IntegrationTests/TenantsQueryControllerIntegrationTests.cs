@@ -744,6 +744,139 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
+    public async Task GetUserTenants_returns_401_when_authorization_header_is_missing() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        using HttpClient client = factory.CreateClient();
+
+        HttpResponseMessage response = await client.GetAsync("/api/users/user-2/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_returns_401_when_authenticated_identity_has_no_subject() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryNoSubjectWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/users/user-2/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_returns_400_when_route_user_id_is_invalid() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/users/-bad/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_returns_paginated_payload_shape_and_dispatches_index_query() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new PaginatedResult<UserTenantMembership>(
+            Items:
+            [
+                new("tenant-001", "Tenant One", TenantStatus.Disabled, TenantRole.TenantContributor),
+            ],
+            Cursor: null,
+            HasMore: false), s_queryJsonOptions);
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetUserTenantsQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenant-index"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/users/user-2/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(1);
+        JsonElement firstItem = result.GetProperty("items")[0];
+        firstItem.GetProperty("tenantId").GetString().ShouldBe("tenant-001");
+        firstItem.GetProperty("name").GetString().ShouldBe("Tenant One");
+        firstItem.GetProperty("status").GetString().ShouldBe("Disabled");
+        firstItem.GetProperty("role").GetString().ShouldBe("TenantContributor");
+        result.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        result.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+
+        SubmitQuery query = routedQueries.Single();
+        query.Tenant.ShouldBe("system");
+        query.Domain.ShouldBe(GetUserTenantsQuery.Domain);
+        query.AggregateId.ShouldBe("index");
+        query.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
+        query.EntityId.ShouldBe("user-2");
+        query.UserId.ShouldBe("test-user");
+        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=25", 25)]
+    [InlineData("?pageSize=0", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=-5", TenantQueryPaginationPolicy.StandardDefaultPageSize)]
+    [InlineData("?pageSize=101", TenantQueryPaginationPolicy.StandardMaximumPageSize)]
+    public async Task GetUserTenants_forwards_bounded_page_size_in_query_payload(string queryString, int expectedPageSize) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetUserTenantsQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenant-index"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/users/user-2/tenants" + queryString);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(expectedPageSize);
+        ReadPayloadCursor(query).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_forwards_valid_signed_cursor_in_query_payload() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        List<SubmitQuery> routedQueries = [];
+        IQueryRouter router = CreateCapturingRouter(
+            GetUserTenantsQuery.QueryType,
+            new QueryRouterResult(true, payload, false, ProjectionType: "tenant-index"),
+            routedQueries);
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetUserTenantsQuery.QueryType,
+            TenantQueryCursorScopes.GetUserTenants("test-user", "user-2"),
+            "tenant-001");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/users/user-2/tenants?cursor={Uri.EscapeDataString(cursor)}&pageSize=25");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmitQuery query = routedQueries.Single();
+        ReadPayloadPageSize(query).ShouldBe(25);
+        ReadPayloadCursor(query).ShouldBe(cursor);
+    }
+
+    [Fact]
     public async Task GetTenantAudit_returns_403_problem_details_when_caller_is_not_global_admin() {
         // Task 7.4: keep+strengthen the integration assertion that non-admin gets 403, not 501,
         // and does not reveal audit data. The actor returns ErrorMessage="Forbidden" for
@@ -832,6 +965,36 @@ public class TenantsQueryControllerIntegrationTests {
         using HttpClient client = CreateAuthenticatedClient(factory);
 
         HttpResponseMessage response = await client.GetAsync($"/api/tenants?cursor={Uri.EscapeDataString(cursor)}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        string body = await response.Content.ReadAsStringAsync();
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        _ = details.ShouldNotBeNull();
+        details.Status.ShouldBe(400);
+        details.Detail.ShouldBe("Invalid cursor.");
+        details.Extensions["reasonCode"]?.ToString().ShouldBe("invalid-cursor");
+        body.ShouldNotContain(cursor);
+        body.ShouldNotContain(GetTenantUsersQuery.QueryType);
+        body.ShouldNotContain("tenant-secret");
+        AssertProblemDetailsDoesNotLeakQueryData(body, allowCursorReasonText: true);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetUserTenants_returns_400_before_routing_when_signed_cursor_query_type_does_not_match() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetTenantUsersQuery.QueryType,
+            TenantQueryCursorScopes.GetUserTenants("test-user", "user-2"),
+            "tenant-secret");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync($"/api/users/user-2/tenants?cursor={Uri.EscapeDataString(cursor)}");
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
@@ -1105,6 +1268,16 @@ public class TenantsQueryControllerIntegrationTests {
         });
     }
 
+    private sealed class TenantsQueryNoSubjectWebApplicationFactory(IQueryRouter router) : WebApplicationFactory<TenantBootstrapOptions> {
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
+            _ = services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, NoSubjectTestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+
+            _ = services.RemoveAll<IQueryRouter>();
+            _ = services.AddSingleton(router);
+        });
+    }
+
     private sealed class TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -1122,6 +1295,24 @@ public class TenantsQueryControllerIntegrationTests {
 
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, SchemeName);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+
+    private sealed class NoSubjectTestAuthHandler(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder)
+        : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder) {
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync() {
+            var identity = new ClaimsIdentity(
+            [
+                new Claim("eventstore:tenant", "system"),
+            ],
+            TestAuthHandler.SchemeName);
+
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, TestAuthHandler.SchemeName);
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
     }

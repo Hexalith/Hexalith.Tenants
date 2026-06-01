@@ -1281,6 +1281,79 @@ public class TenantsProjectionActorTests {
     }
 
     [Fact]
+    public async Task GetUserTenants_missing_index_returns_empty_pageAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        SetupMissingTenantIndexState(daprClient);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "owner-1",
+            aggregateId: "index",
+            entityId: "user-2"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.ShouldBeEmpty();
+        page.HasMore.ShouldBeFalse();
+        page.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_existing_user_with_no_memberships_returns_empty_pageAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
+        indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal);
+        SetupTenantIndexState(daprClient, indexModel);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.ShouldBeEmpty();
+        page.HasMore.ShouldBeFalse();
+        page.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_orders_by_tenant_id_and_returns_membership_fieldsAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["user-1"] = new() {
+                ["tenant-003"] = TenantRole.TenantContributor,
+                ["tenant-001"] = TenantRole.TenantOwner,
+                ["tenant-002"] = TenantRole.TenantReader,
+            },
+        });
+        SetupTenantIndexState(daprClient, indexModel);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope(
+            "get-user-tenants",
+            userId: "user-1",
+            aggregateId: "index",
+            entityId: "user-1"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Select(i => i.TenantId).ShouldBe(["tenant-001", "tenant-002", "tenant-003"]);
+        page.Items.Select(i => i.Name).ShouldBe(["Tenant 1", "Tenant 2", "Tenant 3"]);
+        page.Items.Select(i => i.Status).ShouldBe([TenantStatus.Active, TenantStatus.Active, TenantStatus.Active]);
+        page.Items.Select(i => i.Role).ShouldBe([TenantRole.TenantOwner, TenantRole.TenantReader, TenantRole.TenantContributor]);
+        page.HasMore.ShouldBeFalse();
+        page.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task GetUserTenants_self_lookup_includes_disabled_tenant_statusAsync() {
         DaprClient daprClient = Substitute.For<DaprClient>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1, new() {
@@ -1590,6 +1663,37 @@ public class TenantsProjectionActorTests {
         PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
         _ = page.ShouldNotBeNull();
         page.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        page.HasMore.ShouldBeFalse();
+        page.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetUserTenants_excludes_invalid_enum_roles_and_does_not_use_them_as_owner_authorityAsync() {
+        DaprClient daprClient = Substitute.For<DaprClient>();
+        TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
+            ["owner-1"] = new() {
+                ["tenant-001"] = TenantRole.TenantOwner,
+                ["tenant-002"] = TenantRole.TenantOwner,
+            },
+            ["user-2"] = new() {
+                ["tenant-001"] = TenantRole.TenantReader,
+                ["tenant-002"] = TenantRole.TenantReader,
+                ["tenant-003"] = TenantRole.TenantReader,
+            },
+        });
+        indexModel.UserTenants["owner-1"]["tenant-002"] = (TenantRole)999;
+        indexModel.UserTenants["user-2"]["tenant-003"] = (TenantRole)999;
+        SetupTenantIndexState(daprClient, indexModel);
+        SetupNoGlobalAdmin(daprClient);
+
+        TenantsProjectionActor actor = CreateActor(daprClient);
+        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "owner-1", aggregateId: "index", entityId: "user-2"));
+
+        result.Success.ShouldBeTrue();
+        PaginatedResult<UserTenantMembership>? page = DeserializePayload<PaginatedResult<UserTenantMembership>>(result);
+        _ = page.ShouldNotBeNull();
+        page.Items.Select(i => i.TenantId).ShouldBe(["tenant-001"]);
+        page.Items.ShouldAllBe(i => i.Role != (TenantRole)999);
         page.HasMore.ShouldBeFalse();
         page.Cursor.ShouldBeNull();
     }
@@ -2766,6 +2870,11 @@ public class TenantsProjectionActorTests {
             TenantsProjectionActor.StateStoreName,
             TenantsProjectionActor.TenantIndexProjectionKey)
             .Returns(Task.FromResult(model)!);
+
+    private static void SetupMissingTenantIndexState(DaprClient daprClient) => daprClient.GetStateAsync<TenantIndexReadModel>(
+            TenantsProjectionActor.StateStoreName,
+            TenantsProjectionActor.TenantIndexProjectionKey)
+            .Returns(Task.FromResult<TenantIndexReadModel>(null!)!);
 
     private static void SetupTenantState(DaprClient daprClient, string tenantId, TenantReadModel model) => daprClient.GetStateAsync<TenantReadModel>(
                         TenantsProjectionActor.StateStoreName,
