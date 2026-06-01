@@ -1696,6 +1696,16 @@ public class TenantAggregateTests {
         return state;
     }
 
+    private static TenantState CreateStateWith99ConfigKeys() {
+        TenantState state = CreateStateWithRolesAndConfig(); // already has billing.plan
+        for (int i = 1; i < 99; i++) {
+            state.Apply(new TenantConfigurationSet("acme", $"key.{i}", $"value-{i}"));
+        }
+
+        // state.Configuration.Count == 99 (billing.plan + key.1..key.98)
+        return state;
+    }
+
     // C1: SetTenantConfiguration success — new key (AC #1)
     [Fact]
     public async Task SetTenantConfiguration_new_key_produces_TenantConfigurationSet() {
@@ -1765,6 +1775,23 @@ public class TenantAggregateTests {
         TenantConfigurationSet evt = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
         evt.Key.ShouldBe("parties.maxContacts");
         evt.Value.ShouldBe("500");
+    }
+
+    [Fact]
+    public async Task SetTenantConfiguration_whitespace_only_key_is_accepted_and_preserved() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWithRolesAndConfig();
+        const string whitespaceKey = "   ";
+        CommandEnvelope cmd = CreateCommand(
+            new SetTenantConfiguration("acme", whitespaceKey, "value"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantConfigurationSet evt = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        evt.Key.ShouldBe(whitespaceKey);
+        evt.Value.ShouldBe("value");
     }
 
     // C4: SetTenantConfiguration null state → TenantNotFoundRejection (AC #1)
@@ -1965,6 +1992,25 @@ public class TenantAggregateTests {
         rejection.MaxAllowed.ShouldBe(100);
     }
 
+    [Fact]
+    public async Task SetTenantConfiguration_100th_distinct_key_produces_success_and_state_stays_at_limit() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWith99ConfigKeys();
+        state.Configuration.Count.ShouldBe(99);
+        CommandEnvelope cmd = CreateCommand(
+            new SetTenantConfiguration("acme", "key.99", "value-99"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsSuccess.ShouldBeTrue();
+        TenantConfigurationSet evt = result.Events[0].ShouldBeOfType<TenantConfigurationSet>();
+        evt.Key.ShouldBe("key.99");
+        state.Apply(evt);
+        state.Configuration.Count.ShouldBe(100);
+        state.Configuration["key.99"].ShouldBe("value-99");
+    }
+
     // C12: SetTenantConfiguration overwrite existing key when at 100 keys → Success (AC #4)
     [Fact]
     public async Task SetTenantConfiguration_overwrite_at_100_keys_produces_success() {
@@ -1995,6 +2041,22 @@ public class TenantAggregateTests {
 
         result.IsNoOp.ShouldBeTrue();
         result.Events.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task SetTenantConfiguration_same_value_at_100_keys_produces_NoOp() {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWith100ConfigKeys();
+        state.Configuration.Count.ShouldBe(100);
+        CommandEnvelope cmd = CreateCommand(
+            new SetTenantConfiguration("acme", "billing.plan", "pro"),
+            actorUserId: "owner-user");
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsNoOp.ShouldBeTrue();
+        result.Events.Count.ShouldBe(0);
+        state.Configuration.Count.ShouldBe(100);
     }
 
     // C14: RemoveTenantConfiguration success (AC #2)
@@ -2222,6 +2284,29 @@ public class TenantAggregateTests {
         rejection.ActorUserId.ShouldBe("unknown-user");
         rejection.ActorRole.ShouldBeNull();
         rejection.CommandName.ShouldBe(nameof(SetTenantConfiguration));
+    }
+
+    [Theory]
+    [InlineData("reader-user", TenantRole.TenantReader)]
+    [InlineData("contributor-user", TenantRole.TenantContributor)]
+    [InlineData("unknown-user", null)]
+    public async Task SetTenantConfiguration_unauthorized_users_do_not_receive_limit_details(
+        string actorUserId,
+        TenantRole? expectedRole) {
+        var aggregate = new TenantAggregate();
+        TenantState state = CreateStateWith100ConfigKeys();
+        CommandEnvelope cmd = CreateCommand(
+            new SetTenantConfiguration("acme", "new.key", new string('v', 1025)),
+            actorUserId: actorUserId);
+
+        DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
+
+        result.IsRejection.ShouldBeTrue();
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe(actorUserId);
+        rejection.ActorRole.ShouldBe(expectedRole);
+        rejection.CommandName.ShouldBe(nameof(SetTenantConfiguration));
+        result.Events.ShouldNotContain(e => e is ConfigurationLimitExceededRejection);
     }
 
     // C25: RemoveTenantConfiguration non-member user → InsufficientPermissionsRejection with null role

@@ -72,6 +72,7 @@ builder.Services.AddDataProtection()
 // the full EventStore server extension or its rate limiter.
 builder.Services.AddMediatR(cfg => {
     _ = cfg.RegisterServicesFromAssemblyContaining<SubmitQueryHandler>();
+    _ = cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
     _ = cfg.AddOpenBehavior(typeof(AuthorizationBehavior<,>));
 });
 
@@ -111,6 +112,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // Exception handlers — map domain exceptions to RFC 7807 HTTP responses (order: specific before generic)
+builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 builder.Services.AddExceptionHandler<AuthorizationServiceUnavailableHandler>();
 builder.Services.AddExceptionHandler<AuthorizationExceptionHandler>();
 builder.Services.AddExceptionHandler<DomainCommandRejectedExceptionHandler>();

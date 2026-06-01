@@ -4,6 +4,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 
 using Shouldly;
 
@@ -42,6 +43,17 @@ public class EventSerializationTests {
             .ToArray();
 
         propertyNames.ShouldBe(["TenantId", "UserId"]);
+    }
+
+    [Fact]
+    public void ConfigurationLimitExceededRejection_payload_contains_only_structured_limit_fields() {
+        string[] propertyNames = typeof(ConfigurationLimitExceededRejection)
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Select(p => p.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        propertyNames.ShouldBe(["CurrentCount", "LimitType", "MaxAllowed", "TenantId"]);
     }
 
     private static IEventPayload CreateTestInstance(Type eventType) {

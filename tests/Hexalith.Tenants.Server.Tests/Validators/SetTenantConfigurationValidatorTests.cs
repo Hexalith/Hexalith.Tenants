@@ -29,6 +29,11 @@ public class SetTenantConfigurationValidatorTests {
             .ShouldNotHaveValidationErrorFor(x => x.Key);
 
     [Fact]
+    public void Should_not_have_error_when_Key_is_at_max_length()
+        => _validator.TestValidate(new SetTenantConfiguration("acme", new string('k', 256), "value"))
+            .ShouldNotHaveValidationErrorFor(x => x.Key);
+
+    [Fact]
     public void Should_have_error_when_Key_exceeds_max_length()
         => _validator.TestValidate(new SetTenantConfiguration("acme", new string('k', 257), "value"))
             .ShouldHaveValidationErrorFor(x => x.Key);
@@ -37,6 +42,11 @@ public class SetTenantConfigurationValidatorTests {
     public void Should_have_error_when_Value_is_null()
         => _validator.TestValidate(new SetTenantConfiguration("acme", "key", null!))
             .ShouldHaveValidationErrorFor(x => x.Value);
+
+    [Fact]
+    public void Should_not_have_error_when_Value_is_at_max_length()
+        => _validator.TestValidate(new SetTenantConfiguration("acme", "key", new string('v', 1024)))
+            .ShouldNotHaveValidationErrorFor(x => x.Value);
 
     [Fact]
     public void Should_have_error_when_Value_exceeds_max_length()

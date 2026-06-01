@@ -135,8 +135,55 @@ public class TenantSubmitCommandValidatorTests {
     }
 
     [Fact]
+    public void SetTenantConfiguration_payload_with_key_at_max_length_passes_validation() {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", new string('k', 256), "value"));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_key_exceeding_max_length_fails_validation() {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", new string('k', 257), "value"));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Key");
+    }
+
+    [Fact]
     public void SetTenantConfiguration_payload_with_null_value_fails_validation() {
         SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "key", null!));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.ShouldContain(e => e.PropertyName == "Payload.Value");
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_empty_value_passes_validation() {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "key", string.Empty));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_value_at_max_length_passes_validation() {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "key", new string('v', 1024)));
+
+        FluentValidation.Results.ValidationResult result = _validator.Validate(command);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void SetTenantConfiguration_payload_with_value_exceeding_max_length_fails_validation() {
+        SubmitCommand command = CreateCommand(new SetTenantConfiguration("acme", "key", new string('v', 1025)));
 
         FluentValidation.Results.ValidationResult result = _validator.Validate(command);
 

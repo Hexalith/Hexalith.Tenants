@@ -330,6 +330,74 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Process_endpoint_rejects_101st_configuration_key_with_structured_limit_payload() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        TenantState state = CreateRoleBehaviorStateWithConfigurationCount(100);
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.101", "denied")),
+            state,
+            "owner-user");
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldNotContain(e => e.EventTypeName.EndsWith(nameof(TenantConfigurationSet), StringComparison.Ordinal));
+        ConfigurationLimitExceededRejection rejection = DeserializeEvent<ConfigurationLimitExceededRejection>(result);
+        rejection.TenantId.ShouldBe("acme");
+        rejection.LimitType.ShouldBe("KeyCount");
+        rejection.CurrentCount.ShouldBe(100);
+        rejection.MaxAllowed.ShouldBe(100);
+        state.Configuration.Count.ShouldBe(100);
+    }
+
+    [Fact]
+    public async Task Process_endpoint_rejects_oversized_configuration_key_with_structured_limit_payload() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        string longKey = new('k', 257);
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", longKey, "value")),
+            CreateRoleBehaviorState(),
+            "owner-user");
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldNotContain(e => e.EventTypeName.EndsWith(nameof(TenantConfigurationSet), StringComparison.Ordinal));
+        ConfigurationLimitExceededRejection rejection = DeserializeEvent<ConfigurationLimitExceededRejection>(result);
+        rejection.TenantId.ShouldBe("acme");
+        rejection.LimitType.ShouldBe("KeyLength");
+        rejection.CurrentCount.ShouldBe(257);
+        rejection.MaxAllowed.ShouldBe(256);
+    }
+
+    [Fact]
+    public async Task Process_endpoint_rejects_oversized_configuration_value_without_storing_value() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        string longValue = new('v', 1025);
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.large", longValue)),
+            CreateRoleBehaviorState(),
+            "owner-user");
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldNotContain(e => e.EventTypeName.EndsWith(nameof(TenantConfigurationSet), StringComparison.Ordinal));
+        ConfigurationLimitExceededRejection rejection = DeserializeEvent<ConfigurationLimitExceededRejection>(result);
+        rejection.TenantId.ShouldBe("acme");
+        rejection.LimitType.ShouldBe("ValueSize");
+        rejection.CurrentCount.ShouldBe(1025);
+        rejection.MaxAllowed.ShouldBe(1024);
+        Encoding.UTF8.GetString(result.Events[0].Payload).ShouldNotContain(longValue);
+    }
+
+    [Fact]
     public async Task Process_endpoint_removes_existing_tenant_configuration_for_owner() {
         await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
         using HttpClient client = factory.CreateClient();
@@ -670,6 +738,49 @@ public class CommandApiRuntimeIntegrationTests {
         payload.TenantId.ShouldBe("acme");
         payload.Key.ShouldBe("billing.plan");
         payload.Value.ShouldBe("enterprise");
+    }
+
+    [Theory]
+    [InlineData("", "value", "payload.Key")]
+    [InlineData("feature.large", "vvvvvvvvvv", "payload.Value")]
+    public async Task Commands_endpoint_rejects_invalid_SetTenantConfiguration_payload_before_routing(
+        string key,
+        string valueSeed,
+        string expectedErrorKey) {
+        ArgumentNullException.ThrowIfNull(valueSeed);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedErrorKey);
+
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            Substitute.For<ICommandStatusStore>(),
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "global-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        string value = expectedErrorKey == "payload.Value" ? new string(valueSeed[0], 1025) : valueSeed;
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request =
+            CreateSetTenantConfigurationRequest(JsonSerializer.SerializeToElement(new SetTenantConfiguration("acme", key, value)));
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+        string problemJson = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        problemJson.ShouldContain(expectedErrorKey);
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(problemJson, ProblemDetailsJsonOptions);
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe("Command Validation Failed");
+        details.Status.ShouldBe(400);
+        details.Type.ShouldBe("https://hexalith.io/problems/validation-error");
+        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
     [Fact]
@@ -1712,6 +1823,20 @@ public class CommandApiRuntimeIntegrationTests {
         return state;
     }
 
+    private static TenantState CreateRoleBehaviorStateWithConfigurationCount(int keyCount) {
+        var state = new TenantState();
+        state.Apply(new TenantCreated("acme", "Acme Corp", "Tenant from /process", DateTimeOffset.UtcNow));
+        state.Apply(new UserAddedToTenant("acme", "owner-user", TenantRole.TenantOwner));
+        state.Apply(new UserAddedToTenant("acme", "contributor-user", TenantRole.TenantContributor));
+        state.Apply(new UserAddedToTenant("acme", "reader-user", TenantRole.TenantReader));
+
+        for (int i = 0; i < keyCount; i++) {
+            state.Apply(new TenantConfigurationSet("acme", $"feature.{i:D3}", $"value-{i}"));
+        }
+
+        return state;
+    }
+
     private static DomainServiceRequest CreateProcessRequest(
         string commandType,
         byte[] payload,
@@ -1878,15 +2003,17 @@ public class CommandApiRuntimeIntegrationTests {
             payload);
     }
 
-    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateSetTenantConfigurationRequest() {
-        JsonElement payload = JsonSerializer.SerializeToElement(new SetTenantConfiguration("acme", "billing.plan", "enterprise"));
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateSetTenantConfigurationRequest(
+        JsonElement? payload = null) {
+        JsonElement commandPayload = payload
+            ?? JsonSerializer.SerializeToElement(new SetTenantConfiguration("acme", "billing.plan", "enterprise"));
         return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
             "system",
             "tenants",
             "acme",
             nameof(SetTenantConfiguration),
-            payload);
+            commandPayload);
     }
 
     private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateUpdateTenantRequest(

@@ -390,7 +390,7 @@ Published on topic: `tenants.events`
 
 #### SetTenantConfiguration
 
-Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). Subscribing services should filter by key prefix to process only their own namespace — for example, `key.startsWith("billing.")` for the Billing service.
+Sets a configuration key-value pair on a tenant. Keys follow a dot-delimited namespace convention (e.g., `billing.plan`, `parties.maxContacts`). The namespace shape is a convention, not a regex-enforced contract; the service preserves accepted key text exactly. Keys must be present and non-empty, but whitespace-only keys are currently accepted for backward compatibility. Subscribing services should filter by key prefix to process only their own namespace - for example, `key.startsWith("billing.")` for the Billing service.
 
 **Command fields:**
 
@@ -425,6 +425,8 @@ Published on topic: `tenants.events`
 
 **Rejections:** `TenantNotFoundRejection`, `TenantDisabledRejection`, `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection`
 **NoOp:** If the key already exists with the same value, no event is produced.
+
+**Configuration limits:** A tenant can store up to 100 configuration keys. A key can contain up to 256 characters. A value can contain up to 1024 `string.Length` characters. `ConfigurationLimitExceededRejection.LimitType` uses `KeyCount`, `KeyLength`, or `ValueSize`; `CurrentCount` reports the current key count or submitted key/value length, and `MaxAllowed` reports the configured limit. Oversized values are not stored in the rejection payload.
 
 ---
 
