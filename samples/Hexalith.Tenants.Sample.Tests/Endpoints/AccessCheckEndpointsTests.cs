@@ -42,6 +42,8 @@ public class AccessCheckEndpointsTests {
         _ = services.AddSingleton<ITenantProjectionStore>(store);
         _ = services.AddSingleton(handler);
         _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantDisabled>>(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantEnabled>>(handler);
         _ = services.AddSingleton<ITenantEventHandler<UserAddedToTenant>>(handler);
         _ = services.AddSingleton<ITenantEventHandler<UserRemovedFromTenant>>(handler);
         ServiceProvider provider = services.BuildServiceProvider();
@@ -123,6 +125,69 @@ public class AccessCheckEndpointsTests {
     }
 
     [Fact]
+    public async Task CheckAccessAsync_UnknownTenantStatus_ReturnsDenied() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        await store.SaveAsync(new TenantLocalState {
+            TenantId = "acme",
+            Name = "Acme Corp",
+            Status = TenantStatus.Unknown,
+            Members = { ["user1"] = TenantRole.TenantOwner },
+        });
+
+        // Act
+        IResult result = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+
+        // Assert
+        ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
+        string json = SerializeResultValue(result);
+        json.ShouldContain("\"Access\":\"denied\"");
+        json.ShouldContain("\"Reason\":\"Tenant is not active\"");
+    }
+
+    [Fact]
+    public async Task CheckAccessAsync_UnknownRole_ReturnsDenied() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        await store.SaveAsync(new TenantLocalState {
+            TenantId = "acme",
+            Name = "Acme Corp",
+            Status = TenantStatus.Active,
+            Members = { ["user1"] = TenantRole.Unknown },
+        });
+
+        // Act
+        IResult result = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+
+        // Assert
+        ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
+        string json = SerializeResultValue(result);
+        json.ShouldContain("\"Access\":\"denied\"");
+        json.ShouldContain("\"Reason\":\"User role is not authorized\"");
+    }
+
+    [Fact]
+    public async Task CheckAccessAsync_OutOfRangeRole_ReturnsDenied() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        await store.SaveAsync(new TenantLocalState {
+            TenantId = "acme",
+            Name = "Acme Corp",
+            Status = TenantStatus.Active,
+            Members = { ["user1"] = (TenantRole)999 },
+        });
+
+        // Act
+        IResult result = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+
+        // Assert
+        ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
+        string json = SerializeResultValue(result);
+        json.ShouldContain("\"Access\":\"denied\"");
+        json.ShouldContain("\"Reason\":\"User role is not authorized\"");
+    }
+
+    [Fact]
     public async Task CheckAccessAsync_UnknownTenant_ReturnsNotFound() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
@@ -197,6 +262,40 @@ public class AccessCheckEndpointsTests {
             string json = SerializeResultValue(result);
             json.ShouldContain("\"Access\":\"denied\"");
             json.ShouldContain("\"Reason\":\"User is not a member\"");
+        }
+    }
+
+    [Fact]
+    public async Task CheckAccessAsync_DisableAndEnableEventPipeline_DeniesThenRestoresAccessFromProjection() {
+        // Arrange
+        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        using (provider) {
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-created", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow)));
+            _ = await processor.ProcessAsync(
+                CreateEnvelope("msg-added", new UserAddedToTenant("acme", "user1", TenantRole.TenantOwner)));
+
+            // Act
+            TenantEventProcessingResult disabled = await processor.ProcessAsync(
+                CreateEnvelope("msg-disabled", new TenantDisabled("acme", DateTimeOffset.UtcNow)));
+            IResult disabledResult = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+            TenantEventProcessingResult enabled = await processor.ProcessAsync(
+                CreateEnvelope("msg-enabled", new TenantEnabled("acme", DateTimeOffset.UtcNow)));
+            IResult enabledResult = await AccessCheckEndpoints.CheckAccessAsync("acme", "user1", store, CancellationToken.None);
+
+            // Assert
+            disabled.ShouldBe(TenantEventProcessingResult.Processed);
+            enabled.ShouldBe(TenantEventProcessingResult.Processed);
+
+            ((IStatusCodeHttpResult)disabledResult).StatusCode.ShouldBe(200);
+            string disabledJson = SerializeResultValue(disabledResult);
+            disabledJson.ShouldContain("\"Access\":\"denied\"");
+            disabledJson.ShouldContain("\"Reason\":\"Tenant is disabled\"");
+
+            ((IStatusCodeHttpResult)enabledResult).StatusCode.ShouldBe(200);
+            string enabledJson = SerializeResultValue(enabledResult);
+            enabledJson.ShouldContain("\"Access\":\"granted\"");
+            enabledJson.ShouldContain("\"Role\":\"TenantOwner\"");
         }
     }
 }

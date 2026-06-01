@@ -278,6 +278,8 @@ app.MapTenantEventSubscription();
 
 This registers projection stores, options validation, DAPR client integration, and selected typed handlers. By default, the Client package binds the `Tenants` configuration section and subscribes through DAPR pub/sub component `pubsub` on the shared topic `tenants.events`. Consumers select event types by registering `ITenantEventHandler<TEvent>` implementations through `AddTenantEventHandler<TEvent, THandler>()`; do not create one DAPR topic per event type. DAPR pub/sub is at-least-once delivery, so handlers must be idempotent and must not assume cross-service ordering.
 
+The built-in local projection updates `TenantLocalState` through `ITenantProjectionStore` so a consuming service can make tenant-aware runtime decisions without synchronously querying Tenants on every request. The default store is in-memory and suitable for local or single-instance samples; scaled-out consumers should register a durable `ITenantProjectionStore` before calling `AddHexalithTenants()`. EventStore remains the durable source of truth, and local projection reads are eventually consistent with tenant commands.
+
 Troubleshooting should use bounded metadata such as message ID, event type, tenant ID, and correlation ID. Do not log full event payloads; tenant configuration and user identifiers may be sensitive.
 
 For event handling patterns and idempotent processing, see [Idempotent Event Processing](idempotent-event-processing.md).

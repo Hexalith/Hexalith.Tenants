@@ -36,14 +36,24 @@ public static class AccessCheckEndpoints {
             return Results.NotFound(new { TenantId = tenantId, Message = "Tenant not found in local projection" });
         }
 
-        if (state.Status == TenantStatus.Disabled) {
-            return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "denied", Reason = "Tenant is disabled" });
+        if (state.Status != TenantStatus.Active) {
+            string reason = state.Status == TenantStatus.Disabled
+                ? "Tenant is disabled"
+                : "Tenant is not active";
+            return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "denied", Reason = reason });
         }
 
         if (!state.Members.TryGetValue(userId, out TenantRole role)) {
             return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "denied", Reason = "User is not a member" });
         }
 
+        if (!IsAuthorizedRole(role)) {
+            return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "denied", Reason = "User role is not authorized" });
+        }
+
         return Results.Ok(new { TenantId = tenantId, UserId = userId, Access = "granted", Role = role.ToString() });
     }
+
+    private static bool IsAuthorizedRole(TenantRole role)
+        => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
 }

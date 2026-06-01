@@ -38,6 +38,8 @@ Commands that encounter infrastructure failures during processing (e.g., state r
 
 DAPR pub/sub is at-least-once delivery. Consumers must be idempotent and may see duplicate deliveries after retry or recovery. Do not depend on exactly-once publication or cross-service subscriber delivery order; use the event envelope metadata to deduplicate and resequence per aggregate.
 
+The Client package's built-in local projection is runtime state for the consuming service. It lets the service answer tenant-aware access or behavior checks from its own process/store instead of synchronously querying Tenants for every decision. EventStore remains the durable source of truth, and each consuming service processes `tenants.events` independently; do not assume immediate read-after-write visibility or matching observation time across services.
+
 Commands are submitted via the CommandApi. See the [Quickstart Guide](quickstart.md) for command submission details.
 
 ## Identity Scheme

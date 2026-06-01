@@ -78,7 +78,7 @@ development_status:
   4-1-publish-tenant-domain-events-as-cloudevents: done
   4-2-expose-consumer-di-registration-for-tenant-client-services: done
   4-3-register-tenant-event-handlers-in-under-twenty-lines: done
-  4-4-build-a-local-consumer-projection-from-tenant-events: backlog
+  4-4-build-a-local-consumer-projection-from-tenant-events: done
   4-5-react-to-tenant-access-lifecycle-and-configuration-changes: backlog
   4-6-provide-idempotent-consumer-guidance-and-sample-service: backlog
   epic-4-retrospective: optional

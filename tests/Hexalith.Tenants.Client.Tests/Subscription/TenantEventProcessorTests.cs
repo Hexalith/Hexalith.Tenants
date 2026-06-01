@@ -135,6 +135,78 @@ public class TenantEventProcessorTests {
     }
 
     [Fact]
+    public async Task ProcessAsync_DuplicateMessageId_DoesNotSaveProjectionTwice() {
+        // Arrange
+        var store = new CountingTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        IReadOnlyDictionary<string, Type> registry = BuildRegistry();
+
+        var services = new ServiceCollection();
+        _ = services.AddSingleton<ITenantProjectionStore>(store);
+        _ = services.AddSingleton(handler);
+        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        var processor = new TenantEventProcessor(
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            registry,
+            NullLogger<TenantEventProcessor>.Instance);
+
+        TenantEventEnvelope envelope = CreateEnvelope("msg-1", new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow));
+
+        // Act
+        TenantEventProcessingResult first = await processor.ProcessAsync(envelope);
+        TenantEventProcessingResult second = await processor.ProcessAsync(envelope);
+
+        // Assert
+        first.ShouldBe(TenantEventProcessingResult.Processed);
+        second.ShouldBe(TenantEventProcessingResult.Duplicate);
+        store.SaveCount.ShouldBe(1);
+        TenantLocalState? state = await store.GetAsync("acme");
+        _ = state.ShouldNotBeNull();
+        state.Name.ShouldBe("Acme");
+    }
+
+    [Fact]
+    public async Task ProcessAsync_RepresentativeEventSequence_ProducesDeterministicProjectionState() {
+        // Arrange
+        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        using (provider) {
+            // Act
+            TenantEventProcessingResult created = await processor.ProcessAsync(
+                CreateEnvelope("msg-created", new TenantCreated("acme", "Acme", null, DateTimeOffset.UtcNow)));
+            TenantEventProcessingResult updated = await processor.ProcessAsync(
+                CreateEnvelope("msg-updated", new TenantUpdated("acme", "Acme International", "Updated", DateTimeOffset.UtcNow)));
+            TenantEventProcessingResult added = await processor.ProcessAsync(
+                CreateEnvelope("msg-added", new UserAddedToTenant("acme", "user1", TenantRole.TenantReader)));
+            TenantEventProcessingResult changed = await processor.ProcessAsync(
+                CreateEnvelope("msg-changed", new UserRoleChanged("acme", "user1", TenantRole.TenantReader, TenantRole.TenantOwner)));
+            TenantEventProcessingResult disabled = await processor.ProcessAsync(
+                CreateEnvelope("msg-disabled", new TenantDisabled("acme", DateTimeOffset.UtcNow)));
+            TenantEventProcessingResult enabled = await processor.ProcessAsync(
+                CreateEnvelope("msg-enabled", new TenantEnabled("acme", DateTimeOffset.UtcNow)));
+            TenantEventProcessingResult removed = await processor.ProcessAsync(
+                CreateEnvelope("msg-removed", new UserRemovedFromTenant("acme", "user1")));
+
+            // Assert
+            created.ShouldBe(TenantEventProcessingResult.Processed);
+            updated.ShouldBe(TenantEventProcessingResult.Processed);
+            added.ShouldBe(TenantEventProcessingResult.Processed);
+            changed.ShouldBe(TenantEventProcessingResult.Processed);
+            disabled.ShouldBe(TenantEventProcessingResult.Processed);
+            enabled.ShouldBe(TenantEventProcessingResult.Processed);
+            removed.ShouldBe(TenantEventProcessingResult.Processed);
+
+            TenantLocalState? state = await store.GetAsync("acme");
+            _ = state.ShouldNotBeNull();
+            state.Name.ShouldBe("Acme International");
+            state.Description.ShouldBe("Updated");
+            state.Status.ShouldBe(TenantStatus.Active);
+            state.Members.ShouldNotContainKey("user1");
+        }
+    }
+
+    [Fact]
     public async Task ProcessAsync_NoHandlersRegistered_ReturnsSkippedNoHandlers() {
         // Arrange
         IReadOnlyDictionary<string, Type> registry = BuildRegistry();
@@ -321,6 +393,20 @@ public class TenantEventProcessorTests {
 
     private sealed class ScopedTenantEventDependency {
         public Guid Id { get; } = Guid.NewGuid();
+    }
+
+    private sealed class CountingTenantProjectionStore : ITenantProjectionStore {
+        private readonly InMemoryTenantProjectionStore _inner = new();
+
+        public int SaveCount { get; private set; }
+
+        public Task<TenantLocalState?> GetAsync(string tenantId, CancellationToken cancellationToken = default)
+            => _inner.GetAsync(tenantId, cancellationToken);
+
+        public async Task SaveAsync(TenantLocalState state, CancellationToken cancellationToken = default) {
+            SaveCount++;
+            await _inner.SaveAsync(state, cancellationToken);
+        }
     }
 
     private sealed class SelectedUserAddedHandler : ITenantEventHandler<UserAddedToTenant> {

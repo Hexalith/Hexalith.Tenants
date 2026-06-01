@@ -511,13 +511,14 @@ public class TenantServiceCollectionExtensionsTests {
     public void AddHexalithTenants_CustomProjectionStorePreventsDuplicateRegistration() {
         // Arrange — register custom store before AddHexalithTenants
         IServiceCollection services = new ServiceCollection();
-        _ = services.AddSingleton<ITenantProjectionStore, InMemoryTenantProjectionStore>();
+        _ = services.AddSingleton<ITenantProjectionStore, CustomTenantProjectionStore>();
 
         // Act
         _ = services.AddHexalithTenants();
 
         // Assert — only one registration
         services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
+        GetRequiredDescriptor(services, typeof(ITenantProjectionStore)).ImplementationType.ShouldBe(typeof(CustomTenantProjectionStore));
         services.ShouldContain(s => s.ServiceType == typeof(TenantEventProcessor));
         services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
     }
@@ -614,6 +615,14 @@ public class TenantServiceCollectionExtensionsTests {
             Task.CompletedTask;
 
         public Task HandleAsync(TenantDisabled @event, TenantEventContext context, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class CustomTenantProjectionStore : ITenantProjectionStore {
+        public Task<TenantLocalState?> GetAsync(string tenantId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<TenantLocalState?>(null);
+
+        public Task SaveAsync(TenantLocalState state, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }
 }

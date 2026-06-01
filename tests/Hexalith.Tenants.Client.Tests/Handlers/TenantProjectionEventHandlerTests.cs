@@ -186,6 +186,93 @@ public class TenantProjectionEventHandlerTests {
     }
 
     [Fact]
+    public async Task HandleAsync_DuplicateLifecyclePayloads_KeepEquivalentState() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var created = new TenantCreated("acme", "Acme Corp", "Original", now);
+        var updated = new TenantUpdated("acme", "Acme International", "Updated", now);
+        var disabled = new TenantDisabled("acme", now);
+        var enabled = new TenantEnabled("acme", now);
+
+        // Act
+        await handler.HandleAsync(created, CreateContext("acme", "msg-created-1"));
+        await handler.HandleAsync(created, CreateContext("acme", "msg-created-2"));
+        await handler.HandleAsync(updated, CreateContext("acme", "msg-updated-1"));
+        await handler.HandleAsync(updated, CreateContext("acme", "msg-updated-2"));
+        await handler.HandleAsync(disabled, CreateContext("acme", "msg-disabled-1"));
+        await handler.HandleAsync(disabled, CreateContext("acme", "msg-disabled-2"));
+        await handler.HandleAsync(enabled, CreateContext("acme", "msg-enabled-1"));
+        await handler.HandleAsync(enabled, CreateContext("acme", "msg-enabled-2"));
+
+        // Assert
+        TenantLocalState? state = await store.GetAsync("acme");
+        _ = state.ShouldNotBeNull();
+        state.Name.ShouldBe("Acme International");
+        state.Description.ShouldBe("Updated");
+        state.Status.ShouldBe(TenantStatus.Active);
+        state.Members.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task HandleAsync_DuplicateMembershipPayloads_KeepEquivalentState() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        var added = new UserAddedToTenant("acme", "user1", TenantRole.TenantReader);
+        var changed = new UserRoleChanged("acme", "user1", TenantRole.TenantReader, TenantRole.TenantOwner);
+        var removed = new UserRemovedFromTenant("acme", "user1");
+
+        // Act
+        await handler.HandleAsync(added, CreateContext("acme", "msg-added-1"));
+        await handler.HandleAsync(added, CreateContext("acme", "msg-added-2"));
+        TenantLocalState? afterDuplicateAdd = await store.GetAsync("acme");
+
+        await handler.HandleAsync(changed, CreateContext("acme", "msg-changed-1"));
+        await handler.HandleAsync(changed, CreateContext("acme", "msg-changed-2"));
+        TenantLocalState? afterDuplicateChange = await store.GetAsync("acme");
+
+        await handler.HandleAsync(removed, CreateContext("acme", "msg-removed-1"));
+        await handler.HandleAsync(removed, CreateContext("acme", "msg-removed-2"));
+        TenantLocalState? afterDuplicateRemove = await store.GetAsync("acme");
+
+        // Assert
+        _ = afterDuplicateAdd.ShouldNotBeNull();
+        afterDuplicateAdd.Members.Count.ShouldBe(1);
+        afterDuplicateAdd.Members["user1"].ShouldBe(TenantRole.TenantReader);
+
+        _ = afterDuplicateChange.ShouldNotBeNull();
+        afterDuplicateChange.Members.Count.ShouldBe(1);
+        afterDuplicateChange.Members["user1"].ShouldBe(TenantRole.TenantOwner);
+
+        _ = afterDuplicateRemove.ShouldNotBeNull();
+        afterDuplicateRemove.Members.ShouldNotContainKey("user1");
+    }
+
+    [Fact]
+    public async Task HandleAsync_UserIdentifiersRemainCaseSensitive() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+
+        // Act
+        await handler.HandleAsync(
+            new UserAddedToTenant("acme", "User1", TenantRole.TenantOwner),
+            CreateContext("acme", "msg-1"));
+        await handler.HandleAsync(
+            new UserAddedToTenant("acme", "user1", TenantRole.TenantReader),
+            CreateContext("acme", "msg-2"));
+
+        // Assert
+        TenantLocalState? state = await store.GetAsync("acme");
+        _ = state.ShouldNotBeNull();
+        state.Members.Count.ShouldBe(2);
+        state.Members["User1"].ShouldBe(TenantRole.TenantOwner);
+        state.Members["user1"].ShouldBe(TenantRole.TenantReader);
+    }
+
+    [Fact]
     public async Task HandleAsync_MultipleTenants_MaintainsIndependentState() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();
