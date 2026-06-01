@@ -11,6 +11,7 @@ using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
 using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.DomainProcessing;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Microsoft.AspNetCore.Builder;
@@ -280,9 +281,16 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:TenantId"] = "system";
         builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:Domain"] = "tenants";
         builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:Version"] = "v1";
+        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:AppId"] = AppId;
+        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:MethodName"] = "process";
+        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:TenantId"] = "system";
+        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Domain"] = TenantIdentity.GlobalAdministratorsDomain;
+        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Version"] = "v1";
 
         // Configure pub/sub name for event publisher
         builder.Configuration["EventStore:Publisher:PubSubName"] = "pubsub";
+        builder.Configuration["EventStore:Publisher:TopicOverrides:global-administrators"] = "tenants.events";
+        EventPublisher.TopicOverrides[TenantIdentity.GlobalAdministratorsDomain] = "tenants.events";
 
         // Speed up drain recovery for tests (default is 30s initial / 60s period).
         // Keeps DrainRecovery_PublishesPendingEvents_WhenPubSubRecovers deterministic
@@ -435,6 +443,8 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                   value: ""
                 - name: enableDeadLetter
                   value: "true"
+                - name: deadLetterTopic
+                  value: "deadletter.tenants.events"
             scopes:
               - commandapi
             """;

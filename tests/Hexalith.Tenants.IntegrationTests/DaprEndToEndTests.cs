@@ -11,6 +11,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 
 using Shouldly;
@@ -54,7 +55,7 @@ public class DaprEndToEndTests {
         result.CorrelationId.ShouldBe(command.CorrelationId);
 
         // Verify events were published to the correct topic
-        string expectedTopic = command.AggregateIdentity.PubSubTopic;
+        const string expectedTopic = "tenants.events";
         _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
         _fixture.EventPublisher.GetEventsForTopic(expectedTopic).ShouldNotBeEmpty();
     }
@@ -536,6 +537,7 @@ public class DaprEndToEndTests {
     [DaprFact]
     public async Task BootstrapGlobalAdmin_succeeds_end_to_end_with_events_published() {
         _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
 
         // Arrange
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
@@ -558,9 +560,15 @@ public class DaprEndToEndTests {
         result.Accepted.ShouldBeTrue("BootstrapGlobalAdmin should be accepted on first run");
         result.EventCount.ShouldBe(1, "BootstrapGlobalAdmin should produce 1 GlobalAdministratorSet event");
 
-        string expectedTopic = command.AggregateIdentity.PubSubTopic;
-        _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
-        _fixture.EventPublisher.GetEventsForTopic(expectedTopic).ShouldNotBeEmpty();
+        _fixture.EventPublisher.GetPublishedTopics().ShouldContain("tenants.events");
+        _fixture.EventPublisher.GetPublishedTopics().ShouldNotContain("global-administrators.events");
+        _fixture.EventPublisher.GetEventsForTopic("tenants.events")
+            .ShouldContain(e =>
+                e.CorrelationId == command.CorrelationId
+                && e.EventTypeName == typeof(GlobalAdministratorSet).FullName
+                && e.TenantId == TenantIdentity.DefaultTenantId
+                && e.Domain == TenantIdentity.GlobalAdministratorsDomain
+                && e.AggregateId == uniqueAggId);
     }
 
     [DaprFact]
@@ -584,6 +592,44 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate BootstrapGlobalAdmin should be rejected");
         result.EventCount.ShouldBe(1, "Rejection event should be persisted");
+    }
+
+    [DaprFact]
+    public async Task GlobalAdministrator_events_publish_to_shared_tenants_events_topic_with_global_domain_preserved() {
+        _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
+
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string uniqueAggId = $"global-administrators-{Guid.NewGuid():N}";
+        CommandEnvelope bootstrapCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-shared-1"), uniqueAggId);
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, bootstrapCmd);
+
+        CommandProcessingResult bootstrapResult = await proxy.ProcessCommandAsync(bootstrapCmd);
+        CommandEnvelope setCmd = CreateGlobalAdminCommand(new SetGlobalAdministrator("admin-e2e-shared-2"), uniqueAggId, "admin-e2e-shared-1");
+        CommandProcessingResult setResult = await proxy.ProcessCommandAsync(setCmd);
+        CommandEnvelope removeCmd = CreateGlobalAdminCommand(new RemoveGlobalAdministrator("admin-e2e-shared-1"), uniqueAggId, "admin-e2e-shared-2");
+        CommandProcessingResult removeResult = await proxy.ProcessCommandAsync(removeCmd);
+
+        bootstrapResult.Accepted.ShouldBeTrue("BootstrapGlobalAdmin should produce GlobalAdministratorSet");
+        setResult.Accepted.ShouldBeTrue("SetGlobalAdministrator should produce GlobalAdministratorSet");
+        removeResult.Accepted.ShouldBeTrue("RemoveGlobalAdministrator should produce GlobalAdministratorRemoved");
+
+        IReadOnlyList<EventEnvelope> published = _fixture.EventPublisher.GetEventsForTopic("tenants.events");
+        published.Count(e => e.CorrelationId == bootstrapCmd.CorrelationId && e.EventTypeName == typeof(GlobalAdministratorSet).FullName)
+            .ShouldBe(1);
+        published.Count(e => e.CorrelationId == setCmd.CorrelationId && e.EventTypeName == typeof(GlobalAdministratorSet).FullName)
+            .ShouldBe(1);
+        published.Count(e => e.CorrelationId == removeCmd.CorrelationId && e.EventTypeName == typeof(GlobalAdministratorRemoved).FullName)
+            .ShouldBe(1);
+
+        EventEnvelope globalAdminEnvelope = published.Single(e => e.CorrelationId == setCmd.CorrelationId);
+        globalAdminEnvelope.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
+        globalAdminEnvelope.Domain.ShouldBe(TenantIdentity.GlobalAdministratorsDomain);
+        globalAdminEnvelope.AggregateId.ShouldBe(uniqueAggId);
+
+        GlobalAdministratorSet payload = JsonSerializer.Deserialize<GlobalAdministratorSet>(globalAdminEnvelope.Payload)!;
+        payload.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
+        _fixture.EventPublisher.GetPublishedTopics().ShouldNotContain("global-administrators.events");
     }
 
     private ActorProxyFactory CreateActorProxyFactory()
@@ -736,17 +782,20 @@ public class DaprEndToEndTests {
             "test-user",
             GlobalAdminExtensions());
 
-    private static CommandEnvelope CreateGlobalAdminCommand<T>(T command, string aggregateId) where T : notnull
+    private static CommandEnvelope CreateGlobalAdminCommand<T>(
+        T command,
+        string aggregateId,
+        string actorUserId = "test-user") where T : notnull
         => new(
             Guid.NewGuid().ToString(),
             "system",
-            "tenants",
+            TenantIdentity.GlobalAdministratorsDomain,
             aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
             Guid.NewGuid().ToString(),
             null,
-            "test-user",
+            actorUserId,
             null);
 
     private static Dictionary<string, string> GlobalAdminExtensions()

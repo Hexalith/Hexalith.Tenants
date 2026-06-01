@@ -4,7 +4,7 @@
 # Dead-letter enabled for undeliverable messages.
 #
 # Component Scoping:
-#   Only commandapi can access this pub/sub component.
+#   EventStore publishes tenant events; sample consumes them in local demos.
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
@@ -20,6 +20,7 @@ spec:
     - name: enableDeadLetter
       value: "true"
     - name: deadLetterTopic
-      value: "deadletter"
+      value: "deadletter.tenants.events"
 scopes:
-  - commandapi
+  - eventstore
+  - sample

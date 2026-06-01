@@ -47,10 +47,10 @@ All tenant domain events use the following identity components:
 | Field           | Value                                                            | Description                                          |
 | --------------- | ---------------------------------------------------------------- | ---------------------------------------------------- |
 | Platform tenant | `system`                                                         | All tenant management runs under the platform tenant |
-| Domain          | `tenants`                                                        | The domain service namespace                         |
+| Domain          | `tenants` or `global-administrators`                             | The aggregate domain; both publish to `tenants.events` |
 | Aggregate ID    | Managed tenant ID (e.g., `acme-corp`) or `global-administrators` | Identifies the specific aggregate instance           |
 
-The canonical composite identity is `system:tenants:{aggregateId}`.
+The canonical composite identity is `system:tenants:{managedTenantId}` for managed tenant aggregates and `system:global-administrators:global-administrators` for the global administrator aggregate. Both aggregate families publish on the shared `tenants.events` topic; consumers filter by event type rather than by topic.
 
 ## Three-Outcome Model
 

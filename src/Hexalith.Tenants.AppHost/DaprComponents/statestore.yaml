@@ -4,7 +4,7 @@
 # actorStateStore: "true" enables DAPR actor state management.
 #
 # Component Scoping:
-#   Only commandapi can access this state store.
+#   EventStore owns aggregate actor state; Tenants writes projections; Admin reads diagnostics.
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
@@ -20,4 +20,6 @@ spec:
     - name: actorStateStore
       value: "true"
 scopes:
-  - commandapi
+  - eventstore
+  - tenants
+  - eventstore-admin

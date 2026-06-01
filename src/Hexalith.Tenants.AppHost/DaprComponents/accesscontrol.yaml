@@ -10,7 +10,7 @@ spec:
     defaultAction: allow
     trustDomain: "public"
     policies:
-      - appId: commandapi
+      - appId: eventstore
         defaultAction: deny
         trustDomain: "public"
         namespace: "default"

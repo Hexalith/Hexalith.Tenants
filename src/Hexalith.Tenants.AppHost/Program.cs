@@ -26,6 +26,7 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
 // The EventStore receives commands from clients and dispatches to domain services
 // (including Tenants) via DAPR service invocation.
 IResourceBuilder<ProjectResource> eventStore = builder.AddProject<Projects.Hexalith_EventStore>("eventstore");
+_ = eventStore.WithEnvironment("EventStore__Publisher__TopicOverrides__global-administrators", "tenants.events");
 
 // Add EventStore Admin Server and Admin UI for event store inspection.
 IResourceBuilder<ProjectResource> adminServer = builder.AddProject<Projects.Hexalith_EventStore_Admin_Server_Host>("eventstore-admin");

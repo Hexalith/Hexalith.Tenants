@@ -34,6 +34,20 @@ public class EventSerializationTests {
         deserialized.ShouldBe(expected);
     }
 
+    [Theory]
+    [MemberData(nameof(EventPayloadTypes))]
+    public void Event_payload_contract_exposes_top_level_TenantId(Type eventType, IEventPayload payload) {
+        ArgumentNullException.ThrowIfNull(eventType);
+        ArgumentNullException.ThrowIfNull(payload);
+
+        PropertyInfo? tenantId = eventType.GetProperty(
+            "TenantId",
+            BindingFlags.Instance | BindingFlags.Public);
+
+        _ = tenantId.ShouldNotBeNull($"{eventType.FullName} must expose top-level TenantId for consumers.");
+        tenantId.PropertyType.ShouldBe(typeof(string));
+    }
+
     [Fact]
     public void UserRemovedFromTenant_payload_contains_only_tenant_and_user_ids() {
         string[] propertyNames = typeof(UserRemovedFromTenant)
