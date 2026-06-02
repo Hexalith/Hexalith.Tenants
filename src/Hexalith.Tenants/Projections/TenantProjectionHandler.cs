@@ -1,7 +1,6 @@
 using System.Text.Json;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
@@ -16,9 +15,11 @@ namespace Hexalith.Tenants.Projections;
 /// Handles tenant projection requests using the full event history supplied by EventStore.
 /// </summary>
 /// <remarks>
-/// The per-aggregate <see cref="TenantReadModel"/> rebuild from a fresh state is correct
-/// under the full-replay projection contract. The index-side state-store read-and-merge
-/// path is independent and orthogonal.
+/// Persists three read models — the per-aggregate <see cref="TenantReadModel"/>, the per-aggregate
+/// <see cref="TenantAuditReadModel"/>, and the cross-aggregate singleton <see cref="TenantIndexReadModel"/> —
+/// through the platform <see cref="IReadModelStore"/> + <see cref="ReadModelWritePolicy"/>
+/// (optimistic-concurrency, reload-and-merge). The per-aggregate rebuild from a fresh state is correct under
+/// the full-replay projection contract; the singleton-index read-and-merge path is independent.
 /// </remarks>
 public sealed class TenantProjectionHandler {
     private const string StateStoreName = "statestore";
@@ -34,21 +35,17 @@ public sealed class TenantProjectionHandler {
     };
 
     private readonly ILogger<TenantProjectionHandler> _logger;
-    private readonly ITenantProjectionStateStore _stateStore;
+    private readonly IReadModelStore _store;
 
-    public TenantProjectionHandler(DaprClient daprClient)
-        : this(CreateStateStore(daprClient), NullLogger<TenantProjectionHandler>.Instance) {
+    public TenantProjectionHandler(IReadModelStore store)
+        : this(store, NullLogger<TenantProjectionHandler>.Instance) {
     }
 
-    public TenantProjectionHandler(DaprClient daprClient, ILogger<TenantProjectionHandler> logger)
-        : this(CreateStateStore(daprClient), logger) {
-    }
-
-    internal TenantProjectionHandler(ITenantProjectionStateStore stateStore, ILogger<TenantProjectionHandler> logger) {
-        ArgumentNullException.ThrowIfNull(stateStore);
+    public TenantProjectionHandler(IReadModelStore store, ILogger<TenantProjectionHandler> logger) {
+        ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _stateStore = stateStore;
+        _store = store;
         _logger = logger;
     }
 
@@ -64,71 +61,53 @@ public sealed class TenantProjectionHandler {
                 JsonSerializer.SerializeToElement(new TenantReadModel()));
         }
 
-        // Build (and validate) the incoming audit model first so a missing
-        // MessageId/UserId invariant violation aborts the whole batch before
-        // any state-store write commits — extending the spirit of AC12 to the
-        // tenant read-model and singleton-index writes too.
+        // Build (and validate) the incoming audit model first so a missing MessageId/UserId invariant
+        // violation aborts the whole batch before any state-store write commits — extending the spirit of
+        // AC12 to the tenant read-model and singleton-index writes too.
         TenantAuditReadModel incomingAuditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
         cancellationToken.ThrowIfCancellationRequested();
 
-        TenantReadModel state = await TenantProjectionWritePolicy
-            .SaveWithOptimisticConcurrencyAsync(
-                _stateStore,
-                _logger,
+        TenantReadModel state = await ReadModelWritePolicy
+            .ApplyEventsAsync<TenantReadModel>(
+                _store,
                 StateStoreName,
                 TenantProjectionKeyPrefix + request.AggregateId,
-                TenantProjectionKeyCategory,
-                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
-                new ProjectionWriteDiagnosticsContext(
-                    request.TenantId,
-                    request.Domain,
-                    request.AggregateId,
-                    nameof(TenantReadModel)),
                 events,
                 static () => new TenantReadModel(),
                 ApplyEvent,
-                cancellationToken)
+                new ReadModelWriteContext(TenantProjectionKeyCategory, nameof(TenantReadModel)),
+                _logger,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        _ = await TenantProjectionWritePolicy
-            .SaveMergedWithOptimisticConcurrencyAsync(
-                _stateStore,
-                _logger,
+        _ = await ReadModelWritePolicy
+            .MergeAsync(
+                _store,
                 StateStoreName,
                 TenantAuditProjectionKeyPrefix + request.AggregateId,
-                TenantAuditKeyCategory,
-                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync) + ":" + request.AggregateId,
-                new ProjectionWriteDiagnosticsContext(
-                    request.TenantId,
-                    request.Domain,
-                    request.AggregateId,
-                    nameof(TenantAuditReadModel)),
-                events,
                 incomingAuditModel,
                 static () => new TenantAuditReadModel(),
                 MergeAuditState,
-                cancellationToken)
+                // MergeAsync does not auto-enrich the context (unlike ApplyEventsAsync), so derive the
+                // correlation id from the batch here for parity in conflict/exhaustion diagnostics.
+                new ReadModelWriteContext(TenantAuditKeyCategory, nameof(TenantAuditReadModel)).WithEventDiagnostics(events),
+                _logger,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        _ = await TenantProjectionWritePolicy
-            .SaveWithOptimisticConcurrencyAsync(
-                _stateStore,
-                _logger,
+        _ = await ReadModelWritePolicy
+            .ApplyEventsAsync<TenantIndexReadModel>(
+                _store,
                 StateStoreName,
                 TenantIndexProjectionKey,
-                TenantIndexKeyCategory,
-                nameof(TenantProjectionHandler) + "." + nameof(ProjectAsync),
-                new ProjectionWriteDiagnosticsContext(
-                    request.TenantId,
-                    request.Domain,
-                    request.AggregateId,
-                    nameof(TenantIndexReadModel)),
                 events,
                 static () => new TenantIndexReadModel(),
                 ApplyIndexEvent,
-                cancellationToken)
+                new ReadModelWriteContext(TenantIndexKeyCategory, nameof(TenantIndexReadModel)),
+                _logger,
+                cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -137,25 +116,18 @@ public sealed class TenantProjectionHandler {
             JsonSerializer.SerializeToElement(state));
     }
 
-    private static DaprTenantProjectionStateStore CreateStateStore(DaprClient daprClient) {
-        ArgumentNullException.ThrowIfNull(daprClient);
-        return new DaprTenantProjectionStateStore(daprClient);
-    }
-
     private static TenantAuditReadModel MergeAuditState(TenantAuditReadModel persisted, TenantAuditReadModel incoming) {
         ArgumentNullException.ThrowIfNull(persisted);
         ArgumentNullException.ThrowIfNull(incoming);
 
-        // Build into a new model so the caller's persisted instance is never
-        // mutated. Required for any state-store implementation that returns a
-        // cached/shared reference from GetStateAndETagAsync.
+        // Build into a new model so the caller's persisted instance is never mutated. Required for any
+        // state-store implementation that returns a cached/shared reference from a read.
         TenantAuditReadModel merged = new() {
             Entries = [.. (persisted.Entries ?? [])],
         };
 
-        // Null/whitespace EventIds cannot participate in dedup. Persisted
-        // entries are preserved verbatim above so audit history is never
-        // silently dropped; only the dedup set excludes them.
+        // Null/whitespace EventIds cannot participate in dedup. Persisted entries are preserved verbatim
+        // above so audit history is never silently dropped; only the dedup set excludes them.
         HashSet<string> seenEventIds = merged
             .Entries
             .Select(e => e.EventId)

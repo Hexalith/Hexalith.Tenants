@@ -1,18 +1,15 @@
 using System.Text.Json;
 
-using Dapr.Actors;
-using Dapr.Actors.Runtime;
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.EventStore.Server.Actors;
-using Hexalith.EventStore.Server.Queries;
-using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Queries;
+using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Server.Tests.Support;
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
@@ -52,10 +49,10 @@ public class TenantsProjectionActorTests {
     public async Task RoleSensitiveQuery_with_malformed_user_returns_forbidden_before_state_accessAsync(
         string queryType,
         string? malformedUserId) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        var logger = new ListLogger<TenantsProjectionActor>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var logger = new ListLoggerFactory();
 
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        var actor = CreateActor(store, CreateCursorCodec(), logger);
         QueryEnvelope envelope = CreateEnvelope(queryType, aggregateId: GetAggregateIdForQuery(queryType), entityId: GetEntityIdForQuery(queryType))
             with {
                 // Intentional: malformed deserialized/internal envelopes can bypass the public constructor guard.
@@ -67,16 +64,16 @@ public class TenantsProjectionActorTests {
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
         result.PayloadBytes.ShouldBeNull();
-        await AssertNoProjectionStateReadAsync(daprClient, queryType, envelope.AggregateId);
+        await AssertNoProjectionStateReadAsync(store, queryType, envelope.AggregateId);
         logger.Entries.Count(e => e.EventId.Id == 1904).ShouldBe(1);
     }
 
     [Fact]
     public async Task RoleSensitiveQuery_with_malformed_user_logs_only_safe_contextAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        var logger = new ListLogger<TenantsProjectionActor>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var logger = new ListLoggerFactory();
 
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        var actor = CreateActor(store, CreateCursorCodec(), logger);
         QueryEnvelope envelope = CreateEnvelope("get-tenant", correlationId: "correlation-missing-user")
             with {
                 UserId = null!,
@@ -102,11 +99,11 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_with_malformed_user_and_invalid_cursor_returns_forbidden_before_cursor_validationAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupTenantIndexState(daprClient, CreateTenantIndexModel(1));
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupTenantIndexState(store, CreateTenantIndexModel(1));
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryEnvelope envelope = CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -121,25 +118,25 @@ public class TenantsProjectionActorTests {
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
         result.ErrorMessage.ShouldNotBe("Invalid cursor.");
-        await AssertNoProjectionStateReadAsync(daprClient, "list-tenants", "index");
+        await AssertNoProjectionStateReadAsync(store, "list-tenants", "index");
     }
 
     [Fact]
     public async Task Unknown_query_with_malformed_user_keeps_unknown_query_resultAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("unknown-query") with { UserId = null! });
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage!.ShouldContain("Unknown query type");
+        result.ErrorMessage!.ShouldContain("No query handler is registered");
         result.ErrorMessage.ShouldNotBe(QueryAdapterFailureReason.Forbidden);
     }
 
     [Fact]
     public async Task ListTenants_with_pre_cancelled_token_throws_before_state_accessAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var actor = CreateActor(store);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -147,26 +144,26 @@ public class TenantsProjectionActorTests {
             () => actor.QueryAsync(CreateEnvelope("list-tenants", aggregateId: "index"), cancellation.Token));
 
         exception.CancellationToken.ShouldBe(cancellation.Token);
-        await AssertNoProjectionStateReadAsync(daprClient, "list-tenants", "index");
+        await AssertNoProjectionStateReadAsync(store, "list-tenants", "index");
     }
 
     [Fact]
     public async Task ListTenants_passes_received_token_to_projection_state_readsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(2);
-        _ = daprClient.GetStateAsync<TenantIndexReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantIndexProjectionKey,
+        _ = store.GetAsync<TenantIndexReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantIndexProjectionKey,
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(indexModel)!);
-        _ = daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.GlobalAdminProjectionKey,
+            .Returns(Entry(indexModel));
+        _ = store.GetAsync<GlobalAdministratorReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(CreateGlobalAdminModel("admin-1"))!);
+            .Returns(Entry(CreateGlobalAdminModel("admin-1")));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(
             CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index"),
             cancellation.Token);
@@ -179,61 +176,61 @@ public class TenantsProjectionActorTests {
         _ = payload.ShouldNotBeNull();
         payload.Items.Count.ShouldBe(2);
 
-        _ = await daprClient.Received(1).GetStateAsync<TenantIndexReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantIndexProjectionKey,
+        _ = await store.Received(1).GetAsync<TenantIndexReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey,
             cancellationToken: cancellation.Token);
-        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey,
+        _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey,
             cancellationToken: cancellation.Token);
     }
 
     [Fact]
     public async Task GetTenantAudit_cancellation_after_authorization_throws_before_audit_state_readAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
-        _ = daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.GlobalAdminProjectionKey,
+        _ = store.GetAsync<GlobalAdministratorReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 cancellationToken: cancellation.Token)
             .Returns(_ => {
                 cancellation.Cancel();
-                return Task.FromResult(CreateGlobalAdminModel("admin-1"))!;
+                return Entry(CreateGlobalAdminModel("admin-1"));
             });
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
 
         _ = await Should.ThrowAsync<OperationCanceledException>(
             () => actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"), cancellation.Token));
 
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+        _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
             cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetTenantAudit_cancellation_after_audit_state_read_does_not_return_partial_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
-        _ = daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.GlobalAdminProjectionKey,
+        _ = store.GetAsync<GlobalAdministratorReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(CreateGlobalAdminModel("admin-1"))!);
-        _ = daprClient.GetStateAsync<TenantAuditReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+            .Returns(Entry(CreateGlobalAdminModel("admin-1")));
+        _ = store.GetAsync<TenantAuditReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
                 cancellationToken: cancellation.Token)
             .Returns(_ => {
                 cancellation.Cancel();
-                return Task.FromResult(CreateAuditModel(
+                return Entry(CreateAuditModel(
                     CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative),
-                    CreateAuditEntry("evt-2", "TenantUpdated", AuditEventCategory.Administrative)))!;
+                    CreateAuditEntry("evt-2", "TenantUpdated", AuditEventCategory.Administrative)));
             });
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
 
         _ = await Should.ThrowAsync<OperationCanceledException>(
             () => actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"), cancellation.Token));
@@ -249,8 +246,8 @@ public class TenantsProjectionActorTests {
     [InlineData("get-user-tenants")]
     [InlineData("get-tenant-audit")]
     public async Task RoleSensitiveQuery_pre_cancelled_throws_OCE_not_domain_errorAsync(string queryType) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var actor = CreateActor(store);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -265,7 +262,7 @@ public class TenantsProjectionActorTests {
             () => actor.QueryAsync(envelope, cancellation.Token));
 
         exception.CancellationToken.ShouldBe(cancellation.Token);
-        await AssertNoProjectionStateReadAsync(daprClient, queryType, aggregateId);
+        await AssertNoProjectionStateReadAsync(store, queryType, aggregateId);
     }
 
     // Architectural boundary: CachingProjectionActor.QueryAsync(envelope, token) calls
@@ -287,8 +284,8 @@ public class TenantsProjectionActorTests {
     public async Task RoleSensitiveQuery_pre_cancelled_with_malformed_user_throws_OCE_per_base_actor_precedenceAsync(
         string queryType,
         string? malformedUserId) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var actor = CreateActor(store);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -304,114 +301,114 @@ public class TenantsProjectionActorTests {
         OperationCanceledException exception = await Should.ThrowAsync<OperationCanceledException>(
             () => actor.QueryAsync(envelope, cancellation.Token));
         exception.CancellationToken.ShouldBe(cancellation.Token);
-        await AssertNoProjectionStateReadAsync(daprClient, queryType, aggregateId);
+        await AssertNoProjectionStateReadAsync(store, queryType, aggregateId);
     }
 
     [Fact]
     public async Task GetTenant_passes_received_token_to_projection_state_readsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+        _ = store.GetAsync<TenantReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1",
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(model)!);
+            .Returns(Entry(model));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(
             CreateEnvelope("get-tenant"),
             cancellation.Token);
 
         result.Success.ShouldBeTrue();
-        _ = await daprClient.Received(1).GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+        _ = await store.Received(1).GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1",
             cancellationToken: cancellation.Token);
     }
 
     [Fact]
     public async Task GetTenantUsers_passes_received_token_to_projection_state_readsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+        _ = store.GetAsync<TenantReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1",
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(model)!);
+            .Returns(Entry(model));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(
             CreateEnvelope("get-tenant-users"),
             cancellation.Token);
 
         result.Success.ShouldBeTrue();
-        _ = await daprClient.Received(1).GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+        _ = await store.Received(1).GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1",
             cancellationToken: cancellation.Token);
     }
 
     [Fact]
     public async Task GetUserTenants_passes_received_token_to_projection_state_readsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(2);
-        _ = daprClient.GetStateAsync<TenantIndexReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantIndexProjectionKey,
+        _ = store.GetAsync<TenantIndexReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantIndexProjectionKey,
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(indexModel)!);
+            .Returns(Entry(indexModel));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(
             CreateEnvelope("get-user-tenants", aggregateId: "index", entityId: "user-1"),
             cancellation.Token);
 
         result.Success.ShouldBeTrue();
-        _ = await daprClient.Received(1).GetStateAsync<TenantIndexReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantIndexProjectionKey,
+        _ = await store.Received(1).GetAsync<TenantIndexReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey,
             cancellationToken: cancellation.Token);
     }
 
     [Fact]
     public async Task GetTenantAudit_passes_received_token_to_projection_state_readsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         using var cancellation = new CancellationTokenSource();
-        _ = daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.GlobalAdminProjectionKey,
+        _ = store.GetAsync<GlobalAdministratorReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.GlobalAdminProjectionKey,
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(CreateGlobalAdminModel("admin-1"))!);
-        _ = daprClient.GetStateAsync<TenantAuditReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+            .Returns(Entry(CreateGlobalAdminModel("admin-1")));
+        _ = store.GetAsync<TenantAuditReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
                 cancellationToken: cancellation.Token)
-            .Returns(Task.FromResult(CreateAuditModel(
-                CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative)))!);
+            .Returns(Entry(CreateAuditModel(
+                CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative))));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(
             CreateEnvelope("get-tenant-audit", userId: "admin-1"),
             cancellation.Token);
 
         result.Success.ShouldBeTrue();
-        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey,
+        _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey,
             cancellationToken: cancellation.Token);
-        _ = await daprClient.Received(1).GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+        _ = await store.Received(1).GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
             cancellationToken: cancellation.Token);
     }
 
     // --- Q6: Authorized user can get tenant details ---
     [Fact]
     public async Task GetTenant_authorized_user_returns_projection_backed_tenant_detailAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() {
             ["user-1"] = TenantRole.TenantOwner,
             ["user-2"] = TenantRole.TenantReader,
@@ -419,10 +416,10 @@ public class TenantsProjectionActorTests {
         });
         model.Apply(new Contracts.Events.TenantConfigurationSet("tenant-1", "billing-plan", "enterprise"));
         model.Apply(new Contracts.Events.TenantDisabled("tenant-1", DateTimeOffset.UtcNow));
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant"));
 
         result.Success.ShouldBeTrue();
@@ -446,34 +443,34 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenant_reads_only_the_requested_tenant_projection_state_keyAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantReader });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant"));
 
         result.Success.ShouldBeTrue();
-        _ = await daprClient.Received(1).GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1",
+        _ = await store.Received(1).GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1",
             cancellationToken: Arg.Any<CancellationToken>());
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantIndexReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantIndexProjectionKey,
+        _ = await store.DidNotReceive().GetAsync<TenantIndexReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey,
             cancellationToken: Arg.Any<CancellationToken>());
     }
 
     // --- Q8: GlobalAdmin can access any tenant ---
     [Fact]
     public async Task GetTenant_global_admin_bypasses_membershipAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantState(store, "tenant-1", model);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
@@ -485,14 +482,14 @@ public class TenantsProjectionActorTests {
     // --- Q21: GetTenant with non-existent tenantId ---
     [Fact]
     public async Task GetTenant_non_admin_for_missing_tenant_returns_forbiddenAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        _ = store.GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
             Arg.Any<string>())
-            .Returns(Task.FromResult<TenantReadModel>(null!)!);
-        SetupNoGlobalAdmin(daprClient);
+            .Returns(Entry<TenantReadModel>(null));
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", aggregateId: "nonexistent"));
 
         result.Success.ShouldBeFalse();
@@ -502,14 +499,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenant_global_admin_for_missing_tenant_returns_not_foundAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        _ = store.GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
             Arg.Any<string>())
-            .Returns(Task.FromResult<TenantReadModel>(null!)!);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+            .Returns(Entry<TenantReadModel>(null));
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "admin-1", aggregateId: "nonexistent"));
 
         result.Success.ShouldBeFalse();
@@ -519,12 +516,12 @@ public class TenantsProjectionActorTests {
     // --- Q7: Unauthorized user gets 403 for GetTenant ---
     [Fact]
     public async Task GetTenant_unauthorized_user_returns_forbiddenAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-2"));
 
         result.Success.ShouldBeFalse();
@@ -539,12 +536,12 @@ public class TenantsProjectionActorTests {
     public async Task GetTenant_member_authorization_treats_only_concrete_roles_as_membersAsync(
         TenantRole role,
         bool expectedSuccess) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = role });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-1"));
 
         result.Success.ShouldBe(expectedSuccess);
@@ -561,15 +558,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenant_filters_unknown_role_rows_from_detail_membersAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() {
             ["user-1"] = TenantRole.TenantOwner,
             ["hidden-user"] = TenantRole.Unknown,
         });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-1"));
 
         result.Success.ShouldBeTrue();
@@ -584,12 +581,12 @@ public class TenantsProjectionActorTests {
     // --- Q18: GetTenantAudit returns audit entries for GlobalAdmin ---
     [Fact]
     public async Task GetTenantAudit_global_admin_returns_audit_entriesAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
+        SetupAuditState(store, "tenant-1", CreateAuditModel(
             CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative)));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
@@ -601,9 +598,9 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_system_scope_returns_global_administrator_audit_entriesAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
-        SetupAuditState(daprClient, "system", CreateAuditModel(
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
+        SetupAuditState(store, "system", CreateAuditModel(
             CreateAuditEntry(
                 "evt-1",
                 "GlobalAdministratorSet",
@@ -611,7 +608,7 @@ public class TenantsProjectionActorTests {
                 tenantId: "system",
                 narrativePayload: new Dictionary<string, string> { ["userId"] = "admin-2" })));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -630,27 +627,27 @@ public class TenantsProjectionActorTests {
     // --- Q27: Non-admin hitting audit endpoint gets 403 not 501 ---
     [Fact]
     public async Task GetTenantAudit_non_admin_returns_forbidden_not_501Async() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupNoGlobalAdmin(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "user-1"));
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage!.ShouldContain("Forbidden");
         result.ErrorMessage!.ShouldNotContain("not yet implemented");
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1");
+        _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1");
     }
 
     [Fact]
     public async Task GetTenantAudit_missing_state_returns_empty_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
-        SetupAuditState(daprClient, "tenant-1", null);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
+        SetupAuditState(store, "tenant-1", null);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
@@ -662,14 +659,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_no_matching_entries_returns_empty_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset start = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+        SetupAuditState(store, "tenant-1", CreateAuditModel(
             CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative, start.AddDays(-2)),
             CreateAuditEntry("evt-2", "UserAddedToTenant", AuditEventCategory.Access, start.AddDays(2))));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -685,15 +682,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_filters_by_date_range_and_categoryAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset start = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+        SetupAuditState(store, "tenant-1", CreateAuditModel(
             CreateAuditEntry("evt-1", "TenantCreated", AuditEventCategory.Administrative, start.AddMinutes(-1)),
             CreateAuditEntry("evt-2", "UserAddedToTenant", AuditEventCategory.Access, start.AddMinutes(1)),
             CreateAuditEntry("evt-3", "TenantUpdated", AuditEventCategory.Administrative, start.AddMinutes(2))));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreateAuditPayload(from: start, to: start.AddMinutes(3), category: "administrative");
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1", payload: payload));
 
@@ -705,17 +702,17 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_applies_inclusive_date_boundariesAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         DateTimeOffset to = from.AddHours(1);
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+        SetupAuditState(store, "tenant-1", CreateAuditModel(
             CreateAuditEntry("evt-before", "TenantCreated", AuditEventCategory.Administrative, from.AddTicks(-1)),
             CreateAuditEntry("evt-from", "TenantCreated", AuditEventCategory.Administrative, from),
             CreateAuditEntry("evt-to", "TenantUpdated", AuditEventCategory.Administrative, to),
             CreateAuditEntry("evt-after", "TenantUpdated", AuditEventCategory.Administrative, to.AddTicks(1))));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -729,16 +726,16 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_paginates_after_filtering_with_stable_cursorAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+        SetupAuditState(store, "tenant-1", CreateAuditModel(
             CreateAuditEntry("evt-b", "TenantUpdated", AuditEventCategory.Administrative, timestamp),
             CreateAuditEntry("evt-a", "TenantCreated", AuditEventCategory.Administrative, timestamp),
             CreateAuditEntry("evt-c", "UserAddedToTenant", AuditEventCategory.Access, timestamp.AddMinutes(1))));
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
+        var actor = CreateActor(store, cursorCodec);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -772,15 +769,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_conflict_recovered_entries_remain_date_range_and_cursor_queryableAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(
+        SetupAuditState(store, "tenant-1", CreateAuditModel(
             CreateAuditEntry("evt-existing", "UserAddedToTenant", AuditEventCategory.Access, timestamp),
             CreateAuditEntry("evt-concurrent", "UserRemovedFromTenant", AuditEventCategory.Access, timestamp.AddMinutes(1)),
             CreateAuditEntry("evt-added", "UserAddedToTenant", AuditEventCategory.Access, timestamp.AddMinutes(2))));
 
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec());
+        var actor = CreateActor(store, CreateCursorCodec());
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -814,15 +811,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_between_page_data_changes_follow_exclusive_lower_boundAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         TenantAuditReadModel model = CreateAuditModel(
             CreateAuditEntry("evt-002", "TenantCreated", AuditEventCategory.Administrative, timestamp),
             CreateAuditEntry("evt-004", "TenantUpdated", AuditEventCategory.Administrative, timestamp.AddMinutes(2)));
-        SetupAuditState(daprClient, "tenant-1", model);
+        SetupAuditState(store, "tenant-1", model);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -853,11 +850,11 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_rejects_from_greater_than_toAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset start = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreateAuditPayload(from: start.AddDays(1), to: start);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1", payload: payload));
 
@@ -867,10 +864,10 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_rejects_malformed_cursorAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreateAuditPayload(cursor: "not-a-valid-cursor");
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1", payload: payload));
 
@@ -880,10 +877,10 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_rejects_invalid_cursor_after_global_admin_before_audit_state_readAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -892,12 +889,12 @@ public class TenantsProjectionActorTests {
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Invalid cursor.");
         result.PayloadBytes.ShouldBeNull();
-        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey);
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+        _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey);
+        _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
             cancellationToken: Arg.Any<CancellationToken>());
     }
 
@@ -906,11 +903,11 @@ public class TenantsProjectionActorTests {
     [InlineData("date-range")]
     [InlineData("category")]
     public async Task GetTenantAudit_rejects_cursor_scope_mismatch_before_audit_state_readAsync(string mismatchKind) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset from = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         DateTimeOffset to = from.AddHours(1);
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
         string foreignScope = mismatchKind switch {
             "tenant" => TenantQueryCursorScopes.GetTenantAudit("tenant-2", from, to, AuditEventCategory.Administrative),
             "date-range" => TenantQueryCursorScopes.GetTenantAudit("tenant-1", from.AddMinutes(1), to, AuditEventCategory.Administrative),
@@ -919,7 +916,7 @@ public class TenantsProjectionActorTests {
         };
         string cursor = cursorCodec.Encode(GetTenantAuditQuery.QueryType, foreignScope, "00000000000000000001:evt-1");
 
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        var actor = CreateActor(store, cursorCodec);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -927,18 +924,18 @@ public class TenantsProjectionActorTests {
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Invalid cursor.");
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1",
+        _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
             cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetTenantAudit_malformed_payload_returns_invalid_payload_before_audit_state_readAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -946,16 +943,16 @@ public class TenantsProjectionActorTests {
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Invalid audit query payload.");
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + "tenant-1");
-        await AssertNoStateWriteAsync(daprClient);
+        _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1");
+        await AssertNoStateWriteAsync(store);
     }
 
     [Fact]
     public async Task GetTenantAudit_drops_entries_with_mismatched_tenantIdAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         // NFR5 defense-in-depth: an entry persisted under audit:tenant-1 with a different
         // payload.TenantId must not leak to the caller. Simulates a hypothetical projection bug.
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
@@ -967,11 +964,11 @@ public class TenantsProjectionActorTests {
             timestamp,
             "other-tenant",
             new Dictionary<string, string> { ["key"] = "value" });
-        SetupAuditState(daprClient, "tenant-1", new TenantAuditReadModel {
+        SetupAuditState(store, "tenant-1", new TenantAuditReadModel {
             Entries = [CreateAuditEntry("evt-own", "TenantCreated", AuditEventCategory.Administrative, timestamp.AddMinutes(-1)), foreign],
         });
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
@@ -982,10 +979,10 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_invalid_category_returns_errorAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -997,14 +994,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_clamps_page_size_to_one_thousandAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         TenantAuditEntry[] entries = [.. Enumerable.Range(1, 1001)
             .Select(i => CreateAuditEntry($"evt-{i:D4}", "TenantUpdated", AuditEventCategory.Administrative, timestamp.AddSeconds(i)))];
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(entries));
+        SetupAuditState(store, "tenant-1", CreateAuditModel(entries));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -1019,14 +1016,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantAudit_uses_default_page_size_when_omittedAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         TenantAuditEntry[] entries = [.. Enumerable.Range(1, 101)
             .Select(i => CreateAuditEntry($"evt-{i:D4}", "TenantUpdated", AuditEventCategory.Administrative, timestamp.AddSeconds(i)))];
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(entries));
+        SetupAuditState(store, "tenant-1", CreateAuditModel(entries));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -1043,14 +1040,14 @@ public class TenantsProjectionActorTests {
     [InlineData(0)]
     [InlineData(-1)]
     public async Task GetTenantAudit_clamps_non_positive_page_size_to_audit_defaultAsync(int requestedPageSize) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         TenantAuditEntry[] entries = [.. Enumerable.Range(1, 101)
             .Select(i => CreateAuditEntry($"evt-{i:D4}", "TenantUpdated", AuditEventCategory.Administrative, timestamp.AddSeconds(i)))];
-        SetupAuditState(daprClient, "tenant-1", CreateAuditModel(entries));
+        SetupAuditState(store, "tenant-1", CreateAuditModel(entries));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-audit",
             userId: "admin-1",
@@ -1066,7 +1063,7 @@ public class TenantsProjectionActorTests {
     // --- Q14: GetTenantUsers returns paginated member list ---
     [Fact]
     public async Task GetTenantUsers_returns_paginated_membersAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         Dictionary<string, TenantRole> members = new() {
             ["user-1"] = TenantRole.TenantOwner,
             ["user-2"] = TenantRole.TenantContributor,
@@ -1075,10 +1072,10 @@ public class TenantsProjectionActorTests {
             ["user-5"] = TenantRole.TenantReader,
         };
         TenantReadModel model = CreateTenantReadModel(members: members);
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 20);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", payload: payload));
 
@@ -1107,17 +1104,17 @@ public class TenantsProjectionActorTests {
         int? requestedPageSize,
         int expectedCount,
         bool expectedHasMore) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         Dictionary<string, TenantRole> members = Enumerable.Range(1, 101)
             .ToDictionary(
                 i => $"user-{i:D3}",
                 i => i == 1 ? TenantRole.TenantOwner : TenantRole.TenantReader,
                 StringComparer.Ordinal);
         TenantReadModel model = CreateTenantReadModel(members: members);
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = requestedPageSize is null ? [] : CreatePaginationPayload(pageSize: requestedPageSize.Value);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "user-001", payload: payload));
 
@@ -1130,16 +1127,16 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_global_admin_bypasses_membershipAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         Dictionary<string, TenantRole> members = new() {
             ["user-1"] = TenantRole.TenantReader,
             ["user-2"] = TenantRole.TenantContributor,
         };
         TenantReadModel model = CreateTenantReadModel(members: members);
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantState(store, "tenant-1", model);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
@@ -1150,12 +1147,12 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_global_admin_can_read_empty_users_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: []);
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantState(store, "tenant-1", model);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "admin-1"));
 
         result.Success.ShouldBeTrue();
@@ -1174,12 +1171,12 @@ public class TenantsProjectionActorTests {
     public async Task GetTenantUsers_member_authorization_treats_only_concrete_roles_as_membersAsync(
         TenantRole role,
         bool expectedSuccess) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() { ["user-1"] = role, ["user-2"] = TenantRole.TenantReader });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "user-1"));
 
         result.Success.ShouldBe(expectedSuccess);
@@ -1196,14 +1193,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_non_admin_for_missing_tenant_returns_forbidden_without_page_metadataAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        _ = store.GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
             Arg.Any<string>())
-            .Returns(Task.FromResult<TenantReadModel>(null!)!);
-        SetupNoGlobalAdmin(daprClient);
+            .Returns(Entry<TenantReadModel>(null));
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", aggregateId: "hidden-tenant"));
 
         result.Success.ShouldBeFalse();
@@ -1213,14 +1210,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_global_admin_for_missing_tenant_returns_not_found_without_payloadAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        _ = store.GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
             Arg.Any<string>())
-            .Returns(Task.FromResult<TenantReadModel>(null!)!);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+            .Returns(Entry<TenantReadModel>(null));
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-users", userId: "admin-1", aggregateId: "hidden-tenant"));
 
         result.Success.ShouldBeFalse();
@@ -1230,14 +1227,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_rejects_invalid_cursor_before_missing_tenant_responseAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
         string wrongTenantCursor = cursorCodec.Encode(
             GetTenantUsersQuery.QueryType,
             TenantQueryCursorScopes.GetTenantUsers("other-tenant"),
             "user-001");
 
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        var actor = CreateActor(store, cursorCodec);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",
             aggregateId: "missing-tenant",
@@ -1246,29 +1243,29 @@ public class TenantsProjectionActorTests {
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Invalid cursor.");
         result.PayloadBytes.ShouldBeNull();
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantProjectionKeyPrefix + "missing-tenant",
+        _ = await store.DidNotReceive().GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + "missing-tenant",
             cancellationToken: Arg.Any<CancellationToken>());
-        _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey,
+        _ = await store.DidNotReceive().GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey,
             cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetTenantUsers_filters_unknown_role_rows_before_paginationAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() {
             ["user-1"] = TenantRole.TenantOwner,
             ["user-2"] = TenantRole.Unknown,
             ["user-3"] = TenantRole.TenantReader,
         });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
+        var actor = CreateActor(store, cursorCodec);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",
             payload: CreatePaginationPayload(pageSize: 1)));
@@ -1293,18 +1290,18 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_signed_cursor_resumes_from_same_logical_positionAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         Dictionary<string, TenantRole> members = new() {
             ["user-1"] = TenantRole.TenantOwner,
             ["user-2"] = TenantRole.TenantContributor,
             ["user-3"] = TenantRole.TenantReader,
         };
         TenantReadModel model = CreateTenantReadModel(members: members);
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
+        var actor = CreateActor(store, cursorCodec);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",
             payload: CreatePaginationPayload(pageSize: 1)));
@@ -1332,15 +1329,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetTenantUsers_between_page_member_changes_follow_exclusive_lower_boundAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantReadModel model = CreateTenantReadModel(members: new() {
             ["user-002"] = TenantRole.TenantOwner,
             ["user-004"] = TenantRole.TenantReader,
         });
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",
             userId: "user-002",
@@ -1374,13 +1371,13 @@ public class TenantsProjectionActorTests {
     [InlineData("get-tenant-users")]
     [InlineData("get-user-tenants")]
     public async Task Standard_paginated_queries_clamp_page_size_to_standard_maximumAsync(string queryType) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var actor = CreateActor(store);
 
         QueryResult result = queryType switch {
-            "list-tenants" => await QueryListTenantsWithOversizedPageAsync(daprClient, actor),
-            "get-tenant-users" => await QueryTenantUsersWithOversizedPageAsync(daprClient, actor),
-            "get-user-tenants" => await QueryUserTenantsWithOversizedPageAsync(daprClient, actor),
+            "list-tenants" => await QueryListTenantsWithOversizedPageAsync(store, actor),
+            "get-tenant-users" => await QueryTenantUsersWithOversizedPageAsync(store, actor),
+            "get-user-tenants" => await QueryUserTenantsWithOversizedPageAsync(store, actor),
             _ => throw new ArgumentOutOfRangeException(nameof(queryType), queryType, null),
         };
 
@@ -1392,14 +1389,14 @@ public class TenantsProjectionActorTests {
     // --- Q17: GlobalAdmin can query any user's tenants ---
     [Fact]
     public async Task GetUserTenants_global_admin_can_query_any_userAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-002"] = TenantRole.TenantContributor },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 20);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "admin-1", aggregateId: "index", entityId: "user-2", payload: payload));
 
@@ -1411,11 +1408,11 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_missing_index_returns_empty_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupMissingTenantIndexState(daprClient);
-        SetupNoGlobalAdmin(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupMissingTenantIndexState(store);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "owner-1",
@@ -1432,12 +1429,12 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_existing_user_with_no_memberships_returns_empty_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
         indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal);
-        SetupTenantIndexState(daprClient, indexModel);
+        SetupTenantIndexState(store, indexModel);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -1454,7 +1451,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_orders_by_tenant_id_and_returns_membership_fieldsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() {
                 ["tenant-003"] = TenantRole.TenantContributor,
@@ -1462,9 +1459,9 @@ public class TenantsProjectionActorTests {
                 ["tenant-002"] = TenantRole.TenantReader,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
+        SetupTenantIndexState(store, indexModel);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -1484,15 +1481,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_self_lookup_includes_disabled_tenant_statusAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1, new() {
             ["user-1"] = new() { ["tenant-001"] = TenantRole.TenantReader },
         });
         indexModel.Apply(new Contracts.Events.TenantDisabled("tenant-001", DateTimeOffset.UtcNow));
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-1"));
 
         result.Success.ShouldBeTrue();
@@ -1505,16 +1502,16 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_tenant_owner_lookup_includes_disabled_tenant_statusAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1, new() {
             ["owner-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner },
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader },
         });
         indexModel.Apply(new Contracts.Events.TenantDisabled("tenant-001", DateTimeOffset.UtcNow));
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "owner-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1527,15 +1524,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_global_admin_lookup_includes_disabled_tenant_statusAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1, new() {
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader },
         });
         indexModel.Apply(new Contracts.Events.TenantDisabled("tenant-001", DateTimeOffset.UtcNow));
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "admin-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1548,19 +1545,19 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_filters_orphan_memberships_before_pagination_and_logs_warningAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3);
         indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
             ["tenant-001"] = TenantRole.TenantReader,
             ["tenant-002-orphan"] = TenantRole.TenantContributor,
             ["tenant-003"] = TenantRole.TenantOwner,
         };
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
-        var logger = new ListLogger<TenantsProjectionActor>();
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
+        var logger = new ListLoggerFactory();
 
         const string correlationId = "correlation-orphan-filter";
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        var actor = CreateActor(store, CreateCursorCodec(), logger);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -1589,17 +1586,17 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_global_admin_filters_orphan_without_public_diagnosticsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
         indexModel.UserTenants["user-2"] = new(StringComparer.Ordinal) {
             ["tenant-001"] = TenantRole.TenantReader,
             ["tenant-002-orphan"] = TenantRole.TenantContributor,
         };
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
-        var logger = new ListLogger<TenantsProjectionActor>();
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
+        var logger = new ListLoggerFactory();
 
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        var actor = CreateActor(store, CreateCursorCodec(), logger);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "admin-1",
@@ -1623,15 +1620,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_all_orphan_page_returns_empty_without_cursorAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(0);
         indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
             ["tenant-001-orphan"] = TenantRole.TenantReader,
         };
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -1649,15 +1646,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_stale_self_lookup_returns_current_projection_onlyAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
         indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
             ["tenant-001"] = TenantRole.TenantReader,
         };
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-1"));
 
         result.Success.ShouldBeTrue();
@@ -1669,18 +1666,18 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_cursor_anchor_now_orphan_advances_without_materializing_itAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3);
         indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
             ["tenant-001"] = TenantRole.TenantReader,
             ["tenant-002"] = TenantRole.TenantContributor,
             ["tenant-003"] = TenantRole.TenantOwner,
         };
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
-        var logger = new ListLogger<TenantsProjectionActor>();
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
+        var logger = new ListLoggerFactory();
 
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        var actor = CreateActor(store, CreateCursorCodec(), logger);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -1722,17 +1719,17 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_repeated_orphan_query_logs_warning_onceAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
         indexModel.UserTenants["user-1"] = new(StringComparer.Ordinal) {
             ["tenant-001"] = TenantRole.TenantReader,
             ["tenant-002-orphan"] = TenantRole.TenantContributor,
         };
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
-        var logger = new ListLogger<TenantsProjectionActor>();
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
+        var logger = new ListLoggerFactory();
 
-        TenantsProjectionActor actor = CreateActor(daprClient, CreateCursorCodec(), logger);
+        var actor = CreateActor(store, CreateCursorCodec(), logger);
         QueryEnvelope envelope = CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -1750,15 +1747,15 @@ public class TenantsProjectionActorTests {
     // --- Q16: Non-owner cross-user lookup returns empty page ---
     [Fact]
     public async Task GetUserTenants_non_owner_querying_other_user_returns_empty_page() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(2, new() {
             ["user-1"] = new() { ["tenant-001"] = TenantRole.TenantReader },
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-002"] = TenantRole.TenantContributor },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1770,7 +1767,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_excludes_unknown_roles_and_does_not_use_them_as_owner_authorityAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["owner-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
@@ -1782,10 +1779,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-003"] = TenantRole.Unknown,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "owner-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1798,7 +1795,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_excludes_invalid_enum_roles_and_does_not_use_them_as_owner_authorityAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["owner-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
@@ -1812,10 +1809,10 @@ public class TenantsProjectionActorTests {
         });
         indexModel.UserTenants["owner-1"]["tenant-002"] = (TenantRole)999;
         indexModel.UserTenants["user-2"]["tenant-003"] = (TenantRole)999;
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "owner-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1829,22 +1826,22 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_rejects_cursor_issued_for_different_requesterAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["owner-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner, ["tenant-002"] = TenantRole.TenantOwner },
             ["owner-2"] = new() { ["tenant-001"] = TenantRole.TenantOwner, ["tenant-002"] = TenantRole.TenantOwner },
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-002"] = TenantRole.TenantReader },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
         string foreignRequesterCursor = cursorCodec.Encode(
             GetUserTenantsQuery.QueryType,
             TenantQueryCursorScopes.GetUserTenants("owner-2", "user-2"),
             "tenant-001");
 
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        var actor = CreateActor(store, cursorCodec);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "owner-1",
@@ -1859,20 +1856,20 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_rejects_invalid_cursor_before_empty_missing_target_responseAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1, new() {
             ["owner-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
         string wrongTargetCursor = cursorCodec.Encode(
             GetUserTenantsQuery.QueryType,
             TenantQueryCursorScopes.GetUserTenants("owner-1", "other-target"),
             "tenant-001");
 
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        var actor = CreateActor(store, cursorCodec);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "owner-1",
@@ -1888,7 +1885,7 @@ public class TenantsProjectionActorTests {
     // --- Q15: GetUserTenants for own user works ---
     [Fact]
     public async Task GetUserTenants_own_user_returns_memberships() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(5, new() {
             ["user-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
@@ -1896,10 +1893,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-004"] = TenantRole.TenantContributor,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 20);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-1", payload: payload));
 
@@ -1911,14 +1908,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_missing_target_user_returns_empty_page() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(2, new() {
             ["user-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1930,22 +1927,22 @@ public class TenantsProjectionActorTests {
         // Timing-uniformity guarantee: cross-user lookups must perform the admin check
         // even when the target user is missing, so that the empty-page response from this
         // branch is timing-indistinguishable from the filtered-no-overlap branch.
-        _ = await daprClient.Received(1).GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey);
+        _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey);
     }
 
     [Fact]
     public async Task GetUserTenants_tenant_owner_querying_user_with_overlap_returns_owned_tenants_only() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner, ["tenant-003"] = TenantRole.TenantReader },
             ["user-2"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-002"] = TenantRole.TenantContributor },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1958,15 +1955,15 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_tenant_owner_querying_user_without_overlap_returns_empty_page() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() { ["tenant-001"] = TenantRole.TenantOwner },
             ["user-2"] = new() { ["tenant-002"] = TenantRole.TenantReader },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-2"));
 
         result.Success.ShouldBeTrue();
@@ -1978,7 +1975,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_tenant_owner_paginates_after_filtering() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(5, new() {
             ["user-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
@@ -1994,10 +1991,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-005"] = TenantRole.TenantReader,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] firstPagePayload = CreatePaginationPayload(pageSize: 2);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope("get-user-tenants", userId: "user-1", aggregateId: "index", entityId: "user-2", payload: firstPagePayload));
 
@@ -2022,7 +2019,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_self_lookup_removed_next_page_tenant_is_not_returnedAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantReader,
@@ -2030,10 +2027,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-003"] = TenantRole.TenantOwner,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -2066,17 +2063,17 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_self_lookup_newly_visible_tenant_before_cursor_is_not_backfilledAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() {
                 ["tenant-002"] = TenantRole.TenantReader,
                 ["tenant-003"] = TenantRole.TenantContributor,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -2108,17 +2105,17 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_self_lookup_newly_visible_tenant_after_cursor_may_appearAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantReader,
                 ["tenant-003"] = TenantRole.TenantContributor,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "user-1",
@@ -2149,7 +2146,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_tenant_owner_target_membership_removed_between_pages_is_filteredAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["owner-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
@@ -2162,10 +2159,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-003"] = TenantRole.TenantReader,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "owner-1",
@@ -2197,7 +2194,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task GetUserTenants_tenant_owner_requester_demoted_between_pages_is_filteredAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["owner-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
@@ -2210,10 +2207,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-003"] = TenantRole.TenantReader,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
             userId: "owner-1",
@@ -2250,18 +2247,18 @@ public class TenantsProjectionActorTests {
     // --- Q26: Cursor anchor missing/hidden continues from lower bound ---
     [Fact]
     public async Task ListTenants_cursor_anchor_missing_continues_from_lower_boundAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         // Create tenants A, C, D, E (B missing - simulates deletion)
         TenantIndexReadModel indexModel = new();
         indexModel.Apply(new Contracts.Events.TenantCreated("A", "Tenant A", null, DateTimeOffset.UtcNow));
         indexModel.Apply(new Contracts.Events.TenantCreated("C", "Tenant C", null, DateTimeOffset.UtcNow));
         indexModel.Apply(new Contracts.Events.TenantCreated("D", "Tenant D", null, DateTimeOffset.UtcNow));
         indexModel.Apply(new Contracts.Events.TenantCreated("E", "Tenant E", null, DateTimeOffset.UtcNow));
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
+        var actor = CreateActor(store, cursorCodec);
         // Cursor="B" (deleted), should return C, D, E
         byte[] payload = CreatePaginationPayload(
             cursor: cursorCodec.Encode(ListTenantsQuery.QueryType, TenantQueryCursorScopes.ListTenants("admin-1"), "B"),
@@ -2277,7 +2274,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_non_admin_membership_removed_between_pages_is_filteredAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantReader,
@@ -2285,10 +2282,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-003"] = TenantRole.TenantOwner,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "user-1",
@@ -2320,11 +2317,11 @@ public class TenantsProjectionActorTests {
     // --- Q20: Empty TenantIndexReadModel returns empty paginated result ---
     [Fact]
     public async Task ListTenants_empty_index_returns_empty_result() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupTenantIndexState(daprClient, new TenantIndexReadModel());
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupTenantIndexState(store, new TenantIndexReadModel());
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 20);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
@@ -2337,9 +2334,9 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_absent_index_returns_standard_empty_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2356,14 +2353,14 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_rejects_invalid_cursor_before_empty_index_responseAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
         string wrongUserCursor = cursorCodec.Encode(
             ListTenantsQuery.QueryType,
             TenantQueryCursorScopes.ListTenants("other-user"),
             "tenant-001");
 
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        var actor = CreateActor(store, cursorCodec);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             aggregateId: "index",
@@ -2372,21 +2369,21 @@ public class TenantsProjectionActorTests {
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Invalid cursor.");
         result.PayloadBytes.ShouldBeNull();
-        _ = await daprClient.DidNotReceive().GetStateAsync<TenantIndexReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantIndexProjectionKey,
+        _ = await store.DidNotReceive().GetAsync<TenantIndexReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey,
             cancellationToken: Arg.Any<CancellationToken>());
     }
 
     // --- Q10: GlobalAdmin ListTenants returns all tenants ---
     [Fact]
     public async Task ListTenants_global_admin_returns_all() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(5);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 20);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
@@ -2398,16 +2395,16 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_global_admin_orders_by_ordinal_tenant_id_and_cursor_advances_from_last_visible_itemAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = new();
         indexModel.Apply(new Contracts.Events.TenantCreated("tenant-010", "Tenant 10", null, DateTimeOffset.UtcNow));
         indexModel.Apply(new Contracts.Events.TenantCreated("tenant-002", "Tenant 2", null, DateTimeOffset.UtcNow));
         indexModel.Apply(new Contracts.Events.TenantCreated("tenant-001", "Tenant 1", null, DateTimeOffset.UtcNow));
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        ITenantQueryCursorCodec cursorCodec = CreateCursorCodec();
-        TenantsProjectionActor actor = CreateActor(daprClient, cursorCodec);
+        IQueryCursorCodec cursorCodec = CreateCursorCodec();
+        var actor = CreateActor(store, cursorCodec);
         QueryResult firstResult = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2444,13 +2441,13 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_status_reflects_latest_successfully_projected_lifecycle_eventAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(1);
         indexModel.Apply(new Contracts.Events.TenantDisabled("tenant-001", DateTimeOffset.UtcNow));
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult disabledResult = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2479,12 +2476,12 @@ public class TenantsProjectionActorTests {
     // --- Q13: Last page has HasMore=false ---
     [Fact]
     public async Task ListTenants_last_page_has_no_more() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(5);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 10);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
@@ -2498,12 +2495,12 @@ public class TenantsProjectionActorTests {
     // --- Q25: Malformed cursor safely rejected ---
     [Fact]
     public async Task ListTenants_malformed_cursor_returns_invalid_cursor_error() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(5);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(cursor: "zzz-nonexistent", pageSize: 10);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
@@ -2513,12 +2510,12 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_malformed_pagination_payload_uses_standard_default_first_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(25);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2530,7 +2527,7 @@ public class TenantsProjectionActorTests {
         _ = page.ShouldNotBeNull();
         page.Items.Count.ShouldBe(20);
         page.HasMore.ShouldBeTrue();
-        await AssertNoStateWriteAsync(daprClient);
+        await AssertNoStateWriteAsync(store);
     }
 
     [Theory]
@@ -2543,12 +2540,12 @@ public class TenantsProjectionActorTests {
         int requestedPageSize,
         int expectedItemCount,
         bool expectedHasMore) {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(101);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2564,12 +2561,12 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_non_object_pagination_payload_uses_standard_default_first_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(25);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2585,12 +2582,12 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_pagination_payload_omitting_page_size_uses_standard_defaultAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(25);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "admin-1",
@@ -2607,14 +2604,14 @@ public class TenantsProjectionActorTests {
     // --- Q9: ListTenants filters by user membership (non-admin) ---
     [Fact]
     public async Task ListTenants_non_admin_filters_by_membership() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(5, new() {
             ["user-1"] = new() { ["tenant-001"] = TenantRole.TenantReader, ["tenant-003"] = TenantRole.TenantContributor },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 20);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", aggregateId: "index", payload: payload));
 
@@ -2626,16 +2623,16 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_non_admin_without_matching_memberships_returns_standard_empty_pageAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(2, new() {
             ["other-user"] = new() {
                 ["tenant-001"] = TenantRole.TenantOwner,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             userId: "user-1",
@@ -2652,7 +2649,7 @@ public class TenantsProjectionActorTests {
 
     [Fact]
     public async Task ListTenants_non_admin_excludes_unknown_role_memberships_before_paginationAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(3, new() {
             ["user-1"] = new() {
                 ["tenant-001"] = TenantRole.TenantReader,
@@ -2660,10 +2657,10 @@ public class TenantsProjectionActorTests {
                 ["tenant-003"] = TenantRole.TenantContributor,
             },
         });
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, indexModel);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
             aggregateId: "index",
@@ -2692,12 +2689,12 @@ public class TenantsProjectionActorTests {
     // --- Q11: Pagination returns correct first page ---
     [Fact]
     public async Task ListTenants_pagination_first_page() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(10);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         byte[] payload = CreatePaginationPayload(pageSize: 3);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
@@ -2713,12 +2710,12 @@ public class TenantsProjectionActorTests {
     // --- Q12: Pagination with cursor returns next page ---
     [Fact]
     public async Task ListTenants_pagination_with_cursor() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         TenantIndexReadModel indexModel = CreateTenantIndexModel(10);
-        SetupTenantIndexState(daprClient, indexModel);
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        SetupTenantIndexState(store, indexModel);
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
 
         // First page
         byte[] payload1 = CreatePaginationPayload(pageSize: 3);
@@ -2742,34 +2739,29 @@ public class TenantsProjectionActorTests {
     // --- Q19: Unknown query type returns error ---
     [Fact]
     public async Task Unknown_query_type_returns_error() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope("unknown-query"));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage!.ShouldContain("Unknown query type");
+        result.ErrorMessage!.ShouldContain("No query handler is registered");
     }
 
-    private static TenantsProjectionActor CreateActor(DaprClient daprClient)
-        => CreateActor(daprClient, CreateCursorCodec());
+    private static TenantQueryDispatch CreateActor(IReadModelStore store)
+        => CreateActor(store, CreateCursorCodec());
 
-    private static TenantsProjectionActor CreateActor(DaprClient daprClient, ITenantQueryCursorCodec cursorCodec) {
-        return CreateActor(daprClient, cursorCodec, NullLogger<TenantsProjectionActor>.Instance);
-    }
+    private static TenantQueryDispatch CreateActor(IReadModelStore store, IQueryCursorCodec cursorCodec)
+        => new(store, cursorCodec, loggerFactory: null);
 
-    private static TenantsProjectionActor CreateActor(
-        DaprClient daprClient,
-        ITenantQueryCursorCodec cursorCodec,
-        ILogger<TenantsProjectionActor> logger) {
-        var host = ActorHost.CreateForTest<TenantsProjectionActor>(
-            new ActorTestOptions { ActorId = new ActorId("test-actor") });
-        IETagService eTagService = Substitute.For<IETagService>();
-        return new TenantsProjectionActor(host, eTagService, daprClient, cursorCodec, logger);
-    }
+    private static TenantQueryDispatch CreateActor(
+        IReadModelStore store,
+        IQueryCursorCodec cursorCodec,
+        ILoggerFactory loggerFactory)
+        => new(store, cursorCodec, loggerFactory);
 
-    private static ITenantQueryCursorCodec CreateCursorCodec()
-        => new TenantQueryCursorCodec(new EphemeralDataProtectionProvider());
+    private static IQueryCursorCodec CreateCursorCodec()
+        => new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.QueryCursor.v1");
 
     private static QueryEnvelope CreateEnvelope(
         string queryType,
@@ -2794,49 +2786,49 @@ public class TenantsProjectionActorTests {
         => queryType == "get-user-tenants" ? "user-1" : null;
 
     private static async Task AssertNoProjectionStateReadAsync(
-        DaprClient daprClient,
+        IReadModelStore store,
         string queryType,
         string aggregateId) {
         switch (queryType) {
             case "get-tenant":
-                _ = await daprClient.DidNotReceive().GetStateAsync<TenantReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.TenantProjectionKeyPrefix + aggregateId,
+                _ = await store.DidNotReceive().GetAsync<TenantReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.TenantProjectionKeyPrefix + aggregateId,
                     cancellationToken: Arg.Any<CancellationToken>());
-                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.GlobalAdminProjectionKey,
+                _ = await store.DidNotReceive().GetAsync<GlobalAdministratorReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.GlobalAdminProjectionKey,
                     cancellationToken: Arg.Any<CancellationToken>());
                 break;
             case "list-tenants":
             case "get-user-tenants":
-                _ = await daprClient.DidNotReceive().GetStateAsync<TenantIndexReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.TenantIndexProjectionKey,
+                _ = await store.DidNotReceive().GetAsync<TenantIndexReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.TenantIndexProjectionKey,
                     cancellationToken: Arg.Any<CancellationToken>());
-                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.GlobalAdminProjectionKey,
+                _ = await store.DidNotReceive().GetAsync<GlobalAdministratorReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.GlobalAdminProjectionKey,
                     cancellationToken: Arg.Any<CancellationToken>());
                 break;
             case "get-tenant-users":
-                _ = await daprClient.DidNotReceive().GetStateAsync<TenantReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.TenantProjectionKeyPrefix + aggregateId,
+                _ = await store.DidNotReceive().GetAsync<TenantReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.TenantProjectionKeyPrefix + aggregateId,
                     cancellationToken: Arg.Any<CancellationToken>());
-                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.GlobalAdminProjectionKey,
+                _ = await store.DidNotReceive().GetAsync<GlobalAdministratorReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.GlobalAdminProjectionKey,
                     cancellationToken: Arg.Any<CancellationToken>());
                 break;
             case "get-tenant-audit":
-                _ = await daprClient.DidNotReceive().GetStateAsync<GlobalAdministratorReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.GlobalAdminProjectionKey,
+                _ = await store.DidNotReceive().GetAsync<GlobalAdministratorReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.GlobalAdminProjectionKey,
                     cancellationToken: Arg.Any<CancellationToken>());
-                _ = await daprClient.DidNotReceive().GetStateAsync<TenantAuditReadModel>(
-                    TenantsProjectionActor.StateStoreName,
-                    TenantsProjectionActor.TenantAuditProjectionKeyPrefix + aggregateId,
+                _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
+                    TenantQueryHandlerBase.StateStoreName,
+                    TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + aggregateId,
                     cancellationToken: Arg.Any<CancellationToken>());
                 break;
             default:
@@ -2844,14 +2836,13 @@ public class TenantsProjectionActorTests {
         }
     }
 
-    private static async Task AssertNoStateWriteAsync(DaprClient daprClient)
-        => await daprClient.DidNotReceive().SaveStateAsync(
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<object?>(),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
-            Arg.Any<CancellationToken>());
+    private static Task AssertNoStateWriteAsync(IReadModelStore store) {
+        // Query handlers are read-only; they must never write to the read-model store.
+        store.ReceivedCalls()
+            .Select(call => call.GetMethodInfo().Name)
+            .ShouldNotContain(name => name == "SaveAsync" || name == "TrySaveAsync");
+        return Task.CompletedTask;
+    }
 
     private static GlobalAdministratorReadModel CreateGlobalAdminModel(params string[] adminUserIds) {
         GlobalAdministratorReadModel model = new();
@@ -2863,10 +2854,10 @@ public class TenantsProjectionActorTests {
     }
 
     private static async Task<QueryResult> QueryListTenantsWithOversizedPageAsync(
-        DaprClient daprClient,
-        TenantsProjectionActor actor) {
-        SetupTenantIndexState(daprClient, CreateTenantIndexModel(101));
-        SetupGlobalAdminState(daprClient, CreateGlobalAdminModel("admin-1"));
+        IReadModelStore store,
+        TenantQueryDispatch actor) {
+        SetupTenantIndexState(store, CreateTenantIndexModel(101));
+        SetupGlobalAdminState(store, CreateGlobalAdminModel("admin-1"));
 
         return await actor.QueryAsync(CreateEnvelope(
             "list-tenants",
@@ -2876,16 +2867,16 @@ public class TenantsProjectionActorTests {
     }
 
     private static async Task<QueryResult> QueryTenantUsersWithOversizedPageAsync(
-        DaprClient daprClient,
-        TenantsProjectionActor actor) {
+        IReadModelStore store,
+        TenantQueryDispatch actor) {
         Dictionary<string, TenantRole> members = Enumerable.Range(1, 101)
             .ToDictionary(
                 i => $"user-{i:D3}",
                 i => i == 1 ? TenantRole.TenantOwner : TenantRole.TenantReader,
                 StringComparer.Ordinal);
         TenantReadModel model = CreateTenantReadModel(members: members);
-        SetupTenantState(daprClient, "tenant-1", model);
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantState(store, "tenant-1", model);
+        SetupNoGlobalAdmin(store);
 
         return await actor.QueryAsync(CreateEnvelope(
             "get-tenant-users",
@@ -2894,14 +2885,14 @@ public class TenantsProjectionActorTests {
     }
 
     private static async Task<QueryResult> QueryUserTenantsWithOversizedPageAsync(
-        DaprClient daprClient,
-        TenantsProjectionActor actor) {
+        IReadModelStore store,
+        TenantQueryDispatch actor) {
         Dictionary<string, Dictionary<string, TenantRole>> userTenants = new(StringComparer.Ordinal) {
             ["user-1"] = Enumerable.Range(1, 101)
                 .ToDictionary(i => $"tenant-{i:D3}", _ => TenantRole.TenantReader, StringComparer.Ordinal),
         };
-        SetupTenantIndexState(daprClient, CreateTenantIndexModel(101, userTenants));
-        SetupNoGlobalAdmin(daprClient);
+        SetupTenantIndexState(store, CreateTenantIndexModel(101, userTenants));
+        SetupNoGlobalAdmin(store);
 
         return await actor.QueryAsync(CreateEnvelope(
             "get-user-tenants",
@@ -2987,35 +2978,39 @@ public class TenantsProjectionActorTests {
     private static T? DeserializePayload<T>(QueryResult result)
         => result.GetPayload().Deserialize<T>(_jsonOptions);
 
-    private static void SetupGlobalAdminState(DaprClient daprClient, GlobalAdministratorReadModel model) => daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey)
-            .Returns(Task.FromResult(model)!);
+    private static Task<ReadModelEntry<T>> Entry<T>(T? value)
+        where T : class
+        => Task.FromResult(new ReadModelEntry<T>(value, value is null ? null : "etag-1"));
 
-    private static void SetupNoGlobalAdmin(DaprClient daprClient) => daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey)
-            .Returns(Task.FromResult<GlobalAdministratorReadModel>(null!)!);
+    private static void SetupGlobalAdminState(IReadModelStore store, GlobalAdministratorReadModel model) => store.GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey)
+            .Returns(Entry(model));
 
-    private static void SetupTenantIndexState(DaprClient daprClient, TenantIndexReadModel model) => daprClient.GetStateAsync<TenantIndexReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantIndexProjectionKey)
-            .Returns(Task.FromResult(model)!);
+    private static void SetupNoGlobalAdmin(IReadModelStore store) => store.GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey)
+            .Returns(Entry<GlobalAdministratorReadModel>(null));
 
-    private static void SetupMissingTenantIndexState(DaprClient daprClient) => daprClient.GetStateAsync<TenantIndexReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantIndexProjectionKey)
-            .Returns(Task.FromResult<TenantIndexReadModel>(null!)!);
+    private static void SetupTenantIndexState(IReadModelStore store, TenantIndexReadModel model) => store.GetAsync<TenantIndexReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey)
+            .Returns(Entry(model));
 
-    private static void SetupTenantState(DaprClient daprClient, string tenantId, TenantReadModel model) => daprClient.GetStateAsync<TenantReadModel>(
-                        TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantProjectionKeyPrefix + tenantId)
-            .Returns(Task.FromResult(model)!);
+    private static void SetupMissingTenantIndexState(IReadModelStore store) => store.GetAsync<TenantIndexReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey)
+            .Returns(Entry<TenantIndexReadModel>(null));
 
-    private static void SetupAuditState(DaprClient daprClient, string tenantId, TenantAuditReadModel? model) => daprClient.GetStateAsync<TenantAuditReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantAuditProjectionKeyPrefix + tenantId)
-            .Returns(Task.FromResult(model)!);
+    private static void SetupTenantState(IReadModelStore store, string tenantId, TenantReadModel model) => store.GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + tenantId)
+            .Returns(Entry(model));
+
+    private static void SetupAuditState(IReadModelStore store, string tenantId, TenantAuditReadModel? model) => store.GetAsync<TenantAuditReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + tenantId)
+            .Returns(Entry(model));
 
     private sealed record LogEntry(
         LogLevel Level,
@@ -3023,12 +3018,45 @@ public class TenantsProjectionActorTests {
         string Message,
         IReadOnlyDictionary<string, object?> State);
 
-    private sealed class ListLogger<T> : ILogger<T> {
+    // Test seam mirroring the in-process query dispatch (TenantsQueryController -> DomainQueryDispatcher).
+    // Exposes the same QueryAsync surface the retired actor had so test bodies are unchanged.
+    private sealed class TenantQueryDispatch {
+        private readonly IReadOnlyList<TenantQueryHandlerBase> _handlers;
+
+        public TenantQueryDispatch(IReadModelStore store, IQueryCursorCodec cursorCodec, ILoggerFactory? loggerFactory)
+            // Handlers are created once and reused across calls so per-instance state (the orphan-log
+            // dedup set) behaves like a single long-lived consumer, matching the retired actor's lifetime.
+            => _handlers = TenantQueryTestHarness.CreateHandlers(store, cursorCodec, loggerFactory);
+
+        public Task<QueryResult> QueryAsync(QueryEnvelope envelope, CancellationToken cancellationToken = default) {
+            TenantQueryHandlerBase? handler = _handlers.FirstOrDefault(h =>
+                string.Equals(h.Domain, envelope.Domain, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(h.QueryType, envelope.QueryType, StringComparison.OrdinalIgnoreCase));
+
+            return handler is null
+                ? Task.FromResult(QueryResult.Failure($"No query handler is registered for domain '{envelope.Domain}' query type '{envelope.QueryType}'."))
+                : handler.ExecuteAsync(envelope, cancellationToken);
+        }
+    }
+
+    // Captures log entries from every handler category into one list so tests can assert on handler logs
+    // regardless of the per-handler ILogger<T> category.
+    private sealed class ListLoggerFactory : ILoggerFactory {
         public List<LogEntry> Entries { get; } = [];
 
-        public IDisposable BeginScope<TState>(TState state)
+        public void AddProvider(ILoggerProvider provider) {
+        }
+
+        public ILogger CreateLogger(string categoryName) => new ListLogger(Entries);
+
+        public void Dispose() {
+        }
+    }
+
+    private sealed class ListLogger(List<LogEntry> entries) : ILogger {
+        public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull
-            => NullLogger<T>.Instance.BeginScope(state);
+            => NullLogger.Instance.BeginScope(state);
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -3045,7 +3073,7 @@ public class TenantsProjectionActorTests {
                 }
             }
 
-            Entries.Add(new(logLevel, eventId, formatter(state, exception), stateMap));
+            entries.Add(new(logLevel, eventId, formatter(state, exception), stateMap));
         }
     }
 }

@@ -1,8 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Projections;
@@ -25,33 +24,31 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_GlobalAdministratorSet_WritesSingletonKeyWithUserAddedAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
-        ProjectionResponse response = await new GlobalAdministratorProjectionHandler(daprClient)
+        ProjectionResponse response = await new GlobalAdministratorProjectionHandler(store)
             .ProjectAsync(request);
 
         response.ProjectionType.ShouldBe("global-administrators");
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Contains("admin-user") && m.Administrators.Count == 1),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_GlobalAdministratorEvents_WriteSystemAuditStateAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-1", "bootstrapper"),
             new GlobalAdministratorRemoved("system", "admin-1", "admin-2"));
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             "audit:system",
             Arg.Is<TenantAuditReadModel>(m =>
@@ -63,22 +60,20 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Entries[0].TenantId == "system"
                 && m.Entries[0].Target == "admin-1"
                 && m.Entries[1].EventType == nameof(GlobalAdministratorRemoved)),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_MultipleAdministratorsSet_WritesAllAdministratorsAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-1"),
             new GlobalAdministratorSet("system", "admin-2"),
             new GlobalAdministratorSet("system", "admin-3"));
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m =>
@@ -87,22 +82,20 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Administrators.Contains("admin-1")
                 && m.Administrators.Contains("admin-2")
                 && m.Administrators.Contains("admin-3")),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_GlobalAdministratorRemoved_WritesSingletonKeyWithUserRemovedAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-1"),
             new GlobalAdministratorSet("system", "admin-2"),
             new GlobalAdministratorRemoved("system", "admin-1"));
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m =>
@@ -110,81 +103,71 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Administrators.Count == 1
                 && m.Administrators.Contains("admin-2")
                 && !m.Administrators.Contains("admin-1")),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_EmptyEventList_WritesEmptySingletonAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = new("system", "global-administrators", "global-administrators", []);
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Count == 0),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_RemoveBeforeSet_LeavesAdministratorsEmptyAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorRemoved("system", "ghost"));
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Count == 0),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_DoesNotWriteForbiddenTenantKeyAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.DidNotReceive().SaveStateAsync(
+        await store.DidNotReceive().SaveAsync(
             Arg.Any<string>(),
             ForbiddenTenantKey,
-            Arg.Any<object?>(),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<GlobalAdministratorReadModel>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_DoesNotTouchTenantIndexProjectionAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.DidNotReceive().SaveStateAsync(
+        await store.DidNotReceive().SaveAsync(
             Arg.Any<string>(),
             "projection:tenant-index:singleton",
-            Arg.Any<object?>(),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<GlobalAdministratorReadModel>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_NullEventEntries_AreSkippedAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionEventDto[] events = [
             CreateEventDto(new GlobalAdministratorSet("system", "admin-1")),
             null!,
@@ -192,9 +175,9 @@ public class GlobalAdministratorProjectionHandlerTests {
         ];
         ProjectionRequest request = new("system", "global-administrators", "global-administrators", events);
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request);
+        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m =>
@@ -202,48 +185,42 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Administrators.Count == 2
                 && m.Administrators.Contains("admin-1")
                 && m.Administrators.Contains("admin-2")),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_WithPreCancelledTokenThrowsBeforeSaveAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         OperationCanceledException exception = await Should.ThrowAsync<OperationCanceledException>(
-            () => new GlobalAdministratorProjectionHandler(daprClient).ProjectAsync(request, cancellation.Token));
+            () => new GlobalAdministratorProjectionHandler(store).ProjectAsync(request, cancellation.Token));
 
         exception.CancellationToken.ShouldBe(cancellation.Token);
-        await daprClient.DidNotReceive().SaveStateAsync(
+        await store.DidNotReceive().SaveAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
-            Arg.Any<object?>(),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<GlobalAdministratorReadModel>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_PassesCancellationTokenToSaveStateBoundaryAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
         using var cancellation = new CancellationTokenSource();
 
-        _ = await new GlobalAdministratorProjectionHandler(daprClient)
+        _ = await new GlobalAdministratorProjectionHandler(store)
             .ProjectAsync(request, cancellation.Token);
 
-        await daprClient.Received(1).SaveStateAsync(
+        await store.Received(1).SaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Any<GlobalAdministratorReadModel>(),
-            Arg.Any<Dapr.Client.StateOptions>(),
-            Arg.Any<IReadOnlyDictionary<string, string>>(),
             cancellation.Token);
     }
 

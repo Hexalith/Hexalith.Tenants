@@ -14,8 +14,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
@@ -154,7 +153,7 @@ internal sealed class ProjectionWriteConformanceFixture
 /// Fails fast on operations against a key that has been marked terminally failed so the
 /// AC10 "no extra writes after terminal failure" invariant is enforced at the seam.
 /// </summary>
-internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStateStore
+internal sealed class ScriptedTenantProjectionStateStore : IReadModelStore
 {
     private readonly Dictionary<string, Queue<object>> _reads = [];
     private readonly Dictionary<string, Queue<bool>> _trySaveResults = [];
@@ -175,7 +174,7 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
             _reads[key] = queue;
         }
 
-        queue.Enqueue(new ProjectionStateRead<TValue>(value, etag));
+        queue.Enqueue(new ReadModelEntry<TValue>(value, etag));
     }
 
     public void EnqueueTrySave(string key, bool result)
@@ -200,7 +199,7 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
         _terminalFailureKeys.Add(key);
     }
 
-    public Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
+    public Task<ReadModelEntry<TValue>> GetAsync<TValue>(
         string storeName,
         string key,
         System.Threading.CancellationToken cancellationToken = default)
@@ -210,7 +209,7 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
         {
             throw new InvalidOperationException(
                 $"AC10 violation: production code attempted to read key '{key}' after the retry budget was exhausted. " +
-                "TenantProjectionWritePolicy must throw without further state-store traffic on retry exhaustion.");
+                "ReadModelWritePolicy must throw without further state-store traffic on retry exhaustion.");
         }
 
         ReadCalls.Add(new ReadCall(storeName, key, typeof(TValue)));
@@ -222,35 +221,25 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
                 "or EnqueueRead must be called for every expected attempt.");
         }
 
-        return Task.FromResult((ProjectionStateRead<TValue>)queue.Dequeue());
+        return Task.FromResult((ReadModelEntry<TValue>)queue.Dequeue());
     }
 
-    public Task SaveStateAsync<TValue>(
+    public Task SaveAsync<TValue>(
         string storeName,
         string key,
         TValue value,
-        StateOptions? stateOptions = null,
-        IReadOnlyDictionary<string, string>? metadata = null,
         System.Threading.CancellationToken cancellationToken = default)
         where TValue : class
     {
-        PlainSaveAttempts.Add(new SaveAttempt(
-            storeName,
-            key,
-            value,
-            string.Empty,
-            stateOptions ?? new StateOptions(),
-            typeof(TValue)));
+        PlainSaveAttempts.Add(new SaveAttempt(storeName, key, value, string.Empty, typeof(TValue)));
         return Task.CompletedTask;
     }
 
-    public Task<bool> TrySaveStateAsync<TValue>(
+    public Task<bool> TrySaveAsync<TValue>(
         string storeName,
         string key,
         TValue value,
         string etag,
-        StateOptions stateOptions,
-        IReadOnlyDictionary<string, string>? metadata = null,
         System.Threading.CancellationToken cancellationToken = default)
         where TValue : class
     {
@@ -258,10 +247,10 @@ internal sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStat
         {
             throw new InvalidOperationException(
                 $"AC10 violation: production code attempted to save key '{key}' after the retry budget was exhausted. " +
-                "TenantProjectionWritePolicy must throw without further state-store traffic on retry exhaustion.");
+                "ReadModelWritePolicy must throw without further state-store traffic on retry exhaustion.");
         }
 
-        TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, stateOptions, typeof(TValue)));
+        TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, typeof(TValue)));
         if (!_trySaveResults.TryGetValue(key, out Queue<bool>? queue) || queue.Count == 0)
         {
             throw new InvalidOperationException(
@@ -281,7 +270,6 @@ internal sealed record SaveAttempt(
     string Key,
     object Value,
     string ETag,
-    StateOptions StateOptions,
     System.Type ValueType);
 
 /// <summary>

@@ -5,6 +5,7 @@ using FluentValidation;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Discovery;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
 using Hexalith.EventStore.Contracts.Authorization;
@@ -18,14 +19,14 @@ using Hexalith.EventStore.Indexes;
 using Hexalith.EventStore.Server.Pipeline;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.EventStore.Validation;
+using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Authorization;
-using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.DomainProcessing;
 using Hexalith.Tenants.Health;
 using Hexalith.Tenants.Projections;
-using Hexalith.Tenants.Queries;
+using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.ServiceDefaults;
 using Hexalith.Tenants.Validation;
@@ -54,6 +55,9 @@ builder.Services.AddHealthChecks()
 // AggregateActor must only be hosted by the EventStore, not domain services.
 // The bootstrap service sends commands to EventStore via DAPR HTTP.
 builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
+// Persisted multi-read-model store for the tenant /project build path (platform A8 abstraction,
+// replacing the hand-rolled DaprTenantProjectionStateStore + TenantProjectionWritePolicy).
+builder.Services.AddEventStoreReadModelStore();
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
@@ -62,7 +66,7 @@ builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
 builder.Services.AddProblemDetails();
 
-// Data Protection backs the opaque query cursor codec (TenantQueryCursorCodec). SetApplicationName
+// Data Protection backs the opaque query cursor codec. SetApplicationName
 // anchors the key ring to a stable application identity so the keyring path/purpose chain is not
 // influenced by IHostEnvironment.ApplicationName drift across host variants.
 // DEFERRED (Epic 11 — Production Authorization Readiness): configure a shared, persisted key ring
@@ -85,10 +89,17 @@ builder.Services.AddMediatR(cfg => {
 builder.Services.TryAddScoped<IQueryRouter, QueryRouter>();
 builder.Services.TryAddSingleton<ICommandRouter, CommandRouter>();
 
-// IETagService is required by TenantsProjectionActor (inherits CachingProjectionActor).
-// Registered directly (not via AddEventStoreServer) to avoid hosting AggregateActor/ETagActor here.
-builder.Services.TryAddScoped<IETagService, DaprETagService>();
-builder.Services.TryAddSingleton<ITenantQueryCursorCodec, TenantQueryCursorCodec>();
+// Protected pagination cursor codec (platform A9 abstraction). The purpose string is kept identical
+// to the retired TenantQueryCursorCodec so cursors issued before this refactor remain decodable.
+builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+
+// Tenant query handlers (platform A7 seam). Discovered/registered explicitly while the host retains
+// its manual wiring; dispatched in-process by TenantsQueryController via DomainQueryDispatcher.
+builder.Services.AddScoped<IDomainQueryHandler, GetTenantQueryHandler>();
+builder.Services.AddScoped<IDomainQueryHandler, GetTenantUsersQueryHandler>();
+builder.Services.AddScoped<IDomainQueryHandler, GetUserTenantsQueryHandler>();
+builder.Services.AddScoped<IDomainQueryHandler, ListTenantsQueryHandler>();
+builder.Services.AddScoped<IDomainQueryHandler, GetTenantAuditQueryHandler>();
 
 // Command status and archive stores required by SubmitCommandHandler
 builder.Services.Configure<CommandStatusOptions>(
@@ -129,7 +140,6 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(Hexalith.EventStore.Controllers.CommandsController).Assembly);
-builder.Services.AddActors(options => options.Actors.RegisterActor<TenantsProjectionActor>());
 
 WebApplication app = builder.Build();
 
@@ -147,15 +157,14 @@ app.MapPost("/process", async (
     Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
 app.MapPost("/project", async (
     ProjectionRequest request,
-    DaprClient daprClient,
+    IReadModelStore readModelStore,
     ILoggerFactory loggerFactory,
     CancellationToken cancellationToken)
-    => await new ProjectionDispatcher(daprClient, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
+    => await new ProjectionDispatcher(readModelStore, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
 app.MapPost("/admin/operational-index-metadata", (
     AdminOperationalIndexMetadataRequest request,
     DiscoveryResult discovery)
     => Results.Ok(Hexalith.Tenants.AdminOperationalIndexMetadata.Create(discovery, request.Domains)));
 app.MapSubscribeHandler();
-app.MapActorsHandlers();
 
 await app.RunAsync().ConfigureAwait(false);

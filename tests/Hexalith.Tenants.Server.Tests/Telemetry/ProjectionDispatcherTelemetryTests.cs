@@ -3,8 +3,7 @@ using System.Diagnostics.Metrics;
 using System.Text;
 using System.Text.Json;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Projections;
@@ -64,12 +63,12 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_TenantsDomain_ShouldEmitProjectionSpanAndMetricAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupSuccessfulTenantProjection(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulTenantProjection(store);
 
         ProjectionRequest request = CreateTenantRequest();
 
-        IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
         Activity activity = FindProjectionActivity("tenants");
@@ -104,10 +103,10 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_GlobalAdministratorsDomain_ShouldEmitCompletedOutcomeAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateGlobalAdminRequest();
 
-        IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
         Activity activity = FindProjectionActivity("global-administrators");
@@ -122,10 +121,10 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_UnsupportedDomain_ShouldEmitUnsupportedDomainOutcomeAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = new("system", "orders", "tenant-1", []);
 
-        IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<ProblemHttpResult>();
         Activity activity = FindProjectionActivity("unknown");
@@ -140,14 +139,14 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_InvalidGlobalAdministratorIdentity_ShouldEmitInvalidIdentityOutcomeAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = new(
             "tenant-a",
             "global-administrators",
             "global-administrators",
             [CreateEventDto(new GlobalAdministratorSet("system", "admin-user"))]);
 
-        IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<ProblemHttpResult>();
         Activity activity = FindProjectionActivity("global-administrators");
@@ -162,8 +161,8 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_UnknownEventType_ShouldCollapseSpanEventTypeSummaryAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupSuccessfulTenantProjection(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulTenantProjection(store);
         ProjectionRequest request = new(
             "system",
             "tenants",
@@ -180,7 +179,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
                     UserId: "actor-test"),
             ]);
 
-        _ = await new ProjectionDispatcher(daprClient).DispatchAsync(request);
+        _ = await new ProjectionDispatcher(store).DispatchAsync(request);
 
         Activity activity = FindProjectionActivity("tenants");
         activity.GetTagItem(TenantActivitySource.TagEventTypes).ShouldBe("unknown");
@@ -188,28 +187,16 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_TenantProjectionRetryExhausted_ShouldEmitRetryExhaustedOutcomeAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++) {
-            _ = daprClient.GetStateAndETagAsync<TenantReadModel>(
-                    "statestore",
-                    "projection:tenants:tenant-1",
-                    cancellationToken: Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult((default(TenantReadModel)!, $"tenant-etag-{attempt}")));
-            _ = daprClient.TrySaveStateAsync(
-                    "statestore",
-                    "projection:tenants:tenant-1",
-                    Arg.Any<TenantReadModel>(),
-                    Arg.Any<string>(),
-                    Arg.Any<StateOptions>(),
-                    Arg.Any<IReadOnlyDictionary<string, string>>(),
-                    Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(false));
-        }
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantReadModel>(null, "tenant-etag"));
+        store.TrySaveAsync("statestore", "projection:tenants:tenant-1", Arg.Any<TenantReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false);
 
         ProjectionRequest request = CreateTenantRequest();
 
         _ = await Should.ThrowAsync<InvalidOperationException>(() =>
-            new ProjectionDispatcher(daprClient).DispatchAsync(request));
+            new ProjectionDispatcher(store).DispatchAsync(request));
 
         Activity activity = FindProjectionActivity("tenants");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
@@ -223,58 +210,41 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_TenantProjectionRecoveredConflict_ShouldKeepEventProcessingCompletedAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAndETagAsync<TenantReadModel>(
-                "statestore",
-                "projection:tenants:tenant-1",
-                cancellationToken: Arg.Any<CancellationToken>())
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
             .Returns(
-                Task.FromResult((default(TenantReadModel)!, "tenant-etag-1")),
-                Task.FromResult((new TenantReadModel(), "tenant-etag-2")));
-        _ = daprClient.TrySaveStateAsync(
-                "statestore",
-                "projection:tenants:tenant-1",
-                Arg.Any<TenantReadModel>(),
-                Arg.Any<string>(),
-                Arg.Any<StateOptions>(),
-                Arg.Any<IReadOnlyDictionary<string, string>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(false), Task.FromResult(true));
-        SetupSuccessfulGuardedSave<TenantAuditReadModel>(daprClient, "audit:tenant-1");
-        SetupSuccessfulGuardedSave<TenantIndexReadModel>(daprClient, "projection:tenant-index:singleton");
+                new ReadModelEntry<TenantReadModel>(null, "tenant-etag-1"),
+                new ReadModelEntry<TenantReadModel>(new TenantReadModel(), "tenant-etag-2"));
+        store.TrySaveAsync("statestore", "projection:tenants:tenant-1", Arg.Any<TenantReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(false, true);
+        SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, "audit:tenant-1");
+        SetupSuccessfulGuardedSave<TenantIndexReadModel>(store, "projection:tenant-index:singleton");
 
-        IResult result = await new ProjectionDispatcher(daprClient).DispatchAsync(CreateTenantRequest());
+        IResult result = await new ProjectionDispatcher(store).DispatchAsync(CreateTenantRequest());
 
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
         Activity activity = FindProjectionActivity("tenants");
         activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("completed");
 
+        // The dispatcher still records the overall event-processing outcome. The per-write conflict counter
+        // (formerly tenants.projection.write.conflicts) was emitted by the removed TenantProjectionWritePolicy;
+        // the platform ReadModelWritePolicy logs conflicts instead of emitting a domain metric (A8).
         _ = FindMetric(tags =>
             HasTag(tags, "domain", "tenants")
             && HasTag(tags, "projection_type", "tenant")
             && HasTag(tags, "outcome", "completed"));
-        _ = FindNamedMetric(
-            "tenants.projection.write.conflicts",
-            tags =>
-                HasTag(tags, "state_key_category", "tenant read-model")
-                && HasTag(tags, "projection_type", nameof(TenantReadModel))
-                && HasTag(tags, "reason", "guarded-save-conflict")
-                && HasTag(tags, "success", true));
     }
 
     [Fact]
     public async Task DispatchAsync_TenantProjectionInfrastructureFailure_ShouldEmitFailureOutcomeAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAndETagAsync<TenantReadModel>(
-                "statestore",
-                "projection:tenants:tenant-1",
-                cancellationToken: Arg.Any<CancellationToken>())
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("State store unavailable"));
 
         ProjectionRequest request = CreateTenantRequest();
 
         _ = await Should.ThrowAsync<HttpRequestException>(() =>
-            new ProjectionDispatcher(daprClient).DispatchAsync(request));
+            new ProjectionDispatcher(store).DispatchAsync(request));
 
         Activity activity = FindProjectionActivity("tenants");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
@@ -288,10 +258,10 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_ShouldLogCompletedAndUnsupportedOutcomesWithoutPayloadDataAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupSuccessfulTenantProjection(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulTenantProjection(store);
         var loggerFactory = new TestLoggerFactory();
-        var dispatcher = new ProjectionDispatcher(daprClient, loggerFactory);
+        var dispatcher = new ProjectionDispatcher(store, loggerFactory);
 
         _ = await dispatcher.DispatchAsync(CreateTenantRequest());
         _ = await dispatcher.DispatchAsync(new ProjectionRequest("system", "orders", "tenant-1", []));
@@ -317,16 +287,13 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     [Fact]
     public async Task DispatchAsync_InfrastructureFailure_ShouldLogFailureClassificationWithoutPayloadDataAsync() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAndETagAsync<TenantReadModel>(
-                "statestore",
-                "projection:tenants:tenant-1",
-                cancellationToken: Arg.Any<CancellationToken>())
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("State store unavailable"));
         var loggerFactory = new TestLoggerFactory();
 
         _ = await Should.ThrowAsync<HttpRequestException>(() =>
-            new ProjectionDispatcher(daprClient, loggerFactory).DispatchAsync(CreateTenantRequest()));
+            new ProjectionDispatcher(store, loggerFactory).DispatchAsync(CreateTenantRequest()));
 
         TestLogEntry failureEntry = loggerFactory.Entries.Single(entry => entry.EventId.Id == 100302);
         failureEntry.Level.ShouldBe(LogLevel.Error);
@@ -360,28 +327,18 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     private static bool HasTag(KeyValuePair<string, object?>[] tags, string key, object? value)
         => tags.Any(tag => tag.Key == key && Equals(tag.Value, value));
 
-    private static void SetupSuccessfulTenantProjection(DaprClient daprClient) {
-        SetupSuccessfulGuardedSave<TenantReadModel>(daprClient, "projection:tenants:tenant-1");
-        SetupSuccessfulGuardedSave<TenantAuditReadModel>(daprClient, "audit:tenant-1");
-        SetupSuccessfulGuardedSave<TenantIndexReadModel>(daprClient, "projection:tenant-index:singleton");
+    private static void SetupSuccessfulTenantProjection(IReadModelStore store) {
+        SetupSuccessfulGuardedSave<TenantReadModel>(store, "projection:tenants:tenant-1");
+        SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, "audit:tenant-1");
+        SetupSuccessfulGuardedSave<TenantIndexReadModel>(store, "projection:tenant-index:singleton");
     }
 
-    private static void SetupSuccessfulGuardedSave<TValue>(DaprClient daprClient, string key)
+    private static void SetupSuccessfulGuardedSave<TValue>(IReadModelStore store, string key)
         where TValue : class {
-        _ = daprClient.GetStateAndETagAsync<TValue>(
-                "statestore",
-                key,
-                cancellationToken: Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult((default(TValue)!, string.Empty)));
-        _ = daprClient.TrySaveStateAsync(
-                "statestore",
-                key,
-                Arg.Any<TValue>(),
-                string.Empty,
-                Arg.Any<StateOptions>(),
-                Arg.Any<IReadOnlyDictionary<string, string>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(true));
+        store.GetAsync<TValue>("statestore", key, Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TValue>(null, null));
+        store.TrySaveAsync("statestore", key, Arg.Any<TValue>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
     }
 
     private static ProjectionRequest CreateTenantRequest()

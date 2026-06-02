@@ -18,8 +18,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
@@ -40,8 +39,8 @@ namespace Hexalith.Tenants.Server.Tests.Projections;
 /// </summary>
 public class ProjectionWriteConformanceTests
 {
-    private const int ConflictEventIdInt = 100101;
-    private const int RetryExhaustedEventIdInt = 100102;
+    private const int ConflictEventIdInt = 200101;
+    private const int RetryExhaustedEventIdInt = 200102;
 
     [Fact]
     public async Task TenantDetail_ConflictThenSuccess_ReplaysIncomingBatchOnFreshReloadedStateAsync()
@@ -98,8 +97,6 @@ public class ProjectionWriteConformanceTests
         save2.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
         save1.ETag.ShouldBe("tenant-etag-1");
         save2.ETag.ShouldBe("tenant-etag-2");
-        save1.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
-        save2.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
         save1.Value.ShouldNotBeSameAs(save2.Value);
         save2.Value.ShouldBeSameAs(externallyReloaded);
         fixture.StateStore.PlainSaveAttempts.ShouldBeEmpty();
@@ -122,7 +119,7 @@ public class ProjectionWriteConformanceTests
             "tenant read-model",
             nameof(TenantReadModel),
             attemptCount: 1,
-            reason: "guarded-save-conflict",
+            reason: "optimistic-concurrency-conflict",
             "corr-1",
             "evt-created",
             nameof(TenantCreated));
@@ -196,8 +193,6 @@ public class ProjectionWriteConformanceTests
         save2.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
         save1.ETag.ShouldBe("index-etag-1");
         save2.ETag.ShouldBe("index-etag-2");
-        save1.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
-        save2.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
         fixture.StateStore.PlainSaveAttempts.ShouldBeEmpty();
 
         // Conflict warning emitted; retry-exhausted NOT emitted.
@@ -210,7 +205,7 @@ public class ProjectionWriteConformanceTests
             "tenant index",
             nameof(TenantIndexReadModel),
             attemptCount: 1,
-            reason: "guarded-save-conflict",
+            reason: "optimistic-concurrency-conflict",
             "corr-1",
             "evt-c-1",
             nameof(TenantCreated),
@@ -237,7 +232,7 @@ public class ProjectionWriteConformanceTests
 
         fixture.EnqueueSuccessfulTenantDetailSave();
         fixture.EnqueueSuccessfulAuditSave();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        for (int attempt = 0; attempt < ReadModelWritePolicy.DefaultMaxAttempts; attempt++)
         {
             fixture.StateStore.EnqueueRead<TenantIndexReadModel>(
                 ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
@@ -266,19 +261,19 @@ public class ProjectionWriteConformanceTests
         // AC10 enforcement: production code MUST stop after exhaustion.
         fixture.StateStore.MarkTerminalFailure(ProjectionWriteConformanceFixture.TenantIndexProjectionKey);
 
-        exception.Message.ShouldContain("tenant index");
-        exception.Message.ShouldContain($"{TenantProjectionWritePolicy.MaxAttempts} attempts");
+        exception.Message.ShouldContain(ProjectionWriteConformanceFixture.TenantIndexProjectionKey);
+        exception.Message.ShouldContain($"{ReadModelWritePolicy.DefaultMaxAttempts} attempts");
 
         // AC7 attempt-count invariants.
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
 
         // Structured-log shape (R-016): (MaxAttempts-1) conflict warnings + 1 retry-exhausted error.
         IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
         IReadOnlyList<CapturedLog> exhausted = fixture.GetLogEntries(RetryExhaustedEventIdInt);
-        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(TenantProjectionWritePolicy.MaxAttempts - 1);
+        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts - 1);
         exhausted.Count(e => e.Level == LogLevel.Error).ShouldBe(1);
 
         // R-007 negative-content gate (AC3, AC11). Iterate over every captured log AND
@@ -314,7 +309,7 @@ public class ProjectionWriteConformanceTests
             "tenant index",
             nameof(TenantIndexReadModel),
             attemptCount: 1,
-            reason: "guarded-save-conflict",
+            reason: "optimistic-concurrency-conflict",
             SafeCorrelationId,
             SafeMessageId,
             nameof(TenantCreated));
@@ -326,7 +321,7 @@ public class ProjectionWriteConformanceTests
             ProjectionWriteConformanceFixture.StateStoreName,
             "tenant index",
             nameof(TenantIndexReadModel),
-            TenantProjectionWritePolicy.MaxAttempts,
+            ReadModelWritePolicy.DefaultMaxAttempts,
             "retry-exhausted",
             SafeCorrelationId,
             "evt-config-1",
@@ -340,7 +335,7 @@ public class ProjectionWriteConformanceTests
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         fixture.EnqueueSuccessfulTenantDetailSave();
         fixture.EnqueueSuccessfulAuditSave();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        for (int attempt = 0; attempt < ReadModelWritePolicy.DefaultMaxAttempts; attempt++)
         {
             fixture.StateStore.EnqueueRead<TenantIndexReadModel>(
                 ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
@@ -360,13 +355,13 @@ public class ProjectionWriteConformanceTests
 
         fixture.StateStore.MarkTerminalFailure(ProjectionWriteConformanceFixture.TenantIndexProjectionKey);
 
-        exception.Message.ShouldContain("tenant index");
+        exception.Message.ShouldContain(ProjectionWriteConformanceFixture.TenantIndexProjectionKey);
 
         // AC6: tenant-detail and audit were saved BEFORE index exhaustion — no rollback.
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantProjectionKey).ShouldBe(1);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(1);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
 
         fixture.GetLogEntries(RetryExhaustedEventIdInt)
             .Count(e => e.Level == LogLevel.Error)
@@ -385,7 +380,7 @@ public class ProjectionWriteConformanceTests
         const string SensitiveConfigValue = "do-not-log-config-value";
         const string SafeCorrelationId = "corr-tenant-detail";
 
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        for (int attempt = 0; attempt < ReadModelWritePolicy.DefaultMaxAttempts; attempt++)
         {
             fixture.StateStore.EnqueueRead<TenantReadModel>(
                 ProjectionWriteConformanceFixture.TenantProjectionKey,
@@ -419,14 +414,14 @@ public class ProjectionWriteConformanceTests
 
         fixture.StateStore.MarkTerminalFailure(ProjectionWriteConformanceFixture.TenantProjectionKey);
 
-        exception.Message.ShouldContain("tenant read-model");
-        exception.Message.ShouldContain($"{TenantProjectionWritePolicy.MaxAttempts} attempts");
+        exception.Message.ShouldContain(ProjectionWriteConformanceFixture.TenantProjectionKey);
+        exception.Message.ShouldContain($"{ReadModelWritePolicy.DefaultMaxAttempts} attempts");
 
         // AC7: exactly MaxAttempts reads + saves; no audit or index traffic after exhaustion.
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(0);
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(0);
@@ -434,7 +429,7 @@ public class ProjectionWriteConformanceTests
 
         IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
         IReadOnlyList<CapturedLog> exhausted = fixture.GetLogEntries(RetryExhaustedEventIdInt);
-        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(TenantProjectionWritePolicy.MaxAttempts - 1);
+        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts - 1);
         exhausted.Count(e => e.Level == LogLevel.Error).ShouldBe(1);
 
         foreach (CapturedLog entry in fixture.Logger.Entries)
@@ -456,123 +451,24 @@ public class ProjectionWriteConformanceTests
         CapturedLog conflictEntry = conflicts[0];
         conflictEntry.StructuredState.ShouldNotBeNull();
         conflictEntry.StructuredState!["StateStoreName"].ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
-        conflictEntry.StructuredState["StateKeyCategory"].ShouldBe("tenant read-model");
-        conflictEntry.StructuredState["TenantId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
-        conflictEntry.StructuredState["Domain"].ShouldBe("tenants");
-        conflictEntry.StructuredState["AggregateId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
+        conflictEntry.StructuredState["StateKey"].ShouldBe(ProjectionWriteConformanceFixture.TenantProjectionKey);
+        conflictEntry.StructuredState["Category"].ShouldBe("tenant read-model");
         conflictEntry.StructuredState["ProjectionType"].ShouldBe(nameof(TenantReadModel));
-        conflictEntry.StructuredState["CausationIdStatus"].ShouldBe("unavailable-from-projection-dto");
         conflictEntry.StructuredState["AttemptCount"].ShouldBe(1);
-        conflictEntry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        conflictEntry.StructuredState["OperationContext"].ShouldBe("TenantProjectionHandler.ProjectAsync");
-        conflictEntry.StructuredState["Reason"].ShouldBe("guarded-save-conflict");
+        conflictEntry.StructuredState["MaxAttempts"].ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
+        conflictEntry.StructuredState["Reason"].ShouldBe("optimistic-concurrency-conflict");
         conflictEntry.StructuredState["CorrelationId"].ShouldBe(SafeCorrelationId);
-        conflictEntry.StructuredState["MessageIds"]!.ToString().ShouldNotBeNull().ShouldContain("evt-created");
-        conflictEntry.StructuredState["EventTypes"]!.ToString().ShouldNotBeNull().ShouldContain(nameof(TenantCreated));
 
         CapturedLog exhaustedEntry = exhausted.Single();
         exhaustedEntry.StructuredState.ShouldNotBeNull();
         exhaustedEntry.StructuredState!["StateStoreName"].ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
-        exhaustedEntry.StructuredState["StateKeyCategory"].ShouldBe("tenant read-model");
-        exhaustedEntry.StructuredState["TenantId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
-        exhaustedEntry.StructuredState["Domain"].ShouldBe("tenants");
-        exhaustedEntry.StructuredState["AggregateId"].ShouldBe(ProjectionWriteConformanceFixture.TenantId);
+        exhaustedEntry.StructuredState["StateKey"].ShouldBe(ProjectionWriteConformanceFixture.TenantProjectionKey);
+        exhaustedEntry.StructuredState["Category"].ShouldBe("tenant read-model");
         exhaustedEntry.StructuredState["ProjectionType"].ShouldBe(nameof(TenantReadModel));
-        exhaustedEntry.StructuredState["CausationIdStatus"].ShouldBe("unavailable-from-projection-dto");
-        exhaustedEntry.StructuredState["AttemptCount"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        exhaustedEntry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        exhaustedEntry.StructuredState["OperationContext"].ShouldBe("TenantProjectionHandler.ProjectAsync");
+        exhaustedEntry.StructuredState["AttemptCount"].ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
+        exhaustedEntry.StructuredState["MaxAttempts"].ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         exhaustedEntry.StructuredState["Reason"].ShouldBe("retry-exhausted");
         exhaustedEntry.StructuredState["CorrelationId"].ShouldBe(SafeCorrelationId);
-        exhaustedEntry.StructuredState["MessageIds"]!.ToString().ShouldNotBeNull().ShouldContain("evt-config");
-        exhaustedEntry.StructuredState["EventTypes"]!.ToString().ShouldNotBeNull().ShouldContain(nameof(TenantConfigurationSet));
-    }
-
-    [Fact]
-    public async Task TenantDetail_RetryExhaustion_BoundsLoggedMessageIdsAndEventTypesAsync()
-    {
-        var fixture = new ProjectionWriteConformanceFixture();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
-        {
-            fixture.StateStore.EnqueueRead<TenantReadModel>(
-                ProjectionWriteConformanceFixture.TenantProjectionKey,
-                null,
-                $"tenant-etag-{attempt + 1}");
-            fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantProjectionKey, false);
-        }
-
-        ProjectionEventDto[] events = [.. Enumerable.Range(0, 25).Select(i => new ProjectionEventDto(
-            $"Synthetic.EventType{i}",
-            Encoding.UTF8.GetBytes("{}"),
-            "json",
-            1,
-            new DateTimeOffset(2026, 5, 14, 10, 0, 0, TimeSpan.Zero).AddSeconds(i),
-            "corr-bounded",
-            $"evt-{i:00}",
-            "actor-safe"))];
-        ProjectionRequest request = ProjectionWriteConformanceFixture.CreateRequest(events);
-
-        _ = await Should.ThrowAsync<InvalidOperationException>(
-            () => fixture.RunProjectionHandlerAsync(request));
-
-        CapturedLog exhaustedEntry = fixture.GetLogEntries(RetryExhaustedEventIdInt).Single();
-        exhaustedEntry.StructuredState.ShouldNotBeNull();
-        string messageIds = exhaustedEntry.StructuredState!["MessageIds"]?.ToString() ?? string.Empty;
-        string eventTypes = exhaustedEntry.StructuredState["EventTypes"]?.ToString() ?? string.Empty;
-
-        messageIds.ShouldContain("evt-00");
-        messageIds.ShouldContain("evt-19");
-        messageIds.ShouldContain("+5 more");
-        messageIds.ShouldNotContain("evt-20");
-        eventTypes.ShouldContain("Synthetic.EventType0");
-        eventTypes.ShouldContain("Synthetic.EventType7");
-        eventTypes.ShouldContain("+17 more");
-        eventTypes.ShouldNotContain("Synthetic.EventType8");
-    }
-
-    [Fact]
-    public async Task TenantIndex_RetryExhaustion_BoundsLoggedMessageIdsAndEventTypesAsync()
-    {
-        var fixture = new ProjectionWriteConformanceFixture();
-        fixture.EnqueueSuccessfulTenantDetailSave();
-        fixture.EnqueueSuccessfulAuditSave();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
-        {
-            fixture.StateStore.EnqueueRead<TenantIndexReadModel>(
-                ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
-                null,
-                $"index-etag-{attempt + 1}");
-            fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, false);
-        }
-
-        ProjectionEventDto[] events = [.. Enumerable.Range(0, 25).Select(i => new ProjectionEventDto(
-            $"Synthetic.IndexEventType{i}",
-            Encoding.UTF8.GetBytes("{}"),
-            "json",
-            1,
-            new DateTimeOffset(2026, 5, 14, 10, 0, 0, TimeSpan.Zero).AddSeconds(i),
-            "corr-index-bounded",
-            $"idx-evt-{i:00}",
-            "actor-safe"))];
-        ProjectionRequest request = ProjectionWriteConformanceFixture.CreateRequest(events);
-
-        _ = await Should.ThrowAsync<InvalidOperationException>(
-            () => fixture.RunProjectionHandlerAsync(request));
-
-        CapturedLog exhaustedEntry = fixture.GetLogEntries(RetryExhaustedEventIdInt).Single();
-        exhaustedEntry.StructuredState.ShouldNotBeNull();
-        exhaustedEntry.StructuredState!["StateKeyCategory"].ShouldBe("tenant index");
-        string messageIds = exhaustedEntry.StructuredState["MessageIds"]?.ToString() ?? string.Empty;
-        string eventTypes = exhaustedEntry.StructuredState["EventTypes"]?.ToString() ?? string.Empty;
-
-        messageIds.ShouldContain("idx-evt-00");
-        messageIds.ShouldContain("idx-evt-19");
-        messageIds.ShouldContain("+5 more");
-        messageIds.ShouldNotContain("idx-evt-20");
-        eventTypes.ShouldContain("Synthetic.IndexEventType0");
-        eventTypes.ShouldContain("Synthetic.IndexEventType7");
-        eventTypes.ShouldContain("+17 more");
-        eventTypes.ShouldNotContain("Synthetic.IndexEventType8");
     }
 
     [Fact]
@@ -580,7 +476,7 @@ public class ProjectionWriteConformanceTests
     {
         var fixture = new ProjectionWriteConformanceFixture();
         fixture.EnqueueSuccessfulTenantDetailSave();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        for (int attempt = 0; attempt < ReadModelWritePolicy.DefaultMaxAttempts; attempt++)
         {
             fixture.StateStore.EnqueueRead<TenantAuditReadModel>(
                 ProjectionWriteConformanceFixture.TenantAuditProjectionKey,
@@ -644,19 +540,19 @@ public class ProjectionWriteConformanceTests
 
         fixture.StateStore.MarkTerminalFailure(ProjectionWriteConformanceFixture.TenantAuditProjectionKey);
 
-        exception.Message.ShouldContain("tenant audit");
-        exception.Message.ShouldContain($"{TenantProjectionWritePolicy.MaxAttempts} attempts");
+        exception.Message.ShouldContain(ProjectionWriteConformanceFixture.TenantAuditProjectionKey);
+        exception.Message.ShouldContain($"{ReadModelWritePolicy.DefaultMaxAttempts} attempts");
 
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey)
-            .ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
 
         IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
         IReadOnlyList<CapturedLog> exhausted = fixture.GetLogEntries(RetryExhaustedEventIdInt);
-        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(TenantProjectionWritePolicy.MaxAttempts - 1);
+        conflicts.Count(e => e.Level == LogLevel.Warning).ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts - 1);
         exhausted.Count(e => e.Level == LogLevel.Error).ShouldBe(1);
 
         foreach (CapturedLog entry in fixture.Logger.Entries)
@@ -690,7 +586,7 @@ public class ProjectionWriteConformanceTests
             "tenant audit",
             nameof(TenantAuditReadModel),
             attemptCount: 1,
-            reason: "guarded-save-conflict",
+            reason: "optimistic-concurrency-conflict",
             SafeCorrelationId,
             "audit-msg-00",
             nameof(TenantCreated),
@@ -703,25 +599,12 @@ public class ProjectionWriteConformanceTests
             ProjectionWriteConformanceFixture.StateStoreName,
             "tenant audit",
             nameof(TenantAuditReadModel),
-            TenantProjectionWritePolicy.MaxAttempts,
+            ReadModelWritePolicy.DefaultMaxAttempts,
             "retry-exhausted",
             SafeCorrelationId,
             "audit-msg-19",
             "Synthetic.AuditEventType4",
             "TenantProjectionHandler.ProjectAsync:tenant-1");
-
-        string messageIds = exhaustedEntry.StructuredState!["MessageIds"]?.ToString() ?? string.Empty;
-        string eventTypes = exhaustedEntry.StructuredState["EventTypes"]?.ToString() ?? string.Empty;
-        messageIds.ShouldContain("audit-msg-00");
-        messageIds.ShouldContain("audit-msg-19");
-        messageIds.ShouldContain("+8 more");
-        messageIds.ShouldNotContain("audit-msg-20");
-        eventTypes.ShouldContain(nameof(TenantCreated));
-        eventTypes.ShouldContain(nameof(TenantConfigurationSet));
-        eventTypes.ShouldContain(nameof(UserAddedToTenant));
-        eventTypes.ShouldContain("Synthetic.AuditEventType4");
-        eventTypes.ShouldContain("+20 more");
-        eventTypes.ShouldNotContain("Synthetic.AuditEventType5");
     }
 
     [Fact]
@@ -787,8 +670,6 @@ public class ProjectionWriteConformanceTests
         secondAuditSave.StoreName.ShouldBe(ProjectionWriteConformanceFixture.StateStoreName);
         firstAuditSave.ETag.ShouldBe("audit-etag-1");
         secondAuditSave.ETag.ShouldBe("audit-etag-2");
-        firstAuditSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
-        secondAuditSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
         fixture.StateStore.PlainSaveAttempts.ShouldBeEmpty();
 
         SaveAttempt finalAuditSave = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, 1);
@@ -814,7 +695,7 @@ public class ProjectionWriteConformanceTests
             "tenant audit",
             nameof(TenantAuditReadModel),
             attemptCount: 1,
-            reason: "guarded-save-conflict",
+            reason: "optimistic-concurrency-conflict",
             "corr-1",
             "evt-added",
             nameof(UserAddedToTenant),
@@ -828,7 +709,7 @@ public class ProjectionWriteConformanceTests
         var firstFixture = new ProjectionWriteConformanceFixture();
         firstFixture.EnqueueSuccessfulTenantDetailSave();
         firstFixture.EnqueueSuccessfulAuditSave();
-        for (int attempt = 0; attempt < TenantProjectionWritePolicy.MaxAttempts; attempt++)
+        for (int attempt = 0; attempt < ReadModelWritePolicy.DefaultMaxAttempts; attempt++)
         {
             firstFixture.StateStore.EnqueueRead<TenantIndexReadModel>(
                 ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
@@ -1114,21 +995,19 @@ public class ProjectionWriteConformanceTests
         string expectedTenantId = ProjectionWriteConformanceFixture.TenantId,
         string expectedAggregateId = ProjectionWriteConformanceFixture.TenantId)
     {
+        // The platform ReadModelWritePolicy emits a leaner, secret-safe diagnostic set (A8): it never logs
+        // payload-derived message ids or event types, so the per-event/operation-context parameters are no
+        // longer asserted (kept on the signature so call sites read self-documentingly).
+        _ = (expectedMessageId, expectedEventType, operationContext, expectedTenantId, expectedAggregateId);
+
         entry.Level.ShouldBe(expectedLevel);
         entry.StructuredState.ShouldNotBeNull();
         entry.StructuredState!["StateStoreName"].ShouldBe(stateStoreName);
-        entry.StructuredState["StateKeyCategory"].ShouldBe(stateKeyCategory);
-        entry.StructuredState["TenantId"].ShouldBe(expectedTenantId);
-        entry.StructuredState["Domain"].ShouldBe("tenants");
-        entry.StructuredState["AggregateId"].ShouldBe(expectedAggregateId);
+        entry.StructuredState["Category"].ShouldBe(stateKeyCategory);
         entry.StructuredState["ProjectionType"].ShouldBe(projectionType);
-        entry.StructuredState["CausationIdStatus"].ShouldBe("unavailable-from-projection-dto");
         entry.StructuredState["AttemptCount"].ShouldBe(attemptCount);
-        entry.StructuredState["MaxAttempts"].ShouldBe(TenantProjectionWritePolicy.MaxAttempts);
-        entry.StructuredState["OperationContext"].ShouldBe(operationContext);
+        entry.StructuredState["MaxAttempts"].ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         entry.StructuredState["Reason"].ShouldBe(reason);
         entry.StructuredState["CorrelationId"].ShouldBe(correlationId);
-        entry.StructuredState["MessageIds"]!.ToString().ShouldNotBeNull().ShouldContain(expectedMessageId);
-        entry.StructuredState["EventTypes"]!.ToString().ShouldNotBeNull().ShouldContain(expectedEventType);
     }
 }

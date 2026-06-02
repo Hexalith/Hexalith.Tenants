@@ -1,22 +1,16 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-using Dapr.Actors;
-using Dapr.Actors.Runtime;
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.EventStore.Server.Actors;
-using Hexalith.EventStore.Server.Queries;
-using Hexalith.Tenants.Actors;
 using Hexalith.Tenants.Contracts.Enums;
-using Hexalith.Tenants.Queries;
+using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Server.Tests.Support;
 using Hexalith.Tenants.Telemetry;
 
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -25,6 +19,10 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Server.Tests.Telemetry;
 
+/// <summary>
+/// Telemetry coverage for the tenant query handlers (formerly the <c>TenantsProjectionActor</c>): the
+/// span + duration metric emitted by <c>TenantQueryHandlerBase</c> on success, forbidden, and failure.
+/// </summary>
 [Collection("Telemetry")]
 public class TenantsProjectionActorTelemetryTests : IDisposable {
     private readonly ActivityListener _activityListener;
@@ -59,16 +57,14 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
     [Fact]
     public async Task QueryAsync_KnownQuery_ShouldEmitSpanAndMetric() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
+        IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupTenantState(
-            daprClient,
+            store,
             "tenant-1",
             CreateTenantReadModel(members: new() { ["user-1"] = TenantRole.TenantOwner }));
-        SetupNoGlobalAdmin(daprClient);
+        SetupNoGlobalAdmin(store);
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
-
-        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant"));
+        QueryResult result = await ExecuteAsync(store, CreateEnvelope("get-tenant"));
 
         result.Success.ShouldBeTrue();
         _activities.Count.ShouldBeGreaterThanOrEqualTo(1);
@@ -97,31 +93,11 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
     }
 
     [Fact]
-    public async Task QueryAsync_UnknownQuery_ShouldSanitizeMetricDimension() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        TenantsProjectionActor actor = CreateActor(daprClient);
-
-        QueryResult result = await actor.QueryAsync(CreateEnvelope("unknown-query"));
-
-        result.Success.ShouldBeFalse();
-        Activity activity = FindActivity("unknown-query");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("unknown-query");
-
-        (string Name, double Value, KeyValuePair<string, object?>[] Tags) = FindMetric(
-            "tenants.projection.query.duration",
-            tags => HasTag(tags, "query_type", "unknown") && HasTag(tags, "outcome", "unknown-query"));
-        Dictionary<string, object?> tags = Tags.ToDictionary(t => t.Key, t => t.Value);
-        tags["query_type"].ShouldBe("unknown");
-        tags["outcome"].ShouldBe("unknown-query");
-    }
-
-    [Fact]
     public async Task QueryAsync_ForbiddenQueryResult_ShouldRecordForbiddenOutcome() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        SetupNoGlobalAdmin(daprClient);
-        TenantsProjectionActor actor = CreateActor(daprClient);
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupNoGlobalAdmin(store);
 
-        QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant", userId: "user-2"));
+        QueryResult result = await ExecuteAsync(store, CreateEnvelope("get-tenant", userId: "user-2"));
 
         result.Success.ShouldBeFalse();
         Activity activity = FindActivity("get-tenant");
@@ -134,15 +110,13 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
     [Fact]
     public async Task QueryAsync_WhenHandlerThrows_ShouldMarkActivityAsErrorAndRecordMetric() {
-        DaprClient daprClient = Substitute.For<DaprClient>();
-        _ = daprClient.GetStateAsync<TenantReadModel>(
-                TenantsProjectionActor.StateStoreName,
-                TenantsProjectionActor.TenantProjectionKeyPrefix + "tenant-1")
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        _ = store.GetAsync<TenantReadModel>(
+                TenantQueryHandlerBase.StateStoreName,
+                TenantQueryHandlerBase.TenantProjectionKeyPrefix + "tenant-1")
             .ThrowsAsync(new HttpRequestException("State store unavailable"));
 
-        TenantsProjectionActor actor = CreateActor(daprClient);
-
-        _ = await Should.ThrowAsync<HttpRequestException>(() => actor.QueryAsync(CreateEnvelope("get-tenant")));
+        _ = await Should.ThrowAsync<HttpRequestException>(() => ExecuteAsync(store, CreateEnvelope("get-tenant")));
 
         Activity activity = FindActivity("get-tenant");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
@@ -166,6 +140,12 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
     private static bool HasTag(KeyValuePair<string, object?>[] tags, string key, object? value)
         => tags.Any(tag => tag.Key == key && Equals(tag.Value, value));
+
+    private static Task<QueryResult> ExecuteAsync(IReadModelStore store, QueryEnvelope envelope)
+        => TenantQueryTestHarness.ExecuteAsync(store, CreateCursorCodec(), envelope);
+
+    private static IQueryCursorCodec CreateCursorCodec()
+        => new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.QueryCursor.v1");
 
     private static TenantReadModel CreateTenantReadModel(
         string tenantId = "tenant-1",
@@ -198,22 +178,13 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
             userId: userId,
             entityId: entityId);
 
-    private static TenantsProjectionActor CreateActor(DaprClient daprClient) {
-        var host = ActorHost.CreateForTest<TenantsProjectionActor>(
-            new ActorTestOptions { ActorId = new ActorId("test-actor") });
-        IETagService eTagService = Substitute.For<IETagService>();
-        ILogger<TenantsProjectionActor> logger = NullLogger<TenantsProjectionActor>.Instance;
-        ITenantQueryCursorCodec cursorCodec = new TenantQueryCursorCodec(new EphemeralDataProtectionProvider());
-        return new TenantsProjectionActor(host, eTagService, daprClient, cursorCodec, logger);
-    }
+    private static void SetupTenantState(IReadModelStore store, string tenantId, TenantReadModel model) => store.GetAsync<TenantReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantProjectionKeyPrefix + tenantId)
+            .Returns(Task.FromResult(new ReadModelEntry<TenantReadModel>(model, "etag-1")));
 
-    private static void SetupTenantState(DaprClient daprClient, string tenantId, TenantReadModel model) => daprClient.GetStateAsync<TenantReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.TenantProjectionKeyPrefix + tenantId)
-            .Returns(Task.FromResult(model)!);
-
-    private static void SetupNoGlobalAdmin(DaprClient daprClient) => daprClient.GetStateAsync<GlobalAdministratorReadModel>(
-            TenantsProjectionActor.StateStoreName,
-            TenantsProjectionActor.GlobalAdminProjectionKey)
-            .Returns(Task.FromResult<GlobalAdministratorReadModel>(null!)!);
+    private static void SetupNoGlobalAdmin(IReadModelStore store) => store.GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey)
+            .Returns(Task.FromResult(new ReadModelEntry<GlobalAdministratorReadModel>(null, null)));
 }

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Telemetry;
@@ -17,7 +16,7 @@ namespace Hexalith.Tenants.Projections;
 /// requested <see cref="ProjectionRequest.Domain"/>. Unknown domains fail closed with
 /// <see cref="StatusCodes.Status400BadRequest"/> instead of silently being projected as tenants.
 /// </summary>
-public sealed partial class ProjectionDispatcher(DaprClient daprClient, ILoggerFactory? loggerFactory = null) {
+public sealed partial class ProjectionDispatcher(IReadModelStore store, ILoggerFactory? loggerFactory = null) {
     public const string TenantsDomain = "tenants";
     public const string GlobalAdministratorsDomain = "global-administrators";
 
@@ -77,7 +76,7 @@ public sealed partial class ProjectionDispatcher(DaprClient daprClient, ILoggerF
             switch (request.Domain) {
                 case TenantsDomain:
                     ProjectionResponse tenantsResponse = await new TenantProjectionHandler(
-                        daprClient,
+                        store,
                         _loggerFactory.CreateLogger<TenantProjectionHandler>())
                         .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                     outcome = CompletedOutcome;
@@ -93,7 +92,7 @@ public sealed partial class ProjectionDispatcher(DaprClient daprClient, ILoggerF
                             title: "Invalid global administrator projection identity");
                     }
 
-                    ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(daprClient)
+                    ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(store)
                         .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                     outcome = CompletedOutcome;
                     return Results.Ok(globalAdminResponse);
@@ -194,7 +193,7 @@ public sealed partial class ProjectionDispatcher(DaprClient daprClient, ILoggerF
 
     private static bool IsRetryExhausted(Exception ex) =>
         ex is InvalidOperationException
-        && ex.Message.Contains("optimistic concurrency retry limit", StringComparison.Ordinal);
+        && ex.Message.Contains("optimistic-concurrency retry limit", StringComparison.Ordinal);
 
     [LoggerMessage(
         EventId = 100301,

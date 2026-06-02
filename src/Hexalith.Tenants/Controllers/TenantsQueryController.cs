@@ -1,32 +1,35 @@
 using System.Diagnostics;
 using System.Text.Json;
 
+using Hexalith.EventStore.Contracts.Authorization;
 using Hexalith.EventStore.Contracts.Problems;
-using Hexalith.EventStore.Server.Pipeline.Queries;
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 
-using MediatR;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using IQueryCursorCodec = Hexalith.EventStore.Client.Queries.IQueryCursorCodec;
 
 namespace Hexalith.Tenants.Controllers;
 
 /// <summary>
-/// Thin REST controller that translates GET endpoints into SubmitQuery MediatR dispatches.
-/// Query logic and authorization live in <see cref="Actors.TenantsProjectionActor"/>.
+/// Thin REST controller that translates GET endpoints into in-process query dispatches via the platform
+/// <see cref="DomainQueryDispatcher"/>. Query logic and authorization live in the per-query
+/// <see cref="Hexalith.Tenants.Queries.Handlers.TenantQueryHandlerBase"/> implementations.
 /// </summary>
 [ApiController]
 [Authorize]
 [Route("api/tenants")]
 [Tags("Tenants")]
 public sealed partial class TenantsQueryController(
-    IMediator mediator,
-    ITenantQueryCursorCodec cursorCodec,
+    IQueryCursorCodec cursorCodec,
     ILogger<TenantsQueryController> logger) : ControllerBase {
+    private const string SystemTenant = "system";
     private static readonly System.Text.RegularExpressions.Regex _identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
@@ -47,19 +50,17 @@ public sealed partial class TenantsQueryController(
             return Unauthorized();
         }
 
-        var query = new SubmitQuery(
-            Tenant: "system",
-            Domain: GetTenantQuery.Domain,
-            AggregateId: tenantId,
-            QueryType: GetTenantQuery.QueryType,
-            Payload: [],
-            CorrelationId: GetCorrelationId(),
-            UserId: userId,
-            EntityId: tenantId,
-            ProjectionType: TenantProjectionRouting.ActorTypeName);
+        var envelope = new QueryEnvelope(
+            tenantId: SystemTenant,
+            domain: GetTenantQuery.Domain,
+            aggregateId: tenantId,
+            queryType: GetTenantQuery.QueryType,
+            payload: [],
+            correlationId: GetCorrelationId(),
+            userId: userId,
+            entityId: tenantId);
 
-        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
-        return Ok(result.Payload);
+        return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -119,19 +120,17 @@ public sealed partial class TenantsQueryController(
 
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { from, to, category = auditCategory?.ToString(), cursor, pageSize });
 
-        var query = new SubmitQuery(
-            Tenant: "system",
-            Domain: GetTenantAuditQuery.Domain,
-            AggregateId: tenantId,
-            QueryType: GetTenantAuditQuery.QueryType,
-            Payload: payloadBytes,
-            CorrelationId: correlationId,
-            UserId: userId,
-            EntityId: tenantId,
-            ProjectionType: TenantProjectionRouting.ActorTypeName);
+        var envelope = new QueryEnvelope(
+            tenantId: SystemTenant,
+            domain: GetTenantAuditQuery.Domain,
+            aggregateId: tenantId,
+            queryType: GetTenantAuditQuery.QueryType,
+            payload: payloadBytes,
+            correlationId: correlationId,
+            userId: userId,
+            entityId: tenantId);
 
-        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
-        return Ok(result.Payload);
+        return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -172,19 +171,17 @@ public sealed partial class TenantsQueryController(
 
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
-        var query = new SubmitQuery(
-            Tenant: "system",
-            Domain: GetTenantUsersQuery.Domain,
-            AggregateId: tenantId,
-            QueryType: GetTenantUsersQuery.QueryType,
-            Payload: payloadBytes,
-            CorrelationId: correlationId,
-            UserId: userId,
-            EntityId: tenantId,
-            ProjectionType: TenantProjectionRouting.ActorTypeName);
+        var envelope = new QueryEnvelope(
+            tenantId: SystemTenant,
+            domain: GetTenantUsersQuery.Domain,
+            aggregateId: tenantId,
+            queryType: GetTenantUsersQuery.QueryType,
+            payload: payloadBytes,
+            correlationId: correlationId,
+            userId: userId,
+            entityId: tenantId);
 
-        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
-        return Ok(result.Payload);
+        return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -224,19 +221,17 @@ public sealed partial class TenantsQueryController(
 
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
-        var query = new SubmitQuery(
-            Tenant: "system",
-            Domain: GetUserTenantsQuery.Domain,
-            AggregateId: "index",
-            QueryType: GetUserTenantsQuery.QueryType,
-            Payload: payloadBytes,
-            CorrelationId: correlationId,
-            UserId: authenticatedUserId,
-            EntityId: userId,
-            ProjectionType: TenantProjectionRouting.ActorTypeName);
+        var envelope = new QueryEnvelope(
+            tenantId: SystemTenant,
+            domain: GetUserTenantsQuery.Domain,
+            aggregateId: "index",
+            queryType: GetUserTenantsQuery.QueryType,
+            payload: payloadBytes,
+            correlationId: correlationId,
+            userId: authenticatedUserId,
+            entityId: userId);
 
-        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
-        return Ok(result.Payload);
+        return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -270,26 +265,107 @@ public sealed partial class TenantsQueryController(
 
         byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
 
-        var query = new SubmitQuery(
-            Tenant: "system",
-            Domain: ListTenantsQuery.Domain,
-            AggregateId: "index",
-            QueryType: ListTenantsQuery.QueryType,
-            Payload: payloadBytes,
-            CorrelationId: correlationId,
-            UserId: userId,
-            EntityId: userId,
-            ProjectionType: TenantProjectionRouting.ActorTypeName);
+        var envelope = new QueryEnvelope(
+            tenantId: SystemTenant,
+            domain: ListTenantsQuery.Domain,
+            aggregateId: "index",
+            queryType: ListTenantsQuery.QueryType,
+            payload: payloadBytes,
+            correlationId: correlationId,
+            userId: userId,
+            entityId: userId);
 
-        SubmitQueryResult result = await mediator.Send(query, cancellationToken).ConfigureAwait(false);
-        return Ok(result.Payload);
+        return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
 
     private static bool IsValidIdentifier(string? value)
             => !string.IsNullOrWhiteSpace(value) && _identifierRegex.IsMatch(value);
 
+    // Replicates the platform SubmitQueryHandler error-to-status mapping for in-process dispatch.
+    private static bool IsNotFound(string? errorMessage)
+        => !string.IsNullOrWhiteSpace(errorMessage)
+            && (errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                || errorMessage.Contains("no projection state available", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsNotImplemented(string? errorMessage)
+        => string.Equals(errorMessage, QueryAdapterFailureReason.UnsupportedQueryType, StringComparison.Ordinal)
+            || string.Equals(errorMessage, QueryAdapterFailureReason.UnknownQueryType, StringComparison.Ordinal)
+            || (!string.IsNullOrWhiteSpace(errorMessage)
+                && (errorMessage.Contains("not implemented", StringComparison.OrdinalIgnoreCase)
+                    || errorMessage.Contains("not yet implemented", StringComparison.OrdinalIgnoreCase)));
+
+    private async Task<IActionResult> DispatchAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        QueryResult result = await DomainQueryDispatcher
+            .ExecuteAsync(HttpContext.RequestServices, envelope, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (result.Success) {
+            return Ok(result.GetPayload());
+        }
+
+        string correlationId = envelope.CorrelationId;
+        string? error = result.ErrorMessage;
+
+        if (string.Equals(error, QueryAdapterFailureReason.Forbidden, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(error, "Forbidden", StringComparison.OrdinalIgnoreCase)) {
+            return QueryProblem(
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "You do not have permission to access this resource.",
+                correlationId,
+                AuthorizationFailureReasonExtensions.InsufficientPermission);
+        }
+
+        if (IsNotFound(error)) {
+            return QueryProblem(
+                StatusCodes.Status404NotFound,
+                "Not Found",
+                "The requested resource was not found.",
+                correlationId,
+                reasonCode: null);
+        }
+
+        if (IsNotImplemented(error)) {
+            return QueryProblem(
+                StatusCodes.Status501NotImplemented,
+                "Not Implemented",
+                error!,
+                correlationId,
+                QueryProblemReasonCodes.NotImplemented);
+        }
+
+        return QueryProblem(
+            StatusCodes.Status500InternalServerError,
+            "Query Failed",
+            error ?? "Projection query execution failed.",
+            correlationId,
+            QueryProblemReasonCodes.InternalError);
+    }
+
     private string GetCorrelationId()
         => Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+
+    private IActionResult QueryProblem(int statusCode, string title, string detail, string correlationId, string? reasonCode) {
+        var problemDetails = new ProblemDetails {
+            Status = statusCode,
+            Title = title,
+            Detail = detail,
+            Instance = HttpContext.Request.Path,
+            Extensions =
+            {
+                [GatewayProblemDetailsExtensions.CorrelationId] = correlationId,
+            },
+        };
+
+        if (reasonCode is not null) {
+            problemDetails.Extensions[GatewayProblemDetailsExtensions.ReasonCode] = reasonCode;
+        }
+
+        return new ObjectResult(problemDetails) {
+            StatusCode = statusCode,
+            ContentTypes = { "application/problem+json" },
+        };
+    }
 
     private IActionResult? ValidateSubmittedCursor(
         string? cursor,
@@ -311,22 +387,13 @@ public sealed partial class TenantsQueryController(
             tenantId,
             userId,
             failureReason ?? "unknown");
-        var problemDetails = new ProblemDetails {
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Bad Request",
-            Detail = "Invalid cursor.",
-            Instance = HttpContext.Request.Path,
-            Extensions =
-            {
-                [GatewayProblemDetailsExtensions.CorrelationId] = correlationId,
-                [GatewayProblemDetailsExtensions.ReasonCode] = "invalid-cursor",
-            },
-        };
 
-        return new ObjectResult(problemDetails) {
-            StatusCode = StatusCodes.Status400BadRequest,
-            ContentTypes = { "application/problem+json" },
-        };
+        return QueryProblem(
+            StatusCodes.Status400BadRequest,
+            "Bad Request",
+            "Invalid cursor.",
+            correlationId,
+            "invalid-cursor");
     }
 
     private static partial class Log {

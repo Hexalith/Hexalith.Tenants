@@ -1,7 +1,6 @@
 using System.Text.Json;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
@@ -181,7 +180,6 @@ public class TenantProjectionHandlerTests {
 
         SaveAttempt tenantSave = stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey);
         tenantSave.ETag.ShouldBe("tenant-etag-1");
-        tenantSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
         TenantReadModel saved = (TenantReadModel)tenantSave.Value;
         saved.ShouldBeSameAs(existing);
         saved.Name.ShouldBe("Acme");
@@ -201,7 +199,6 @@ public class TenantProjectionHandlerTests {
 
         SaveAttempt tenantSave = stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey);
         tenantSave.ETag.ShouldBe(string.Empty);
-        tenantSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
     }
 
     [Fact]
@@ -267,7 +264,7 @@ public class TenantProjectionHandlerTests {
         InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(
             () => CreateHandler(stateStore).ProjectAsync(request));
 
-        exception.Message.ShouldContain("tenant read-model");
+        exception.Message.ShouldContain(TenantProjectionKey);
         stateStore.ReadCalls.Count(c => c.Key == TenantProjectionKey).ShouldBe(3);
         stateStore.TrySaveAttempts.Count(a => a.Key == TenantProjectionKey).ShouldBe(3);
         stateStore.TrySaveAttempts.ShouldAllBe(a => a.Key == TenantProjectionKey);
@@ -290,7 +287,7 @@ public class TenantProjectionHandlerTests {
         InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(
             () => CreateHandler(stateStore).ProjectAsync(request));
 
-        exception.Message.ShouldContain("tenant index");
+        exception.Message.ShouldContain(TenantIndexKey);
         stateStore.TrySaveAttempts.Count(a => a.Key == TenantProjectionKey).ShouldBe(1);
         stateStore.TrySaveAttempts.Count(a => a.Key == TenantIndexKey).ShouldBe(3);
     }
@@ -316,7 +313,6 @@ public class TenantProjectionHandlerTests {
         SaveAttempt auditSave = stateStore.TrySaveAttempts.Single(a => a.Key == TenantAuditProjectionKey);
         auditSave.StoreName.ShouldBe(StateStoreName);
         auditSave.ETag.ShouldBe(string.Empty);
-        auditSave.StateOptions.Concurrency.ShouldBe(ConcurrencyMode.FirstWrite);
         auditSave.Value.ShouldBeOfType<TenantAuditReadModel>();
         TenantAuditReadModel model = (TenantAuditReadModel)auditSave.Value;
         model.Entries.Count.ShouldBe(1);
@@ -376,7 +372,7 @@ public class TenantProjectionHandlerTests {
         InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(
             () => CreateHandler(stateStore).ProjectAsync(request));
 
-        exception.Message.ShouldContain("tenant audit");
+        exception.Message.ShouldContain(TenantAuditProjectionKey);
         stateStore.ReadCalls.Count(c => c.Key == TenantAuditProjectionKey).ShouldBe(3);
         stateStore.TrySaveAttempts.Count(a => a.Key == TenantAuditProjectionKey).ShouldBe(3);
         stateStore.TrySaveAttempts
@@ -633,7 +629,7 @@ public class TenantProjectionHandlerTests {
         Entries = [.. entries],
     };
 
-    private sealed class ScriptedTenantProjectionStateStore : ITenantProjectionStateStore {
+    private sealed class ScriptedTenantProjectionStateStore : IReadModelStore {
         private readonly Dictionary<string, Queue<object>> _reads = [];
         private readonly Dictionary<string, Queue<bool>> _trySaveResults = [];
         private CancellationTokenSource? _cancelAfterTrySaveSource;
@@ -652,7 +648,7 @@ public class TenantProjectionHandlerTests {
                 _reads[key] = queue;
             }
 
-            queue.Enqueue(new ProjectionStateRead<TValue>(value, etag));
+            queue.Enqueue(new ReadModelEntry<TValue>(value, etag));
         }
 
         public void EnqueueTrySave(string key, bool result) {
@@ -672,45 +668,34 @@ public class TenantProjectionHandlerTests {
             _cancelAfterTrySaveSource = cancellationSource;
         }
 
-        public Task<ProjectionStateRead<TValue>> GetStateAndETagAsync<TValue>(
+        public Task<ReadModelEntry<TValue>> GetAsync<TValue>(
             string storeName,
             string key,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
             where TValue : class {
             ReadCalls.Add(new ReadCall(storeName, key, typeof(TValue), cancellationToken));
             Queue<object> queue = _reads[key];
-            return Task.FromResult((ProjectionStateRead<TValue>)queue.Dequeue());
+            return Task.FromResult((ReadModelEntry<TValue>)queue.Dequeue());
         }
 
-        public Task SaveStateAsync<TValue>(
+        public Task SaveAsync<TValue>(
             string storeName,
             string key,
             TValue value,
-            StateOptions? stateOptions = null,
-            IReadOnlyDictionary<string, string>? metadata = null,
             CancellationToken cancellationToken = default)
             where TValue : class {
-            PlainSaveAttempts.Add(new SaveAttempt(
-                storeName,
-                key,
-                value,
-                string.Empty,
-                stateOptions ?? new StateOptions(),
-                typeof(TValue),
-                cancellationToken));
+            PlainSaveAttempts.Add(new SaveAttempt(storeName, key, value, string.Empty, typeof(TValue), cancellationToken));
             return Task.CompletedTask;
         }
 
-        public Task<bool> TrySaveStateAsync<TValue>(
+        public Task<bool> TrySaveAsync<TValue>(
             string storeName,
             string key,
             TValue value,
             string etag,
-            StateOptions stateOptions,
-            IReadOnlyDictionary<string, string>? metadata = null,
             CancellationToken cancellationToken = default)
             where TValue : class {
-            TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, stateOptions, typeof(TValue), cancellationToken));
+            TrySaveAttempts.Add(new SaveAttempt(storeName, key, value, etag, typeof(TValue), cancellationToken));
             Queue<bool> queue = _trySaveResults[key];
             bool result = queue.Dequeue();
             if (string.Equals(_cancelAfterTrySaveKey, key, StringComparison.Ordinal)) {
@@ -728,7 +713,6 @@ public class TenantProjectionHandlerTests {
         string Key,
         object Value,
         string ETag,
-        StateOptions StateOptions,
         Type ValueType,
         CancellationToken CancellationToken);
 }

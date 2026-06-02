@@ -1,7 +1,6 @@
 using System.Text.Json;
 
-using Dapr.Client;
-
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Server.Projections;
@@ -10,13 +9,14 @@ namespace Hexalith.Tenants.Projections;
 
 /// <summary>
 /// Handles global-administrator projection requests, rebuilding the singleton read model
-/// from the full event history supplied by EventStore and writing it to the DAPR state store.
+/// from the full event history supplied by EventStore and writing it through the platform
+/// <see cref="IReadModelStore"/>.
 /// </summary>
 /// <remarks>
-/// Domain authorization key consumed by <c>TenantsProjectionActor.IsGlobalAdminAsync</c>:
+/// Domain authorization key consumed by the tenant query handlers:
 /// <c>projection:global-administrators:singleton</c>. Any other key is bogus for this domain.
 /// </remarks>
-public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) {
+public sealed class GlobalAdministratorProjectionHandler(IReadModelStore store) {
     public const string StateStoreName = "statestore";
     public const string GlobalAdministratorsProjectionKey = "projection:global-administrators:singleton";
     public const string GlobalAdministratorsAggregateId = "global-administrators";
@@ -26,6 +26,8 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
     };
+
+    private readonly IReadModelStore _store = store ?? throw new ArgumentNullException(nameof(store));
 
     public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
@@ -51,18 +53,18 @@ public sealed class GlobalAdministratorProjectionHandler(DaprClient daprClient) 
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        await daprClient.SaveStateAsync(
+        await _store.SaveAsync(
             StateStoreName,
             GlobalAdministratorsProjectionKey,
             state,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await daprClient.SaveStateAsync(
+        await _store.SaveAsync(
             StateStoreName,
             TenantAuditProjectionKeyPrefix + request.TenantId,
             auditState,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         return new ProjectionResponse(

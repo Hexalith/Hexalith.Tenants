@@ -1,3 +1,4 @@
+using Hexalith.EventStore.Client.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
@@ -34,7 +35,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_accepts_existing_list_tenants_query_scope_and_logical_position_shape() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string scope = TenantQueryCursorScopes.ListTenants("user-1");
         string cursor = codec.Encode(ListTenantsQuery.QueryType, scope, "tenant-001");
 
@@ -47,7 +48,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void Encode_does_not_expose_raw_position() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
 
         string cursor = codec.Encode("list-tenants", TenantQueryCursorScopes.ListTenants("user-1"), "tenant-001");
 
@@ -58,7 +59,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void Encode_does_not_expose_raw_scope_segments_or_audit_position() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string scope = TenantQueryCursorScopes.GetTenantAudit(
             "tenant-secret",
             new DateTimeOffset(2026, 5, 14, 10, 0, 0, TimeSpan.Zero),
@@ -75,7 +76,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_returns_position_for_matching_query_and_scope() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string scope = TenantQueryCursorScopes.GetTenantUsers("tenant-1");
         string cursor = codec.Encode("get-tenant-users", scope, "user-7");
 
@@ -88,7 +89,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_rejects_wrong_query_type() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string cursor = codec.Encode("list-tenants", TenantQueryCursorScopes.ListTenants("user-1"), "tenant-001");
 
         bool decoded = codec.TryDecode(cursor, "get-tenant-users", TenantQueryCursorScopes.GetTenantUsers("tenant-1"), out string? position, out string? failureReason);
@@ -100,7 +101,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_rejects_wrong_scope() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string cursor = codec.Encode("list-tenants", TenantQueryCursorScopes.ListTenants("user-1"), "tenant-001");
 
         bool decoded = codec.TryDecode(cursor, "list-tenants", TenantQueryCursorScopes.ListTenants("user-2"), out string? position, out string? failureReason);
@@ -112,7 +113,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_rejects_malformed_cursor() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
 
         bool decoded = codec.TryDecode("not-a-protected-cursor", "list-tenants", TenantQueryCursorScopes.ListTenants("user-1"), out string? position, out string? failureReason);
 
@@ -123,7 +124,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_rejects_cursor_above_length_cap() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string oversized = new('A', 4097);
 
         bool decoded = codec.TryDecode(oversized, "list-tenants", TenantQueryCursorScopes.ListTenants("user-1"), out string? position, out string? failureReason);
@@ -135,7 +136,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_rejects_tampered_cursor() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
         string scope = TenantQueryCursorScopes.GetTenantAudit("tenant-1", null, null, null);
         string cursor = codec.Encode("get-tenant-audit", scope, "00000000000000000001:evt-1");
 
@@ -156,8 +157,8 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_rejects_cursor_after_data_protection_key_rotation_equivalent() {
-        ITenantQueryCursorCodec originalCodec = CreateCodec();
-        ITenantQueryCursorCodec rotatedKeyCodec = CreateCodec();
+        IQueryCursorCodec originalCodec = CreateCodec();
+        IQueryCursorCodec rotatedKeyCodec = CreateCodec();
         string scope = TenantQueryCursorScopes.ListTenants("user-1");
         string cursor = originalCodec.Encode(ListTenantsQuery.QueryType, scope, "tenant-001");
 
@@ -170,7 +171,7 @@ public class TenantQueryCursorCodecTests {
 
     [Fact]
     public void TryDecode_returns_true_with_null_failure_reason_for_empty_cursor() {
-        ITenantQueryCursorCodec codec = CreateCodec();
+        IQueryCursorCodec codec = CreateCodec();
 
         bool decoded = codec.TryDecode(null, "list-tenants", TenantQueryCursorScopes.ListTenants("user-1"), out string? position, out string? failureReason);
 
@@ -179,6 +180,6 @@ public class TenantQueryCursorCodecTests {
         failureReason.ShouldBeNull();
     }
 
-    private static ITenantQueryCursorCodec CreateCodec()
-        => new TenantQueryCursorCodec(new EphemeralDataProtectionProvider());
+    private static IQueryCursorCodec CreateCodec()
+        => new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.QueryCursor.v1");
 }

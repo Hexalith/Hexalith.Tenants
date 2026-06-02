@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-using Hexalith.Tenants.Actors;
+using Hexalith.Tenants.Queries.Handlers;
 
 using Shouldly;
 
@@ -21,8 +21,8 @@ namespace Hexalith.Tenants.Server.Tests.Architecture;
 /// <para>
 /// In-process state that DOES exist is non-authoritative and allowed: static <c>readonly</c>
 /// <see cref="System.Text.Json.JsonSerializerOptions"/> / source-generated logger delegates
-/// (configuration-only), the per-actor-lifetime ETag payload cache and orphan-log dedup set inside
-/// <c>TenantsProjectionActor</c> (rebuilt from the durable state store on activation), and the
+/// (configuration-only), the per-request orphan-log dedup set inside the scoped tenant query
+/// handlers (recreated per request), and the
 /// client-side <c>InMemoryTenantProjectionStore</c> / reflection cache in the separate
 /// <c>Hexalith.Tenants.Client</c> consumer assembly. None hold authoritative tenant state.
 /// </para>
@@ -30,7 +30,7 @@ namespace Hexalith.Tenants.Server.Tests.Architecture;
 public class StatelessHostStateTests {
     [Fact]
     public void TenantsHostAssembly_HasNoWritableStaticFields_HoldingInstanceLocalState() {
-        Assembly hostAssembly = typeof(TenantsProjectionActor).Assembly;
+        Assembly hostAssembly = typeof(TenantQueryHandlerBase).Assembly;
 
         List<string> writableStaticFields = hostAssembly
             .GetTypes()
