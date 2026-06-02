@@ -278,6 +278,106 @@ Live prerequisites were not available in this developer environment. Exact safe 
 - Safe dependency categories recorded: DAPR sidecar, Redis, placement, scheduler, pub/sub component, command-status state, event type, topic name, aggregate-local sequence, and message/correlation identifier category.
 - Evidence intentionally records dates, workflow, commands/classes, pass/fail/skip counts, safe dependency categories, and prerequisite availability only. It does not record raw event payloads, compact JWTs, bearer tokens, signing keys, decoded payloads, production hosts, real tenant/user identifiers, connection strings, or PII.
 
+## Story 7.6E Dev Story - Deployment Readiness Checklist and Evidence Template
+
+**Workflow:** dev-story - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + deterministic source-backed documentation tests
+
+### Scope
+
+Published the consolidated Tenants deployment readiness checklist and reusable evidence template. Story 7.6A-D smoke-test lanes remain the source evidence for auth, DAPR component/service invocation, health/readiness, and pub/sub recovery. This story adds operator-facing consolidation and deterministic documentation tests; it does not add runtime behavior, DAPR topology, auth policy, health semantics, or a Tenants-specific EventStore evidence-validator schema.
+
+### Coverage
+
+- Deployment readiness guide: `docs/deployment-readiness.md` links to production auth readiness, production auth claim contract, quickstart, DAPR deployment templates, event contract, timing, idempotent processing, and the Story 7.6A-D evidence summary.
+- Required controls covered: issuer, audience, token expiration, subject, effective `eventstore:tenant=system`, HTTPS metadata, production signing/authority source, direct/source IdP claim mappings, global-administrator fail-closed behavior, environment variables, DAPR components, service invocation, health endpoints, command path, query path, pub/sub recovery, AppHost/operator prerequisites, no fixed DAPR sidecar ports, and no recursive submodule initialization.
+- Evidence template covered: metadata, run profiles, classifications, per-control rows, live-evidence boundaries, redaction statement, reviewer verdict, and redaction checklist.
+- Support-safe documentation coverage: no compact JWTs, raw bearer tokens, signing keys, decoded token payloads, raw command/event payloads, private hosts, concrete connection strings, real tenant/user identifiers, or PII in the published readiness guide/template.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DeploymentReadinessDocumentationTests|FullyQualifiedName~QuickstartDocumentationTests|FullyQualifiedName~EventPublicationConfigurationTests|FullyQualifiedName~AuthenticationConfigurationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~HealthEndpointsTests|FullyQualifiedName~TenantsQueryControllerIntegrationTests|FullyQualifiedName~CommandApiRuntimeIntegrationTests|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.DeploymentReadinessDocumentationTests -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -class Hexalith.Tenants.Server.Tests.Configuration.AuthenticationConfigurationTests` | Passed: 54 total, 0 errors, 0 failed, 0 skipped. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.HealthEndpointsTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | Passed: 184 total, 0 errors, 0 failed, 0 skipped. |
+| Debug solution build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Full direct xUnit regression suite | Contracts, Client, Testing, Sample, Server, and Integration Debug assemblies with `-parallel none` | Passed: 1,374 total, 0 failed, 28 skipped. Skips were DAPR/performance prerequisite-gated. |
+
+### Live Evidence Boundary
+
+No live production or production-like deployment evidence was collected for Story 7.6E. This story publishes and tests the operator guide/template. Live DAPR/AppHost proof remains governed by the prepared-environment controls and must not be inferred from skipped or deterministic-local tests.
+
+### Notes
+
+- The EventStore operational evidence validator was confirmed to support only `query-operational-evidence/v1` and `signalr-operational-evidence/v1`; the Tenants deployment readiness template is not claimed as validator-supported.
+- Evidence intentionally records commands, class names, pass/fail/skip counts, safe classifications, and the date only. It does not record compact JWTs, bearer tokens, signing keys, decoded payloads, raw command/event payloads, private hosts, concrete connection strings, real tenant/user identifiers, or PII.
+
+## Story 7.6E QA Generate E2E Tests - Deployment Readiness Checklist and Evidence Template
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + deterministic source-backed documentation tests + ASP.NET Core WebApplicationFactory integration tests
+
+### Scope
+
+QA automation pass for Story 7.6E deployment readiness documentation and evidence template. Story 7.6E has no browser UI surface, so browser E2E tests are not applicable. The E2E lane is the existing API/integration smoke evidence for health, protected query, protected command, and DAPR prerequisite diagnostics, plus a new deterministic evidence-summary integrity test.
+
+### Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Published guide and template | `DeploymentReadinessDocumentationTests` pinned required links, controls, metadata, classifications, control rows, redaction checklist, support-safe content, local/production token separation, and the EventStore validator boundary. | No guide/template test gap found. |
+| API/integration readiness evidence | `HealthEndpointsTests`, `TenantsQueryControllerIntegrationTests`, `CommandApiRuntimeIntegrationTests`, and `DaprTestPrerequisiteDiagnosticsTests` already covered the relevant health, command, query, and prerequisite diagnostic evidence lanes referenced by the guide. | No duplicate API test needed. |
+| Evidence summary source lanes | The guide linked `_bmad-output/implementation-artifacts/tests/test-summary.md`, but no deterministic test asserted that Story 7.6A-D source lanes, Story 7.6E validation counts, support-safe terms, and live-evidence boundary language remain present. | Gap found and closed. |
+| Browser UI E2E | Story 7.6E is documentation/evidence-template work with no UI surface. | N/A. |
+
+### Generated Tests
+
+#### Documentation / Evidence Tests
+- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/DeploymentReadinessDocumentationTests.cs` - added `Deployment_readiness_evidence_summary_preserves_story_lanes_and_live_boundaries` to pin Story 7.6A-D source evidence lanes, Story 7.6E validation counts, live-evidence boundary wording, and support-safe evidence wording.
+
+#### API / Integration Tests
+- [x] Existing `tests/Hexalith.Tenants.IntegrationTests/HealthEndpointsTests.cs` revalidated health/readiness endpoint evidence.
+- [x] Existing `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` revalidated protected query readiness evidence.
+- [x] Existing `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` revalidated protected command readiness evidence.
+- [x] Existing `tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprTestPrerequisiteDiagnosticsTests.cs` revalidated DAPR prerequisite diagnostic evidence.
+
+#### E2E Tests
+- [x] Existing API/integration smoke tests are the E2E lane for this non-UI story.
+- [x] Browser UI E2E tests are not applicable because Story 7.6E has no UI surface.
+
+### Coverage
+
+- Documentation artifacts covered: `docs/deployment-readiness.md`, README navigation, EventStore validator boundary, and `_bmad-output/implementation-artifacts/tests/test-summary.md`.
+- Evidence lanes covered: Story 7.6A-D source evidence, Story 7.6E documentation/config validation, focused Server validation counts, focused Integration validation counts, direct xUnit fallback evidence, and live-evidence boundaries.
+- API endpoints covered by revalidated integration lanes: `/alive`, `/ready`, protected Tenants query routes, and protected `POST /api/v1/commands`.
+- Happy paths covered: published guide/template exists and links required sources; protected command/query readiness lanes dispatch with valid auth; healthy readiness returns success in deterministic infrastructure-free checks.
+- Critical error cases covered: invalid auth/authorization command/query paths, unhealthy readiness returning `503`, DAPR prerequisite absence diagnostics, skipped live tests not counted as deployment proof, and support-safe evidence redaction boundaries.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DeploymentReadinessDocumentationTests|FullyQualifiedName~QuickstartDocumentationTests|FullyQualifiedName~EventPublicationConfigurationTests|FullyQualifiedName~AuthenticationConfigurationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~HealthEndpointsTests|FullyQualifiedName~TenantsQueryControllerIntegrationTests|FullyQualifiedName~CommandApiRuntimeIntegrationTests|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.DeploymentReadinessDocumentationTests -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -class Hexalith.Tenants.Server.Tests.Configuration.AuthenticationConfigurationTests` | Passed: 55 total, 0 errors, 0 failed, 0 skipped. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.HealthEndpointsTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | Passed: 184 total, 0 errors, 0 failed, 0 skipped. |
+
+### Checklist Validation
+
+- [x] API/integration tests generated or revalidated where applicable.
+- [x] E2E lane revalidated through existing API/integration smoke tests; browser UI E2E marked N/A.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy paths and critical error cases.
+- [x] Tests use deterministic source-backed assertions and observable HTTP/status/diagnostic assertions; no hardcoded waits or sleeps.
+- [x] Tests are independent and run successfully through the direct xUnit fallback.
+- [x] Summary includes coverage metrics, validation commands, pass/fail/skip counts, safe evidence categories, and the live-evidence boundary.
+
 ## Story 7.6D QA Generate E2E Tests - Pub/Sub Recovery and Catch-Up Evidence
 
 **Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-02

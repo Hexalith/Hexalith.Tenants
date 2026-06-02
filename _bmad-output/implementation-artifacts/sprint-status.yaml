@@ -116,7 +116,7 @@ development_status:
   7-6b-validate-dapr-component-and-service-invocation-smoke-tests: done
   7-6c-validate-health-and-dependency-readiness-smoke-tests: done
   7-6d-validate-pub-sub-recovery-and-catch-up-evidence: done
-  7-6e-publish-the-deployment-readiness-checklist-and-evidence-template: backlog
+  7-6e-publish-the-deployment-readiness-checklist-and-evidence-template: done
   epic-7-retrospective: optional
 
   # Epic 8: Developers Can Adopt Through Documentation and Demo Evidence

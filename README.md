@@ -22,6 +22,8 @@ Get from clone to your first tenant command within 30 minutes when local prerequ
 
 **[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET 10, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
+**[Deployment Readiness](docs/deployment-readiness.md)** — consolidated operator checklist and evidence template for production-like Tenants deployments, covering auth, DAPR, service invocation, health, command/query paths, and pub/sub recovery boundaries.
+
 **[Sample Consuming Service Walkthrough](docs/sample-consuming-service-walkthrough.md)** — source-backed guide for copying the sample service's event subscription, local projection, access-check, and configuration-read patterns.
 
 **[Cross-Aggregate Timing](docs/cross-aggregate-timing.md)** — timing-window and eventual-consistency guidance for command status, event publication, subscriber delivery, local projections, stale reads, diagnostics, and fail-closed consumers.
@@ -70,6 +72,7 @@ samples/
 
 docs/
   quickstart.md                      # Getting started guide
+  deployment-readiness.md            # Deployment checklist and evidence template
   production-auth-claim-contract.md  # Production IdP claim mapping contract
   production-auth-readiness.md       # Deployment auth checklist and smoke-test evidence
   demo.md                            # "Aha Moment" demo walkthrough
