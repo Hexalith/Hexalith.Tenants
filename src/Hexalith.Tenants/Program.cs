@@ -1,3 +1,4 @@
+using Dapr.Actors.Client;
 using Dapr.Client;
 
 using FluentValidation;
@@ -94,6 +95,11 @@ builder.Services.AddMediatR(cfg => {
 // Query/command routing defaults (tests may override via RemoveAll + AddSingleton)
 builder.Services.TryAddScoped<IQueryRouter, QueryRouter>();
 builder.Services.TryAddSingleton<ICommandRouter, CommandRouter>();
+// EventStore's QueryRouter/CommandRouter resolve projection actors through the DAPR weak
+// actor-proxy path, so both constructors require IActorProxyFactory. Tenants hosts no actors
+// itself (AggregateActor lives only in EventStore, per the boundary note above) — it just
+// needs the client-side proxy factory registered to satisfy the routers it wires manually.
+builder.Services.TryAddSingleton<IActorProxyFactory>(_ => new ActorProxyFactory());
 
 // Protected pagination cursor codec (platform A9 abstraction). The purpose string is kept identical
 // to the retired TenantQueryCursorCodec so cursors issued before this refactor remain decodable.
