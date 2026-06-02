@@ -1,5 +1,88 @@
 # Test Automation Summary
 
+## Story 7.6A QA Generate E2E Tests - Production Auth Smoke Tests
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + ASP.NET Core WebApplicationFactory
+
+### Scope
+
+QA automation audit for Story 7.6A production authentication smoke tests on protected Tenants query and command API paths. The story has no browser UI surface, so browser E2E tests are not applicable. Existing deterministic API/integration smoke tests were revalidated instead of duplicating equivalent coverage.
+
+### Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Query auth smoke tests | `TenantsQueryControllerIntegrationTests` covers valid production-like JWT scope, source-claim normalization, missing/malformed/invalid JWTs, wrong issuer/audience, expired tokens, missing/blank/wrong/wrong-cased tenant claims, safe reason codes, `application/problem+json` where applicable, redaction checks, and no query-router dispatch on denied requests. | No test-code gap found. |
+| Command auth smoke tests | `CommandApiRuntimeIntegrationTests` covers `POST /api/v1/commands` with valid `eventstore:tenant=system`, supported source claims, missing tenant claim, global-admin missing tenant claim, blank direct tenant claim with source alias, wrong/wrong-cased tenant, non-`system` request tenant, unrelated permissions, safe reason codes, and no command-router dispatch before auth succeeds. | No test-code gap found. |
+| Production startup/options validation | `AuthenticationConfigurationTests` and `TenantClaimContractTests` cover production OIDC requirements, HTTPS metadata, signing-key separation, environment overrides, source-claim precedence, global-admin fail-closed tenant guard, and support-safe validation messages. | No test-code gap found. |
+| Workflow output evidence | Existing Story 7.6A evidence was recorded as `dev-story`, not this QA workflow. | Gap found and closed in this summary section. |
+
+### Generated Tests
+
+- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` - existing production-like query auth smoke coverage revalidated.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` - existing command API auth smoke coverage revalidated.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/AuthenticationConfigurationTests.cs` - existing production auth configuration validation revalidated.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Authorization/TenantClaimContractTests.cs` - existing tenant-claim contract validation revalidated.
+
+### Coverage
+
+- API endpoints covered: protected query route family and `POST /api/v1/commands`.
+- UI workflows: N/A; Story 7.6A has no UI surface.
+- Happy paths covered: valid direct `eventstore:tenant=system` and supported source-claim normalization reach dispatch.
+- Critical error cases covered: missing/malformed/invalid JWT, wrong issuer, wrong audience, expired token, missing/blank/wrong/wrong-cased tenant claim, global-admin missing tenant claim, non-`system` request tenant, unrelated command permission, production `SigningKey`, non-HTTPS authority, and `RequireHttpsMetadata=false`.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~TenantsQueryControllerIntegrationTests|FullyQualifiedName~CommandApiRuntimeIntegrationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~AuthenticationConfigurationTests|FullyQualifiedName~TenantClaimContractTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests` | Passed: 166 total, 0 errors, 0 failed, 0 skipped. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.AuthenticationConfigurationTests -class Hexalith.Tenants.Server.Tests.Authorization.TenantClaimContractTests` | Passed: 53 total, 0 errors, 0 failed, 0 skipped. |
+
+### Checklist
+
+- [x] API tests generated or revalidated where applicable.
+- [x] Browser E2E tests marked N/A because Story 7.6A has no UI.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy paths and critical error cases.
+- [x] Tests use semantic HTTP assertions and no hardcoded waits.
+- [x] Tests are independent and run successfully through the direct xUnit fallback.
+- [x] Summary includes coverage metrics and validation results.
+
+## Story 7.6A Dev Story - Production Auth Smoke Tests
+
+**Workflow:** dev-story - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + ASP.NET Core WebApplicationFactory
+
+### Scope
+
+Production auth smoke-test audit and evidence capture for protected Tenants query and command paths. Existing Story 7.3 and Story 11.3 validators, docs, and deterministic smoke tests were treated as the baseline. No production auth policy, JWT validation behavior, tenant-claim semantics, route shape, DAPR topology, EventStore actor path, or package reference was changed.
+
+### Coverage
+
+- Query smoke coverage preserved: valid direct `eventstore:tenant=system`, supported source claims (`tenants`, `tenant_id`, `tid`), missing token, malformed token, invalid signature, wrong issuer, wrong audience, expired token, missing tenant claim, global-admin missing tenant claim, blank tenant claim, wrong tenant, and wrong-cased tenant.
+- Command smoke coverage preserved: valid `POST /api/v1/commands` dispatch with request tenant `system`, missing tenant claim, global-admin missing tenant claim, blank direct tenant claim with source alias present, wrong tenant, wrong-cased tenant, non-`system` request tenant, and unrelated permission claims.
+- Startup/options coverage preserved: production placeholders, valid OIDC-style overrides, environment-variable overrides, missing `Authority`/`Issuer`/`Audience`, whitespace values, non-HTTPS authority, production `SigningKey`, and `RequireHttpsMetadata=false`.
+- Support-safe evidence preserved: denied requests assert `401` or `403`, `application/problem+json` where applicable, stable safe reason codes (`principal_not_member`, `tenant_mismatch`, `insufficient_permission`), and no command/query router invocation before authorization succeeds.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~TenantsQueryControllerIntegrationTests|FullyQualifiedName~CommandApiRuntimeIntegrationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~AuthenticationConfigurationTests|FullyQualifiedName~TenantClaimContractTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests` | Passed: 166 total, 0 errors, 0 failed, 0 skipped. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.AuthenticationConfigurationTests -class Hexalith.Tenants.Server.Tests.Authorization.TenantClaimContractTests` | Passed: 53 total, 0 errors, 0 failed, 0 skipped. |
+| Full direct xUnit regression suite | Contracts, Client, Testing, Sample, Server, and Integration Debug assemblies with `-parallel none` | Passed: 1357 total, 0 failed, 27 skipped. Skips were DAPR/performance prerequisite-gated. |
+| Debug build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+
+### Notes
+
+- Full Server.Tests initially exposed two documentation drift failures outside the auth smoke area. The quickstart HMAC fallback now includes the unescaped compact payload audience marker for `hexalith-eventstore`, and the UI accessibility evidence spec now names `RejectionToHttpStatusMapper` as the rejection-copy boundary source. Server.Tests then passed in full.
+- Evidence intentionally records commands, class names, pass/fail counts, safe status/reason-code categories, and the date only. It does not record compact JWTs, signing keys, decoded payloads, real issuer URLs, real tenant/user data, full command payloads, or PII.
+
 ## Story 8.6 QA Generate E2E Tests - Compensating Command Patterns
 
 **Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01

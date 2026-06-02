@@ -134,6 +134,8 @@ If `jq` is not installed, copy the `access_token` value from the JSON response. 
 
 If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. The quickstart submits commands to the EventStore command gateway, so that fallback uses the development issuer, audience, and signing key from `Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json`.
 
+The compact payload produced by the examples includes `"aud":"hexalith-eventstore"`.
+
 **PowerShell:**
 
 ```powershell

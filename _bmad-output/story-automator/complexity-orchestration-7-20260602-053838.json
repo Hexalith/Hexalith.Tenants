@@ -1,0 +1,78 @@
+{
+  "stories": [
+    {
+      "storyId": "7.6A",
+      "title": "Validate Production Auth Smoke Tests",
+      "complexity": {
+        "score": 4,
+        "level": "Medium",
+        "reasons": [
+          "Authentication system",
+          "Integration testing required",
+          "Elevated AC count (8)"
+        ]
+      }
+    },
+    {
+      "storyId": "7.6B",
+      "title": "Validate DAPR Component and Service Invocation Smoke Tests",
+      "complexity": {
+        "score": 12,
+        "level": "High",
+        "reasons": [
+          "Webhook/async processing",
+          "Complex database operations",
+          "Authentication system",
+          "Infrastructure changes",
+          "Complex forms",
+          "Integration testing required",
+          "Configuration/feature flags",
+          "Elevated AC count (8)"
+        ]
+      }
+    },
+    {
+      "storyId": "7.6C",
+      "title": "Validate Health and Dependency Readiness Smoke Tests",
+      "complexity": {
+        "score": 6,
+        "level": "Medium",
+        "reasons": [
+          "Infrastructure changes",
+          "Integration testing required",
+          "Logging/monitoring/observability",
+          "Configuration/feature flags",
+          "Elevated AC count (8)"
+        ]
+      }
+    },
+    {
+      "storyId": "7.6D",
+      "title": "Validate Pub/Sub Recovery and Catch-Up Evidence",
+      "complexity": {
+        "score": 3,
+        "level": "Low",
+        "reasons": [
+          "Webhook/async processing",
+          "Elevated AC count (8)"
+        ]
+      }
+    },
+    {
+      "storyId": "7.6E",
+      "title": "Publish the Deployment Readiness Checklist and Evidence Template",
+      "complexity": {
+        "score": 7,
+        "level": "Medium",
+        "reasons": [
+          "Infrastructure changes",
+          "Accessibility requirements",
+          "Integration testing required",
+          "Complex test setup",
+          "Configuration/feature flags",
+          "Elevated AC count (8)"
+        ]
+      }
+    }
+  ]
+}

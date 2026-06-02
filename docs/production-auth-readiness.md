@@ -148,13 +148,10 @@ Redaction rule: use non-production subjects and placeholder IDs in stored exampl
 
 ## Evidence Map
 
-| Acceptance criterion | Evidence source |
+| Story 7.6A acceptance criterion | Evidence source |
 | --- | --- |
-| AC1 required JWT settings, IdP claims, environment variables, AppHost/deployment overrides | [Required Production Settings](#required-production-settings), [Required Token Contents](#required-token-contents), [IdP Claim Contract](#idp-claim-contract), README and quickstart links |
-| AC2 issuer, audience, `eventstore:tenant`, HTTPS metadata, signing/authority source, rate-limit partitioning | [Deployment Readiness Checklist](#deployment-readiness-checklist) |
-| AC3 valid and invalid token smoke tests | `TenantsQueryControllerIntegrationTests` and `CommandApiRuntimeIntegrationTests` |
-| AC4 missing or invalid overrides fail safely | `AuthenticationConfigurationTests` and [Failure Triage](#failure-triage) |
-| AC5 local development docs remain separate | [Quickstart](quickstart.md) remains local HMAC-only; this page references it without moving production OIDC setup into it |
+| AC1 valid and invalid tokens on protected tenant command/query endpoints | [Deterministic Local Smoke Tests](#deterministic-local-smoke-tests), `TenantsQueryControllerIntegrationTests`, `CommandApiRuntimeIntegrationTests`, and [Failure Triage](#failure-triage) |
+| AC2 support-safe production auth evidence for issuer, audience, `eventstore:tenant`, HTTPS metadata, signing/authority source, and development-token separation | [Required Production Settings](#required-production-settings), [Required Token Contents](#required-token-contents), [IdP Claim Contract](#idp-claim-contract), [Deployment Readiness Checklist](#deployment-readiness-checklist), [Manual Deployment Smoke Checks](#manual-deployment-smoke-checks), and [Quickstart](quickstart.md) |
 
 ## Recorded Deployment Boundaries
 

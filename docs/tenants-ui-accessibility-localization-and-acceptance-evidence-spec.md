@@ -90,7 +90,7 @@ Timestamps, dates, numbers, and culture-sensitive labels must use culture-aware 
 
 `FC-L10N` remains `needs-confirmation`. Resource ownership is not decided here: Shell-owned `FcShellResources` versus Tenants-owned copy keys and adopter terminology remain an implementation-time `FC-L10N` confirmation item.
 
-Visible and announced labels must remain support-safe. The UI must never render raw payloads, bearer tokens, stack traces, internal correlation IDs, internal exception text, raw EventStore metadata, or PII. User-facing rejection text is composed at the HTTP boundary by EventStore's domain-rejection ProblemDetails handling/catalog using RFC 7807 Problem Details.
+Visible and announced labels must remain support-safe. The UI must never render raw payloads, bearer tokens, stack traces, internal correlation IDs, internal exception text, raw EventStore metadata, or PII. User-facing rejection text is composed at the HTTP boundary by EventStore's `RejectionToHttpStatusMapper` and domain-rejection ProblemDetails handling/catalog using RFC 7807 Problem Details.
 
 ## 5. Reduced Motion and Visual Accessibility Requirements
 
