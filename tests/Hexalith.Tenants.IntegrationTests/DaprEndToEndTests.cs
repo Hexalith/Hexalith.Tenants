@@ -36,6 +36,7 @@ public class DaprEndToEndTests {
     [DaprFact]
     public async Task CreateTenant_succeeds_end_to_end_with_events_published() {
         _fixture.SkipIfUnavailable();
+        _fixture.EventPublisher.Reset();
 
         // Arrange
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
@@ -54,10 +55,20 @@ public class DaprEndToEndTests {
         result.EventCount.ShouldBe(1, "CreateTenant should produce 1 TenantCreated event");
         result.CorrelationId.ShouldBe(command.CorrelationId);
 
-        // Verify events were published to the correct topic
         const string expectedTopic = "tenants.events";
+        EventEnvelope persisted = await AssertPersistedOnceAsync<TenantCreated>(
+            proxy,
+            command,
+            expectedSequence: 1);
+        persisted.AggregateId.ShouldBe(tenantId);
+
+        // Verify the domain service invocation result was published to the configured topic.
         _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
-        _fixture.EventPublisher.GetEventsForTopic(expectedTopic).ShouldNotBeEmpty();
+        _fixture.EventPublisher.GetEventsForTopic(expectedTopic)
+            .Count(e =>
+                e.CorrelationId == command.CorrelationId
+                && e.EventTypeName == typeof(TenantCreated).FullName)
+            .ShouldBe(1);
     }
 
     [DaprFact]
@@ -82,7 +93,7 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue(
             $"AddUserToTenant should be accepted but got error: {result.ErrorMessage}"
-            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+            + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         result.EventCount.ShouldBe(1, "AddUserToTenant should produce 1 UserAddedToTenant event");
 
         string expectedTopic = addUserCmd.AggregateIdentity.PubSubTopic;
@@ -332,7 +343,7 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue(
             $"UpdateTenant should be accepted but got error: {result.ErrorMessage}"
-            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+            + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         result.EventCount.ShouldBe(1, "UpdateTenant should produce 1 TenantUpdated event");
 
         string expectedTopic = updateCmd.AggregateIdentity.PubSubTopic;
@@ -362,7 +373,7 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue(
             $"DisableTenant should be accepted but got error: {result.ErrorMessage}"
-            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+            + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         result.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
 
         string expectedTopic = disableCmd.AggregateIdentity.PubSubTopic;
@@ -386,7 +397,7 @@ public class DaprEndToEndTests {
         CommandProcessingResult disableResult = await proxy.ProcessCommandAsync(disableCmd);
         disableResult.Accepted.ShouldBeTrue(
             $"Setup: DisableTenant must succeed. Error: {disableResult.ErrorMessage}"
-            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+            + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
 
         // Act — enable the tenant
         CommandEnvelope enableCmd = CreateTenantCommand(new EnableTenant(tenantId));

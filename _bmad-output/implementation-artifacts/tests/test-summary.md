@@ -83,6 +83,79 @@ Production auth smoke-test audit and evidence capture for protected Tenants quer
 - Full Server.Tests initially exposed two documentation drift failures outside the auth smoke area. The quickstart HMAC fallback now includes the unescaped compact payload audience marker for `hexalith-eventstore`, and the UI accessibility evidence spec now names `RejectionToHttpStatusMapper` as the rejection-copy boundary source. Server.Tests then passed in full.
 - Evidence intentionally records commands, class names, pass/fail counts, safe status/reason-code categories, and the date only. It does not record compact JWTs, signing keys, decoded payloads, real issuer URLs, real tenant/user data, full command payloads, or PII.
 
+## Story 7.6B Dev Story - DAPR Component and Service Invocation Smoke Tests
+
+**Workflow:** dev-story - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + YamlDotNet source checks + DAPR prerequisite-gated integration tests
+
+### Scope
+
+DAPR component and service-invocation smoke-contract validation for Tenants/EventStore deployment paths. Static validation is deterministic and infrastructure-free. Live DAPR/AppHost smoke evidence remains prerequisite-gated and is not claimed when Redis, placement, and scheduler are unavailable.
+
+### Coverage
+
+- Static DAPR contract validation: AppHost resource names and AppIds (`eventstore`, `tenants`, `eventstore-admin`, `eventstore-admin-ui`, `sample`), state store `statestore`, pub/sub `pubsub`, event topic `tenants.events`, dead-letter topic `deadletter.tenants.events`, actor state-store metadata, component scopes, dynamic DAPR sidecar port posture, and receiver-specific production access control.
+- Diagnostic drift validation: deployment docs must name missing state store, missing pub/sub, missing placement, missing scheduler, wrong AppId, wrong component name, wrong component scope, denied service invocation, and the local prerequisite ports.
+- Service invocation contract validation: production Tenants receiver ACL is deny-by-default and allows only AppId `eventstore` to `POST /process` and `POST /project`; domain-service registrations for `system|tenants|v1` and `system|global-administrators|v1` point to AppId `tenants` method `process`.
+- Live DAPR smoke test hardening: `DaprEndToEndTests.CreateTenant_succeeds_end_to_end_with_events_published` now resets captured publications, asserts exactly one persisted `TenantCreated`, and asserts exactly one publication to `tenants.events` for the submitted correlation when prerequisites are available.
+- Support-safe evidence: production DAPR artifacts and smoke docs are checked for compact JWTs, bearer tokens, concrete connection strings/passwords, and private network addresses. Quickstart local dev credential snippets remain local setup guidance and are not treated as production evidence.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~Configuration"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DaprEndToEndTests\|FullyQualifiedName~AspireTopologyTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` | Passed: 20 total, 0 errors, 0 failed, 0 skipped. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests -class Hexalith.Tenants.IntegrationTests.AspireTopologyTests` | 22 total, 0 errors, 0 failed, 22 skipped. Exact skip reason: `DAPR integration prerequisites are unavailable. Run 'dapr init' and ensure Redis, placement, and scheduler are reachable.` |
+| Full direct xUnit regression suite | Contracts, Client, Testing, Sample, Server, and Integration Debug assemblies with `-parallel none` | Passed: 1354 total, 0 failed, 27 skipped. Skips were DAPR/performance prerequisite-gated. |
+| Debug test builds | Server.Tests and IntegrationTests via `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build ... --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+
+### Notes
+
+- Static YAML/config/docs validation passed and is the only deployment evidence claimed in this environment.
+- Live DAPR/AppHost smoke evidence was discoverable and correctly prerequisite-gated, but skipped because this sandbox does not expose the required DAPR local services. This is recorded as a live-evidence boundary, not a product failure and not a passing live smoke result.
+- Evidence intentionally records commands, test classes, pass/fail/skip counts, safe dependency categories, and the date only. It does not record compact JWTs, bearer tokens, signing keys, decoded payloads, real hosts, real tenant/user data, full command payloads, or PII.
+
+## Story 7.6B QA Generate E2E Tests - DAPR Diagnostics Gap Closure
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0)
+
+### Generated Tests
+
+#### API / Integration Support Tests
+- [x] `tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprTestPrerequisiteDiagnosticsTests.cs` - validates DAPR prerequisite skip diagnostics, fixture prerequisite failure diagnostics, support-safe diagnostic output, and narrow infrastructure-startup classification.
+
+#### E2E Tests
+- [x] Existing `DaprEndToEndTests` and `AspireTopologyTests` remain the live DAPR/AppHost smoke lane. No UI E2E tests apply to Story 7.6B.
+
+### Coverage
+
+- DAPR prerequisite diagnostic categories: Redis, placement, scheduler, and `dapr init` guidance covered.
+- Support-safe diagnostic checks: compact JWTs, bearer tokens, concrete connection strings, and private network addresses covered.
+- Critical error classification: DAPR startup failures covered separately from product/runtime failures so product failures are not converted into prerequisite skips.
+- Live DAPR/AppHost smoke coverage: discoverable but prerequisite-gated in this sandbox; no live deployment pass is claimed.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~Configuration"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DaprEndToEndTests\|FullyQualifiedName~AspireTopologyTests\|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` | Passed: 20 total, 0 errors, 0 failed, 0 skipped. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests -class Hexalith.Tenants.IntegrationTests.AspireTopologyTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | 32 total, 0 errors, 0 failed, 22 skipped. The 10 non-DAPR-prerequisite diagnostics tests passed; live DAPR/AppHost tests skipped with the expected prerequisite reason. |
+
+### Checklist Validation
+
+- API/integration support tests generated: yes.
+- UI E2E tests: not applicable; Story 7.6B has no UI.
+- Happy path and critical errors: covered by existing live smoke tests and new diagnostic classifier tests.
+- Standard framework APIs, clear descriptions, no hardcoded waits, independent tests: yes.
+- Summary and coverage metrics recorded: yes.
+
 ## Story 8.6 QA Generate E2E Tests - Compensating Command Patterns
 
 **Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01

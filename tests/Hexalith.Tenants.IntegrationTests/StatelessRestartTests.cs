@@ -78,7 +78,7 @@ public class StatelessRestartTests {
         _ = disableResult.ShouldNotBeNull();
         disableResult.Accepted.ShouldBeTrue(
             $"DisableTenant should be accepted after actor reactivation but got: {disableResult.ErrorMessage}"
-            + (_fixture.LastProcessException is not null ? $"\nServer exception: {_fixture.LastProcessException}" : ""));
+            + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         disableResult.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
     }
 

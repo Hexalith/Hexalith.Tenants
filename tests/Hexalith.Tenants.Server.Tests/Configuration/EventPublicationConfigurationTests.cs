@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,39 @@ public class EventPublicationConfigurationTests {
         configuration["EventStore:DomainServices:Registrations:system|tenants|v1:MethodName"].ShouldBe("process");
         configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:AppId"].ShouldBe("tenants");
         configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:MethodName"].ShouldBe("process");
+    }
+
+    [Fact]
+    public void AppHost_DaprTopology_UsesStableResourceNamesAppIdsAndDynamicSidecarPorts() {
+        string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
+        string options = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.Aspire", "HexalithTenantsAspireOptions.cs"));
+        string extension = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.Aspire", "HexalithTenantsExtensions.cs"));
+
+        string[] requiredResourceNames = ["eventstore", "eventstore-admin", "eventstore-admin-ui", "tenants", "sample"];
+        foreach (string resourceName in requiredResourceNames) {
+            program.ShouldContain($"AddProject<");
+            program.ShouldContain($"\"{resourceName}\"");
+        }
+
+        string[] programAppIds = ["eventstore", "eventstore-admin", "eventstore-admin-ui", "sample"];
+        foreach (string appId in programAppIds) {
+            program.ShouldContain($"AppId = \"{appId}\"");
+        }
+
+        options.ShouldContain("AppId");
+        options.ShouldContain("\"tenants\"");
+        options.ShouldContain("StateStoreName");
+        options.ShouldContain("\"statestore\"");
+        options.ShouldContain("PubSubName");
+        options.ShouldContain("\"pubsub\"");
+        extension.ShouldContain(".WithMetadata(\"actorStateStore\", \"true\")");
+        extension.ShouldContain(".WithReference(stateStore)");
+        extension.ShouldContain(".WithReference(pubSub)");
+        program.ShouldContain("ResolveDaprConfigPath");
+        program.ShouldContain("accesscontrol.yaml");
+        program.ShouldContain("accesscontrol.eventstore-admin.yaml");
+        program.ShouldNotContain("DaprHttpPort =");
+        program.ShouldNotContain("DaprGrpcPort =");
     }
 
     [Fact]
@@ -182,6 +216,62 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
+    public void DaprSmokeContracts_NameDeploymentInputsAndDenyUnexpectedServiceInvocation() {
+        YamlMappingNode localStateStore = LoadYaml(RepositoryPath("src", "Hexalith.Tenants.AppHost", "DaprComponents", "statestore.yaml"));
+        YamlMappingNode localPubSub = LoadYaml(RepositoryPath("src", "Hexalith.Tenants.AppHost", "DaprComponents", "pubsub.yaml"));
+        YamlMappingNode productionStateStore = LoadYaml(RepositoryPath("deploy", "dapr", "statestore.yaml"));
+        YamlMappingNode productionPubSub = LoadYaml(RepositoryPath("deploy", "dapr", "pubsub.yaml"));
+        YamlMappingNode tenantsAccessControl = LoadYaml(RepositoryPath("deploy", "dapr", "accesscontrol.tenants.yaml"));
+        string docs = File.ReadAllText(RepositoryPath("deploy", "dapr", "README.md"))
+            + Environment.NewLine
+            + File.ReadAllText(RepositoryPath("docs", "quickstart.md"));
+
+        foreach (YamlMappingNode stateStore in new[] { localStateStore, productionStateStore }) {
+            Scalar(stateStore, "metadata", "name").ShouldBe("statestore");
+            MetadataValue(stateStore, "actorStateStore").ShouldBe("true");
+            Scopes(stateStore).ShouldContain("eventstore");
+            Scopes(stateStore).ShouldContain("tenants");
+            Scopes(stateStore).ShouldContain("eventstore-admin");
+        }
+
+        foreach (YamlMappingNode pubSub in new[] { localPubSub, productionPubSub }) {
+            Scalar(pubSub, "metadata", "name").ShouldBe("pubsub");
+            MetadataValue(pubSub, "deadLetterTopic").ShouldBe(DeadLetterTopic);
+            Scopes(pubSub).ShouldContain("eventstore");
+        }
+
+        string[] diagnosticTerms =
+        [
+            "missing state store",
+            "missing pub/sub",
+            "missing placement",
+            "missing scheduler",
+            "wrong AppId",
+            "wrong component name",
+            "wrong component scope",
+            "denied service invocation",
+            "statestore",
+            "pubsub",
+            "localhost:6379",
+            OperatingSystem.IsWindows() ? "6050" : "50005",
+            OperatingSystem.IsWindows() ? "6060" : "50006",
+        ];
+
+        foreach (string diagnosticTerm in diagnosticTerms) {
+            docs.ShouldContain(diagnosticTerm);
+        }
+
+        Scalar(tenantsAccessControl, "spec", "accessControl", "defaultAction").ShouldBe("deny");
+        Policies(tenantsAccessControl).Select(policy => Scalar(policy, "appId")).ShouldBe(["eventstore"]);
+        YamlMappingNode eventStorePolicy = SinglePolicy(tenantsAccessControl, "eventstore");
+        Scalar(eventStorePolicy, "defaultAction").ShouldBe("deny");
+        Sequence(eventStorePolicy, "operations")
+            .OfType<YamlMappingNode>()
+            .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
+            .ShouldBe(["allow POST /process", "allow POST /project"], ignoreOrder: true);
+    }
+
+    [Fact]
     public void ProductionReceiverAccessControl_IsDenyByDefaultAndDoesNotGrantBroadTenantsAccess() {
         YamlMappingNode eventStore = LoadYaml(RepositoryPath("deploy", "dapr", "accesscontrol.eventstore.yaml"));
         YamlMappingNode admin = LoadYaml(RepositoryPath("deploy", "dapr", "accesscontrol.eventstore-admin.yaml"));
@@ -239,6 +329,37 @@ public class EventPublicationConfigurationTests {
                 content.ShouldContain("}");
             }
         }
+    }
+
+    [Fact]
+    public void DaprSmokeEvidenceDocs_DoNotContainConcreteSecretsTokensOrPrivateConnectionDetails() {
+        string[] redactedEvidenceFiles =
+        [
+            RepositoryPath("deploy", "dapr", "README.md"),
+            .. Directory.GetFiles(RepositoryPath("deploy", "dapr"), "*.yaml", SearchOption.TopDirectoryOnly),
+        ];
+        string quickstart = File.ReadAllText(RepositoryPath("docs", "quickstart.md"));
+
+        Regex compactJwt = new(@"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", RegexOptions.Compiled);
+        Regex bearerToken = new(@"Bearer\s+[A-Za-z0-9._~+/=-]{20,}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        Regex privateConnectionString = new(
+            @"(AccountKey=|SharedAccessKey=|Password=[^{}\s]|redis://|amqp://|Endpoint=sb://)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        Regex rawPrivateAddress = new(
+            @"(?<!localhost:)(?<!127\.0\.0\.1:)\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b",
+            RegexOptions.Compiled);
+
+        foreach (string file in redactedEvidenceFiles) {
+            string content = File.ReadAllText(file);
+            compactJwt.IsMatch(content).ShouldBeFalse($"{file} must not include compact JWTs.");
+            bearerToken.IsMatch(content).ShouldBeFalse($"{file} must not include bearer tokens.");
+            privateConnectionString.IsMatch(content).ShouldBeFalse($"{file} must not include concrete connection strings or passwords.");
+            rawPrivateAddress.IsMatch(content).ShouldBeFalse($"{file} must not include private network addresses.");
+        }
+
+        compactJwt.IsMatch(quickstart).ShouldBeFalse("quickstart must not include compact JWTs.");
+        bearerToken.IsMatch(quickstart).ShouldBeFalse("quickstart must not include bearer tokens.");
+        rawPrivateAddress.IsMatch(quickstart).ShouldBeFalse("quickstart must not include private network addresses.");
     }
 
     [Fact]

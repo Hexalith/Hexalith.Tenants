@@ -84,6 +84,9 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     /// <summary>Gets the last exception thrown by the /process endpoint, for test diagnostics.</summary>
     public Exception? LastProcessException { get; private set; }
 
+    /// <summary>Gets a support-safe description of the last /process endpoint failure.</summary>
+    public string? LastProcessDiagnostic { get; private set; }
+
     /// <summary>
     /// Gets a value indicating whether local DAPR prerequisites were available during fixture startup.
     /// </summary>
@@ -144,7 +147,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
             PrerequisitesAvailable = false;
             SkipReason = "Dapr sidecar infrastructure startup failed. Ensure Redis, placement, and scheduler are healthy before running these tests."
                 + Environment.NewLine
-                + ex.Message;
+                + ToSupportSafeDiagnostic(ex.Message);
             await DisposeAsync().ConfigureAwait(false);
             return;
         }
@@ -215,7 +218,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         return failures;
     }
 
-    private static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
+    internal static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
         => "Dapr infrastructure pre-flight check failed. Have you run 'dapr init'?" + Environment.NewLine
             + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}"));
 
@@ -258,7 +261,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         }
     }
 
-    private static bool IsDaprInfrastructureStartupFailure(InvalidOperationException exception) {
+    internal static bool IsDaprInfrastructureStartupFailure(InvalidOperationException exception) {
         // Match infrastructure-startup signatures specifically — broad substrings like
         // "statestore" alone over-match and would silently turn unrelated test failures
         // into prerequisite skips.
@@ -268,6 +271,39 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
             || message.Contains("state.redis", StringComparison.OrdinalIgnoreCase)
             || (message.Contains("statestore", StringComparison.OrdinalIgnoreCase)
                 && message.Contains("init timeout", StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal static string ToSupportSafeDiagnostic(string value) {
+        string result = value;
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+",
+            "[redacted-jwt]");
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"Bearer\s+[A-Za-z0-9._~+/=-]{20,}",
+            "Bearer [redacted-token]",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"(?:AccountKey|SharedAccessKey|Password)\s*=\s*[^;\s\r\n]+",
+            "[redacted-secret]",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"(redisPassword[^\r\n:=]*[:=]\s*)([^{}\s\r\n]+)",
+            "$1{redacted-secret}",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"(redis://|amqp://|Endpoint=sb://)[^\s\r\n]+",
+            "[redacted-connection]",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"(?<!localhost:)(?<!127\.0\.0\.1:)\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b",
+            "[redacted-private-address]");
+        return result;
     }
 
     private async Task StartTestHostAsync() {
@@ -343,10 +379,11 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                 }
                 catch (Exception ex) {
                     LastProcessException = ex;
-                    Console.Error.WriteLine($"[DAPR-TEST] /process 500 for {request.Command.CommandType}: {ex}");
-                    logger.LogError(ex, "Domain processing failed for command type {CommandType}", request.Command.CommandType);
+                    LastProcessDiagnostic = $"Domain processing failed for command type {request.Command.CommandType}.";
+                    Console.Error.WriteLine($"[DAPR-TEST] /process 500. {LastProcessDiagnostic}");
+                    logger.LogError("Domain processing failed for command type {CommandType}.", request.Command.CommandType);
                     return Microsoft.AspNetCore.Http.Results.Problem(
-                        detail: ex.ToString(),
+                        detail: LastProcessDiagnostic,
                         statusCode: 500);
                 }
             });
