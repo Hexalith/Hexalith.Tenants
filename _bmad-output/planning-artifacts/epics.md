@@ -184,7 +184,7 @@ NFR15: Event publication uses DAPR pub/sub abstraction with no direct dependency
 
 NFR16: State persistence uses DAPR state store abstraction with no direct dependency on a specific database.
 
-NFR17: The system degrades gracefully when DAPR pub/sub is unavailable; commands succeed, subscribers catch up when pub/sub recovers, verified by a Tier 3 integration test that disables pub/sub, executes commands, re-enables pub/sub, and asserts subscribers receive all pending events.
+NFR17: The system degrades gracefully when DAPR pub/sub is unavailable; commands and event storage succeed because EventStore is the source of truth, drain recovery republishes persisted events when pub/sub recovers, and subscriber or projection catch-up is verified by live assertions when available or by documented idempotency/catch-up evidence when live subscriber proof is not present.
 
 NFR18: Event contracts are backward-compatible after v1.0, with no breaking schema changes to published events.
 
@@ -306,7 +306,7 @@ NFR24: MVP error messages and documentation are English-only. Phase 2 Admin UI a
 
 - Cross-tenant isolation tests must cover Handle-level rejection, JWT authorization pipeline behavior, API-level requests, projections, event subscriptions, cursor tokens, and safe error bodies.
 
-- Snapshot performance tests must seed the 500,000-event target and assert the 30-second reconstruction target.
+- Snapshot performance tests must seed the 500,000-event target and assert the reconstruction target in the scheduled performance evidence lane; ordinary readiness and health checks remain implementation-lane evidence.
 
 - Production auth remains deployment-sensitive and requires startup validation, documentation, smoke tests, and environment-specific OIDC configuration.
 

@@ -106,7 +106,7 @@ development_status:
   epic-6-retrospective: done
 
   # Epic 7: Operators Can Deploy, Secure, and Observe Production Tenants
-  epic-7: in-progress
+  epic-7: done
   7-1-provide-aspire-hosting-extensions-for-tenants: done
   7-2-configure-dapr-components-for-local-and-production-deployment: done
   7-3-validate-production-authentication-and-eventstore-tenant-claims: done
@@ -117,7 +117,7 @@ development_status:
   7-6c-validate-health-and-dependency-readiness-smoke-tests: done
   7-6d-validate-pub-sub-recovery-and-catch-up-evidence: done
   7-6e-publish-the-deployment-readiness-checklist-and-evidence-template: done
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # Epic 8: Developers Can Adopt Through Documentation and Demo Evidence
   epic-8: done

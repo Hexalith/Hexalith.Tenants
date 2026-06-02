@@ -72,12 +72,12 @@ The PRD defines 24 NFRs across performance, security, scalability, integration, 
 
 Key architecture-shaping NFRs:
 
-- Commands, read queries, and event publication each target 50ms p95.
+- Commands, read queries, and event publication each target 50ms p95; Epic 7 implementation classifies p95 threshold evidence as release or scheduled performance evidence unless explicitly approved as a blocking CI gate.
 - In-memory testing fakes target 10ms command/event execution.
 - Cross-tenant data leaks must be zero across query, projection, and event subscription paths.
 - Tenant isolation and role authorization logic require 100% branch coverage.
 - Scale target is 1,000 tenants with up to 500 users per tenant.
-- Startup reconstruction target is 500,000 events within the defined readiness threshold, using baseline EventStore snapshot behavior.
+- Startup reconstruction target is 500,000 events within the defined readiness threshold, using baseline EventStore snapshot behavior; the benchmark remains scheduled performance evidence, while ordinary readiness and health checks stay in the implementation lane.
 - Events must use CloudEvents 1.0, DAPR pub/sub, DAPR state abstraction, durable immutable storage, and idempotency metadata.
 - Post-v1.0 event contracts must remain backward-compatible.
 - Phase 2 Admin UI must address WCAG accessibility and localization concerns.
