@@ -5,5 +5,5 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// across all Aspire topology test classes. This starts the full Aspire topology
 /// (CommandApi, Sample, DAPR sidecars) ONCE instead of per-class.
 /// </summary>
-[CollectionDefinition("AspireTopology")]
+[CollectionDefinition("AspireTopology", DisableParallelization = true)]
 public class AspireTopologyCollection : ICollectionFixture<AspireTopologyFixture>;

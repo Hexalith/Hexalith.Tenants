@@ -29,15 +29,25 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// Requires: dapr init (Redis, Placement, Scheduler running).
 /// </summary>
 [Collection("TenantsDaprTest")]
+[DaprTestSerialization]
 [Trait("Category", "Integration")]
-public class StatelessRestartTests {
+public class StatelessRestartTests : IDisposable {
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private const string StateStoreName = "statestore";
     private const string TenantProjectionKeyPrefix = "projection:tenants:";
 
+    private readonly IDisposable _daprTestLease;
     private readonly TenantsDaprTestFixture _fixture;
 
-    public StatelessRestartTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
+    public StatelessRestartTests(TenantsDaprTestFixture fixture) {
+        _daprTestLease = DaprTestExecutionGate.Enter();
+        _fixture = fixture;
+    }
+
+    public void Dispose() {
+        _daprTestLease.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     [DaprFact]
     public async Task TenantState_IsReconstructedFromEventStore_AfterActorReactivation() {

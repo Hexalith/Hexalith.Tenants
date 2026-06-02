@@ -49,6 +49,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     private int _daprMetricsPort;
     private int _daprProfilePort;
     private string? _componentsDir;
+    private FileStream? _daprFixtureLock;
 
     private string? _previousDaprHttpPort;
     private string? _previousDaprGrpcPort;
@@ -73,7 +74,7 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     }
 
     /// <summary>Gets the fake event publisher for capturing published events.</summary>
-    public FakeEventPublisher EventPublisher { get; } = new();
+    public TestEventPublisher EventPublisher { get; } = new();
 
     /// <summary>Gets the fake dead-letter publisher for test assertions.</summary>
     public FakeDeadLetterPublisher DeadLetterPublisher { get; } = new();
@@ -99,6 +100,8 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
     /// <inheritdoc/>
     public async ValueTask InitializeAsync() {
+        AcquireDaprFixtureLock();
+
         KillOrphanedDaprdProcesses();
 
         int[] ports;
@@ -198,6 +201,21 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
 
         Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", _previousDaprHttpPort);
         Environment.SetEnvironmentVariable("DAPR_GRPC_PORT", _previousDaprGrpcPort);
+
+        _daprFixtureLock?.Dispose();
+    }
+
+    private void AcquireDaprFixtureLock() {
+        string lockPath = Path.Combine(Path.GetTempPath(), "hexalith-tenants-dapr-fixture.lock");
+        while (true) {
+            try {
+                _daprFixtureLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                return;
+            }
+            catch (IOException) {
+                Thread.Sleep(250);
+            }
+        }
     }
 
     private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
@@ -357,14 +375,15 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
             serverOptions.ListenLocalhost(_appPort, listenOptions =>
                 listenOptions.Protocols = HttpProtocols.Http1));
 
-        // Register fakes BEFORE AddEventStoreServer (TryAdd won't override these)
+        // Register publisher fakes BEFORE AddEventStoreServer (TryAdd won't override these).
         _ = builder.Services.AddSingleton<IEventPublisher>(EventPublisher);
         _ = builder.Services.AddSingleton<IDeadLetterPublisher>(DeadLetterPublisher);
-        _ = builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
 
         // Register DAPR client and EventStore server infrastructure (actors, command routing, REAL domain service invoker)
         builder.Services.AddDaprClient();
         _ = builder.Services.AddEventStoreServer(builder.Configuration);
+        _ = builder.Services.RemoveAll<ICommandStatusStore>();
+        _ = builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
 
         // Register real domain processors (TenantAggregate, GlobalAdministratorsAggregate)
         _ = builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);

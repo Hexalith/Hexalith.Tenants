@@ -4,6 +4,14 @@
 
 Use `rg` and `rg --files` for repository searches when available. If `rg` is unavailable in a local environment, fall back to `find`, `ls`, or `grep -rn` without changing repository behavior.
 
+## Domain Implementation Boundary
+
+Hexalith.Tenants is a domain implementation for the Tenants domain. Keep this repository focused on tenant-specific contracts, behaviors, rules, events, projections, and user-facing domain flows.
+
+Do not add boilerplate code that is common to domain modules here. Reuse existing shared implementations from the technical modules, or move the boilerplate into the appropriate technical module before consuming it from Tenants. Typical homes for shared infrastructure and scaffolding include `Hexalith.EventStore`, `Hexalith.FrontComposer`, `Hexalith.Commons`, `Hexalith.Builds`, and other cross-domain Hexalith modules.
+
+Before adding generic hosting, event-store plumbing, serialization, dependency injection setup, UI composition scaffolding, test harness helpers, or cross-domain conventions to this repository, first check whether a technical module already provides the capability. If the shared capability is missing, implement it in the relevant technical module instead of duplicating it in Hexalith.Tenants.
+
 ## Commit Messages
 
 All commit messages **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is required for semantic-release to determine version bumps and generate changelogs.

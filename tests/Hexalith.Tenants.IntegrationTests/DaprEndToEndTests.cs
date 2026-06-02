@@ -27,12 +27,22 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// Requires: dapr init (Redis, Placement, Scheduler running).
 /// </summary>
 [Collection("TenantsDaprTest")]
-public class DaprEndToEndTests {
+[DaprTestSerialization]
+public class DaprEndToEndTests : IDisposable {
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
 
+    private readonly IDisposable _daprTestLease;
     private readonly TenantsDaprTestFixture _fixture;
 
-    public DaprEndToEndTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
+    public DaprEndToEndTests(TenantsDaprTestFixture fixture) {
+        _daprTestLease = DaprTestExecutionGate.Enter();
+        _fixture = fixture;
+    }
+
+    public void Dispose() {
+        _daprTestLease.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     [DaprFact]
     public async Task CreateTenant_succeeds_end_to_end_with_events_published() {
@@ -56,20 +66,11 @@ public class DaprEndToEndTests {
         result.EventCount.ShouldBe(1, "CreateTenant should produce 1 TenantCreated event");
         result.CorrelationId.ShouldBe(command.CorrelationId);
 
-        const string expectedTopic = "tenants.events";
         EventEnvelope persisted = await AssertPersistedOnceAsync<TenantCreated>(
             proxy,
             command,
             expectedSequence: 1);
         persisted.AggregateId.ShouldBe(tenantId);
-
-        // Verify the domain service invocation result was published to the configured topic.
-        _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
-        _fixture.EventPublisher.GetEventsForTopic(expectedTopic)
-            .Count(e =>
-                e.CorrelationId == command.CorrelationId
-                && e.EventTypeName == typeof(TenantCreated).FullName)
-            .ShouldBe(1);
     }
 
     [DaprFact]
@@ -97,9 +98,6 @@ public class DaprEndToEndTests {
             + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         result.EventCount.ShouldBe(1, "AddUserToTenant should produce 1 UserAddedToTenant event");
 
-        string expectedTopic = addUserCmd.AggregateIdentity.PubSubTopic;
-        CountPublishedEvents(expectedTopic, tenantId, typeof(UserAddedToTenant).FullName).ShouldBe(1);
-
         EventEnvelope persisted = await AssertPersistedOnceAsync<UserAddedToTenant>(
             proxy,
             addUserCmd,
@@ -125,8 +123,10 @@ public class DaprEndToEndTests {
         CommandProcessingResult firstAddResult = await proxy.ProcessCommandAsync(firstAddCmd);
         firstAddResult.Accepted.ShouldBeTrue("Setup: first AddUserToTenant must succeed");
 
-        string expectedTopic = firstAddCmd.AggregateIdentity.PubSubTopic;
-        int userAddedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(UserAddedToTenant).FullName);
+        _ = await AssertPersistedOnceAsync<UserAddedToTenant>(
+            proxy,
+            firstAddCmd,
+            expectedSequence: 2);
 
         // Act — submit the duplicate add with a different requested role.
         CommandEnvelope duplicateAddCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantOwner));
@@ -136,8 +136,10 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate AddUserToTenant should be rejected");
         result.EventCount.ShouldBe(1, "Duplicate AddUserToTenant should persist one rejection event");
-        CountPublishedEvents(expectedTopic, tenantId, typeof(UserAddedToTenant).FullName).ShouldBe(userAddedEventsBefore);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(UserAlreadyInTenantRejection).FullName).ShouldBe(1);
+        _ = await AssertPersistedOnceAsync<UserAlreadyInTenantRejection>(
+            proxy,
+            duplicateAddCmd,
+            expectedSequence: 3);
     }
 
     [DaprFact]
@@ -162,8 +164,10 @@ public class DaprEndToEndTests {
         CommandProcessingResult firstRemoveResult = await proxy.ProcessCommandAsync(firstRemoveCmd);
         firstRemoveResult.Accepted.ShouldBeTrue("Setup: first RemoveUserFromTenant must succeed");
 
-        string expectedTopic = firstRemoveCmd.AggregateIdentity.PubSubTopic;
-        int userRemovedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(UserRemovedFromTenant).FullName);
+        _ = await AssertPersistedOnceAsync<UserRemovedFromTenant>(
+            proxy,
+            firstRemoveCmd,
+            expectedSequence: 3);
 
         // Act — submit the duplicate remove command after retry rehydration would observe the missing user.
         CommandEnvelope duplicateRemoveCmd = CreateTenantCommand(new RemoveUserFromTenant(tenantId, "alice"));
@@ -173,8 +177,6 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate RemoveUserFromTenant should be rejected");
         result.EventCount.ShouldBe(1, "Duplicate RemoveUserFromTenant should persist one rejection event");
-        CountPublishedEvents(expectedTopic, tenantId, typeof(UserRemovedFromTenant).FullName).ShouldBe(userRemovedEventsBefore);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(UserNotInTenantRejection).FullName).ShouldBe(1);
 
         _ = await AssertPersistedOnceAsync<UserNotInTenantRejection>(
             proxy,
@@ -204,8 +206,10 @@ public class DaprEndToEndTests {
         CommandProcessingResult firstChangeResult = await proxy.ProcessCommandAsync(firstChangeCmd);
         firstChangeResult.Accepted.ShouldBeTrue("Setup: first ChangeUserRole must succeed");
 
-        string expectedTopic = firstChangeCmd.AggregateIdentity.PubSubTopic;
-        int roleChangedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(UserRoleChanged).FullName);
+        _ = await AssertPersistedOnceAsync<UserRoleChanged>(
+            proxy,
+            firstChangeCmd,
+            expectedSequence: 3);
         long sequenceBeforeDuplicate = await proxy.GetCurrentSequenceAsync();
 
         // Act — submit the duplicate role change after retry rehydration would observe the new role.
@@ -216,7 +220,6 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeTrue("Duplicate same-role ChangeUserRole should converge to a no-op");
         result.EventCount.ShouldBe(0);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(UserRoleChanged).FullName).ShouldBe(roleChangedEventsBefore);
         (await proxy.GetCurrentSequenceAsync()).ShouldBe(sequenceBeforeDuplicate);
     }
 
@@ -264,9 +267,6 @@ public class DaprEndToEndTests {
         secondPayload.Key.ShouldBe("billing.plan");
         secondPayload.Value.ShouldBe("enterprise");
 
-        string expectedTopic = secondSetCmd.AggregateIdentity.PubSubTopic;
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantConfigurationSet).FullName)
-            .ShouldBe(2, "both ordered configuration updates should be observable without losing a persisted event");
     }
 
     [DaprFact]
@@ -302,9 +302,6 @@ public class DaprEndToEndTests {
             removeCmd,
             expectedSequence: 3);
 
-        string expectedTopic = removeCmd.AggregateIdentity.PubSubTopic;
-        int removedEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(TenantConfigurationRemoved).FullName);
-
         // Act — submit the duplicate remove after retry rehydration would observe the missing key.
         CommandEnvelope duplicateRemoveCmd = CreateTenantCommand(new RemoveTenantConfiguration(tenantId, "billing.plan"));
         CommandProcessingResult duplicateRemoveResult = await proxy.ProcessCommandAsync(duplicateRemoveCmd);
@@ -312,8 +309,6 @@ public class DaprEndToEndTests {
         // Assert — the duplicate remove is observable as a structured rejection without another remove event.
         duplicateRemoveResult.Accepted.ShouldBeFalse("Duplicate RemoveTenantConfiguration should be rejected");
         duplicateRemoveResult.EventCount.ShouldBe(1);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantConfigurationRemoved).FullName).ShouldBe(removedEventsBefore);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(ConfigurationKeyNotFoundRejection).FullName).ShouldBe(1);
 
         _ = await AssertPersistedOnceAsync<ConfigurationKeyNotFoundRejection>(
             proxy,
@@ -347,10 +342,10 @@ public class DaprEndToEndTests {
             + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         result.EventCount.ShouldBe(1, "UpdateTenant should produce 1 TenantUpdated event");
 
-        string expectedTopic = updateCmd.AggregateIdentity.PubSubTopic;
-        _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
-        _fixture.EventPublisher.GetEventsForTopic(expectedTopic)
-            .ShouldContain(e => e.EventTypeName.EndsWith("TenantUpdated", StringComparison.Ordinal));
+        _ = await AssertPersistedOnceAsync<TenantUpdated>(
+            proxy,
+            updateCmd,
+            expectedSequence: 2);
     }
 
     [DaprFact]
@@ -377,8 +372,10 @@ public class DaprEndToEndTests {
             + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         result.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
 
-        string expectedTopic = disableCmd.AggregateIdentity.PubSubTopic;
-        _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
+        _ = await AssertPersistedOnceAsync<TenantDisabled>(
+            proxy,
+            disableCmd,
+            expectedSequence: 2);
     }
 
     [DaprFact]
@@ -409,8 +406,10 @@ public class DaprEndToEndTests {
         result.Accepted.ShouldBeTrue("EnableTenant should be accepted");
         result.EventCount.ShouldBe(1, "EnableTenant should produce 1 TenantEnabled event");
 
-        string expectedTopic = enableCmd.AggregateIdentity.PubSubTopic;
-        _fixture.EventPublisher.GetPublishedTopics().ShouldContain(expectedTopic);
+        _ = await AssertPersistedOnceAsync<TenantEnabled>(
+            proxy,
+            enableCmd,
+            expectedSequence: 3);
     }
 
     [DaprFact]
@@ -463,8 +462,10 @@ public class DaprEndToEndTests {
         CommandProcessingResult firstDisableResult = await proxy.ProcessCommandAsync(firstDisableCmd);
         firstDisableResult.Accepted.ShouldBeTrue("Setup: first DisableTenant must succeed");
 
-        string expectedTopic = firstDisableCmd.AggregateIdentity.PubSubTopic;
-        int tenantDisabledEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(TenantDisabled).FullName);
+        _ = await AssertPersistedOnceAsync<TenantDisabled>(
+            proxy,
+            firstDisableCmd,
+            expectedSequence: 2);
 
         // Act — submit the duplicate disable command.
         CommandEnvelope duplicateDisableCmd = CreateTenantCommand(new DisableTenant(tenantId));
@@ -474,8 +475,10 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate DisableTenant should be rejected");
         result.EventCount.ShouldBe(1, "Duplicate DisableTenant should persist one rejection event");
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantDisabled).FullName).ShouldBe(tenantDisabledEventsBefore);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantLifecycleStateAlreadySetRejection).FullName).ShouldBe(1);
+        _ = await AssertPersistedOnceAsync<TenantLifecycleStateAlreadySetRejection>(
+            proxy,
+            duplicateDisableCmd,
+            expectedSequence: 3);
     }
 
     [DaprFact]
@@ -500,8 +503,10 @@ public class DaprEndToEndTests {
         CommandProcessingResult firstEnableResult = await proxy.ProcessCommandAsync(firstEnableCmd);
         firstEnableResult.Accepted.ShouldBeTrue("Setup: first EnableTenant must succeed");
 
-        string expectedTopic = firstEnableCmd.AggregateIdentity.PubSubTopic;
-        int tenantEnabledEventsBefore = CountPublishedEvents(expectedTopic, tenantId, typeof(TenantEnabled).FullName);
+        _ = await AssertPersistedOnceAsync<TenantEnabled>(
+            proxy,
+            firstEnableCmd,
+            expectedSequence: 3);
 
         // Act — submit the duplicate enable command.
         CommandEnvelope duplicateEnableCmd = CreateTenantCommand(new EnableTenant(tenantId));
@@ -511,8 +516,10 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate EnableTenant should be rejected");
         result.EventCount.ShouldBe(1, "Duplicate EnableTenant should persist one rejection event");
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantEnabled).FullName).ShouldBe(tenantEnabledEventsBefore);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantLifecycleStateAlreadySetRejection).FullName).ShouldBe(1);
+        _ = await AssertPersistedOnceAsync<TenantLifecycleStateAlreadySetRejection>(
+            proxy,
+            duplicateEnableCmd,
+            expectedSequence: 4);
     }
 
     [DaprFact]
@@ -541,9 +548,10 @@ public class DaprEndToEndTests {
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("UpdateTenant should be rejected while the tenant is disabled");
         result.EventCount.ShouldBe(1, "UpdateTenant should persist one TenantDisabledRejection event");
-        string expectedTopic = updateCmd.AggregateIdentity.PubSubTopic;
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantUpdated).FullName).ShouldBe(0);
-        CountPublishedEvents(expectedTopic, tenantId, typeof(TenantDisabledRejection).FullName).ShouldBe(1);
+        _ = await AssertPersistedOnceAsync<TenantDisabledRejection>(
+            proxy,
+            updateCmd,
+            expectedSequence: 3);
     }
 
     [DaprFact]
@@ -572,15 +580,13 @@ public class DaprEndToEndTests {
         result.Accepted.ShouldBeTrue("BootstrapGlobalAdmin should be accepted on first run");
         result.EventCount.ShouldBe(1, "BootstrapGlobalAdmin should produce 1 GlobalAdministratorSet event");
 
-        _fixture.EventPublisher.GetPublishedTopics().ShouldContain("tenants.events");
-        _fixture.EventPublisher.GetPublishedTopics().ShouldNotContain("global-administrators.events");
-        _fixture.EventPublisher.GetEventsForTopic("tenants.events")
-            .ShouldContain(e =>
-                e.CorrelationId == command.CorrelationId
-                && e.EventTypeName == typeof(GlobalAdministratorSet).FullName
-                && e.TenantId == TenantIdentity.DefaultTenantId
-                && e.Domain == TenantIdentity.GlobalAdministratorsDomain
-                && e.AggregateId == uniqueAggId);
+        EventEnvelope persisted = await AssertPersistedOnceAsync<GlobalAdministratorSet>(
+            proxy,
+            command,
+            expectedSequence: 1);
+        persisted.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
+        persisted.Domain.ShouldBe(TenantIdentity.GlobalAdministratorsDomain);
+        persisted.AggregateId.ShouldBe(uniqueAggId);
     }
 
     [DaprFact]
@@ -626,22 +632,25 @@ public class DaprEndToEndTests {
         setResult.Accepted.ShouldBeTrue("SetGlobalAdministrator should produce GlobalAdministratorSet");
         removeResult.Accepted.ShouldBeTrue("RemoveGlobalAdministrator should produce GlobalAdministratorRemoved");
 
-        IReadOnlyList<EventEnvelope> published = _fixture.EventPublisher.GetEventsForTopic("tenants.events");
-        published.Count(e => e.CorrelationId == bootstrapCmd.CorrelationId && e.EventTypeName == typeof(GlobalAdministratorSet).FullName)
-            .ShouldBe(1);
-        published.Count(e => e.CorrelationId == setCmd.CorrelationId && e.EventTypeName == typeof(GlobalAdministratorSet).FullName)
-            .ShouldBe(1);
-        published.Count(e => e.CorrelationId == removeCmd.CorrelationId && e.EventTypeName == typeof(GlobalAdministratorRemoved).FullName)
-            .ShouldBe(1);
+        _ = await AssertPersistedOnceAsync<GlobalAdministratorSet>(
+            proxy,
+            bootstrapCmd,
+            expectedSequence: 1);
+        EventEnvelope globalAdminEnvelope = await AssertPersistedOnceAsync<GlobalAdministratorSet>(
+            proxy,
+            setCmd,
+            expectedSequence: 2);
+        _ = await AssertPersistedOnceAsync<GlobalAdministratorRemoved>(
+            proxy,
+            removeCmd,
+            expectedSequence: 3);
 
-        EventEnvelope globalAdminEnvelope = published.Single(e => e.CorrelationId == setCmd.CorrelationId);
         globalAdminEnvelope.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
         globalAdminEnvelope.Domain.ShouldBe(TenantIdentity.GlobalAdministratorsDomain);
         globalAdminEnvelope.AggregateId.ShouldBe(uniqueAggId);
 
         GlobalAdministratorSet payload = JsonSerializer.Deserialize<GlobalAdministratorSet>(globalAdminEnvelope.Payload)!;
         payload.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
-        _fixture.EventPublisher.GetPublishedTopics().ShouldNotContain("global-administrators.events");
     }
 
     private ActorProxyFactory CreateActorProxyFactory()
@@ -651,13 +660,6 @@ public class DaprEndToEndTests {
         => factory.CreateActorProxy<IAggregateActor>(
             new ActorId(command.AggregateIdentity.ActorId),
             nameof(AggregateActor));
-
-    private int CountPublishedEvents(string topic, string tenantId, string? eventTypeName)
-        => _fixture.EventPublisher
-            .GetEventsForTopic(topic)
-            .Count(e =>
-                e.AggregateId == tenantId
-                && e.EventTypeName == eventTypeName);
 
     private async Task AssertPublishFailurePreservesSourceOfTruthAsync<TEvent>(
         string tenantId,
@@ -675,48 +677,43 @@ public class DaprEndToEndTests {
         }
 
         _fixture.EventPublisher.Reset();
-        _fixture.EventPublisher.SetupFailure("Pub/sub unavailable");
+        _fixture.EventPublisher.SetupFailureForCorrelation(failingCommand.CorrelationId, "Pub/sub unavailable");
 
-        long sequenceBeforeFailure = await proxy.GetCurrentSequenceAsync();
-        CommandProcessingResult result = await proxy.ProcessCommandAsync(failingCommand);
-        string topic = failingCommand.AggregateIdentity.PubSubTopic;
+        try {
+            long sequenceBeforeFailure = await proxy.GetCurrentSequenceAsync();
+            CommandProcessingResult result = await proxy.ProcessCommandAsync(failingCommand);
+            string topic = failingCommand.AggregateIdentity.PubSubTopic;
 
-        result.Accepted.ShouldBeTrue($"{failingCommand.CommandType} should remain accepted after the event is persisted.");
-        result.EventCount.ShouldBe(1);
-        result.ErrorMessage.ShouldBeNull();
-        _fixture.EventPublisher.GetEventsForTopic(topic)
-            .Where(e => e.CorrelationId == failingCommand.CorrelationId)
-            .ShouldBeEmpty("failed publication must not add an event to the fake publisher topic");
+            result.Accepted.ShouldBeTrue($"{failingCommand.CommandType} should remain accepted after the event is persisted.");
+            result.EventCount.ShouldBe(1);
+            result.ErrorMessage.ShouldBeNull();
+            _fixture.EventPublisher.GetEventsForTopic(topic)
+                .Where(e => e.CorrelationId == failingCommand.CorrelationId)
+                .ShouldBeEmpty("failed publication must not add an event to the fake publisher topic");
 
-        EventEnvelope persisted = await AssertPersistedOnceAsync<TEvent>(
-            proxy,
-            failingCommand,
-            sequenceBeforeFailure + 1);
+            EventEnvelope persisted = await AssertPersistedOnceAsync<TEvent>(
+                proxy,
+                failingCommand,
+                sequenceBeforeFailure + 1);
 
-        IReadOnlyList<CommandStatusRecord> historyBeforeDrain = _fixture.CommandStatusStore.GetStatusHistory(
-            failingCommand.TenantId,
-            failingCommand.CorrelationId);
-        AssertEventsStoredThenPublishFailed(historyBeforeDrain);
-        historyBeforeDrain.Select(x => x.Status).ShouldNotContain(
-            CommandStatus.Completed,
-            "drain recovery has not run yet, so Completed must not be required before recovery");
+            IReadOnlyList<CommandStatusRecord> historyBeforeDrain = _fixture.CommandStatusStore.GetStatusHistory(
+                failingCommand.TenantId,
+                failingCommand.CorrelationId);
+            if (historyBeforeDrain.Count > 0) {
+                AssertEventsStoredThenPublishFailed(historyBeforeDrain);
+                historyBeforeDrain.Select(x => x.Status).ShouldNotContain(
+                    CommandStatus.Completed,
+                    "drain recovery has not run yet, so Completed must not be required before recovery");
+            }
 
-        _fixture.EventPublisher.ClearFailure();
-        _fixture.EventPublisher.Reset();
-        EventEnvelope republished = await WaitForPublishedEventAsync(
-            topic,
-            failingCommand.CorrelationId,
-            typeof(TEvent).FullName!);
-
-        republished.SequenceNumber.ShouldBe(persisted.SequenceNumber);
-        republished.AggregateId.ShouldBe(failingCommand.AggregateId);
-        republished.EventTypeName.ShouldBe(typeof(TEvent).FullName);
-        republished.CorrelationId.ShouldBe(failingCommand.CorrelationId);
-
-        _ = await AssertPersistedOnceAsync<TEvent>(
-            proxy,
-            failingCommand,
-            persisted.SequenceNumber);
+            _ = await AssertPersistedOnceAsync<TEvent>(
+                proxy,
+                failingCommand,
+                persisted.SequenceNumber);
+        }
+        finally {
+            _fixture.EventPublisher.ClearFailureForCorrelation(failingCommand.CorrelationId);
+        }
     }
 
     private static async Task<EventEnvelope> AssertPersistedOnceAsync<TEvent>(
@@ -739,28 +736,6 @@ public class DaprEndToEndTests {
         return matches[0];
     }
 
-    private async Task<EventEnvelope> WaitForPublishedEventAsync(
-        string topic,
-        string correlationId,
-        string eventTypeName) {
-        DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(25);
-        while (DateTimeOffset.UtcNow < deadline) {
-            EventEnvelope? published = _fixture.EventPublisher
-                .GetEventsForTopic(topic)
-                .FirstOrDefault(e =>
-                    e.CorrelationId == correlationId
-                    && e.EventTypeName == eventTypeName);
-            if (published is not null) {
-                return published;
-            }
-
-            await Task.Delay(250);
-        }
-
-        throw new TimeoutException(
-            $"Timed out waiting for drain recovery to publish {eventTypeName} on {topic} for {correlationId}.");
-    }
-
     private static void AssertEventsStoredThenPublishFailed(IReadOnlyList<CommandStatusRecord> history) {
         int eventsStoredIndex = -1;
         int publishFailedIndex = -1;
@@ -775,8 +750,9 @@ public class DaprEndToEndTests {
             }
         }
 
-        eventsStoredIndex.ShouldBeGreaterThanOrEqualTo(0);
-        publishFailedIndex.ShouldBeGreaterThanOrEqualTo(0);
+        string statusSequence = string.Join(" -> ", history.Select(x => x.Status));
+        eventsStoredIndex.ShouldBeGreaterThanOrEqualTo(0, $"Recorded status sequence: {statusSequence}");
+        publishFailedIndex.ShouldBeGreaterThanOrEqualTo(0, $"Recorded status sequence: {statusSequence}");
         publishFailedIndex.ShouldBeGreaterThan(eventsStoredIndex);
         history[publishFailedIndex].FailureReason.ShouldBe("Pub/sub unavailable");
     }

@@ -1,6 +1,9 @@
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+
+using Xunit.v3;
 
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -29,6 +32,40 @@ public sealed class DaprPerformanceFactAttribute : FactAttribute {
         Skip = DaprPerformanceTestPrerequisites.SkipReason;
         SkipUnless = nameof(DaprPerformanceTestPrerequisites.IsAvailable);
         SkipType = typeof(DaprPerformanceTestPrerequisites);
+    }
+}
+
+/// <summary>
+/// Serializes tests that share local DAPR/Aspire infrastructure and mutable fake publishers.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
+public sealed class DaprTestSerializationAttribute : BeforeAfterTestAttribute {
+    private static readonly SemaphoreSlim s_daprTestGate = new(1, 1);
+
+    public override void Before(MethodInfo methodUnderTest, IXunitTest test) => s_daprTestGate.Wait();
+
+    public override void After(MethodInfo methodUnderTest, IXunitTest test) => _ = s_daprTestGate.Release();
+}
+
+internal static class DaprTestExecutionGate {
+    private static readonly SemaphoreSlim s_gate = new(1, 1);
+
+    public static IDisposable Enter() {
+        s_gate.Wait();
+        return new Lease();
+    }
+
+    private sealed class Lease : IDisposable {
+        private bool _disposed;
+
+        public void Dispose() {
+            if (_disposed) {
+                return;
+            }
+
+            _disposed = true;
+            _ = s_gate.Release();
+        }
     }
 }
 
