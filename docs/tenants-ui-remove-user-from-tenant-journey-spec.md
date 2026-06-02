@@ -153,7 +153,7 @@ The UI handles each backend outcome distinctly and **preserves tenant/user conte
 
 ### 5.2 Safe localized rejection text; no internal leakage
 
-Domain rejections are mapped to **safe localized UI text** composed at the HTTP boundary by `RejectionToHttpStatusMapper` (RFC 7807: 404 not-found, 409 conflict, 422 other domain rejections). Rejection events carry structured data only. The UI must **never expose** raw command payloads, serialized command bodies, stack traces, bearer tokens, internal correlation IDs, internal exception text, raw EventStore metadata, or PII. [Source: `_bmad-output/project-context.md#API Surface`; `docs/tenants-ui-truth-state-and-action-availability-spec.md` §9.1; AC5]
+Domain rejections are mapped to **safe localized UI text** composed at the HTTP boundary by EventStore's domain-rejection ProblemDetails handling/catalog (RFC 7807: 404 not-found, 409 conflict, 422 other domain rejections). Rejection events carry structured data only. The UI must **never expose** raw command payloads, serialized command bodies, stack traces, bearer tokens, internal correlation IDs, internal exception text, raw EventStore metadata, or PII. [Source: `_bmad-output/project-context.md#API Surface`; `docs/tenants-ui-truth-state-and-action-availability-spec.md` §9.1; AC5]
 
 ### 5.3 Concrete recovery choices
 
@@ -252,7 +252,7 @@ All state labels, role names, timestamps, warnings, disabled reasons, and recove
 
 - Launch/preview/freshness/audit evidence comes only from existing read endpoints: `GET /api/tenants/{tenantId}`, `GET /api/tenants/{tenantId}/users`, and `GET /api/tenants/{tenantId}/audit` for audit-evidence states. Cursor-based pagination only (signed, opaque, scope-bound cursors; never offset/limit). ETag `If-None-Match` → `304` is the freshness primitive via `CachingProjectionActor`. [Source: `_bmad-output/project-context.md#API Surface`]
 - The command is dispatched to `POST /api/v1/commands` (`command:RemoveUserFromTenant`). **Add no backend "consequence" or "command status" endpoint**; consequence preview composes from read models, command lifecycle is tracked client-side (`FC-CMD`), and SignalR notifications are refresh nudges only, never proof. [Source: `_bmad-output/planning-artifacts/architecture.md#Frontend Architecture`; `_bmad-output/project-context.md#API Surface`]
-- Domain rejections map to safe localized UI text at the HTTP boundary (`RejectionToHttpStatusMapper`, RFC 7807); never expose raw payloads, stack traces, tokens, internal correlation IDs, or internal exception text. [Source: `_bmad-output/project-context.md#API Surface`]
+- Domain rejections map to safe localized UI text at the HTTP boundary (EventStore domain-rejection ProblemDetails handling/catalog, RFC 7807); never expose raw payloads, stack traces, tokens, internal correlation IDs, or internal exception text. [Source: `_bmad-output/project-context.md#API Surface`]
 - Identity uses JWT `sub` (`envelope.UserId`), never `name`/`email`; IDs are ULIDs, not GUIDs. Authorization is enforced server-side (L1 API gate + L2 domain RBAC); the UI reflects authorization state and unavailable-action reasons but is not the authorization boundary. [Source: `_bmad-output/project-context.md#Identity Scheme`; `#Authorization (RBAC)`]
 
 ## 11. References

@@ -191,11 +191,11 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Snapshot writes are advisory** — failures must not block the command pipeline.
 
 ### API Surface
-- **Single command endpoint**: `POST /api/commands` (EventStore's `CommandsController`).
+- **Single command endpoint**: `POST /api/v1/commands` (EventStore's `CommandsController`). FrontComposer's default `EventStoreOptions.CommandEndpointPath` also uses `/api/v1/commands`; do not normalize command-capable UI stories to the unversioned `/api/commands` form unless a deployed gateway explicitly proves that alias.
 - **Query endpoints** on Tenants host: `GET /api/tenants`, `GET /api/tenants/{tenantId}`, `GET /api/tenants/{tenantId}/users`, `GET /api/users/{userId}/tenants`, `GET /api/tenants/{tenantId}/audit`.
 - **Internal query dispatch** uses EventStore's `SubmitQuery`/`QueryRouter` (MediatR). Query contracts implement `IQueryContract` with `QueryType`/`Domain`/`ProjectionType`. Controllers translate REST → `SubmitQuery`.
 - **Query controllers are thin adapters**: validate route/query input, derive authenticated user from JWT `sub`, validate signed opaque cursors, then dispatch `SubmitQuery`. Query authorization and filtering belongs in projection/query handling, not controller branching.
-- **Error responses follow RFC 7807 Problem Details.** Rejection events are mapped to HTTP status codes by a `RejectionToHttpStatusMapper` middleware (404 for not-found, 409 for conflict, 422 for other domain rejections). The `type` field carries the rejection event type name for programmatic consumer handling. New rejection events need a mapping registration — verify whether the mapper is reflection-driven or explicit before adding rejections that should map to a non-default (422) status.
+- **Error responses follow RFC 7807 Problem Details.** Domain rejection events are mapped to HTTP status codes by EventStore's domain-rejection ProblemDetails catalog (404 for not-found, 409 for existing/duplicate conflicts, 422 for other domain rejections). The `type` field is a stable domain-rejection URI ending in a generated `reasonCode`; the original rejection type is carried separately in the `rejectionType` extension. New rejection events should be checked against that generated catalog behavior and documented if they need special remediation wording.
 - **JSON: camelCase** (`JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase`).
 - **List responses**: `{ "items": [...], "cursor": "next-page-token", "hasMore": true }` — cursor-based pagination only, never offset/limit.
 - **Cursors are signed, opaque, and scope-bound**. Never add offset/limit pagination or cursors that can be replayed across tenants/users/query shapes.
@@ -295,7 +295,7 @@ Order: `FluentValidation → AuthorizationBehavior → SubmitCommandHandler → 
 2. Handle tests in `Server.Tests/Aggregates/{Aggregate}Tests.cs` — cover Success, Rejection, NoOp paths.
 3. Conformance test auto-covers — extend `InMemoryTenantService` so the conformance assertion stays green.
 4. Naming convention test auto-covers (verb-first PascalCase).
-5. If new rejection types: register HTTP mapping in `RejectionToHttpStatusMapper` and add Tier 2/3 integration test asserting the status code.
+5. If new rejection types: verify the generated EventStore domain-rejection ProblemDetails mapping and add Tier 2/3 integration coverage for the expected status code and safe response shape.
 
 **Adding a new event field**:
 1. Serialization round-trip auto-covers IF the test populates all fields with non-default values (verify the fixture builder is updated).
@@ -383,9 +383,9 @@ Placing a type in the wrong project breaks dependency direction or auto-discover
 
 ### Rejection Event Payloads
 - **Carry structured data only** — IDs, enums, counts. Never English strings, never localized text, never user-facing prose.
-- User-facing error text is composed at the HTTP boundary by `RejectionToHttpStatusMapper` from the structured payload + a template (RFC 7807 `title`/`detail`).
+- User-facing error text is composed at the HTTP boundary by EventStore's domain-rejection ProblemDetails handling/catalog (RFC 7807 `title`/`detail` plus safe extensions).
 - **Rationale**: rejection events are persisted in the event store and live forever — putting English in payloads commits today's wording to permanent history.
-- The `type` field in the HTTP error body uses the rejection event class name, so class names must be programmable identifiers callers can switch on.
+- The `type` field in the HTTP error body is a stable domain-rejection URI derived from the generated reason code; the `rejectionType` extension carries the original rejection event type name for programmatic handling.
 
 ### Logging & Telemetry
 - **Structured logging only** — semantic parameters, never `string.Format` or interpolation in log templates.
@@ -430,7 +430,7 @@ logger.LogInformation($"Tenant {tenantId} created with name {name}");
 1. Decide Contracts vs Server using the Type Location table (default: Contracts if external consumers will reference it).
 2. Verify no reverse dependency edge is introduced.
 3. Add `sealed` unless the type is on the open-by-design list.
-4. If the type is a rejection event: structured payload only; add `RejectionToHttpStatusMapper` registration if non-default (422) status is needed.
+4. If the type is a rejection event: structured payload only; verify the generated domain-rejection ProblemDetails status/metadata and document any special remediation wording needed by consumers.
 5. If the type is a NuGet-published public surface: confirm semver impact (additive = patch/minor, breaking = `feat!:`).
 6. CHANGELOG entry is generated by semantic-release from the Conventional Commit — write the commit message accordingly.
 

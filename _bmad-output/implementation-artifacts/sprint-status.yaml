@@ -132,7 +132,7 @@ development_status:
   # Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely
   # planning-only: ready-for-dev means planning/documentation story readiness, not Phase 2 UI implementation readiness.
   # do not use Epic 9 stories as product UI delivery work until converted into separate Phase 2 UI implementation stories.
-  epic-9: in-progress
+  epic-9: done
   9-1-map-fluent-ui-and-frontcomposer-dependencies-for-tenant-admin-screens: done
   9-2-specify-the-operations-shell-and-read-only-access-review-surfaces: done
   9-3-define-truth-state-freshness-and-unavailable-action-patterns: done
@@ -140,4 +140,4 @@ development_status:
   9-5-specify-audit-evidence-and-compensating-recovery-ui-patterns: done
   9-6-specify-responsive-operational-layout-and-visual-system-usage: done
   9-7-define-accessibility-localization-and-ui-acceptance-evidence: done
-  epic-9-retrospective: optional
+  epic-9-retrospective: done

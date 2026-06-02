@@ -78,6 +78,7 @@ docs/
   cross-aggregate-timing.md          # Timing windows and eventual consistency
   idempotent-event-processing.md     # Event handling patterns
   sample-consuming-service-walkthrough.md # Sample service adoption walkthrough
+  tenants-ui-*.md                    # Phase 2 Admin UI planning, dependency, and evidence specs
 
 scripts/
   demo.ps1                           # PowerShell demo automation
