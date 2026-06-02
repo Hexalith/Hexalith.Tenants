@@ -44,6 +44,14 @@ Apply the templates in this folder after replacing the placeholders with environ
 - `accesscontrol.eventstore-admin.yaml` is bound only to Admin.Server and exposes no peer DAPR invocation policies.
 - `resiliency.yaml` preserves the local retry and timeout intent for sidecar, state-store, and pub/sub operations.
 
+## Pub/Sub Recovery Evidence
+
+EventStore remains the source of truth for tenant events. Pub/sub publication happens after the event has been stored, so a `PublishFailed` command status means publication failed after persistence; it is not evidence that the tenant event was lost or rolled back. EventStore drain recovery republishes the persisted sequence range to `tenants.events` after the pub/sub path recovers.
+
+DAPR pub/sub delivery is at-least-once. Subscriber redelivery and duplicate deliveries are expected during retries, sidecar restarts, and recovery. Consumers must deduplicate by `MessageId`, treat `SequenceNumber` as aggregate-local metadata only, and avoid exactly-once or global-ordering assumptions. The `deadletter.tenants.events` topic is the delivery-failure boundary after the configured component and resiliency retries are exhausted; keep the pub/sub component and `resiliency.yaml` retry settings reviewed together.
+
+Operator support-safe evidence should record command-status states such as `EventsStored`, `PublishFailed`, `EventsPublished`, and `Completed`; topic names; event type names; aggregate-local sequence categories; correlation/message identifier categories; prerequisite availability; and pass/fail/skip counts. Do not record raw event payloads, compact JWTs, bearer tokens, signing keys, decoded payloads, concrete connection strings, production hosts, real tenant/user identifiers, or PII.
+
 ## Failure Triage
 
 | Symptom | Likely issue | What to check |

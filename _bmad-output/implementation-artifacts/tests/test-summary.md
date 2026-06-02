@@ -239,6 +239,105 @@ Live prerequisites were not available in this developer environment. Exact safe 
 - [x] Tests are independent; live tests are prerequisite-gated and do not claim pass evidence when prerequisites are unavailable.
 - [x] Summary includes coverage metrics, validation commands, pass/fail/skip counts, safe dependency categories, and the live evidence boundary.
 
+## Story 7.6D Dev Story - Pub/Sub Recovery and Catch-Up Evidence
+
+**Workflow:** dev-story - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + YamlDotNet source checks + prerequisite-gated DAPR recovery tests
+
+### Scope
+
+Validated that tenant events remain durable when pub/sub publication fails after persistence, and that recovery evidence stays support-safe. Static checks are deterministic configuration/docs evidence only. Live drain recovery remains discoverable through DAPR-gated tests and is not claimed as passed when Redis, placement, and scheduler prerequisites are unavailable.
+
+### Coverage
+
+- Static config/docs validation: `EventPublicationConfigurationTests` now pins local and production `pubsub.yaml` and `resiliency.yaml` contracts for `pubsub`, `tenants.events`, `deadletter.tenants.events`, eventstore publisher scope, sample subscriber scope, inbound/outbound retry, timeout, and circuit-breaker targets.
+- Recovery documentation validation: `docs/event-contract-reference.md`, `docs/cross-aggregate-timing.md`, `docs/idempotent-event-processing.md`, and `deploy/dapr/README.md` describe EventStore source-of-truth behavior, `PublishFailed`, drain recovery, at-least-once delivery, subscriber redelivery, dead-letter boundaries, idempotent `MessageId` handling, aggregate-local `SequenceNumber`, and support-safe evidence boundaries.
+- Live DAPR recovery lane: `DaprEndToEndTests.Tenant_lifecycle_commands_remain_source_of_truth_when_pubsub_publish_fails` remains the primary prerequisite-gated evidence for `TenantCreated`, `TenantUpdated`, `TenantDisabled`, and `TenantEnabled`. It asserts persisted source events, no publish while failed, `EventsStored` before `PublishFailed`, no `Completed` requirement before recovery, drain republish identity, and no duplicate source-stream event.
+- Complementary recovery lane: `GracefulDegradationTests` remains discoverable as older command-acceptance and drain-publication smoke coverage, relabeled so it does not supersede the stronger `DaprEndToEndTests` identity assertions.
+- Subscriber catch-up boundary: Client/sample catch-up evidence is documented through `TenantEventProcessor`, `TenantProjectionEventHandler`, `TenantLocalState.LastEvent`, and idempotent `MessageId` deduplication. No live subscriber catch-up pass is claimed because no live subscriber/projection assertion ran in this environment.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DaprEndToEndTests\|FullyQualifiedName~GracefulDegradationTests\|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~EventPublicationConfigurationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests -class Hexalith.Tenants.IntegrationTests.GracefulDegradationTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | 32 total, 0 errors, 0 failed, 19 skipped. The 13 non-DAPR-prerequisite diagnostics tests passed; live recovery tests skipped with the expected prerequisite reason. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` | Passed: 22 total, 0 errors, 0 failed, 0 skipped. |
+| Debug solution build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Full direct xUnit regression suite | Contracts, Client, Testing, Sample, Server, and Integration Debug assemblies with `-parallel none` | Passed: 1,369 total, 0 failed, 28 skipped. Skips were DAPR/performance prerequisite-gated. |
+
+### Live Evidence Boundary
+
+Live prerequisites were not available in this developer environment. Exact safe skip reason: `DAPR integration prerequisites are unavailable. Run 'dapr init' and ensure Redis, placement, and scheduler are reachable.` Therefore live DAPR drain recovery and live subscriber catch-up are recorded as discoverable prerequisite-gated checks, not as passing live deployment evidence.
+
+### Notes
+
+- Safe dependency categories recorded: DAPR sidecar, Redis, placement, scheduler, pub/sub component, command-status state, event type, topic name, aggregate-local sequence, and message/correlation identifier category.
+- Evidence intentionally records dates, workflow, commands/classes, pass/fail/skip counts, safe dependency categories, and prerequisite availability only. It does not record raw event payloads, compact JWTs, bearer tokens, signing keys, decoded payloads, production hosts, real tenant/user identifiers, connection strings, or PII.
+
+## Story 7.6D QA Generate E2E Tests - Pub/Sub Recovery and Catch-Up Evidence
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + YamlDotNet source checks + prerequisite-gated DAPR integration tests
+
+### Scope
+
+QA automation pass for Story 7.6D pub/sub recovery evidence. Story 7.6D has no browser UI surface, so E2E coverage is the existing Aspire/DAPR integration lane plus deterministic configuration, documentation, and support-safe evidence checks.
+
+### Gap Analysis
+
+| Area | Existing coverage | Verdict |
+|------|-------------------|---------|
+| Pub/sub recovery E2E | `DaprEndToEndTests.Tenant_lifecycle_commands_remain_source_of_truth_when_pubsub_publish_fails` covers `TenantCreated`, `TenantUpdated`, `TenantDisabled`, and `TenantEnabled`; it asserts command acceptance after storage, no topic publication during simulated failure, `EventsStored` before `PublishFailed`, no `Completed` requirement before recovery, drain republish identity, and no duplicate source-stream event. | Covered. |
+| Complementary outage smoke | `GracefulDegradationTests` remains discoverable for command-acceptance and drain-publication smoke behavior and is labelled as complementary to the stronger identity lane. | Covered. |
+| Configuration and documentation drift | `EventPublicationConfigurationTests` pins local and production `pubsub.yaml`, `resiliency.yaml`, topic/dead-letter names, scopes, recovery docs, idempotency docs, and support-safe evidence terms. | Covered. |
+| Subscriber catch-up claim boundary | Existing Client/sample tests and docs cover `TenantEventProcessor`, `TenantProjectionEventHandler`, `TenantLocalState.LastEvent`, `MessageId` deduplication, aggregate-local `SequenceNumber`, and redelivery behavior. No live subscriber pass is claimed without live prerequisites. | Covered with explicit evidence boundary. |
+| QA workflow artifact | The summary previously had a dev-story 7.6D section but no `qa-generate-e2e-tests` checklist section for this workflow. | **Gap found and closed.** |
+| Browser UI E2E | Story 7.6D has no browser UI surface. | N/A. |
+
+### Generated Tests
+
+- [x] `tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs` - source-of-truth and drain-recovery E2E coverage for tenant lifecycle events during temporary pub/sub publication failure.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/GracefulDegradationTests.cs` - complementary command-acceptance and drain-publication smoke coverage with current Story 7.6D labeling.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs` - deterministic API/config/docs checks for pub/sub component names, topic/dead-letter contracts, resiliency policies, idempotency/catch-up docs, and support-safe evidence boundaries.
+- [x] `_bmad-output/implementation-artifacts/tests/test-summary.md` - added this QA workflow evidence and checklist section.
+
+### Coverage
+
+- API/source-contract tests: configuration/docs tests cover local and production DAPR pub/sub contracts, recovery docs, idempotency docs, support-safe evidence, and provider-dependency guardrails.
+- E2E tests: prerequisite-gated DAPR integration tests cover the command pipeline through actor processing, event persistence, publication failure, command status history, drain recovery, and republish identity.
+- Happy path covered: source event remains durable and recoverable after pub/sub publication failure.
+- Critical error cases covered: temporary pub/sub outage, `PublishFailed` after `EventsStored`, no topic publication while failed, no premature `Completed` requirement, duplicate source-stream prevention, DAPR prerequisite absence, and support-safe evidence redaction boundaries.
+- UI workflows: N/A; Story 7.6D has no browser UI surface.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DaprEndToEndTests\|FullyQualifiedName~GracefulDegradationTests\|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~EventPublicationConfigurationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false /p:UseSharedCompilation=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests -class Hexalith.Tenants.IntegrationTests.GracefulDegradationTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | Passed: 32 total, 0 errors, 0 failed, 19 skipped. Skips were DAPR prerequisite-gated. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` | Passed: 22 total, 0 errors, 0 failed, 0 skipped. |
+
+### Checklist
+
+- [x] API/source-contract tests generated where applicable.
+- [x] E2E tests generated where UI exists: N/A for browser UI; DAPR integration E2E is covered by prerequisite-gated xUnit tests.
+- [x] Tests use standard xUnit v3, Shouldly, and existing YamlDotNet test APIs.
+- [x] Tests cover happy path source durability and recovery publication.
+- [x] Tests cover critical error cases: temporary pub/sub outage, `PublishFailed`, no publish during failure, no duplicate persisted event, prerequisite-gated live recovery, and support-safe evidence boundaries.
+- [x] Tests use proper locators: N/A for non-UI story.
+- [x] Tests have clear descriptions.
+- [x] No hardcoded sleeps were added in this QA pass; existing recovery waits remain bounded polling.
+- [x] Tests are independent; DAPR tests are prerequisite-gated and direct xUnit execution uses `-parallel none`.
+- [x] Test summary updated with coverage metrics and validation results.
+- [x] Tests are saved in the existing IntegrationTests and Server.Tests directories.
+
 ## Story 8.6 QA Generate E2E Tests - Compensating Command Patterns
 
 **Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01

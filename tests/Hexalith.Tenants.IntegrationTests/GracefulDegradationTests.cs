@@ -5,6 +5,7 @@ using System.Text.Json;
 using Dapr.Actors;
 using Dapr.Actors.Client;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Actors;
 
@@ -16,9 +17,9 @@ using Shouldly;
 namespace Hexalith.Tenants.IntegrationTests;
 
 /// <summary>
-/// Tier 2 integration test for Story 7.3, AC #4 and AC #5.
-/// Verifies that commands succeed and events are persisted even when pub/sub publication fails,
-/// and that drain recovery publishes pending events when pub/sub recovers.
+/// Complementary DAPR recovery coverage for Story 7.6D.
+/// The stronger source-of-truth identity assertions live in DaprEndToEndTests;
+/// this class keeps the older command-acceptance and drain-publication smoke lane discoverable.
 /// Requires: dapr init (Redis, Placement, Scheduler running).
 /// </summary>
 [Collection("TenantsDaprTest")]
@@ -103,8 +104,8 @@ public class GracefulDegradationTests {
             // "Recover" pub/sub by resetting the failure state
             _fixture.EventPublisher.ClearFailure();
 
-            // Wait for drain reminder to fire and publish pending events.
-            // Default InitialDrainDelay is 30 seconds. We poll up to 90 seconds.
+            // Wait for the accelerated test drain reminder to fire and publish pending events.
+            // TenantsDaprTestFixture sets the initial delay and period to 5 seconds.
             bool drainSucceeded = false;
             for (int i = 0; i < 90; i++) {
                 int eventsNow = _fixture.EventPublisher.GetEventsForTopic(expectedTopic).Count;
@@ -127,13 +128,13 @@ public class GracefulDegradationTests {
 
     private static CommandEnvelope CreateTenantCommand<T>(T command) where T : notnull
         => new(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             "system",
             "tenants",
             ((dynamic)command).TenantId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             "test-user",
             GlobalAdminExtensions());

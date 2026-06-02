@@ -5,6 +5,7 @@ using System.Text.Json;
 using Dapr.Actors;
 using Dapr.Actors.Client;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.Tenants.Contracts.Commands;
@@ -782,13 +783,13 @@ public class DaprEndToEndTests {
 
     private static CommandEnvelope CreateTenantCommand<T>(T command) where T : notnull
         => new(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             "system",
             "tenants",
             ((dynamic)command).TenantId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             "test-user",
             GlobalAdminExtensions());
@@ -798,13 +799,13 @@ public class DaprEndToEndTests {
         string aggregateId,
         string actorUserId = "test-user") where T : notnull
         => new(
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             "system",
             TenantIdentity.GlobalAdministratorsDomain,
             aggregateId,
             typeof(T).Name,
             JsonSerializer.SerializeToUtf8Bytes(command),
-            Guid.NewGuid().ToString(),
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
             actorUserId,
             null);

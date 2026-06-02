@@ -170,6 +170,66 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
+    public void LocalAndProductionResiliency_TargetPubSubInboundAndOutboundRecoveryPolicies() {
+        YamlMappingNode local = LoadYaml(RepositoryPath("src", "Hexalith.Tenants.AppHost", "DaprComponents", "resiliency.yaml"));
+        YamlMappingNode production = LoadYaml(RepositoryPath("deploy", "dapr", "resiliency.yaml"));
+
+        foreach (YamlMappingNode resiliency in new[] { local, production }) {
+            Scalar(resiliency, "metadata", "name").ShouldBe("resiliency");
+            Scalar(resiliency, "spec", "policies", "retries", "pubsubRetryOutbound", "policy").ShouldBe("exponential");
+            Scalar(resiliency, "spec", "policies", "retries", "pubsubRetryOutbound", "maxRetries").ShouldBe("3");
+            Scalar(resiliency, "spec", "policies", "retries", "pubsubRetryInbound", "policy").ShouldBe("exponential");
+            Scalar(resiliency, "spec", "policies", "retries", "pubsubRetryInbound", "maxRetries").ShouldBe("10");
+            Scalar(resiliency, "spec", "policies", "timeouts", "pubsubTimeout").ShouldBe("10s");
+            Scalar(resiliency, "spec", "policies", "timeouts", "subscriberTimeout").ShouldBe("30s");
+            Scalar(resiliency, "spec", "policies", "circuitBreakers", "pubsubBreaker", "trip").ShouldBe("consecutiveFailures > 5");
+            Scalar(resiliency, "spec", "targets", "components", "pubsub", "outbound", "retry").ShouldBe("pubsubRetryOutbound");
+            Scalar(resiliency, "spec", "targets", "components", "pubsub", "outbound", "timeout").ShouldBe("pubsubTimeout");
+            Scalar(resiliency, "spec", "targets", "components", "pubsub", "outbound", "circuitBreaker").ShouldBe("pubsubBreaker");
+            Scalar(resiliency, "spec", "targets", "components", "pubsub", "inbound", "retry").ShouldBe("pubsubRetryInbound");
+            Scalar(resiliency, "spec", "targets", "components", "pubsub", "inbound", "timeout").ShouldBe("subscriberTimeout");
+        }
+    }
+
+    [Fact]
+    public void PubSubRecoveryDocumentation_RecordsDurabilityCatchUpBoundariesAndSupportSafeEvidence() {
+        string eventContract = File.ReadAllText(RepositoryPath("docs", "event-contract-reference.md"));
+        string timing = File.ReadAllText(RepositoryPath("docs", "cross-aggregate-timing.md"));
+        string idempotency = File.ReadAllText(RepositoryPath("docs", "idempotent-event-processing.md"));
+        string deployment = File.ReadAllText(RepositoryPath("deploy", "dapr", "README.md"));
+        string combined = string.Join(Environment.NewLine, eventContract, timing, idempotency, deployment);
+
+        string[] requiredRecoveryTerms =
+        [
+            "durable EventStore stream is the source of truth",
+            "PublishFailed",
+            "drain recovery",
+            "tenants.events",
+            "deadletter.tenants.events",
+            "at-least-once",
+            "redeliver",
+            "MessageId",
+            "SequenceNumber",
+            "support-safe",
+        ];
+
+        foreach (string requiredRecoveryTerm in requiredRecoveryTerms) {
+            combined.ShouldContain(requiredRecoveryTerm);
+        }
+
+        deployment.ShouldContain("EventStore remains the source of truth");
+        deployment.ShouldContain("PublishFailed");
+        deployment.ShouldContain("drain recovery");
+        deployment.ShouldContain("subscriber redelivery");
+        deployment.ShouldContain("support-safe evidence");
+        idempotency.ShouldContain("TenantEventProcessor");
+        idempotency.ShouldContain("TenantProjectionEventHandler");
+        idempotency.ShouldContain("TenantLocalState.LastEvent");
+        timing.ShouldContain("do not record raw bearer tokens");
+        eventContract.ShouldContain("Do not depend on exactly-once publication");
+    }
+
+    [Fact]
     public void DaprComponentSets_DefineExactlyOneActorStateStore() {
         string[][] componentSets =
         [
