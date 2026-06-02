@@ -32,16 +32,16 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
-# Line-coverage gate scope: the five publishable NuGet package projects (the actual platform
-# deliverables). Host (src/Hexalith.Tenants), AppHost, ServiceDefaults and samples are
-# intentionally excluded — they are application/composition infrastructure, not the library
-# surface the >80% line gate is meant to protect.
+# Line-coverage gate scope: the four publishable NuGet package projects (the actual platform
+# deliverables). Host (src/Hexalith.Tenants) and samples are intentionally excluded — they are
+# application/composition infrastructure, not the library surface the >80% line gate is meant to
+# protect. The per-domain Aspire/AppHost/ServiceDefaults projects were removed (domain-centric
+# refactor); orchestration is provided by the EventStore platform.
 PACKAGE_LINE_SCOPE = [
     "src/Hexalith.Tenants.Contracts/",
     "src/Hexalith.Tenants.Client/",
     "src/Hexalith.Tenants.Server/",
     "src/Hexalith.Tenants.Testing/",
-    "src/Hexalith.Tenants.Aspire/",
 ]
 
 # Production files implementing tenant isolation and role authorization logic. The PRD scopes

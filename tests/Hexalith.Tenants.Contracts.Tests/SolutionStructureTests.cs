@@ -11,10 +11,20 @@ public class SolutionStructureTests {
         "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
         "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
         "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
-        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
-        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
-        "src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj",
         "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+        // Tenants keeps its own Aspire AppHost (its composition root), but it consumes the platform
+        // Aspire boilerplate (AddHexalithEventStore + AddEventStoreDomainModule) rather than a per-domain
+        // Aspire library.
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+    ];
+
+    // Domain-centric guardrail (Epic B): the module must NOT re-implement reusable infrastructure as its
+    // own Aspire wiring library or a ServiceDefaults copy — that boilerplate lives in the EventStore
+    // platform (Hexalith.EventStore.Aspire + the domain-service SDK), consumed by the AppHost above.
+    private static readonly string[] ForbiddenSourceProjects =
+    [
+        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
+        "src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj",
     ];
 
     private static readonly string[] RequiredTestProjects =
@@ -42,6 +52,10 @@ public class SolutionStructureTests {
             projectPaths.ShouldContain(project);
         }
 
+        foreach (string forbidden in ForbiddenSourceProjects) {
+            projectPaths.ShouldNotContain(forbidden);
+        }
+
         projectPaths.ShouldNotContain(path => path.StartsWith("Hexalith.EventStore/", StringComparison.Ordinal));
         File.Exists(Path.Combine(repoRoot, "Hexalith.Tenants.sln")).ShouldBeFalse();
     }
@@ -52,6 +66,11 @@ public class SolutionStructureTests {
 
         foreach (string project in RequiredSourceProjects.Concat(RequiredTestProjects)) {
             File.Exists(Path.Combine(repoRoot, project)).ShouldBeTrue($"{project} must exist because Hexalith.Tenants.slnx references it.");
+        }
+
+        foreach (string forbidden in ForbiddenSourceProjects) {
+            Directory.Exists(Path.Combine(repoRoot, Path.GetDirectoryName(forbidden)!))
+                .ShouldBeFalse($"{forbidden} must not exist — the platform provides this boilerplate (domain-centric rule).");
         }
 
         Directory.GetFiles(repoRoot, "*.sln", SearchOption.TopDirectoryOnly).ShouldBeEmpty();
@@ -68,8 +87,6 @@ public class SolutionStructureTests {
         string[] clientReferences = GetProjectReferences(repoRoot, "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj");
         clientReferences.ShouldContain("..\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj");
         clientReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.Server", StringComparison.Ordinal));
-        clientReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.AppHost", StringComparison.Ordinal));
-        clientReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.Aspire", StringComparison.Ordinal));
 
         string[] serverReferences = GetProjectReferences(repoRoot, "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj");
         serverReferences.ShouldContain("..\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj");
@@ -81,18 +98,13 @@ public class SolutionStructureTests {
         testingReferences.ShouldContain("..\\Hexalith.Tenants.Server\\Hexalith.Tenants.Server.csproj");
         testingReferences.ShouldContain("..\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj");
 
-        string[] aspireReferences = GetProjectReferences(repoRoot, "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj");
-        aspireReferences.ShouldBeEmpty();
-
-        string[] appHostReferences = GetProjectReferences(repoRoot, "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj");
-        appHostReferences.ShouldContain("..\\Hexalith.Tenants.Aspire\\Hexalith.Tenants.Aspire.csproj");
-        appHostReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.EventStore", StringComparison.Ordinal));
-        appHostReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.Sample", StringComparison.Ordinal));
-
         string[] hostReferences = GetProjectReferences(repoRoot, "src/Hexalith.Tenants/Hexalith.Tenants.csproj");
         hostReferences.ShouldContain("..\\Hexalith.Tenants.Server\\Hexalith.Tenants.Server.csproj");
         hostReferences.ShouldContain("..\\Hexalith.Tenants.Contracts\\Hexalith.Tenants.Contracts.csproj");
-        hostReferences.ShouldContain("..\\Hexalith.Tenants.ServiceDefaults\\Hexalith.Tenants.ServiceDefaults.csproj");
+        // The host consumes the platform domain-service SDK for hosting/telemetry/health/endpoints
+        // instead of a per-domain ServiceDefaults copy (domain-centric rule).
+        hostReferences.ShouldContain(reference => reference.Contains("Hexalith.EventStore.DomainService", StringComparison.Ordinal));
+        hostReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.ServiceDefaults", StringComparison.Ordinal));
         hostReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.Client", StringComparison.Ordinal));
         hostReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.Testing", StringComparison.Ordinal));
         hostReferences.ShouldAllBe(reference => !reference.Contains("Hexalith.Tenants.AppHost", StringComparison.Ordinal));
@@ -129,23 +141,6 @@ public class SolutionStructureTests {
                 text.ShouldContain("recursive");
             }
         }
-    }
-
-    [Fact]
-    public void AppHost_keeps_Aspire_reference_out_of_project_resource_graph() {
-        string repoRoot = FindRepoRoot();
-        XElement aspireReference = XDocument.Load(Path.Combine(repoRoot, "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"))
-            .Descendants("ProjectReference")
-            .Single(reference => string.Equals(
-                reference.Attribute("Include")?.Value,
-                "..\\Hexalith.Tenants.Aspire\\Hexalith.Tenants.Aspire.csproj",
-                StringComparison.Ordinal));
-
-        aspireReference.Attribute("IsAspireProjectResource")?.Value.ShouldBe("false");
-
-        string solutionText = File.ReadAllText(Path.Combine(repoRoot, "Hexalith.Tenants.slnx"));
-        solutionText.ShouldContain("Path=\"src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj\"");
-        solutionText.ShouldNotContain("<Build Solution=\"*|*\" Project=\"false\" />");
     }
 
     [Fact]

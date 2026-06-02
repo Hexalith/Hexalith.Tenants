@@ -1,14 +1,14 @@
-using CommunityToolkit.Aspire.Hosting.Dapr;
-
+using Hexalith.EventStore.Aspire;
 using Hexalith.Tenants.AppHost;
-using Hexalith.Tenants.Aspire;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
-// Resolve DAPR access control configuration paths.
+// Resolve DAPR access control + resiliency configuration paths.
 // Uses builder.AppHostDirectory to work under both `dotnet run` and Aspire testing.
 string accessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.yaml");
 string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.eventstore-admin.yaml");
+string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "resiliency.yaml");
+string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
 
 // Keycloak identity provider for JWT authentication.
 // Enabled by default for local development with real OIDC token testing.
@@ -23,63 +23,43 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
     realmUrl = ReferenceExpression.Create($"{keycloakEndpoint}/realms/hexalith");
 }
 
-// Add EventStore (command gateway) with DAPR sidecar.
-// The EventStore receives commands from clients and dispatches to domain services
-// (including Tenants) via DAPR service invocation.
+// Add EventStore (command gateway), Admin Server, and Admin UI projects.
+// Project paths are resolved cross-repo via the IProjectMetadata classes in this AppHost.
 IResourceBuilder<ProjectResource> eventStore = builder.AddProject<HexalithEventStore>("eventstore");
 _ = eventStore.WithEnvironment("EventStore__Publisher__TopicOverrides__global-administrators", "tenants.events");
-
-// Add EventStore Admin Server and Admin UI for event store inspection.
 IResourceBuilder<ProjectResource> adminServer = builder.AddProject<HexalithEventStoreAdminServerHost>("eventstore-admin");
 IResourceBuilder<ProjectResource> adminUI = builder.AddProject<HexalithEventStoreAdminUI>("eventstore-admin-ui");
 
-// Add Tenants project and wire DAPR topology via Aspire extension.
-// The Tenants extension provisions shared DAPR state store and pub/sub components.
-IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants");
-HexalithTenantsResources tenantsResources = builder.AddHexalithTenants(tenants, accessControlConfigPath);
+// Wire the EventStore + Admin DAPR topology (shared state store + pub/sub, sidecars, resiliency)
+// using the platform Aspire extension — the reusable boilerplate now lives in the EventStore platform
+// Aspire library rather than a per-domain re-implementation.
+HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
+    eventStore,
+    adminServer,
+    adminUI,
+    eventStoreDaprConfigPath: accessControlConfigPath,
+    adminServerDaprConfigPath: adminServerAccessControlConfigPath,
+    resiliencyConfigPath: resiliencyConfigPath,
+    stateStoreComponentPath: stateStoreComponentPath);
 
-// Wire EventStore with DAPR sidecar sharing the same state store and pub/sub.
-// DaprHttpPort is intentionally omitted (dynamic) to avoid port conflicts
-// from orphaned daprd.exe processes when VS debug sessions are stopped abruptly.
-_ = eventStore
-    .WithDaprSidecar(sidecar => sidecar
-        .WithOptions(new DaprSidecarOptions {
-            AppId = "eventstore",
-            Config = accessControlConfigPath,
-        })
-        .WithReference(tenantsResources.StateStore)
-        .WithReference(tenantsResources.PubSub));
+// Add the Tenants domain service via the platform domain-module extension (A4): its sidecar shares the
+// EventStore state store + pub/sub. Replaces the per-domain Aspire wiring library.
+IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants")
+    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath);
 
-// Wire Admin.Server with DAPR sidecar.
-// Admin.Server needs state store for direct reads (health, admin indexes)
-// and service invocation to EventStore for write delegation.
-// It does not publish or subscribe directly, so it does not reference pub/sub.
-// WaitFor(eventStore) ensures Admin.Server starts only after EventStore is healthy,
-// preventing startup failures in VS debug mode where timing is slower.
-_ = adminServer
-    .WithReference(eventStore)
-    .WaitFor(eventStore)
-    .WithDaprSidecar(sidecar => sidecar
-        .WithOptions(new DaprSidecarOptions {
-            AppId = "eventstore-admin",
-            Config = adminServerAccessControlConfigPath,
-        })
-        .WithReference(tenantsResources.StateStore));
-
-// Wire Admin.UI with Admin.Server reference for HTTP API calls.
-// Also pass the EventStore endpoint so the SignalR client can connect
-// for real-time projection change signals.
+// Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
 EndpointReference eventStoreHttps = eventStore.GetEndpoint("https");
 _ = adminUI
     .WithReference(adminServer)
     .WaitFor(adminServer)
     .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
-    .WithExternalHttpEndpoints()
-    .WithDaprSidecar(sidecar => sidecar
-        .WithOptions(new DaprSidecarOptions {
-            AppId = "eventstore-admin-ui",
-        }));
+    .WithExternalHttpEndpoints();
+
+// Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
+// It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
+_ = builder.AddProject<HexalithTenantsSample>("sample")
+    .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath);
 
 // Wire Keycloak auth to EventStore, Tenants, Admin.Server, and Admin.UI if enabled.
 if (keycloak is not null && realmUrl is not null) {
@@ -122,16 +102,6 @@ if (keycloak is not null && realmUrl is not null) {
 else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));
 }
-
-// Add Sample consuming service with DAPR sidecar for pub/sub event subscription.
-// The Sample is a subscriber only — it does NOT reference StateStore (only Tenants needs actor state).
-_ = builder.AddProject<HexalithTenantsSample>("sample")
-    .WithDaprSidecar(sidecar => sidecar
-        .WithOptions(new DaprSidecarOptions {
-            AppId = "sample",
-            Config = accessControlConfigPath,
-        })
-        .WithReference(tenantsResources.PubSub));
 
 await builder
     .Build()

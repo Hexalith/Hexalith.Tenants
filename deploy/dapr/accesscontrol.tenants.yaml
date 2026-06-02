@@ -2,9 +2,14 @@
 # ======================================================================
 # Bind this Configuration only to the tenants receiver sidecar.
 #
-# Tenants exposes two internal service-invocation endpoints for EventStore:
-#   POST /process -- domain command processing
-#   POST /project -- projection dispatch
+# Tenants exposes the platform domain-service internal service-invocation endpoints for EventStore.
+# Most are provided by the EventStore domain-service SDK (MapEventStoreDomainService); /project stays
+# a Tenants-owned bespoke multi-read-model build path:
+#   POST /process                            -- domain command processing (SDK keyed router)
+#   POST /project                            -- projection dispatch (Tenants-owned)
+#   POST /query                              -- in-process IDomainQueryHandler dispatch (SDK)
+#   POST /replay-state                       -- aggregate state replay for Admin inspection (SDK)
+#   POST /admin/operational-index-metadata   -- command/event/projection/query-type catalog (SDK)
 #
 # Public command/query endpoints continue to use ASP.NET authentication and
 # authorization. DAPR sidecar access control is the caller gate for these
@@ -27,5 +32,14 @@ spec:
             httpVerb: ['POST']
             action: allow
           - name: /project
+            httpVerb: ['POST']
+            action: allow
+          - name: /query
+            httpVerb: ['POST']
+            action: allow
+          - name: /replay-state
+            httpVerb: ['POST']
+            action: allow
+          - name: /admin/operational-index-metadata
             httpVerb: ['POST']
             action: allow

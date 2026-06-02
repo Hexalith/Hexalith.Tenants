@@ -20,15 +20,14 @@ using Hexalith.EventStore.Server.Pipeline;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.EventStore.Validation;
 using Hexalith.EventStore.DomainService;
+using Hexalith.EventStore.ServiceDefaults;
 using Hexalith.Tenants.Authorization;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
-using Hexalith.Tenants.DomainProcessing;
-using Hexalith.Tenants.Health;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Aggregates;
-using Hexalith.Tenants.ServiceDefaults;
+using Hexalith.Tenants.Telemetry;
 using Hexalith.Tenants.Validation;
 
 using Microsoft.AspNetCore.Authentication;
@@ -40,15 +39,20 @@ using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+// Platform Aspire service defaults (observability, health, resilience) — the domain no longer ships
+// its own ServiceDefaults copy (Epic B2). Convention-named OpenTelemetry source/meter for the tenants
+// domain (Epic A5) replace the per-domain ActivitySource/Meter declarations.
 builder.AddServiceDefaults();
+builder.AddEventStoreDomainTelemetry("tenants");
 builder.Services.AddDaprClient();
 // Readiness dependency: a Tenants instance is only "ready" for traffic once its DAPR state
-// store is reachable. The probe self-reports Unhealthy on failure; registering the failure
-// status as Unhealthy (not Degraded) guarantees that even an unexpected throw classifies the
-// readiness dependency as Unhealthy → HTTP 503 on /ready, never Degraded → HTTP 200 (Story 7.5 AC1).
+// store is reachable. The platform DAPR state-store health check (Epic A5) self-reports Unhealthy
+// on failure; registering the failure status as Unhealthy (not Degraded) guarantees that even an
+// unexpected throw classifies the readiness dependency as Unhealthy → HTTP 503 on /ready, never
+// Degraded → HTTP 200 (Story 7.5 AC1).
 builder.Services.AddHealthChecks()
-    .AddCheck<DaprStateStoreHealthCheck>(
-        "dapr-statestore",
+    .AddEventStoreDomainStateStoreHealthCheck(
+        "tenants",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready"]);
 // Domain service only — do NOT register AddEventStoreServer or server-side EventStore extensions here.
@@ -61,7 +65,9 @@ builder.Services.AddEventStoreReadModelStore();
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
-builder.Services.AddScoped<DomainServiceRequestHandler>();
+// Domain telemetry instruments (query/projection duration histograms), sourced from the platform
+// convention-named diagnostics registered by AddEventStoreDomainTelemetry above (Epic A5 rehome).
+builder.Services.AddSingleton<TenantTelemetry>();
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
 builder.Services.AddProblemDetails();
@@ -150,21 +156,20 @@ app.UseCloudEvents();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapPost("/process", async (
-    DomainServiceRequest request,
-    DomainServiceRequestHandler handler,
-    CancellationToken cancellationToken) =>
-    Results.Ok(await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false)));
+// Bespoke multi-read-model projection build path stays Tenants-mapped (persisted TenantReadModel +
+// cross-aggregate index + audit, merge-on-write); the SDK yields /project because it is already mapped.
 app.MapPost("/project", async (
     ProjectionRequest request,
     IReadModelStore readModelStore,
+    TenantTelemetry telemetry,
     ILoggerFactory loggerFactory,
     CancellationToken cancellationToken)
-    => await new ProjectionDispatcher(readModelStore, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
-app.MapPost("/admin/operational-index-metadata", (
-    AdminOperationalIndexMetadataRequest request,
-    DiscoveryResult discovery)
-    => Results.Ok(Hexalith.Tenants.AdminOperationalIndexMetadata.Create(discovery, request.Domains)));
+    => await new ProjectionDispatcher(readModelStore, telemetry, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
+// Canonical DAPR-invoked domain-service endpoints from the SDK: /process (keyed domain processor),
+// /replay-state, /query (in-process IDomainQueryHandler dispatch), and /admin/operational-index-metadata
+// (now reporting handler-served query types). Replaces the hand-rolled DomainServiceRequestHandler and
+// the host AdminOperationalIndexMetadata copy.
+app.MapEventStoreDomainService();
 app.MapSubscribeHandler();
 
 await app.RunAsync().ConfigureAwait(false);

@@ -3,9 +3,11 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
+using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -20,6 +22,8 @@ public class ProjectionDispatcherTests {
     private static readonly JsonSerializerOptions _options = new() {
         PropertyNameCaseInsensitive = true,
     };
+
+    private static readonly TenantTelemetry _telemetry = new(new EventStoreDomainDiagnostics("tenants"));
 
     [Fact]
     public async Task DispatchAsync_TenantsDomain_RoutesToTenantProjectionHandlerAsync() {
@@ -42,7 +46,7 @@ public class ProjectionDispatcherTests {
             "tenant-1",
             [CreateEventDto(new TenantCreated("tenant-1", "Acme", null, DateTimeOffset.UtcNow))]);
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         // Tenant handler writes the per-tenant projection key through a first-write-wins ETag save
         // (the loaded ETag is empty for a missing-state first write; the FirstWrite concurrency guard now
@@ -85,7 +89,7 @@ public class ProjectionDispatcherTests {
             "global-administrators",
             [CreateEventDto(new GlobalAdministratorSet("system", "admin-user"))]);
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         await store.Received(1).SaveAsync(
             "statestore",
@@ -122,7 +126,7 @@ public class ProjectionDispatcherTests {
             aggregateId,
             [CreateEventDto(new GlobalAdministratorSet("system", "admin-user"))]);
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         await store.DidNotReceive().SaveAsync(
             Arg.Any<string>(),
@@ -161,7 +165,7 @@ public class ProjectionDispatcherTests {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = new("system", domain, "any", []);
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         // No state writes for unsupported domains.
         await store.DidNotReceive().SaveAsync(
@@ -184,7 +188,7 @@ public class ProjectionDispatcherTests {
     [Fact]
     public async Task DispatchAsync_NullRequest_ThrowsAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        ProjectionDispatcher dispatcher = new(store);
+        ProjectionDispatcher dispatcher = new(store, _telemetry);
 
         _ = await Should.ThrowAsync<ArgumentNullException>(
             () => dispatcher.DispatchAsync(null!));

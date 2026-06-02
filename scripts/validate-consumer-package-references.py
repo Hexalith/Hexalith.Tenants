@@ -18,7 +18,6 @@ PACKAGE_IDS = [
     "Hexalith.Tenants.Client",
     "Hexalith.Tenants.Server",
     "Hexalith.Tenants.Testing",
-    "Hexalith.Tenants.Aspire",
 ]
 SCRIPT_PATH = Path(__file__).resolve()
 REPO_ROOT = SCRIPT_PATH.parents[1]
@@ -86,20 +85,6 @@ def assert_package_only(project_file: Path, required_package_ids: list[str]) -> 
     for package_id in required_package_ids:
         if f'PackageReference Include="{package_id}"' not in project_text:
             raise ValueError(f"{project_file}: missing PackageReference for {package_id}")
-
-
-def assert_no_manual_aspire_wiring(program_file: Path) -> None:
-    program_text = program_file.read_text(encoding="utf-8")
-    forbidden_fragments = [
-        "AddDapr",
-        "WithDaprSidecar",
-        "DaprSidecarOptions",
-        "statestore",
-        "pubsub",
-    ]
-    for fragment in forbidden_fragments:
-        if fragment in program_text:
-            raise ValueError(f"{program_file}: Aspire consumer must use AddHexalithTenants instead of manual {fragment} wiring")
 
 
 def write_nuget_config(root: Path, package_directory: Path, additional_sources: list[str]) -> Path:
@@ -219,47 +204,6 @@ public sealed class TenantPackageSmokeTests {
     return project_file
 
 
-def write_aspire_consumer(root: Path, version: str) -> Path:
-    project_dir = root / "aspire-consumer"
-    project_dir.mkdir(parents=True)
-    project_file = project_dir / "AspireConsumer.csproj"
-    project_file.write_text(
-        f"""<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Hexalith.Tenants.Aspire" Version="{version}" />
-  </ItemGroup>
-</Project>
-""",
-        encoding="utf-8",
-    )
-    program_file = project_dir / "Program.cs"
-    program_file.write_text(
-        """using Aspire.Hosting;
-using Aspire.Hosting.ApplicationModel;
-
-using Hexalith.Tenants.Aspire;
-
-IDistributedApplicationBuilder builder = null!;
-IResourceBuilder<ProjectResource> tenants = null!;
-HexalithTenantsResources resources = HexalithTenantsExtensions.AddHexalithTenants(builder, tenants);
-
-_ = resources.StateStore;
-_ = resources.PubSub;
-_ = resources.CommandApi;
-""",
-        encoding="utf-8",
-    )
-    assert_package_only(project_file, ["Hexalith.Tenants.Aspire"])
-    assert_no_manual_aspire_wiring(program_file)
-    return project_file
-
-
 def validate_consumer(project_file: Path, test: bool = False) -> None:
     run_dotnet(["restore", str(project_file)], project_file.parent)
     if test:
@@ -313,16 +257,13 @@ def main() -> int:
 
     contracts_client_project = write_contracts_client_consumer(work_directory, package_version)
     testing_project = write_testing_consumer(work_directory, package_version, central_versions)
-    aspire_project = write_aspire_consumer(work_directory, package_version)
 
     validate_consumer(contracts_client_project)
     validate_consumer(testing_project, test=True)
-    validate_consumer(aspire_project)
 
     print(f"Validated package-only consumer restore/build experience at {package_version}:")
     print("- Contracts + Client consumer build")
     print("- Testing consumer infrastructure-free unit test")
-    print("- Aspire consumer compile")
     return 0
 
 

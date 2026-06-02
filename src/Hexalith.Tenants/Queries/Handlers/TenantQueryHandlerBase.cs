@@ -44,6 +44,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     };
 
     private readonly IReadModelStore _store;
+    private readonly TenantTelemetry _telemetry;
 
     // Per-handler-instance dedup so a persistent orphan does not re-emit a Warning for every visible
     // membership within a single query. Handlers are scoped (one instance per request).
@@ -54,13 +55,16 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     /// </summary>
     /// <param name="store">The persisted read-model store.</param>
     /// <param name="cursorCodec">The protected pagination cursor codec.</param>
+    /// <param name="telemetry">The domain telemetry instruments.</param>
     /// <param name="logger">The logger.</param>
-    protected TenantQueryHandlerBase(IReadModelStore store, IQueryCursorCodec cursorCodec, ILogger logger) {
+    protected TenantQueryHandlerBase(IReadModelStore store, IQueryCursorCodec cursorCodec, TenantTelemetry telemetry, ILogger logger) {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(cursorCodec);
+        ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(logger);
         _store = store;
         CursorCodec = cursorCodec;
+        _telemetry = telemetry;
         Logger = logger;
     }
 
@@ -84,17 +88,16 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         // the precedence the retired CachingProjectionActor.QueryAsync gave a pre-cancelled token.
         cancellationToken.ThrowIfCancellationRequested();
 
-        using Activity? activity = TenantActivitySource.Instance.StartActivity(
-            TenantActivitySource.QueryExecute, ActivityKind.Internal);
+        using Activity? activity = _telemetry.StartActivity(TenantTelemetry.QueryExecute);
         var stopwatch = Stopwatch.StartNew();
         string outcome = FailureOutcome;
 
-        _ = (activity?.SetTag(TenantActivitySource.TagQueryType, envelope.QueryType));
-        _ = (activity?.SetTag(TenantActivitySource.TagTenantId, envelope.TenantId));
-        _ = (activity?.SetTag(TenantActivitySource.TagDomain, envelope.Domain));
-        _ = (activity?.SetTag(TenantActivitySource.TagAggregateId, envelope.AggregateId));
-        _ = (activity?.SetTag(TenantActivitySource.TagCorrelationId, envelope.CorrelationId));
-        _ = (activity?.SetTag(TenantActivitySource.TagStage, ProjectionQueryStage));
+        _ = (activity?.SetTag(TenantTelemetry.TagQueryType, envelope.QueryType));
+        _ = (activity?.SetTag(TenantTelemetry.TagTenantId, envelope.TenantId));
+        _ = (activity?.SetTag(TenantTelemetry.TagDomain, envelope.Domain));
+        _ = (activity?.SetTag(TenantTelemetry.TagAggregateId, envelope.AggregateId));
+        _ = (activity?.SetTag(TenantTelemetry.TagCorrelationId, envelope.CorrelationId));
+        _ = (activity?.SetTag(TenantTelemetry.TagStage, ProjectionQueryStage));
 
         try {
             // Every tenant query is role-sensitive: reject an envelope without an authenticated user
@@ -122,8 +125,8 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         }
         finally {
             stopwatch.Stop();
-            _ = (activity?.SetTag(TenantActivitySource.TagOutcome, outcome));
-            TenantMetrics.RecordQueryDuration(stopwatch.Elapsed.TotalMilliseconds, envelope.QueryType, outcome);
+            _ = (activity?.SetTag(TenantTelemetry.TagOutcome, outcome));
+            _telemetry.RecordQueryDuration(stopwatch.Elapsed.TotalMilliseconds, envelope.QueryType, outcome);
         }
     }
 

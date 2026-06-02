@@ -37,14 +37,12 @@ public class PackageGovernanceTests {
         "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
         "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
         "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
-        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
     ];
 
     private static readonly string[] ExplicitlyNonPackableProjects =
     [
         "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
         "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
-        "src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj",
         "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
         "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
     ];
@@ -64,7 +62,6 @@ public class PackageGovernanceTests {
         "Hexalith.Tenants.Client",
         "Hexalith.Tenants.Server",
         "Hexalith.Tenants.Testing",
-        "Hexalith.Tenants.Aspire",
     ];
 
     private static readonly string[] BoundedArtifactGlobs =
@@ -206,7 +203,7 @@ public class PackageGovernanceTests {
         }
 
         testPackabilityViolations.ShouldBeEmpty();
-        GetOwnedProjectFiles(repoRoot).Where(expectedPackageProjects.Contains).Count().ShouldBe(5);
+        GetOwnedProjectFiles(repoRoot).Where(expectedPackageProjects.Contains).Count().ShouldBe(PublishablePackageProjects.Length);
         GetOwnedProjectFiles(repoRoot).Where(expectedNonPackageProjects.Contains).Count().ShouldBe(ExplicitlyNonPackableProjects.Length);
     }
 
@@ -344,15 +341,16 @@ public class PackageGovernanceTests {
         script.ShouldContain("Hexalith.Tenants.Contracts");
         script.ShouldContain("Hexalith.Tenants.Client");
         script.ShouldContain("Hexalith.Tenants.Testing");
-        script.ShouldContain("Hexalith.Tenants.Aspire");
+        // The per-domain Aspire consumer surface (AddHexalithTenants / HexalithTenantsResources) was
+        // removed with the Hexalith.Tenants.Aspire package (domain-centric refactor); orchestration is
+        // provided by the EventStore platform's AddEventStoreDomainModule.
+        script.ShouldNotContain("Hexalith.Tenants.Aspire");
         script.ShouldContain("CreateTenant");
         script.ShouldContain("TenantCreated");
         script.ShouldContain("ListTenantsQuery");
-        script.ShouldContain("AddHexalithTenants");
         script.ShouldContain("InMemoryTenantService");
         script.ShouldContain("TenantTestHelpers");
         script.ShouldContain("InMemoryTenantProjection");
-        script.ShouldContain("HexalithTenantsResources");
         script.ShouldContain("ProjectReference");
         script.ShouldContain("dotnet");
         script.ShouldContain("NuGet.Config");
@@ -375,39 +373,12 @@ public class PackageGovernanceTests {
         script.ShouldContain("Hexalith.EventStore.Server");
         script.ShouldContain("Dapr.AspNetCore");
         script.ShouldContain("Dapr.Client");
-        script.ShouldContain("Aspire.Hosting");
-        script.ShouldContain("CommunityToolkit.Aspire.Hosting.Dapr");
+        // AppHost/ServiceDefaults remain in the validator's forbidden-dependency surface even though the
+        // per-domain projects were removed — no published package may ever depend on such host/composition ids.
         script.ShouldContain("Hexalith.Tenants.AppHost");
         script.ShouldContain("Hexalith.Tenants.ServiceDefaults");
         script.ShouldContain("samples");
         script.ShouldContain("dependency");
-    }
-
-    [Fact]
-    public void Aspire_package_exposes_hosting_composition_only() {
-        string repoRoot = FindRepoRoot();
-        string projectPath = "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj";
-        XDocument project = XDocument.Load(Path.Combine(repoRoot, projectPath));
-
-        string[] packageReferences = project
-            .Descendants("PackageReference")
-            .Select(reference => reference.Attribute("Include")?.Value)
-            .Where(packageId => !string.IsNullOrWhiteSpace(packageId))
-            .Select(packageId => packageId!)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-        string[] projectReferences = project
-            .Descendants("ProjectReference")
-            .Select(reference => reference.Attribute("Include")?.Value)
-            .Where(referencePath => !string.IsNullOrWhiteSpace(referencePath))
-            .Select(referencePath => referencePath!)
-            .ToArray();
-
-        packageReferences.ShouldBe([
-            "Aspire.Hosting",
-            "CommunityToolkit.Aspire.Hosting.Dapr",
-        ]);
-        projectReferences.ShouldBeEmpty($"{projectPath}: Aspire package must not reference host, server, domain, command, query, auth, projection, or test projects.");
     }
 
     [Fact]

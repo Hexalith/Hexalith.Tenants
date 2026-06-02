@@ -5,6 +5,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
+using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Server.Projections;
@@ -28,14 +29,19 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         PropertyNameCaseInsensitive = true,
     };
 
+    private static readonly string s_conventionName = EventStoreDomainTelemetry.ActivitySourceName("tenants");
+
+    private readonly EventStoreDomainDiagnostics _diagnostics = new("tenants");
+    private readonly TenantTelemetry _telemetry;
     private readonly ActivityListener _activityListener;
     private readonly MeterListener _meterListener;
     private readonly List<Activity> _activities = [];
     private readonly List<(string Name, double Value, KeyValuePair<string, object?>[] Tags)> _metrics = [];
 
     public ProjectionDispatcherTelemetryTests() {
+        _telemetry = new TenantTelemetry(_diagnostics);
         _activityListener = new ActivityListener {
-            ShouldListenTo = source => source.Name == TenantActivitySource.SourceName,
+            ShouldListenTo = source => source.Name == s_conventionName,
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => _activities.Add(activity),
         };
@@ -43,7 +49,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
         _meterListener = new MeterListener {
             InstrumentPublished = (instrument, listener) => {
-                if (instrument.Meter.Name == TenantMetrics.MeterName) {
+                if (instrument.Meter.Name == s_conventionName) {
                     listener.EnableMeasurementEvents(instrument);
                 }
             },
@@ -58,6 +64,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     public void Dispose() {
         _activityListener.Dispose();
         _meterListener.Dispose();
+        _diagnostics.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -68,20 +75,20 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
         ProjectionRequest request = CreateTenantRequest();
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
         Activity activity = FindProjectionActivity("tenants");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("completed");
-        activity.GetTagItem(TenantActivitySource.TagStage).ShouldBe("projection-dispatch");
-        activity.GetTagItem(TenantActivitySource.TagTenantId).ShouldBe("system");
-        activity.GetTagItem(TenantActivitySource.TagDomain).ShouldBe("tenants");
-        activity.GetTagItem(TenantActivitySource.TagAggregateId).ShouldBe("tenant-1");
-        activity.GetTagItem(TenantActivitySource.TagProjectionType).ShouldBe("tenant");
-        activity.GetTagItem(TenantActivitySource.TagEventCount).ShouldBe(1);
-        activity.GetTagItem(TenantActivitySource.TagCorrelationId).ShouldBe("corr-1");
-        activity.GetTagItem(TenantActivitySource.TagCausationIdStatus).ShouldBe("unavailable-from-projection-dto");
-        activity.GetTagItem(TenantActivitySource.TagEventTypes).ShouldBe("TenantCreated");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("completed");
+        activity.GetTagItem(TenantTelemetry.TagStage).ShouldBe("projection-dispatch");
+        activity.GetTagItem(TenantTelemetry.TagTenantId).ShouldBe("system");
+        activity.GetTagItem(TenantTelemetry.TagDomain).ShouldBe("tenants");
+        activity.GetTagItem(TenantTelemetry.TagAggregateId).ShouldBe("tenant-1");
+        activity.GetTagItem(TenantTelemetry.TagProjectionType).ShouldBe("tenant");
+        activity.GetTagItem(TenantTelemetry.TagEventCount).ShouldBe(1);
+        activity.GetTagItem(TenantTelemetry.TagCorrelationId).ShouldBe("corr-1");
+        activity.GetTagItem(TenantTelemetry.TagCausationIdStatus).ShouldBe("unavailable-from-projection-dto");
+        activity.GetTagItem(TenantTelemetry.TagEventTypes).ShouldBe("TenantCreated");
 
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) = FindMetric(
             tags =>
@@ -106,12 +113,12 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateGlobalAdminRequest();
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
         Activity activity = FindProjectionActivity("global-administrators");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("completed");
-        activity.GetTagItem(TenantActivitySource.TagProjectionType).ShouldBe("global-administrators");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("completed");
+        activity.GetTagItem(TenantTelemetry.TagProjectionType).ShouldBe("global-administrators");
 
         _ = FindMetric(tags =>
             HasTag(tags, "domain", "global-administrators")
@@ -124,12 +131,12 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = new("system", "orders", "tenant-1", []);
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<ProblemHttpResult>();
         Activity activity = FindProjectionActivity("unknown");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("unsupported-domain");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("unsupported-domain");
 
         _ = FindMetric(tags =>
             HasTag(tags, "domain", "unknown")
@@ -146,12 +153,12 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
             "global-administrators",
             [CreateEventDto(new GlobalAdministratorSet("system", "admin-user"))]);
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(request);
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         _ = result.ShouldBeOfType<ProblemHttpResult>();
         Activity activity = FindProjectionActivity("global-administrators");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("invalid-identity");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("invalid-identity");
 
         _ = FindMetric(tags =>
             HasTag(tags, "domain", "global-administrators")
@@ -179,10 +186,10 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
                     UserId: "actor-test"),
             ]);
 
-        _ = await new ProjectionDispatcher(store).DispatchAsync(request);
+        _ = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         Activity activity = FindProjectionActivity("tenants");
-        activity.GetTagItem(TenantActivitySource.TagEventTypes).ShouldBe("unknown");
+        activity.GetTagItem(TenantTelemetry.TagEventTypes).ShouldBe("unknown");
     }
 
     [Fact]
@@ -196,11 +203,11 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         ProjectionRequest request = CreateTenantRequest();
 
         _ = await Should.ThrowAsync<InvalidOperationException>(() =>
-            new ProjectionDispatcher(store).DispatchAsync(request));
+            new ProjectionDispatcher(store, _telemetry).DispatchAsync(request));
 
         Activity activity = FindProjectionActivity("tenants");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("retry-exhausted");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("retry-exhausted");
 
         _ = FindMetric(tags =>
             HasTag(tags, "domain", "tenants")
@@ -220,11 +227,11 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, "audit:tenant-1");
         SetupSuccessfulGuardedSave<TenantIndexReadModel>(store, "projection:tenant-index:singleton");
 
-        IResult result = await new ProjectionDispatcher(store).DispatchAsync(CreateTenantRequest());
+        IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(CreateTenantRequest());
 
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
         Activity activity = FindProjectionActivity("tenants");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("completed");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("completed");
 
         // The dispatcher still records the overall event-processing outcome. The per-write conflict counter
         // (formerly tenants.projection.write.conflicts) was emitted by the removed TenantProjectionWritePolicy;
@@ -244,11 +251,11 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         ProjectionRequest request = CreateTenantRequest();
 
         _ = await Should.ThrowAsync<HttpRequestException>(() =>
-            new ProjectionDispatcher(store).DispatchAsync(request));
+            new ProjectionDispatcher(store, _telemetry).DispatchAsync(request));
 
         Activity activity = FindProjectionActivity("tenants");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("failure");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("failure");
 
         _ = FindMetric(tags =>
             HasTag(tags, "domain", "tenants")
@@ -261,7 +268,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupSuccessfulTenantProjection(store);
         var loggerFactory = new TestLoggerFactory();
-        var dispatcher = new ProjectionDispatcher(store, loggerFactory);
+        var dispatcher = new ProjectionDispatcher(store, _telemetry, loggerFactory);
 
         _ = await dispatcher.DispatchAsync(CreateTenantRequest());
         _ = await dispatcher.DispatchAsync(new ProjectionRequest("system", "orders", "tenant-1", []));
@@ -293,7 +300,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
         var loggerFactory = new TestLoggerFactory();
 
         _ = await Should.ThrowAsync<HttpRequestException>(() =>
-            new ProjectionDispatcher(store, loggerFactory).DispatchAsync(CreateTenantRequest()));
+            new ProjectionDispatcher(store, _telemetry, loggerFactory).DispatchAsync(CreateTenantRequest()));
 
         TestLogEntry failureEntry = loggerFactory.Entries.Single(entry => entry.EventId.Id == 100302);
         failureEntry.Level.ShouldBe(LogLevel.Error);
@@ -321,8 +328,8 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
 
     private Activity FindProjectionActivity(string domain)
         => _activities.Last(activity =>
-            activity.OperationName == TenantActivitySource.ProjectionProject
-            && Equals(activity.GetTagItem(TenantActivitySource.TagDomain), domain));
+            activity.OperationName == TenantTelemetry.ProjectionProject
+            && Equals(activity.GetTagItem(TenantTelemetry.TagDomain), domain));
 
     private static bool HasTag(KeyValuePair<string, object?>[] tags, string key, object? value)
         => tags.Any(tag => tag.Key == key && Equals(tag.Value, value));

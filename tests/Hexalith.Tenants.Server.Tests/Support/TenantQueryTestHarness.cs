@@ -1,7 +1,9 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Queries.Handlers;
+using Hexalith.Tenants.Telemetry;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,14 +22,19 @@ internal static class TenantQueryTestHarness {
     public static IReadOnlyList<TenantQueryHandlerBase> CreateHandlers(
         IReadModelStore store,
         IQueryCursorCodec cursorCodec,
-        ILoggerFactory? loggerFactory = null) {
+        ILoggerFactory? loggerFactory = null,
+        TenantTelemetry? telemetry = null) {
         ILoggerFactory factory = loggerFactory ?? NullLoggerFactory.Instance;
+        // The convention-named diagnostics produce a source/meter named "Hexalith.EventStore.Domain.tenants"
+        // regardless of instance, so a telemetry listener that filters by name observes these handlers'
+        // emissions whether or not the caller supplied its own telemetry.
+        TenantTelemetry domainTelemetry = telemetry ?? new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
         return [
-            new GetTenantQueryHandler(store, cursorCodec, factory.CreateLogger<GetTenantQueryHandler>()),
-            new GetTenantUsersQueryHandler(store, cursorCodec, factory.CreateLogger<GetTenantUsersQueryHandler>()),
-            new GetUserTenantsQueryHandler(store, cursorCodec, factory.CreateLogger<GetUserTenantsQueryHandler>()),
-            new ListTenantsQueryHandler(store, cursorCodec, factory.CreateLogger<ListTenantsQueryHandler>()),
-            new GetTenantAuditQueryHandler(store, cursorCodec, factory.CreateLogger<GetTenantAuditQueryHandler>()),
+            new GetTenantQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantQueryHandler>()),
+            new GetTenantUsersQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantUsersQueryHandler>()),
+            new GetUserTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetUserTenantsQueryHandler>()),
+            new ListTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<ListTenantsQueryHandler>()),
+            new GetTenantAuditQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>()),
         ];
     }
 
@@ -36,8 +43,9 @@ internal static class TenantQueryTestHarness {
         IQueryCursorCodec cursorCodec,
         QueryEnvelope envelope,
         CancellationToken cancellationToken = default,
-        ILoggerFactory? loggerFactory = null) {
-        TenantQueryHandlerBase? handler = CreateHandlers(store, cursorCodec, loggerFactory)
+        ILoggerFactory? loggerFactory = null,
+        TenantTelemetry? telemetry = null) {
+        TenantQueryHandlerBase? handler = CreateHandlers(store, cursorCodec, loggerFactory, telemetry)
             .FirstOrDefault(h =>
                 string.Equals(h.Domain, envelope.Domain, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(h.QueryType, envelope.QueryType, StringComparison.OrdinalIgnoreCase));

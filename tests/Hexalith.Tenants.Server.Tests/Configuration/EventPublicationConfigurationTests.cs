@@ -37,10 +37,11 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
-    public void AppHost_DaprTopology_UsesStableResourceNamesAppIdsAndDynamicSidecarPorts() {
+    public void AppHost_DaprTopology_UsesPlatformDomainModuleExtensionAndStableResourceNames() {
+        // The per-domain Hexalith.Tenants.Aspire re-implementation was removed; the AppHost now consumes the
+        // platform Aspire boilerplate (Hexalith.EventStore.Aspire): AddHexalithEventStore wires the shared
+        // state store + pub/sub + sidecars, and AddEventStoreDomainModule attaches each domain service (A4).
         string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
-        string options = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.Aspire", "HexalithTenantsAspireOptions.cs"));
-        string extension = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.Aspire", "HexalithTenantsExtensions.cs"));
 
         string[] requiredResourceNames = ["eventstore", "eventstore-admin", "eventstore-admin-ui", "tenants", "sample"];
         foreach (string resourceName in requiredResourceNames) {
@@ -48,43 +49,37 @@ public class EventPublicationConfigurationTests {
             program.ShouldContain($"\"{resourceName}\"");
         }
 
-        string[] programAppIds = ["eventstore", "eventstore-admin", "eventstore-admin-ui", "sample"];
-        foreach (string appId in programAppIds) {
-            program.ShouldContain($"AppId = \"{appId}\"");
-        }
+        // Reusable DAPR/topology wiring comes from the platform extensions, not hand-rolled per-domain code.
+        program.ShouldContain("AddHexalithEventStore(");
+        program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"tenants\"");
+        program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"sample\"");
+        program.ShouldNotContain("AddHexalithTenants");
+        program.ShouldNotContain("Hexalith.Tenants.Aspire");
 
-        options.ShouldContain("AppId");
-        options.ShouldContain("\"tenants\"");
-        options.ShouldContain("StateStoreName");
-        options.ShouldContain("\"statestore\"");
-        options.ShouldContain("PubSubName");
-        options.ShouldContain("\"pubsub\"");
-        extension.ShouldContain(".WithMetadata(\"actorStateStore\", \"true\")");
-        extension.ShouldContain(".WithReference(stateStore)");
-        extension.ShouldContain(".WithReference(pubSub)");
         program.ShouldContain("ResolveDaprConfigPath");
         program.ShouldContain("accesscontrol.yaml");
         program.ShouldContain("accesscontrol.eventstore-admin.yaml");
-        program.ShouldNotContain("DaprHttpPort =");
-        program.ShouldNotContain("DaprGrpcPort =");
     }
 
     [Fact]
     public void TenantsHost_ExposesDomainProcessorAndProjectionRoutes() {
         string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants", "Program.cs"));
 
-        program.ShouldContain("app.MapPost(\"/process\"");
-        program.ShouldContain("DomainServiceRequest request");
-        program.ShouldContain("handler.ProcessAsync(request");
+        // /process (keyed domain processor), /replay-state, /query, and /admin/operational-index-metadata
+        // are now provided by the platform domain-service SDK rather than a hand-rolled handler (Epic B3).
+        program.ShouldContain("app.MapEventStoreDomainService();");
+        // The bespoke multi-read-model projection build path stays Tenants-mapped (the SDK yields /project).
         program.ShouldContain("app.MapPost(\"/project\"");
         program.ShouldContain("ProjectionRequest request");
         program.ShouldContain("ProjectionDispatcher");
-        ShouldOccurBefore(program, "app.UseMiddleware<CorrelationIdMiddleware>();", "app.MapPost(\"/process\"");
-        ShouldOccurBefore(program, "app.UseExceptionHandler();", "app.MapPost(\"/process\"");
-        ShouldOccurBefore(program, "app.UseCloudEvents();", "app.MapPost(\"/process\"");
-        ShouldOccurBefore(program, "app.UseAuthentication();", "app.MapPost(\"/process\"");
-        ShouldOccurBefore(program, "app.UseAuthorization();", "app.MapPost(\"/process\"");
+        ShouldOccurBefore(program, "app.UseMiddleware<CorrelationIdMiddleware>();", "app.MapEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseExceptionHandler();", "app.MapEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseCloudEvents();", "app.MapEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseAuthentication();", "app.MapEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseAuthorization();", "app.MapEventStoreDomainService();");
+        // The bespoke /project must be mapped before the SDK call so the SDK yields the route.
         ShouldOccurBefore(program, "app.UseAuthorization();", "app.MapPost(\"/project\"");
+        ShouldOccurBefore(program, "app.MapPost(\"/project\"", "app.MapEventStoreDomainService();");
     }
 
     [Fact]
@@ -267,8 +262,10 @@ public class EventPublicationConfigurationTests {
         Scalar(policy, "defaultAction").ShouldBe("deny");
 
         YamlMappingNode[] operations = Sequence(policy, "operations").OfType<YamlMappingNode>().ToArray();
-        operations.Length.ShouldBe(2);
-        operations.Select(operation => Scalar(operation, "name")).ShouldBe(["/process", "/project"], ignoreOrder: true);
+        operations.Length.ShouldBe(5);
+        operations.Select(operation => Scalar(operation, "name")).ShouldBe(
+            ["/process", "/project", "/query", "/replay-state", "/admin/operational-index-metadata"],
+            ignoreOrder: true);
         foreach (YamlMappingNode operation in operations) {
             ScalarValues(operation, "httpVerb").ShouldBe(["POST"]);
             Scalar(operation, "action").ShouldBe("allow");
@@ -328,7 +325,15 @@ public class EventPublicationConfigurationTests {
         Sequence(eventStorePolicy, "operations")
             .OfType<YamlMappingNode>()
             .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
-            .ShouldBe(["allow POST /process", "allow POST /project"], ignoreOrder: true);
+            .ShouldBe(
+                [
+                    "allow POST /process",
+                    "allow POST /project",
+                    "allow POST /query",
+                    "allow POST /replay-state",
+                    "allow POST /admin/operational-index-metadata",
+                ],
+                ignoreOrder: true);
     }
 
     [Fact]

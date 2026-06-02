@@ -4,6 +4,7 @@ using System.Diagnostics.Metrics;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Projections;
@@ -25,6 +26,8 @@ namespace Hexalith.Tenants.Server.Tests.Telemetry;
 /// </summary>
 [Collection("Telemetry")]
 public class TenantsProjectionActorTelemetryTests : IDisposable {
+    private static readonly string s_conventionName = EventStoreDomainTelemetry.ActivitySourceName("tenants");
+
     private readonly ActivityListener _activityListener;
     private readonly MeterListener _meterListener;
     private readonly List<Activity> _activities = [];
@@ -32,7 +35,7 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
     public TenantsProjectionActorTelemetryTests() {
         _activityListener = new ActivityListener {
-            ShouldListenTo = source => source.Name == TenantActivitySource.SourceName,
+            ShouldListenTo = source => source.Name == s_conventionName,
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => _activities.Add(activity),
         };
@@ -40,7 +43,7 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
         _meterListener = new MeterListener {
             InstrumentPublished = (instrument, listener) => {
-                if (instrument.Meter.Name == TenantMetrics.MeterName) {
+                if (instrument.Meter.Name == s_conventionName) {
                     listener.EnableMeasurementEvents(instrument);
                 }
             }
@@ -70,12 +73,12 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
         _activities.Count.ShouldBeGreaterThanOrEqualTo(1);
 
         Activity activity = FindActivity("get-tenant");
-        activity.GetTagItem(TenantActivitySource.TagQueryType).ShouldBe("get-tenant");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("success");
-        activity.GetTagItem(TenantActivitySource.TagStage).ShouldBe("projection-query");
-        activity.GetTagItem(TenantActivitySource.TagCorrelationId).ShouldNotBeNull();
-        activity.GetTagItem(TenantActivitySource.TagDomain).ShouldBe("tenants");
-        activity.GetTagItem(TenantActivitySource.TagAggregateId).ShouldBe("tenant-1");
+        activity.GetTagItem(TenantTelemetry.TagQueryType).ShouldBe("get-tenant");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("success");
+        activity.GetTagItem(TenantTelemetry.TagStage).ShouldBe("projection-query");
+        activity.GetTagItem(TenantTelemetry.TagCorrelationId).ShouldNotBeNull();
+        activity.GetTagItem(TenantTelemetry.TagDomain).ShouldBe("tenants");
+        activity.GetTagItem(TenantTelemetry.TagAggregateId).ShouldBe("tenant-1");
         activity.Status.ShouldBe(ActivityStatusCode.Unset);
 
         (string Name, double Value, KeyValuePair<string, object?>[] Tags) = FindMetric(
@@ -101,7 +104,7 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
         result.Success.ShouldBeFalse();
         Activity activity = FindActivity("get-tenant");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("forbidden");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("forbidden");
 
         _ = FindMetric(
             "tenants.projection.query.duration",
@@ -121,7 +124,7 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
         Activity activity = FindActivity("get-tenant");
         activity.Status.ShouldBe(ActivityStatusCode.Error);
         activity.StatusDescription.ShouldBe("State store unavailable");
-        activity.GetTagItem(TenantActivitySource.TagOutcome).ShouldBe("failure");
+        activity.GetTagItem(TenantTelemetry.TagOutcome).ShouldBe("failure");
 
         _ = FindMetric(
             "tenants.projection.query.duration",
@@ -135,8 +138,8 @@ public class TenantsProjectionActorTelemetryTests : IDisposable {
 
     private Activity FindActivity(string queryType)
         => _activities.Last(activity =>
-            activity.OperationName == TenantActivitySource.QueryExecute
-            && Equals(activity.GetTagItem(TenantActivitySource.TagQueryType), queryType));
+            activity.OperationName == TenantTelemetry.QueryExecute
+            && Equals(activity.GetTagItem(TenantTelemetry.TagQueryType), queryType));
 
     private static bool HasTag(KeyValuePair<string, object?>[] tags, string key, object? value)
         => tags.Any(tag => tag.Key == key && Equals(tag.Value, value));

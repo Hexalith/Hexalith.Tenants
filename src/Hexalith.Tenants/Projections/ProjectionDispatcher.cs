@@ -16,7 +16,7 @@ namespace Hexalith.Tenants.Projections;
 /// requested <see cref="ProjectionRequest.Domain"/>. Unknown domains fail closed with
 /// <see cref="StatusCodes.Status400BadRequest"/> instead of silently being projected as tenants.
 /// </summary>
-public sealed partial class ProjectionDispatcher(IReadModelStore store, ILoggerFactory? loggerFactory = null) {
+public sealed partial class ProjectionDispatcher(IReadModelStore store, TenantTelemetry telemetry, ILoggerFactory? loggerFactory = null) {
     public const string TenantsDomain = "tenants";
     public const string GlobalAdministratorsDomain = "global-administrators";
 
@@ -52,24 +52,23 @@ public sealed partial class ProjectionDispatcher(IReadModelStore store, ILoggerF
         ArgumentNullException.ThrowIfNull(request);
 
         ILogger<ProjectionDispatcher> logger = _loggerFactory.CreateLogger<ProjectionDispatcher>();
-        using Activity? activity = TenantActivitySource.Instance.StartActivity(
-            TenantActivitySource.ProjectionProject, ActivityKind.Internal);
+        using Activity? activity = telemetry.StartActivity(TenantTelemetry.ProjectionProject);
         var stopwatch = Stopwatch.StartNew();
         string outcome = FailureOutcome;
         string projectionType = GetProjectionType(request.Domain);
         string telemetryDomain = GetTelemetryDomain(request.Domain);
         string correlationId = GetCorrelationId(request);
 
-        _ = (activity?.SetTag(TenantActivitySource.TagStage, ProjectionDispatchStage));
-        _ = (activity?.SetTag(TenantActivitySource.TagTenantId, request.TenantId));
-        _ = (activity?.SetTag(TenantActivitySource.TagDomain, telemetryDomain));
-        _ = (activity?.SetTag(TenantActivitySource.TagAggregateId, request.AggregateId));
-        _ = (activity?.SetTag(TenantActivitySource.TagProjectionType, projectionType));
-        _ = (activity?.SetTag(TenantActivitySource.TagEventCount, request.Events.Length));
-        _ = (activity?.SetTag(TenantActivitySource.TagEventTypes, BuildEventTypeSummary(request.Events)));
-        _ = (activity?.SetTag(TenantActivitySource.TagCausationIdStatus, CausationIdUnavailable));
+        _ = (activity?.SetTag(TenantTelemetry.TagStage, ProjectionDispatchStage));
+        _ = (activity?.SetTag(TenantTelemetry.TagTenantId, request.TenantId));
+        _ = (activity?.SetTag(TenantTelemetry.TagDomain, telemetryDomain));
+        _ = (activity?.SetTag(TenantTelemetry.TagAggregateId, request.AggregateId));
+        _ = (activity?.SetTag(TenantTelemetry.TagProjectionType, projectionType));
+        _ = (activity?.SetTag(TenantTelemetry.TagEventCount, request.Events.Length));
+        _ = (activity?.SetTag(TenantTelemetry.TagEventTypes, BuildEventTypeSummary(request.Events)));
+        _ = (activity?.SetTag(TenantTelemetry.TagCausationIdStatus, CausationIdUnavailable));
         if (!string.IsNullOrWhiteSpace(correlationId)) {
-            _ = (activity?.SetTag(TenantActivitySource.TagCorrelationId, correlationId));
+            _ = (activity?.SetTag(TenantTelemetry.TagCorrelationId, correlationId));
         }
 
         try {
@@ -124,8 +123,8 @@ public sealed partial class ProjectionDispatcher(IReadModelStore store, ILoggerF
         }
         finally {
             stopwatch.Stop();
-            _ = (activity?.SetTag(TenantActivitySource.TagOutcome, outcome));
-            TenantMetrics.RecordEventProcessingDuration(
+            _ = (activity?.SetTag(TenantTelemetry.TagOutcome, outcome));
+            telemetry.RecordEventProcessingDuration(
                 stopwatch.Elapsed.TotalMilliseconds,
                 telemetryDomain,
                 projectionType,

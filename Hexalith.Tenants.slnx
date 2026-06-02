@@ -19,12 +19,10 @@
   
   <Folder Name="/src/">
     <Project Path="src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj" />
-    <Project Path="src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj" />
     <Project Path="src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj" />
     <Project Path="src/Hexalith.Tenants/Hexalith.Tenants.csproj" />
     <Project Path="src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj" />
     <Project Path="src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj" />
-    <Project Path="src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj" />
     <Project Path="src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -7,6 +7,7 @@ using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
 
 using Microsoft.Extensions.Logging;
 
@@ -20,8 +21,9 @@ namespace Hexalith.Tenants.Queries.Handlers;
 public sealed class GetUserTenantsQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
+    TenantTelemetry telemetry,
     ILogger<GetUserTenantsQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, logger) {
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
     /// <inheritdoc/>
     public override string QueryType => GetUserTenantsQuery.QueryType;
 

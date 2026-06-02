@@ -5,6 +5,7 @@ using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
 
 using Microsoft.Extensions.Logging;
 
@@ -17,8 +18,9 @@ namespace Hexalith.Tenants.Queries.Handlers;
 public sealed class ListTenantsQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
+    TenantTelemetry telemetry,
     ILogger<ListTenantsQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, logger) {
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
     /// <inheritdoc/>
     public override string QueryType => ListTenantsQuery.QueryType;
 

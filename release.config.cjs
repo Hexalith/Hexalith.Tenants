@@ -3,7 +3,6 @@ const expectedPackageIds = [
   'Hexalith.Tenants.Client',
   'Hexalith.Tenants.Server',
   'Hexalith.Tenants.Testing',
-  'Hexalith.Tenants.Aspire',
 ];
 
 module.exports = {

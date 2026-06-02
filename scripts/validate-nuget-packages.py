@@ -16,7 +16,6 @@ EXPECTED_PACKAGE_IDS = frozenset({
     "Hexalith.Tenants.Client",
     "Hexalith.Tenants.Server",
     "Hexalith.Tenants.Testing",
-    "Hexalith.Tenants.Aspire",
 })
 
 EXPECTED_DEPENDENCIES = {
@@ -41,10 +40,6 @@ EXPECTED_DEPENDENCIES = {
         "Hexalith.Tenants.Server",
         "Shouldly",
         "xunit.v3.assert",
-    }),
-    "Hexalith.Tenants.Aspire": frozenset({
-        "Aspire.Hosting",
-        "CommunityToolkit.Aspire.Hosting.Dapr",
     }),
 }
 
