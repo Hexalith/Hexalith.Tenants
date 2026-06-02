@@ -29,17 +29,27 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// a separate release/scheduled concern and is not asserted here.
 /// </summary>
 [Collection("TenantsDaprTest")]
+[DaprTestSerialization]
 [Trait("Category", "Performance")]
-public class SnapshotPerformanceTests {
+public class SnapshotPerformanceTests : IDisposable {
     private const int TenantCount = 1_000;
     private const int EventsPerTenant = 500;
     private const int ConfigurationKeyCount = 100;
     private const int MaxConcurrency = 50;
     private const int RehydrationTimeoutSeconds = 30;
 
+    private readonly IDisposable _daprTestLease;
     private readonly TenantsDaprTestFixture _fixture;
 
-    public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) => _fixture = fixture;
+    public SnapshotPerformanceTests(TenantsDaprTestFixture fixture) {
+        _daprTestLease = DaprTestExecutionGate.Enter();
+        _fixture = fixture;
+    }
+
+    public void Dispose() {
+        _daprTestLease.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     [DaprPerformanceFact]
     public async Task ColdStartRehydration_CompletesWithin30Seconds_With500KEvents() {

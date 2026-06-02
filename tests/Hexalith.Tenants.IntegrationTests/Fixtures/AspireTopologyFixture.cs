@@ -51,6 +51,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     private HttpClient? _commandApiClient;
     private HttpClient? _tenantsClient;
     private HttpClient? _sampleClient;
+    private FileStream? _daprFixtureLock;
     private readonly Stopwatch _startupStopwatch = new();
     private HttpStatusCode? _commandApiLastStatus;
     private string? _commandApiLastError;
@@ -107,6 +108,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
 
     /// <inheritdoc/>
     public async ValueTask InitializeAsync() {
+        AcquireDaprFixtureLock();
         _startupStopwatch.Start();
 
         // 3-minute timeout: DAPR actor placement service registration takes time.
@@ -190,6 +192,21 @@ public class AspireTopologyFixture : IAsyncLifetime {
 
         if (_builder is not null) {
             await _builder.DisposeAsync().ConfigureAwait(false);
+        }
+
+        _daprFixtureLock?.Dispose();
+    }
+
+    private void AcquireDaprFixtureLock() {
+        string lockPath = Path.Combine(Path.GetTempPath(), "hexalith-tenants-dapr-fixture.lock");
+        while (true) {
+            try {
+                _daprFixtureLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                return;
+            }
+            catch (IOException) {
+                Thread.Sleep(250);
+            }
         }
     }
 
