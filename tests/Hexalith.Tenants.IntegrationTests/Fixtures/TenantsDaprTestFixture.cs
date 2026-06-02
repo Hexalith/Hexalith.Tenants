@@ -303,6 +303,21 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
             result,
             @"(?<!localhost:)(?<!127\.0\.0\.1:)\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b",
             "[redacted-private-address]");
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"https?://(?!(?:localhost|127\.0\.0\.1)(?::|/|\b))[^\s\r\n]+",
+            "[redacted-url]",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+            "[redacted-email]",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        result = System.Text.RegularExpressions.Regex.Replace(
+            result,
+            @"\b(tenantId|tenant|userId|user|sub|subject)\s*[:=]\s*['""]?[A-Za-z0-9._@%+-]{3,}['""]?",
+            "$1=[redacted-id]",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         return result;
     }
 

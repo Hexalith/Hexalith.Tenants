@@ -62,13 +62,20 @@ public class DaprTestPrerequisiteDiagnosticsTests {
     [Fact]
     public void SupportSafeDiagnostic_RedactsSecretsTokensAndPrivateAddresses() {
         string diagnostic = TenantsDaprTestFixture.ToSupportSafeDiagnostic(
-            "Bearer abcdefghijklmnopqrstuvwxyz12345 eyJheader.payload.signature Password=s3cr3t AccountKey=abc123 redis://cache.local:6379 10.1.2.3");
+            "Bearer abcdefghijklmnopqrstuvwxyz12345 eyJheader.payload.signature Password=s3cr3t AccountKey=abc123 redis://cache.local:6379 10.1.2.3 "
+            + "issuer=https://identity.internal.example/realms/hexalith tenantId='tenant-prod-001' userId=\"real-user\" email=real-user@example.com");
 
         diagnostic.ShouldContain("[redacted-token]");
         diagnostic.ShouldContain("[redacted-jwt]");
         diagnostic.ShouldContain("[redacted-secret]");
         diagnostic.ShouldContain("[redacted-connection]");
         diagnostic.ShouldContain("[redacted-private-address]");
+        diagnostic.ShouldContain("[redacted-url]");
+        diagnostic.ShouldContain("tenantId=[redacted-id]");
+        diagnostic.ShouldContain("userId=[redacted-id]");
+        diagnostic.ShouldNotContain("tenant-prod-001");
+        diagnostic.ShouldNotContain("real-user");
+        diagnostic.ShouldContain("[redacted-email]");
         AssertSupportSafe(diagnostic);
     }
 
@@ -82,6 +89,25 @@ public class DaprTestPrerequisiteDiagnosticsTests {
         AssertSupportSafe(diagnostic);
     }
 
+    [Fact]
+    public void DependencyDiagnosticCategories_AreSupportSafeWhenRecordedAsEvidence() {
+        string[] categories =
+        [
+            "DAPR state store",
+            "DAPR sidecar",
+            "Redis localhost:6379",
+            OperatingSystem.IsWindows() ? "placement localhost:6050" : "placement localhost:50005",
+            OperatingSystem.IsWindows() ? "scheduler localhost:6060" : "scheduler localhost:50006",
+            "EventStore command gateway",
+            "Tenants query route",
+            "service invocation boundary",
+        ];
+
+        foreach (string category in categories) {
+            AssertSupportSafe(category);
+        }
+    }
+
     private static void AssertSupportSafe(string value) {
         Regex compactJwt = new(@"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", RegexOptions.Compiled);
         Regex bearerToken = new(@"Bearer\s+[A-Za-z0-9._~+/=-]{20,}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -91,10 +117,22 @@ public class DaprTestPrerequisiteDiagnosticsTests {
         Regex rawPrivateAddress = new(
             @"(?<!localhost:)(?<!127\.0\.0\.1:)\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b",
             RegexOptions.Compiled);
+        Regex realIssuerUrl = new(
+            @"https?://(?!(?:localhost|127\.0\.0\.1)(?::|/|\b))[^\s]+",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        Regex email = new(
+            @"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        Regex concreteTenantOrUserId = new(
+            @"\b(?:tenantId|tenant|userId|user|sub|subject)\s*[:=]\s*['""]?[A-Za-z0-9._@%+-]{3,}",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         compactJwt.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include compact JWTs.");
         bearerToken.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include bearer tokens.");
         connectionString.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include concrete connection strings.");
         rawPrivateAddress.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include private network addresses.");
+        realIssuerUrl.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include real issuer URLs.");
+        email.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include email addresses or PII.");
+        concreteTenantOrUserId.IsMatch(value).ShouldBeFalse("DAPR prerequisite diagnostics must not include concrete tenant or user IDs.");
     }
 }

@@ -85,15 +85,41 @@ public class HealthEndpointsTests {
 
     [Fact]
     public async Task Ready_development_json_response_is_support_safe_and_hides_exception_internals() {
-        // A failing dependency's exception can carry raw adapter internals or stack traces.
+        // A failing dependency's health data can carry raw adapter internals or stack traces.
         // The development JSON response (exposed by MapDefaultEndpoints) must surface the dependency
-        // category — status + a safe description — but never the raw exception internals.
+        // category — status + a safe description — but never the raw diagnostic internals.
         const string rawExceptionMarker = "RAW-EXCEPTION-MARKER-12345";
+        const string compactJwtShape = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.signature";
+        const string bearerTokenShape = "Bearer token-material-placeholder";
+        const string connectionStringMarker = "AccountKey=";
+        const string redisConnectionMarker = "redis://";
+        const string privateAddressShape = "10.1.2.3";
+        const string issuerUrlShape = "https://identity.example.test/realms/hexalith";
+        const string tenantIdentifierShape = "tenant-prod-001";
+        const string userIdentifierShape = "user@example.test";
+        string unsafeDiagnostic = string.Join(
+            ' ',
+            compactJwtShape,
+            bearerTokenShape,
+            connectionStringMarker + "secret-value",
+            redisConnectionMarker + "cache.internal:6379",
+            privateAddressShape,
+            issuerUrlShape,
+            tenantIdentifierShape,
+            userIdentifierShape);
+        IReadOnlyDictionary<string, object> unsafeData = new Dictionary<string, object>(StringComparer.Ordinal) {
+            ["rawException"] = rawExceptionMarker,
+            ["dependencyDetail"] = unsafeDiagnostic,
+            ["token"] = compactJwtShape,
+            ["connection"] = connectionStringMarker + "secret-value",
+            ["tenant"] = tenantIdentifierShape,
+        };
         await using var factory = new HealthWebApplicationFactory(
             HealthStatus.Unhealthy,
             environment: "Development",
             description: "DAPR state store is unreachable",
-            exception: new InvalidOperationException(rawExceptionMarker));
+            exception: new InvalidOperationException("Synthetic readiness failure"),
+            data: unsafeData);
         using HttpClient client = factory.CreateClient();
 
         using HttpResponseMessage response = await client.GetAsync("/ready");
@@ -108,6 +134,18 @@ public class HealthEndpointsTests {
         body.ShouldNotContain(rawExceptionMarker);
         body.ShouldNotContain("StackTrace", Case.Insensitive);
         body.ShouldNotContain("InvalidOperationException");
+        body.ShouldNotContain(compactJwtShape);
+        body.ShouldNotContain(bearerTokenShape);
+        body.ShouldNotContain(connectionStringMarker);
+        body.ShouldNotContain(redisConnectionMarker);
+        body.ShouldNotContain(privateAddressShape);
+        body.ShouldNotContain(issuerUrlShape);
+        body.ShouldNotContain(tenantIdentifierShape);
+        body.ShouldNotContain(userIdentifierShape);
+        body.ShouldNotContain("rawException");
+        body.ShouldNotContain("dependencyDetail");
+        body.ShouldNotContain("token");
+        body.ShouldNotContain("connection");
     }
 
     /// <summary>
@@ -121,7 +159,8 @@ public class HealthEndpointsTests {
         HealthStatus readinessStatus,
         string? environment = null,
         string? description = null,
-        Exception? exception = null)
+        Exception? exception = null,
+        IReadOnlyDictionary<string, object>? data = null)
         : WebApplicationFactory<TenantBootstrapOptions> {
         protected override void ConfigureWebHost(IWebHostBuilder builder) {
             if (environment is not null) {
@@ -139,7 +178,7 @@ public class HealthEndpointsTests {
 
                     options.Registrations.Add(new HealthCheckRegistration(
                         "dapr-statestore",
-                        _ => new StubReadinessCheck(readinessStatus, description, exception),
+                        _ => new StubReadinessCheck(readinessStatus, description, exception, data),
                         HealthStatus.Unhealthy,
                         ["ready"]));
                 }));
@@ -147,9 +186,12 @@ public class HealthEndpointsTests {
     }
 
     private sealed class StubReadinessCheck(
-        HealthStatus status, string? description = null, Exception? exception = null) : IHealthCheck {
+        HealthStatus status,
+        string? description = null,
+        Exception? exception = null,
+        IReadOnlyDictionary<string, object>? data = null) : IHealthCheck {
         public Task<HealthCheckResult> CheckHealthAsync(
             HealthCheckContext context, CancellationToken cancellationToken = default)
-            => Task.FromResult(new HealthCheckResult(status, description, exception));
+            => Task.FromResult(new HealthCheckResult(status, description, exception, data));
     }
 }

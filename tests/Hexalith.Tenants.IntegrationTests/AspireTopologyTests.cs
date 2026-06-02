@@ -64,6 +64,15 @@ public class AspireTopologyTests {
     }
 
     [DaprFact]
+    public async Task Tenants_resource_reports_ready_only_after_prepared_dependencies_are_available() {
+        _fixture.SkipIfUnavailable();
+
+        using HttpResponseMessage response = await _fixture.TenantsClient.GetAsync("/ready");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [DaprFact]
     public async Task Sample_resource_starts_and_is_alive() {
         _fixture.SkipIfUnavailable();
 

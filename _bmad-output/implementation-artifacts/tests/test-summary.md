@@ -156,6 +156,89 @@ DAPR component and service-invocation smoke-contract validation for Tenants/Even
 - Standard framework APIs, clear descriptions, no hardcoded waits, independent tests: yes.
 - Summary and coverage metrics recorded: yes.
 
+## Story 7.6C Dev Story - Health and Dependency Readiness Smoke Tests
+
+**Workflow:** dev-story - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + ASP.NET Core WebApplicationFactory + prerequisite-gated DAPR/Aspire smoke tests
+
+### Scope
+
+Health and dependency readiness smoke-test validation for Tenants deployment readiness. The existing `/alive` versus `/ready` split was preserved: `/alive` remains process liveness and `/ready` remains a bounded DAPR state-store readiness probe. Command and query path evidence is recorded separately from `/ready`; `/ready` does not submit commands, invoke `/process`, call protected query routes, or depend on production JWT/OIDC availability.
+
+### Coverage
+
+- Deterministic health/readiness checks: `HealthEndpointsTests` verifies `dapr-statestore` is registered with tag `ready` and `FailureStatus == Unhealthy`, `/ready` returns 503 when the ready-tagged dependency is unhealthy, `/ready` returns 200 when healthy, `/alive` can remain 200 while `/ready` is 503, and development JSON response output names only the safe dependency category `DAPR state store is unreachable`.
+- Live AppHost `/ready` checks: `AspireTopologyTests.Tenants_resource_reports_ready_only_after_prepared_dependencies_are_available` now calls Tenants `/ready` after existing DAPR prerequisites pass. In this environment it was discovered but skipped because Redis/placement/scheduler were unavailable; no live readiness pass is claimed.
+- Command path checks: protected `POST /api/v1/commands` coverage is reused from `CommandApiRuntimeIntegrationTests`; live DAPR actor/service-invocation command coverage is reused from `DaprEndToEndTests.CreateTenant_succeeds_end_to_end_with_events_published` when prerequisites are available.
+- Query path checks: protected query route smoke coverage is reused from `TenantsQueryControllerIntegrationTests`; live projection-query reconstruction coverage is reused from `StatelessRestartTests.TenantProjection_QueryIsReconstructedFromStateStore_ByFreshProjectionActorInstance` when prerequisites are available.
+- Support-safe diagnostics: `DaprTestPrerequisiteDiagnosticsTests` covers DAPR state store, DAPR sidecar, Redis `localhost:6379`, placement, scheduler, EventStore command gateway, Tenants query route, service invocation boundary, and redaction of compact JWTs, bearer tokens, signing/secret material, concrete connection strings, private network addresses, issuer URLs, tenant/user identifiers, and email/PII.
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~HealthEndpointsTests\|FullyQualifiedName~AspireTopologyTests\|FullyQualifiedName~DaprEndToEndTests\|FullyQualifiedName~StatelessRestartTests\|FullyQualifiedName~TenantsQueryControllerIntegrationTests\|FullyQualifiedName~CommandApiRuntimeIntegrationTests\|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DaprStateStoreHealthCheckTests\|FullyQualifiedName~EventPublicationConfigurationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Server focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.HealthEndpointsTests -class Hexalith.Tenants.IntegrationTests.AspireTopologyTests -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests -class Hexalith.Tenants.IntegrationTests.StatelessRestartTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | 209 total, 0 errors, 0 failed, 25 skipped. Skips were prerequisite-gated live DAPR/AppHost tests. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Health.DaprStateStoreHealthCheckTests -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` | Passed: 24 total, 0 errors, 0 failed, 0 skipped. |
+| Full direct xUnit regression suite | Contracts, Client, Testing, Sample, Server, and Integration Debug assemblies with `-parallel none` | Passed: 1,367 total, 0 failed, 28 skipped. Skips were DAPR/performance prerequisite-gated. |
+| Debug solution build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build Hexalith.Tenants.slnx --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+
+### Live Evidence Boundary
+
+Live prerequisites were not available in this developer environment. Exact safe skip reason: `DAPR integration prerequisites are unavailable. Run 'dapr init' and ensure Redis, placement, and scheduler are reachable.` Therefore live AppHost `/ready`, live DAPR command, and live projection-query readiness are recorded as discoverable prerequisite-gated checks, not as passing live deployment evidence.
+
+### Notes
+
+- Safe dependency categories recorded: DAPR state store, DAPR sidecar, Redis, placement, scheduler, EventStore command gateway, Tenants query route, and service invocation boundary.
+- Evidence intentionally records dates, workflow, commands/classes, pass/fail/skip counts, safe dependency categories, and prerequisite availability only. It does not record compact JWTs, bearer tokens, signing keys, decoded payloads, raw command bodies, private hosts, real tenant/user identifiers, connection strings, or PII.
+
+## Story 7.6C QA Generate E2E Tests - Health and Dependency Readiness
+
+**Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-02
+**Framework:** xUnit v3 (3.2.2) + Shouldly (4.3.0) + ASP.NET Core WebApplicationFactory + prerequisite-gated DAPR/Aspire smoke tests
+
+### Generated Tests
+
+#### API / Integration Tests
+- [x] `tests/Hexalith.Tenants.IntegrationTests/HealthEndpointsTests.cs` - deterministic readiness/liveness endpoint contract, `/ready` 503/200 behavior, and support-safe development health JSON output.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` - prerequisite-gated live AppHost Tenants `/ready` smoke check.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/Fixtures/DaprTestPrerequisiteDiagnosticsTests.cs` - support-safe prerequisite diagnostics, dependency categories, redaction, and narrow infrastructure-startup classification.
+- [x] Existing `CommandApiRuntimeIntegrationTests`, `DaprEndToEndTests`, `TenantsQueryControllerIntegrationTests`, and `StatelessRestartTests` remain the command/query readiness evidence set.
+
+#### E2E Tests
+- [x] Existing prerequisite-gated DAPR/AppHost integration tests are the E2E lane for Story 7.6C.
+- [x] Browser UI E2E tests are not applicable because Story 7.6C has no UI surface.
+
+### Coverage
+
+- API endpoints covered: `/alive`, `/ready`, protected `POST /api/v1/commands`, protected Tenants query routes, Tenants `/process` through live DAPR command evidence when prerequisites are available, and projection-query reconstruction when prerequisites are available.
+- Happy paths covered: healthy readiness returns 200, liveness remains 200, protected command/query routes dispatch with valid auth, and live command/query smoke tests are discoverable behind DAPR prerequisites.
+- Critical error cases covered: unhealthy readiness returns 503, liveness is not mistaken for readiness, development health output hides raw exception internals, DAPR prerequisite failures produce safe skip diagnostics, and product/runtime failures are not broadly converted into prerequisite skips.
+- Live prerequisites available in this environment: no. Exact safe skip reason: `DAPR integration prerequisites are unavailable. Run 'dapr init' and ensure Redis, placement, and scheduler are reachable.`
+
+### Validation Results
+
+| Lane | Command | Result |
+|------|---------|--------|
+| Integration focused via VSTest | `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~HealthEndpointsTests\|FullyQualifiedName~AspireTopologyTests\|FullyQualifiedName~DaprEndToEndTests\|FullyQualifiedName~StatelessRestartTests\|FullyQualifiedName~TenantsQueryControllerIntegrationTests\|FullyQualifiedName~CommandApiRuntimeIntegrationTests\|FullyQualifiedName~DaprTestPrerequisiteDiagnosticsTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Server focused via VSTest | `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug --no-restore --filter "FullyQualifiedName~DaprStateStoreHealthCheckTests\|FullyQualifiedName~EventPublicationConfigurationTests"` | Aborted before execution with sandbox MSBuild/VSTest socket denial: `SocketException (13): Permission denied`. |
+| Integration focused build | `MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-restore -m:1 /nr:false /p:BuildInParallel=false` | Passed: 0 warnings, 0 errors. |
+| Integration focused via direct xUnit | `dotnet tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.HealthEndpointsTests -class Hexalith.Tenants.IntegrationTests.AspireTopologyTests -class Hexalith.Tenants.IntegrationTests.DaprEndToEndTests -class Hexalith.Tenants.IntegrationTests.StatelessRestartTests -class Hexalith.Tenants.IntegrationTests.TenantsQueryControllerIntegrationTests -class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests -class Hexalith.Tenants.IntegrationTests.Fixtures.DaprTestPrerequisiteDiagnosticsTests` | 209 total, 0 errors, 0 failed, 25 skipped. Skips were prerequisite-gated live DAPR/AppHost tests. |
+| Server focused via direct xUnit | `dotnet tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests.dll -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Health.DaprStateStoreHealthCheckTests -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests` | Passed: 24 total, 0 errors, 0 failed, 0 skipped. |
+
+### Checklist Validation
+
+- [x] API/integration tests generated or revalidated where applicable.
+- [x] E2E lane generated through existing DAPR/AppHost smoke tests; browser UI E2E marked N/A.
+- [x] Tests use standard xUnit v3 and Shouldly APIs.
+- [x] Tests cover happy paths and critical error cases.
+- [x] Tests use observable HTTP/status/diagnostic assertions and no hardcoded sleeps in deterministic checks.
+- [x] Tests are independent; live tests are prerequisite-gated and do not claim pass evidence when prerequisites are unavailable.
+- [x] Summary includes coverage metrics, validation commands, pass/fail/skip counts, safe dependency categories, and the live evidence boundary.
+
 ## Story 8.6 QA Generate E2E Tests - Compensating Command Patterns
 
 **Workflow:** qa-generate-e2e-tests - **Date:** 2026-06-01
