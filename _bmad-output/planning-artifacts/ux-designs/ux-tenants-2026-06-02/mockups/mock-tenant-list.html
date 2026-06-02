@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Tenant List / Triage</title>
+<!--
+  SPINE SECTIONS GOVERNING THIS SCREEN (spines win on conflict):
+  DESIGN.md  → components.tenant-data-grid, components.truth-state-badge,
+               components.unavailable-action-reason, Colors (semantic role map),
+               Layout & Spacing (pinned safety columns, reserved footprints, 4px rhythm)
+  EXPERIENCE.md → Component Patterns (tenant-data-grid, truth-state-badge,
+               unavailable-action-reason), State Patterns §5 (six list-surface states:
+               loading / empty / filtered-empty / error / stale / degraded — non-collapsible),
+               State Patterns §1 (13 truth-state-badge states), UJ-1 (Elena triage).
+
+  ILLUSTRATIVE ONLY. Colors below are NEUTRAL APPROXIMATIONS of Fluent UI Blazor v5
+  BadgeColor semantic roles (Brand/Danger/Important/Informative/Severe/Subtle/Success/
+  Warning). Fluent owns the real CSS token values; verify against the pinned package
+  (5.0.0-rc.3-26138.1) at build. NO hex is asserted as canonical here.
+  Fluent icons cannot load in a standalone file: each status uses a unicode glyph
+  PLUS the verified Fluent icon name (title= / caption) from DESIGN.md's verified set.
+-->
+<style>
+  /* ---- system font stack (inherit Fluent / system-UI ramp) ---- */
+  :root{
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+    --mono: "Cascadia Code", "Segoe UI Mono", Consolas, "Liberation Mono", monospace;
+
+    /* 4px rhythm */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+
+    /* neutral chrome (calm, near-monochrome) */
+    --ink:#1b1a19;            /* Important — high-emphasis near-black */
+    --ink-2:#3b3a39;
+    --muted:#605e5c;          /* Subtle text */
+    --muted-2:#797775;
+    --line:#e1dfdd;
+    --line-2:#edebe9;
+    --bg:#faf9f8;
+    --surface:#ffffff;
+    --brand:#0f6cbd;          /* Brand — chrome / primary accent ONLY, never status */
+    --brand-bg:#eff6fc;
+
+    /* ---- status role approximations (tint = soft bg + readable fg; filled = stronger) ----
+       Bound conceptually to Fluent BadgeColor roles by NAME; values are placeholders. */
+    --success-fg:#0e700e; --success-bg:#e7f4e7;        /* Success — PROVEN truth only */
+    --info-fg:#0b5cab;    --info-bg:#eef4fb;           /* Informative — in-flight, NOT proven */
+    --warning-fg:#8a6300; --warning-bg:#fdf6e3;        /* Warning — caution t1 (friction) */
+    --severe-fg:#b54708;  --severe-bg:#fff1e8; --severe-fill-bg:#c4500f; --severe-fill-fg:#ffffff; /* Severe — caution t2 (blocks, not error) FILLED */
+    --danger-fg:#b10e1c;  --danger-bg:#fdeceb; --danger-fill-bg:#c11525; --danger-fill-fg:#ffffff;/* Danger — caution t3 (refusal/failure) FILLED, sparing */
+    --important-fg:#5a3696; --important-bg:#f4eefb;    /* Important — must act, state uncertain */
+    --subtle-fg:#605e5c;  --subtle-bg:#f3f2f1;         /* Subtle — benign neutral */
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:13px;line-height:1.45;}
+  .mocknote{background:#fff4ce;border-bottom:1px solid #f2d98a;color:#5a4a16;padding:var(--s2) var(--s4);font-size:12px;}
+  .mocknote code{font-family:var(--mono);}
+
+  /* browser frame */
+  .frame{max-width:1320px;margin:var(--s6) auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05);}
+  .chrome{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:#f3f2f1;border-bottom:1px solid var(--line);}
+  .dot{width:11px;height:11px;border-radius:50%;background:#d6d4d2;}
+  .urlbar{flex:1;margin-left:var(--s2);background:#fff;border:1px solid var(--line);border-radius:5px;padding:3px var(--s3);font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+  /* app shell (Operations Shell IA: Tenants · Global Administrators · Audit) */
+  .shell{display:flex;min-height:560px;}
+  .nav{width:188px;border-right:1px solid var(--line);padding:var(--s3) var(--s2);background:#fbfafa;flex-shrink:0;}
+  .nav .brandmark{font-weight:600;color:var(--ink);padding:var(--s2) var(--s3);font-size:13px;letter-spacing:.2px;}
+  .nav a{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);margin-top:var(--s1);border-radius:5px;color:var(--ink-2);text-decoration:none;font-size:13px;}
+  .nav a .ni{width:16px;text-align:center;color:var(--muted-2);}
+  .nav a.active{background:var(--brand-bg);color:var(--brand);font-weight:600;box-shadow:inset 2px 0 0 var(--brand);}
+  .nav a.active .ni{color:var(--brand);}
+  .nav .sub{margin-top:var(--s6);padding:0 var(--s3);font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted-2);}
+
+  .main{flex:1;min-width:0;padding:var(--s4) var(--s6) var(--s6);}
+  h1{font-size:18px;font-weight:600;margin:0 0 var(--s1);}      /* modest heading, no hero */
+  .subhead{color:var(--muted);font-size:12px;margin:0 0 var(--s4);}
+
+  /* tabs (list-state switcher) */
+  .tabs{display:flex;gap:var(--s1);border-bottom:1px solid var(--line);margin-bottom:var(--s4);flex-wrap:wrap;}
+  .tab{padding:var(--s2) var(--s3);font-size:12.5px;color:var(--muted);border:none;background:none;cursor:default;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600;}
+  .tab .badge-count{display:inline-block;margin-left:var(--s1);font-size:11px;color:var(--muted-2);}
+
+  /* filter / search bar */
+  .toolbar{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap;}
+  .search{flex:1;min-width:240px;display:flex;align-items:center;gap:var(--s2);background:#fff;border:1px solid var(--line);border-radius:5px;padding:var(--s2) var(--s3);color:var(--muted);}
+  .search input{border:none;outline:none;flex:1;font:inherit;color:var(--ink);background:transparent;}
+  .filter-chip{display:inline-flex;align-items:center;gap:var(--s1);border:1px solid var(--line);border-radius:14px;padding:3px var(--s3);font-size:12px;color:var(--ink-2);background:#fff;}
+  .filter-chip .x{color:var(--muted-2);}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:5px;padding:var(--s2) var(--s3);font:inherit;font-size:12.5px;color:var(--ink-2);cursor:default;display:inline-flex;align-items:center;gap:var(--s1);}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}  /* primary-command-button — Brand chrome accent */
+  .btn .ic{font-size:13px;}
+
+  /* DataGrid */
+  .grid-wrap{border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{text-align:left;font-weight:600;color:var(--muted);background:#fbfafa;border-bottom:1px solid var(--line);padding:var(--s2) var(--s3);white-space:nowrap;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;}
+  tbody td{border-bottom:1px solid var(--line-2);padding:var(--s3);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#fbfbfa;}
+  /* pinned safety columns: identity · status · freshness (DataGridColumnPin.Start) */
+  th.pin, td.pin{background:#fcfcfb;box-shadow:inset -1px 0 0 var(--line-2);}
+  th.pin-mark{position:relative;}
+  .pin-tag{display:inline-block;font-size:9px;line-height:1;color:var(--brand);border:1px solid var(--brand);border-radius:3px;padding:1px 3px;margin-left:var(--s1);vertical-align:middle;letter-spacing:.3px;}
+  .pin-legend{font-size:11px;color:var(--muted);margin:var(--s2) 0 0;display:flex;align-items:center;gap:var(--s1);}
+  .pin-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;background:#fcfcfb;border:1px solid var(--line);box-shadow:inset -2px 0 0 var(--brand);}
+
+  .ident{display:flex;flex-direction:column;gap:2px;}
+  .ident .name{font-weight:600;color:var(--ink);}
+  .ident .tid{font-family:var(--mono);font-size:11px;color:var(--muted-2);}
+  .num{font-variant-numeric:tabular-nums;}
+  .count-strong{font-weight:600;color:var(--ink);}
+  .count-zero{color:var(--danger-fg);font-weight:600;}
+
+  /* truth-state-badge: color + icon + text (no color-only). Tint default; Filled for Danger/Severe. */
+  .badge{display:inline-flex;align-items:center;gap:var(--s1);border-radius:12px;padding:2px var(--s2);font-size:11.5px;font-weight:500;line-height:1.5;white-space:nowrap;border:1px solid transparent;}
+  .badge .g{font-size:12px;line-height:1;}
+  .b-success {background:var(--success-bg);  color:var(--success-fg);  border-color:#bfe3bf;}
+  .b-info    {background:var(--info-bg);     color:var(--info-fg);     border-color:#cfe0f3;}
+  .b-warning {background:var(--warning-bg);  color:var(--warning-fg);  border-color:#f0e0a8;}
+  .b-severe  {background:var(--severe-fill-bg);color:var(--severe-fill-fg);border-color:var(--severe-fill-bg);}   /* FILLED */
+  .b-danger  {background:var(--danger-fill-bg);color:var(--danger-fill-fg);border-color:var(--danger-fill-bg);}   /* FILLED */
+  .b-important{background:var(--important-bg);color:var(--important-fg); border-color:#e0d2f2;}
+  .b-subtle  {background:var(--subtle-bg);   color:var(--subtle-fg);   border-color:var(--line);}
+  .icn-name{font-family:var(--mono);font-size:9.5px;color:var(--muted-2);margin-left:2px;}  /* annotates Fluent icon name */
+
+  .freshcell{display:flex;flex-direction:column;gap:2px;}
+  .ts{font-family:var(--mono);font-size:10.5px;color:var(--muted-2);}  /* absolute timestamp */
+
+  /* row action slot — stable width; action OR inline unavailable-action-reason */
+  .actioncol{width:230px;}
+  .actionslot{min-height:30px;display:flex;align-items:center;}
+  .link-act{color:var(--brand);text-decoration:none;font-size:12px;font-weight:500;border:1px solid var(--line);border-radius:5px;padding:4px var(--s2);background:#fff;}
+  .uar{display:inline-flex;align-items:center;gap:var(--s1);font-size:11.5px;line-height:1.3;}
+  .uar.imp{color:var(--important-fg);}
+  .uar.sev{color:var(--severe-fg);}
+  .uar.sub{color:var(--muted);}
+  .uar .g{font-size:12px;}
+
+  /* panels for the 3 demonstrated list states */
+  .states{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--s4);margin-top:var(--s6);}
+  @media (max-width:1080px){.states{grid-template-columns:1fr;}}
+  .panel{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);}
+  .panel-h{padding:var(--s2) var(--s3);background:#fbfafa;border-bottom:1px solid var(--line);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
+  .panel-h .tag{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted-2);font-size:11px;}
+  .panel-b{padding:var(--s3);}
+  /* skeleton (loading) */
+  .skrow{display:grid;grid-template-columns:1.6fr 1fr .8fr;gap:var(--s2);padding:var(--s2) 0;border-bottom:1px solid var(--line-2);}
+  .sk{height:10px;border-radius:3px;background:linear-gradient(90deg,#ece9e7,#f4f2f1,#ece9e7);}
+  .sk.short{width:60%;} .sk.tiny{width:40%;}
+  .sk-cap{font-size:11px;color:var(--muted-2);margin-top:var(--s2);display:flex;align-items:center;gap:var(--s1);}
+  /* filtered-empty */
+  .empty{text-align:center;padding:var(--s6) var(--s3);}
+  .empty .eg{font-size:22px;color:var(--muted-2);}
+  .empty .et{font-weight:600;margin-top:var(--s2);}
+  .empty .es{color:var(--muted);font-size:12px;margin:var(--s1) 0 var(--s3);}
+  /* degraded */
+  .degraded .row{display:flex;gap:var(--s2);align-items:flex-start;font-size:12px;margin-bottom:var(--s2);}
+  .degraded .ok{color:var(--success-fg);} .degraded .no{color:var(--severe-fg);}
+  .degraded .hdr{display:flex;align-items:center;gap:var(--s1);font-weight:600;color:var(--severe-fg);margin-bottom:var(--s2);}
+  .legend{margin-top:var(--s6);font-size:11px;color:var(--muted-2);border-top:1px solid var(--line-2);padding-top:var(--s3);}
+  .legend b{color:var(--ink-2);}
+</style>
+</head>
+<body>
+<div class="mocknote">Illustrative mock — approximates Fluent UI Blazor v5; spines win on conflict. Status colors are neutral stand-ins for Fluent <code>BadgeColor</code> roles; each status = color + unicode glyph + Fluent icon name + text label.</div>
+
+<div class="frame">
+  <div class="chrome">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="urlbar">https://ops.hexalith.app/tenants</span>
+  </div>
+
+  <div class="shell">
+    <!-- Operations Shell nav: Tenants (default) · Global Administrators · Audit. Users is CONTEXTUAL. -->
+    <nav class="nav">
+      <div class="brandmark">Hexalith Operations</div>
+      <a class="active" href="#"><span class="ni">▦</span> Tenants</a>
+      <a href="#"><span class="ni">◇</span> Global Administrators</a>
+      <a href="#"><span class="ni">◷</span> Audit</a>
+      <div class="sub">Contextual</div>
+      <a href="#" style="color:var(--muted-2);"><span class="ni">⌕</span> User lookup<span class="icn-name" style="margin-left:auto;">via row / search</span></a>
+    </nav>
+
+    <main class="main">
+      <h1>Tenants</h1>
+      <p class="subhead">Default triage surface — scan, search, filter, and open a tenant. Freshness reflects the source-of-truth projection, shown with an absolute time.</p>
+
+      <!-- list-state switcher (canonical view = Data) -->
+      <div class="tabs">
+        <button class="tab active">Data</button>
+        <button class="tab">Loading</button>
+        <button class="tab">Filtered&nbsp;empty</button>
+        <button class="tab">Degraded</button>
+        <span class="tab" style="margin-left:auto;cursor:default;color:var(--muted-2);">+ empty · error · stale</span>
+      </div>
+
+      <!-- filter / search bar -->
+      <div class="toolbar">
+        <div class="search">
+          <span style="color:var(--muted-2);">⌕</span>
+          <input type="text" value="" placeholder="Search tenants by name or id…">
+        </div>
+        <span class="filter-chip">Status: any <span class="x">▾</span></span>
+        <span class="filter-chip">Freshness: any <span class="x">▾</span></span>
+        <button class="btn">⟳ Refresh</button>
+        <button class="btn primary">＋ Create tenant</button>
+      </div>
+
+      <!-- ===================== CANONICAL: full-width DataGrid ===================== -->
+      <div class="grid-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="pin pin-mark">Tenant<span class="pin-tag">PIN</span></th>
+              <th class="pin pin-mark">Status<span class="pin-tag">PIN</span></th>
+              <th class="num">Members</th>
+              <th class="num">Owners</th>
+              <th>Pending</th>
+              <th class="pin pin-mark">Freshness<span class="pin-tag">PIN</span></th>
+              <th class="actioncol">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- 1) active / current -->
+            <tr>
+              <td class="pin">
+                <div class="ident"><span class="name">Northwind Trading</span><span class="tid">northwind-trading-eu</span></div>
+              </td>
+              <td class="pin">
+                <span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span>
+              </td>
+              <td class="num count-strong">42</td>
+              <td class="num count-strong">3</td>
+              <td><span class="badge b-subtle"><span class="g" title="CheckmarkCircleHint">·</span> none</span></td>
+              <td class="pin">
+                <div class="freshcell"><span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> current<span class="icn-name">CheckmarkCircle</span></span><span class="ts">2026-06-02 14:02:11Z</span></div>
+              </td>
+              <td>
+                <div class="actionslot"><a class="link-act" href="#">Open detail</a></div>
+              </td>
+            </tr>
+
+            <!-- 2) disabled / stale -->
+            <tr>
+              <td class="pin">
+                <div class="ident"><span class="name">Contoso Pilot</span><span class="tid">contoso-pilot-01</span></div>
+              </td>
+              <td class="pin">
+                <span class="badge b-severe"><span class="g" title="Prohibited">⛔</span> disabled<span class="icn-name">Prohibited</span></span>
+              </td>
+              <td class="num count-strong">7</td>
+              <td class="num count-strong">1</td>
+              <td><span class="badge b-subtle"><span class="g">·</span> none</span></td>
+              <td class="pin">
+                <div class="freshcell"><span class="badge b-severe"><span class="g" title="ClockAlarm">⏰</span> stale<span class="icn-name">ClockAlarm</span></span><span class="ts">2026-06-01 09:18:40Z</span></div>
+              </td>
+              <td>
+                <!-- high-impact action unavailable: stale data (Severe) — inline, not hover-only -->
+                <div class="actionslot"><span class="uar sev"><span class="g" title="ClockAlarm">⏰</span> Data is stale — refresh first.</span></div>
+              </td>
+            </tr>
+
+            <!-- 3) active / aging (usable with friction) -->
+            <tr>
+              <td class="pin">
+                <div class="ident"><span class="name">Fabrikam Health</span><span class="tid">fabrikam-health-us</span></div>
+              </td>
+              <td class="pin">
+                <span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span>
+              </td>
+              <td class="num count-strong">128</td>
+              <td class="num count-strong">5</td>
+              <td><span class="badge b-subtle"><span class="g">·</span> none</span></td>
+              <td class="pin">
+                <div class="freshcell"><span class="badge b-warning"><span class="g" title="Clock">◷</span> aging<span class="icn-name">Clock</span></span><span class="ts">2026-06-02 12:47:03Z</span></div>
+              </td>
+              <td>
+                <div class="actionslot"><a class="link-act" href="#">Open detail</a></div>
+              </td>
+            </tr>
+
+            <!-- 4) active / unknown freshness (fails closed) -->
+            <tr>
+              <td class="pin">
+                <div class="ident"><span class="name">Tailspin Logistics</span><span class="tid">tailspin-logistics</span></div>
+              </td>
+              <td class="pin">
+                <span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span>
+              </td>
+              <td class="num count-strong">19</td>
+              <td class="num count-zero" title="zero owners">0</td>
+              <td><span class="badge b-subtle"><span class="g">·</span> none</span></td>
+              <td class="pin">
+                <!-- freshness unmeasurable → Important (must act, uncertain), never implied current -->
+                <div class="freshcell"><span class="badge b-important"><span class="g" title="QuestionCircle">❔</span> unknown<span class="icn-name">QuestionCircle</span></span><span class="ts">last measured —</span></div>
+              </td>
+              <td>
+                <div class="actionslot"><span class="uar imp"><span class="g" title="QuestionCircle">❔</span> Freshness unknown — verify before acting.</span></div>
+              </td>
+            </tr>
+
+            <!-- 5) active / current, with a PENDING in-flight marker (in-flight = Informative + Clock, NOT success) -->
+            <tr>
+              <td class="pin">
+                <div class="ident"><span class="name">Adventure Works</span><span class="tid">adventure-works-apac</span></div>
+              </td>
+              <td class="pin">
+                <span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span>
+              </td>
+              <td class="num count-strong">63</td>
+              <td class="num count-strong">2</td>
+              <td>
+                <!-- pending marker preserved across sort/page; in-flight blue Clock, never green -->
+                <span class="badge b-info"><span class="g" title="Clock">◷</span> pending<span class="icn-name">Clock</span></span>
+              </td>
+              <td class="pin">
+                <div class="freshcell"><span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> current<span class="icn-name">CheckmarkCircle</span></span><span class="ts">2026-06-02 14:01:55Z</span></div>
+              </td>
+              <td>
+                <!-- one-at-a-time commands: trigger unavailable while a command is in flight -->
+                <div class="actionslot"><span class="uar sub"><span class="g" title="Clock">◷</span> A change is in flight — wait.</span></div>
+              </td>
+            </tr>
+
+            <!-- 6) active / refreshing (usable nudge) -->
+            <tr>
+              <td class="pin">
+                <div class="ident"><span class="name">Wingtip Toys</span><span class="tid">wingtip-toys-eu</span></div>
+              </td>
+              <td class="pin">
+                <span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span>
+              </td>
+              <td class="num count-strong">31</td>
+              <td class="num count-strong">4</td>
+              <td><span class="badge b-subtle"><span class="g">·</span> none</span></td>
+              <td class="pin">
+                <div class="freshcell"><span class="badge b-info"><span class="g" title="ArrowClockwise">⟳</span> refreshing<span class="icn-name">ArrowClockwise</span></span><span class="ts">2026-06-02 14:03:—</span></div>
+              </td>
+              <td>
+                <div class="actionslot"><a class="link-act" href="#">Open detail</a></div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pin-legend"><span class="pin-swatch"></span> <b style="color:var(--ink-2);font-weight:600;">Pinned safety columns</b> — identity · status · freshness stay visible under horizontal scroll (<code style="font-family:var(--mono);">DataGridColumnPin.Start</code>); sorting/paging never hides a pending or stale marker.</div>
+
+      <!-- ===================== 3 of the six list states ===================== -->
+      <div class="states">
+
+        <!-- loading: skeleton rows -->
+        <div class="panel">
+          <div class="panel-h">Loading <span class="tag">state 1 / 6</span></div>
+          <div class="panel-b">
+            <div class="skrow"><div class="sk"></div><div class="sk short"></div><div class="sk tiny"></div></div>
+            <div class="skrow"><div class="sk short"></div><div class="sk"></div><div class="sk tiny"></div></div>
+            <div class="skrow"><div class="sk"></div><div class="sk tiny"></div><div class="sk short"></div></div>
+            <div class="skrow" style="border-bottom:none;"><div class="sk short"></div><div class="sk"></div><div class="sk tiny"></div></div>
+            <div class="sk-cap"><span title="ArrowClockwise">⟳</span> Loading tenants… reserved layout, no shift on arrival.</div>
+          </div>
+        </div>
+
+        <!-- filtered-empty: with reset action -->
+        <div class="panel">
+          <div class="panel-h">Filtered empty <span class="tag">state 3 / 6</span></div>
+          <div class="panel-b">
+            <div class="empty">
+              <div class="eg" title="QuestionCircle">⌕</div>
+              <div class="et">No tenants match these filters</div>
+              <div class="es">Filter: <span style="font-family:var(--mono);">status = disabled · freshness = current</span></div>
+              <button class="btn">↺ Reset filters</button>
+            </div>
+            <div class="sk-cap" style="justify-content:center;">Distinct from <i>empty</i> — your scope still contains tenants.</div>
+          </div>
+        </div>
+
+        <!-- degraded: explains what's unavailable + what still works -->
+        <div class="panel degraded">
+          <div class="panel-h">Degraded <span class="tag">state 6 / 6</span></div>
+          <div class="panel-b">
+            <div class="hdr"><span class="g" title="ShieldError">⛨</span> Partial data — some signals unavailable</div>
+            <div class="row"><span class="no" title="DocumentProhibited">⛔</span><span><b style="color:var(--ink-2);">Freshness service unreachable.</b> Per-tenant freshness shows <span class="badge b-important" style="font-size:10.5px;"><span class="g">❔</span> unknown</span> until it returns.</span></div>
+            <div class="row"><span class="ok" title="CheckmarkCircle">✓</span><span><b style="color:var(--ink-2);">Still works:</b> list, search, filter, and open tenant detail (read-only).</span></div>
+            <div class="row"><span class="no" title="ShieldProhibited">⛒</span><span><b style="color:var(--ink-2);">Held back:</b> high-impact actions are blocked until freshness can be verified (fail-closed).</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="legend">
+        <b>No-color-only:</b> every status renders color + a unicode glyph (standing in for the named Fluent icon) + a text label.
+        <b>Honesty firewall:</b> <span style="color:var(--success-fg);">●</span> Success = proven (active · current). <span style="color:var(--info-fg);">●</span> Informative = in-flight (pending · refreshing), never green.
+        <b>Caution ramp:</b> <span style="color:var(--warning-fg);">●</span> Warning (aging) → <span style="color:var(--severe-fill-bg);">●</span> Severe (stale · disabled, filled) → <span style="color:var(--danger-fill-bg);">●</span> Danger (rare).
+        <span style="color:var(--important-fg);">●</span> Important = must-act/uncertain (unknown). <span style="color:var(--subtle-fg);">●</span> Subtle = benign.
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

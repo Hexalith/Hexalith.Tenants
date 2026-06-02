@@ -1,0 +1,115 @@
+# Addendum — Tenants Management UI PRD
+
+Technical-how and downstream bridge material kept out of the PRD body. This maps PRD features/FRs to the existing Epic 9 specs, the `ui-NN` backlog, FrontComposer dependencies, backend surfaces, the rejection/NoOp matrix, and the canonical state sets. **Source of truth for mechanics is the `docs/tenants-ui-*` specs and the domain code**; this is a navigational bridge, not a re-spec.
+
+## A. Feature / FR → backlog → spec mapping
+
+| PRD feature (FRs) | Backlog id(s) | Primary spec(s) | Phase |
+|---|---|---|---|
+| 7.1 Tenant Discovery & Triage (FR-1..4) | ui-01, ui-02 | operations-shell, truth-state | 2a (MVP) |
+| 7.2 Tenant Detail & Config View (FR-5..7) | ui-03, ui-05 | operations-shell | 2a (MVP) |
+| 7.3 Member & Access Review (FR-8..9) | ui-04 | operations-shell, truth-state | 2a (MVP) |
+| 7.4 Member & Role Mgmt (FR-10..12) | ui-09 (add+role), ui-14 (remove) | remove-user-journey, truth-state | 2b / 2c |
+| 7.5 Tenant Lifecycle (FR-13..15) | ui-07, ui-08, ui-13 | phase-2-backlog, truth-state | 2b / 2c |
+| 7.6 Configuration Mgmt (FR-16..17) | ui-10 | phase-2-backlog, truth-state | 2c |
+| 7.7 Global Admin Governance (FR-18..19) | ui-06, ui-15 | operations-shell | 2a read / 2c cmd |
+| 7.8 Audit Trail & Evidence (FR-20..23) | ui-11, ui-12 | audit-evidence-and-compensating-recovery | 2c (blocked) |
+| 7.9 Compensating Recovery (FR-24..25) | **no backlog row yet** (recovery half of Story 9.5) | audit-evidence-and-compensating-recovery | 2c (needs a story) |
+
+> Scope-honesty note: FR-22/FR-24/FR-25 are not yet backed by a `ui-NN` row or backend evidence (PRD §7.9 note). ui-09 is one backlog row covering both add-user and change-role behind a shared availability gate; the PRD splits it into FR-10/FR-11.
+
+## B. FrontComposer dependency readiness (from the dependency map)
+
+| ID | Capability | Readiness | Notes / fallback |
+|---|---|---|---|
+| FC-TBL | Projection list/table (DataGrid, filter/search/empty/loading) | **available** | Backbone of all read surfaces; the only fully-available capability. |
+| FC-LYT | Shell layout contract (full-width vs constrained) | needs-confirmation | Gates ui-01..15 — including the read-only MVP. Product/UX approval or a FrontComposer story. |
+| FC-CMD | Command lifecycle feedback (three-phase, projection-confirmed) | needs-confirmation | Required for ALL command FRs. |
+| FC-CNC | Concurrent-command / toast batching policy | **missing** | No batching/burst evidence; gates remove-user and bulk-revocation; applies to all command FRs. |
+| FC-TOK | Status/severity/timeline tokens | **missing** | Use existing Fluent/FC badges as a (proposed) named fallback. |
+| FC-AUD | `<AuditTimeline>` | **missing** | **Proposed fallback (pending Product/UX approval): flat audit DataGrid** (FR-20). |
+| FC-CNS | `<ConsequencePreview>` | **missing** | **Proposed fallback (pending Product/UX approval): inline consequence text** (CP-5). |
+| FC-A11Y | Accessibility primitives | needs-confirmation | First-class, non-removable even under fallback. |
+| FC-L10N | Localization (shell resources) | needs-confirmation | Resource ownership undecided (PRD §16.4). |
+| FC-DOC | Component documentation/Storybook | needs-confirmation | Required for "ready" (PRD §9 ready-gate). |
+
+A story promotes to `ready` only when its `blockedBy` set empties or a **Product/UX-approved** fallback is recorded (none approved yet). See `tenants-ui-phase-2-story-backlog.md` for per-row `blockedBy`. Readiness criterion split: `planning-only` = read, tenant-scoped; `blocked` = platform-wide (disable-tenant, global-admin) or dependent on a missing component.
+
+## C. Backend surfaces consumed (already built — do not add/alter)
+
+- **Read queries:** `ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery` → `GET /api/tenants`, `/api/tenants/{tenantId}`, `/api/tenants/{tenantId}/users`, `/api/users/{userId}/tenants`, `/api/tenants/{tenantId}/audit`.
+- **Commands** (via the command endpoint): create/edit/disable/enable tenant; `AddUserToTenant`, `ChangeUserRole`, `RemoveUserFromTenant`; set/remove configuration; set/remove global administrator.
+- **Command endpoint:** `POST /api/v1/commands` (FrontComposer `EventStoreOptions.CommandEndpointPath`). **Open:** confirm against deployed gateway vs. `/api/commands` alias (PRD §16.1).
+- **No new backend endpoints** for consequence/receipt/command-status — the UI assembles those client-side from already-loaded projection/read-model fields.
+
+## D. Mechanism decisions, rejection/NoOp matrix & rationale (technical-how — not PRD body)
+
+**Rejection / NoOp / always-emit matrix** (verified against `src/Hexalith.Tenants.Server/Aggregates/`; drives FR consequence text):
+
+| Command / case | Backend behavior | UI reflection |
+|---|---|---|
+| `AddUserToTenant`, user already a member | **Rejection** `UserAlreadyInTenant` | safe localized text; **not** "already applied" |
+| `AddUserToTenant`, empty tenant (`HasMembershipHistory == false`) | bootstrap: owner-only RBAC skipped | enables restore-after-last-owner (FR-24) |
+| `ChangeUserRole` to the current role | **NoOp** (no event) | `already applied` |
+| `ChangeUserRole`, escalation or `TenantRole.Unknown` | **Rejection** (`RoleEscalation`) | safe localized text |
+| `UpdateTenant` (edit metadata) | **Always emits `TenantUpdated`** (no same-state suppression); RBAC = contributor or global admin | success only after projection confirm |
+| `SetTenantConfiguration`, identical key+value | **NoOp** | `already applied` |
+| `SetTenantConfiguration`, over limit | **Rejection** `ConfigurationLimitExceeded` | safe text |
+| `RemoveTenantConfiguration`, missing key | **Rejection** `ConfigurationKeyNotFound` | safe text |
+| Disable/Enable to a state already set | **Rejection** `TenantLifecycleStateAlreadySet`; RBAC = global admin only | safe text |
+| Any command targeting a disabled tenant | **Rejection** `TenantDisabled` | safe text; disabled is an eventually-consistent signal |
+| `RemoveUserFromTenant` of the **last owner** | **Allowed** (no ≥1-owner invariant) | elevated friction, never blocked (CP-6) |
+| Remove the **last global administrator** | **Rejection** `LastGlobalAdministrator` | UI reflects as *unavailable*, not friction (CP-6) |
+| `TenantAlreadyExists` on create | **Rejection** | safe text |
+
+- **Freshness primitive:** conditional requests (`If-None-Match` → `304`) via the caching projection actor; the Truth State Badge derives `current/refreshing/aging/stale/unknown` from this. Numeric thresholds deferred to implementation.
+- **Live updates:** SignalR projection notifications are **freshness nudges only** — never advance command lifecycle or audit availability (PRD CP-4). Rationale: at-least-once delivery + projection lag make any optimistic confirmation unsafe.
+- **Pagination:** signed, opaque, scope-bound cursors; never offset/limit. Cursor durability across replicas/restarts is a deferred backend epic (PRD §16.7, R-3).
+- **Identity:** actor identity from JWT `sub` / envelope `UserId`; tenant ids and user ids are **meaningful caller-supplied strings, not ULIDs** (only envelope ids like `MessageId` may be ULIDs). See §E.
+- **Rejections:** domain rejection events map to RFC 7807 Problem Details at the HTTP boundary; the UI renders safe, localized text only (PRD §10).
+- **Audit receipt:** assembled client-side from a structured **NarrativePayload** (never the raw event payload); Target resolution rule is `userId` → `key` → `TenantId`; categories are `AuditEventCategory` = `Access` | `Administrative`.
+- **No invitations:** `AddUserToTenant(TenantId, UserId, Role)` is a direct add; there are no invitation/pending-member events in the domain. An email-invitation flow would require new backend events (PRD §13).
+- **Visual mapping:** six meaning→semantic-role mappings (tenant status, freshness, lifecycle, authorization, audit, risk) — see `tenants-ui-responsive-layout-and-visual-system-spec.md`; never hard-coded hex.
+- **Pinned stack:** Fluent UI Blazor `5.0.0-rc.3-26138.1` — exact component/token/ARIA behavior must be verified against the pinned package at implementation time; do not assert a token name as available.
+
+## E. Naming & ID hazards
+
+- **Namespace:** UI keys use the `ui-NN` prefix. Backend/FrontComposer epics also use `9-x/10-x/11-x/12-x` numbering. **Never conflate the two namespaces.**
+- **ID-scheme spec discrepancy (must correct in the specs):** the operations-shell spec (and several others' technical notes) state tenant/user ids "are ULIDs." This contradicts the authoritative domain rule in `project-context.md`: **tenant ids and user ids are meaningful caller-supplied strings, NOT ULIDs**; only envelope ids such as `MessageId` may be ULIDs; do **not** `Guid.TryParse`/`Ulid.TryParse` a `TenantId`/`UserId`. The PRD follows the domain rule (PRD §4, §12 R-6, §16.12). The specs should be corrected so the "copy full id" affordance (FR-7) and any parsing logic do not assume a ULID.
+
+## F. Options considered / deferred (for downstream UX & architecture)
+
+- **Rich timeline vs. flat audit list:** flat list **proposed** as the fallback for the first audit slice (FR-20), **pending Product/UX approval**, because `<AuditTimeline>` does not exist; revisit if/when FC-AUD lands.
+- **Optimistic UI vs. confirmed-only:** confirmed-only (non-collapse invariant) chosen deliberately over optimistic success, against the more common SaaS pattern, because correctness under eventual consistency is the product's core trust proposition.
+- **Build missing components in Tenants vs. FrontComposer:** FrontComposer, per repo domain-boundary policy — Tenants must not absorb shared UI scaffolding.
+
+## G. Canonical state sets (mirrored VERBATIM from the truth-state & audit specs — used as-written, no per-screen reinterpretation; PRD CP-10)
+
+> Casing is significant and intentional. The badge uses space-form `audit pending`/`audit available`; the RemoveUserFromTenant state machine (truth-state §5.3) uses snake_case `projection_pending`/`audit_pending`/`audit_available`. **These are the same concepts, different tokens — do not unify.** Reason categories and feedback states are lowercase, space-separated.
+
+**1. Truth State Badge — 13 states** *(truth-state §2.1–2.2; "exactly these thirteen")*: `current`, `refreshing`, `aging`, `stale`, `unknown`, `eligible`, `blocked`, `pending`, `accepted`, `confirmed`, `failed`, `audit pending`, `audit available`.
+
+**2. Freshness — 5 states** *(truth-state §1/§2.2)*: `current` (usable), `refreshing` (usable nudge), `aging` (usable **with friction**), `stale` (**blocks**), `unknown` (**blocks**, fails closed). Fail-closed rule (§3.3): unknown freshness, indeterminate authorization, incomplete consequence preview, or missing lifecycle support each block destructive action by default.
+
+**3. Command lifecycle — 10-token vocabulary** *(truth-state §1/§2.2)*: `eligible`, `previewed`, `submitted`, `accepted`, `rejected`, `already applied`, `failed`, `duplicate`, `timeout`, `unknown`. *(Spec names `duplicate` and `timeout` in the enumeration but gives them no dedicated gloss — do not invent one.)* The RemoveUserFromTenant worked state machine (§5.3) additionally uses snake_case `projection_pending`, `confirmed`, `audit_pending`, `audit_available`.
+
+**4. Layered feedback — 10 states** *(truth-state §5.1; must not be merged — non-collapse §5.2)*: `request sent (submitted)`, `accepted`, `projection pending`, `confirmed`, `rejected`, `already applied`, `degraded` (**success-prohibited**), `audit pending`, `audit available`, `unable to verify` (**success-prohibited**). Invariant: `accepted` ≠ `confirmed` (projected) ≠ `audit available` (proven).
+
+**5. Unavailable Action Reason — 6 categories** *(truth-state §4.1; with §4.4 evidence-source mapping)*: `missing permission` (authorization gate), `stale data` (freshness gate), `missing lifecycle support` (→ `FC-CMD`), `missing consequence preview` (→ `FC-CNS`), `missing audit proof` (→ `FC-AUD`), `high-impact flow not ready` (backlog `blockedBy` unresolved). The §4.3 grouping axis: missing permission vs. stale data vs. blocked risk vs. unavailable implementation dependency.
+
+**6. Audit availability — 4 states** *(audit spec §4.1; do not collapse)*: `audit pending` (proof not yet available, expected), `audit delayed` (taking longer, capability exists), `audit unavailable` (path currently unavailable, e.g. read error — distinct from not-built), `missing implementation support` (capability not built, `FC-AUD`). *(truth-state §1 also lists bare `delayed`/`unavailable`/`approved fallback`; the audit spec normalizes to the prefixed forms above.)*
+
+**7. Recovery verbs — canonical allowed terms** *(audit §5.1; truth-state §5.4)*: `start correction`, `restore intended access`, `retry status lookup`, `inspect audit`, `escalate` (with a support-safe reference); plus general paths `refresh`, `wait`, `continue read-only`, `request permission`, `start a compensating command`. **Prohibited:** `undo`, `rollback`, `hidden edit`.
+
+## H. Consequence Preview content set (mirrored from remove-user-journey §2.1)
+
+The Consequence Preview must present (canonical 10-item set in **remove-user-journey §2.1**; key items):
+- owner-count impact (incl. the last-owner / zero-owner case);
+- the specific access being revoked / changed;
+- the recovery path available afterward;
+- the audit expectation (what evidence will exist);
+- current freshness of the inputs;
+- target's platform standing (e.g. also a global administrator);
+- explicit **known consequences** vs. **known unknowns** (no over-claiming — e.g. session/token invalidation is a known-unknown unless proven).
+
+Incomplete inputs to this set **block submission** (fail-closed, CP-5). The preview is **proposed** for inline rendering pending `FC-CNS`/Product-UX approval (§B).

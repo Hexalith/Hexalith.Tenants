@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Consequence Preview (remove user)</title>
+<!--
+  SPINE SECTIONS GOVERNING THIS SCREEN (spines win on conflict):
+  DESIGN.md  → components.consequence-preview (10-item content set, fail-closed,
+               known-vs-unknown split, freshness/owner-impact caution coloring),
+               components.destructive-control (low-emphasis, gated, NOT a primary button),
+               components.truth-state-badge, Colors (semantic role map).
+  EXPERIENCE.md → Component Patterns (consequence-preview, destructive-control),
+               UJ-3 step 3 (the full 10-item list, verbatim), Interaction Primitives
+               (FAIL-CLOSED gating; modal focus trap; safe escape does NOT commit),
+               Truth & Honesty Invariants (CP-3 non-collapse; over-claiming forbidden →
+               session/token invalidation is a KNOWN-UNKNOWN unless proven).
+
+  ILLUSTRATIVE ONLY. Colors are NEUTRAL APPROXIMATIONS of Fluent UI Blazor v5 BadgeColor
+  roles; verify against the pinned package (5.0.0-rc.3-26138.1) at build. Fluent icons
+  cannot load standalone: each status uses a unicode glyph + the verified Fluent icon name.
+-->
+<style>
+  :root{
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+    --mono: "Cascadia Code", "Segoe UI Mono", Consolas, "Liberation Mono", monospace;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+
+    --ink:#1b1a19; --ink-2:#3b3a39; --muted:#605e5c; --muted-2:#797775;
+    --line:#e1dfdd; --line-2:#edebe9; --bg:#faf9f8; --surface:#ffffff;
+    --brand:#0f6cbd; --brand-bg:#eff6fc;
+
+    --success-fg:#0e700e; --success-bg:#e7f4e7;
+    --info-fg:#0b5cab;    --info-bg:#eef4fb;
+    --warning-fg:#8a6300; --warning-bg:#fdf6e3;
+    --severe-fg:#b54708;  --severe-bg:#fff1e8; --severe-fill-bg:#c4500f; --severe-fill-fg:#fff;
+    --danger-fg:#b10e1c;  --danger-bg:#fdeceb; --danger-fill-bg:#c11525; --danger-fill-fg:#fff;
+    --important-fg:#5a3696; --important-bg:#f4eefb;
+    --subtle-fg:#605e5c;  --subtle-bg:#f3f2f1;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:13px;line-height:1.45;}
+  .mocknote{background:#fff4ce;border-bottom:1px solid #f2d98a;color:#5a4a16;padding:var(--s2) var(--s4);font-size:12px;}
+  .mocknote code{font-family:var(--mono);}
+
+  .frame{max-width:1000px;margin:var(--s6) auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05);}
+  .chrome{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:#f3f2f1;border-bottom:1px solid var(--line);}
+  .dot{width:11px;height:11px;border-radius:50%;background:#d6d4d2;}
+  .urlbar{flex:1;margin-left:var(--s2);background:#fff;border:1px solid var(--line);border-radius:5px;padding:3px var(--s3);font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+  .body{padding:var(--s4) var(--s6) var(--s6);}
+  .crumbs{font-size:11.5px;color:var(--muted);margin-bottom:var(--s3);}
+  .crumbs a{color:var(--brand);text-decoration:none;}
+  .crumbs .sep{color:var(--muted-2);margin:0 var(--s1);}
+
+  /* the affected member row that the preview is anchored to (it coexists, not overwritten) */
+  .rowcard{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:var(--s3);}
+  .rowcard .rh{padding:6px var(--s3);background:#fbfafa;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
+  table.member{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.member th{text-align:left;font-weight:600;color:var(--muted);padding:var(--s2) var(--s3);font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--line-2);}
+  table.member td{padding:var(--s3);border-bottom:none;vertical-align:middle;}
+  table.member tr.target{background:var(--brand-bg);box-shadow:inset 2px 0 0 var(--brand);}
+  .ident{display:flex;flex-direction:column;gap:2px;}
+  .ident .name{font-weight:600;color:var(--ink);}
+  .ident .uid{font-family:var(--mono);font-size:11px;color:var(--muted-2);}
+
+  /* badges */
+  .badge{display:inline-flex;align-items:center;gap:var(--s1);border-radius:12px;padding:2px var(--s2);font-size:11.5px;font-weight:500;line-height:1.5;white-space:nowrap;border:1px solid transparent;}
+  .badge .g{font-size:12px;line-height:1;}
+  .b-success {background:var(--success-bg);color:var(--success-fg);border-color:#bfe3bf;}
+  .b-info    {background:var(--info-bg);color:var(--info-fg);border-color:#cfe0f3;}
+  .b-warning {background:var(--warning-bg);color:var(--warning-fg);border-color:#f0e0a8;}
+  .b-severe  {background:var(--severe-fill-bg);color:var(--severe-fill-fg);border-color:var(--severe-fill-bg);}
+  .b-danger  {background:var(--danger-fill-bg);color:var(--danger-fill-fg);border-color:var(--danger-fill-bg);}
+  .b-important{background:var(--important-bg);color:var(--important-fg);border-color:#e0d2f2;}
+  .b-subtle  {background:var(--subtle-bg);color:var(--subtle-fg);border-color:var(--line);}
+  .icn-name{font-family:var(--mono);font-size:9.5px;color:var(--muted-2);margin-left:2px;}
+
+  /* ---- consequence-preview: constrained inner region ---- */
+  .preview{max-width:760px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);}
+  .pv-h{display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);background:#fbfafa;border-bottom:1px solid var(--line);}
+  .pv-h .ttl{font-weight:600;font-size:14px;}
+  .pv-h .step{margin-left:auto;}
+  .pv-sub{padding:var(--s2) var(--s4) 0;color:var(--muted);font-size:12px;}
+
+  .items{padding:var(--s3) var(--s4);}
+  /* each of 10 = a labelled line; 12px row gap */
+  .item{display:grid;grid-template-columns:26px 168px 1fr;gap:var(--s3);padding:var(--s3) 0;border-bottom:1px solid var(--line-2);align-items:start;}
+  .item:last-child{border-bottom:none;}
+  .item .no{font-family:var(--mono);font-size:11px;color:#fff;background:var(--muted-2);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .item .lbl{font-weight:600;color:var(--ink-2);font-size:12px;}
+  .item .val{color:var(--ink);font-size:12.5px;}
+  .item .val .note{display:block;color:var(--muted);font-size:11.5px;margin-top:2px;}
+  .mono{font-family:var(--mono);font-size:11.5px;}
+
+  /* caution emphasis on owner-impact + freshness items */
+  .item.caution{background:var(--warning-bg);}
+  .item.caution .no{background:var(--warning-fg);}
+  .item.caution-sev{background:var(--severe-bg);}
+  .item.standing{background:var(--danger-bg);}
+  .item.standing .no{background:var(--danger-fill-bg);}
+
+  /* ---- known vs known-unknown split ---- */
+  .kk{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);padding:var(--s3) var(--s4) var(--s4);}
+  @media (max-width:680px){.kk{grid-template-columns:1fr;}}
+  .kk .col{border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .kk .col h4{margin:0;padding:var(--s2) var(--s3);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:var(--s1);}
+  .kk .known h4{background:#f3f2f1;color:var(--ink-2);}
+  .kk .unknown h4{background:var(--important-bg);color:var(--important-fg);}
+  .kk ul{list-style:none;margin:0;padding:var(--s2) var(--s3);font-size:12px;}
+  .kk li{display:flex;gap:var(--s2);padding:var(--s1) 0;align-items:flex-start;}
+  .kk li .g{font-size:12px;line-height:1.4;flex-shrink:0;}
+  .kk .known li .g{color:var(--ink-2);}
+  .kk .unknown li .g{color:var(--important-fg);}
+  .unproven-tag{display:inline-block;font-size:9.5px;font-family:var(--mono);color:var(--important-fg);border:1px solid #d8c6ef;background:#fff;border-radius:3px;padding:1px 4px;margin-left:var(--s1);letter-spacing:.3px;vertical-align:middle;}
+
+  /* ---- fail-closed banner ---- */
+  .failclosed{margin:0 var(--s4) var(--s4);border:1px dashed #d8c6ef;background:var(--important-bg);border-radius:6px;padding:var(--s2) var(--s3);font-size:12px;color:var(--important-fg);display:flex;gap:var(--s2);align-items:flex-start;}
+
+  /* ---- footer / gated controls ---- */
+  .pv-f{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);background:#fbfafa;border-top:1px solid var(--line);}
+  .pv-f .spacer{flex:1;}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:5px;padding:var(--s2) var(--s4);font:inherit;font-size:13px;color:var(--ink-2);cursor:default;}
+  .btn.safe{font-weight:600;}  /* Cancel — safe, does NOT commit */
+  /* destructive-control: low emphasis until gated; Danger used sparingly; NOT a primary button */
+  .btn.destructive{border-color:#e6b9bd;color:var(--danger-fg);background:#fff;font-weight:500;}
+  .btn.destructive .g{margin-right:4px;}
+  .hint{font-size:11px;color:var(--muted-2);}
+
+  .invariant{margin-top:var(--s4);font-size:11px;color:var(--muted-2);border-top:1px solid var(--line-2);padding-top:var(--s3);line-height:1.6;}
+  .invariant b{color:var(--ink-2);}
+</style>
+</head>
+<body>
+<div class="mocknote">Illustrative mock — approximates Fluent UI Blazor v5; spines win on conflict. FC-CNS is missing → this is the approved inline structured-text fallback carrying the full 10-item set. Status colors stand in for Fluent <code>BadgeColor</code> roles.</div>
+
+<div class="frame">
+  <div class="chrome">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="urlbar">https://ops.hexalith.app/tenants/northwind-trading-eu/members</span>
+  </div>
+
+  <div class="body">
+    <div class="crumbs"><a href="#">Tenants</a><span class="sep">/</span><a href="#">Northwind Trading</a><span class="sep">/</span>Members<span class="sep">/</span>Remove access</div>
+
+    <!-- the affected member row — the preview anchors to it and coexists with it (not overwritten) -->
+    <div class="rowcard">
+      <div class="rh">Member row this action concerns</div>
+      <table class="member">
+        <thead>
+          <tr><th>Member</th><th>Role</th><th>Owners</th><th>Status</th><th>Freshness</th></tr>
+        </thead>
+        <tbody>
+          <tr class="target">
+            <td><div class="ident"><span class="name">Jordan Avery</span><span class="uid">jordan.avery@northwind</span></div></td>
+            <td>Owner</td>
+            <td>3 owners</td>
+            <td><span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span></td>
+            <td><span class="badge b-warning"><span class="g" title="Clock">◷</span> aging<span class="icn-name">Clock</span></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===================== consequence-preview (constrained inner region) ===================== -->
+    <div class="preview" role="dialog" aria-label="Consequence preview — remove user access">
+      <div class="pv-h">
+        <span class="g" title="Document" style="font-size:16px;color:var(--info-fg);">▤</span>
+        <span class="ttl">Before you remove this access</span>
+        <span class="step badge b-info"><span class="g" title="Document">▤</span> previewed<span class="icn-name">Document</span></span>
+      </div>
+      <p class="pv-sub">Here is exactly what will happen, checked against the current projection. Nothing is submitted yet.</p>
+
+      <div class="items">
+
+        <!-- 1 tenant -->
+        <div class="item">
+          <span class="no">1</span><span class="lbl">Tenant</span>
+          <span class="val">Northwind Trading <span class="mono">(northwind-trading-eu)</span></span>
+        </div>
+
+        <!-- 2 target user -->
+        <div class="item">
+          <span class="no">2</span><span class="lbl">Target user</span>
+          <span class="val">Jordan Avery <span class="mono">(jordan.avery@northwind)</span></span>
+        </div>
+
+        <!-- 3 current role -->
+        <div class="item">
+          <span class="no">3</span><span class="lbl">Current role</span>
+          <span class="val">Owner</span>
+        </div>
+
+        <!-- 4 owner-count impact incl. last-owner / zero-owner — CAUTION (warning, friction, not a block) -->
+        <div class="item caution">
+          <span class="no">4</span><span class="lbl">Owner-count impact</span>
+          <span class="val">
+            <span class="badge b-warning"><span class="g" title="Clock">◷</span> 3 owners → 2 owners</span>
+            <span class="note">Not the last owner. The tenant will still have 2 owners — this proceeds with friction, it is not blocked.</span>
+          </span>
+        </div>
+
+        <!-- 5 specific access revoked -->
+        <div class="item">
+          <span class="no">5</span><span class="lbl">Access being revoked</span>
+          <span class="val">Owner role on this tenant — manage members, edit metadata, set configuration, disable/enable.</span>
+        </div>
+
+        <!-- 6 current freshness of the inputs — CAUTION (warning ramp tier 1) -->
+        <div class="item caution">
+          <span class="no">6</span><span class="lbl">Freshness of inputs</span>
+          <span class="val">
+            <span class="badge b-warning"><span class="g" title="Clock">◷</span> aging<span class="icn-name">Clock</span></span>
+            <span class="mono" style="margin-left:6px;">measured 2026-06-02 12:47:03Z</span>
+            <span class="note">Usable, but slowing down is advised. Refresh to act on fully current data.</span>
+          </span>
+        </div>
+
+        <!-- 7 recovery path afterward (correct-forward, never undo) -->
+        <div class="item">
+          <span class="no">7</span><span class="lbl">Recovery afterward</span>
+          <span class="val">If this is wrong, <b>restore intended access</b> with a new compensating command. History is never edited.</span>
+        </div>
+
+        <!-- 8 audit expectation -->
+        <div class="item">
+          <span class="no">8</span><span class="lbl">Audit expectation</span>
+          <span class="val">An audit record will be produced. You will see <span class="badge b-info" style="font-size:10.5px;"><span class="g" title="ClipboardClock">◷</span> audit pending</span> until the projection confirms it — never shown as done early.</span>
+        </div>
+
+        <!-- 9 target's platform standing — also a global administrator → high standing (Danger, sparingly) -->
+        <div class="item standing">
+          <span class="no">9</span><span class="lbl">Platform standing</span>
+          <span class="val">
+            <span class="badge b-danger"><span class="g" title="Warning">⚠</span> also a global administrator<span class="icn-name">Warning</span></span>
+            <span class="note">This removal affects tenant access only. Their platform-wide global-administrator authority is unchanged and is a separate command.</span>
+          </span>
+        </div>
+
+        <!-- 10 known consequences vs known unknowns -->
+        <div class="item">
+          <span class="no">10</span><span class="lbl">Known vs unknown</span>
+          <span class="val">Split out below. We do not over-claim: anything we cannot prove is marked <span class="unproven-tag">UNPROVEN</span>, not as success or failure.</span>
+        </div>
+
+      </div>
+
+      <!-- the known / known-unknown split, visually distinct -->
+      <div class="kk">
+        <div class="col known">
+          <h4><span class="g" title="CheckmarkCircle">✓</span> Known consequences</h4>
+          <ul>
+            <li><span class="g">✓</span> Jordan loses the Owner role on Northwind Trading.</li>
+            <li><span class="g">✓</span> Owner count drops 3 → 2 (still above zero).</li>
+            <li><span class="g">✓</span> Member-management, metadata, and config rights on this tenant end.</li>
+            <li><span class="g">✓</span> A compensating command can restore the access.</li>
+          </ul>
+        </div>
+        <div class="col unknown">
+          <h4><span class="g" title="QuestionCircle">❔</span> Known unknowns <span class="unproven-tag">UNPROVEN</span></h4>
+          <ul>
+            <li><span class="g" title="QuestionCircle">❔</span> Whether existing sessions / tokens are invalidated immediately — not proven here.</li>
+            <li><span class="g" title="QuestionCircle">❔</span> Exact moment downstream services see the change (projection lag).</li>
+            <li><span class="g" title="ClipboardClock">◷</span> When the audit record becomes <span class="mono">audit available</span> — pending, not yet proven.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- fail-closed note: incomplete inputs block submission -->
+      <div class="failclosed">
+        <span class="g" title="ShieldProhibited">⛒</span>
+        <span><b>Fail-closed.</b> All 10 items above are present, so submission is allowed. If any item were unavailable, this preview would name the missing item and the remove control would stay disabled — no partial preview is ever shown.</span>
+      </div>
+
+      <!-- gated controls: destructive-control low-emphasis + safe Cancel -->
+      <div class="pv-f">
+        <span class="hint">Esc or Cancel closes this safely and submits nothing.</span>
+        <span class="spacer"></span>
+        <button class="btn safe">Cancel</button>
+        <button class="btn destructive"><span class="g" title="ShieldProhibited">⛒</span> Remove access</button>
+      </div>
+    </div>
+
+    <div class="invariant">
+      <b>Spine alignment.</b> Constrained inner region carries all 10 labelled items (UJ-3 step 3).
+      Owner-impact and freshness draw the <b>Warning</b> ramp (friction, never a hard block); the also-global-administrator standing draws <b>Danger</b> sparingly.
+      Known-unknowns are marked <b>UNPROVEN</b> (Important), never colored as success or failure — over-claiming is forbidden, so session/token invalidation reads as a known-unknown.
+      The <b>destructive-control</b> is low-emphasis and clearly not the primary button; <b>Cancel</b> is the safe, higher-prominence escape that does not commit.
+    </div>
+  </div>
+</div>
+</body>
+</html>

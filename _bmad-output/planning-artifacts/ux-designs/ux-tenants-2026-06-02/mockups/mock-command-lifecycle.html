@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock — Command Lifecycle Panel</title>
+<!--
+  SPINE SECTIONS GOVERNING THIS SCREEN (spines win on conflict):
+  DESIGN.md  → components.command-lifecycle-panel (FluentMessageBar /
+               MessageBarLayout.Notification; in-flight steps Informative incl. accepted;
+               only confirmed + audit available flip to Success; rejected/failed Danger),
+               components.truth-state-badge, Colors (firewall: Success = proven only).
+  EXPERIENCE.md → Component Patterns (command-lifecycle-panel: tracks inline, anchored
+               to the affected row WITHOUT overwriting confirmed projection data; never
+               collapses accepted/confirmed/audit available; SignalR nudges, never advances),
+               State Patterns §4 (layered feedback 10 states), §3 (snake_case state-machine
+               tokens projection_pending/audit_pending/audit_available — distinct from badge
+               space-forms; do NOT unify), UJ-3 step 5, CP-3 / CP-4.
+
+  ILLUSTRATIVE ONLY. Colors are NEUTRAL APPROXIMATIONS of Fluent UI Blazor v5 BadgeColor
+  roles; verify against the pinned package (5.0.0-rc.3-26138.1) at build. Fluent icons
+  cannot load standalone: each status uses a unicode glyph + the verified Fluent icon name.
+  NOTE: MessageBar intent "Error" and Badge color "Danger" are kept as SEPARATE concepts.
+-->
+<style>
+  :root{
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+    --mono: "Cascadia Code", "Segoe UI Mono", Consolas, "Liberation Mono", monospace;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+
+    --ink:#1b1a19; --ink-2:#3b3a39; --muted:#605e5c; --muted-2:#797775;
+    --line:#e1dfdd; --line-2:#edebe9; --bg:#faf9f8; --surface:#ffffff;
+    --brand:#0f6cbd; --brand-bg:#eff6fc;
+
+    --success-fg:#0e700e; --success-bg:#e7f4e7; --success-line:#bfe3bf;
+    --info-fg:#0b5cab;    --info-bg:#eef4fb;    --info-line:#cfe0f3;
+    --warning-fg:#8a6300; --warning-bg:#fdf6e3;
+    --severe-fg:#b54708;  --severe-bg:#fff1e8; --severe-fill-bg:#c4500f; --severe-fill-fg:#fff;
+    --danger-fg:#b10e1c;  --danger-bg:#fdeceb; --danger-fill-bg:#c11525; --danger-fill-fg:#fff; --danger-line:#e6b9bd;
+    --important-fg:#5a3696; --important-bg:#f4eefb; --important-line:#e0d2f2;
+    --subtle-fg:#605e5c;  --subtle-bg:#f3f2f1;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:13px;line-height:1.45;}
+  .mocknote{background:#fff4ce;border-bottom:1px solid #f2d98a;color:#5a4a16;padding:var(--s2) var(--s4);font-size:12px;}
+  .mocknote code{font-family:var(--mono);}
+
+  .frame{max-width:1000px;margin:var(--s6) auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.05);}
+  .chrome{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:#f3f2f1;border-bottom:1px solid var(--line);}
+  .dot{width:11px;height:11px;border-radius:50%;background:#d6d4d2;}
+  .urlbar{flex:1;margin-left:var(--s2);background:#fff;border:1px solid var(--line);border-radius:5px;padding:3px var(--s3);font-size:12px;color:var(--muted);font-family:var(--mono);}
+
+  .body{padding:var(--s4) var(--s6) var(--s6);}
+  h1{font-size:16px;font-weight:600;margin:0 0 var(--s1);}
+  .subhead{color:var(--muted);font-size:12px;margin:0 0 var(--s4);}
+  .crumbs{font-size:11.5px;color:var(--muted);margin-bottom:var(--s3);}
+  .crumbs a{color:var(--brand);text-decoration:none;}
+  .crumbs .sep{color:var(--muted-2);margin:0 var(--s1);}
+
+  /* badges */
+  .badge{display:inline-flex;align-items:center;gap:var(--s1);border-radius:12px;padding:2px var(--s2);font-size:11.5px;font-weight:500;line-height:1.5;white-space:nowrap;border:1px solid transparent;}
+  .badge .g{font-size:12px;line-height:1;}
+  .b-success {background:var(--success-bg);color:var(--success-fg);border-color:var(--success-line);}
+  .b-info    {background:var(--info-bg);color:var(--info-fg);border-color:var(--info-line);}
+  .b-warning {background:var(--warning-bg);color:var(--warning-fg);border-color:#f0e0a8;}
+  .b-severe  {background:var(--severe-fill-bg);color:var(--severe-fill-fg);border-color:var(--severe-fill-bg);}
+  .b-danger  {background:var(--danger-fill-bg);color:var(--danger-fill-fg);border-color:var(--danger-fill-bg);}
+  .b-important{background:var(--important-bg);color:var(--important-fg);border-color:var(--important-line);}
+  .b-subtle  {background:var(--subtle-bg);color:var(--subtle-fg);border-color:var(--line);}
+  .icn-name{font-family:var(--mono);font-size:9.5px;color:var(--muted-2);margin-left:2px;}
+
+  /* the affected row — confirmed projection data; the panel coexists and does NOT overwrite it */
+  .rowcard{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:var(--s3);}
+  .rowcard .rh{padding:6px var(--s3);background:#fbfafa;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:flex;justify-content:space-between;}
+  .rowcard .rh .keep{color:var(--success-fg);font-weight:600;text-transform:none;letter-spacing:0;}
+  table.member{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.member th{text-align:left;font-weight:600;color:var(--muted);padding:var(--s2) var(--s3);font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--line-2);}
+  table.member td{padding:var(--s3);vertical-align:middle;}
+  .ident{display:flex;flex-direction:column;gap:2px;}
+  .ident .name{font-weight:600;color:var(--ink);}
+  .ident .uid{font-family:var(--mono);font-size:11px;color:var(--muted-2);}
+  .anchor-tie{height:var(--s2);border-left:2px dashed var(--info-line);margin-left:var(--s6);}
+
+  /* ---- command-lifecycle-panel: FluentMessageBar · MessageBarLayout.Notification ---- */
+  .mbar{border:1px solid var(--info-line);border-left:4px solid var(--info-fg);border-radius:6px;background:#fff;overflow:hidden;}
+  .mbar .mhead{display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line-2);}
+  .mbar .mhead .mi{color:var(--info-fg);font-size:16px;}
+  .mbar .mhead .mtitle{font-weight:600;font-size:13.5px;}
+  .mbar .mhead .mcur{margin-left:auto;}
+  .mbar .mbody{padding:var(--s3) var(--s4) var(--s4);}
+  .mbar .mmsg{font-size:12.5px;color:var(--ink-2);margin:0 0 var(--s3);}
+  .mbar .mref{font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-top:var(--s2);}
+
+  /* step sequence — 8px gap; in-flight Informative, only confirmed/audit-available Success */
+  .steps{display:flex;align-items:stretch;gap:var(--s2);flex-wrap:wrap;}
+  .seq-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted-2);width:100%;margin-bottom:2px;}
+  .step{display:flex;flex-direction:column;gap:var(--s1);min-width:120px;flex:1;border:1px solid var(--line);border-radius:6px;padding:var(--s2) var(--s3);background:#fff;position:relative;}
+  .step .sname{display:flex;align-items:center;gap:var(--s1);font-size:12px;font-weight:600;}
+  .step .smeta{font-size:10px;font-family:var(--mono);color:var(--muted-2);}
+  .step .stoken{font-size:9.5px;font-family:var(--mono);color:var(--muted-2);}
+  .arrow{display:flex;align-items:center;color:var(--muted-2);font-size:14px;align-self:center;}
+
+  .step.done-info{border-color:var(--info-line);background:var(--info-bg);}     /* passed in-flight step */
+  .step.done-info .sname{color:var(--info-fg);}
+  .step.active-info{border-color:var(--info-fg);background:var(--info-bg);box-shadow:0 0 0 1px var(--info-fg) inset;} /* current in-flight */
+  .step.active-info .sname{color:var(--info-fg);}
+  .step.proven{border-color:var(--success-line);background:var(--success-bg);}  /* PROVEN — the only green */
+  .step.proven .sname{color:var(--success-fg);}
+  .step.waiting{border-color:var(--line);background:#fbfafa;opacity:.85;}        /* not yet reached */
+  .step.waiting .sname{color:var(--muted);}
+
+  .pulse{position:absolute;top:6px;right:8px;font-size:9px;color:var(--info-fg);}
+  .now-tag{position:absolute;top:-8px;left:10px;font-size:9px;background:var(--info-fg);color:#fff;border-radius:3px;padding:1px 5px;letter-spacing:.3px;}
+
+  .phase-div{display:flex;align-items:center;gap:var(--s2);margin:var(--s4) 0 var(--s2);}
+  .phase-div .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted-2);}
+  .phase-div .ln{flex:1;height:1px;background:var(--line-2);}
+
+  /* callout: accepted ≠ confirmed */
+  .notdone{margin-top:var(--s3);border:1px dashed var(--info-line);background:var(--info-bg);border-radius:6px;padding:var(--s2) var(--s3);font-size:12px;color:var(--info-fg);display:flex;gap:var(--s2);align-items:flex-start;}
+  .notdone b{color:var(--info-fg);}
+
+  /* SignalR nudge note */
+  .nudge{margin-top:var(--s3);font-size:11.5px;color:var(--muted);display:flex;gap:var(--s2);align-items:flex-start;border-top:1px solid var(--line-2);padding-top:var(--s3);}
+  .nudge .g{color:var(--info-fg);}
+
+  /* alternate end-state strip */
+  .alt{margin-top:var(--s6);}
+  .alt h2{font-size:13px;font-weight:600;margin:0 0 var(--s2);}
+  .alt .strip{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);}
+  @media (max-width:680px){.alt .strip{grid-template-columns:1fr;}}
+  .alt .end{border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .alt .end .eh{padding:var(--s2) var(--s3);font-size:12px;font-weight:600;display:flex;align-items:center;gap:var(--s2);}
+  .alt .end.rej .eh{background:var(--danger-bg);color:var(--danger-fg);border-bottom:1px solid var(--danger-line);}
+  .alt .end.unv .eh{background:var(--important-bg);color:var(--important-fg);border-bottom:1px solid var(--important-line);}
+  .alt .end .eb{padding:var(--s3);font-size:12px;color:var(--ink-2);}
+  .alt .end .eb .verbs{margin-top:var(--s2);display:flex;gap:var(--s2);flex-wrap:wrap;}
+  .verb{display:inline-flex;align-items:center;gap:var(--s1);border:1px solid var(--line);background:#fff;border-radius:5px;padding:3px var(--s2);font-size:11.5px;color:var(--brand);}
+  .intent-note{font-size:10px;font-family:var(--mono);color:var(--muted-2);margin-top:var(--s2);}
+
+  .invariant{margin-top:var(--s6);font-size:11px;color:var(--muted-2);border-top:1px solid var(--line-2);padding-top:var(--s3);line-height:1.6;}
+  .invariant b{color:var(--ink-2);}
+  .legend-roles{display:flex;gap:var(--s4);flex-wrap:wrap;margin-top:var(--s2);font-size:11px;}
+  .legend-roles span{display:inline-flex;align-items:center;gap:var(--s1);}
+  .sw{width:10px;height:10px;border-radius:2px;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="mocknote">Illustrative mock — approximates Fluent UI Blazor v5; spines win on conflict. Rendered as a <code>FluentMessageBar</code> · <code>MessageBarLayout.Notification</code>, inline and anchored to the affected row. In-flight steps are Informative (blue, Clock); only <code>confirmed</code> + <code>audit available</code> are Success (green, CheckmarkCircle).</div>
+
+<div class="frame">
+  <div class="chrome">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="urlbar">https://ops.hexalith.app/tenants/northwind-trading-eu/members</span>
+  </div>
+
+  <div class="body">
+    <div class="crumbs"><a href="#">Tenants</a><span class="sep">/</span><a href="#">Northwind Trading</a><span class="sep">/</span>Members</div>
+    <h1>Remove access — Jordan Avery</h1>
+    <p class="subhead">Command dispatched. The panel below tracks its real lifecycle and does not overwrite the confirmed data on the row.</p>
+
+    <!-- affected row: confirmed projection data kept intact while the command is in flight -->
+    <div class="rowcard">
+      <div class="rh"><span>Affected member row</span><span class="keep">↳ kept intact — not overwritten by the panel</span></div>
+      <table class="member">
+        <thead><tr><th>Member</th><th>Role</th><th>Owners</th><th>Status</th><th>Freshness</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="ident"><span class="name">Jordan Avery</span><span class="uid">jordan.avery@northwind</span></div></td>
+            <td>Owner</td>
+            <td>3 owners</td>
+            <td><span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> active<span class="icn-name">CheckmarkCircle</span></span></td>
+            <td><span class="badge b-success"><span class="g" title="CheckmarkCircle">✓</span> current<span class="icn-name">CheckmarkCircle</span></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="anchor-tie"></div>
+
+    <!-- ===================== command-lifecycle-panel (Notification MessageBar) ===================== -->
+    <div class="mbar" role="status" aria-live="polite">
+      <div class="mhead">
+        <span class="mi" title="Clock">◷</span>
+        <span class="mtitle">Removing Jordan Avery's access to Northwind Trading</span>
+        <!-- current-state line carries a truth-state-badge: currently projection_pending (in-flight) -->
+        <span class="mcur badge b-info"><span class="g" title="Clock">◷</span> projection&nbsp;pending<span class="icn-name">Clock</span></span>
+      </div>
+      <div class="mbody">
+        <p class="mmsg">Change submitted and accepted. <b>Waiting for the projection to confirm.</b> Nothing is shown as done until the source of truth confirms it.</p>
+
+        <!-- worked state machine sequence (snake_case tokens, kept verbatim, NOT unified with badge space-forms) -->
+        <div class="steps">
+          <span class="seq-label">Command sequence — projection is the source of truth</span>
+
+          <div class="step done-info">
+            <span class="sname"><span class="g" title="Clock">◷</span> submitted</span>
+            <span class="stoken">submitted</span>
+            <span class="smeta">14:03:18Z</span>
+          </div>
+          <span class="arrow">→</span>
+
+          <!-- accepted is the trap: Informative, NOT Success. Made unmistakable. -->
+          <div class="step done-info">
+            <span class="sname"><span class="g" title="Clock">◷</span> accepted</span>
+            <span class="stoken">accepted</span>
+            <span class="smeta">14:03:19Z · not done</span>
+          </div>
+          <span class="arrow">→</span>
+
+          <div class="step active-info">
+            <span class="now-tag">NOW</span>
+            <span class="pulse" title="ArrowClockwise">⟳</span>
+            <span class="sname"><span class="g" title="Clock">◷</span> projection_pending</span>
+            <span class="stoken">projection_pending</span>
+            <span class="smeta">re-querying…</span>
+          </div>
+          <span class="arrow">→</span>
+
+          <!-- the ONLY green in the command phase: confirmed (proven) — not yet reached -->
+          <div class="step waiting">
+            <span class="sname"><span class="g" title="CheckmarkCircle">✓</span> confirmed</span>
+            <span class="stoken">confirmed</span>
+            <span class="smeta">awaiting proof</span>
+          </div>
+        </div>
+
+        <div class="phase-div"><span class="lbl">Then — audit phase</span><span class="ln"></span></div>
+
+        <div class="steps">
+          <div class="step waiting">
+            <span class="sname"><span class="g" title="ClipboardClock">◷</span> audit_pending</span>
+            <span class="stoken">audit_pending</span>
+            <span class="smeta">expected after confirm</span>
+          </div>
+          <span class="arrow">→</span>
+          <!-- the only OTHER green: audit_available (proven) -->
+          <div class="step waiting">
+            <span class="sname"><span class="g" title="DocumentCheckmark">✓</span> audit_available</span>
+            <span class="stoken">audit_available</span>
+            <span class="smeta">proof, once available</span>
+          </div>
+        </div>
+
+        <!-- accepted ≠ confirmed callout -->
+        <div class="notdone">
+          <span class="g" title="Clock">◷</span>
+          <span><b>“Accepted” is not “done.”</b> The command was received and validated, but the result is still in flight (Informative, blue). It turns green <b>only</b> at <span class="badge b-success" style="font-size:10.5px;"><span class="g">✓</span> confirmed</span> — proven against the projection — and again at <span class="badge b-success" style="font-size:10.5px;"><span class="g">✓</span> audit available</span>.</span>
+        </div>
+
+        <!-- SignalR nudge-only -->
+        <div class="nudge">
+          <span class="g" title="ArrowClockwise">⟳</span>
+          <span>A live notification may arrive and prompt a re-query — it is a <b>freshness nudge only</b> and never advances this panel to <span class="mono" style="font-family:var(--mono);">confirmed</span>.</span>
+        </div>
+
+        <div class="mref">Reference: cmd-2026-06-02-7f3a · copy-safe, no tokens or PII</div>
+      </div>
+    </div>
+
+    <!-- ===================== alternate end-state strip ===================== -->
+    <div class="alt">
+      <h2>Alternate end states</h2>
+      <div class="strip">
+
+        <!-- rejected → Danger -->
+        <div class="end rej">
+          <div class="eh"><span class="g" title="Prohibited">⛔</span> <span class="badge b-danger" style="margin:0;"><span class="g" title="Prohibited">⛔</span> rejected<span class="icn-name">Prohibited</span></span> Business rule refused this</div>
+          <div class="eb">
+            “Couldn’t complete this change — the tenant is disabled.” Surfaced as safe localized text, never a stack trace. No false success.
+            <div class="verbs">
+              <span class="verb"><span class="g" title="ArrowClockwise">⟳</span> retry status lookup</span>
+              <span class="verb"><span class="g">↗</span> escalate</span>
+            </div>
+            <div class="intent-note">MessageBarIntent = Error · Badge color = Danger (kept as separate token names)</div>
+          </div>
+        </div>
+
+        <!-- unable to verify → Important (success-prohibited) -->
+        <div class="end unv">
+          <div class="eh"><span class="g" title="ShieldQuestion">❔</span> <span class="badge b-important" style="margin:0;"><span class="g" title="ShieldQuestion">❔</span> unable to verify<span class="icn-name">ShieldQuestion</span></span> Result not confirmable</div>
+          <div class="eb">
+            “Couldn’t verify the result. Escalate with this reference.” Distinct from rejected — never shown as success, never shown as failure.
+            <div class="verbs">
+              <span class="verb"><span class="g" title="ArrowClockwise">⟳</span> retry status lookup</span>
+              <span class="verb"><span class="g">↗</span> escalate</span>
+              <span class="verb"><span class="g">▤</span> inspect audit</span>
+            </div>
+            <div class="intent-note">AriaLive = Assertive (reserved for rejection / failure / unable-to-verify)</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="invariant">
+      <b>Spine alignment.</b> The panel is a Notification-layout MessageBar anchored under the affected row, which keeps its confirmed data (CP-3, no overwrite).
+      In-flight steps — <span style="color:var(--info-fg);">submitted · accepted · projection_pending · audit_pending</span> — are <b>Informative</b> with a Clock glyph; <b>accepted is explicitly not success</b>.
+      Only <span style="color:var(--success-fg);">confirmed</span> and <span style="color:var(--success-fg);">audit_available</span> are <b>Success</b> (proven), with CheckmarkCircle / DocumentCheckmark.
+      SignalR is a freshness nudge only (CP-4). Snake_case state-machine tokens are shown verbatim and not unified with the badge space-forms (CP-10).
+      <div class="legend-roles">
+        <span><span class="sw" style="background:var(--info-bg);border:1px solid var(--info-line);"></span> Informative — in flight</span>
+        <span><span class="sw" style="background:var(--success-bg);border:1px solid var(--success-line);"></span> Success — proven only</span>
+        <span><span class="sw" style="background:var(--danger-fill-bg);"></span> Danger — rejected / failed</span>
+        <span><span class="sw" style="background:var(--important-bg);border:1px solid var(--important-line);"></span> Important — unable to verify</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
