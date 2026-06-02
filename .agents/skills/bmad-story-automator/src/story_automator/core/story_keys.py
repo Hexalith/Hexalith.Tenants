@@ -25,18 +25,26 @@ def sprint_status_file(project_root: str) -> str:
 
 
 def normalize_story_key(project_root: str, value: str) -> StoryKey | None:
-    if re.fullmatch(r"\d+\.\d+", value):
-        story_id = value
-        prefix = value.replace(".", "-")
+    compact = value.strip()
+    dot_match = re.fullmatch(r"(\d+)\.(\d+)([A-Za-z]?)", compact)
+    dash_match = re.fullmatch(r"(\d+)-(\d+)([A-Za-z]?)", compact)
+    slug_match = re.fullmatch(r"(\d+)-(\d+)([A-Za-z]?)-(.+)", compact)
+
+    if dot_match:
+        epic, story, suffix = dot_match.groups()
+        story_id = f"{epic}.{story}{suffix.upper()}"
+        prefix = f"{epic}-{story}{suffix.lower()}"
         key = ""
-    elif re.fullmatch(r"\d+-\d+", value):
-        prefix = value
-        story_id = value.replace("-", ".")
+    elif dash_match:
+        epic, story, suffix = dash_match.groups()
+        story_id = f"{epic}.{story}{suffix.upper()}"
+        prefix = f"{epic}-{story}{suffix.lower()}"
         key = ""
-    elif re.fullmatch(r"\d+-\d+-.+", value):
-        key = value
-        prefix = "-".join(value.split("-", 2)[:2])
-        story_id = prefix.replace("-", ".")
+    elif slug_match:
+        epic, story, suffix, title = slug_match.groups()
+        story_id = f"{epic}.{story}{suffix.upper()}"
+        prefix = f"{epic}-{story}{suffix.lower()}"
+        key = f"{prefix}-{title}"
     else:
         return None
 

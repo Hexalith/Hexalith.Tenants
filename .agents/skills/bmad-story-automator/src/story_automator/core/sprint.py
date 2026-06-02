@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from .story_keys import sprint_status_file
+from .story_keys import normalize_story_key, sprint_status_file
 from .utils import file_exists, read_text, trim_lines
 
 
@@ -21,16 +21,21 @@ def sprint_status_get(project_root: str, story_key: str) -> SprintStatus:
     if not file_exists(status_file):
         return SprintStatus(False, story_key, "unknown", False, "sprint-status.yaml not found")
     content = read_text(status_file)
-    match = re.search(rf"(?m)^\s*{re.escape(story_key)}:\s*(\S+)", content)
-    if match:
-        status = match.group(1).strip()
-        return SprintStatus(True, story_key, status, status == "done")
+    norm = normalize_story_key(project_root, story_key)
+    candidates = [story_key]
+    if norm is not None:
+        candidates.extend([norm.key, norm.prefix, norm.id])
+    for candidate in dict.fromkeys(item for item in candidates if item):
+        match = re.search(rf"(?m)^\s*{re.escape(candidate)}:\s*(\S+)", content)
+        if match:
+            status = match.group(1).strip()
+            return SprintStatus(True, candidate, status, status == "done")
     prefix = story_key
     if "." in story_key:
-        prefix = story_key.replace(".", "-")
+        prefix = story_key.replace(".", "-").lower()
     elif re.fullmatch(r"\d+-\d+-.+", story_key):
-        prefix = "-".join(story_key.split("-", 2)[:2])
-    if re.fullmatch(r"\d+-\d+", prefix):
+        prefix = "-".join(story_key.split("-", 2)[:2]).lower()
+    if re.fullmatch(r"\d+-\d+[A-Za-z]?", prefix):
         prefix_match = re.search(rf"(?m)^\s*({re.escape(prefix)}-[^:\s]+)\s*:\s*(\S+)", content)
         if prefix_match:
             status = prefix_match.group(2).strip()

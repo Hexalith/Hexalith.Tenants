@@ -25,6 +25,7 @@ from .utils import (
     run_cmd,
 )
 from .runtime_layout import runtime_provider
+from .story_keys import normalize_story_key
 
 STATE_SCHEMA_VERSION = 1
 DEFAULT_WIDTH = 200
@@ -71,7 +72,8 @@ def resolve_command_shell() -> str:
 
 def generate_session_name(step: str, epic: str, story_id: str, cycle: str = "") -> str:
     stamp = time.strftime("%y%m%d-%H%M%S", time.localtime())
-    suffix = story_id.replace(".", "-")
+    norm = normalize_story_key(get_project_root(), story_id)
+    suffix = norm.prefix if norm else story_id.replace(".", "-")
     name = f"sa-{project_slug()}-{stamp}-e{epic}-s{suffix}-{step}"
     if cycle:
         name += f"-r{cycle}"

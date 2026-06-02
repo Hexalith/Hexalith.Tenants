@@ -7,6 +7,7 @@ from pathlib import Path
 
 from story_automator.core.runtime_layout import runtime_provider
 from story_automator.core.runtime_policy import PolicyError, load_runtime_policy, step_contract
+from story_automator.core.story_keys import normalize_story_key
 from story_automator.core.success_verifiers import resolve_success_contract, run_success_verifier
 from story_automator.core.tmux_runtime import (
     agent_cli,
@@ -78,7 +79,8 @@ def cmd_tmux_wrapper(args: list[str]) -> int:
     if action == "story-suffix":
         if len(args) < 2:
             return _usage(1)
-        print(args[1].replace(".", "-"))
+        norm = normalize_story_key(get_project_root(), args[1])
+        print(norm.prefix if norm else args[1].replace(".", "-"))
         return 0
     if action == "agent-type":
         print(agent_type())
@@ -188,9 +190,10 @@ def _build_cmd(args: list[str]) -> int:
     except PolicyError as exc:
         print(str(exc), file=__import__("sys").stderr)
         return 1
-    agent = agent or _raw_agent_selection()
-    story_prefix = story_id.replace(".", "-")
     root = get_project_root()
+    agent = agent or _raw_agent_selection()
+    norm = normalize_story_key(root, story_id)
+    story_prefix = norm.prefix if norm else story_id.replace(".", "-")
     agent = _resolve_agent_selection(agent, root)
     try:
         policy = load_runtime_policy(root, state_file=state_file)
