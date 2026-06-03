@@ -8,7 +8,7 @@ Source anchors for this guide:
 
 - `Hexalith.EventStore/docs/concepts/command-lifecycle.md`
 - `Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs`
-- `src/Hexalith.Tenants.Client/Subscription/TenantEventSubscriptionEndpoints.cs`
+- `src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs`
 - `src/Hexalith.Tenants.Client/Handlers/TenantProjectionEventHandler.cs`
 - `samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs`
 - `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml`
@@ -26,7 +26,7 @@ Source anchors for this guide:
 | EventStore command status | Status can move through `Received`, `Processing`, `EventsStored`, `EventsPublished`, and terminal states such as `Completed`, `Rejected`, `PublishFailed`, or `TimedOut`. | The command status proves command pipeline progress. `Completed` means EventStore persisted and published to pub/sub; it does not mean every subscriber projection has updated. |
 | Tenants query projections | Tenants read models process stored events into query projections. | Tenants query projections are projection state. They can briefly lag behind the authoritative event stream. |
 | DAPR pub/sub delivery | EventStore publishes CloudEvents to the shared `tenants.events` topic through DAPR pub/sub. | DAPR is the delivery mechanism. DAPR delivery is at-least-once, and subscriber processing is independent from command submission and command completion. |
-| Consuming-service local projection | A service maps `MapTenantEventSubscription()`, receives `/tenants/events`, runs `TenantEventProcessor`, dispatches `TenantProjectionEventHandler`, and saves through `ITenantProjectionStore`. | Consumer local projections are projection state owned by the consuming service. They can lag independently from Tenants query projections and from other services. |
+| Consuming-service local projection | A service maps `MapEventStoreDomainEvents()`, receives `/tenants/events`, runs `EventStoreDomainEventProcessor`, dispatches `TenantProjectionEventHandler`, and saves through `ITenantProjectionStore`. | Consumer local projections are projection state owned by the consuming service. They can lag independently from Tenants query projections and from other services. |
 | Aspire/log/trace diagnostics | Operators inspect resource health, command status, structured logs, traces, and projection metadata. | Diagnostics are evidence for support and recovery. They are not a replacement for the source-of-truth event history or command status states. |
 
 ## Propagation Flow
@@ -44,7 +44,7 @@ sequenceDiagram
     participant Status as command status polling
     participant PubSub as DAPR pub/sub
     participant Endpoint as Sample/consumer endpoint
-    participant Processor as TenantEventProcessor
+    participant Processor as EventStoreDomainEventProcessor
     participant ProjectionHandler as TenantProjectionEventHandler
     participant ProjectionStore as ITenantProjectionStore
     participant LocalRead as local access/configuration endpoint
@@ -67,7 +67,7 @@ sequenceDiagram
 
     Note over PubSub,ProjectionStore: eventual-consistency window
     PubSub--)Endpoint: deliver tenant event
-    Endpoint->>Processor: /tenants/events via MapTenantEventSubscription()
+    Endpoint->>Processor: /tenants/events via MapEventStoreDomainEvents()
     Processor->>ProjectionHandler: dispatch typed event
     ProjectionHandler->>ProjectionStore: SaveAsync(local projection)
     LocalRead->>ProjectionStore: GET /access/{tenantId}/{userId}
@@ -91,7 +91,7 @@ If multiple services subscribe to `tenants.events`, treat them as independent co
 
 EventStore events are the source-of-truth write history. Tenants query projections and consumer local projections are derived views and can lag independently.
 
-DAPR delivery is at-least-once. Use idempotent handlers because a message can be redelivered after a timeout, process crash, publish retry, or subscriber retry. `TenantEventProcessor` deduplicates by `MessageId` for the current process, removes failed in-progress claims so corrected redelivery can run, and skips unknown event types safely.
+DAPR delivery is at-least-once. Use idempotent handlers because a message can be redelivered after a timeout, process crash, publish retry, or subscriber retry. `EventStoreDomainEventProcessor` deduplicates by `MessageId` for the current process, removes failed in-progress claims so corrected redelivery can run, and skips unknown event types safely.
 
 `SequenceNumber` is aggregate-local only. Use it for diagnostics within one aggregate stream. Consumers must not assume cross-service ordering, cross-tenant ordering, ordering across aggregate types, or matching observation time between services.
 
@@ -116,7 +116,7 @@ The planned EventStore authorization plugin is a future/optional synchronous pip
 
 `PublishFailed` means events were persisted but EventStore publication failed after the configured attempts. The persisted event stream remains authoritative. Drain recovery can republish the stored sequence range, and subscribers must handle duplicates.
 
-Subscriber failure does not roll back the stored event. `MapTenantEventSubscription()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the pub/sub component and resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry before the dead-letter path, and the pub/sub component files configure the `deadletter.tenants.events` topic for deliveries that still cannot be processed. Keep those retry and dead-letter settings reviewed together.
+Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the pub/sub component and resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry before the dead-letter path, and the pub/sub component files configure the `deadletter.tenants.events` topic for deliveries that still cannot be processed. Keep those retry and dead-letter settings reviewed together.
 
 When a local projection is stale:
 
@@ -131,7 +131,7 @@ Do not use `Thread.Sleep`, magic fixed-delay waits, or a hard-coded delay as a c
 
 ## Drift Checks
 
-When architecture or event-flow implementation changes, update this guide and its sequence diagram in the same change. Re-check the EventStore command lifecycle docs, `CommandStatusController`, the Tenants Client subscription endpoint, `TenantEventProcessor`, `TenantProjectionEventHandler`, the sample `/access/{tenantId}/{userId}` endpoint, and DAPR component/resiliency YAML before release.
+When architecture or event-flow implementation changes, update this guide and its sequence diagram in the same change. Re-check the EventStore command lifecycle docs, `CommandStatusController`, the Tenants Client subscription endpoint, `EventStoreDomainEventProcessor`, `TenantProjectionEventHandler`, the sample `/access/{tenantId}/{userId}` endpoint, and DAPR component/resiliency YAML before release.
 
 Related guides:
 

@@ -1,166 +1,109 @@
+using Hexalith.EventStore.Client.Registration;
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
-using Hexalith.Tenants.Client.Configuration;
 using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Client.Projections;
-using Hexalith.Tenants.Client.Subscription;
 using Hexalith.Tenants.Contracts.Events;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Client.Registration;
 
 /// <summary>
-/// Extension methods for registering tenant client services in the dependency injection container.
+/// Registers the Tenants domain consumer in a service that subscribes to tenant events.
 /// </summary>
+/// <remarks>
+/// This is the domain-centric composition root: the generic event-subscription/dedup plumbing comes from
+/// the EventStore client SDK (A3 — <see cref="EventStoreDomainEventsServiceCollectionExtensions"/>); only
+/// the tenant-specific consumer (the local <see cref="TenantProjectionEventHandler"/> projection and its
+/// <see cref="ITenantProjectionStore"/>) lives here.
+/// </remarks>
 public static class TenantServiceCollectionExtensions {
-    private sealed class TenantEventHandlerRegistrationMarker<TEvent, THandler>
-        where TEvent : IEventPayload
-        where THandler : class, ITenantEventHandler<TEvent>;
-
-    private sealed class TenantEventInfrastructureMarker;
-    private sealed class TenantOptionsValidationMarker;
+    private sealed class TenantProjectionRegistrationMarker;
 
     /// <summary>
-    /// Registers tenant client services in the dependency injection container with configuration bound from appsettings.
+    /// The DAPR pub/sub topic carrying tenant domain events.
+    /// </summary>
+    public const string TopicName = "tenants.events";
+
+    /// <summary>
+    /// The HTTP route the tenant subscription endpoint is mapped to.
+    /// </summary>
+    public const string SubscriptionRoute = "/tenants/events";
+
+    /// <summary>
+    /// Registers the Tenants domain consumer (subscription plumbing + the built-in local projection).
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddHexalithTenants(this IServiceCollection services) {
-        ArgumentNullException.ThrowIfNull(services);
-
-        EnsureCoreRegistrations(services);
-        EnsureEventHandlerRegistrations(services);
-
-        // Opportunistic configuration binding
-        IConfiguration? configuration = TryGetConfiguration(services);
-        if (configuration is not null && !HasTenantOptionsConfiguration(services)) {
-            _ = services.Configure<HexalithTenantsOptions>(configuration.GetSection(HexalithTenantsOptions.ConfigurationSectionName));
-        }
-
-        return services;
-    }
+    public static IServiceCollection AddHexalithTenants(this IServiceCollection services)
+        => services.AddHexalithTenants(static _ => { });
 
     /// <summary>
-    /// Registers tenant client services in the dependency injection container with explicit options configuration.
+    /// Registers the Tenants domain consumer, allowing the caller to override the
+    /// <see cref="EventStoreDomainEventsOptions"/> (e.g. the pub/sub component name).
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">A delegate to configure <see cref="HexalithTenantsOptions"/>.</param>
+    /// <param name="configureOptions">A delegate applied after the tenant defaults.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddHexalithTenants(
         this IServiceCollection services,
-        Action<HexalithTenantsOptions> configureOptions) {
+        Action<EventStoreDomainEventsOptions> configureOptions) {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        EnsureCoreRegistrations(services);
-        EnsureEventHandlerRegistrations(services);
-
-        _ = services.Configure(configureOptions);
-
-        return services;
-    }
-
-    /// <summary>
-    /// Registers a selected tenant event handler for the specified event payload type.
-    /// </summary>
-    /// <typeparam name="TEvent">The tenant event payload type to handle.</typeparam>
-    /// <typeparam name="THandler">The handler implementation type.</typeparam>
-    /// <param name="services">The service collection.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddTenantEventHandler<TEvent, THandler>(this IServiceCollection services)
-        where TEvent : IEventPayload
-        where THandler : class, ITenantEventHandler<TEvent> {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.TryAddScoped<THandler>();
-
-        Type markerType = typeof(TenantEventHandlerRegistrationMarker<TEvent, THandler>);
-        if (services.Any(s => s.ServiceType == markerType)) {
-            return services;
-        }
-
-        _ = services.AddSingleton(markerType);
-        _ = services.AddScoped<ITenantEventHandler<TEvent>>(sp => sp.GetRequiredService<THandler>());
-
-        return services;
-    }
-
-    private static IReadOnlyDictionary<string, Type> BuildEventTypeRegistry() => typeof(TenantCreated).Assembly
-            .GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
-            .ToDictionary(t => t.FullName!, t => t);
-
-    private static void EnsureCoreRegistrations(IServiceCollection services) {
-        ArgumentNullException.ThrowIfNull(services);
-
-        if (!services.Any(s => s.ServiceType == typeof(Dapr.Client.DaprClient))) {
+        if (!services.Any(static s => s.ServiceType == typeof(Dapr.Client.DaprClient))) {
             services.AddDaprClient();
         }
 
-        _ = services.AddOptions<HexalithTenantsOptions>();
+        // Generic consumer plumbing (A3): the deduplicating processor + the tenant event-type registry,
+        // configured for the tenant pub/sub topic and the payload→aggregate integrity check (the tenant
+        // event payload's TenantId must equal the envelope AggregateId — the managed tenant ID).
+        _ = services.AddEventStoreDomainEvents(
+            typeof(TenantCreated).Assembly,
+            options => {
+                options.TopicName = TopicName;
+                options.SubscriptionRoute = SubscriptionRoute;
+                options.PayloadAggregateIdPropertyName = "TenantId";
+                configureOptions(options);
+            });
 
-        if (services.Any(s => s.ServiceType == typeof(TenantOptionsValidationMarker))) {
-            return;
-        }
+        // Domain-specific consumer: the tenant local projection and its store.
+        EnsureTenantProjectionRegistrations(services);
 
-        _ = services.AddOptions<HexalithTenantsOptions>().ValidateOnStart();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<HexalithTenantsOptions>, ValidateHexalithTenantsOptions>());
-        _ = services.AddSingleton<TenantOptionsValidationMarker>();
+        return services;
     }
 
-    private static void EnsureEventHandlerRegistrations(IServiceCollection services) {
-        ArgumentNullException.ThrowIfNull(services);
-
-        if (services.Any(s => s.ServiceType == typeof(TenantEventInfrastructureMarker))) {
+    private static void EnsureTenantProjectionRegistrations(IServiceCollection services) {
+        if (services.Any(static s => s.ServiceType == typeof(TenantProjectionRegistrationMarker))) {
             return;
         }
 
-        if (!services.Any(s => s.ServiceType == typeof(ITenantProjectionStore))) {
+        _ = services.AddSingleton<TenantProjectionRegistrationMarker>();
+
+        if (!services.Any(static s => s.ServiceType == typeof(ITenantProjectionStore))) {
             _ = services.AddSingleton<ITenantProjectionStore, InMemoryTenantProjectionStore>();
         }
 
+        // The projection handler is a singleton so its per-tenant write locks are shared across every
+        // consumed event; it is exposed through the platform handler interface for each tenant event type.
         _ = services.AddSingleton<TenantProjectionEventHandler>();
-        RegisterEventHandler<TenantCreated, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<TenantUpdated, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<TenantDisabled, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<TenantEnabled, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<UserAddedToTenant, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<UserRemovedFromTenant, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<UserRoleChanged, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<TenantConfigurationSet, TenantProjectionEventHandler>(services);
-        RegisterEventHandler<TenantConfigurationRemoved, TenantProjectionEventHandler>(services);
-
-        IReadOnlyDictionary<string, Type> registry = BuildEventTypeRegistry();
-        _ = services.AddSingleton(registry);
-
-        _ = services.AddSingleton<TenantEventProcessor>();
-        _ = services.AddSingleton<TenantEventInfrastructureMarker>();
+        RegisterProjectionHandler<TenantCreated>(services);
+        RegisterProjectionHandler<TenantUpdated>(services);
+        RegisterProjectionHandler<TenantDisabled>(services);
+        RegisterProjectionHandler<TenantEnabled>(services);
+        RegisterProjectionHandler<UserAddedToTenant>(services);
+        RegisterProjectionHandler<UserRemovedFromTenant>(services);
+        RegisterProjectionHandler<UserRoleChanged>(services);
+        RegisterProjectionHandler<TenantConfigurationSet>(services);
+        RegisterProjectionHandler<TenantConfigurationRemoved>(services);
     }
 
-    private static bool HasTenantOptionsConfiguration(IServiceCollection services) {
-        ArgumentNullException.ThrowIfNull(services);
-        return services.Any(s => s.ServiceType == typeof(IConfigureOptions<HexalithTenantsOptions>));
-    }
-
-    private static void RegisterEventHandler<TEvent, THandler>(IServiceCollection services)
+    // The TenantProjectionRegistrationMarker guard guarantees this runs once, so a plain AddSingleton is
+    // safe (TryAddEnumerable rejects a factory whose return type equals the service type).
+    private static void RegisterProjectionHandler<TEvent>(IServiceCollection services)
         where TEvent : IEventPayload
-        where THandler : class, ITenantEventHandler<TEvent> => services.AddSingleton<ITenantEventHandler<TEvent>>(sp => sp.GetRequiredService<THandler>());
-
-    private static IConfiguration? TryGetConfiguration(IServiceCollection services) {
-        ArgumentNullException.ThrowIfNull(services);
-        ServiceDescriptor? descriptor = services.LastOrDefault(static s => s.ServiceType == typeof(IConfiguration));
-        if (descriptor?.ImplementationInstance is IConfiguration configurationInstance) {
-            return configurationInstance;
-        }
-
-        if (descriptor is null) {
-            return null;
-        }
-
-        using ServiceProvider tempProvider = services.BuildServiceProvider();
-        return tempProvider.GetService<IConfiguration>();
-    }
+        => services.AddSingleton<IEventStoreDomainEventHandler<TEvent>>(
+            static sp => (IEventStoreDomainEventHandler<TEvent>)sp.GetRequiredService<TenantProjectionEventHandler>());
 }

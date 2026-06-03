@@ -55,17 +55,17 @@ public class SampleConsumingServiceWalkthroughDocumentationTests {
         meaningfulLines.Length.ShouldBeLessThan(20);
         walkthrough.ShouldContain("under 20 meaningful lines");
         walkthrough.ShouldContain("AddHexalithTenants()");
-        walkthrough.ShouldContain("AddTenantEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()");
-        walkthrough.ShouldContain("AddTenantEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()");
-        walkthrough.ShouldContain("AddTenantEventHandler<TenantDisabled, SampleLoggingEventHandler>()");
+        walkthrough.ShouldContain("AddEventStoreDomainEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()");
+        walkthrough.ShouldContain("AddEventStoreDomainEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()");
+        walkthrough.ShouldContain("AddEventStoreDomainEventHandler<TenantDisabled, SampleLoggingEventHandler>()");
         walkthrough.ShouldContain("UseCloudEvents()");
         walkthrough.ShouldContain("MapSubscribeHandler()");
-        walkthrough.ShouldContain("MapTenantEventSubscription()");
-        walkthrough.ShouldContain("HexalithTenantsOptions");
-        walkthrough.ShouldContain("`HexalithTenantsOptions` supplies these subscription defaults");
+        walkthrough.ShouldContain("MapEventStoreDomainEvents()");
+        walkthrough.ShouldContain("EventStoreDomainEventsOptions");
+        walkthrough.ShouldContain("`EventStoreDomainEventsOptions` supplies these subscription defaults");
         walkthrough.ShouldContain("pubsub");
         walkthrough.ShouldContain("tenants.events");
-        walkthrough.ShouldContain("`MapTenantEventSubscription()` maps the programmatic subscription endpoint at");
+        walkthrough.ShouldContain("`MapEventStoreDomainEvents()` maps the programmatic subscription endpoint at");
         walkthrough.ShouldContain("/tenants/events");
         walkthrough.ShouldNotContain("Programmatic subscription endpoint: `/tenants/events`");
         walkthrough.ShouldContain("must not create one DAPR topic per tenant event type");
@@ -174,10 +174,10 @@ public class SampleConsumingServiceWalkthroughDocumentationTests {
             && !line.StartsWith("//", StringComparison.Ordinal)
             && (
                 line.Contains("AddHexalithTenants", StringComparison.Ordinal)
-                || line.Contains("AddTenantEventHandler", StringComparison.Ordinal)
+                || line.Contains("AddEventStoreDomainEventHandler", StringComparison.Ordinal)
                 || line.Contains("UseCloudEvents", StringComparison.Ordinal)
                 || line.Contains("MapSubscribeHandler", StringComparison.Ordinal)
-                || line.Contains("MapTenantEventSubscription", StringComparison.Ordinal));
+                || line.Contains("MapEventStoreDomainEvents", StringComparison.Ordinal));
 
     private static string ReadWalkthrough()
         => File.ReadAllText(RepositoryPath("docs", "sample-consuming-service-walkthrough.md"));

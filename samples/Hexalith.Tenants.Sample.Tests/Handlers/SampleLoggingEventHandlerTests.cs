@@ -1,4 +1,4 @@
-using Hexalith.Tenants.Client.Handlers;
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Sample.Handlers;
@@ -12,8 +12,9 @@ using Shouldly;
 namespace Hexalith.Tenants.Sample.Tests.Handlers;
 
 public class SampleLoggingEventHandlerTests {
-    private static TenantEventContext CreateContext(string tenantId = "acme")
-        => new(tenantId, "msg-1", 1, DateTimeOffset.UtcNow, "corr-1");
+    // The managed tenant ID arrives via the platform context's AggregateId (envelope TenantId is "system").
+    private static EventStoreDomainEventContext CreateContext(string tenantId = "acme")
+        => new("system", tenantId, "msg-1", 1, DateTimeOffset.UtcNow, "corr-1");
 
     [Fact]
     public async Task HandleAsync_UserAddedToTenant_DoesNotThrow() {

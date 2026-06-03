@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
+    <ProjectReference
+      Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Client\Hexalith.EventStore.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -217,7 +217,7 @@ public class EventPublicationConfigurationTests {
         deployment.ShouldContain("drain recovery");
         deployment.ShouldContain("subscriber redelivery");
         deployment.ShouldContain("support-safe evidence");
-        idempotency.ShouldContain("TenantEventProcessor");
+        idempotency.ShouldContain("EventStoreDomainEventProcessor");
         idempotency.ShouldContain("TenantProjectionEventHandler");
         idempotency.ShouldContain("TenantLocalState.LastEvent");
         timing.ShouldContain("do not record raw bearer tokens");

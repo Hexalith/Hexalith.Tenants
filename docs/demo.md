@@ -4,7 +4,7 @@
 
 This demo proves the event-driven value of Tenants in a short, repeatable flow: create a tenant, add a user, watch the configured subscribing service grant local access, remove the user, then watch that same service deny access from its local projection. The timed proof starts after the AppHost, service URLs, and auth token are ready.
 
-The current runnable AppHost includes one sample subscriber resource named `sample`. Additional services subscribe the same way: register `AddHexalithTenants()`, map `MapTenantEventSubscription()`, and subscribe to `tenants.events`.
+The current runnable AppHost includes one sample subscriber resource named `sample`. Additional services subscribe the same way: register `AddHexalithTenants()`, map `MapEventStoreDomainEvents()`, and subscribe to `tenants.events`.
 
 ## First-Run Setup
 
@@ -182,7 +182,7 @@ For the intentional `EnableKeycloak=false` fallback only, pass `--hmac-dev-token
 
 1. Commands were accepted by the EventStore command gateway at `POST /api/v1/commands`.
 2. EventStore stored tenant events and published them asynchronously to DAPR pub/sub topic `tenants.events`.
-3. The `sample` service received events through `MapTenantEventSubscription()`.
+3. The `sample` service received events through `MapEventStoreDomainEvents()`.
 4. `TenantProjectionEventHandler` updated `ITenantProjectionStore`.
 5. `/access/{tenantId}/{userId}` read local projection state and failed closed after `UserRemovedFromTenant`.
 

@@ -8,6 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Client\Hexalith.Tenants.Client.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
+    <ProjectReference
+      Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.DomainService\Hexalith.EventStore.DomainService.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,29 +6,29 @@ DAPR pub/sub guarantees **at-least-once delivery**, not exactly-once. Network re
 
 Without idempotency protection, duplicate events cause incorrect state: a user added twice, a counter incremented twice, or a notification sent twice.
 
-Subscriber endpoints must return success only after the event has been handled safely. `MapTenantEventSubscription()` returns `200 OK` for processed, duplicate, unknown, or intentionally unhandled events, but returns a server error for invalid payloads so DAPR can redeliver according to the pub/sub component policy. If a handler throws, `TenantEventProcessor` removes the in-progress `MessageId` claim and lets the exception escape; the failed delivery is not marked complete, so a corrected redelivery with the same `MessageId` can run.
+Subscriber endpoints must return success only after the event has been handled safely. `MapEventStoreDomainEvents()` returns `200 OK` for processed, duplicate, unknown, or intentionally unhandled events, but returns a server error for invalid payloads so DAPR can redeliver according to the pub/sub component policy. If a handler throws, `EventStoreDomainEventProcessor` removes the in-progress `MessageId` claim and lets the exception escape; the failed delivery is not marked complete, so a corrected redelivery with the same `MessageId` can run.
 
 For the larger timing window around command status, publication, subscriber delivery, and local projection lag, see [Cross-Aggregate Timing](cross-aggregate-timing.md).
 
 ## How Hexalith.Tenants.Client Handles It
 
-`TenantEventProcessor` tracks processed `MessageId` values in a `ConcurrentDictionary`. The `MessageId` is the event identifier set by EventStore at persistence time. When a duplicate event arrives, the processor returns `TenantEventProcessingResult.Duplicate` and does not dispatch handlers again.
+`EventStoreDomainEventProcessor` tracks processed `MessageId` values in a `ConcurrentDictionary`. The `MessageId` is the event identifier set by EventStore at persistence time. When a duplicate event arrives, the processor returns `EventStoreDomainEventProcessingResult.Duplicate` and does not dispatch handlers again.
 
 ### Deduplication Flow
 
 ```csharp
-// Inside TenantEventProcessor.ProcessAsync():
+// Inside EventStoreDomainEventProcessor.ProcessAsync():
 
 if (!_processedMessageIds.TryAdd(envelope.MessageId, ProcessingState.InProgress))
 {
-    return TenantEventProcessingResult.Duplicate;
+    return EventStoreDomainEventProcessingResult.Duplicate;
 }
 
 try
 {
     // Resolve event type, deserialize, validate TenantId, and dispatch handlers.
     _processedMessageIds[envelope.MessageId] = ProcessingState.Completed;
-    return TenantEventProcessingResult.Processed;
+    return EventStoreDomainEventProcessingResult.Processed;
 }
 catch
 {
@@ -51,19 +51,19 @@ Production consumers that perform side effects outside the local projection shou
 ```csharp
 using System.Collections.Concurrent;
 
-using Hexalith.Tenants.Client.Handlers;
+using Hexalith.EventStore.Client.Subscriptions;
 
 public sealed class MessageIdDeduplicationStore
 {
     private readonly ConcurrentDictionary<string, byte> _processed = new(StringComparer.Ordinal);
 
-    public bool TryClaim(TenantEventContext context)
+    public bool TryClaim(EventStoreDomainEventContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         return _processed.TryAdd(context.MessageId, 0);
     }
 
-    public void Abandon(TenantEventContext context)
+    public void Abandon(EventStoreDomainEventContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         _ = _processed.TryRemove(context.MessageId, out _);
@@ -71,7 +71,7 @@ public sealed class MessageIdDeduplicationStore
 }
 ```
 
-Use `TryClaim` before work that must not run twice, and call `Abandon` if the handler fails before the side effect is safe. The built-in `TenantEventProcessor` already performs this message-level claim for registered tenant handlers; the explicit store pattern is for additional side-effect boundaries such as emails, webhooks, exports, or durable outbox writes.
+Use `TryClaim` before work that must not run twice, and call `Abandon` if the handler fails before the side effect is safe. The built-in `EventStoreDomainEventProcessor` already performs this message-level claim for registered tenant handlers; the explicit store pattern is for additional side-effect boundaries such as emails, webhooks, exports, or durable outbox writes.
 
 ## Making Handlers Idempotent
 
@@ -93,11 +93,11 @@ Even with message-level deduplication, handlers should be designed for idempoten
 Example idempotent access-revocation handler pattern:
 
 ```csharp
-using Hexalith.Tenants.Client.Handlers;
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Contracts.Events;
 
-public sealed class TenantAccessProjectionHandler : ITenantEventHandler<UserRemovedFromTenant>
+public sealed class TenantAccessProjectionHandler : IEventStoreDomainEventHandler<UserRemovedFromTenant>
 {
     private readonly ITenantProjectionStore _store;
 
@@ -109,14 +109,15 @@ public sealed class TenantAccessProjectionHandler : ITenantEventHandler<UserRemo
 
     public async Task HandleAsync(
         UserRemovedFromTenant @event,
-        TenantEventContext context,
+        EventStoreDomainEventContext context,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
 
-        TenantLocalState state = await _store.GetAsync(context.TenantId, cancellationToken).ConfigureAwait(false)
-            ?? new TenantLocalState { TenantId = context.TenantId };
+        // The managed tenant ID is the envelope AggregateId (context.TenantId is the publisher scope).
+        TenantLocalState state = await _store.GetAsync(context.AggregateId, cancellationToken).ConfigureAwait(false)
+            ?? new TenantLocalState { TenantId = context.AggregateId };
 
         _ = state.Members.Remove(@event.UserId);
         await _store.SaveAsync(state, cancellationToken).ConfigureAwait(false);
@@ -134,13 +135,13 @@ The local projection is runtime state for the consuming service. It should be us
 
 Each consuming service processes events independently. DAPR pub/sub is at-least-once, and subscribers can lag or recover at different times, so consumers must not assume cross-service ordering or immediate read-after-write visibility. `TenantDisabled` and `TenantEnabled` should be treated as eventually consistent availability signals, and tenant configuration reads should be filtered by the consumer-owned dot-delimited prefix, such as `sample.` or `billing.`, so unrelated namespaces remain hidden unless explicitly handled.
 
-`TenantProjectionEventHandler` records bounded `TenantLocalState.LastEvent` metadata from `TenantEventContext`: the last message ID, aggregate-local sequence number, timestamp, and correlation ID. This is diagnostic metadata for the last successfully applied event in that local projection. It is not a durable audit log and is not enough by itself for scaled-out deduplication.
+`TenantProjectionEventHandler` records bounded `TenantLocalState.LastEvent` metadata from `EventStoreDomainEventContext`: the last message ID, aggregate-local sequence number, timestamp, and correlation ID. This is diagnostic metadata for the last successfully applied event in that local projection. It is not a durable audit log and is not enough by itself for scaled-out deduplication.
 
 `SequenceNumber` is aggregate-local ordering metadata. It can help reason about order within one tenant aggregate stream, but it must not be treated as a global order across services, tenants, aggregates, topics, subscriber instances, or redelivery attempts. Use `MessageId` for duplicate detection and use the aggregate-local sequence number only inside the documented scope of one aggregate stream.
 
 ## Production Considerations
 
-The in-memory `ConcurrentDictionary` used by `TenantEventProcessor` grows unboundedly and resets on service restart. This is acceptable for MVP and development but needs attention for production.
+The in-memory `ConcurrentDictionary` used by `EventStoreDomainEventProcessor` grows unboundedly and resets on service restart. This is acceptable for MVP and development but needs attention for production.
 
 ### Bounded Cache
 
@@ -159,7 +160,7 @@ Keep the store bounded by time or size so retained message IDs do not grow forev
 
 Combine multiple layers for maximum reliability:
 
-1. Message-level deduplication in `TenantEventProcessor` catches duplicate deliveries before handlers run.
+1. Message-level deduplication in `EventStoreDomainEventProcessor` catches duplicate deliveries before handlers run.
 2. Handler-level idempotency keeps local projection updates safe when duplicate payloads are replayed.
 3. Shared deduplication protects scaled-out instances and external side effects.
 

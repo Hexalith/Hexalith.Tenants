@@ -33,7 +33,7 @@ public class AhaMomentDemoDocumentationTests {
 
         readme.ShouldContain("docs/demo.md");
         appHost.ShouldContain("AddProject<HexalithTenantsSample>(\"sample\")");
-        sampleProgram.ShouldContain("MapTenantEventSubscription()");
+        sampleProgram.ShouldContain("MapEventStoreDomainEvents()");
 
         string[] requiredReferences =
         [
@@ -45,7 +45,7 @@ public class AhaMomentDemoDocumentationTests {
             "/api/v1/commands/status",
             "/access/{tenantId}/{userId}",
             "tenants.events",
-            "MapTenantEventSubscription()",
+            "MapEventStoreDomainEvents()",
             "GET {tenants-url}/api/tenants/acme-demo",
             "GET {tenants-url}/api/tenants/acme-demo/audit",
         ];

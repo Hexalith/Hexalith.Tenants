@@ -48,35 +48,35 @@ The real setup in `samples/Hexalith.Tenants.Sample/Program.cs` is intentionally
 small. `samples/Hexalith.Tenants.Sample.Tests/Registration/SampleRegistrationTests.cs`
 counts the meaningful tenant registration lines with the same predicate used by
 documentation validation: non-empty, non-comment lines containing
-`AddHexalithTenants`, `AddTenantEventHandler`, `UseCloudEvents`,
-`MapSubscribeHandler`, or `MapTenantEventSubscription`. The current target stays
+`AddHexalithTenants`, `AddEventStoreDomainEventHandler`, `UseCloudEvents`,
+`MapSubscribeHandler`, or `MapEventStoreDomainEvents`. The current target stays
 under 20 meaningful lines.
 
 ```csharp
 builder.Services
     .AddHexalithTenants()
-    .AddTenantEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
-    .AddTenantEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()
-    .AddTenantEventHandler<TenantDisabled, SampleLoggingEventHandler>();
+    .AddEventStoreDomainEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
+    .AddEventStoreDomainEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()
+    .AddEventStoreDomainEventHandler<TenantDisabled, SampleLoggingEventHandler>();
 
 WebApplication app = builder.Build();
 
 app.UseCloudEvents();
 app.MapSubscribeHandler();
-app.MapTenantEventSubscription();
+app.MapEventStoreDomainEvents();
 ```
 
 Reusable package setup:
 
 - `AddHexalithTenants()` registers tenant client services, default options, the
-  DAPR client, `TenantEventProcessor`, the built-in
+  DAPR client, `EventStoreDomainEventProcessor`, the built-in
   `TenantProjectionEventHandler`, and the default `InMemoryTenantProjectionStore`
   when no `ITenantProjectionStore` is already registered.
-- `AddTenantEventHandler<TEvent, THandler>()` registers custom typed handlers
+- `AddEventStoreDomainEventHandler<TEvent, THandler>()` registers custom typed handlers
   for event payloads your service cares about.
 - `UseCloudEvents()` enables CloudEvents request handling for DAPR pub/sub.
 - `MapSubscribeHandler()` exposes DAPR's subscription discovery endpoint.
-- `MapTenantEventSubscription()` maps the Tenants event subscription endpoint.
+- `MapEventStoreDomainEvents()` maps the Tenants event subscription endpoint.
 
 Sample-specific teaching surfaces:
 
@@ -85,12 +85,12 @@ Sample-specific teaching surfaces:
 - `/configuration/{tenantId}/sample` shows namespace-filtered configuration
   reads from the local projection.
 
-`HexalithTenantsOptions` supplies these subscription defaults:
+`EventStoreDomainEventsOptions` supplies these subscription defaults:
 
 - DAPR pub/sub component: `pubsub`
 - Shared topic: `tenants.events`
 
-`MapTenantEventSubscription()` maps the programmatic subscription endpoint at
+`MapEventStoreDomainEvents()` maps the programmatic subscription endpoint at
 `/tenants/events`.
 
 Consumers filter by event type through typed handlers. Consumers must not create one DAPR topic per tenant event type. All tenant events flow on the shared
@@ -182,10 +182,10 @@ These pieces are safe starting points for a real consuming service:
 - package references for `Hexalith.Tenants.Contracts` and
   `Hexalith.Tenants.Client`;
 - `AddHexalithTenants()`;
-- typed handler registration with `AddTenantEventHandler<TEvent, THandler>()`;
+- typed handler registration with `AddEventStoreDomainEventHandler<TEvent, THandler>()`;
 - CloudEvents middleware, `MapSubscribeHandler()`, and
-  `MapTenantEventSubscription()`;
-- the `ITenantEventHandler<TEvent>` handler shape;
+  `MapEventStoreDomainEvents()`;
+- the `IEventStoreDomainEventHandler<TEvent>` handler shape;
 - reads from the `ITenantProjectionStore` abstraction;
 - idempotent dictionary set/remove projection operations for local state.
 

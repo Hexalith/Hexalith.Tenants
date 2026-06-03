@@ -1,10 +1,10 @@
 using System.Net.Http;
 using System.Text.Json;
 
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Client.Projections;
-using Hexalith.Tenants.Client.Subscription;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Sample.Endpoints;
 
@@ -22,7 +22,7 @@ public class TenantConfigurationEndpointsTests {
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
             .ToDictionary(t => t.FullName!, t => t);
 
-    private static TenantEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event)
+    private static EventStoreDomainEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event)
         where TEvent : IEventPayload => new(
             messageId,
             "acme",
@@ -34,22 +34,23 @@ public class TenantConfigurationEndpointsTests {
             "json",
             JsonSerializer.SerializeToUtf8Bytes(@event));
 
-    private static (TenantEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor() {
+    private static (EventStoreDomainEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor() {
         var store = new InMemoryTenantProjectionStore();
         var handler = new TenantProjectionEventHandler(store);
 
         var services = new ServiceCollection();
         _ = services.AddSingleton<ITenantProjectionStore>(store);
         _ = services.AddSingleton(handler);
-        _ = services.AddSingleton<ITenantEventHandler<TenantCreated>>(handler);
-        _ = services.AddSingleton<ITenantEventHandler<TenantConfigurationSet>>(handler);
-        _ = services.AddSingleton<ITenantEventHandler<TenantConfigurationRemoved>>(handler);
+        _ = services.AddSingleton<IEventStoreDomainEventHandler<TenantCreated>>(handler);
+        _ = services.AddSingleton<IEventStoreDomainEventHandler<TenantConfigurationSet>>(handler);
+        _ = services.AddSingleton<IEventStoreDomainEventHandler<TenantConfigurationRemoved>>(handler);
         ServiceProvider provider = services.BuildServiceProvider();
 
-        var processor = new TenantEventProcessor(
+        var processor = new EventStoreDomainEventProcessor(
             provider.GetRequiredService<IServiceScopeFactory>(),
             BuildRegistry(),
-            NullLogger<TenantEventProcessor>.Instance);
+            NullLogger<EventStoreDomainEventProcessor>.Instance,
+            "TenantId");
 
         return (processor, store, provider);
     }
@@ -108,7 +109,7 @@ public class TenantConfigurationEndpointsTests {
     [Fact]
     public async Task GetSampleConfigurationAsync_EventPipeline_AppliesUpdatesAndRepeatedRemoveDeterministically() {
         // Arrange
-        (TenantEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
+        (EventStoreDomainEventProcessor processor, InMemoryTenantProjectionStore store, ServiceProvider provider) = CreateProcessor();
         using (provider) {
             _ = await processor.ProcessAsync(
                 CreateEnvelope("msg-created", new TenantCreated("acme", "Acme Corp", null, DateTimeOffset.UtcNow)));
@@ -125,7 +126,7 @@ public class TenantConfigurationEndpointsTests {
                 CreateEnvelope("msg-remove-1", new TenantConfigurationRemoved("acme", "sample.theme")));
 
             // Act
-            TenantEventProcessingResult repeatedRemove = await processor.ProcessAsync(
+            EventStoreDomainEventProcessingResult repeatedRemove = await processor.ProcessAsync(
                 CreateEnvelope("msg-remove-2", new TenantConfigurationRemoved("acme", "sample.theme")));
             IResult result = await TenantConfigurationEndpoints.GetSampleConfigurationAsync("acme", store, CancellationToken.None);
 
@@ -135,7 +136,7 @@ public class TenantConfigurationEndpointsTests {
             updatedJson.ShouldContain("\"theme\":\"green\"");
             updatedJson.ShouldNotContain("\"theme\":\"blue\"");
 
-            repeatedRemove.ShouldBe(TenantEventProcessingResult.Processed);
+            repeatedRemove.ShouldBe(EventStoreDomainEventProcessingResult.Processed);
             ((IStatusCodeHttpResult)result).StatusCode.ShouldBe(200);
             string json = SerializeResultValue(result);
             json.ShouldNotContain("theme");

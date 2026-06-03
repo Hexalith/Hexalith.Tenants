@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
@@ -7,19 +8,20 @@ using Hexalith.Tenants.Contracts.Events;
 namespace Hexalith.Tenants.Client.Handlers;
 
 /// <summary>
-/// Built-in handler that applies tenant events to <see cref="TenantLocalState"/> projections.
-/// Implements <see cref="ITenantEventHandler{TEvent}"/> for all tenant event types.
+/// Built-in domain consumer handler that applies tenant events to <see cref="TenantLocalState"/>
+/// projections. Implements the platform <see cref="IEventStoreDomainEventHandler{TEvent}"/> (A3) for all
+/// tenant event types; the generic subscription/dedup plumbing is provided by the EventStore client SDK.
 /// </summary>
 public class TenantProjectionEventHandler :
-    ITenantEventHandler<TenantCreated>,
-    ITenantEventHandler<TenantUpdated>,
-    ITenantEventHandler<TenantDisabled>,
-    ITenantEventHandler<TenantEnabled>,
-    ITenantEventHandler<UserAddedToTenant>,
-    ITenantEventHandler<UserRemovedFromTenant>,
-    ITenantEventHandler<UserRoleChanged>,
-    ITenantEventHandler<TenantConfigurationSet>,
-    ITenantEventHandler<TenantConfigurationRemoved> {
+    IEventStoreDomainEventHandler<TenantCreated>,
+    IEventStoreDomainEventHandler<TenantUpdated>,
+    IEventStoreDomainEventHandler<TenantDisabled>,
+    IEventStoreDomainEventHandler<TenantEnabled>,
+    IEventStoreDomainEventHandler<UserAddedToTenant>,
+    IEventStoreDomainEventHandler<UserRemovedFromTenant>,
+    IEventStoreDomainEventHandler<UserRoleChanged>,
+    IEventStoreDomainEventHandler<TenantConfigurationSet>,
+    IEventStoreDomainEventHandler<TenantConfigurationRemoved> {
     private readonly ITenantProjectionStore _store;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _tenantLocks = new(StringComparer.Ordinal);
 
@@ -33,7 +35,7 @@ public class TenantProjectionEventHandler :
     }
 
     /// <inheritdoc/>
-    public Task HandleAsync(TenantCreated @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TenantCreated @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -45,7 +47,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(TenantUpdated @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TenantUpdated @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -56,7 +58,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(TenantDisabled @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TenantDisabled @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -64,7 +66,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(TenantEnabled @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TenantEnabled @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -72,7 +74,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(UserAddedToTenant @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -80,7 +82,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(UserRemovedFromTenant @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(UserRemovedFromTenant @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -88,7 +90,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(UserRoleChanged @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(UserRoleChanged @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -96,7 +98,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(TenantConfigurationSet @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TenantConfigurationSet @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -104,7 +106,7 @@ public class TenantProjectionEventHandler :
             cancellationToken);
 
     /// <inheritdoc/>
-    public Task HandleAsync(TenantConfigurationRemoved @event, TenantEventContext context, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TenantConfigurationRemoved @event, EventStoreDomainEventContext context, CancellationToken cancellationToken = default)
         => ApplyAsync(
             @event,
             context,
@@ -113,17 +115,17 @@ public class TenantProjectionEventHandler :
 
     private async Task ApplyAsync<TEvent>(
         TEvent @event,
-        TenantEventContext context,
+        EventStoreDomainEventContext context,
         Action<TenantLocalState, TEvent> apply,
         CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(apply);
 
-        SemaphoreSlim tenantLock = _tenantLocks.GetOrAdd(context.TenantId, static _ => new SemaphoreSlim(1, 1));
+        SemaphoreSlim tenantLock = _tenantLocks.GetOrAdd(context.AggregateId, static _ => new SemaphoreSlim(1, 1));
         await tenantLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            TenantLocalState state = await GetOrCreateStateAsync(context.TenantId, cancellationToken).ConfigureAwait(false);
+            TenantLocalState state = await GetOrCreateStateAsync(context.AggregateId, cancellationToken).ConfigureAwait(false);
             apply(state, @event);
             state.LastEvent = new TenantProjectionEventMetadata(
                 context.MessageId,

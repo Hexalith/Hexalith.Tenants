@@ -1,3 +1,4 @@
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Contracts.Enums;
@@ -8,16 +9,18 @@ using Shouldly;
 namespace Hexalith.Tenants.Client.Tests.Handlers;
 
 public class TenantProjectionEventHandlerTests {
-    private static TenantEventContext CreateContext(string tenantId, string messageId = "msg-1")
-        => new(tenantId, messageId, 1, DateTimeOffset.UtcNow, "corr-1");
+    // The managed tenant ID flows through the platform context's AggregateId (the envelope TenantId is the
+    // publisher scope, "system"); the projection handler keys local state by AggregateId.
+    private static EventStoreDomainEventContext CreateContext(string tenantId, string messageId = "msg-1")
+        => new("system", tenantId, messageId, 1, DateTimeOffset.UtcNow, "corr-1");
 
-    private static TenantEventContext CreateContext(
+    private static EventStoreDomainEventContext CreateContext(
         string tenantId,
         string messageId,
         long sequenceNumber,
         DateTimeOffset timestamp,
         string correlationId)
-        => new(tenantId, messageId, sequenceNumber, timestamp, correlationId);
+        => new("system", tenantId, messageId, sequenceNumber, timestamp, correlationId);
 
     [Fact]
     public async Task HandleAsync_TenantCreated_InitializesState() {

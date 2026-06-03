@@ -19,10 +19,10 @@ public class SampleRegistrationTests {
         // Assert
         count.ShouldBeLessThan(20);
         meaningfulLines.ShouldContain(line => line.Contains("AddHexalithTenants", StringComparison.Ordinal));
-        meaningfulLines.ShouldContain(line => line.Contains("AddTenantEventHandler<UserAddedToTenant, SampleLoggingEventHandler>", StringComparison.Ordinal));
+        meaningfulLines.ShouldContain(line => line.Contains("AddEventStoreDomainEventHandler<UserAddedToTenant, SampleLoggingEventHandler>", StringComparison.Ordinal));
         meaningfulLines.ShouldContain(line => line.Contains("UseCloudEvents", StringComparison.Ordinal));
         meaningfulLines.ShouldContain(line => line.Contains("MapSubscribeHandler", StringComparison.Ordinal));
-        meaningfulLines.ShouldContain(line => line.Contains("MapTenantEventSubscription", StringComparison.Ordinal));
+        meaningfulLines.ShouldContain(line => line.Contains("MapEventStoreDomainEvents", StringComparison.Ordinal));
     }
 
     private static bool IsTenantRegistrationLine(string line) =>
@@ -30,10 +30,10 @@ public class SampleRegistrationTests {
         && !line.StartsWith("//", StringComparison.Ordinal)
         && (
             line.Contains("AddHexalithTenants", StringComparison.Ordinal)
-            || line.Contains("AddTenantEventHandler", StringComparison.Ordinal)
+            || line.Contains("AddEventStoreDomainEventHandler", StringComparison.Ordinal)
             || line.Contains("UseCloudEvents", StringComparison.Ordinal)
             || line.Contains("MapSubscribeHandler", StringComparison.Ordinal)
-            || line.Contains("MapTenantEventSubscription", StringComparison.Ordinal));
+            || line.Contains("MapEventStoreDomainEvents", StringComparison.Ordinal));
 
     private static string SampleProgramPath()
         => Path.Combine(FindRepoRoot(), "samples", "Hexalith.Tenants.Sample", "Program.cs");

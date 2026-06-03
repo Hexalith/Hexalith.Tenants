@@ -1,16 +1,13 @@
-using System.Reflection;
 using System.Xml.Linq;
 
 using Dapr.Client;
 
-using Hexalith.Tenants.Client.Configuration;
+using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.Tenants.Client.Handlers;
 using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Client.Registration;
-using Hexalith.Tenants.Client.Subscription;
 using Hexalith.Tenants.Contracts.Events;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -18,541 +15,189 @@ using Shouldly;
 
 namespace Hexalith.Tenants.Client.Tests.Registration;
 
+/// <summary>
+/// Verifies the domain-centric composition root: <see cref="TenantServiceCollectionExtensions"/> wires the
+/// tenant consumer onto the platform A3 generics (the deduplicating processor + options live in the
+/// EventStore client SDK; only the tenant local projection and store are domain-specific here).
+/// </summary>
 public class TenantServiceCollectionExtensionsTests {
     [Fact]
     public void AddHexalithTenants_RegistersDaprClient() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig();
+        IServiceCollection services = new ServiceCollection();
 
-        // Act
         _ = services.AddHexalithTenants();
 
-        // Assert — descriptor check only, DO NOT resolve (gRPC needs DAPR sidecar)
+        // Descriptor check only, DO NOT resolve (gRPC needs the DAPR sidecar).
         services.ShouldContain(s => s.ServiceType == typeof(DaprClient));
-    }
-
-    [Fact]
-    public void AddHexalithTenants_RegistersExpectedServiceLifetimes() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                ["Tenants:PubSubName"] = "mypubsub",
-            });
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
         GetRequiredDescriptor(services, typeof(DaprClient)).Lifetime.ShouldBe(ServiceLifetime.Singleton);
-        services
-            .Where(s => s.ServiceType == typeof(IConfigureOptions<HexalithTenantsOptions>))
-            .Select(s => s.Lifetime)
-            .Distinct()
-            .ShouldBe([ServiceLifetime.Singleton]);
     }
 
     [Fact]
-    public void AddHexalithTenants_BindsTenantsOptions() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                ["Tenants:PubSubName"] = "mypubsub",
-            });
+    public void AddHexalithTenants_SkipsDaprClientIfAlreadyRegistered() {
+        IServiceCollection services = new ServiceCollection();
+        services.AddDaprClient();
+        int daprCountBefore = services.Count(s => s.ServiceType == typeof(DaprClient));
 
-        // Act
         _ = services.AddHexalithTenants();
 
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("mypubsub");
-        options.TopicName.ShouldBe("tenants.events");
-    }
-
-    [Fact]
-    public void AddHexalithTenants_IsIdempotent() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                ["Tenants:PubSubName"] = "mypubsub",
-            });
-
-        // Act
-        _ = services.AddHexalithTenants();
-        _ = services.AddHexalithTenants();
-
-        // Assert — Configure<T>() registers IConfigureOptions<T>, check count
-        services.Count(s => s.ServiceType == typeof(IConfigureOptions<HexalithTenantsOptions>)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(DaprClient)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(TenantEventProcessor)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(DaprClient)).ShouldBe(daprCountBefore);
     }
 
     [Fact]
     public void AddHexalithTenants_ReturnsSameServiceCollection() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig();
+        IServiceCollection services = new ServiceCollection();
 
-        // Act
         IServiceCollection result = services.AddHexalithTenants();
 
-        // Assert
         result.ShouldBeSameAs(services);
     }
 
     [Fact]
     public void AddHexalithTenants_WithAction_ReturnsSameServiceCollection() {
-        // Arrange
         IServiceCollection services = new ServiceCollection();
 
-        // Act
         IServiceCollection result = services.AddHexalithTenants(_ => { });
 
-        // Assert
         result.ShouldBeSameAs(services);
     }
 
     [Fact]
-    public void AddHexalithTenants_DefaultOptionsValues() {
-        // Arrange — no config section
-        IServiceCollection services = CreateServiceCollectionWithConfig();
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("pubsub");
-        options.TopicName.ShouldBe("tenants.events");
-    }
-
-    [Fact]
-    public void HexalithTenantsOptions_UsesTenantsConfigurationSectionName() =>
-        HexalithTenantsOptions.ConfigurationSectionName.ShouldBe("Tenants");
-
-    [Fact]
-    public void HexalithTenantsOptions_DoesNotExposeStaleCommandApiAppIdOption() {
-        // Act
-        PropertyInfo? property = typeof(HexalithTenantsOptions).GetProperty(
-            "CommandApiAppId",
-            BindingFlags.Instance | BindingFlags.Public);
-
-        // Assert
-        property.ShouldBeNull();
-    }
-
-    [Fact]
     public void AddHexalithTenants_ThrowsOnNullServices() =>
-        // Assert — must use static call syntax (extension method on null is invalid)
         Should.Throw<ArgumentNullException>(() =>
             TenantServiceCollectionExtensions.AddHexalithTenants(null!));
 
     [Fact]
-    public void AddHexalithTenants_WithAction_ThrowsOnNullServices() => Should.Throw<ArgumentNullException>(() =>
-                                                                                 TenantServiceCollectionExtensions.AddHexalithTenants(null!, _ => { }));
+    public void AddHexalithTenants_WithAction_ThrowsOnNullServices() =>
+        Should.Throw<ArgumentNullException>(() =>
+            TenantServiceCollectionExtensions.AddHexalithTenants(null!, _ => { }));
 
     [Fact]
     public void AddHexalithTenants_WithAction_ThrowsOnNullAction() {
-        // Arrange
         IServiceCollection services = new ServiceCollection();
 
-        // Assert
         _ = Should.Throw<ArgumentNullException>(() =>
             TenantServiceCollectionExtensions.AddHexalithTenants(services, null!));
     }
 
     [Fact]
-    public void AddHexalithTenants_ConfigExistsButNoTenantsSection() {
-        // Arrange — config with unrelated keys only
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                ["Logging:LogLevel:Default"] = "Information",
-            });
+    public void AddHexalithTenants_ConfiguresTenantSubscriptionDefaults() {
+        IServiceCollection services = new ServiceCollection();
 
-        // Act
         _ = services.AddHexalithTenants();
 
-        // Assert — options resolve with defaults when config section is absent
         using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
+        EventStoreDomainEventsOptions options = provider
+            .GetRequiredService<IOptions<EventStoreDomainEventsOptions>>().Value;
         options.PubSubName.ShouldBe("pubsub");
         options.TopicName.ShouldBe("tenants.events");
+        options.SubscriptionRoute.ShouldBe("/tenants/events");
+        // The tenant event payload's TenantId must equal the envelope aggregate ID (the managed tenant ID).
+        options.PayloadAggregateIdPropertyName.ShouldBe("TenantId");
     }
 
     [Fact]
-    public void AddHexalithTenants_WithAction_ConfiguresOptions() {
-        // Arrange
+    public void AddHexalithTenants_WithAction_OverridesOptionsAfterDefaults() {
         IServiceCollection services = new ServiceCollection();
 
-        // Act
-        _ = services.AddHexalithTenants(o => o.PubSubName = "custom");
+        _ = services.AddHexalithTenants(options => options.PubSubName = "custom");
 
-        // Assert
         using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
+        EventStoreDomainEventsOptions options = provider
+            .GetRequiredService<IOptions<EventStoreDomainEventsOptions>>().Value;
         options.PubSubName.ShouldBe("custom");
+        // Tenant topic/route still apply because the override runs after the tenant defaults.
+        options.TopicName.ShouldBe("tenants.events");
+        options.SubscriptionRoute.ShouldBe("/tenants/events");
     }
 
     [Fact]
-    public void AddHexalithTenants_WithAction_BindsConfiguredTopicName() {
-        // Arrange
+    public void AddHexalithTenants_RegistersPlatformEventProcessor() {
         IServiceCollection services = new ServiceCollection();
 
-        // Act
-        _ = services.AddHexalithTenants(o => o.TopicName = "custom.topic");
+        _ = services.AddHexalithTenants();
 
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.TopicName.ShouldBe("custom.topic");
+        services.ShouldContain(s => s.ServiceType == typeof(EventStoreDomainEventProcessor));
     }
 
     [Fact]
-    public void AddHexalithTenants_WithAction_AppliesAfterExistingOptionsConfiguration() {
-        // Arrange
+    public void AddHexalithTenants_RegistersProjectionHandlerForEveryTenantEvent() {
         IServiceCollection services = new ServiceCollection();
-        _ = services.Configure<HexalithTenantsOptions>(options => options.PubSubName = "preconfigured");
 
-        // Act
-        _ = services.AddHexalithTenants(options => options.PubSubName = "explicit");
+        _ = services.AddHexalithTenants();
 
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("explicit");
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantCreated>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantUpdated>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantDisabled>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantEnabled>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<UserAddedToTenant>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<UserRemovedFromTenant>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<UserRoleChanged>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantConfigurationSet>));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantConfigurationRemoved>));
     }
 
     [Fact]
-    public void AddHexalithTenants_WithAction_AppliesAfterDefaultConfigurationBinding() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                ["Tenants:PubSubName"] = "configured",
-            });
-        _ = services.AddHexalithTenants();
-
-        // Act
-        _ = services.AddHexalithTenants(options => options.PubSubName = "explicit");
-
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("explicit");
-    }
-
-    [Theory]
-    [InlineData("Tenants:PubSubName", "HexalithTenantsOptions.PubSubName")]
-    [InlineData("Tenants:TopicName", "HexalithTenantsOptions.TopicName")]
-    public void AddHexalithTenants_InvalidConfiguredOptionsThrowOptionsValidationException(
-        string configurationKey,
-        string expectedFailure) {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                [configurationKey] = " ",
-            });
-        _ = services.AddHexalithTenants();
-
-        // Act
-        using ServiceProvider provider = services.BuildServiceProvider();
-        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
-            () => provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value);
-
-        // Assert
-        exception.Failures.ShouldContain(failure => failure.Contains(expectedFailure, StringComparison.Ordinal));
-    }
-
-    [Theory]
-    [InlineData(true, "HexalithTenantsOptions.PubSubName")]
-    [InlineData(false, "HexalithTenantsOptions.TopicName")]
-    public void AddHexalithTenants_WithAction_InvalidOptionsThrowOptionsValidationException(
-        bool invalidatePubSubName,
-        string expectedFailure) {
-        // Arrange
+    public void AddHexalithTenants_ProjectionHandlerIsSharedSingleton() {
         IServiceCollection services = new ServiceCollection();
-        _ = services.AddHexalithTenants(options => {
-            if (invalidatePubSubName) {
-                options.PubSubName = " ";
-            }
-            else {
-                options.TopicName = " ";
-            }
-        });
 
-        // Act
+        _ = services.AddHexalithTenants();
+
         using ServiceProvider provider = services.BuildServiceProvider();
-        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
-            () => provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value);
-
-        // Assert
-        exception.Failures.ShouldContain(failure => failure.Contains(expectedFailure, StringComparison.Ordinal));
+        // The singleton handler keeps its per-tenant write locks shared across every consumed event type.
+        var created = provider.GetRequiredService<IEventStoreDomainEventHandler<TenantCreated>>();
+        var disabled = provider.GetRequiredService<IEventStoreDomainEventHandler<TenantDisabled>>();
+        created.ShouldBeOfType<TenantProjectionEventHandler>();
+        created.ShouldBeSameAs(disabled);
     }
 
     [Fact]
-    public void AddHexalithTenants_InvalidOptionsFailStartupValidation() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                ["Tenants:PubSubName"] = " ",
-            });
-        _ = services.AddHexalithTenants();
-
-        // Act
-        using ServiceProvider provider = services.BuildServiceProvider();
-        OptionsValidationException exception = Should.Throw<OptionsValidationException>(
-            () => provider.GetRequiredService<IStartupValidator>().Validate());
-
-        // Assert
-        exception.Failures.ShouldContain(failure => failure.Contains("HexalithTenantsOptions.PubSubName", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void AddHexalithTenants_RegistersOptionsValidationOnce() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig();
-
-        // Act
-        _ = services.AddHexalithTenants();
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        services.Count(s => s.ServiceType == typeof(IValidateOptions<HexalithTenantsOptions>)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(IStartupValidator)).ShouldBe(1);
-    }
-
-    [Fact]
-    public void AddHexalithTenants_SkipsDaprClientIfAlreadyRegistered() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig();
-        services.AddDaprClient();
-        int daprCountBefore = services.Count(s => s.ServiceType == typeof(DaprClient));
-
-        // Act
-        _ = services.AddHexalithTenants();
-        int daprCountAfter = services.Count(s => s.ServiceType == typeof(DaprClient));
-
-        // Assert
-        daprCountAfter.ShouldBe(daprCountBefore);
-    }
-
-    [Fact]
-    public void AddHexalithTenants_RegistersDaprClientWhenOptionsAlreadyConfigured() {
-        // Arrange
+    public void AddHexalithTenants_IsIdempotent() {
         IServiceCollection services = new ServiceCollection();
-        _ = services.Configure<HexalithTenantsOptions>(options => options.TopicName = "preconfigured");
 
-        // Act
+        _ = services.AddHexalithTenants();
         _ = services.AddHexalithTenants();
 
-        // Assert
-        services.ShouldContain(s => s.ServiceType == typeof(DaprClient));
-    }
-
-    [Fact]
-    public void AddHexalithTenants_BindsConfigurationAddedAfterInitialRegistration() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-        _ = services.AddHexalithTenants();
-
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(
-            [
-                new KeyValuePair<string, string?>("Tenants:PubSubName", "latepubsub"),
-            ])
-            .Build();
-        _ = services.AddSingleton(configuration);
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("latepubsub");
         services.Count(s => s.ServiceType == typeof(DaprClient)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(EventStoreDomainEventProcessor)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
+        services.Count(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantCreated>)).ShouldBe(1);
     }
 
     [Fact]
-    public void AddHexalithTenants_WorksWithoutIConfiguration() {
-        // Arrange — empty ServiceCollection, no IConfiguration
+    public void AddHexalithTenants_RegistersInMemoryProjectionStoreByDefault() {
         IServiceCollection services = new ServiceCollection();
 
-        // Act
         _ = services.AddHexalithTenants();
 
-        // Assert — options registered with defaults, no exception
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("pubsub");
-    }
-
-    [Fact]
-    public void AddHexalithTenants_RegistersITenantProjectionStore() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
         services.ShouldContain(s => s.ServiceType == typeof(ITenantProjectionStore));
-    }
-
-    [Fact]
-    public void AddHexalithTenants_RegistersTenantEventProcessor() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        services.ShouldContain(s => s.ServiceType == typeof(TenantEventProcessor));
-    }
-
-    [Fact]
-    public void AddHexalithTenants_RegistersTenantProjectionEventHandler() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantUpdated>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantDisabled>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantEnabled>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<UserRemovedFromTenant>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<UserRoleChanged>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantConfigurationSet>));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantConfigurationRemoved>));
-    }
-
-    [Fact]
-    public void AddTenantEventHandler_ReturnsSameServiceCollection() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        IServiceCollection result = services.AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>();
-
-        // Assert
-        result.ShouldBeSameAs(services);
-    }
-
-    [Fact]
-    public void AddTenantEventHandler_ThrowsOnNullServices() =>
-        // Assert — must use static call syntax (extension method on null is invalid)
-        Should.Throw<ArgumentNullException>(() =>
-            TenantServiceCollectionExtensions.AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>(null!));
-
-    [Fact]
-    public void AddTenantEventHandler_RegistersSelectedTypedHandler() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services.AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>();
-
-        // Assert
-        services.Count(s => s.ServiceType == typeof(MultiEventHandler)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>)).ShouldBe(1);
-        services.ShouldNotContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantDisabled>));
-    }
-
-    [Fact]
-    public void AddTenantEventHandler_SupportsOneHandlerForMultipleSelectedEvents() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services
-            .AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>()
-            .AddTenantEventHandler<TenantDisabled, MultiEventHandler>();
-
-        // Assert
-        services.Count(s => s.ServiceType == typeof(MultiEventHandler)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<TenantDisabled>)).ShouldBe(1);
-    }
-
-    [Fact]
-    public void AddTenantEventHandler_DuplicateRegistrationIsIdempotent() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services
-            .AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>()
-            .AddTenantEventHandler<UserAddedToTenant, MultiEventHandler>();
-
-        // Assert
-        services.Count(s => s.ServiceType == typeof(MultiEventHandler)).ShouldBe(1);
-        services.Count(s => s.ServiceType == typeof(ITenantEventHandler<UserAddedToTenant>)).ShouldBe(1);
-    }
-
-    [Fact]
-    public void AddHexalithTenants_InMemoryTenantProjectionStoreIsDefaultImplementation() {
-        // Arrange
-        IServiceCollection services = new ServiceCollection();
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        ServiceDescriptor descriptor = GetRequiredDescriptor(services, typeof(ITenantProjectionStore));
-        descriptor.ImplementationType.ShouldBe(typeof(InMemoryTenantProjectionStore));
+        GetRequiredDescriptor(services, typeof(ITenantProjectionStore))
+            .ImplementationType.ShouldBe(typeof(InMemoryTenantProjectionStore));
     }
 
     [Fact]
     public void AddHexalithTenants_CustomProjectionStorePreventsDuplicateRegistration() {
-        // Arrange — register custom store before AddHexalithTenants
         IServiceCollection services = new ServiceCollection();
         _ = services.AddSingleton<ITenantProjectionStore, CustomTenantProjectionStore>();
 
-        // Act
         _ = services.AddHexalithTenants();
 
-        // Assert — only one registration
         services.Count(s => s.ServiceType == typeof(ITenantProjectionStore)).ShouldBe(1);
-        GetRequiredDescriptor(services, typeof(ITenantProjectionStore)).ImplementationType.ShouldBe(typeof(CustomTenantProjectionStore));
-        services.ShouldContain(s => s.ServiceType == typeof(TenantEventProcessor));
-        services.ShouldContain(s => s.ServiceType == typeof(ITenantEventHandler<TenantCreated>));
-    }
-
-    [Fact]
-    public void AddHexalithTenants_UsesSingleConfigurationSectionNameConstant() {
-        // Arrange
-        IServiceCollection services = CreateServiceCollectionWithConfig(
-            new Dictionary<string, string?> {
-                [$"{HexalithTenantsOptions.ConfigurationSectionName}:PubSubName"] = "sectionpubsub",
-            });
-
-        // Act
-        _ = services.AddHexalithTenants();
-
-        // Assert
-        using ServiceProvider provider = services.BuildServiceProvider();
-        HexalithTenantsOptions options = provider.GetRequiredService<IOptions<HexalithTenantsOptions>>().Value;
-        options.PubSubName.ShouldBe("sectionpubsub");
+        GetRequiredDescriptor(services, typeof(ITenantProjectionStore))
+            .ImplementationType.ShouldBe(typeof(CustomTenantProjectionStore));
+        services.ShouldContain(s => s.ServiceType == typeof(EventStoreDomainEventProcessor));
+        services.ShouldContain(s => s.ServiceType == typeof(IEventStoreDomainEventHandler<TenantCreated>));
     }
 
     [Fact]
     public void ClientProject_DoesNotReferenceServerHostOrAppHostProjects() {
-        // Arrange
         XDocument project = XDocument.Load(ClientProjectPath());
 
-        // Act
         string[] projectReferences = project
             .Descendants("ProjectReference")
             .Select(reference => reference.Attribute("Include")?.Value)
             .OfType<string>()
             .ToArray();
 
-        // Assert
         projectReferences.ShouldNotContain(reference => reference.Contains("Hexalith.Tenants.Server", StringComparison.Ordinal));
         projectReferences.ShouldNotContain(reference => reference.Contains("Hexalith.Tenants.AppHost", StringComparison.Ordinal));
         projectReferences.ShouldNotContain(reference => reference.Contains(@"Hexalith.Tenants\Hexalith.Tenants.csproj", StringComparison.Ordinal));
@@ -561,31 +206,15 @@ public class TenantServiceCollectionExtensionsTests {
 
     [Fact]
     public void ClientProject_DoesNotUseInlinePackageVersions() {
-        // Arrange
         XDocument project = XDocument.Load(ClientProjectPath());
 
-        // Act
         string[] packageReferencesWithVersions = project
             .Descendants("PackageReference")
             .Where(reference => reference.Attribute("Version") is not null)
             .Select(reference => reference.Attribute("Include")?.Value ?? reference.Attribute("Update")?.Value ?? "<unknown>")
             .ToArray();
 
-        // Assert
         packageReferencesWithVersions.ShouldBeEmpty();
-    }
-
-    private static IServiceCollection CreateServiceCollectionWithConfig(
-        Dictionary<string, string?>? configValues = null) {
-        var services = new ServiceCollection();
-        if (configValues is not null) {
-            IConfiguration configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(configValues)
-                .Build();
-            _ = services.AddSingleton<IConfiguration>(configuration);
-        }
-
-        return services;
     }
 
     private static ServiceDescriptor GetRequiredDescriptor(IServiceCollection services, Type serviceType) =>
@@ -606,16 +235,6 @@ public class TenantServiceCollectionExtensionsTests {
         }
 
         throw new InvalidOperationException("Could not locate Hexalith.Tenants repository root.");
-    }
-
-    private sealed class MultiEventHandler :
-        ITenantEventHandler<UserAddedToTenant>,
-        ITenantEventHandler<TenantDisabled> {
-        public Task HandleAsync(UserAddedToTenant @event, TenantEventContext context, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        public Task HandleAsync(TenantDisabled @event, TenantEventContext context, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
     }
 
     private sealed class CustomTenantProjectionStore : ITenantProjectionStore {

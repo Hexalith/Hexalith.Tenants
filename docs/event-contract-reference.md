@@ -34,7 +34,7 @@ Comprehensive reference for all tenant domain commands, events, and rejection ev
 
 ## Event Delivery Model
 
-All events are published via DAPR pub/sub as [CloudEvents 1.0](https://cloudevents.io/) on the shared topic **`tenants.events`**. Consumers filter by event type by registering typed handlers such as `AddTenantEventHandler<UserAddedToTenant, MyHandler>()`; do not create one topic per event type.
+All events are published via DAPR pub/sub as [CloudEvents 1.0](https://cloudevents.io/) on the shared topic **`tenants.events`**. Consumers filter by event type by registering typed handlers such as `AddEventStoreDomainEventHandler<UserAddedToTenant, MyHandler>()`; do not create one topic per event type.
 
 The durable EventStore stream is the source of truth. Pub/sub publication happens after event storage and is asynchronous. If pub/sub is temporarily unavailable after a tenant event is stored, the command can still be accepted, the event remains committed, and EventStore drain recovery republishes the stored sequence range when the channel recovers. Operators should monitor `PublishFailed` command status transitions and related structured logs/metrics as delivery diagnostics, not as evidence that the source event was rolled back.
 
