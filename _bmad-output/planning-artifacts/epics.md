@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2]
+stepsCompleted: [1, 2, 3, 4]
 inputDocuments:
   # --- Core spines (reconciled, authoritative) ---
   - _bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/prd.md
@@ -386,5 +386,507 @@ So that I can reference it accurately without leaking anything sensitive.
 
 **Gate:** FC-A11Y, FC-L10N, FC-DOC.
 
-<!-- NEXT: Epics 2-5 detail appended in subsequent passes. -->
+---
+
+## Epic 2: Access, Configuration & Governance Review
+
+Operators and owners see the full truth read-only — member tables with reflected action availability, namespaced configuration, their own and others' memberships, and the global-administrator roster — completing the MVP "see the truth" foundation. *Phase 2a · gate: FC-LYT · Realizes UJ-2 (read), UJ-5 (read), Marc · FRs: FR-3, FR-4, FR-6, FR-8, FR-9, FR-18.*
+
+Relevant UX-DRs: UX-DR1 (MemberTable, UnavailableActionReason), UX-DR8/9 (pinned columns, list states), UX-DR10 (availability reflects fail-closed gating), UX-DR20 (derived risk), UX-DR15/16/17 (l10n, responsive, a11y ready-gate).
+
+### Story 2.1: Review the member table
+
+As an operator or tenant owner reviewing access (UJ-2/UJ-5),
+I want to see a tenant's members with role, owner count, status, freshness, and orphan/disabled context, read-only,
+So that I can run a quick, defensible access review with no risk of changing anything.
+
+**Acceptance Criteria:**
+
+**Given** the member table (FR-8)
+**When** it renders for a tenant
+**Then** the read-only `MemberTable` (FC-TBL) shows member identity, role, owner count, status, freshness (TruthStateBadge), and orphan/disabled context
+**And** it **must not imply mutation** — affordances never look like editable cells.
+
+**Given** accessible semantics (FR-8)
+**When** assistive tech reads the table
+**Then** headers, sort state, and row relationships are exposed.
+
+**Given** pinned safety columns (UX-DR8)
+**When** the grid scrolls
+**Then** identity, role, status, freshness are pinned `DataGridColumnPin.Start`, and risk is pinned where shown.
+
+**Given** orphan/disabled context
+**When** a member belongs to a disabled tenant
+**Then** the context is flagged with the Severe role and no-color-only encoding.
+
+**Given** authorization scoping (NFR-2, §10)
+**When** members render
+**Then** only members the caller is authorized to see appear, and empty is authorization-safe.
+
+**Given** automation/a11y/l10n
+**When** the table renders
+**Then** `data-testid="tenants-member-table-*"` selectors, localized whole strings, and absolute timestamps are used.
+
+**Gate:** FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 2.2: See action availability and Unavailable Action Reasons
+
+As an operator (UJ-2),
+I want each member row to show which actions would be available and, where one is not, a plain-language reason,
+So that I understand exactly what I could safely change — before any command flows exist.
+
+**Acceptance Criteria:**
+
+**Given** reflective action availability in MVP (FR-9)
+**When** a member row renders
+**Then** it reflects which actions *would* be available, and where one is not, the `UnavailableActionReason` shows inline (never hover-only; a tooltip may supplement).
+
+**Given** the six canonical reason categories (FR-9, UX-DR1)
+**When** a reason renders
+**Then** it uses exactly `missing permission`, `stale data`, `missing lifecycle support`, `missing consequence preview`, `missing audit proof`, or `high-impact flow not ready`, each mapped to its evidence source.
+
+**Given** authorization is reflected, never enforced (CP-9, NFR-2, D7)
+**When** availability is computed
+**Then** the server-side authorization-reflection service maps claims + projection facts → availability; indeterminate → fail-closed (blocked with a reason); the UI never gates server-side.
+
+**Given** derived risk (UX-DR20)
+**When** an action's risk is shown
+**Then** risk is computed (`high` if the action would drop owner count to zero OR the target also holds global-admin authority; else `low`), surfaced in the action context — not a standalone tenant-grid column.
+
+**Given** programmatic association (a11y)
+**When** a reason is shown
+**Then** it is `aria-describedby`-linked to the row/action and keyboard/SR-reachable, and the slot footprint is reserved (no shift when action↔reason swap).
+
+**Gate:** FC-CMD (→ `missing lifecycle support`), FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 2.3: View tenant configuration (read-only)
+
+As an operator or owner (FR-6),
+I want to view a tenant's configuration key/values grouped by namespace and filtered to my authorized prefix,
+So that I can inspect settings without seeing other consumers' namespaces or changing anything.
+
+**Acceptance Criteria:**
+
+**Given** namespaced configuration (FR-6)
+**When** the `TenantConfigurationView` renders
+**Then** key/values are grouped by namespace and filtered to the caller's owned/authorized dot-prefix; values outside the prefix are not shown.
+
+**Given** read-MVP scope (assumption)
+**When** the view renders
+**Then** sensitive-value display is out of scope, and the view never implies mutation.
+
+**Given** support-safety + freshness
+**When** values/ids render
+**Then** no payloads/PII appear, ids render monospace, and a freshness badge + absolute timestamps are shown.
+
+**Given** automation/a11y/l10n
+**When** the view renders
+**Then** `data-testid` selectors and localized whole strings are used.
+
+**Gate:** FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 2.4: Self-audit My Tenants and look up a user's memberships
+
+As a signed-in user (Marc, UJ-5) or an operator (UJ-2),
+I want to see the tenants I belong to and my role in each, and (as an operator) look up another user's memberships,
+So that I can verify my own access, or reach a user's access picture from a member row or search.
+
+**Acceptance Criteria:**
+
+**Given** My Tenants (FR-3)
+**When** a signed-in user opens it
+**Then** they see only the tenants they belong to, with their role and tenant status per row (only authorized memberships).
+
+**Given** user lookup (FR-4)
+**When** an operator searches a user or follows a member row
+**Then** they view that user's tenant memberships (contextual entry, not a co-equal nav tab); results are authorization-scoped.
+
+**Given** empty ≠ error (FR-4)
+**When** a user has no visible memberships
+**Then** an explicit empty state shows (not an error), and out-of-scope existence is never revealed.
+
+**Given** identity (FR-4)
+**When** a user is identified
+**Then** identity is JWT `sub`/envelope `UserId` (not name/email), rendered as a literal string (never ULID-parsed).
+
+**Given** a11y/l10n/automation
+**When** surfaces render
+**Then** the standard selector, localization, and absolute-timestamp rules apply.
+
+**Gate:** FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 2.5: Review global administrators
+
+As an authorized operator (FR-18, UJ-2),
+I want to review who holds global-administrator access, separate from tenant membership,
+So that I can assess platform-level governance before any global-admin command flows are exposed.
+
+**Acceptance Criteria:**
+
+**Given** the global-admin surface (FR-18)
+**When** it renders
+**Then** it is visible only to authorized operators; tenant owners never see it.
+
+**Given** the data source (FR-18)
+**When** rows load
+**Then** they come from the single fixed-identity `global-administrators` aggregate (not tenant-routed), each showing identity + a freshness badge.
+
+**Given** the membership distinction (CP-6 precursor)
+**When** the surface renders
+**Then** global administrators are never conflated with tenant membership.
+
+**Given** support-safety/a11y/l10n/automation
+**When** the surface renders
+**Then** the standard safety, selector, and localization rules apply.
+
+**Gate:** FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC.
+
+---
+
+## Epic 3: Tenant & Membership Provisioning
+
+Operators and owners safely stand up and adjust tenants and members through the single projection-confirmed command pattern. *Phase 2b · gates: FC-CMD, FC-CNC · Realizes UJ-6 (create+add), UJ-5 (role change) · FRs: FR-10, FR-11, FR-13, FR-14.*
+
+Relevant UX-DRs: UX-DR1 (CommandLifecyclePanel, PrimaryCommandButton), UX-DR11 (the ONE command-confirmation flow), UX-DR12 (focus/modal), UX-DR13 (live-region), UX-DR18c (one-at-a-time fallback), UX-DR19 (voice/tone). Rejection/NoOp matrix throughout.
+
+### Story 3.1: Create a tenant and establish the command-confirmation foundation
+
+As an operator onboarding a new customer (UJ-6),
+I want to create a tenant and watch the command confirm against the source of truth,
+So that I get a real, owned tenant — and the console proves it landed rather than guessing.
+
+**Acceptance Criteria:**
+
+**Given** the D2 confirmation flow (UX-DR11, the ONE pattern)
+**When** a create command is dispatched
+**Then** `POST /api/v1/commands` (client `messageId` ULID idempotency key; `tenant=system`, `domain=tenants`, `aggregateId`) returns `202`+correlationId; the effect runs status-poll **+** SignalR concurrently; the first terminal/projection-change triggers the authoritative projection re-query; the `CommandLifecyclePanel` flips to `confirmed` **only** from the re-query (CP-3).
+
+**Given** live signals are nudges (CP-4)
+**When** a SignalR notification arrives
+**Then** it dispatches only a re-query action, never advances lifecycle or audit.
+
+**Given** create rejection (FR-13, matrix)
+**When** an existing tenant id is created
+**Then** it is rejected (`TenantAlreadyExists`) and surfaced as safe localized text (never a stack trace).
+
+**Given** non-collapse (CP-3)
+**When** the lifecycle advances
+**Then** `accepted` ≠ `confirmed`; success (styling/copy/announcement) shows only after projection confirm; `unable to verify` is never success.
+
+**Given** one-at-a-time (FC-CNC fallback, UX-DR18c)
+**When** a command is in flight
+**Then** other command triggers are unavailable with a stated reason, and duplicate submit/refresh dedups by correlationId (no double-apply).
+
+**Given** the PrimaryCommandButton + live-region (UX-DR1, UX-DR13)
+**When** the flow runs
+**Then** the button is a chrome accent (never a status carrier), disabled while in flight; politeness binds to a dedicated announcement-intent field; success is never announced before projection confirm; assertive is reserved for rejection/failure.
+
+**Gate:** FC-CMD, FC-CNC, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 3.2: Edit tenant metadata
+
+As an authorized user (tenant contributor or global admin) (FR-14),
+I want to edit a tenant's metadata and have the change confirm,
+So that I can keep tenant information correct, with every edit recorded.
+
+**Acceptance Criteria:**
+
+**Given** edit RBAC (FR-14)
+**When** an edit is attempted
+**Then** a tenant contributor or global administrator may edit (the UI reflects; the server enforces).
+
+**Given** always-emit (FR-14, matrix)
+**When** an edit succeeds
+**Then** it **always emits `TenantUpdated` — no same-state suppression**, and success shows only after projection confirm.
+
+**Given** validation
+**When** an edit is invalid
+**Then** validation errors surface as safe localized field messages (no stack traces).
+
+**Given** the D2 flow + focus (UX-DR11/12)
+**When** the command runs
+**Then** it reuses the command-confirmation pattern, one-at-a-time, and lifecycle panel from 3.1, with focus returning to the launching control on submit/cancel/failure.
+
+**Gate:** FC-CMD, FC-CNC, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 3.3: Add a user to a tenant
+
+As an operator or owner (UJ-6/UJ-5, FR-10),
+I want to add a user to a tenant by id with an explicit role,
+So that I can grant access directly, with the result proven.
+
+**Acceptance Criteria:**
+
+**Given** direct add (FR-10)
+**When** a user is added
+**Then** it is a direct add by caller-supplied user id with an explicit role — no invitation/pending step.
+
+**Given** re-add rejection (FR-10, matrix)
+**When** an already-member user is added
+**Then** it is **rejected** (`UserAlreadyInTenant`) → safe localized text — NOT a NoOp/`already applied`.
+
+**Given** empty-tenant bootstrap
+**When** adding to a tenant with no membership history (`HasMembershipHistory == false`)
+**Then** owner-only RBAC is skipped (enabling later restore-after-last-owner).
+
+**Given** confirmation + corrective add
+**When** the command runs
+**Then** it reuses the D2 flow (success only after projection confirm), and a corrective add states the explicit intended role.
+
+**Gate:** FC-CMD, FC-CNC, FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 3.4: Change a member's role
+
+As an owner or operator (UJ-5, FR-11),
+I want to change a member's role and have it confirm,
+So that I can manage my team's permissions safely.
+
+**Acceptance Criteria:**
+
+**Given** NoOp (FR-11, matrix)
+**When** a role is changed to the current role
+**Then** it is a NoOp shown as `already applied` (not an error).
+
+**Given** rejections (FR-11, matrix)
+**When** the change is an escalation or targets `Unknown`
+**Then** it is rejected with safe localized text.
+
+**Given** confirmation (CP-3)
+**When** the change succeeds
+**Then** success shows only after projection confirmation, reusing the D2 flow + one-at-a-time.
+
+**Gate:** FC-CMD, FC-CNC, FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC.
+
+---
+
+## Epic 4: High-Impact & Destructive Operations
+
+Operators perform the highest-blast-radius actions safely — each gated behind a full Consequence Preview, fail-closed validation, asymmetric high-risk handling, and proof. *Phase 2c · gate: FC-CNS (FR-15/FR-19 platform-wide, categorically `blocked`) · Realizes UJ-3 (flagship) · FRs: FR-12, FR-15, FR-16, FR-17, FR-19.*
+
+Relevant UX-DRs: UX-DR1 (ConsequencePreview, DestructiveControl), UX-DR10 (fail-closed gating order), UX-DR12 (focus/modal safe escape), UX-DR14 (recovery verbs), UX-DR18b (inline consequence fallback), UX-DR20 (risk). CP-2/CP-5/CP-6/CP-8.
+
+### Story 4.1: Remove a user from a tenant (flagship) and establish the Consequence Preview foundation
+
+As an operator revoking access under pressure (UJ-3),
+I want to remove a user's access only after a complete preview of consequences, with proof it landed,
+So that I never revoke the wrong access and never see a false "done."
+
+**Acceptance Criteria:**
+
+**Given** the fail-closed gating ORDER (UX-DR10, CP-2)
+**When** a remove is initiated
+**Then** validation **+** freshness **+** authorization must all be `eligible` **BEFORE** the Consequence Preview opens (not only at submit); missing any → blocked with the inline UnavailableActionReason; `stale`/`unknown` freshness blocks.
+
+**Given** the 10-item ConsequencePreview (addendum §H, CP-5, FR-12)
+**When** the preview opens
+**Then** it presents all 10 items (tenant; target user; current role; owner-count impact incl. last-owner/zero; access revoked; current freshness; recovery path; audit expectation; target platform standing; known consequences vs known unknowns); **if any item is unavailable, submission is blocked** and the missing item is named; over-claiming is forbidden (session/token invalidation is a known-unknown unless proven).
+
+**Given** asymmetric high-risk (CP-6, FR-12)
+**When** the removal would drop owner count to zero, or the target also holds global-admin authority
+**Then** zero-owner triggers **elevated friction but is NOT blocked**, and the global-admin standing raises platform-level friction (reflected only; does not change which command dispatches).
+
+**Given** the DestructiveControl + modal (UX-DR1/12)
+**When** the destructive action is presented
+**Then** it is NOT a primary/casual button (low emphasis until gated), gated behind the preview + a focus-trapped confirmation whose `Esc`/cancel is a safe **non-committing** escape, with focus returning to the launching row on close/cancel/submit/failure.
+
+**Given** the lifecycle (FR-12, CP-3)
+**When** the command runs
+**Then** the CommandLifecyclePanel tracks `submitted → accepted → projection_pending → confirmed → audit_pending → audit_available` without collapse, never overwriting confirmed projection data; an already-applied removal reads `already applied` (dedup, no double-apply); an unconfirmable outcome reads `unable to verify` (never success).
+
+**Given** recovery completeness (CP-8, UX-DR14)
+**When** any failure occurs
+**Then** it maps to a distinct named recovery verb (stale→refresh; pending→wait; status-lookup fail/`unable to verify`→retry status lookup/escalate; lost permission→request permission/escalate; wrong change→start correction/restore intended access; removal didn't land→retry access removal; last-owner removed→reassign tenant owner/restore intended access) — never a dead end; `undo`/`rollback`/`hidden edit` never appear.
+
+**Gate:** FC-CNS (fallback = inline consequence text), FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC. *(Tenant-scoped destructive → `planning-only`/fallback-eligible.)*
+
+### Story 4.2: Disable or enable a tenant
+
+As a global administrator (FR-15),
+I want to disable or enable a tenant after seeing the platform-wide consequences,
+So that I can take a tenant offline (or back online) deliberately and with proof.
+
+**Acceptance Criteria:**
+
+**Given** RBAC (FR-15)
+**When** a disable/enable is attempted
+**Then** only a global administrator may perform it (platform-wide, high-impact); the UI reflects this.
+
+**Given** already-set rejection (FR-15, matrix)
+**When** the tenant is set to a state it is already in
+**Then** it is rejected (`TenantLifecycleStateAlreadySet`) → safe text.
+
+**Given** the Consequence Preview (CP-5)
+**When** the preview opens
+**Then** it notes disabled = an eventually-consistent availability signal and that commands targeting a disabled tenant are rejected (`TenantDisabled`), reusing the fail-closed gating + DestructiveControl from 4.1.
+
+**Given** confirmation (CP-3)
+**When** the command succeeds
+**Then** success shows only after projection confirm, and lifecycle status updates with no-color-only encoding; every failure maps to a recovery verb.
+
+**Gate:** **categorically `blocked`** (platform-wide, no fallback) — FC-CNS, FC-CMD, FC-CNC, FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 4.3: Set or remove a configuration value
+
+As an authorized user (FR-16, FR-17),
+I want to set or remove a namespaced configuration value with a consequence preview,
+So that I can manage settings safely, with idempotent and missing-key cases handled honestly.
+
+**Acceptance Criteria:**
+
+**Given** set NoOp / over-limit (FR-16, matrix)
+**When** a value is set
+**Then** an identical key+value is a NoOp (`already applied`), and a value over domain limits is rejected (`ConfigurationLimitExceeded`) → safe text.
+
+**Given** remove missing-key (FR-17, matrix)
+**When** a missing key is removed
+**Then** it surfaces a safe `ConfigurationKeyNotFound` rejection.
+
+**Given** the config-edit preview (FR-16, Open Q#8)
+**When** a config edit is initiated
+**Then** it goes through a Consequence Preview (config edits require it per the UX spine), with the high-impact-only-subset question recorded as an open phasing lever.
+
+**Given** confirmation
+**When** the command succeeds
+**Then** success shows only after projection confirm, reusing the fail-closed gating + preview from 4.1; every failure maps to a recovery verb.
+
+**Gate:** FC-CNS, FC-CMD, FC-CNC, FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC. *(Tenant-scoped → fallback-eligible.)*
+
+### Story 4.4: Grant or remove a global administrator
+
+As an authorized operator (FR-19),
+I want to grant or remove a global administrator, with the last-admin case reflected as unavailable,
+So that platform governance changes are deliberate and the platform can never be left without an administrator.
+
+**Acceptance Criteria:**
+
+**Given** grant/remove (FR-19)
+**When** the operator acts
+**Then** they may grant a global administrator, or remove one except the last, in the `global-administrators` scope (never conflated with tenant membership).
+
+**Given** the asymmetric last-admin case (CP-6, FR-19, matrix)
+**When** the last global administrator would be removed
+**Then** it is rejected by the domain (`LastGlobalAdministrator`) and the UI reflects it as an **unavailable** action with a safe reason (not completable friction) — asymmetric with the last-owner case.
+
+**Given** the platform-level Consequence Preview
+**When** the preview opens
+**Then** it carries platform-level consequence copy, reusing the fail-closed gating + DestructiveControl; success shows only after projection confirm.
+
+**Gate:** **categorically `blocked`** (platform-wide, no fallback) — FC-CNS, FC-CMD, FC-CNC, FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+---
+
+## Epic 5: Audit Trail, Evidence & Compensating Recovery
+
+Operators investigate incidents, cite support-safe evidence, and correct mistakes forward — never "undo." Includes the three net-new stories (FR-22, FR-24, FR-25) no candidate backlog row covered. *Phase 2c · gates: FC-AUD, FC-CNS · Realizes UJ-4 · FRs: FR-20, FR-21, FR-22, FR-23, FR-24, FR-25.*
+
+Relevant UX-DRs: UX-DR1 (AuditDataGrid, AuditEvidenceReceipt), UX-DR8 (pinned columns), UX-DR14 (recovery verbs), UX-DR18a (flat audit DataGrid fallback). CP-3/CP-7/CP-8, support-safety §10.
+
+### Story 5.1: Browse a tenant's audit trail
+
+As an incident lead (Sofia, UJ-4, FR-20),
+I want to browse a tenant's audit entries as a flat, stably-ordered, filterable list,
+So that I can find the change that caused the incident.
+
+**Acceptance Criteria:**
+
+**Given** the flat audit list (FR-20, UX-DR18a)
+**When** the audit trail renders
+**Then** the `AuditDataGrid` (the approved FC-AUD fallback for the absent `<AuditTimeline>`) renders a flat, stably-ordered, **cursor-paginated** list with date + `AuditEventCategory` (`Access`/`Administrative`) filters.
+
+**Given** the ~500-event target (NFR-1, FR-20)
+**When** a large trail loads
+**Then** it targets ~500 events without unacceptable latency; virtualization or a stricter page size is required if a flat render cannot meet it.
+
+**Given** the four list states + ordering
+**When** the list is loading/empty/filtered-empty/error
+**Then** each renders distinctly and accessibly (filtered-empty offers a filter reset), and stable ordering is preserved across paging.
+
+**Given** the MVP placeholder
+**When** audit content is not yet available
+**Then** the surface renders an honest "not yet available" placeholder (Subtle / `missing implementation support`), nav shape unchanged — not a broken surface.
+
+**Given** pinned columns + support-safety (UX-DR8, §10)
+**When** rows render
+**Then** timestamp (absolute, monospace), actor, outcome are pinned, and no payloads/tokens/correlation-ids/PII appear.
+
+**Gate:** FC-AUD (fallback = flat DataGrid), FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC — `blocked` until the fallback is approved.
+
+### Story 5.2: Reach audit from context
+
+As an operator (FR-21),
+I want to reach audit evidence from navigation, a tenant row, tenant detail, a user lookup, and a command result,
+So that I can always get to the relevant evidence scoped to what I'm looking at.
+
+**Acceptance Criteria:**
+
+**Given** five entry points (FR-21)
+**When** the operator reaches audit
+**Then** it is reachable from the Audit nav, a tenant row, tenant detail, a user lookup, and a command result.
+
+**Given** scoping (FR-21)
+**When** an entry point is used
+**Then** audit lands scoped to the relevant tenant/user/command.
+
+**Given** honesty + safety
+**When** entry points render
+**Then** audit is reachable but never the only proof path, and no entry point leaks out-of-scope existence.
+
+**Gate:** FC-AUD, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 5.3: View an Audit Evidence Receipt and distinguish audit-availability states
+
+As an operator citing evidence to support (FR-22, FR-23) — *net-new*,
+I want a support-safe receipt for a recorded action and an honest signal of whether the proof is actually available,
+So that I can cite what happened without leaking anything, and never mistake "pending" for "proven."
+
+**Acceptance Criteria:**
+
+**Given** the receipt (FR-22)
+**When** an Audit Evidence Receipt renders
+**Then** the `AuditEvidenceReceipt` shows actor, target, tenant scope, outcome, absolute timestamp, projection marker, and an audit/command reference, assembled **client-side from a structured NarrativePayload** (target resolution `userId`→`key`→`TenantId`) — no new backend endpoint.
+
+**Given** support-safety (§10, FR-22)
+**When** the receipt renders
+**Then** it never exposes raw payloads, tokens, correlation ids, raw metadata, or PII; ids/reference render monospace.
+
+**Given** partial completion (CP-3, FR-22)
+**When** an action has not fully reconciled
+**Then** the receipt shows the actual lifecycle state (e.g. `audit pending`), never pre-rendered proof.
+
+**Given** the four audit-availability states (FR-23, UX-DR1)
+**When** audit proof is not yet available
+**Then** `audit pending` / `audit delayed` / `audit unavailable` / `missing implementation support` are distinct, none shown as success, each with a stated recovery (retry/wait/escalate); `missing implementation support` reflects the FC-AUD dependency, not a data error.
+
+**Gate:** FC-AUD, FC-CNS, FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+### Story 5.4: Start, preview, and link a compensating command
+
+As an incident lead recovering from a mistake (UJ-4, FR-24, FR-25) — *net-new*,
+I want to start a forward correction from audit evidence, preview it against current state, and have both records linked,
+So that I can fix the effect of a wrong change without ever editing history.
+
+**Acceptance Criteria:**
+
+**Given** correct-forward (CP-7, FR-24)
+**When** a correction is started from audit evidence
+**Then** it is a new forward command ("restore intended access" / "start correction" — e.g. `AddUserToTenant` / a role change) with its own Consequence Preview and proof; the original event is untouched; the UI never labels it `undo`/`rollback`/`hidden edit`.
+
+**Given** preview against current state (FR-25)
+**When** the correction is previewed
+**Then** it previews against current state (the original effect may already differ); because re-adding an existing member is rejected (`UserAlreadyInTenant`), the preview reflects current membership; restore-to-empty-tenant relies on the empty-tenant bootstrap (`HasMembershipHistory == false`).
+
+**Given** record linking (FR-25)
+**When** the correction is submitted
+**Then** the original and corrective records reference each other, and success shows only after projection confirm.
+
+**Given** domain separation
+**When** the correction concerns global-admin authority
+**Then** it is a separate `global-administrators`-domain command (not a tenant edit), and recovery copy keeps the domains distinct.
+
+**Gate:** FC-CNS, FC-CMD, FC-CNC, FC-AUD, FC-LYT, FC-A11Y, FC-L10N, FC-DOC.
+
+---
+
+_End of epic & story breakdown — 5 epics, 22 stories, FR-1..FR-25 + all 20 UX-DRs covered. Validation in Step 4._
+
 
