@@ -11,6 +11,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
@@ -727,7 +728,7 @@ public class TenantsQueryControllerIntegrationTests {
             routedQueries);
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetTenantUsersQuery.QueryType,
             TenantQueryCursorScopes.GetTenantUsers("tenant-1"),
@@ -894,7 +895,7 @@ public class TenantsQueryControllerIntegrationTests {
             routedQueries);
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetUserTenantsQuery.QueryType,
             TenantQueryCursorScopes.GetUserTenants("test-user", "user-2"),
@@ -1033,7 +1034,7 @@ public class TenantsQueryControllerIntegrationTests {
         IQueryRouter router = Substitute.For<IQueryRouter>();
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetTenantUsersQuery.QueryType,
             TenantQueryCursorScopes.ListTenants("test-user"),
@@ -1063,7 +1064,7 @@ public class TenantsQueryControllerIntegrationTests {
         IQueryRouter router = Substitute.For<IQueryRouter>();
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetTenantUsersQuery.QueryType,
             TenantQueryCursorScopes.GetUserTenants("test-user", "user-2"),
@@ -1095,7 +1096,7 @@ public class TenantsQueryControllerIntegrationTests {
         DateTimeOffset to = from.AddHours(1);
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetTenantUsersQuery.QueryType,
             TenantQueryCursorScopes.GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative),
@@ -1126,7 +1127,7 @@ public class TenantsQueryControllerIntegrationTests {
         IQueryRouter router = Substitute.For<IQueryRouter>();
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec rotatedKeyCodec = new TenantQueryCursorCodec(new EphemeralDataProtectionProvider());
+        IQueryCursorCodec rotatedKeyCodec = new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.QueryCursor.v1");
         string cursor = rotatedKeyCodec.Encode(
             ListTenantsQuery.QueryType,
             TenantQueryCursorScopes.ListTenants("test-user"),
@@ -1168,7 +1169,7 @@ public class TenantsQueryControllerIntegrationTests {
         IQueryRouter router = Substitute.For<IQueryRouter>();
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(queryType, foreignScope, "position-1");
         using HttpClient client = CreateAuthenticatedClient(factory);
 
@@ -1204,7 +1205,7 @@ public class TenantsQueryControllerIntegrationTests {
         DateTimeOffset to = from.AddHours(1);
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetTenantAuditQuery.QueryType,
             TenantQueryCursorScopes.GetTenantAudit("tenant-1", from.AddMinutes(1), to, AuditEventCategory.Administrative),
@@ -1332,7 +1333,7 @@ public class TenantsQueryControllerIntegrationTests {
             routedQueries);
 
         await using var factory = new TenantsQueryWebApplicationFactory(router);
-        ITenantQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<ITenantQueryCursorCodec>();
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
         string cursor = cursorCodec.Encode(
             GetTenantAuditQuery.QueryType,
             TenantQueryCursorScopes.GetTenantAudit("tenant-1", from, to, AuditEventCategory.Administrative),

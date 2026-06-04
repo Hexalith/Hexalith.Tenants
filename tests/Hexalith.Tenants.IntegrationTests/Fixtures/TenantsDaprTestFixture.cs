@@ -6,14 +6,14 @@ using System.Text;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
+using Hexalith.EventStore.DomainService;
+using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
 using Hexalith.EventStore.Testing.Fakes;
-using Hexalith.Tenants.Actors;
-using Hexalith.Tenants.DomainProcessing;
+using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Identity;
-using Hexalith.Tenants.Queries;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Microsoft.AspNetCore.Builder;
@@ -385,18 +385,19 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         _ = builder.Services.RemoveAll<ICommandStatusStore>();
         _ = builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
 
-        // Register real domain processors (TenantAggregate, GlobalAdministratorsAggregate)
+        // Register real domain processors (TenantAggregate, GlobalAdministratorsAggregate). The keyed
+        // IDomainProcessor registrations back the SDK /process router (DomainServiceRequestRouter).
         _ = builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 
-        // Register domain service request handler for /process endpoint
-        _ = builder.Services.AddScoped<DomainServiceRequestHandler>();
-
         // Register the Tenants projection actor so restart/reconstruction tests exercise the
-        // production query actor path, not only direct DAPR state-store reads.
+        // production query actor path, not only direct DAPR state-store reads. The bespoke
+        // TenantsProjectionActor was retired in favor of the platform EventReplayProjectionActor,
+        // registered under the Tenants-specific actor type name to avoid placement collisions.
         _ = builder.Services.AddDataProtection()
             .SetApplicationName("Hexalith.Tenants.IntegrationTests");
-        builder.Services.TryAddSingleton<ITenantQueryCursorCodec, TenantQueryCursorCodec>();
-        builder.Services.AddActors(options => options.Actors.RegisterActor<TenantsProjectionActor>());
+        builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+        builder.Services.AddActors(options =>
+            options.Actors.RegisterActor<EventReplayProjectionActor>(TenantProjectionRouting.ActorTypeName));
 
         _testHost = builder.Build();
 
@@ -404,11 +405,10 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
         _ = _testHost.MapActorsHandlers();
         _ = _testHost.MapPost("/process", async (
             DomainServiceRequest request,
-            DomainServiceRequestHandler handler,
-            ILogger<TenantsDaprTestFixture> logger,
-            CancellationToken cancellationToken) => {
+            IServiceProvider serviceProvider,
+            ILogger<TenantsDaprTestFixture> logger) => {
                 try {
-                    DomainServiceWireResult result = await handler.ProcessAsync(request, cancellationToken).ConfigureAwait(false);
+                    DomainServiceWireResult result = await DomainServiceRequestRouter.ProcessAsync(serviceProvider, request).ConfigureAwait(false);
                     return Microsoft.AspNetCore.Http.Results.Ok(result);
                 }
                 catch (Exception ex) {
