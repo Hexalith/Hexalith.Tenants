@@ -31,7 +31,7 @@ inputDocuments:
 
 This document provides the complete epic and story breakdown for the **Tenants Management UI** — a trust-first operations console (new Blazor `InteractiveServer` host `src/Hexalith.Tenants.UI`, composed on the Hexalith.FrontComposer shell) that turns the event-sourced Tenants backend into a safe, role-scoped self-service and operations experience. It decomposes the requirements from the PRD, the UX Design (DESIGN.md visual spine + EXPERIENCE.md behavioral spine), and the Architecture decision document into implementable stories.
 
-> **Build-readiness reality (carried from PRD §14, architecture Gap Analysis, readiness report):** this is a complete *plan*, **not** a green light to start coding. Every candidate row is externally gated on FrontComposer readiness (`FC-LYT` gates even the read-only MVP; `FC-CMD`+`FC-CNC` gate all commands; `FC-AUD`/`FC-CNS` gate audit/high-impact) and on Product/UX fallback approvals. Epics/stories are authored so they are build-ready the moment their named gates clear — the gates are tracked explicitly per story, never silently assumed cleared.
+> **Build-readiness reality (carried from PRD §14, architecture Gap Analysis, readiness report; updated 2026-06-03):** this is a complete *plan*, **not** a green light to start coding. Every candidate row is externally gated on FrontComposer **contract** readiness (`FC-LYT` gates even the read-only MVP; `FC-CMD`+`FC-CNC` gate all commands). The Product/UX **fallback approvals** for `FC-AUD`/`FC-CNS`/`FC-CNC` are **secured (2026-06-03 — see the [Fallback Approval Record](./fallback-approval-record-2026-06-03.md))**, so audit/high-impact rows are gated only on those contract confirmations, not on fallback sign-off. Epics/stories are authored so they are build-ready the moment their named gates clear — the gates are tracked explicitly per story, never silently assumed cleared.
 
 ## Requirements Inventory
 
@@ -99,7 +99,7 @@ Phase legend: **2a** = MVP read-only foundation · **2b** = first command flows 
 **Architectural decisions (D1–D10) that constrain stories:**
 - **D1 Runtime:** Blazor **InteractiveServer** + a server-side **BFF** in the UI host (supersedes the UX "Auto" assumption — a recorded reconciliation, NFR-3 holds either way).
 - **D2 Command confirmation (the ONE pattern):** on dispatch, run status-poll (`GET /api/v1/commands/status/{correlationId}`) **and** SignalR concurrently; first terminal/projection-change signal triggers the authoritative **projection re-query**; lifecycle flips to `confirmed` only from the re-query. SignalR never advances lifecycle/audit. No surface implements an optimistic path.
-- **D3 FrontComposer posture:** **hybrid** — FC-LYT/FC-CMD/FC-CNC are contracts to confirm with the FrontComposer team; FC-AUD/FC-CNS delivered via the **approved fallbacks** (flat audit DataGrid, inline consequence text). *(Fallback-approval contradiction — UX says "approved", PRD/backlog say "none approved" — must be reconciled with an owner/evidence/date record; architecture D3 commits to the fallbacks.)*
+- **D3 FrontComposer posture:** **hybrid** — FC-LYT/FC-CMD/FC-CNC are contracts to confirm with the FrontComposer team; FC-AUD/FC-CNS delivered via the **Product/UX-approved fallbacks** (flat audit DataGrid, inline consequence text), with FC-CNC's one-at-a-time fallback likewise approved. *(Fallback-approval **reconciled 2026-06-03** — approval recorded with owner/date/evidence in the [Fallback Approval Record](./fallback-approval-record-2026-06-03.md); the prior PRD↔UX contradiction is closed.)*
 - **D4 Localization ownership:** **Tenants-owned** whole-string `.resx` keys (dotted PascalCase under `Tenants.`); inherit only shell-chrome strings from `FcShellResources`.
 - **D5 Truth-state model:** one shared Fluxor **TruthState feature** + a typed, casing-faithful **canonical-vocabulary library** (`Vocabulary/`); non-collapse enforced in the reducer.
 - **D6 Freshness:** server-side conditional reads (`If-None-Match` → `304`); thresholds configurable + surfaced; `unknown` when unmeasurable (fail-closed).
@@ -155,7 +155,7 @@ Phase legend: **2a** = MVP read-only foundation · **2b** = first command flows 
 - **UX-DR15: Localization discipline.** Whole-string resources with named placeholders (`{userName}`, `{tenantName}`) — **never** runtime sentence-fragment assembly; culture-aware formatting; every state label/role name/timestamp/warning/disabled-reason/recovery-verb/confirmation/empty/loading/error/degraded/stale/unavailable string localizable.
 - **UX-DR16: Responsive behavior (desktop-first).** Breakpoints mobile 320–767 / tablet 768–1023 / desktop 1024+ / wide 1440+. **Mobile = read-only triage/lookup/audit reference only — no high-impact command flows.** Tablet: nav collapses, regions stack, tables preserved via horizontal scroll/column-priority (not gesture-redesigned). **Fail-closed responsive rule:** if a width can't preserve full safety context for a high-impact action, that action becomes unavailable with a visible reason. RTL-ready (logical start/end, no hard-coded left/right), not RTL-tested in v1.
 - **UX-DR17: Accessibility floor & ready-gate evidence.** Baseline WCAG 2.1 AA (conditional 2.2 AA where the pinned Fluent stack supports it). Required acceptance scenarios: **stale projection, rejected command, unknown confirmation, audit unavailable, last-owner warning, permission-missing** — plus keyboard-only complete-OR-exit of consequence-preview & destructive-confirmation (focus trap, safe escape, focus return), forced-colors rendering of the status-icon set, and live-region politeness checks. SR review: **NVDA + ≥1 browser/SR pairing**. Responsive evidence widths: desktop 1024/1366/1440 + wide, tablet 768/1024, mobile 375/430, plus horizontal-overflow/nav-collapse/dialog-at-narrow-width. Absolute (not relative-only) timestamps; table semantics (headers/sort-state/row-relationships) on every grid; reduced-motion never blocks perceiving a state change. **A UI story cannot be `ready` until it cites a11y/l10n/responsive/`FC-DOC` evidence — or records a Product/UX-approved row-specific fallback** documenting keyboard/focus/live-region behavior, copy responsibility, doc evidence, replacement path, and owner approval.
-- **UX-DR18: Three approved interim fallbacks (design-time; each build-ready only once its other gates clear).** (a) FC-AUD → flat audit DataGrid (cursor-paginated, date+category filters, 4 list states); (b) FC-CNS → inline consequence text carrying the full 10-item set, fail-closed if any item unavailable; (c) FC-CNC → one-at-a-time command policy (no concurrent submission, toast-batching, or multi-row bulk in v1). *(Subject to the fallback-approval reconciliation noted in Additional Requirements.)*
+- **UX-DR18: Three approved interim fallbacks (design-time; each build-ready only once its other gates clear).** (a) FC-AUD → flat audit DataGrid (cursor-paginated, date+category filters, 4 list states); (b) FC-CNS → inline consequence text carrying the full 10-item set, fail-closed if any item unavailable; (c) FC-CNC → one-at-a-time command policy (no concurrent submission, toast-batching, or multi-row bulk in v1). *(Fallback-approval **reconciled 2026-06-03** — see the [Fallback Approval Record](./fallback-approval-record-2026-06-03.md).)*
 - **UX-DR19: Voice & tone (microcopy).** Calm, precise, honest; same register for operators and owners. Confirmed examples: "Change submitted. Waiting for the projection to confirm." / "Confirmed against the source of truth." / "Already applied — no change was needed." / "Data is stale — refresh first." / "Couldn't verify the result. Escalate with this reference." Never "Done!"/"Success ✓"/"Saved successfully" before proof.
 - **UX-DR20: Risk is derived, not stored (`low`/`high`).** `high` when an action would drop owner count to zero OR the target also holds global-admin authority; `low` otherwise. Surfaces in the member-table action context and the consequence-preview (target's platform standing), pinned where shown — **not** a standalone tenant-grid column in v1. `risk high`→Danger, `risk low`→Subtle.
 
@@ -222,6 +222,30 @@ Operators investigate incidents and recover by correcting forward — browsing a
 An operator lands on a trustworthy operations console and triages tenants — scanning, filtering, opening detail, and returning with context intact, always knowing how fresh the data is — on a walking-skeleton foundation (host, shell, JWT/BFF, Fluxor TruthState, canonical `Vocabulary/` library) every later epic reuses. *Phase 2a · gate: FC-LYT · Realizes UJ-1 · FRs: FR-1, FR-2, FR-5, FR-7.*
 
 Relevant UX-DRs: UX-DR1 (TenantDataGrid, TruthStateBadge), UX-DR2/3/4 (color firewall, caution ramp, no-color-only), UX-DR5 (mono ids/timestamps), UX-DR6/7/8 (layout, stable, pinned columns), UX-DR9 (six list states), UX-DR13/15/16/17 (live-region, localization, responsive, a11y ready-gate).
+
+### Story 1.0 (Spike): FrontComposer Shell-integration verification & FC-LYT/FC-CMD contract confirmation
+
+As a platform engineer,
+I want a time-boxed spike that verifies the FrontComposer Shell-integration surface and confirms the FC-LYT and FC-CMD contracts against Shell source,
+So that the single remaining build-start gate (per the 2026-06-03 readiness report) is closed with evidence before Story 1.1 begins, instead of being discovered mid-bootstrap.
+
+> **Type:** time-boxed enabler spike (no user-facing FR; sibling to the 1.1/1.2 enablers). Outcome is a written finding + a go/adjust decision, not production code. *(Added 2026-06-03 via Sprint Change Proposal — makes the Shell-integration spike named in Story 1.1's Gate a tracked, assignable item.)*
+
+**Acceptance Criteria:**
+
+**Given** the FrontComposer Shell source and the pinned `5.0.0-rc.3-26138.1` Fluent stack
+**When** the spike runs
+**Then** the exact Shell-integration APIs are verified against source — `AddHexalithFrontComposer*` registration, manifest registration, projection routing, and the `FC-TBL` contract — and any gap is recorded.
+
+**Given** the FrontComposer team
+**When** the FC-LYT (shell layout: full-width vs constrained) and FC-CMD (command-lifecycle feedback) contracts are reviewed
+**Then** each is **confirmed** (or a concrete follow-up is logged) and recorded as the gate-clearing evidence Story 1.1 cites; FC-A11Y/FC-L10N/FC-DOC readiness is likewise checked.
+
+**Given** the spike conclusion
+**When** findings are written up
+**Then** a short spike note records the verified APIs, the FC-LYT/FC-CMD confirmation, and a go/adjust recommendation for the Story 1.1 bootstrap; if FC-LYT cannot be confirmed, the constrained-layout fallback path (architecture) is recorded instead.
+
+**Gate:** none to start — this spike *is* the gate-closing work for FC-LYT/FC-CMD + the Shell-integration spike named in Story 1.1. **Blocks:** Story 1.1 build-ready depends on this spike's confirmation.
 
 ### Story 1.1: Bootstrap the Tenants UI host and Operations Shell
 
@@ -809,7 +833,7 @@ So that I can find the change that caused the incident.
 **When** rows render
 **Then** timestamp (absolute, monospace), actor, outcome are pinned, and no payloads/tokens/correlation-ids/PII appear.
 
-**Gate:** FC-AUD (fallback = flat DataGrid), FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC — `blocked` until the fallback is approved.
+**Gate:** FC-AUD (Product/UX-approved fallback = flat DataGrid, 2026-06-03), FC-TOK, FC-LYT, FC-A11Y, FC-L10N, FC-DOC — fallback approved; remaining gate = FC-LYT contract confirmation + ready-gate evidence.
 
 ### Story 5.2: Reach audit from context
 

@@ -126,8 +126,9 @@ verbatim) — translating directly into a **shared client-side truth-state model
   boundary policy, missing shared UI capability belongs in FrontComposer, not Tenants.
   Readiness: `FC-TBL` available; `FC-LYT`/`FC-CMD`/`FC-A11Y`/`FC-L10N`/`FC-DOC`
   needs-confirmation; `FC-CNC`/`FC-TOK`/`FC-AUD`/`FC-CNS` missing. **FC-LYT gates even
-  the read-only MVP; FC-CMD+FC-CNC gate all commands.** No fallback is recorded as
-  approved (a PRD↔UX contradiction to reconcile).
+  the read-only MVP; FC-CMD+FC-CNC gate all commands.** The FC-AUD/FC-CNS/FC-CNC
+  fallbacks are Product/UX-approved (2026-06-03 — see the Fallback Approval Record,
+  `fallback-approval-record-2026-06-03.md`).
 - **Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
 - **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
@@ -401,12 +402,14 @@ existing projections only.
 The **Fluxor truth-state model**, **canonical-vocabulary library**, **BFF query/command gateway**,
 **authorization-reflection service**, and **support-safety/redaction layer** are shared foundations
 every surface depends on → built first. FrontComposer contract confirmations (FC-LYT/FC-CMD/FC-CNC)
-gate phases; FC-AUD/FC-CNS fallback **approvals** gate phase-2c.
+gate phases; the FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured** (2026-06-03 —
+see `fallback-approval-record-2026-06-03.md`); the FC-LYT/FC-CMD/FC-CNC contract confirmations gate phase-2c.
 
 **Action items this architecture surfaces:**
-- Secure Product/UX approval for the **FC-AUD flat-audit** and **FC-CNS inline-consequence**
-  fallbacks (the hybrid posture depends on them — currently *unapproved*).
-- Confirm **FC-LYT / FC-CMD** contracts with the FrontComposer team.
+- ✅ Product/UX approval for the **FC-AUD flat-audit**, **FC-CNS inline-consequence**, and
+  **FC-CNC one-at-a-time** fallbacks — **secured 2026-06-03** (see `fallback-approval-record-2026-06-03.md`);
+  the hybrid posture's fallback premise is confirmed.
+- Confirm **FC-LYT / FC-CMD** contracts with the FrontComposer team (the remaining build-start gate).
 - Correct the **ULID-vs-string** spec discrepancy; reconcile the UX **"Auto"** assumption to
   InteractiveServer; resolve the **Users-nav IA** to "contextual."
 
@@ -735,10 +738,10 @@ communication/process + examples + anti-patterns; all conflict points addressed.
 ### Gap Analysis Results
 
 **Critical (block BUILD-START — external/downstream, not architecture deficiencies):**
-- **FrontComposer readiness** — D3 commits to a hybrid posture, but FC-LYT/FC-CMD/FC-CNC contracts
-  must be **confirmed** with the FrontComposer team and the FC-AUD/FC-CNS fallback **approvals
-  secured** (currently unapproved). The architecture documents the dependency; it can't unilaterally
-  close it.
+- **FrontComposer readiness** — D3 commits to a hybrid posture. The FC-AUD/FC-CNS/FC-CNC fallback
+  **approvals are secured** (2026-06-03 — see `fallback-approval-record-2026-06-03.md`); the
+  FC-LYT/FC-CMD/FC-CNC **contracts** still must be **confirmed** with the FrontComposer team. The
+  architecture documents the dependency; it can't unilaterally close it.
 - **FrontComposer Shell integration spec** — the exact Shell APIs (`AddHexalithFrontComposer*`,
   manifest registration, projection routing, the FC-TBL contract) need a short verification spike
   against the Shell source before coding.
@@ -792,9 +795,10 @@ downstream and captured as explicit action items, not silent gaps.
 ### Architecture Readiness Assessment
 
 **Overall Status:** READY WITH MINOR GAPS *(architecture design)* — **build-start remains externally
-gated** by FrontComposer readiness (FC-LYT/FC-CMD/FC-CNC contracts + FC-AUD/FC-CNS fallback approvals)
-and the not-yet-created epics/stories layer. This is the documented external/downstream dependency
-chain (PRD §14, readiness report), not an architecture deficiency.
+gated** by FrontComposer **contract** readiness (FC-LYT/FC-CMD/FC-CNC). The FC-AUD/FC-CNS/FC-CNC fallback
+approvals are secured (2026-06-03 — see `fallback-approval-record-2026-06-03.md`); the epics/stories layer
+now exists (`epics.md`). This is the documented external/downstream dependency chain (PRD §14, readiness
+report), not an architecture deficiency.
 
 **Confidence Level:** HIGH — coherent, full coverage of the 25 FRs + NFRs + CP contract, and
 unambiguous decisions/patterns/structure for AI agents.
@@ -807,7 +811,7 @@ unambiguous decisions/patterns/structure for AI agents.
 - Every FR has a home; every cross-cutting concern has a single owner.
 
 **Areas for Future Enhancement:**
-- Close the FrontComposer contracts/approvals; run the Shell integration spike.
+- Close the FrontComposer **contracts** (fallback approvals secured 2026-06-03); run the Shell integration spike.
 - Generate epics/stories (incl. FR-22/24/25 + the bootstrap story).
 - Set the deferred numerics; reconcile the flagged doc items; track Fluent RC→GA.
 

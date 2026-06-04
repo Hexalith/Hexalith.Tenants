@@ -24,7 +24,7 @@ Desktop-first responsive web — the primary surface is a dense admin workstatio
 - **Never collapse distinct states** (CP-3): `accepted` ≠ `confirmed` ≠ `audit available`; `degraded` and `unable to verify` are distinct and success-prohibited.
 - **Correct forward, never undo** (CP-7): corrections are new auditable compensating commands; history is never edited or deleted.
 
-**Blazor Auto lifecycle constraint.** The app runs under Blazor Auto (prerender → Server circuit → WASM, with reconnect). State must be **correct under at-least-once delivery and projection lag** (NFR-3): no prerender or reconnect may resurrect a stale optimistic "success," and a circuit reconnect re-derives truth from the projection, never from a cached in-flight assumption. Pending/in-flight indicators survive reconnect as *pending*, never silently promoted to confirmed.
+**Blazor Auto lifecycle constraint.** The app runs under Blazor Auto (prerender → Server circuit → WASM, with reconnect). State must be **correct under at-least-once delivery and projection lag** (NFR-3): no prerender or reconnect may resurrect a stale optimistic "success," and a circuit reconnect re-derives truth from the projection, never from a cached in-flight assumption. Pending/in-flight indicators survive reconnect as *pending*, never silently promoted to confirmed. *(Reconciliation note, 2026-06-03: architecture **D1 supersedes the "Auto" assumption with Blazor InteractiveServer + a server-side BFF** — a recorded divergence, not a contradiction; the at-least-once / projection-lag invariants above (NFR-3) hold identically under InteractiveServer.)*
 
 ## Information Architecture
 
@@ -271,7 +271,7 @@ FrontComposer is the platform UI framework this UI **composes**. Per repo policy
 | **FC-AUD** | `<AuditTimeline>` | **missing** | Audit timeline (FR-20). → **fallback: flat audit DataGrid.** Maps to `missing audit proof` / `missing implementation support`. |
 | **FC-CNS** | `<ConsequencePreview>` | **missing** | Consequence Preview (CP-5, FR-12/15/16/17). → **fallback: inline consequence text** carrying the full 10-item set; fail-closed if any item is unavailable. |
 
-**Three approved interim fallbacks (design-time Product/UX approvals; each flow is build-ready only once its other gates also clear):**
+**Three approved interim fallbacks (Product/UX approval recorded 2026-06-03 — see the [Fallback Approval Record](../../fallback-approval-record-2026-06-03.md); each flow is build-ready only once its other gates also clear):**
 1. **FC-AUD → flat audit DataGrid** — cursor-paginated, date + `AuditEventCategory` filters, states loading/empty/filtered-empty/error, in lieu of `<AuditTimeline>`.
 2. **FC-CNS → inline consequence text** — structured inline text carrying the **full 10-item content set**; content completeness is non-negotiable; **fail-closed** if any of the 10 is unavailable.
 3. **FC-CNC → one-at-a-time command policy** — serialized single-command interaction; **no concurrent submission, toast-batching, or multi-row bulk actions in v1**.

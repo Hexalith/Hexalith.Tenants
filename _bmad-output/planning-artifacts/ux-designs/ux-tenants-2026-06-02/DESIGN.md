@@ -218,7 +218,7 @@ The 6 `unavailable-action-reason` categories reuse these by role: `stale data` �
 
 ### consequence-preview
 
-The pre-submission "here is exactly what will happen" panel shown before every destructive or high-impact action (and every config edit). It is a **constrained inner region** of structured text. Because `FC-CNS` (`<ConsequencePreview>`) is **missing**, the approved v1 form is an **inline structured-text fallback** that must carry the **full 10-item content set** — completeness is non-negotiable and the panel **fails closed** if any item is unavailable (it does not render a partial preview that could mislead).
+The pre-submission "here is exactly what will happen" panel shown before every destructive or high-impact action (and every config edit). It is a **constrained inner region** of structured text. Because `FC-CNS` (`<ConsequencePreview>`) is **missing**, the approved v1 form (Product/UX approval recorded 2026-06-03 — see the [Fallback Approval Record](../../fallback-approval-record-2026-06-03.md)) is an **inline structured-text fallback** that must carry the **full 10-item content set** — completeness is non-negotiable and the panel **fails closed** if any item is unavailable (it does not render a partial preview that could mislead).
 
 - **Anatomy (the 10 items, each a labelled line, `{spacing.3}` row gap, `{spacing.4}` padding):** (1) tenant; (2) target user; (3) current role; (4) owner-count impact, incl. last-owner / drop-to-zero; (5) specific access being revoked/changed; (6) current freshness of the inputs; (7) recovery path afterward; (8) audit expectation; (9) target's platform standing (e.g. *also a global administrator*); (10) explicit **known consequences vs. known unknowns** — over-claiming is forbidden, so session/token invalidation reads as a *known unknown* unless proven.
 - **Color:** mostly neutral text. Semantic color enters only where an item *is* a state: the freshness line uses `{colors.status-warning}` / `{colors.status-severe}` per the ramp; a *safe* owner-count drop reads `{colors.status-subtle}` (neutral) — only a last-owner / zero-owner impact escalates to `{colors.status-warning}` (warning + friction, never a hard block); a high-risk standing draws `{colors.status-danger}`; benign "already applies / no change" reads `{colors.status-subtle}`. Known-unknowns are visually marked as *unproven*, not colored as either success or failure.
@@ -267,7 +267,7 @@ The per-tenant access-review surface — a **read-only** Fluent `FluentDataGrid`
 
 ### audit-data-grid
 
-The audit trail — a **flat, stably-ordered, cursor-paginated** Fluent `FluentDataGrid`, the approved interim form in place of `<AuditTimeline>` (FC-AUD missing).
+The audit trail — a **flat, stably-ordered, cursor-paginated** Fluent `FluentDataGrid`, the approved interim form in place of `<AuditTimeline>` (FC-AUD missing; Product/UX approval recorded 2026-06-03 — see the [Fallback Approval Record](../../fallback-approval-record-2026-06-03.md)).
 
 - **Anatomy / columns:** timestamp (absolute, `{typography.mono}`), actor, target, `AuditEventCategory`, outcome. Row padding `{spacing.3}`. Filters: date + `AuditEventCategory` (`Access` / `Administrative`).
 - **Pinned safety columns:** **timestamp · actor · outcome** pinned `DataGridColumnPin.Start`.

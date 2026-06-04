@@ -25,15 +25,15 @@ Technical-how and downstream bridge material kept out of the PRD body. This maps
 | FC-TBL | Projection list/table (DataGrid, filter/search/empty/loading) | **available** | Backbone of all read surfaces; the only fully-available capability. |
 | FC-LYT | Shell layout contract (full-width vs constrained) | needs-confirmation | Gates ui-01..15 — including the read-only MVP. Product/UX approval or a FrontComposer story. |
 | FC-CMD | Command lifecycle feedback (three-phase, projection-confirmed) | needs-confirmation | Required for ALL command FRs. |
-| FC-CNC | Concurrent-command / toast batching policy | **missing** | No batching/burst evidence; gates remove-user and bulk-revocation; applies to all command FRs. |
+| FC-CNC | Concurrent-command / toast batching policy | **missing** | Gates remove-user and bulk-revocation; applies to all command FRs. **Approved fallback (Product/UX, 2026-06-03): one-at-a-time commands.** |
 | FC-TOK | Status/severity/timeline tokens | **missing** | Use existing Fluent/FC badges as a (proposed) named fallback. |
-| FC-AUD | `<AuditTimeline>` | **missing** | **Proposed fallback (pending Product/UX approval): flat audit DataGrid** (FR-20). |
-| FC-CNS | `<ConsequencePreview>` | **missing** | **Proposed fallback (pending Product/UX approval): inline consequence text** (CP-5). |
+| FC-AUD | `<AuditTimeline>` | **missing** | **Approved fallback (Product/UX, 2026-06-03): flat audit DataGrid** (FR-20). See [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md). |
+| FC-CNS | `<ConsequencePreview>` | **missing** | **Approved fallback (Product/UX, 2026-06-03): inline consequence text** (CP-5). See [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md). |
 | FC-A11Y | Accessibility primitives | needs-confirmation | First-class, non-removable even under fallback. |
 | FC-L10N | Localization (shell resources) | needs-confirmation | Resource ownership undecided (PRD §16.4). |
 | FC-DOC | Component documentation/Storybook | needs-confirmation | Required for "ready" (PRD §9 ready-gate). |
 
-A story promotes to `ready` only when its `blockedBy` set empties or a **Product/UX-approved** fallback is recorded (none approved yet). See `tenants-ui-phase-2-story-backlog.md` for per-row `blockedBy`. Readiness criterion split: `planning-only` = read, tenant-scoped; `blocked` = platform-wide (disable-tenant, global-admin) or dependent on a missing component.
+A story promotes to `ready` only when its `blockedBy` set empties or a **Product/UX-approved** fallback is recorded. The three interim fallbacks (`FC-AUD`/`FC-CNS`/`FC-CNC`) are approved (2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); `FC-LYT`/`FC-CMD` contract confirmations remain. See `tenants-ui-phase-2-story-backlog.md` for per-row `blockedBy`. Readiness criterion split: `planning-only` = read, tenant-scoped; `blocked` = platform-wide (disable-tenant, global-admin) or dependent on a missing component.
 
 ## C. Backend surfaces consumed (already built — do not add/alter)
 
@@ -79,7 +79,7 @@ A story promotes to `ready` only when its `blockedBy` set empties or a **Product
 
 ## F. Options considered / deferred (for downstream UX & architecture)
 
-- **Rich timeline vs. flat audit list:** flat list **proposed** as the fallback for the first audit slice (FR-20), **pending Product/UX approval**, because `<AuditTimeline>` does not exist; revisit if/when FC-AUD lands.
+- **Rich timeline vs. flat audit list:** flat list is the **Product/UX-approved** fallback for the first audit slice (FR-20) (approved 2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)), because `<AuditTimeline>` does not exist; revisit if/when FC-AUD lands.
 - **Optimistic UI vs. confirmed-only:** confirmed-only (non-collapse invariant) chosen deliberately over optimistic success, against the more common SaaS pattern, because correctness under eventual consistency is the product's core trust proposition.
 - **Build missing components in Tenants vs. FrontComposer:** FrontComposer, per repo domain-boundary policy — Tenants must not absorb shared UI scaffolding.
 
@@ -112,4 +112,4 @@ The Consequence Preview must present (canonical 10-item set in **remove-user-jou
 - target's platform standing (e.g. also a global administrator);
 - explicit **known consequences** vs. **known unknowns** (no over-claiming — e.g. session/token invalidation is a known-unknown unless proven).
 
-Incomplete inputs to this set **block submission** (fail-closed, CP-5). The preview is **proposed** for inline rendering pending `FC-CNS`/Product-UX approval (§B).
+Incomplete inputs to this set **block submission** (fail-closed, CP-5). The preview's inline rendering (the `FC-CNS` fallback) is **Product/UX-approved** (2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md); §B).

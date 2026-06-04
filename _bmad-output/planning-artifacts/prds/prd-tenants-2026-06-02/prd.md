@@ -145,12 +145,12 @@ Downstream workflows and readers must use these terms exactly; FRs, UJs, and SMs
 - **Orphan membership** — a membership whose context (e.g. a disabled tenant) makes it require operator attention.
 - **NoOp** — a same-state request that produces no event — specifically `ChangeUserRole` to the current role and `SetTenantConfiguration` with an identical key+value; the UI reflects `already applied`. (Note: re-adding an existing member is *not* a NoOp — it is rejected; see addendum §D.)
 - **Rejection** — a business-rule refusal returned as a domain rejection event (surfaced to the user as safe, localized text), never a stack trace.
-- **Proposed fallback** — a simpler implementation proposed for when a richer FrontComposer component is unavailable (e.g. a flat audit list instead of a timeline). A fallback is **only usable once Product/UX has approved it**; until then the dependent capability stays blocked. **No fallback is approved yet** (see §16).
+- **Proposed fallback** — a simpler implementation proposed for when a richer FrontComposer component is unavailable (e.g. a flat audit list instead of a timeline). A fallback is **only usable once Product/UX has approved it**. **The three interim fallbacks — `FC-AUD` → flat audit grid, `FC-CNS` → inline consequence text, `FC-CNC` → one-at-a-time commands — are approved** (recorded 2026-06-03; see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); each remains build-ready only once its other FrontComposer gates clear.
 
 ## 5. Information Architecture & Visual Language
 
 ### 5.1 Operations Shell
-Four primary navigation areas, in order: **Tenants** (default landing / triage surface), **Users** (secondary; realized by FR-3 "My Tenants" and FR-4 user lookup), **Global Administrators**, **Audit**. Command lifecycle is **never** a primary navigation area — command status and feedback are shown inline, anchored to the affected row/panel. Audit is reachable both as a top-level area and contextually from tenant rows, tenant detail, user lookup, and command results. Navigating between surfaces preserves context (selection, filters) so users don't lose their place.
+Three primary navigation areas, in order: **Tenants** (default landing / triage surface), **Global Administrators**, **Audit**. **Users is contextual** — reached from a member row and global search (realized by FR-3 "My Tenants" and FR-4 user lookup), not a co-equal tab (reconciled with architecture + epics, 2026-06-03; resolves the prior PRD↔UX "Users-nav" divergence to *contextual*). Command lifecycle is **never** a primary navigation area — command status and feedback are shown inline, anchored to the affected row/panel. Audit is reachable both as a top-level area and contextually from tenant rows, tenant detail, user lookup, and command results. Navigating between surfaces preserves context (selection, filters) so users don't lose their place.
 
 ### 5.2 Visual language & tone
 - **Microsoft Fluent UI** is the visual authority; there is no separate branded palette. Meaning maps to **semantic theme roles**, never hard-coded colors. `[ASSUMPTION]`
@@ -355,10 +355,10 @@ A user can preview the correction against current state and have the original an
 
 ## 12. Risks & Mitigations
 
-- **R-1 Missing FrontComposer components block high-value flows.** `<AuditTimeline>` (`FC-AUD`) and `<ConsequencePreview>` (`FC-CNS`) do not exist; the concurrent-command policy (`FC-CNC`) and tokens (`FC-TOK`) are missing; the layout contract (`FC-LYT`) and command-feedback contract (`FC-CMD`) are unconfirmed. **Mitigation:** MVP avoids `FC-AUD`/`FC-CNS` entirely (read-only); later phases use **proposed fallbacks** (flat audit list, inline consequence text) that **require Product/UX sign-off before use**, and the rich components are tracked as a FrontComposer dependency — not built inside Tenants.
+- **R-1 Missing FrontComposer components block high-value flows.** `<AuditTimeline>` (`FC-AUD`) and `<ConsequencePreview>` (`FC-CNS`) do not exist; the concurrent-command policy (`FC-CNC`) and tokens (`FC-TOK`) are missing; the layout contract (`FC-LYT`) and command-feedback contract (`FC-CMD`) are unconfirmed. **Mitigation:** MVP avoids `FC-AUD`/`FC-CNS` entirely (read-only); later phases use **Product/UX-approved fallbacks** (flat audit list, inline consequence text; approval recorded 2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)), and the rich components are tracked as a FrontComposer dependency — not built inside Tenants.
 - **R-2 False-success risk.** The temptation to show optimistic success would break trust. **Mitigation:** the non-collapse invariant (CP-3) and "live signals are nudges" (CP-4) are mandatory and on the acceptance-scenario list; SM-6 measures it.
 - **R-3 Query cursor durability across replicas** is deferred (a separate backend epic); the UI must not assume cursors survive restarts/replica changes yet. **Mitigation:** treat cursors as opaque and session-scoped; flag in §16.
-- **R-4 Fallback-approval dependency.** Blocked stories cannot become "ready" without Product/UX fallback approval (none granted yet). **Mitigation:** explicit approval step in the per-phase gate (§9 ready-gate).
+- **R-4 Fallback-approval dependency — RESOLVED (2026-06-03).** The three interim fallbacks (`FC-AUD`/`FC-CNS`/`FC-CNC`) are Product/UX-approved (see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); the per-phase ready-gate's approval step is satisfied for these three. The remaining gates are the FrontComposer **contract confirmations** (`FC-LYT`/`FC-CMD`) plus `FC-A11Y`/`FC-L10N`/`FC-DOC` — not fallback approval.
 - **R-5 Numbering-namespace collision** between UI `ui-NN` keys and backend epic keys. **Mitigation:** keep `ui-` prefix everywhere; never conflate (also noted in addendum).
 - **R-6 Source-spec ID-scheme error.** Several UI specs state tenant/user ids are ULIDs; the authoritative domain rule says they are caller-supplied strings (only envelope `MessageId` is a ULID). **Mitigation:** this PRD follows the domain rule; the specs need correcting (§16) so implementation never parses a `TenantId`/`UserId` as a ULID.
 
@@ -377,7 +377,7 @@ A user can preview the correction against current state and have the original an
 
 The PRD describes the whole Phase 2 vision; the **MVP is the read-only foundation only**.
 
-> **Build-readiness status (2026-06-02):** No backlog row is unblocked yet — *not even the read-only MVP*, which is gated on confirming the FrontComposer layout contract (`FC-LYT`, needs-confirmation). Every command flow additionally needs `FC-CMD` (needs-confirmation) and `FC-CNC` (missing); audit/high-impact flows need `FC-AUD`/`FC-CNS` or approved fallbacks (none approved yet). **This PRD is a complete plan, not a green light to start coding — the critical path is the decisions in §16 (especially §16.2/§16.3).**
+> **Build-readiness status (updated 2026-06-03):** No backlog row is unblocked yet — *not even the read-only MVP*, which is gated on confirming the FrontComposer layout contract (`FC-LYT`, needs-confirmation). Every command flow additionally needs `FC-CMD` (needs-confirmation) and `FC-CNC` (missing); audit/high-impact flows are covered by the **Product/UX-approved** `FC-AUD`/`FC-CNS`/`FC-CNC` fallbacks (recorded 2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)), leaving the FrontComposer **contract** confirmations (`FC-LYT`/`FC-CMD`) as their remaining gate. **This PRD is a complete plan, not a green light to start coding — the critical path is now §16.3 (`FC-LYT`) plus the Shell-integration spike.**
 
 ### 14.1 In scope (MVP — "Phase 2a")
 - The **Operations Shell** with Tenants, Users, and Global Administrators areas functioning (read).
@@ -392,7 +392,7 @@ The PRD describes the whole Phase 2 vision; the **MVP is the read-only foundatio
 - **Audit nav area in MVP:** present in the shell but its list/evidence content is a Phase 2c deliverable (blocked on `FC-AUD`); MVP shows it as not-yet-available rather than a broken surface. `[ASSUMPTION]` — confirm whether to hide or stub the Audit area in 2a (§16).
 
 ### 14.3 Phasing summary
-`Phase 2a (MVP)` read-only foundation → `Phase 2b` first command flows → `Phase 2c` high-impact + audit + recovery. A backlog item carries `planning-only` (read, tenant-scoped) or `blocked` (platform-wide, or dependent on a missing component); it promotes to *ready* only when its FrontComposer dependencies resolve **or** a Product/UX-approved fallback is recorded. **Today both gates are open for every row** — nothing is promotable until §16.2/§16.3 are decided.
+`Phase 2a (MVP)` read-only foundation → `Phase 2b` first command flows → `Phase 2c` high-impact + audit + recovery. A backlog item carries `planning-only` (read, tenant-scoped) or `blocked` (platform-wide, or dependent on a missing component); it promotes to *ready* only when its FrontComposer dependencies resolve **or** a Product/UX-approved fallback is recorded. **The fallback-approval gate is now satisfied** for the three interim fallbacks (recorded 2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); the **`FC-LYT` layout-contract gate (§16.3) remains open for every row, including the MVP**, and `FC-CMD` remains open for commands.
 
 ## 15. Success Metrics
 
@@ -416,7 +416,7 @@ Targets are `[ASSUMPTION]` pending your numbers; methods noted. SMs cross-refere
 ## 16. Open Questions
 
 1. **Command endpoint route** — confirm `POST /api/v1/commands` vs. the unversioned `/api/commands` alias against the deployed gateway before any command phase. (addendum)
-2. **FrontComposer component gaps** — secure Product/UX approval for the flat-audit-list and inline-consequence-preview fallbacks, or schedule `<AuditTimeline>`/`<ConsequencePreview>` (and `FC-CNC`) in FrontComposer. *This and §16.3 are the critical path (§14).* (R-1)
+2. **FrontComposer component gaps — fallback approval RESOLVED (2026-06-03).** Product/UX approved the flat-audit-list, inline-consequence-preview, and one-at-a-time fallbacks (see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); building `<AuditTimeline>`/`<ConsequencePreview>`/`FC-CNC` in FrontComposer is now a *post-fallback enhancement*, not a blocker. **§16.3 (`FC-LYT`) remains the critical path (§14).** (R-1)
 3. **Layout contract (`FC-LYT`)** — full-width vs. constrained layout for the shell/surfaces is unconfirmed; **gates even the read-only MVP.**
 4. **Localization resource ownership** — shared shell resources vs. Tenants-owned keys + adopter terminology.
 5. **WCAG 2.2 AA** — confirm what the pinned Fluent UI Blazor version actually supports; the 2.2 target is conditional.
