@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 
 using Hexalith.EventStore.Client.Aggregates;
+using Hexalith.EventStore.Client.Attributes;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -9,6 +10,11 @@ using Hexalith.Tenants.Contracts.Events.Rejections;
 
 namespace Hexalith.Tenants.Server.Aggregates;
 
+// The naming convention derives "tenant" (singular) from the type name, but the canonical domain
+// is "tenants" — matching TenantIdentity.Domain, the query contracts, the TenantProjection
+// [EventStoreDomain], and the production domain-service registration. Without this override the
+// keyed IDomainProcessor lookup in DomainServiceRequestRouter (/process) fails for "tenants".
+[EventStoreDomain("tenants")]
 public class TenantAggregate : EventStoreAggregate<TenantState> {
     // FR23: Configuration limits — 1KB value limit interpreted as 1024 characters (not bytes).
     // Using string.Length for simplicity. For Latin text chars ≈ bytes; for multi-byte this is more lenient.
