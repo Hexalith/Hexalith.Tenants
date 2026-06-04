@@ -37,4 +37,17 @@
     <Project Path="samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj" />
     <Project Path="samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj" />
   </Folder>
+  <Folder Name="/Submodules/Hexalith.Commons/">
+    <Project Path="Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/Hexalith.Commons.UniqueIds.csproj" />
+  </Folder>
+  <Folder Name="/Submodules/Hexalith.EventStore/">
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.Admin.Abstractions/Hexalith.EventStore.Admin.Abstractions.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.Aspire/Hexalith.EventStore.Aspire.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.Server/Hexalith.EventStore.Server.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.ServiceDefaults/Hexalith.EventStore.ServiceDefaults.csproj" />
+    <Project Path="Hexalith.EventStore/src/Hexalith.EventStore/Hexalith.EventStore.csproj" />
+  </Folder>
 </Solution>
