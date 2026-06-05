@@ -1,0 +1,58 @@
+.tenants-workspace {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 72rem;
+    padding: 1.5rem;
+}
+
+.tenants-workspace__header {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.tenants-workspace__eyebrow {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.tenants-workspace h1,
+.tenants-workspace h2,
+.tenants-workspace p {
+    margin: 0;
+}
+
+.tenants-workspace__status {
+    border: 1px solid CanvasText;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    max-width: 44rem;
+    padding: 1rem;
+}
+
+.tenants-workspace__status:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+.tenants-workspace__focus-link {
+    color: LinkText;
+    width: fit-content;
+}
+
+.tenants-workspace__focus-link:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+    .tenants-workspace__status {
+        border-color: CanvasText;
+    }
+
+    .tenants-workspace__status:focus-visible,
+    .tenants-workspace__focus-link:focus-visible {
+        outline-color: Highlight;
+    }
+}

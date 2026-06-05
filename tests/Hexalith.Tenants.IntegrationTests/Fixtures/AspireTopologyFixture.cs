@@ -50,6 +50,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     private IDistributedApplicationTestingBuilder? _builder;
     private HttpClient? _commandApiClient;
     private HttpClient? _tenantsClient;
+    private HttpClient? _tenantsUiClient;
     private HttpClient? _sampleClient;
     private FileStream? _daprFixtureLock;
     private readonly Stopwatch _startupStopwatch = new();
@@ -57,6 +58,8 @@ public class AspireTopologyFixture : IAsyncLifetime {
     private string? _commandApiLastError;
     private HttpStatusCode? _tenantsLastStatus;
     private string? _tenantsLastError;
+    private HttpStatusCode? _tenantsUiLastStatus;
+    private string? _tenantsUiLastError;
     private HttpStatusCode? _sampleLastStatus;
     private string? _sampleLastError;
 
@@ -80,6 +83,18 @@ public class AspireTopologyFixture : IAsyncLifetime {
         get {
             SkipIfUnavailable();
             return _tenantsClient ?? throw new InvalidOperationException(
+                "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the HTTP client for the Tenants UI resource.
+    /// Available after <see cref="InitializeAsync"/> completes.
+    /// </summary>
+    public HttpClient TenantsUiClient {
+        get {
+            SkipIfUnavailable();
+            return _tenantsUiClient ?? throw new InvalidOperationException(
                 "Test infrastructure not initialized. Ensure InitializeAsync has completed.");
         }
     }
@@ -143,6 +158,9 @@ public class AspireTopologyFixture : IAsyncLifetime {
             _tenantsClient = await WaitForResourceAndCreateClientAsync(
                 "tenants", "http", TimeSpan.FromSeconds(60), CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
 
+            _tenantsUiClient = await WaitForResourceAndCreateClientAsync(
+                "tenants-ui", "http", TimeSpan.FromSeconds(60), CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
+
             _sampleClient = await WaitForResourceAndCreateClientAsync(
                 "sample", "http", TimeSpan.FromSeconds(30), SampleHealthTimeout, startupCts.Token).ConfigureAwait(false);
 
@@ -184,6 +202,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
     public async ValueTask DisposeAsync() {
         _commandApiClient?.Dispose();
         _tenantsClient?.Dispose();
+        _tenantsUiClient?.Dispose();
         _sampleClient?.Dispose();
 
         if (_app is not null) {
@@ -448,6 +467,12 @@ public class AspireTopologyFixture : IAsyncLifetime {
             return;
         }
 
+        if (string.Equals(resourceName, "tenants-ui", StringComparison.Ordinal)) {
+            _tenantsUiLastStatus = status;
+            _tenantsUiLastError = error;
+            return;
+        }
+
         _sampleLastStatus = status;
         _sampleLastError = error;
     }
@@ -456,6 +481,7 @@ public class AspireTopologyFixture : IAsyncLifetime {
         => resourceName switch {
             "eventstore" => $"Last status: {_commandApiLastStatus?.ToString() ?? "n/a"}, Last error: {_commandApiLastError ?? "n/a"}",
             "tenants" => $"Last status: {_tenantsLastStatus?.ToString() ?? "n/a"}, Last error: {_tenantsLastError ?? "n/a"}",
+            "tenants-ui" => $"Last status: {_tenantsUiLastStatus?.ToString() ?? "n/a"}, Last error: {_tenantsUiLastError ?? "n/a"}",
             _ => $"Last status: {_sampleLastStatus?.ToString() ?? "n/a"}, Last error: {_sampleLastError ?? "n/a"}",
         };
 
@@ -465,10 +491,11 @@ public class AspireTopologyFixture : IAsyncLifetime {
                 return "Application did not start (builder or build phase failed).";
             }
 
-            return $"Resources expected: eventstore, tenants, sample. "
+            return $"Resources expected: eventstore, tenants, tenants-ui, sample. "
                 + $"Startup duration: {_startupStopwatch.Elapsed}. "
                 + $"eventstore => {GetHealthDiagnostic("eventstore")}. "
                 + $"tenants => {GetHealthDiagnostic("tenants")}. "
+                + $"tenants-ui => {GetHealthDiagnostic("tenants-ui")}. "
                 + $"sample => {GetHealthDiagnostic("sample")}.";
         }
         catch (Exception ex) {

@@ -1,0 +1,30 @@
+@page "/"
+@page "/tenants"
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject ITenantsBffComposition Composition
+
+<PageTitle>@Localizer["Tenants.Workspace.Title"]</PageTitle>
+
+<main class="tenants-workspace" data-testid="tenants-workspace">
+    <header class="tenants-workspace__header">
+        <p class="tenants-workspace__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
+        <h1>@Localizer["Tenants.Workspace.Title"]</h1>
+    </header>
+
+    <section id="tenants-workspace-status"
+             class="tenants-workspace__status"
+             tabindex="-1"
+             role="status"
+             aria-live="polite"
+             data-testid="tenants-shell-status"
+             data-connected="@Composition.IsReadSurfaceConnected.ToString().ToLowerInvariant()">
+        <FluentBadge Appearance="BadgeAppearance.Outline">@Localizer["Tenants.Workspace.StatusBadge"]</FluentBadge>
+        <h2>@Localizer["Tenants.Workspace.UnavailableHeading"]</h2>
+        <p>@Localizer["Tenants.Workspace.UnavailableMessage"]</p>
+        <a class="tenants-workspace__focus-link"
+           href="#tenants-workspace-status"
+           data-testid="tenants-shell-status-focus">
+            @Localizer["Tenants.Workspace.StatusFocusLink"]
+        </a>
+    </section>
+</main>

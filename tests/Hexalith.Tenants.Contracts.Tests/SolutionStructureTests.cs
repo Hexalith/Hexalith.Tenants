@@ -12,6 +12,7 @@ public class SolutionStructureTests {
         "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
         "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
         "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+        "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
         // Tenants keeps its own Aspire AppHost (its composition root), but it consumes the platform
         // Aspire boilerplate (AddHexalithEventStore + AddEventStoreDomainModule) rather than a per-domain
         // Aspire library.
@@ -34,6 +35,14 @@ public class SolutionStructureTests {
         "tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj",
         "tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj",
         "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+    ];
+
+    private static readonly string[] RootSubmoduleProjectPrefixes =
+    [
+        "Hexalith.Commons/",
+        "Hexalith.EventStore/",
+        "Hexalith.FrontComposer/",
     ];
 
     [Fact]
@@ -56,7 +65,7 @@ public class SolutionStructureTests {
             projectPaths.ShouldNotContain(forbidden);
         }
 
-        projectPaths.ShouldNotContain(path => path.StartsWith("Hexalith.EventStore/", StringComparison.Ordinal));
+        projectPaths.ShouldAllBe(path => IsOwnedProject(path) || IsAllowedRootSubmoduleProject(path));
         File.Exists(Path.Combine(repoRoot, "Hexalith.Tenants.sln")).ShouldBeFalse();
     }
 
@@ -69,7 +78,7 @@ public class SolutionStructureTests {
         }
 
         foreach (string forbidden in ForbiddenSourceProjects) {
-            Directory.Exists(Path.Combine(repoRoot, Path.GetDirectoryName(forbidden)!))
+            File.Exists(Path.Combine(repoRoot, forbidden))
                 .ShouldBeFalse($"{forbidden} must not exist — the platform provides this boilerplate (domain-centric rule).");
         }
 
@@ -180,4 +189,12 @@ public class SolutionStructureTests {
 
     private static string NormalizePath(string? path)
         => (path ?? string.Empty).Replace('\\', '/');
+
+    private static bool IsOwnedProject(string path)
+        => path.StartsWith("src/", StringComparison.Ordinal)
+        || path.StartsWith("tests/", StringComparison.Ordinal)
+        || path.StartsWith("samples/", StringComparison.Ordinal);
+
+    private static bool IsAllowedRootSubmoduleProject(string path)
+        => RootSubmoduleProjectPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.Ordinal));
 }

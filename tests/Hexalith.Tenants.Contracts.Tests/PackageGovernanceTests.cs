@@ -43,6 +43,7 @@ public class PackageGovernanceTests {
     [
         "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
         "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+        "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
         "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
         "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
     ];
@@ -52,6 +53,7 @@ public class PackageGovernanceTests {
         "tests/Hexalith.Tenants.Contracts.Tests/",
         "tests/Hexalith.Tenants.Client.Tests/",
         "tests/Hexalith.Tenants.Testing.Tests/",
+        "tests/Hexalith.Tenants.UI.Tests/",
         "samples/Hexalith.Tenants.Sample.Tests/",
         "tests/Hexalith.Tenants.Server.Tests/",
     ];
@@ -212,6 +214,7 @@ public class PackageGovernanceTests {
         string repoRoot = FindRepoRoot();
         XDocument targets = XDocument.Load(Path.Combine(repoRoot, "Directory.Build.targets"));
         XDocument hostProject = XDocument.Load(Path.Combine(repoRoot, "src/Hexalith.Tenants/Hexalith.Tenants.csproj"));
+        XDocument uiProject = XDocument.Load(Path.Combine(repoRoot, "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj"));
 
         RequiredValueFor(targets, "ContainerBaseImage").ShouldBe("mcr.microsoft.com/dotnet/aspnet:10.0-alpine");
         RequiredValueFor(targets, "ContainerRegistry").ShouldBe("registry.hexalith.com");
@@ -230,6 +233,8 @@ public class PackageGovernanceTests {
 
         RequiredValueFor(hostProject, "EnableContainer").ShouldBe("true");
         RequiredValueFor(hostProject, "ContainerRepository").ShouldBe("tenants");
+        RequiredValueFor(uiProject, "EnableContainer").ShouldBe("true");
+        RequiredValueFor(uiProject, "ContainerRepository").ShouldBe("tenants-ui");
         GetProjectContainerDefaultOverrides(repoRoot).ShouldBeEmpty("Container defaults belong in Directory.Build.targets; projects should only opt in with EnableContainer and ContainerRepository.");
         GetAdHocContainerFiles(repoRoot).ShouldBeEmpty("Phase 1 container governance must use .NET SDK publish properties instead of Dockerfiles or compose files.");
     }

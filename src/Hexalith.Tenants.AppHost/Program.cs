@@ -56,6 +56,14 @@ _ = adminUI
     .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
     .WithExternalHttpEndpoints();
 
+IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
+    .WithReference(tenants)
+    .WithReference(eventStore)
+    .WaitFor(tenants)
+    .WaitFor(eventStore)
+    .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
+    .WithExternalHttpEndpoints();
+
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
 // It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
 _ = builder.AddProject<HexalithTenantsSample>("sample")
@@ -98,6 +106,15 @@ if (keycloak is not null && realmUrl is not null) {
         .WithEnvironment("EventStore__Authentication__ClientId", "hexalith-eventstore")
         .WithEnvironment("EventStore__Authentication__Username", "admin-user")
         .WithEnvironment("EventStore__Authentication__Password", "admin-pass");
+
+    _ = tenantsUI
+        .WithReference(keycloak)
+        .WaitFor(keycloak)
+        .WithEnvironment("Authentication__JwtBearer__Authority", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
+        .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
+        .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
 }
 else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));

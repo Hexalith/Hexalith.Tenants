@@ -65,6 +65,7 @@ jobs:
           dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --no-build --configuration Release --logger "trx;LogFileName=contracts-results.trx" --results-directory TestResults/contracts --collect:"XPlat Code Coverage"
           dotnet test tests/Hexalith.Tenants.Client.Tests/ --no-build --configuration Release --logger "trx;LogFileName=client-results.trx" --results-directory TestResults/client --collect:"XPlat Code Coverage"
           dotnet test tests/Hexalith.Tenants.Testing.Tests/ --no-build --configuration Release --logger "trx;LogFileName=testing-results.trx" --results-directory TestResults/testing --collect:"XPlat Code Coverage"
+          dotnet test tests/Hexalith.Tenants.UI.Tests/ --no-build --configuration Release --logger "trx;LogFileName=ui-results.trx" --results-directory TestResults/ui --collect:"XPlat Code Coverage"
           dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-build --configuration Release --logger "trx;LogFileName=sample-results.trx" --results-directory TestResults/sample --collect:"XPlat Code Coverage"
           dotnet test tests/Hexalith.Tenants.Server.Tests/ --no-build --configuration Release --logger "trx;LogFileName=server-results.trx" --results-directory TestResults/server --collect:"XPlat Code Coverage"
 
