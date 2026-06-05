@@ -1,0 +1,28 @@
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<span class="truth-state-badge truth-state-badge--@CssClass"
+      role="status"
+      aria-label="@Label"
+      data-testid="tenants-list-truth-state">
+    <span class="truth-state-badge__icon" aria-hidden="true">@Icon</span>
+    <span>@Label</span>
+</span>
+
+@code {
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    private string Label => Localizer[$"Tenants.List.Freshness.{Freshness}"];
+
+    private string CssClass => Freshness.ToString().ToLowerInvariant();
+
+    private string Icon => Freshness switch
+    {
+        TenantFreshnessState.Current => "OK",
+        TenantFreshnessState.Refreshing => "...",
+        TenantFreshnessState.Aging => "!",
+        TenantFreshnessState.Stale => "!",
+        _ => "?",
+    };
+}

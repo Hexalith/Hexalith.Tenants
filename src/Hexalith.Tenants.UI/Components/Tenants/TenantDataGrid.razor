@@ -1,0 +1,70 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<div class="tenant-data-grid" data-testid="tenants-list-grid">
+    <FluentDataGrid Items="@Rows.AsQueryable()"
+                    ResizableColumns="true"
+                    ReorderableColumns="false"
+                    GenerateHeader="DataGridGeneratedHeaderType.Sticky"
+                    ItemKey="@(row => row.TenantId)">
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Tenant"]"
+                        ColumnId="tenant-id"
+                        Class="tenants-critical tenants-critical--identity"
+                        Width="220px"
+                        Pin="DataGridColumnPin.Start">
+            <div class="tenant-data-grid__identity" data-testid="tenants-list-tenant-id">
+                <strong>@context.TenantId</strong>
+                <span>@context.Name</span>
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Status"]"
+                        ColumnId="tenant-status"
+                        Class="tenants-critical tenants-critical--status"
+                        Width="130px"
+                        Pin="DataGridColumnPin.Start">
+            <span class="tenant-data-grid__status tenant-data-grid__status--@StatusCss(context.Status)">
+                @StatusLabel(context.Status)
+            </span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Members"]" ColumnId="tenant-members" Width="115px">
+            @CountLabel(context.MemberCount)
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Owners"]" ColumnId="tenant-owners" Width="115px">
+            @CountLabel(context.OwnerCount)
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Pending"]"
+                        ColumnId="tenant-pending"
+                        Class="tenants-critical tenants-critical--pending"
+                        Width="175px">
+            @PendingLabel(context.PendingState)
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Freshness"]"
+                        ColumnId="tenant-freshness"
+                        Class="tenants-critical tenants-critical--freshness"
+                        Width="160px">
+            <TruthStateBadge Freshness="@context.Freshness" />
+        </TemplateColumn>
+    </FluentDataGrid>
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TenantListRow> Rows { get; set; } = [];
+
+    private string CountLabel(TenantCountValue count)
+        => count.IsKnown
+            ? count.Value.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)
+            : Localizer["Tenants.List.Count.Unknown"];
+
+    private string PendingLabel(TenantPendingState state)
+        => state == TenantPendingState.None
+            ? Localizer["Tenants.List.Pending.None"]
+            : Localizer["Tenants.List.Pending.Unknown"];
+
+    private string StatusLabel(TenantStatus status)
+        => Localizer[$"Tenants.List.Status.{status}"];
+
+    private static string StatusCss(TenantStatus status)
+        => status.ToString().ToLowerInvariant();
+}

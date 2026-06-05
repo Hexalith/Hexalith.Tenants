@@ -1,0 +1,65 @@
+.tenant-data-grid {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.tenant-data-grid fluent-data-grid {
+    min-width: 58rem;
+}
+
+.tenant-data-grid__identity {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.tenant-data-grid__identity strong,
+.tenant-data-grid__identity span {
+    overflow-wrap: anywhere;
+}
+
+.tenant-data-grid__status {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+}
+
+.tenant-data-grid__status--active {
+    color: #0f6c2f;
+}
+
+.tenant-data-grid__status--disabled,
+.tenant-data-grid__status--unknown {
+    color: #414042;
+}
+
+.tenants-critical {
+    min-width: 7rem;
+}
+
+@media (max-width: 767px) {
+    .tenant-data-grid fluent-data-grid {
+        min-width: 52rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .tenant-data-grid fluent-data-grid {
+        min-width: 56rem;
+    }
+}
+
+@media (min-width: 1440px) {
+    .tenant-data-grid fluent-data-grid {
+        min-width: 64rem;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenant-data-grid__status {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+}

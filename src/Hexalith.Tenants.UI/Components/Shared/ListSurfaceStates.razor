@@ -1,0 +1,68 @@
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<section class="list-surface-state list-surface-state--@CssClass"
+         role="@Role"
+         aria-live="@AriaLive"
+         data-testid="@TestId">
+    <h2>@Localizer[$"Tenants.List.State.{ResourceName}.Title"]</h2>
+    <p>@Message</p>
+    @if (Kind is TenantListSurfaceKind.FilteredEmpty)
+    {
+        <button type="button" data-testid="tenants-list-state-reset" @onclick="OnReset">
+            @Localizer["Tenants.List.Reset"]
+        </button>
+    }
+    @if (Kind is TenantListSurfaceKind.Stale)
+    {
+        <button type="button" data-testid="tenants-list-state-refresh" @onclick="OnRefresh">
+            @Localizer["Tenants.List.Refresh"]
+        </button>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public TenantListSurfaceKind Kind { get; set; }
+
+    [Parameter]
+    public string? Detail { get; set; }
+
+    [Parameter]
+    public EventCallback OnReset { get; set; }
+
+    [Parameter]
+    public EventCallback OnRefresh { get; set; }
+
+    private string ResourceName => Kind switch
+    {
+        TenantListSurfaceKind.Loading => "Loading",
+        TenantListSurfaceKind.Empty => "Empty",
+        TenantListSurfaceKind.FilteredEmpty => "FilteredEmpty",
+        TenantListSurfaceKind.Error => "Error",
+        TenantListSurfaceKind.Stale => "Stale",
+        TenantListSurfaceKind.Degraded => "Degraded",
+        _ => "Empty",
+    };
+
+    private string TestId => Kind switch
+    {
+        TenantListSurfaceKind.Loading => "tenants-list-loading",
+        TenantListSurfaceKind.Empty => "tenants-list-empty",
+        TenantListSurfaceKind.FilteredEmpty => "tenants-list-filtered-empty",
+        TenantListSurfaceKind.Error => "tenants-list-error",
+        TenantListSurfaceKind.Stale => "tenants-list-stale",
+        TenantListSurfaceKind.Degraded => "tenants-list-degraded",
+        _ => "tenants-list-empty",
+    };
+
+    private string CssClass => ResourceName.ToLowerInvariant();
+
+    private string Role => Kind is TenantListSurfaceKind.Error ? "alert" : "status";
+
+    private string AriaLive => Kind is TenantListSurfaceKind.Error ? "assertive" : "polite";
+
+    private string Message => string.IsNullOrWhiteSpace(Detail)
+        ? Localizer[$"Tenants.List.State.{ResourceName}.Message"]
+        : Detail;
+}

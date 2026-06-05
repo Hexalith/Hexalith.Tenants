@@ -30,4 +30,154 @@
   <data name="Tenants.Workspace.UnavailableMessage" xml:space="preserve">
     <value>The workspace shell is available, but tenant lists, tenant details, and command flows are not implemented in this bootstrap.</value>
   </data>
+  <data name="Tenants.List.Column.Freshness" xml:space="preserve">
+    <value>Truth state</value>
+  </data>
+  <data name="Tenants.List.Column.Members" xml:space="preserve">
+    <value>Members</value>
+  </data>
+  <data name="Tenants.List.Column.Owners" xml:space="preserve">
+    <value>Owners</value>
+  </data>
+  <data name="Tenants.List.Column.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Tenants.List.Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Tenants.List.Column.Tenant" xml:space="preserve">
+    <value>Tenant</value>
+  </data>
+  <data name="Tenants.List.ControlsLabel" xml:space="preserve">
+    <value>Tenant list controls</value>
+  </data>
+  <data name="Tenants.List.Count.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.List.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.List.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.List.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.List.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.List.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.List.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Tenants.List.PaginationLabel" xml:space="preserve">
+    <value>Tenant list pages</value>
+  </data>
+  <data name="Tenants.List.Pending.None" xml:space="preserve">
+    <value>No pending changes</value>
+  </data>
+  <data name="Tenants.List.Pending.Unknown" xml:space="preserve">
+    <value>Pending state unknown</value>
+  </data>
+  <data name="Tenants.List.Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Tenants.List.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Tenants.List.Reset" xml:space="preserve">
+    <value>Reset filters</value>
+  </data>
+  <data name="Tenants.List.SearchLabel" xml:space="preserve">
+    <value>Search tenants</value>
+  </data>
+  <data name="Tenants.List.SearchPlaceholder" xml:space="preserve">
+    <value>Search by tenant id or name</value>
+  </data>
+  <data name="Tenants.List.Sort.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Tenants.List.Sort.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Tenants.List.Sort.TenantId" xml:space="preserve">
+    <value>Tenant id</value>
+  </data>
+  <data name="Tenants.List.SortDirection.Ascending" xml:space="preserve">
+    <value>Ascending</value>
+  </data>
+  <data name="Tenants.List.SortDirection.Descending" xml:space="preserve">
+    <value>Descending</value>
+  </data>
+  <data name="Tenants.List.SortDirectionLabel" xml:space="preserve">
+    <value>Sort direction</value>
+  </data>
+  <data name="Tenants.List.SortLabel" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="Tenants.List.State.Degraded.Message" xml:space="preserve">
+    <value>Some tenant evidence is unavailable. Visible tenant identity, lifecycle, pending, and truth-state columns remain shown.</value>
+  </data>
+  <data name="Tenants.List.State.Degraded.Title" xml:space="preserve">
+    <value>Tenant data is degraded</value>
+  </data>
+  <data name="Tenants.List.State.Empty.Message" xml:space="preserve">
+    <value>No tenants are visible for this operator. This is an authorized empty result, not a failure.</value>
+  </data>
+  <data name="Tenants.List.State.Empty.Title" xml:space="preserve">
+    <value>No visible tenants</value>
+  </data>
+  <data name="Tenants.List.State.Error.Message" xml:space="preserve">
+    <value>Tenant data could not be loaded. The list is unavailable until the server-side query gateway is reachable.</value>
+  </data>
+  <data name="Tenants.List.State.Error.Title" xml:space="preserve">
+    <value>Tenants unavailable</value>
+  </data>
+  <data name="Tenants.List.State.FilteredEmpty.Message" xml:space="preserve">
+    <value>No visible tenants match the current search and filters.</value>
+  </data>
+  <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
+    <value>No tenants match filters</value>
+  </data>
+  <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
+    <value>Tenant data is loading from the server-side query gateway.</value>
+  </data>
+  <data name="Tenants.List.State.Loading.Title" xml:space="preserve">
+    <value>Loading tenants</value>
+  </data>
+  <data name="Tenants.List.State.Stale.Message" xml:space="preserve">
+    <value>The latest freshness evidence says this list is stale. Refresh to check the projection again.</value>
+  </data>
+  <data name="Tenants.List.State.Stale.Title" xml:space="preserve">
+    <value>Tenant data is stale</value>
+  </data>
+  <data name="Tenants.List.Status.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tenants.List.Status.Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Tenants.List.Status.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.All" xml:space="preserve">
+    <value>All statuses</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.List.StatusFilterLabel" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Tenants.List.Title" xml:space="preserve">
+    <value>Tenants</value>
+  </data>
 </root>

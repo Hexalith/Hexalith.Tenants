@@ -1,30 +1,228 @@
 @page "/"
 @page "/tenants"
+@using Hexalith.Tenants.Contracts.Enums
 @inject IStringLocalizer<TenantsResources> Localizer
-@inject ITenantsBffComposition Composition
+@inject ITenantQueryGateway QueryGateway
 
-<PageTitle>@Localizer["Tenants.Workspace.Title"]</PageTitle>
+<PageTitle>@Localizer["Tenants.List.Title"]</PageTitle>
 
 <main class="tenants-workspace" data-testid="tenants-workspace">
     <header class="tenants-workspace__header">
         <p class="tenants-workspace__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
-        <h1>@Localizer["Tenants.Workspace.Title"]</h1>
+        <h1>@Localizer["Tenants.List.Title"]</h1>
     </header>
 
-    <section id="tenants-workspace-status"
-             class="tenants-workspace__status"
-             tabindex="-1"
-             role="status"
-             aria-live="polite"
-             data-testid="tenants-shell-status"
-             data-connected="@Composition.IsReadSurfaceConnected.ToString().ToLowerInvariant()">
-        <FluentBadge Appearance="BadgeAppearance.Outline">@Localizer["Tenants.Workspace.StatusBadge"]</FluentBadge>
-        <h2>@Localizer["Tenants.Workspace.UnavailableHeading"]</h2>
-        <p>@Localizer["Tenants.Workspace.UnavailableMessage"]</p>
-        <a class="tenants-workspace__focus-link"
-           href="#tenants-workspace-status"
-           data-testid="tenants-shell-status-focus">
-            @Localizer["Tenants.Workspace.StatusFocusLink"]
-        </a>
+    <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
+        <label>
+            <span>@Localizer["Tenants.List.SearchLabel"]</span>
+            <input type="search"
+                   value="@_search"
+                   placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                   data-testid="tenants-list-search"
+                   @onchange="OnSearchChanged" />
+        </label>
+        <label>
+            <span>@Localizer["Tenants.List.StatusFilterLabel"]</span>
+            <select value="@_statusFilter" data-testid="tenants-list-status-filter" @onchange="OnStatusFilterChanged">
+                <option value="">@Localizer["Tenants.List.StatusFilter.All"]</option>
+                <option value="@TenantStatus.Active">@Localizer["Tenants.List.StatusFilter.Active"]</option>
+                <option value="@TenantStatus.Disabled">@Localizer["Tenants.List.StatusFilter.Disabled"]</option>
+                <option value="@TenantStatus.Unknown">@Localizer["Tenants.List.StatusFilter.Unknown"]</option>
+            </select>
+        </label>
+        <label>
+            <span>@Localizer["Tenants.List.SortLabel"]</span>
+            <select value="@_sortColumn" data-testid="tenants-list-sort" @onchange="OnSortChanged">
+                <option value="@TenantListSortColumns.TenantId">@Localizer["Tenants.List.Sort.TenantId"]</option>
+                <option value="@TenantListSortColumns.Name">@Localizer["Tenants.List.Sort.Name"]</option>
+                <option value="@TenantListSortColumns.Status">@Localizer["Tenants.List.Sort.Status"]</option>
+            </select>
+        </label>
+        <label>
+            <span>@Localizer["Tenants.List.SortDirectionLabel"]</span>
+            <select value="@_sortDescending.ToString()" data-testid="tenants-list-sort-direction" @onchange="OnSortDirectionChanged">
+                <option value="False">@Localizer["Tenants.List.SortDirection.Ascending"]</option>
+                <option value="True">@Localizer["Tenants.List.SortDirection.Descending"]</option>
+            </select>
+        </label>
+        <button type="button" data-testid="tenants-list-refresh" @onclick="RefreshAsync">
+            @Localizer["Tenants.List.Refresh"]
+        </button>
+        <button type="button" data-testid="tenants-list-reset" @onclick="ResetFiltersAsync">
+            @Localizer["Tenants.List.Reset"]
+        </button>
     </section>
+
+    @if (_snapshot.Kind is TenantListSurfaceKind.Loading)
+    {
+        <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
+    }
+    else if (_visibleRows.Count == 0 && HasActiveFilters)
+    {
+        <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+    }
+    else if (_snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
+    {
+        <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+    }
+    else if (_snapshot.Kind is TenantListSurfaceKind.Empty)
+    {
+        <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
+    }
+    else if (_snapshot.Kind is TenantListSurfaceKind.Error)
+    {
+        <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Detail="@_snapshot.ErrorMessage" />
+    }
+    else
+    {
+        @if (_snapshot.Kind is TenantListSurfaceKind.Stale)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Stale" OnRefresh="RefreshAsync" />
+        }
+        else if (_snapshot.Kind is TenantListSurfaceKind.Degraded)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Detail="@_snapshot.ErrorMessage" />
+        }
+
+        <TenantDataGrid Rows="@_visibleRows" />
+
+        <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
+            <button type="button" data-testid="tenants-list-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                @Localizer["Tenants.List.Previous"]
+            </button>
+            <button type="button" data-testid="tenants-list-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                @Localizer["Tenants.List.Next"]
+            </button>
+        </nav>
+    }
 </main>
+
+@code {
+    private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private IReadOnlyList<TenantListRow> _visibleRows = [];
+    private readonly Stack<string?> _cursorHistory = new();
+    private string? _currentCursor;
+    private string? _search;
+    private string? _statusFilter;
+    private string _sortColumn = TenantListSortColumns.TenantId;
+    private bool _sortDescending;
+
+    private bool HasActiveFilters
+        => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_statusFilter);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task LoadAsync(bool reuseETag)
+    {
+        TenantListSnapshot previous = _snapshot;
+        _snapshot = TenantListSnapshot.Loading();
+        ApplyVisibleRows();
+
+        TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
+        TenantListRequest request = new(
+            Cursor: _currentCursor,
+            PageSize: 20,
+            Search: _search,
+            Status: status,
+            SortColumn: _sortColumn,
+            SortDescending: _sortDescending,
+            ETag: reuseETag ? previous.ETag : null);
+
+        _snapshot = await QueryGateway
+            .ListTenantsAsync(request, previous, CancellationToken.None)
+            .ConfigureAwait(false);
+        ApplyVisibleRows();
+    }
+
+    private async Task RefreshAsync()
+        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task ResetFiltersAsync()
+    {
+        _search = null;
+        _statusFilter = null;
+        _sortColumn = TenantListSortColumns.TenantId;
+        _sortDescending = false;
+        ApplyVisibleRows();
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task NextPageAsync()
+    {
+        _cursorHistory.Push(_currentCursor);
+        _currentCursor = _snapshot.NextCursor;
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (_cursorHistory.Count > 0)
+        {
+            _currentCursor = _cursorHistory.Pop();
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs args)
+    {
+        _search = args.Value?.ToString();
+        ApplyVisibleRows();
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task OnStatusFilterChanged(ChangeEventArgs args)
+    {
+        _statusFilter = args.Value?.ToString();
+        ApplyVisibleRows();
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task OnSortChanged(ChangeEventArgs args)
+    {
+        _sortColumn = args.Value?.ToString() ?? TenantListSortColumns.TenantId;
+        ApplyVisibleRows();
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task OnSortDirectionChanged(ChangeEventArgs args)
+    {
+        _sortDescending = bool.TryParse(args.Value?.ToString(), out bool parsed) && parsed;
+        ApplyVisibleRows();
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private void ApplyVisibleRows()
+    {
+        IEnumerable<TenantListRow> rows = _snapshot.Rows;
+
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            rows = rows.Where(r =>
+                r.TenantId.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || r.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (Enum.TryParse(_statusFilter, out TenantStatus status))
+        {
+            rows = rows.Where(r => r.Status == status);
+        }
+
+        rows = _sortColumn switch
+        {
+            TenantListSortColumns.Name => _sortDescending
+                ? rows.OrderByDescending(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                : rows.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase),
+            TenantListSortColumns.Status => _sortDescending
+                ? rows.OrderByDescending(r => r.Status)
+                : rows.OrderBy(r => r.Status),
+            _ => _sortDescending
+                ? rows.OrderByDescending(r => r.TenantId, StringComparer.Ordinal)
+                : rows.OrderBy(r => r.TenantId, StringComparer.Ordinal),
+        };
+
+        _visibleRows = rows.ToArray();
+    }
+}

@@ -27,11 +27,11 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
-    public void Bff_composition_defaults_to_not_connected()
+    public void Bff_composition_marks_read_surface_connected_after_list_gateway_story()
     {
         ITenantsBffComposition composition = new TenantsBffComposition();
 
-        composition.IsReadSurfaceConnected.ShouldBeFalse();
+        composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
     }
 

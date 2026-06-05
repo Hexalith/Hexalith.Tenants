@@ -1,0 +1,22 @@
+.list-surface-state {
+    border: 1px solid CanvasText;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.6rem;
+    padding: 1rem;
+}
+
+.list-surface-state h2,
+.list-surface-state p {
+    margin: 0;
+}
+
+.list-surface-state button {
+    justify-self: start;
+}
+
+@media (forced-colors: active) {
+    .list-surface-state {
+        border-color: CanvasText;
+    }
+}

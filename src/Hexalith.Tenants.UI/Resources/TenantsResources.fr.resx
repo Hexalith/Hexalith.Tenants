@@ -30,4 +30,154 @@
   <data name="Tenants.Workspace.UnavailableMessage" xml:space="preserve">
     <value>Le shell de l'espace de travail est disponible, mais les listes, les détails et les commandes des locataires ne sont pas implémentés dans ce bootstrap.</value>
   </data>
+  <data name="Tenants.List.Column.Freshness" xml:space="preserve">
+    <value>État de vérité</value>
+  </data>
+  <data name="Tenants.List.Column.Members" xml:space="preserve">
+    <value>Membres</value>
+  </data>
+  <data name="Tenants.List.Column.Owners" xml:space="preserve">
+    <value>Propriétaires</value>
+  </data>
+  <data name="Tenants.List.Column.Pending" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Tenants.List.Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Tenants.List.Column.Tenant" xml:space="preserve">
+    <value>Locataire</value>
+  </data>
+  <data name="Tenants.List.ControlsLabel" xml:space="preserve">
+    <value>Contrôles de la liste des locataires</value>
+  </data>
+  <data name="Tenants.List.Count.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.List.Freshness.Aging" xml:space="preserve">
+    <value>Vieillissant</value>
+  </data>
+  <data name="Tenants.List.Freshness.Current" xml:space="preserve">
+    <value>Actuel</value>
+  </data>
+  <data name="Tenants.List.Freshness.Refreshing" xml:space="preserve">
+    <value>Actualisation</value>
+  </data>
+  <data name="Tenants.List.Freshness.Stale" xml:space="preserve">
+    <value>Périmé</value>
+  </data>
+  <data name="Tenants.List.Freshness.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.List.Next" xml:space="preserve">
+    <value>Suivant</value>
+  </data>
+  <data name="Tenants.List.PaginationLabel" xml:space="preserve">
+    <value>Pages de la liste des locataires</value>
+  </data>
+  <data name="Tenants.List.Pending.None" xml:space="preserve">
+    <value>Aucun changement en attente</value>
+  </data>
+  <data name="Tenants.List.Pending.Unknown" xml:space="preserve">
+    <value>État d'attente inconnu</value>
+  </data>
+  <data name="Tenants.List.Previous" xml:space="preserve">
+    <value>Précédent</value>
+  </data>
+  <data name="Tenants.List.Refresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="Tenants.List.Reset" xml:space="preserve">
+    <value>Réinitialiser les filtres</value>
+  </data>
+  <data name="Tenants.List.SearchLabel" xml:space="preserve">
+    <value>Rechercher des locataires</value>
+  </data>
+  <data name="Tenants.List.SearchPlaceholder" xml:space="preserve">
+    <value>Rechercher par identifiant ou nom de locataire</value>
+  </data>
+  <data name="Tenants.List.Sort.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Tenants.List.Sort.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Tenants.List.Sort.TenantId" xml:space="preserve">
+    <value>Identifiant du locataire</value>
+  </data>
+  <data name="Tenants.List.SortDirection.Ascending" xml:space="preserve">
+    <value>Croissant</value>
+  </data>
+  <data name="Tenants.List.SortDirection.Descending" xml:space="preserve">
+    <value>Décroissant</value>
+  </data>
+  <data name="Tenants.List.SortDirectionLabel" xml:space="preserve">
+    <value>Sens du tri</value>
+  </data>
+  <data name="Tenants.List.SortLabel" xml:space="preserve">
+    <value>Tri</value>
+  </data>
+  <data name="Tenants.List.State.Degraded.Message" xml:space="preserve">
+    <value>Certaines preuves de locataire sont indisponibles. Les colonnes d'identité, de cycle de vie, d'attente et d'état de vérité restent visibles.</value>
+  </data>
+  <data name="Tenants.List.State.Degraded.Title" xml:space="preserve">
+    <value>Les données des locataires sont dégradées</value>
+  </data>
+  <data name="Tenants.List.State.Empty.Message" xml:space="preserve">
+    <value>Aucun locataire n'est visible pour cet opérateur. C'est un résultat vide autorisé, pas une erreur.</value>
+  </data>
+  <data name="Tenants.List.State.Empty.Title" xml:space="preserve">
+    <value>Aucun locataire visible</value>
+  </data>
+  <data name="Tenants.List.State.Error.Message" xml:space="preserve">
+    <value>Les données des locataires n'ont pas pu être chargées. La liste est indisponible tant que la passerelle de requête côté serveur n'est pas joignable.</value>
+  </data>
+  <data name="Tenants.List.State.Error.Title" xml:space="preserve">
+    <value>Locataires indisponibles</value>
+  </data>
+  <data name="Tenants.List.State.FilteredEmpty.Message" xml:space="preserve">
+    <value>Aucun locataire visible ne correspond à la recherche et aux filtres actuels.</value>
+  </data>
+  <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
+    <value>Aucun locataire ne correspond aux filtres</value>
+  </data>
+  <data name="Tenants.List.State.Loading.Message" xml:space="preserve">
+    <value>Les données des locataires sont chargées depuis la passerelle de requête côté serveur.</value>
+  </data>
+  <data name="Tenants.List.State.Loading.Title" xml:space="preserve">
+    <value>Chargement des locataires</value>
+  </data>
+  <data name="Tenants.List.State.Stale.Message" xml:space="preserve">
+    <value>La dernière preuve de fraîcheur indique que cette liste est périmée. Actualisez pour revérifier la projection.</value>
+  </data>
+  <data name="Tenants.List.State.Stale.Title" xml:space="preserve">
+    <value>Les données des locataires sont périmées</value>
+  </data>
+  <data name="Tenants.List.Status.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Tenants.List.Status.Disabled" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="Tenants.List.Status.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.All" xml:space="preserve">
+    <value>Tous les statuts</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.Disabled" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="Tenants.List.StatusFilter.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.List.StatusFilterLabel" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Tenants.List.Title" xml:space="preserve">
+    <value>Locataires</value>
+  </data>
 </root>

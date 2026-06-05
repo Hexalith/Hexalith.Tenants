@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-05T22:53:51+02:00
+# last_updated: 2026-06-05T23:59:00+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -48,7 +48,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-05T22:53:51+02:00
+last_updated: 2026-06-05T23:59:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   epic-1: in-progress
   1-0-frontcomposer-shell-integration-spike: done
   1-1-tenants-ui-host-bootstrap: done
-  1-2-tenant-list-triage: backlog
+  1-2-tenant-list-triage: done
   1-3-tenant-detail-navigation-and-overview: backlog
   1-4-my-tenants-self-audit-view: backlog
   1-5-user-membership-lookup: backlog

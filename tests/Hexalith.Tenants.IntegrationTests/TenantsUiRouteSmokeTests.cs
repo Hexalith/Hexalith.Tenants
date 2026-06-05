@@ -27,7 +27,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
     }
 
     [DaprFact]
-    public async Task Tenants_workspace_route_renders_unavailable_status_in_hosted_ui() {
+    public async Task Tenants_workspace_route_renders_tenant_list_error_state_in_hosted_ui() {
         _fixture.SkipIfUnavailable();
 
         using HttpResponseMessage response = await _fixture.TenantsUiClient
@@ -37,11 +37,14 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         string markup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        markup.ShouldContain("data-testid=\"tenants-shell-status\"");
-        markup.ShouldContain("role=\"status\"");
-        markup.ShouldContain("data-connected=\"false\"");
-        markup.ShouldContain("Tenant read surfaces are not connected yet");
-        markup.ShouldContain("Review status details");
+        markup.ShouldContain("data-testid=\"tenants-workspace\"");
+        markup.ShouldContain("data-testid=\"tenants-list-search\"");
+        markup.ShouldContain("data-testid=\"tenants-list-refresh\"");
+        markup.ShouldContain("data-testid=\"tenants-list-error\"");
+        markup.ShouldContain("role=\"alert\"");
+        markup.ShouldContain("Tenant query gateway configuration is missing");
+        markup.ShouldNotContain("Tenant read surfaces are not connected yet");
+        markup.ShouldNotContain("data-connected=\"false\"");
         markup.ShouldNotContain("sample tenant", Case.Insensitive);
         markup.ShouldNotContain("tenant-1", Case.Insensitive);
         markup.ShouldNotContain("success", Case.Insensitive);

@@ -5,6 +5,7 @@ using Bunit;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantList;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -19,43 +20,41 @@ namespace Hexalith.Tenants.UI.Tests;
 public sealed class TenantsWorkspaceTests : BunitContext
 {
     [Fact]
-    public void Workspace_renders_unavailable_status_without_mock_tenant_data()
+    public void Workspace_renders_gateway_error_without_mock_tenant_data()
     {
-        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
-        composition.IsReadSurfaceConnected.Returns(false);
-        Services.AddSingleton(composition);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Error("Tenant query gateway configuration is missing.")));
+        Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-error']");
 
-        cut.Find("[data-testid='tenants-shell-status']").GetAttribute("role").ShouldBe("status");
-        cut.Find("[data-testid='tenants-shell-status']").GetAttribute("data-connected").ShouldBe("false");
-        cut.Markup.ShouldContain("Tenant read surfaces are not connected yet");
+        cut.Find("[data-testid='tenants-list-error']").GetAttribute("role").ShouldBe("alert");
+        cut.Markup.ShouldContain("Tenant query gateway configuration is missing");
         cut.Markup.ShouldNotContain("tenant-1", Case.Insensitive);
         cut.Markup.ShouldNotContain("sample tenant", Case.Insensitive);
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
     }
 
     [Fact]
-    public void Workspace_exposes_focusable_status_selector()
+    public void Workspace_exposes_keyboard_reachable_controls()
     {
-        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
-        Services.AddSingleton(composition);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown)));
+        Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-refresh']");
 
-        cut.Find("[data-testid='tenants-shell-status-focus']")
-            .GetAttribute("href")
-            .ShouldBe("#tenants-workspace-status");
-
-        // The in-page focus link targets the status region; the region must be programmatically
-        // focusable (tabindex="-1") so the fragment link moves keyboard focus, not just the viewport.
-        cut.Find("[data-testid='tenants-shell-status']")
-            .GetAttribute("tabindex")
-            .ShouldBe("-1");
+        cut.Find("[data-testid='tenants-list-refresh']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-list-reset']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-list-search']").GetAttribute("type").ShouldBe("search");
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -68,6 +67,41 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.Workspace.Title"] = "Tenants",
             ["Tenants.Workspace.UnavailableHeading"] = "Tenant read surfaces are not connected yet",
             ["Tenants.Workspace.UnavailableMessage"] = "The workspace shell is available, but tenant lists, tenant details, and command flows are not implemented in this bootstrap.",
+            ["Tenants.List.Column.Freshness"] = "Truth state",
+            ["Tenants.List.Column.Members"] = "Members",
+            ["Tenants.List.Column.Owners"] = "Owners",
+            ["Tenants.List.Column.Pending"] = "Pending",
+            ["Tenants.List.Column.Status"] = "Status",
+            ["Tenants.List.Column.Tenant"] = "Tenant",
+            ["Tenants.List.ControlsLabel"] = "Tenant list controls",
+            ["Tenants.List.Count.Unknown"] = "Unknown",
+            ["Tenants.List.Freshness.Unknown"] = "Unknown",
+            ["Tenants.List.Next"] = "Next",
+            ["Tenants.List.PaginationLabel"] = "Tenant list pages",
+            ["Tenants.List.Pending.None"] = "No pending changes",
+            ["Tenants.List.Pending.Unknown"] = "Pending state unknown",
+            ["Tenants.List.Previous"] = "Previous",
+            ["Tenants.List.Refresh"] = "Refresh",
+            ["Tenants.List.Reset"] = "Reset filters",
+            ["Tenants.List.SearchLabel"] = "Search tenants",
+            ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",
+            ["Tenants.List.Sort.Name"] = "Name",
+            ["Tenants.List.Sort.Status"] = "Status",
+            ["Tenants.List.Sort.TenantId"] = "Tenant id",
+            ["Tenants.List.SortDirection.Ascending"] = "Ascending",
+            ["Tenants.List.SortDirection.Descending"] = "Descending",
+            ["Tenants.List.SortDirectionLabel"] = "Sort direction",
+            ["Tenants.List.SortLabel"] = "Sort",
+            ["Tenants.List.State.Empty.Message"] = "No tenants are visible for this operator.",
+            ["Tenants.List.State.Empty.Title"] = "No visible tenants",
+            ["Tenants.List.State.Error.Message"] = "Tenant data could not be loaded.",
+            ["Tenants.List.State.Error.Title"] = "Tenants unavailable",
+            ["Tenants.List.StatusFilter.Active"] = "Active",
+            ["Tenants.List.StatusFilter.All"] = "All statuses",
+            ["Tenants.List.StatusFilter.Disabled"] = "Disabled",
+            ["Tenants.List.StatusFilter.Unknown"] = "Unknown",
+            ["Tenants.List.StatusFilterLabel"] = "Status",
+            ["Tenants.List.Title"] = "Tenants",
         };
 
         public LocalizedString this[string name]
