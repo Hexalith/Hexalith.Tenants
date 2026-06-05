@@ -49,4 +49,26 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldNotContain("tenant-1", Case.Insensitive);
         markup.ShouldNotContain("success", Case.Insensitive);
     }
+
+    [DaprFact]
+    public async Task Tenant_detail_route_renders_safe_unavailable_state_in_hosted_ui() {
+        _fixture.SkipIfUnavailable();
+
+        using HttpResponseMessage response = await _fixture.TenantsUiClient
+            .GetAsync("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha")
+            .ConfigureAwait(false);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        string markup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        markup.ShouldContain("data-testid=\"tenants-detail\"");
+        markup.ShouldContain("data-testid=\"tenants-detail-back\"");
+        markup.ShouldContain("href=\"/tenants?search=alpha\"");
+        markup.ShouldContain("data-testid=\"tenants-detail-error\"");
+        markup.ShouldContain("role=\"alert\"");
+        markup.ShouldContain("Tenant detail cannot be loaded");
+        markup.ShouldNotContain("data-testid=\"tenants-detail-identity\"");
+        markup.ShouldNotContain("sample tenant", Case.Insensitive);
+        markup.ShouldNotContain("success", Case.Insensitive);
+    }
 }

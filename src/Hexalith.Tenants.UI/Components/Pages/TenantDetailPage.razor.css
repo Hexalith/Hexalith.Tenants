@@ -1,0 +1,111 @@
+.tenant-detail {
+    display: grid;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.tenant-detail__back {
+    color: LinkText;
+    width: fit-content;
+}
+
+.tenant-detail__summary {
+    display: grid;
+    gap: 1rem;
+    max-width: 82rem;
+}
+
+.tenant-detail__identity,
+.tenant-detail__state,
+.tenant-detail__section {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.tenant-detail__eyebrow,
+.tenant-detail h1,
+.tenant-detail h2,
+.tenant-detail p,
+.tenant-detail dl,
+.tenant-detail dd {
+    margin: 0;
+}
+
+.tenant-detail__literal {
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    overflow-wrap: anywhere;
+}
+
+.tenant-detail__facts {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.tenant-detail__facts div {
+    border-block-start: 1px solid CanvasText;
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    padding-block-start: 0.75rem;
+}
+
+.tenant-detail__facts dt {
+    font-weight: 600;
+}
+
+.tenant-detail__status {
+    align-items: center;
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: inline-flex;
+    gap: 0.35rem;
+    min-height: 1.75rem;
+    padding: 0.15rem 0.45rem;
+}
+
+.tenant-detail__status--active {
+    color: #0f6c2f;
+}
+
+.tenant-detail__status--disabled,
+.tenant-detail__status--unknown {
+    color: #414042;
+}
+
+.tenant-detail__back:focus-visible,
+.tenant-detail__identity:focus-visible,
+.tenant-detail__state:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .tenant-detail {
+        padding: 1rem;
+    }
+
+    .tenant-detail__facts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (forced-colors: active) {
+    .tenant-detail__identity,
+    .tenant-detail__state,
+    .tenant-detail__section,
+    .tenant-detail__facts div,
+    .tenant-detail__status {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenant-detail__back:focus-visible,
+    .tenant-detail__identity:focus-visible,
+    .tenant-detail__state:focus-visible {
+        outline-color: Highlight;
+    }
+}

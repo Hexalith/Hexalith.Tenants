@@ -13,8 +13,15 @@
                         Class="tenants-critical tenants-critical--identity"
                         Width="220px"
                         Pin="DataGridColumnPin.Start">
-            <div class="tenant-data-grid__identity" data-testid="tenants-list-tenant-id">
-                <strong>@context.TenantId</strong>
+            <div class="tenant-data-grid__identity"
+                 id="@($"tenant-row-{context.TenantId}")"
+                 data-testid="tenants-list-tenant-id">
+                <a class="tenant-data-grid__detail-link"
+                   href="@DetailHref(context)"
+                   data-testid="tenants-list-detail-link"
+                   aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
+                    <strong>@context.TenantId</strong>
+                </a>
                 <span>@context.Name</span>
             </div>
         </TemplateColumn>
@@ -51,6 +58,9 @@
 @code {
     [Parameter]
     public IReadOnlyList<TenantListRow> Rows { get; set; } = [];
+
+    [Parameter]
+    public Func<TenantListRow, string> DetailHref { get; set; } = static row => $"/tenants/{Uri.EscapeDataString(row.TenantId)}";
 
     private string CountLabel(TenantCountValue count)
         => count.IsKnown

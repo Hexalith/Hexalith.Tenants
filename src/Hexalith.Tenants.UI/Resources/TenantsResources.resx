@@ -69,6 +69,9 @@
   <data name="Tenants.List.Freshness.Unknown" xml:space="preserve">
     <value>Unknown</value>
   </data>
+  <data name="Tenants.List.DetailLinkLabel" xml:space="preserve">
+    <value>Open tenant details for {0}</value>
+  </data>
   <data name="Tenants.List.Next" xml:space="preserve">
     <value>Next</value>
   </data>
@@ -89,6 +92,9 @@
   </data>
   <data name="Tenants.List.Reset" xml:space="preserve">
     <value>Reset filters</value>
+  </data>
+  <data name="Tenants.List.ReturnContext" xml:space="preserve">
+    <value>Returned from tenant {0}. Filters, sort, cursor, and selection were restored before rendering.</value>
   </data>
   <data name="Tenants.List.SearchLabel" xml:space="preserve">
     <value>Search tenants</value>
@@ -179,5 +185,95 @@
   </data>
   <data name="Tenants.List.Title" xml:space="preserve">
     <value>Tenants</value>
+  </data>
+  <data name="Tenants.Detail.Back" xml:space="preserve">
+    <value>Back to tenants</value>
+  </data>
+  <data name="Tenants.Detail.Configuration.Empty" xml:space="preserve">
+    <value>No configuration keys are available in this detail projection.</value>
+  </data>
+  <data name="Tenants.Detail.Configuration.Summary" xml:space="preserve">
+    <value>{0} configuration keys across {1} safe groups.</value>
+  </data>
+  <data name="Tenants.Detail.Configuration.Title" xml:space="preserve">
+    <value>Configuration summary</value>
+  </data>
+  <data name="Tenants.Detail.CreatedAtLabel" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="Tenants.Detail.FreshnessLabel" xml:space="preserve">
+    <value>Freshness</value>
+  </data>
+  <data name="Tenants.Detail.FullTenantIdLabel" xml:space="preserve">
+    <value>Full tenant identifier {0}</value>
+  </data>
+  <data name="Tenants.Detail.IdentityLabel" xml:space="preserve">
+    <value>Tenant identity</value>
+  </data>
+  <data name="Tenants.Detail.LifecycleLabel" xml:space="preserve">
+    <value>Lifecycle</value>
+  </data>
+  <data name="Tenants.Detail.Members.Summary" xml:space="preserve">
+    <value>{0} members, including {1} owners.</value>
+  </data>
+  <data name="Tenants.Detail.Members.Title" xml:space="preserve">
+    <value>Member summary</value>
+  </data>
+  <data name="Tenants.Detail.OverviewLabel" xml:space="preserve">
+    <value>Tenant overview</value>
+  </data>
+  <data name="Tenants.Detail.State.Degraded.Message" xml:space="preserve">
+    <value>Some tenant detail evidence is degraded. Treat the overview as incomplete until the server-side projection recovers.</value>
+  </data>
+  <data name="Tenants.Detail.State.Degraded.Title" xml:space="preserve">
+    <value>Tenant detail is degraded</value>
+  </data>
+  <data name="Tenants.Detail.State.Loading.Message" xml:space="preserve">
+    <value>Tenant detail is loading through the server-side query gateway.</value>
+  </data>
+  <data name="Tenants.Detail.State.Loading.Title" xml:space="preserve">
+    <value>Loading tenant detail</value>
+  </data>
+  <data name="Tenants.Detail.State.NotFound.Message" xml:space="preserve">
+    <value>The requested tenant was not found or is no longer visible to this operator.</value>
+  </data>
+  <data name="Tenants.Detail.State.NotFound.Title" xml:space="preserve">
+    <value>Tenant not found</value>
+  </data>
+  <data name="Tenants.Detail.State.Stale.Message" xml:space="preserve">
+    <value>The latest freshness evidence says this tenant detail is stale. Do not treat it as current.</value>
+  </data>
+  <data name="Tenants.Detail.State.Stale.Title" xml:space="preserve">
+    <value>Tenant detail is stale</value>
+  </data>
+  <data name="Tenants.Detail.State.Unauthorized.Message" xml:space="preserve">
+    <value>This operator is not authorized to view the requested tenant detail.</value>
+  </data>
+  <data name="Tenants.Detail.State.Unauthorized.Title" xml:space="preserve">
+    <value>Tenant detail unauthorized</value>
+  </data>
+  <data name="Tenants.Detail.State.Unavailable.Message" xml:space="preserve">
+    <value>Tenant detail cannot be loaded because the server-side query gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.Detail.State.Unavailable.Title" xml:space="preserve">
+    <value>Tenant detail unavailable</value>
+  </data>
+  <data name="Tenants.Detail.Status.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tenants.Detail.Status.Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Tenants.Detail.Status.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Detail.StatusAccessibleLabel" xml:space="preserve">
+    <value>Tenant status {0}</value>
+  </data>
+  <data name="Tenants.Detail.StatusLabel" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Tenants.Detail.Title" xml:space="preserve">
+    <value>Tenant detail</value>
   </data>
 </root>

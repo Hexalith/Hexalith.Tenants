@@ -9,7 +9,13 @@
 <main class="tenants-workspace" data-testid="tenants-workspace">
     <header class="tenants-workspace__header">
         <p class="tenants-workspace__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
-        <h1>@Localizer["Tenants.List.Title"]</h1>
+        <h1 id="tenants-list-heading" tabindex="-1" @ref="_headingElement">@Localizer["Tenants.List.Title"]</h1>
+        @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
+        {
+            <p class="tenants-workspace__return-context" data-testid="tenants-list-return-context">
+                @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
+            </p>
+        }
     </header>
 
     <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
@@ -84,7 +90,7 @@
             <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Detail="@_snapshot.ErrorMessage" />
         }
 
-        <TenantDataGrid Rows="@_visibleRows" />
+        <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" />
 
         <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
             <button type="button" data-testid="tenants-list-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
@@ -106,13 +112,61 @@
     private string? _statusFilter;
     private string _sortColumn = TenantListSortColumns.TenantId;
     private bool _sortDescending;
+    private string? _selectedTenantId;
+    private string? _returnAnchor;
+    private ElementReference _headingElement;
+    private bool _focusHeadingPending;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? QuerySearch { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "status")]
+    public string? QueryStatus { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "sort")]
+    public string? QuerySort { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "desc")]
+    public bool QuerySortDescending { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cursor")]
+    public string? QueryCursor { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "selected")]
+    public string? QuerySelectedTenantId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "anchor")]
+    public string? QueryAnchor { get; set; }
 
     private bool HasActiveFilters
         => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_statusFilter);
 
     protected override async Task OnInitializedAsync()
     {
+        RestoreContextFromQuery();
+
+        // When returning from a tenant detail surface the launching row may no longer be visible
+        // after the list reloads, so move keyboard focus to the list heading and let the visible
+        // return-context message explain that filters/sort/cursor/selection were restored.
+        _focusHeadingPending = !string.IsNullOrWhiteSpace(_selectedTenantId);
+
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusHeadingPending)
+        {
+            _focusHeadingPending = false;
+            await _headingElement.FocusAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task LoadAsync(bool reuseETag)
@@ -146,6 +200,8 @@
         _statusFilter = null;
         _sortColumn = TenantListSortColumns.TenantId;
         _sortDescending = false;
+        _selectedTenantId = null;
+        _returnAnchor = null;
         ApplyVisibleRows();
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -224,5 +280,29 @@
         };
 
         _visibleRows = rows.ToArray();
+    }
+
+    private string CreateDetailHref(TenantListRow row)
+        => CurrentNavigationContext().ToDetailUrl(row);
+
+    private TenantListNavigationContext CurrentNavigationContext()
+        => new(
+            _search,
+            _statusFilter,
+            _sortColumn,
+            _sortDescending,
+            _currentCursor,
+            _selectedTenantId,
+            _returnAnchor);
+
+    private void RestoreContextFromQuery()
+    {
+        _search = QuerySearch;
+        _statusFilter = QueryStatus;
+        _sortColumn = string.IsNullOrWhiteSpace(QuerySort) ? TenantListSortColumns.TenantId : QuerySort;
+        _sortDescending = QuerySortDescending;
+        _currentCursor = QueryCursor;
+        _selectedTenantId = QuerySelectedTenantId;
+        _returnAnchor = QueryAnchor;
     }
 }

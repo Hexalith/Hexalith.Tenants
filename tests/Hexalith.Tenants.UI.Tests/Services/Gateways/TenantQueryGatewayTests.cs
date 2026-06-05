@@ -4,9 +4,11 @@ using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
+using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 
 using Shouldly;
@@ -15,6 +17,115 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantQueryGatewayTests
 {
+    [Fact]
+    public async Task Get_tenant_submits_literal_detail_query_and_maps_counts_source()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+
+        TenantQueryGateway gateway = new(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), null, CancellationToken.None);
+
+        SubmittedQuery query = client.SubmittedQueries[0];
+        query.Request.Domain.ShouldBe(GetTenantQuery.Domain);
+        query.Request.ProjectionType.ShouldBe(GetTenantQuery.ProjectionType);
+        query.Request.AggregateId.ShouldBe("tenant.alpha");
+        query.Request.EntityId.ShouldBe("tenant.alpha");
+        query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
+        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.IfNoneMatch.ShouldBe("\"known\"");
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
+        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        snapshot.Freshness.ShouldBe(TenantFreshnessState.Current);
+    }
+
+    [Fact]
+    public async Task Get_tenant_uses_previous_snapshot_for_not_modified_response()
+    {
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            Detail("tenant.alpha"),
+            eTag: "\"known\"",
+            freshness: TenantFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("\"known\"");
+
+        TenantQueryGateway gateway = new(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
+        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        snapshot.ETag.ShouldBe("\"known\"");
+    }
+
+    [Fact]
+    public async Task Get_tenant_without_previous_snapshot_reports_degraded_not_modified_state()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("\"known\"");
+
+        TenantQueryGateway gateway = new(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        snapshot.Detail.ShouldBeNull();
+        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+    }
+
+    [Theory]
+    [InlineData(401, TenantDetailSurfaceKind.Unauthorized)]
+    [InlineData(403, TenantDetailSurfaceKind.Unauthorized)]
+    [InlineData(404, TenantDetailSurfaceKind.NotFound)]
+    [InlineData(503, TenantDetailSurfaceKind.Unavailable)]
+    public async Task Get_tenant_maps_gateway_status_to_safe_detail_state(int statusCode, TenantDetailSurfaceKind expected)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            statusCode,
+            "Problem title",
+            detail: "raw payload token secret stack trace correlation-123"));
+
+        TenantQueryGateway gateway = new(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+        string errorMessage = snapshot.ErrorMessage.ShouldNotBeNull();
+        errorMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        errorMessage.ShouldNotContain("token", Case.Insensitive);
+        errorMessage.ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(true, false, TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale)]
+    [InlineData(false, true, TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown)]
+    public async Task Get_tenant_maps_stale_and_degraded_metadata_to_safe_states(
+        bool isStale,
+        bool isDegraded,
+        TenantDetailSurfaceKind expectedKind,
+        TenantFreshnessState expectedFreshness)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+
+        TenantQueryGateway gateway = new(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Freshness.ShouldBe(expectedFreshness);
+        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+    }
+
     [Fact]
     public async Task List_tenants_passes_cursor_without_offset_conversion()
     {
@@ -42,6 +153,7 @@ public sealed class TenantQueryGatewayTests
 
         SubmittedQuery listQuery = client.SubmittedQueries[0];
         listQuery.Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        listQuery.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
         listQuery.Request.Paging.ShouldBeNull();
         JsonElement payload = listQuery.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
@@ -184,9 +296,35 @@ public sealed class TenantQueryGatewayTests
                 Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
             });
 
+        public void EnqueueDetailNotModified(string? eTag)
+            => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
+                null,
+                null,
+                IsNotModified: true,
+                eTag)
+            {
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+            });
+
         public void EnqueueException(Exception exception)
             => _responses.Enqueue(exception);
     }
 
     private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);
+
+    private static TenantDetail Detail(string tenantId)
+        => new(
+            tenantId,
+            "Alpha",
+            "Tenant alpha description",
+            TenantStatus.Active,
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+            ],
+            new Dictionary<string, string>
+            {
+                ["billing.mode"] = "trial",
+            },
+            DateTimeOffset.UtcNow);
 }

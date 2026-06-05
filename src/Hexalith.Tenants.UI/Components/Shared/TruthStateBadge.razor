@@ -4,7 +4,7 @@
 <span class="truth-state-badge truth-state-badge--@CssClass"
       role="status"
       aria-label="@Label"
-      data-testid="tenants-list-truth-state">
+      data-testid="@TestId">
     <span class="truth-state-badge__icon" aria-hidden="true">@Icon</span>
     <span>@Label</span>
 </span>
@@ -12,6 +12,9 @@
 @code {
     [Parameter]
     public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public string TestId { get; set; } = "tenants-list-truth-state";
 
     private string Label => Localizer[$"Tenants.List.Freshness.{Freshness}"];
 

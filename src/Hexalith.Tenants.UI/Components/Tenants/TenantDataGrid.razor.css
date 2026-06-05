@@ -18,6 +18,16 @@
     overflow-wrap: anywhere;
 }
 
+.tenant-data-grid__detail-link {
+    color: LinkText;
+    width: fit-content;
+}
+
+.tenant-data-grid__detail-link:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
 .tenant-data-grid__status {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -61,5 +71,9 @@
     .tenant-data-grid__status {
         border-color: CanvasText;
         color: CanvasText;
+    }
+
+    .tenant-data-grid__detail-link:focus-visible {
+        outline-color: Highlight;
     }
 }

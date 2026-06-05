@@ -3,8 +3,10 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
@@ -13,6 +15,57 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
 {
     private const string SystemTenant = "system";
     private const string TenantIndexAggregateId = "index";
+
+    public async Task<TenantDetailSnapshot> GetTenantAsync(
+        TenantDetailRequest request,
+        TenantDetailSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        try
+        {
+            EventStoreQueryResult<TenantDetail> result = await gatewayClient
+                .SubmitQueryAsync<TenantDetail>(CreateDetailQuery(request.TenantId), request.ETag, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (result.IsNotModified)
+            {
+                return previous?.Detail is null
+                    ? TenantDetailSnapshot.Degraded(null, "Tenant detail was unchanged, but no cached server snapshot is available.", result.ETag)
+                    : previous with
+                    {
+                        // A 304 means the cached snapshot is unchanged, not that a degraded/stale
+                        // snapshot recovered. Preserve the prior truth state; only a previously
+                        // Ready snapshot earns refreshed Current freshness from the conditional hit.
+                        Freshness = previous.Kind is TenantDetailSurfaceKind.Ready ? TenantFreshnessState.Current : previous.Freshness,
+                        ETag = result.ETag ?? previous.ETag,
+                    };
+            }
+
+            if (result.Payload is null)
+            {
+                return TenantDetailSnapshot.Unknown("Tenant detail projection returned no payload.", result.ETag);
+            }
+
+            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            if (result.Metadata?.IsStale == true)
+            {
+                return TenantDetailSnapshot.Stale(result.Payload, result.ETag);
+            }
+
+            if (result.Metadata?.IsDegraded == true)
+            {
+                return TenantDetailSnapshot.Degraded(result.Payload, "Tenant detail projection is degraded.", result.ETag);
+            }
+
+            return TenantDetailSnapshot.Ready(result.Payload, result.ETag, freshness);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapDetailException(request.TenantId, ex);
+        }
+    }
 
     public async Task<TenantListSnapshot> ListTenantsAsync(
         TenantListRequest request,
@@ -82,7 +135,8 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
             {
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
-            }));
+            }),
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
         IReadOnlyList<TenantSummary> summaries,
@@ -127,21 +181,23 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
 
     private async Task<TenantDetail?> LoadTenantDetailAsync(string tenantId, CancellationToken cancellationToken)
     {
-        SubmitQueryRequest query = new(
+        EventStoreQueryResult<TenantDetail> result = await gatewayClient
+            .SubmitQueryAsync<TenantDetail>(CreateDetailQuery(tenantId), ifNoneMatch: null, cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.Payload;
+    }
+
+    private static SubmitQueryRequest CreateDetailQuery(string tenantId)
+        => new(
             SystemTenant,
             GetTenantQuery.Domain,
             tenantId,
             GetTenantQuery.QueryType,
             ProjectionType: GetTenantQuery.ProjectionType,
             Payload: JsonSerializer.SerializeToElement(new { }),
-            EntityId: tenantId);
-
-        EventStoreQueryResult<TenantDetail> result = await gatewayClient
-            .SubmitQueryAsync<TenantDetail>(query, ifNoneMatch: null, cancellationToken)
-            .ConfigureAwait(false);
-
-        return result.Payload;
-    }
+            EntityId: tenantId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
     private static TenantFreshnessState ResolveFreshness(QueryResponseMetadata? metadata, string? eTag)
     {
@@ -165,4 +221,13 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
 
     private static bool IsUnavailableOrInvalid(EventStoreGatewayException exception)
         => exception.StatusCode is >= 400;
+
+    private static TenantDetailSnapshot MapDetailException(string tenantId, EventStoreGatewayException exception)
+        => exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden => TenantDetailSnapshot.Unauthorized(tenantId),
+            (int)HttpStatusCode.NotFound => TenantDetailSnapshot.NotFound(tenantId),
+            (int)HttpStatusCode.BadRequest or (int)HttpStatusCode.ServiceUnavailable => TenantDetailSnapshot.Unavailable("Tenant detail query gateway is unavailable."),
+            _ => TenantDetailSnapshot.Degraded(null, "Tenant detail query gateway returned a safe degraded state."),
+        };
 }

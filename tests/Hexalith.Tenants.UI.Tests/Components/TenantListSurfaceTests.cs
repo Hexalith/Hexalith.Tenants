@@ -38,6 +38,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-refresh']").GetAttribute("type").ShouldBe("button");
         cut.Find("[data-testid='tenants-list-search']").GetAttribute("type").ShouldBe("search");
         cut.Find("[data-testid='tenants-list-reset']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("/tenants/tenant.alpha");
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldContain("No pending changes");
@@ -270,6 +271,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Column.Pending"] = "Pending",
             ["Tenants.List.Column.Freshness"] = "Truth state",
             ["Tenants.List.Count.Unknown"] = "Unknown",
+            ["Tenants.List.DetailLinkLabel"] = "Open tenant details for {0}",
             ["Tenants.List.Pending.None"] = "No pending changes",
             ["Tenants.List.Pending.Unknown"] = "Pending state unknown",
             ["Tenants.List.Freshness.Current"] = "Current",

@@ -1,0 +1,175 @@
+@page "/tenants/{TenantId}"
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject ITenantQueryGateway QueryGateway
+
+<PageTitle>@Localizer["Tenants.Detail.Title"]</PageTitle>
+
+<main class="tenant-detail" data-testid="tenants-detail">
+    <a class="tenant-detail__back"
+       href="@BackHref"
+       data-testid="tenants-detail-back">
+        @Localizer["Tenants.Detail.Back"]
+    </a>
+
+    @if (_snapshot.Kind is TenantDetailSurfaceKind.Loading)
+    {
+        <section class="tenant-detail__state" role="status" data-testid="tenants-detail-loading">
+            <h1>@Localizer["Tenants.Detail.State.Loading.Title"]</h1>
+            <p>@Localizer["Tenants.Detail.State.Loading.Message"]</p>
+        </section>
+    }
+    else if (_snapshot.Kind is TenantDetailSurfaceKind.Unauthorized)
+    {
+        <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-unauthorized">
+            <h1>@Localizer["Tenants.Detail.State.Unauthorized.Title"]</h1>
+            <p>@Localizer["Tenants.Detail.State.Unauthorized.Message"]</p>
+        </section>
+    }
+    else if (_snapshot.Kind is TenantDetailSurfaceKind.NotFound)
+    {
+        <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
+            <h1>@Localizer["Tenants.Detail.State.NotFound.Title"]</h1>
+            <p>@Localizer["Tenants.Detail.State.NotFound.Message"]</p>
+        </section>
+    }
+    else if (_snapshot.Kind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
+    {
+        <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
+            <h1>@Localizer["Tenants.Detail.State.Unavailable.Title"]</h1>
+            <p>@Localizer["Tenants.Detail.State.Unavailable.Message"]</p>
+        </section>
+    }
+    else if (_snapshot.Detail is not null)
+    {
+        @if (_snapshot.Kind is TenantDetailSurfaceKind.Stale)
+        {
+            <section class="tenant-detail__state" role="status" data-testid="tenants-detail-stale">
+                <h2>@Localizer["Tenants.Detail.State.Stale.Title"]</h2>
+                <p>@Localizer["Tenants.Detail.State.Stale.Message"]</p>
+            </section>
+        }
+        else if (_snapshot.Kind is TenantDetailSurfaceKind.Degraded)
+        {
+            <section class="tenant-detail__state" role="status" data-testid="tenants-detail-degraded">
+                <h2>@Localizer["Tenants.Detail.State.Degraded.Title"]</h2>
+                <p>@Localizer["Tenants.Detail.State.Degraded.Message"]</p>
+            </section>
+        }
+
+        <section class="tenant-detail__summary" aria-label="@Localizer["Tenants.Detail.OverviewLabel"]">
+            <header class="tenant-detail__identity" data-testid="tenants-detail-identity">
+                <p class="tenant-detail__eyebrow">@Localizer["Tenants.Detail.IdentityLabel"]</p>
+                <h1>@Detail.Name</h1>
+                <p class="tenant-detail__literal" aria-label="@Localizer["Tenants.Detail.FullTenantIdLabel", Detail.TenantId]">@Detail.TenantId</p>
+                @if (!string.IsNullOrWhiteSpace(Detail.Description))
+                {
+                    <p>@Detail.Description</p>
+                }
+            </header>
+
+            <dl class="tenant-detail__facts">
+                <div>
+                    <dt>@Localizer["Tenants.Detail.StatusLabel"]</dt>
+                    <dd>
+                        <span class="tenant-detail__status tenant-detail__status--@StatusCss(Detail.Status)"
+                              aria-label="@Localizer["Tenants.Detail.StatusAccessibleLabel", StatusLabel(Detail.Status)]">
+                            <span aria-hidden="true">@StatusIcon(Detail.Status)</span>
+                            <span>@StatusLabel(Detail.Status)</span>
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Detail.LifecycleLabel"]</dt>
+                    <dd>@StatusLabel(Detail.Status)</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Detail.FreshnessLabel"]</dt>
+                    <dd><TruthStateBadge Freshness="@_snapshot.Freshness" TestId="tenants-detail-truth-state" /></dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Detail.CreatedAtLabel"]</dt>
+                    <dd>@Detail.CreatedAt.ToString("u", System.Globalization.CultureInfo.CurrentCulture)</dd>
+                </div>
+            </dl>
+
+            <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
+                <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
+                <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
+            </section>
+
+            <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
+                <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
+                <p>@ConfigurationSummary(Detail)</p>
+            </section>
+        </section>
+    }
+    else
+    {
+        <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-degraded">
+            <h1>@Localizer["Tenants.Detail.State.Degraded.Title"]</h1>
+            <p>@Localizer["Tenants.Detail.State.Degraded.Message"]</p>
+        </section>
+    }
+</main>
+
+@code {
+    private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
+
+    [Parameter]
+    public string TenantId { get; set; } = string.Empty;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private string BackHref => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : "/tenants";
+
+    private TenantDetail Detail => _snapshot.Detail ?? throw new InvalidOperationException("Detail is only used when a snapshot is available.");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _snapshot = TenantDetailSnapshot.Loading();
+        _snapshot = await QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(TenantId), null, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    private string ConfigurationSummary(TenantDetail detail)
+        => detail.Configuration.Count == 0
+            ? Localizer["Tenants.Detail.Configuration.Empty"]
+            : Localizer["Tenants.Detail.Configuration.Summary", detail.Configuration.Count, GroupedConfigurationPrefixCount(detail)];
+
+    private static int OwnerCount(TenantDetail detail)
+        => detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
+
+    private static int GroupedConfigurationPrefixCount(TenantDetail detail)
+        => detail.Configuration.Keys
+            .Select(static key =>
+            {
+                int separator = key.IndexOf('.', StringComparison.Ordinal);
+                return separator > 0 ? key[..separator] : key;
+            })
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+
+    private string StatusLabel(TenantStatus status)
+        => Localizer[$"Tenants.Detail.Status.{status}"];
+
+    private static string StatusCss(TenantStatus status)
+        => status.ToString().ToLowerInvariant();
+
+    private static string StatusIcon(TenantStatus status)
+        => status switch
+        {
+            TenantStatus.Active => "OK",
+            TenantStatus.Disabled => "!",
+            _ => "?",
+        };
+
+    private static bool IsSafeReturnUrl(string? returnUrl)
+        => !string.IsNullOrWhiteSpace(returnUrl)
+            && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
+            && !returnUrl.StartsWith("//", StringComparison.Ordinal);
+}

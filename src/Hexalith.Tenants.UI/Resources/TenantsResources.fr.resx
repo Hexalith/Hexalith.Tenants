@@ -69,6 +69,9 @@
   <data name="Tenants.List.Freshness.Unknown" xml:space="preserve">
     <value>Inconnu</value>
   </data>
+  <data name="Tenants.List.DetailLinkLabel" xml:space="preserve">
+    <value>Ouvrir les détails du locataire {0}</value>
+  </data>
   <data name="Tenants.List.Next" xml:space="preserve">
     <value>Suivant</value>
   </data>
@@ -89,6 +92,9 @@
   </data>
   <data name="Tenants.List.Reset" xml:space="preserve">
     <value>Réinitialiser les filtres</value>
+  </data>
+  <data name="Tenants.List.ReturnContext" xml:space="preserve">
+    <value>Retour depuis le locataire {0}. Les filtres, le tri, le curseur et la sélection ont été restaurés avant l'affichage.</value>
   </data>
   <data name="Tenants.List.SearchLabel" xml:space="preserve">
     <value>Rechercher des locataires</value>
@@ -179,5 +185,95 @@
   </data>
   <data name="Tenants.List.Title" xml:space="preserve">
     <value>Locataires</value>
+  </data>
+  <data name="Tenants.Detail.Back" xml:space="preserve">
+    <value>Retour aux locataires</value>
+  </data>
+  <data name="Tenants.Detail.Configuration.Empty" xml:space="preserve">
+    <value>Aucune clé de configuration n'est disponible dans cette projection de détail.</value>
+  </data>
+  <data name="Tenants.Detail.Configuration.Summary" xml:space="preserve">
+    <value>{0} clés de configuration dans {1} groupes sûrs.</value>
+  </data>
+  <data name="Tenants.Detail.Configuration.Title" xml:space="preserve">
+    <value>Résumé de configuration</value>
+  </data>
+  <data name="Tenants.Detail.CreatedAtLabel" xml:space="preserve">
+    <value>Créé</value>
+  </data>
+  <data name="Tenants.Detail.FreshnessLabel" xml:space="preserve">
+    <value>Fraîcheur</value>
+  </data>
+  <data name="Tenants.Detail.FullTenantIdLabel" xml:space="preserve">
+    <value>Identifiant complet du locataire {0}</value>
+  </data>
+  <data name="Tenants.Detail.IdentityLabel" xml:space="preserve">
+    <value>Identité du locataire</value>
+  </data>
+  <data name="Tenants.Detail.LifecycleLabel" xml:space="preserve">
+    <value>Cycle de vie</value>
+  </data>
+  <data name="Tenants.Detail.Members.Summary" xml:space="preserve">
+    <value>{0} membres, dont {1} propriétaires.</value>
+  </data>
+  <data name="Tenants.Detail.Members.Title" xml:space="preserve">
+    <value>Résumé des membres</value>
+  </data>
+  <data name="Tenants.Detail.OverviewLabel" xml:space="preserve">
+    <value>Vue d'ensemble du locataire</value>
+  </data>
+  <data name="Tenants.Detail.State.Degraded.Message" xml:space="preserve">
+    <value>Certaines preuves de détail du locataire sont dégradées. Considérez la vue d'ensemble comme incomplète jusqu'au rétablissement de la projection côté serveur.</value>
+  </data>
+  <data name="Tenants.Detail.State.Degraded.Title" xml:space="preserve">
+    <value>Les détails du locataire sont dégradés</value>
+  </data>
+  <data name="Tenants.Detail.State.Loading.Message" xml:space="preserve">
+    <value>Les détails du locataire sont chargés via la passerelle de requête côté serveur.</value>
+  </data>
+  <data name="Tenants.Detail.State.Loading.Title" xml:space="preserve">
+    <value>Chargement des détails du locataire</value>
+  </data>
+  <data name="Tenants.Detail.State.NotFound.Message" xml:space="preserve">
+    <value>Le locataire demandé est introuvable ou n'est plus visible pour cet opérateur.</value>
+  </data>
+  <data name="Tenants.Detail.State.NotFound.Title" xml:space="preserve">
+    <value>Locataire introuvable</value>
+  </data>
+  <data name="Tenants.Detail.State.Stale.Message" xml:space="preserve">
+    <value>La dernière preuve de fraîcheur indique que ces détails du locataire sont périmés. Ne les considérez pas comme actuels.</value>
+  </data>
+  <data name="Tenants.Detail.State.Stale.Title" xml:space="preserve">
+    <value>Les détails du locataire sont périmés</value>
+  </data>
+  <data name="Tenants.Detail.State.Unauthorized.Message" xml:space="preserve">
+    <value>Cet opérateur n'est pas autorisé à consulter les détails du locataire demandé.</value>
+  </data>
+  <data name="Tenants.Detail.State.Unauthorized.Title" xml:space="preserve">
+    <value>Détails du locataire non autorisés</value>
+  </data>
+  <data name="Tenants.Detail.State.Unavailable.Message" xml:space="preserve">
+    <value>Les détails du locataire ne peuvent pas être chargés car la passerelle de requête côté serveur est indisponible.</value>
+  </data>
+  <data name="Tenants.Detail.State.Unavailable.Title" xml:space="preserve">
+    <value>Détails du locataire indisponibles</value>
+  </data>
+  <data name="Tenants.Detail.Status.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Tenants.Detail.Status.Disabled" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="Tenants.Detail.Status.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.Detail.StatusAccessibleLabel" xml:space="preserve">
+    <value>Statut du locataire {0}</value>
+  </data>
+  <data name="Tenants.Detail.StatusLabel" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Tenants.Detail.Title" xml:space="preserve">
+    <value>Détails du locataire</value>
   </data>
 </root>
