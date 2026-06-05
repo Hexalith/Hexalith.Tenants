@@ -1,9 +1,17 @@
 ---
 project_name: 'Hexalith.Tenants'
 date: '2026-06-05'
-stepsCompleted: ['step-01-document-discovery', 'step-02-prd-analysis', 'step-03-epic-coverage-validation', 'step-04-ux-alignment', 'step-05-epic-quality-review', 'step-06-final-assessment']
+stepsCompleted:
+  [
+    'step-01-document-discovery',
+    'step-02-prd-analysis',
+    'step-03-epic-coverage-validation',
+    'step-04-ux-alignment',
+    'step-05-epic-quality-review',
+    'step-06-final-assessment',
+  ]
 status: 'complete'
-overallReadiness: 'PLANNING-READY / BUILD-START-GATED'
+overallReadiness: 'NEEDS WORK / PLANNING-READY, BUILD-START-GATED'
 filesUnderAssessment:
   [
     'prds/prd-tenants-2026-06-02/prd.md',
@@ -22,288 +30,417 @@ filesUnderAssessment:
 
 ## 1. Document Inventory
 
-**Status:** ✅ Complete — no duplicate (whole + sharded) conflicts found.
+**Status:** Complete - no duplicate whole/sharded conflicts found.
 
 | Type | Canonical Document(s) | Format |
 |------|----------------------|--------|
-| PRD | `prds/prd-tenants-2026-06-02/prd.md` (+ binding `addendum.md`) | Sharded folder |
+| PRD | `prds/prd-tenants-2026-06-02/prd.md` plus binding `addendum.md` | Folder |
 | Architecture | `architecture.md` | Whole |
 | Epics | `epics.md` | Whole |
-| UX | `ux-designs/ux-tenants-2026-06-02/DESIGN.md` + `EXPERIENCE.md` | Sharded folder |
-| Stories | _(none — `implementation-artifacts/` empty)_ | ⚠️ Missing |
+| UX | `ux-designs/ux-tenants-2026-06-02/DESIGN.md` plus `EXPERIENCE.md` | Folder |
 
-**PRD companion artifacts (consulted, not canonical):** 8× `reconcile-*.md`, 4× `review-*.md`, `.decision-log.md`.
-**UX supporting artifacts:** `review-accessibility.md`, `review-rubric.md`, 3× HTML mockups.
-**Correct-Course context (2026-06-03):** `sprint-change-proposal-2026-06-03.md`, `fallback-approval-record-2026-06-03.md`, `frontcomposer-readiness-request-2026-06-03.md`.
+### PRD Files Found
 
-**Warnings carried forward:**
-1. No story files exist yet — build is gated on Story 1.0 (Shell spike) + FrontComposer FC-LYT/FC-CMD contract confirmation. Story-level traceability cannot be fully validated this pass.
-2. PRD has multiple companion overlays; `prd.md` is source of truth, `addendum.md` is a binding overlay (Correct-Course resolutions).
+**Whole Documents:**
+- `prds/prd-tenants-2026-06-02/prd.md` (57,315 bytes, modified 2026-06-03 18:39)
+
+**Sharded / Related Folder:**
+- `prds/prd-tenants-2026-06-02/`
+  - `prd.md`
+  - `addendum.md`
+  - `.decision-log.md`
+  - `reconcile-*.md`
+  - `review-*.md`
+
+### Architecture Files Found
+
+**Whole Documents:**
+- `architecture.md` (53,013 bytes, modified 2026-06-03 18:41)
+
+**Sharded Documents:**
+- None found.
+
+### Epics & Stories Files Found
+
+**Whole Documents:**
+- `epics.md` (111,925 bytes, modified 2026-06-05 15:14)
+
+**Sharded Documents:**
+- None found.
+
+### UX Design Files Found
+
+**Whole Documents:**
+- None found by `*ux*.md` filename pattern.
+
+**Sharded / Related Folder:**
+- `ux-designs/ux-tenants-2026-06-02/`
+  - `DESIGN.md`
+  - `EXPERIENCE.md`
+  - `.decision-log.md`
+  - `review-accessibility.md`
+  - `review-rubric.md`
+  - `mockups/*.html`
+
+### Issues Found
+
+- No critical duplicate document formats found.
+- UX uses a folder format without `index.md`; user confirmed `DESIGN.md` and `EXPERIENCE.md` for assessment.
+- Existing same-date report was reset for the current workflow run after user selected Continue.
 
 ## 2. PRD Analysis
 
-**Source:** `prds/prd-tenants-2026-06-02/prd.md` (status: final) + binding `addendum.md`. Read in full.
+**Sources read:** every file in `prds/prd-tenants-2026-06-02/`: `prd.md`, `addendum.md`, `.decision-log.md`, 8 reconciliation files, and 4 review files.
 
-### Functional Requirements (25)
+**Primary PRD status:** `prd.md` frontmatter status is `final`; `addendum.md` is a binding mechanics/downstream bridge. Several reconciliation/review files were produced before final rewrite and contain findings that the current `prd.md`/`addendum.md` now resolve; unresolved risks are carried below only when still visible in the final PRD/addendum.
 
-| ID | Requirement | Feature / Phase |
-|----|-------------|-----------------|
-| FR-1 | Browse and triage the tenant list (scan, search, filter, sort, cursor-page; row shows identity, status, member/owner count, pending state, Truth State Badge w/ freshness; distinct loading/empty/filtered-empty/error/stale/degraded states; authorization-safe) | Discovery & Triage / 2a MVP |
-| FR-2 | Open a tenant detail and return with selection+filters preserved; deep-linking supported | Discovery / 2a MVP |
-| FR-3 | Self-audit "My Tenants" (signed-in user views own memberships + role; authorization-scoped) | Discovery / 2a MVP |
-| FR-4 | Look up a user's memberships (operator search; authorization-scoped; explicit empty state) | Discovery / 2a MVP |
-| FR-5 | View tenant overview (status, metadata, member/config summaries; no-color-only; freshness) | Detail / 2a MVP |
-| FR-6 | View tenant configuration read-only (grouped by namespace, filtered to owned prefixes) | Detail / 2a MVP |
-| FR-7 | Copy support-safe identifiers (full id, caller-supplied string not ULID; no payloads/tokens/PII) | Detail / 2a MVP |
-| FR-8 | Review the member table read-only (role, owner count, status, freshness, orphan context; accessible semantics; must not imply mutation) | Member Review / 2a MVP |
-| FR-9 | See action availability + plain-language Unavailable Action Reason (6 canonical categories; inline-visible) — reflective in MVP | Member Review / 2a MVP |
-| FR-10 | Add a user to a tenant by user id with explicit role (direct add, no invite; already-member = rejection `UserAlreadyInTenant`, not NoOp) | Member/Role Mgmt / 2b |
-| FR-11 | Change a member's role (same-role = NoOp `already applied`; escalation/`Unknown` rejected; success only after projection confirm) | Member/Role Mgmt / 2b |
-| FR-12 | Remove a user from a tenant (Consequence Preview, fail-closed gating, elevated-friction last-owner, proof via audit, full lifecycle panel) | Member/Role Mgmt / 2c |
-| FR-13 | Create a tenant (existing id rejected `TenantAlreadyExists`; success after projection confirm) | Lifecycle / 2b |
-| FR-14 | Edit tenant metadata (contributor or global admin; always emits `TenantUpdated`, no same-state suppression) | Lifecycle / 2b |
-| FR-15 | Disable/enable a tenant (global admin only; already-set rejected `TenantLifecycleStateAlreadySet`; Consequence Preview; `TenantDisabled` note) | Lifecycle / 2c |
-| FR-16 | Set a configuration value (identical key+value = NoOp; over-limit rejected `ConfigurationLimitExceeded`; preview scope open) | Config Mgmt / 2c |
-| FR-17 | Remove a configuration key (missing key = rejection `ConfigurationKeyNotFound`; success after confirm) | Config Mgmt / 2c |
-| FR-18 | Review global administrators (read; visible only to authorized operators; fixed-identity aggregate; freshness badge) | Global Admin / 2a MVP |
-| FR-19 | Grant/remove a global administrator (last-admin removal rejected `LastGlobalAdministrator` → UI shows *unavailable*, asymmetric w/ last-owner) | Global Admin / 2c |
-| FR-20 | Browse a tenant's audit trail (flat stably-ordered cursor list; date + `AuditEventCategory` filters; ~500 events; flat list = approved FC-AUD fallback) | Audit / 2c |
-| FR-21 | Reach audit from context (nav, tenant row, detail, user lookup, command result; scoped) | Audit / 2c |
-| FR-22 | View an Audit Evidence Receipt (support-safe; assembled client-side from NarrativePayload; no raw payload/PII) | Audit / 2c — ⚠ no backlog row |
-| FR-23 | Distinguish audit availability states (`audit pending`/`delayed`/`unavailable`/`missing implementation support`; each w/ recovery; none shown as success) | Audit / 2c |
-| FR-24 | Start a compensating command ("restore intended access"; new forward command, never "undo"; original untouched) | Recovery / 2c — ⚠ no backlog row |
-| FR-25 | Preview and link the correction (against current state; bidirectional record links; success after confirm) | Recovery / 2c — ⚠ no backlog row |
+### Functional Requirements
 
-### Non-Functional Requirements (5)
+FR-1: Browse and triage the tenant list. A platform operator can scan, search, filter, sort, and page through tenants. The list paginates via cursor, never offset/limit; each row shows tenant identity, status, member count, owner count, pending state, and a Truth State Badge with freshness; loading, empty, filtered-empty, error, stale, and degraded states remain distinct; sorting or paging never hides pending or stale markers; all states are authorization-safe.
 
-| ID | Requirement |
-|----|-------------|
-| NFR-1 | Performance & freshness — cursor pagination + conditional requests; tenant surfaces interactive ≤~1s warm projection; audit ~500 events; budgets `[ASSUMPTION]` |
-| NFR-2 | Security & authorization — server-enforced at API + domain; UI **reflects only, never enforces**; role-scoping in projection/query layer |
-| NFR-3 | Reliability & consistency — eventually consistent; projection is source of truth; correct under at-least-once delivery + projection lag (CP-3/CP-4) |
-| NFR-4 | Observability & testability — every element/status carries a stable automation selector/component contract (never keyed on text/color) |
-| NFR-5 | No data-store edits — never edit/delete/rewrite events/projections/state; corrections are compensating commands only (CP-7) |
+FR-2: Open a tenant and return with context preserved. A user can open tenant detail and return to the list with prior selection and filters intact; returning restores filter/sort/selection and deep-linking to tenant detail is supported.
 
-### Cross-Cutting Interaction Contract (CP-1..CP-10) — product requirements every command FR inherits
+FR-3: Self-audit "My Tenants". A signed-in user can view the tenants they belong to and their role in each; only authorized memberships are shown and each row includes role and tenant status.
 
-CP-1 Five truth dimensions (→ 13-state Truth State Badge) · CP-2 Fail-closed gating · CP-3 Non-collapse invariant (`accepted`≠`confirmed`≠`audit available`; never optimistic success) · CP-4 Live signals are nudges, not proof · CP-5 Consequence Preview before destructive action · CP-6 Asymmetric high-risk handling (last-owner = friction/allowed; last-global-admin = hard-reject/unavailable) · CP-7 Correct forward never "undo" · CP-8 Distinct recovery for every failure mode · CP-9 Authorization reflected not enforced · CP-10 Canonical state sets used verbatim.
+FR-4: Look up a user's memberships. An operator can search for a user and view that user's tenant memberships, and can reach a user from a member row; results are authorization-scoped and a user with no visible memberships shows an explicit empty state.
 
-### Additional Requirements / Constraints
+FR-5: View tenant overview. A user can view a tenant's status, metadata, and member/configuration summaries; lifecycle status uses no-color-only encoding, includes freshness, and shows member/owner counts.
 
-- **§9 Accessibility & Localization:** WCAG 2.1 AA baseline (2.2 AA conditional on Fluent stack); full keyboard/focus/modal-escape; screen-reader names for all statuses; live-region politeness (`assertive` for failures only, never announce success before projection truth); no-color-only; localizable whole-strings (no runtime fragment assembly); **Ready-gate** requires citing a11y/l10n/responsive/`FC-DOC` evidence or an approved fallback. Required acceptance scenarios: stale projection, rejected command, unknown confirmation, audit unavailable, last-owner warning, permission-missing.
-- **§10 Guardrails (support-safety hard rule):** no surface/log/receipt/copy may expose tokens, JWT contents, payloads, event bodies, correlation ids, stack traces, or PII; support-safe references only; empty/error states must not reveal out-of-scope existence.
-- **§5.3 Responsive:** breakpoints mobile 320–767 / tablet 768–1023 / desktop 1024+ / wide 1440+; desktop-first; **mobile read-only (no high-impact commands)**; safety-critical columns never drop; fail-closed responsive rule.
-- **Canonical state sets (addendum §G):** 13-state badge, 5 freshness, 10 command-lifecycle, 10 layered-feedback, 6 unavailable-reason, 4 audit-availability, recovery verbs — used verbatim, casing significant.
-- **Rejection/NoOp matrix (addendum §D):** 13 verified command-outcome cases drive FR consequence text.
+FR-6: View tenant configuration read-only. A user can view tenant configuration key/values, grouped by namespace and filtered to the namespaces they own or are authorized for; out-of-prefix values are hidden and sensitive-value display is out of read-MVP scope.
 
-### PRD Completeness Assessment (initial)
+FR-7: Copy support-safe identifiers. A user can copy a full identifier or support-safe reference; copied content is the full caller-supplied id, not assumed to be a ULID, and never exposes payloads, tokens, correlation ids, or PII.
 
-- **Strengths:** Exceptionally rigorous. Every FR has *testable* consequences; a single cross-cutting contract (CP-1..10) is referenced by ID rather than duplicated; canonical state sets are enumerated once and mirrored verbatim; assumptions are tagged inline and indexed (§17); rejection/NoOp behavior is verified against actual aggregate code. Phasing (2a/2b/2c) is explicit and FR-mapped. Success metrics include counter-metrics.
-- **Known gaps flagged by the PRD itself (carry into traceability):**
-  - FR-22, FR-24, FR-25 have **no `ui-NN` backlog row** and no backend evidence yet (PRD §7.9 note, addendum §A) — committed intent needing a future story.
-  - 13 open questions (§16) remain, several of which gate build: **§16.3 `FC-LYT` layout contract gates even the MVP**; freshness thresholds, config-preview scope, l10n ownership, RTL, WCAG 2.2, cursor durability, audit-area-in-MVP all deferred.
-  - Source `docs/tenants-ui-*` specs contain a **ULID ID-scheme error** (R-6 / §16.12) the PRD overrides but the specs still need correcting.
-- **Build-readiness:** PRD is a *complete plan, not a green light*. Per §14, **no backlog row is unblocked** — gated on `FC-LYT`/`FC-CMD` contract confirmation + Shell-integration spike (the three interim fallbacks FC-AUD/FC-CNS/FC-CNC were approved 2026-06-03).
+FR-8: Review the member table. A user can review a tenant's members with role, owner count, status, freshness, and orphan context, read-only; the table must not imply mutation, exposes accessible semantics, uses the Truth State Badge for freshness, and flags orphan/disabled context.
+
+FR-9: See action availability and reasons. A user can see which member actions would be available and, when unavailable, a plain-language Unavailable Action Reason; in MVP this is reflective only; reasons use the six canonical categories and are inline-visible, not hover-only.
+
+FR-10: Add a user to a tenant. An authorized user can directly add a user to a tenant by caller-supplied user id with an explicit role; there is no invitation/pending step; adding an existing member is rejected as `UserAlreadyInTenant`, not a NoOp; corrective adds state the explicit intended role.
+
+FR-11: Change a member's role. An authorized user can change a member role; changing to the current role is a NoOp shown as `already applied`; role escalation and `Unknown` targets are rejected with safe localized text; success appears only after projection confirmation.
+
+FR-12: Remove a user from a tenant. An authorized user can remove tenant access with Consequence Preview, fail-closed gating, elevated-friction handling, and audit proof. Target, tenant, current role, freshness, and authorization are validated before preview; incomplete preview inputs block submission; owner-count impact, revoked access, recovery path, audit expectation, and known unknowns are shown; last-owner removal adds friction but is not blocked; a target who is also a global administrator raises platform-level friction; the control is not a primary/casual button; already-applied removal and duplicate submits are deduplicated; lifecycle states do not collapse; unconfirmable outcomes show `unable to verify`, never success; every failure maps to recovery.
+
+FR-13: Create a tenant. An authorized operator can create a tenant; existing tenant id is rejected as `TenantAlreadyExists`; success appears only after projection confirmation.
+
+FR-14: Edit tenant metadata. An authorized tenant contributor or global administrator can edit metadata; every successful edit emits `TenantUpdated` with no same-state suppression; validation errors surface as safe localized field messages.
+
+FR-15: Disable or enable a tenant. A global administrator can disable or enable a tenant with Consequence Preview; already-set lifecycle state is rejected as `TenantLifecycleStateAlreadySet`; preview explains disabled state as eventually consistent and that commands targeting disabled tenants are rejected as `TenantDisabled`; success appears only after projection confirmation and status uses no-color-only encoding.
+
+FR-16: Set a configuration value. An authorized user can set a namespaced configuration key/value, with Consequence Preview for high-impact keys; identical key+value is a NoOp shown as `already applied`; over-limit values are rejected as `ConfigurationLimitExceeded`; preview scope for all config edits vs high-risk subset remains open.
+
+FR-17: Remove a configuration key. An authorized user can remove a configuration key; missing key is rejected as `ConfigurationKeyNotFound`; success appears only after projection confirmation.
+
+FR-18: Review global administrators. An authorized operator can review global administrators separately from tenant membership; tenant owners never see it; data comes from the fixed-identity `global-administrators` aggregate and rows show identity plus freshness.
+
+FR-19: Grant or remove a global administrator. An authorized operator can grant or remove a global administrator except the last one; last-global-administrator removal is rejected as `LastGlobalAdministrator` and reflected as unavailable, not as friction; operations stay in `global-administrators` scope and are never conflated with tenant membership.
+
+FR-20: Browse a tenant's audit trail. A user can browse tenant audit entries as a flat, stably ordered cursor-paged list with date and `AuditEventCategory` (`Access` / `Administrative`) filters; it targets roughly 500 events without unacceptable degradation; loading, empty, filtered-empty, and error states are distinct and accessible; flat list is the approved fallback for absent timeline.
+
+FR-21: Reach audit from context. A user can reach audit evidence from navigation, tenant row, tenant detail, user lookup, and command result; each entry point lands scoped to the relevant tenant/user/command.
+
+FR-22: View an Audit Evidence Receipt. A user can view a support-safe receipt for a recorded action: actor, target, tenant scope, outcome, timestamp, projection marker, and audit/command reference; assembled client-side from structured narrative data, never raw payloads, tokens, correlation ids, raw event metadata, or PII; partial completion shows actual lifecycle state such as `audit pending`.
+
+FR-23: Distinguish audit availability states. A user can distinguish `audit pending`, `audit delayed`, `audit unavailable`, and `missing implementation support`, each with a recovery; none is shown as success; recovery includes retry/wait/escalate; missing implementation support reflects `FC-AUD`, not a data error.
+
+FR-24: Start a compensating command. From audit evidence, an authorized user can start a correction such as `restore intended access` or `start correction`; correction is a new forward command with its own preview and proof, never "undo"; original event is untouched; re-add previews against current state and restore-after-last-owner relies on the empty-tenant bootstrap path.
+
+FR-25: Preview and link the correction. A user can preview the correction against current state and have original and corrective records linked; preview reflects current state, both audit records reference each other, and success appears only after projection confirmation.
+
+**Total FRs:** 25
+
+### Non-Functional Requirements
+
+NFR-1: Performance & freshness. Reads use cursor pagination and conditional requests so unchanged data is cheap; freshness is surfaced. Tenant list/detail/member surfaces target interactive rendering in roughly <= 1s on a warm projection for a typical tenant; audit targets roughly 500 events without unacceptable latency; exact budgets remain assumptions.
+
+NFR-2: Security & authorization. Authorization is server-enforced at API/domain layers; UI reflects authorization and never enforces it. The UI must remain safe if it misjudges authorization. Role scoping is enforced in projection/query layer.
+
+NFR-3: Reliability & consistency. The system is eventually consistent; UI treats the projection as source of truth, re-queries to confirm, and remains correct under at-least-once delivery and projection lag.
+
+NFR-4: Observability & testability. Every interactive element and status carries a stable automation selector/component contract, never keyed on row text or color.
+
+NFR-5: No data-store edits. The UI never edits, deletes, or rewrites events, projections, or state to fix data; corrections are compensating commands only.
+
+**Total NFRs:** 5
+
+### Additional Requirements
+
+- CP-1..CP-10 form a mandatory cross-cutting product contract for truth, safety, and recovery: five truth dimensions, fail-closed gating, non-collapse of accepted/confirmed/audit states, live notifications as nudges only, Consequence Preview before destructive actions, asymmetric last-owner vs last-global-administrator handling, correct-forward recovery, recovery for every failure mode, UI-reflected authorization, and canonical state sets used verbatim.
+- Canonical state sets are binding: 13 Truth State Badge states, 5 freshness states, 10 command-lifecycle tokens, 10 layered-feedback states, 6 Unavailable Action Reason categories, 4 audit-availability states, and canonical recovery verbs.
+- Accessibility/localization are definition-of-done requirements: WCAG 2.1 AA baseline, conditional WCAG 2.2 AA, keyboard/focus/modal escape, screen-reader semantics and live-region rules, no-color-only, reduced motion, localizable whole strings, responsive evidence, and ready-gate evidence for a11y/l10n/responsive/docs or approved fallback.
+- Support-safety is a hard guardrail: no UI surface, log, toast, receipt, label, or copied value exposes bearer tokens, decoded JWT content, command payloads, serialized events, raw EventStore metadata, internal correlation ids, stack traces, or PII.
+- Responsive/product-form requirements include desktop-first operations-console design, mobile read-only behavior, breakpoints 320-767 / 768-1023 / 1024+ / 1440+, safety-critical columns never dropping, and fail-closed behavior if width cannot preserve safety context.
+- Dependencies are explicit: `FC-TBL` available; `FC-LYT`, `FC-CMD`, `FC-A11Y`, `FC-L10N`, `FC-DOC` need confirmation; `FC-CNC`, `FC-TOK`, `FC-AUD`, `FC-CNS` have missing component/policy evidence with approved fallback paths for `FC-AUD`, `FC-CNS`, and `FC-CNC`.
+- Backend surfaces are consumed as-is; Tenants must not add backend receipt/consequence/status endpoints or build shared missing FrontComposer components inside this domain repository.
+- Risks/open questions remain: command endpoint route alias, `FC-LYT` layout contract gates even MVP, localization ownership, WCAG 2.2 support, RTL, cursor durability/cursor invalidation behavior, config-preview scope, audit area hide vs stub in MVP, freshness thresholds, sensitive configuration visibility, source-spec ID correction, and owner self-service depth.
+- Scope/phasing: MVP is read-only Phase 2a; Phase 2b first commands remain gated; Phase 2c high-impact/audit/recovery remains gated. The current PRD is a complete plan, not an implementation green light.
+
+### PRD Completeness Assessment
+
+The PRD is strong and unusually traceable: IDs are contiguous (FR-1..25, NFR-1..5, CP-1..10, UJ-1..6), FR consequences are mostly testable, the addendum maps requirements to backlog/spec/dependency surfaces, and domain-fidelity corrections are reflected in the final `prd.md`/`addendum.md` for the major known hazards: caller-supplied tenant/user ids, last-global-administrator rejection, add-existing-member rejection, always-emitting metadata updates, disabled-tenant command rejection, and approved fallback records.
+
+The PRD is not build-ready by itself. It explicitly says no backlog row is unblocked yet; `FC-LYT` gates even the read-only MVP, `FC-CMD` gates commands, and story-level traceability for FR-22/FR-24/FR-25 is not backed by dedicated `ui-NN` rows or backend evidence. Open questions include several true implementation gates, especially layout, cursor behavior, localization ownership, freshness thresholds, and config-preview scope.
 
 ## 3. Epic Coverage Validation
 
-**Source:** `epics.md` (frontmatter `stepsCompleted: [1,2,3,4]`). The document carries its own **Requirements Inventory** (FR-1..25 + NFR-1..5 + 20 UX-DRs) and an explicit **FR Coverage Map** with a self-check. I validated that map against the PRD's 25 FRs.
+**Source:** `epics.md` read in full. The document includes a `Requirements Inventory`, an explicit `FR Coverage Map`, five epics, and story-level `Requirements:` lines.
 
-### Coverage Matrix (PRD FR → Epic)
+### Epic FR Coverage Extracted
 
-| FR | Requirement (abbrev.) | Epic Coverage | Status |
-|----|-----------------------|---------------|--------|
-| FR-1 | Browse/triage tenant list | Epic 1 (Story 1.3) | ✅ Covered |
-| FR-2 | Open detail + preserve context | Epic 1 (Story 1.4) | ✅ Covered |
-| FR-3 | Self-audit "My Tenants" | Epic 2 | ✅ Covered |
-| FR-4 | Look up user memberships | Epic 2 | ✅ Covered |
-| FR-5 | View tenant overview | Epic 1 (Story 1.4) | ✅ Covered |
-| FR-6 | View configuration (read-only) | Epic 2 | ✅ Covered |
-| FR-7 | Copy support-safe identifiers | Epic 1 (Story 1.5) | ✅ Covered *(PRD-flagged weak → now dedicated story)* |
-| FR-8 | Review member table | Epic 2 (Story 2.1) | ✅ Covered |
-| FR-9 | Action availability + reasons | Epic 2 | ✅ Covered |
-| FR-10 | Add user to tenant | Epic 3 | ✅ Covered |
-| FR-11 | Change member's role | Epic 3 | ✅ Covered |
-| FR-12 | Remove user from tenant (flagship UJ-3) | Epic 4 | ✅ Covered |
-| FR-13 | Create a tenant | Epic 3 | ✅ Covered |
-| FR-14 | Edit tenant metadata | Epic 3 | ✅ Covered |
-| FR-15 | Disable/enable tenant | Epic 4 | ✅ Covered *(categorically `blocked`)* |
-| FR-16 | Set configuration value | Epic 4 | ✅ Covered |
-| FR-17 | Remove configuration key | Epic 4 | ✅ Covered |
-| FR-18 | Review global administrators | Epic 2 | ✅ Covered |
-| FR-19 | Grant/remove global admin | Epic 4 | ✅ Covered *(categorically `blocked`)* |
-| FR-20 | Browse audit trail | Epic 5 | ✅ Covered |
-| FR-21 | Reach audit from context | Epic 5 | ✅ Covered |
-| FR-22 | View Audit Evidence Receipt | Epic 5 | ✅ Covered *(PRD-flagged no-backlog-row → net-new story)* |
-| FR-23 | Distinguish audit availability states | Epic 5 | ✅ Covered *(PRD-flagged weak → dedicated AC)* |
-| FR-24 | Start a compensating command | Epic 5 | ✅ Covered *(PRD-flagged no-backlog-row → net-new story)* |
-| FR-25 | Preview + link the correction | Epic 5 | ✅ Covered *(PRD-flagged no-backlog-row → net-new story)* |
+- Epic 1: FR1-FR9
+- Epic 2: FR10-FR14
+- Epic 3: FR15-FR17
+- Epic 4: FR18-FR19
+- Epic 5: FR20-FR25
+
+### Coverage Matrix
+
+| FR | PRD Requirement | Epic / Story Coverage | Status |
+|----|-----------------|-----------------------|--------|
+| FR1 | Tenant list browse/triage | Epic 1, Story 1.2; readiness support Stories 1.0/1.1/1.8 | Covered |
+| FR2 | Tenant detail navigation/context | Epic 1, Story 1.3 | Covered |
+| FR3 | My Tenants self-audit | Epic 1, Story 1.4 | Covered |
+| FR4 | User membership lookup | Epic 1, Story 1.5 | Covered |
+| FR5 | Tenant overview | Epic 1, Story 1.3 | Covered |
+| FR6 | Read-only tenant configuration | Epic 1, Story 1.6 | Covered |
+| FR7 | Support-safe identifier copy | Epic 1, Stories 1.3, 1.6, 1.8 | Covered |
+| FR8 | Member table review | Epic 1, Story 1.7 | Covered |
+| FR9 | Action availability and reasons | Epic 1, Story 1.7; readiness support Story 1.8 | Covered |
+| FR10 | Add user to tenant | Epic 2, Story 2.2 | Covered |
+| FR11 | Change member role | Epic 2, Story 2.3 | Covered |
+| FR12 | Remove tenant member | Epic 2, Story 2.4 | Covered |
+| FR13 | Create tenant | Epic 2, Story 2.1 | Covered |
+| FR14 | Edit tenant metadata | Epic 2, Story 2.5 | Covered |
+| FR15 | Disable/enable tenant | Epic 3, Stories 3.1 and 3.2 | Covered |
+| FR16 | Set tenant configuration | Epic 3, Story 3.3 | Covered |
+| FR17 | Remove tenant configuration | Epic 3, Story 3.4 | Covered |
+| FR18 | Review global administrators | Epic 4, Stories 4.1 and 4.2 | Covered |
+| FR19 | Grant/remove global administrator | Epic 4, Stories 4.1, 4.3, and 4.4 | Covered |
+| FR20 | Browse tenant audit trail | Epic 5, Story 5.1 | Covered |
+| FR21 | Audit evidence entry points | Epic 5, Story 5.2 | Covered |
+| FR22 | Audit Evidence Receipt | Epic 5, Story 5.3 | Covered |
+| FR23 | Audit availability states | Epic 5, Stories 5.2, 5.3, and 5.4 | Covered |
+| FR24 | Start forward correction | Epic 5, Story 5.5 | Covered |
+| FR25 | Preview/link correction | Epic 5, Story 5.6 | Covered |
 
 ### Missing Requirements
 
-**None.** Every PRD FR maps to exactly one epic. No FR appears in two epics; no epic FR is absent from the PRD. **Critically, the four PRD-flagged coverage gaps (FR-22, FR-24, FR-25 had no `ui-NN` backlog row; FR-7 & FR-23 weakly covered) have each been resolved** — the epics author explicitly created net-new stories (FR-22, FR-24, FR-25 in Epic 5; FR-7 as Story 1.5) and dedicated AC treatment (FR-23), and documented this in the "Coverage gaps to author as stories" note. This is exactly the traceability closure a readiness check looks for.
+No PRD FRs are missing from the epics/story plan.
 
-### NFR Coverage (secondary check)
+### Notes
 
-All 5 NFRs are inventoried in `epics.md` and woven into acceptance criteria (e.g. NFR-2 server-side token / BFF egress in Story 1.1; NFR-4 `data-testid` selectors across stories; NFR-1 conditional reads / `304` in Story 1.3; NFR-3 reconnect re-derives truth; NFR-5 no-data-store-edits / no new endpoints). ✅ No NFR orphaned.
+- FR22, FR24, and FR25 were explicitly flagged in the PRD/addendum as not backed by a prior `ui-NN` backlog row. `epics.md` now creates explicit Epic 5 stories for those requirements: Story 5.3, Story 5.5, and Story 5.6. That closes epic/story coverage, but implementation evidence and backend-readiness evidence still need validation in later readiness steps.
+- `epics.md` expands the PRD's five NFRs into NFR1-NFR10 by splitting accessibility, localization, support-safety, responsive behavior, and ready-gate evidence into separate NFRs. This is additive detail, not an extra FR mismatch.
+- No FR numbers appear in the epics outside FR1-FR25.
 
 ### Coverage Statistics
 
-- **Total PRD FRs:** 25
-- **FRs covered in epics:** 25
-- **Coverage percentage: 100%**
-- **Epic distribution:** Epic 1 (4) · Epic 2 (6) · Epic 3 (4) · Epic 4 (5) · Epic 5 (6) — backward-only dependencies, theme boundaries aligned to FrontComposer gate seams (FC-LYT → FC-CMD+FC-CNC → FC-AUD/FC-CNS) and PRD phases (2a→2b→2c).
-- **NFRs:** 5/5 addressed.
-
-> Note: 100% coverage validates *traceability*, not *build-readiness*. Every epic remains externally gated on FrontComposer contract confirmation (FC-LYT gates even Epic 1; the Story 1.0 spike is the gate-closing work). This is assessed in the cross-document analysis step.
+- Total PRD FRs: 25
+- FRs covered in epics: 25
+- Coverage percentage: 100%
 
 ## 4. UX Alignment Assessment
 
 ### UX Document Status
 
-**Found** — two-spine model: `DESIGN.md` (visual spine, status final) + `EXPERIENCE.md` (behavioral spine, status final), plus 3 illustrative HTML mockups (explicitly subordinate — "spine wins on conflict"). Architecture document also read in full for the alignment cross-check.
+UX documentation exists and is final:
 
-### UX ↔ PRD Alignment ✅ Strong
+- `ux-designs/ux-tenants-2026-06-02/DESIGN.md`
+- `ux-designs/ux-tenants-2026-06-02/EXPERIENCE.md`
 
-| Dimension | Finding |
-|-----------|---------|
-| User journeys | EXPERIENCE UJ-1..UJ-6 match PRD §3.3 verbatim (same protagonists Elena/Sofia/Nadia/Marc, phases, and CLIMAX beats). UX adds an explicit surface-coverage check (every IA surface landed by ≥1 journey). ✅ |
-| Information architecture | UX resolves the historical PRD↔UX "Users-nav" divergence to **Users = contextual** (Tenants/Global Administrators/Audit primary) — now consistent across PRD §5.1, UX, architecture, and epics. ✅ |
-| Canonical state sets | UX mirrors addendum §G **verbatim** (13/5/10/10/6/4 + recovery verbs), casing-significant, with the badge-vs-machine token distinction preserved. ✅ |
-| Consequence Preview | UX 10-item content set matches addendum §H exactly; fail-closed on any missing item. ✅ |
-| Rejection/NoOp | EXPERIENCE rejection/NoOp surfacing matches addendum §D (re-add = rejection not NoOp; `TenantUpdated` always emits; etc.). ✅ |
-| Honesty contract | CP-1..CP-10 reproduced and elevated to first-class "Truth & Honesty Invariants"; the DESIGN "Success-is-proven firewall" enforces CP-3 *at the color level* (`accepted` = Informative, never Success). ✅ Notably rigorous. |
-| Support-safety / a11y / l10n / responsive | All PRD §9/§10/§5.3 requirements reflected (WCAG 2.1 AA baseline; no-color-only absolute; whole-string l10n; mobile read-only; fail-closed responsive rule). ✅ |
+Supporting UX artifacts also exist: `.decision-log.md`, `review-accessibility.md`, `review-rubric.md`, and three HTML mockups.
 
-**UX requirements beyond the PRD (additive, not contradictory):** the 10 named domain components, the 8-role Fluent `BadgeColor` mapping, the verified cross-role-distinct status-icon set (pinned Size20), the 3-tier caution ramp, and derived `risk` (`low`/`high`, computed not stored, *not* a standalone tenant-grid column in v1). These refine PRD concepts ("Truth State Badge", "no-color-only", "risk") rather than conflicting with them — and were absorbed into the epics' 20 UX-DRs.
+### UX to PRD Alignment
 
-### UX ↔ Architecture Alignment ✅ Strong
+The final UX spines align tightly with the PRD:
 
-Architecture decisions D1–D10 each have a UX counterpart and **support every UX requirement**:
-- Truth-state model (D5) ↔ UX canonical vocabularies / CP-10; non-collapse enforced in reducer.
-- Command confirmation (D2) ↔ UX "the ONE command-confirmation flow" (UX-DR11) / command-lifecycle-panel.
-- Server-side authorization reflection (D7) ↔ UX unavailable-action-reason 6 categories.
-- Server-side support-safety/redaction (D8) ↔ UX audit-evidence-receipt / NarrativePayload.
-- Freshness conditional reads (D6) ↔ UX freshness 5-state + fail-closed `unknown`.
-- Localization ownership (D4 Tenants-owned `.resx`) ↔ UX no-fragment-assembly — **resolves PRD Open Q#4** (routed to architecture).
-- Fluent v5 pin `5.0.0-rc.3-26138.1` consistent across DESIGN, EXPERIENCE-note, and architecture.
+- The PRD's trust thesis is carried into UX as the "Success is proven only" firewall, no optimistic success, non-collapse of `accepted` / `confirmed` / `audit available`, and SignalR as nudge-only.
+- PRD IA is reflected: Tenants is default, Global Administrators and Audit are primary, Users is contextual from member row/global search rather than a co-equal tab.
+- All major PRD journeys are landed: tenant triage, access review, remove-user, audit/recovery, owner self-service, and tenant onboarding.
+- PRD canonical vocabularies are reproduced in UX with casing distinctions preserved, including badge space-form vs state-machine snake_case forms.
+- PRD fallbacks are reflected: flat audit DataGrid for `FC-AUD`, inline consequence text for `FC-CNS`, and one-at-a-time commands for `FC-CNC`.
+- PRD a11y/l10n/support-safety constraints are carried into UX as explicit component behavior and ready-gate evidence.
+
+### UX to Architecture Alignment
+
+Architecture supports the UX requirements:
+
+- `D1` chooses Blazor InteractiveServer plus server-side BFF, which supports the UX support-safety and no-browser-token requirements.
+- `D2` command confirmation implements the UX command lifecycle: status poll plus SignalR nudge, followed by authoritative projection re-query before `confirmed`.
+- `D5` and the `Vocabulary/` library provide the UX canonical state-token source.
+- `D6` freshness and `D9` cursor handling support UX states for `current`, `aging`, `stale`, `unknown`, invalid cursors, and honest list refresh.
+- `D7` authorization reflection supports UX unavailable-action reasons while preserving server enforcement.
+- `D8` support-safety places receipt/preview/redaction assembly server-side.
+- `D4` resolves localization ownership as Tenants-owned `.resx` resources with whole-string keys, matching UX.
+- Architecture maps the ten UX/domain components to concrete project structure under `Components/Shared/` and feature surfaces.
+
+The only notable source divergence is already reconciled: UX initially referenced Blazor Auto behavior, while architecture selected InteractiveServer + BFF. `EXPERIENCE.md` records architecture `D1` as superseding the Auto assumption; the trust and reconnect invariants still hold.
 
 ### Alignment Issues
 
-1. **Render mode divergence — RESOLVED (recorded reconciliation).** EXPERIENCE.md was authored assuming **Blazor Auto**; architecture **D1 = Blazor InteractiveServer + server-side BFF**. This is explicitly logged in *both* documents as a "recorded divergence, not a contradiction" (NFR-3 honesty invariants hold identically either way; InteractiveServer satisfies them more simply via server-held circuit state). Epics Story 1.1 correctly specifies InteractiveServer. ✅ Closed — but note the EXPERIENCE prose still carries the "Blazor Auto lifecycle constraint" heading with the reconciliation note appended; a future doc-hygiene pass could retitle it. Non-blocking.
-2. **`risk` column nuance — RESOLVED.** PRD §5.3 lists `risk` among never-drop safety-critical columns; DESIGN clarifies risk is derived and pinned *where shown* (member-table/consequence-preview), not a standalone tenant-grid column in v1. Reconciled via the responsive-visual reconcile; consistent across the stack. ✅
-3. **Fluent pinned-version discrepancy — RESOLVED.** An earlier digest cited `rc.2-26098.1`; DESIGN, EXPERIENCE, and architecture all settle on `rc.3-26138.1`. ✅
+No hard UX/PRD/architecture contradictions remain in the final documents.
 
 ### Warnings
 
-- **Fluent UI Blazor v5 is still RC (no GA as of 2026-06).** All three docs require verifying every token/icon/ARIA name against the pinned package at build, and flag RC→GA drift as a tracked risk. This is sound, but it remains a live external risk for the Story 1.2 (badge/icon) and 1.1 (shell) work.
-- **Source `docs/tenants-ui-*` specs still contain the ULID ID-scheme error.** The PRD/UX/architecture/epics all override it correctly (ids are caller-supplied strings), so the *planning stack* is safe — but the underlying spec correction (PRD R-6/§16.12, addendum §E) remains an open action item. Low risk to the UI build since downstream docs are correct; should still be closed to prevent future misreads.
-- **Build-readiness (not a UX-alignment defect):** FC-LYT/FC-CMD contract confirmation + Shell spike still gate the start. Carried to cross-document analysis.
-
-**Overall UX alignment verdict:** UX is complete, internally consistent (visual ↔ behavioral spines cross-reference cleanly), faithfully traces to the PRD, and is fully supported by the architecture. The one genuine cross-document divergence (render mode) is resolved in writing. This is a high-quality, well-reconciled planning set.
+- Build-start is still externally gated by FrontComposer contract confirmation, especially `FC-LYT` for the read MVP and `FC-CMD` for command flows. The approved fallbacks do not remove those contract gates.
+- UX depends on build-time verification against the pinned Fluent UI Blazor version for token, ARIA, contrast, forced-colors, and icon behavior.
+- `FC-A11Y`, `FC-L10N`, and `FC-DOC` are still `needs-confirmation` and are part of story ready-gates.
+- Freshness thresholds and exact performance budgets remain deferred assumptions.
+- `FR-22`/`FR-24`/`FR-25` now have Epic 5 story coverage, but backend evidence and implementation readiness still need validation before build.
 
 ## 5. Epic Quality Review
 
-**Scope reviewed:** `epics.md` — 5 epics, **23 stories** (Epic 1: Story 1.0 spike + 1.1–1.5; Epic 2: 2.1–2.5; Epic 3: 3.1–3.4; Epic 4: 4.1–4.4; Epic 5: 5.1–5.4), assessed against create-epics-and-stories best practices.
+**Source:** `epics.md` reviewed against user-value, independence, dependency, sizing, acceptance-criteria, starter-template, and brownfield integration standards.
 
-### Best-Practices Compliance Checklist
+### Overall Quality
 
-| Criterion | Epic 1 | Epic 2 | Epic 3 | Epic 4 | Epic 5 |
-|-----------|:--:|:--:|:--:|:--:|:--:|
-| Delivers user value (not a technical milestone) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Functions independently (backward-only deps) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Stories appropriately sized | ⚠️ | ✅ | ⚠️ | ⚠️ | ✅ |
-| No forward dependencies | ✅ | ✅ | ✅ | ✅ | ✅ |
-| DB tables created when needed | N/A | N/A | N/A | N/A | N/A |
-| Clear Given/When/Then acceptance criteria | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Traceability to FRs maintained | ✅ | ✅ | ✅ | ✅ | ✅ |
+The epic structure is materially sound. All five epics are framed around user outcomes rather than pure technical milestones:
 
-*(DB-timing N/A: per architecture Data Architecture, the UI owns no datastore — NFR-5 — so the "create tables when needed" criterion does not apply by design, not by omission.)*
+- Epic 1: tenant workspace triage and read-only insight.
+- Epic 2: tenant membership and tenant record management.
+- Epic 3: tenant lifecycle and configuration control.
+- Epic 4: global administrator governance.
+- Epic 5: audit evidence and forward recovery.
 
-### Strengths (notable best-practice adherence)
+Epic ordering is generally valid: Epic 1 establishes the UI foundation and read surfaces; later command/audit epics build on that foundation. No epic requires a later epic to exist before its earlier value can be delivered, provided the acceptance criteria are interpreted honestly around audit/evidence handoff.
 
-- **No technical-milestone epics.** The architecture-mandated foundation (new Blazor host, FrontComposer shell, Fluxor TruthState, `Vocabulary/` library, BFF) is **folded into Epic 1's user-value stories** (triage), not isolated as a value-less "Epic 0: Infrastructure." This is exactly the recommended pattern.
-- **Foundation bundled into first vertical slices, value-first.** The command-confirmation machinery (D2 flow, CommandGateway, CommandLifecyclePanel) is introduced *inside* Story 3.1 (create tenant); the ConsequencePreview + DestructiveControl + fail-closed gating order is introduced *inside* Story 4.1 (flagship remove-user). Each foundation arrives attached to a user-visible outcome.
-- **Greenfield setup handled correctly.** Story 1.1 is a proper "set up initial project from starter" story (creates `src/Hexalith.Tenants.UI`, adds to `.slnx`, wires AppHost/JWT/BFF, stands up the test project that runs in CI) — preceded by the 1.0 enabler spike that closes the FC-LYT/FC-CMD gate.
-- **Strictly backward dependencies — verified story-by-story.** No story references a later story. FR-9 (action availability) was deliberately made *reflective* in Epic 2 so it does not require the Epic 3/4 command flows — preserving Epic 2's independence.
-- **Exceptional AC quality.** Every story uses Given/When/Then, and ACs cite exact tokens, exact rejection events (`UserAlreadyInTenant`, `TenantAlreadyExists`, `LastGlobalAdministrator`, …), exact selectors (`data-testid=…`), NoOp/already-applied/unable-to-verify edge cases, and fail-closed conditions. Error paths are covered as first-class, not afterthoughts.
-- **Per-story external gates are explicit.** Every story carries a `Gate:` line naming its `FC-*` dependencies and fallback status — gates are tracked, never silently assumed cleared.
+### Critical Violations
 
-### Findings by Severity
+No critical epic-level violations found:
 
-#### 🔴 Critical Violations
-**None.** No technical epics, no forward dependencies, no epic-sized un-completable stories, no broken epic independence.
+- No epic is purely "setup database", "API development", or "infrastructure" without user value.
+- No circular dependency between epics was found.
+- No FR is uncovered.
+- No datastore/table-creation timing problem exists; the UI owns no datastore.
 
-#### 🟠 Major Issues
-**None.**
+### Major Issues
 
-#### 🟡 Minor Concerns
+1. **Story 1.0 is an investigation/readiness spike, not a user-value story.**
 
-1. **Foundation-bearing stories are visibly larger than their siblings (sizing heads-up).** Story 1.1 (host + JWT + BFF + shell + Fluxor scaffold + test project), Story 1.2 (full `Vocabulary/` library + TruthStateBadge + reducer non-collapse), Story 3.1 (create-tenant **plus** the entire D2 command-confirmation machinery), and Story 4.1 (remove-user **plus** ConsequencePreview + DestructiveControl + gating order) each bundle a shared foundation into a single story. The value-first bundling is *correct* and not a defect, but these four stories should be **explicitly time-boxed or split during sprint planning** so a foundation hiccup doesn't stall the visible deliverable. Recommend each carry a sub-task breakdown when its story file is authored.
-2. **Stale story count in the footer.** The closing line reads "5 epics, **22** stories" but there are **23** (the Story 1.0 spike was inserted later via the 2026-06-03 Sprint Change Proposal). Update the footer count.
-3. **Epic 4 has a heterogeneous readiness profile.** Stories 4.1/4.3 are tenant-scoped (`planning-only`, fallback-eligible via approved FC-CNS) while 4.2/4.4 are platform-wide and **categorically `blocked` with no fallback**. The epic is therefore not fully completable on fallbacks alone — 4.2/4.4 require the real FC contract confirmations. This is correctly labelled per-story (not a dependency violation, it's an external gate), but worth surfacing so the epic isn't assumed "done" when only its fallback-eligible half can ship.
-4. **Some stories bundle two FRs** (2.4 = FR-3+FR-4; 4.3 = FR-16+FR-17; 5.3 = FR-22+FR-23; 5.4 = FR-24+FR-25). This is acceptable cohesion (closely related capabilities), not a violation — flagged only for visibility; confirm each remains independently testable when story files are authored.
+   Story 1.0 validates FrontComposer shell integration contracts and intentionally has "no product UI behavior yet." This is necessary because `FC-LYT` gates every row, but it should be treated as a timeboxed readiness spike/build gate, not as product delivery.
 
-### Remediation Guidance
+   Recommendation: keep Story 1.0, but mark it explicitly as a spike/prerequisite with bounded outputs and do not count it as delivering user-facing MVP value.
 
-- **Trivial:** correct the footer story count (22 → 23).
-- **At story-file authoring time (`create-story`):** add explicit sub-task/effort breakdowns to the four foundation-bearing stories (1.1, 1.2, 3.1, 4.1); confirm dual-FR stories (2.4, 4.3, 5.3, 5.4) split cleanly into independently verifiable ACs.
-- **At sprint planning:** treat Epic 4 as two readiness tiers (fallback-eligible 4.1/4.3 vs. hard-blocked 4.2/4.4).
+2. **Story 1.1 is a large bootstrap story.**
 
-**Epic-quality verdict:** This is a **high-quality, best-practice-compliant** epic/story set — user-value epics, backward-only dependencies, foundation folded into vertical slices, and unusually rigorous acceptance criteria. The only findings are minor (sizing heads-ups, a stale count, and a readiness-profile note). No structural rework required before implementation.
+   Story 1.1 creates `src/Hexalith.Tenants.UI`, wires shell composition, BFF composition points, AppHost registration, auth compatibility, SDK container setup, unavailable state, and initial tests. This satisfies the starter-template requirement, but it is broad.
+
+   Recommendation: if implementation estimates are high, split into "UI host skeleton + shell route" and "AppHost/container/auth smoke wiring" while preserving the first visible unavailable state.
+
+3. **Story 2.4 may over-promise audit proof before Epic 5.**
+
+   FR12 requires remove-user proof via audit. Story 2.4 includes audit/evidence handoff and unavailable states, while full audit evidence/receipt capability is in Epic 5. This is acceptable only if Story 2.4 never claims proof unless the Epic 5 audit surface exists or the backend/query evidence is available.
+
+   Recommendation: in Story 2.4, make the boundary explicit: it delivers command lifecycle + projection confirmation + honest audit handoff; actual receipt/proof UX is Epic 5 unless already implemented. Acceptance criteria should say `audit available` is shown only when the audit evidence source is present.
+
+4. **Several command stories are large safety-critical slices.**
+
+   Story 2.4 (remove member), Story 3.2 (disable/enable tenant), Story 3.3/3.4 (configuration commands), and Story 4.4 (remove global admin) each combine gating, preview, command submission, projection confirmation, audit states, accessibility, responsive behavior, and test contracts.
+
+   Recommendation: keep them as single stories only if the shared command lifecycle, consequence preview, one-at-a-time policy, and truth-state components are already done. Otherwise split each into availability/preview, submit/confirm, and audit/evidence handoff slices.
+
+### Minor Concerns
+
+1. **Readiness evidence is mixed into product stories.**
+
+   Story 1.8 combines FR7 safe copy behavior with "Epic 1 readiness evidence." The safe-copy part is user value; the readiness-evidence part is process/compliance work.
+
+   Recommendation: keep the safe-copy story user-facing and track readiness evidence as a checklist/gate, or keep the combined story but ensure acceptance criteria clearly separate user behavior from readiness documentation.
+
+2. **Some story titles include readiness/contract language.**
+
+   Examples: Story 4.1 "Global Administrators Navigation and Read Contract Readiness" and Story 3.1 "Tenant Lifecycle Command Availability and Blocked-State Guardrail." These are still user-relevant, but the titles drift toward planning language.
+
+   Recommendation: prefer user-outcome titles such as "Show Safe Global Administrators Navigation" or "Show Lifecycle Action Availability" while keeping the guardrail content in acceptance criteria.
+
+3. **Architecture gap text is now stale.**
+
+   Architecture still contains an older gap that the epics/stories layer was absent, while `epics.md` now exists.
+
+   Recommendation: either update the architecture note or ensure downstream agents treat it as superseded by `epics.md` dated 2026-06-05.
+
+### Dependency Analysis
+
+- Epic 1 stands alone as the first candidate slice once `FC-LYT` is confirmed.
+- Epic 2 can use Epic 1 output and the shared command foundation; no dependency on Epic 3 found.
+- Epic 3 depends on Epic 2 command confirmation patterns, which is a valid backward dependency.
+- Epic 4 depends on read/shell foundations and command patterns, both earlier or same-epic.
+- Epic 5 depends on earlier read/command foundations, which is valid.
+- No story was found that requires a future story to complete its stated minimum behavior, except the audit-proof caution noted for Story 2.4.
+
+### Acceptance Criteria Quality
+
+Strengths:
+
+- Most acceptance criteria use Given/When/Then structure.
+- Error, stale, degraded, unavailable, authorization, accessibility, support-safety, and responsive cases are present.
+- Test contracts are explicit and map to unit/component/Playwright expectations.
+- Stable selectors and no raw payload/token exposure are repeatedly enforced.
+
+Risks:
+
+- Many stories include broad cross-cutting test expectations. This is good for quality but can inflate story size.
+- Some ACs are process/readiness criteria rather than user-observable behavior, especially in spike/readiness stories. Those should remain clearly labeled as spike evidence or story-ready gates.
+
+### Best Practices Compliance Checklist
+
+| Epic | User Value | Independent Sequence | Story Size | No Forward Dependency | AC Quality | Traceability |
+|------|------------|----------------------|------------|-----------------------|------------|--------------|
+| Epic 1 | Pass | Pass, gated by `FC-LYT` | Caution for 1.0/1.1/1.8 | Pass | Pass | Pass |
+| Epic 2 | Pass | Pass with audit-proof caveat | Caution for 2.4 | Caution for 2.4 audit handoff | Pass | Pass |
+| Epic 3 | Pass | Pass | Caution for 3.2/3.3/3.4 | Pass | Pass | Pass |
+| Epic 4 | Pass | Pass | Mostly pass | Pass | Pass | Pass |
+| Epic 5 | Pass | Pass | Mostly pass | Pass | Pass | Pass |
+
+### Quality Review Conclusion
+
+The epics are planning-usable and traceable, but several stories should be treated as large or readiness-oriented. The key remediation is to preserve the distinction between build gates/spikes and user-facing implementation stories, and to keep audit proof from being claimed before the audit evidence stories are implemented.
 
 ## 6. Summary and Recommendations
 
 ### Overall Readiness Status
 
-**PLANNING: ✅ READY** — **BUILD-START: ⛔ EXTERNALLY GATED (not a planning defect).**
+**NEEDS WORK / PLANNING-READY, BUILD-START-GATED**
 
-The planning stack (PRD, Architecture, UX spines, Epics) is **complete, internally consistent, fully traceable, and best-practice compliant**. There are **zero critical and zero major defects** in the artifacts themselves. The only thing standing between this plan and code is a known, tracked **external dependency** — FrontComposer **FC-LYT / FC-CMD** contract confirmation, closed by the **Story 1.0 Shell-integration spike** — plus the fact that **story files have not yet been authored** (the next BMAD step). This is precisely the status the PRD (§14), Architecture (Gap Analysis), and prior readiness reports predicted; it is a downstream gate, not an artifact deficiency.
-
-### Readiness Scorecard
-
-| Dimension | Status | Evidence |
-|-----------|--------|----------|
-| Document inventory (no duplicates) | ✅ READY | §1 — clean; PRD/UX foldered, Arch/Epics single-file |
-| PRD completeness | ✅ READY | §2 — 25 FR / 5 NFR / CP-1..10; self-aware of its own gaps |
-| FR → Epic coverage | ✅ READY | §3 — **100% (25/25)**; all 4 PRD-flagged gaps resolved |
-| NFR coverage | ✅ READY | §3 — 5/5 woven into ACs |
-| UX ↔ PRD ↔ Architecture alignment | ✅ READY | §4 — strong; 1 divergence (render mode) resolved in writing |
-| Epic/story quality | ✅ READY | §5 — 0 critical, 0 major; 4 minor |
-| Story files authored | ⛔ MISSING | `implementation-artifacts/` empty — next step (`create-story`) |
-| FrontComposer build-start gate | ⛔ GATED | FC-LYT/FC-CMD unconfirmed → Story 1.0 spike pending |
-
-### Issue Tally
-
-- **Critical (planning):** 0
-- **Major (planning):** 0
-- **Minor (epic quality):** 4 — foundation-story sizing; stale footer count (22→23); Epic 4 heterogeneous readiness; dual-FR stories
-- **UX alignment:** 3 divergences (all **resolved**) + 2 live warnings (Fluent v5 RC-not-GA; source-spec ULID error uncorrected)
-- **Build-readiness blockers (external/process, not artifact defects):** 2 — Story 1.0 spike not yet run; story files not yet authored
+The planning artifacts are strong enough to support downstream refinement: PRD is final, UX is final, architecture is complete, epics cover all 25 FRs, and no duplicate document conflicts remain. They are **not ready for implementation start** until the explicit build gates and story-quality issues below are resolved.
 
 ### Critical Issues Requiring Immediate Action
 
-> None are *artifact* defects. The two items below are the gating actions that unblock progress.
+1. **FrontComposer contract gates still block build-start.**
+   `FC-LYT` gates even the read-only MVP. `FC-CMD` gates all command flows. `FC-CNC` has an approved one-at-a-time fallback, but the contract/policy still needs confirmation in the implementation path. The first implementation work must not assume these are solved.
 
-1. **Run the Story 1.0 enabler spike** — verify the FrontComposer Shell-integration APIs (`AddHexalithFrontComposer*`, manifest registration, projection routing, FC-TBL) against Shell source and **confirm the FC-LYT + FC-CMD contracts** with the FrontComposer team. This is the **single remaining build-start gate** (FC-AUD/FC-CNS/FC-CNC fallbacks already approved 2026-06-03). If FC-LYT cannot be confirmed, record the constrained-layout fallback path. *Owner: platform engineer + FrontComposer team.*
-2. **Author the story files** — `implementation-artifacts/` is empty. The epics are ready to shard into context-rich story specs (start with 1.0 → 1.1 → 1.2).
+2. **Story 1.0 is a spike, not product delivery.**
+   The shell integration spike is necessary and should happen first, but it should be counted as a timeboxed readiness gate, not as MVP user value.
+
+3. **Story 2.4 must not over-claim audit proof.**
+   Remove-user can deliver command lifecycle and projection confirmation before Epic 5, but audit receipt/proof UX belongs to Epic 5 unless the audit evidence source is already available. The story needs an explicit boundary.
+
+4. **Several command stories are too large unless shared foundations exist first.**
+   Remove member, disable/enable tenant, configuration commands, and remove global administrator each combine gating, preview, command submit, projection confirmation, audit states, accessibility, responsive behavior, and test evidence. These are acceptable only after the shared truth-state, command lifecycle, preview, and one-at-a-time patterns exist.
+
+5. **Build-time UX/a11y verification remains mandatory.**
+   Fluent UI token/ARIA behavior, forced-colors, contrast, icon behavior, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are readiness gates, not optional polish.
 
 ### Recommended Next Steps
 
-1. **Execute Story 1.0 spike** to close the FC-LYT/FC-CMD gate (blocks Story 1.1 build-ready).
-2. **Run `bmad-create-story`** for Story 1.0, then 1.1 (bootstrap) and 1.2 (Vocabulary + badge); add explicit **sub-task/effort breakdowns to the four foundation-bearing stories (1.1, 1.2, 3.1, 4.1)** flagged in §5.
-3. **Run `bmad-sprint-planning`** to generate sprint-status tracking from the epics; treat **Epic 4 as two readiness tiers** (fallback-eligible 4.1/4.3 vs. categorically-blocked 4.2/4.4).
-4. **Trivial doc hygiene** (low effort, do anytime): fix the footer count (22→23); correct the source `docs/tenants-ui-*` **ULID→string** error (PRD R-6/§16.12); retitle EXPERIENCE.md's "Blazor Auto lifecycle constraint" heading to reflect the InteractiveServer reconciliation.
-5. **Set deferred numerics at implementation start:** freshness `current`/`aging`/`stale` thresholds (config), NFR-1 performance budgets, SM-1..6 targets. Resolve remaining open product questions (audit-area-in-MVP hide vs. stub; config-edit preview scope; RTL; WCAG 2.2 vs. pinned Fluent).
-6. **Track the Fluent v5 RC→GA risk** — verify every token/icon/ARIA name against the pinned `5.0.0-rc.3-26138.1` package during Stories 1.1/1.2.
+1. Run the **FrontComposer shell integration spike** as the first work item and record confirmation for `FC-LYT`, `FC-CMD`, and the one-at-a-time command policy.
+2. Update `epics.md` wording for Story 1.0 and Story 2.4: mark the former as a spike/build gate and narrow the latter to projection-confirmed command completion plus honest audit handoff unless Epic 5 proof exists.
+3. Decide whether to split large command stories after the shared command lifecycle and preview foundation is scoped. If the shared foundation is not already complete, split the high-impact stories.
+4. Carry the UX ready-gate evidence into each story: keyboard complete-or-exit, forced-colors, screen-reader, live-region politeness, responsive safety, localization, and `FC-DOC` evidence.
+5. Close deferred numeric assumptions before performance-sensitive implementation: freshness thresholds, read-surface render targets, and audit latency/page-size target.
+6. Treat architecture notes that say epics/stories are absent as superseded by `epics.md` dated 2026-06-05, or update architecture to avoid confusing downstream agents.
+
+### Issue Summary
+
+This assessment identified **12 issues/warnings/concerns across 3 active categories**, with coverage separately confirmed:
+
+- Document inventory: 1 warning, no duplicates.
+- UX/architecture alignment: 4 build-gate warnings, no hard contradiction.
+- Epic quality: 4 major issues and 3 minor concerns.
+- Coverage: 0 missing FRs; 25 of 25 PRD FRs covered.
 
 ### Final Note
 
-This assessment reviewed **6 dimensions** and found **0 critical and 0 major artifact defects**, **4 minor epic-quality concerns**, **3 already-resolved cross-document divergences**, and **2 external/process build-start blockers** (the Story 1.0 spike and the not-yet-authored story files). The planning artifacts are **ready to proceed to story creation** now; **coding should not begin until the Story 1.0 spike confirms FC-LYT/FC-CMD** (or records the layout fallback). The minor findings can be fixed opportunistically and do not block the next step. This is an unusually mature, well-reconciled planning set — proceed with confidence to `create-story`, holding the build-start gate as documented.
+The artifacts are coherent and traceable, but they should be treated as **planning-ready, not build-ready**. Address the contract gates and story-boundary issues before Phase 4 implementation starts.
 
----
-
-**Assessment date:** 2026-06-05
-**Assessor:** Implementation Readiness review (Product Manager lens) — Administrator
-**Method:** 6-step traceability + alignment + epic-quality review against `prd.md` (+`addendum.md`), `architecture.md`, `DESIGN.md`, `EXPERIENCE.md`, `epics.md`.
-**Status:** Complete.
+**Assessor:** Codex using `bmad-check-implementation-readiness`
+**Completed:** 2026-06-05
