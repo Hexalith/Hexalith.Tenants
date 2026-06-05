@@ -1,0 +1,27 @@
+# DAPR Configuration Store Component -- Local Development
+# =============================================================
+# Redis-backed configuration store consumed by EventStore's DaprRateLimitConfigSync
+# background service to read per-tenant rate-limit overrides
+# (keys: `ratelimit:tenants`, `ratelimit:{tenantId}:permit-limit`).
+#
+# Without this component the eventstore sidecar reports "configuration stores not
+# configured" and the sync logs a startup warning before falling back to
+# appsettings.json. Providing it clears the warning and enables live rate-limit
+# overrides without an app restart.
+#
+# Reuses the same `dapr init` Redis instance as statestore.yaml (localhost:6379).
+# Scoped to `eventstore` only — it is the sole consumer.
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: configstore
+spec:
+  type: configuration.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "localhost:6379"
+    - name: redisPassword
+      value: ""
+scopes:
+  - eventstore
