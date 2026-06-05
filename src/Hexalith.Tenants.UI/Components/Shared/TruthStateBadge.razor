@@ -16,7 +16,10 @@
     [Parameter]
     public string TestId { get; set; } = "tenants-list-truth-state";
 
-    private string Label => Localizer[$"Tenants.List.Freshness.{Freshness}"];
+    [Parameter]
+    public string ResourcePrefix { get; set; } = "Tenants.List";
+
+    private string Label => Localizer[$"{ResourcePrefix}.Freshness.{Freshness}"];
 
     private string CssClass => Freshness.ToString().ToLowerInvariant();
 

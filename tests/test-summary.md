@@ -3,33 +3,32 @@
 ## Generated Tests
 
 ### API Tests
-- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` - Source-backed validation of the documented EventStore command gateway route, command status route, package names, contract-deserializable first command JSON requests, and success/rejection response interpretation.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` - My Tenants BFF query gateway coverage for authenticated self-user targeting, `GetUserTenantsQuery` construction, projection actor routing, opaque cursor payloads, authorized empty results, `304` reuse, stale/degraded metadata, unavailable/unauthorized failures, and sanitized gateway errors.
 
 ### E2E Tests
-- [x] `tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs` - End-to-end quickstart documentation contract coverage for prerequisite checks, local AppHost topology paths, DAPR/Docker/submodule setup, local auth assumptions, and command journey signals.
-- [x] `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs` - Existing topology and local Keycloak coverage for DAPR component names/scopes, EventStore domain-service routing, local/production DAPR guidance, and `admin-user` authorization for the quickstart command domains.
-- [x] `tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs` - Existing root solution/submodule/path guard coverage for the quickstart's source and submodule assumptions.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs` - bUnit workflow coverage for the `/tenants/my` surface, populated memberships, loading, authorized empty, unauthorized, unavailable, stale, degraded, cursor paging, stable selectors, accessible state roles, no mutation controls, no browser-side backend/token access, responsive critical-column styles, and forced-colors hooks.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs` - Hosted route smoke coverage for `/tenants/my` safe unavailable self-audit rendering without live membership data.
 
 ## Coverage
-- Story 8.1 acceptance criteria: 5/5 covered by quickstart documentation-contract, topology, local auth, and solution/submodule guard tests.
-- Quickstart prerequisite categories covered: .NET SDK, Docker, full DAPR local runtime, root-level submodules, AppHost startup, EventStore command gateway, local Keycloak/HMAC token assumptions, and tenant/auth claim failure triage.
-- First command path covered: `BootstrapGlobalAdmin` against `global-administrators`, `CreateTenant` against `tenants`, EventStore `POST /api/v1/commands`, `GET /api/v1/commands/status/{correlationId}`, contract-deserializable payloads, ULID-shaped message IDs, and matching `aggregateId`/`payload.TenantId`.
-- Success and error outcomes covered: `202 Accepted`, `Location` status polling, `Completed` with status code `4`, tenant query verification, `Rejected`, `rejectionEventType`, `failureReason`, `GlobalAdminAlreadyBootstrappedRejection`, and `TenantAlreadyExistsRejection`.
-- UI workflows: N/A, Story 8.1 has no UI surface.
+- Story 1.4 acceptance criteria: 7/7 covered across gateway, component workflow, style/accessibility, and route smoke tests.
+- API behaviors covered: self-user requester/target construction, `Domain = tenants`, `ProjectionType = tenant-index`, aggregate id `index`, `ProjectionActorType`, cursor pass-through, no offset conversion, conditional `If-None-Match` handling, `304` snapshot reuse, authorized empty results, stale/degraded metadata, unauthorized/unavailable mappings, and sanitized failures.
+- UI workflows covered: memberships table, tenant identity, role/status/lifecycle/freshness rendering, loading, empty, unauthorized, unavailable, stale, degraded, refresh controls, next/previous paging, stable `data-testid` selectors, keyboard/accessibility state roles, visible non-color-only badges, no command or mutation affordances, and no browser-side backend/token behavior.
+- Route smoke coverage: `/tenants`, `/tenants/{tenantId}`, and `/tenants/my`; `/tenants/my` asserts the safe unavailable self-audit state without requiring live membership data.
 
 ## Validation
-- `dotnet test tests/Hexalith.Tenants.Server.Tests/ --filter FullyQualifiedName~QuickstartDocumentationTests --no-restore -m:1 -nr:false` compiled successfully, then VSTest aborted in this sandbox with `SocketException (13): Permission denied`.
-- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests` passed: 5 total, 0 failed, 0 skipped.
-- `tests/Hexalith.Tenants.Server.Tests/bin/Debug/net10.0/Hexalith.Tenants.Server.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Server.Tests.Configuration.EventPublicationConfigurationTests -class Hexalith.Tenants.Server.Tests.Documentation.QuickstartDocumentationTests` passed: 22 total, 0 failed, 0 skipped.
-- `dotnet test tests/Hexalith.Tenants.Contracts.Tests/ --filter FullyQualifiedName~SolutionStructureTests --no-restore -m:1 -nr:false` compiled successfully, then VSTest aborted in this sandbox with `SocketException (13): Permission denied`.
-- `tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.Contracts.Tests.SolutionStructureTests` passed: 6 total, 0 failed, 0 skipped.
-- `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore -m:1 -nr:false` passed with 0 warnings and 0 errors.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -m:1 -nr:false` was attempted and hit the known .NET 10 Microsoft.Testing.Platform VSTest target error.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -m:1 -nr:false -warnaserror` passed with 0 warnings and 0 errors.
+- `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release --no-restore -m:1 -nr:false -warnaserror` passed with 0 warnings and 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.Components.MyTenantsSurfaceTests -class Hexalith.Tenants.UI.Tests.Services.Gateways.TenantQueryGatewayTests` passed: 37 total, 0 failed, 0 skipped.
+- `tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests` discovered the new `/tenants/my` smoke test; 3 total, 0 failed, 3 skipped because DAPR prerequisites are unavailable.
+- `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -m:1 -nr:false -warnaserror` passed with 0 warnings and 0 errors.
 
 ## Checklist
 - [x] API tests generated if applicable.
-- [x] E2E tests generated for the implemented quickstart/documentation feature.
-- [x] Tests use standard xUnit v3 and Shouldly APIs.
-- [x] Tests cover the happy path and critical prerequisite/auth/rejection error cases.
-- [x] Tests use source-backed route/path assertions instead of hardcoded waits or sleeps.
+- [x] E2E tests generated for the implemented UI surface.
+- [x] Tests use standard xUnit v3, Shouldly, NSubstitute, and bUnit APIs.
+- [x] Tests cover happy path and critical empty/unauthorized/unavailable/stale/degraded/error cases.
+- [x] Tests use semantic/accessibility-oriented assertions and stable selectors.
+- [x] No hardcoded waits or sleeps.
 - [x] Tests are independent and order-free.
 - [x] Test summary created with coverage metrics.

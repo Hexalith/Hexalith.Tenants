@@ -186,6 +186,129 @@
   <data name="Tenants.List.Title" xml:space="preserve">
     <value>Tenants</value>
   </data>
+  <data name="Tenants.MyTenants.Back" xml:space="preserve">
+    <value>Back to tenants</value>
+  </data>
+  <data name="Tenants.MyTenants.Column.Freshness" xml:space="preserve">
+    <value>Freshness</value>
+  </data>
+  <data name="Tenants.MyTenants.Column.Lifecycle" xml:space="preserve">
+    <value>Lifecycle</value>
+  </data>
+  <data name="Tenants.MyTenants.Column.Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="Tenants.MyTenants.Column.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Tenants.MyTenants.Column.Tenant" xml:space="preserve">
+    <value>Tenant</value>
+  </data>
+  <data name="Tenants.MyTenants.ControlsLabel" xml:space="preserve">
+    <value>My Tenants controls</value>
+  </data>
+  <data name="Tenants.MyTenants.Description" xml:space="preserve">
+    <value>Read-only view of tenants visible to your signed-in account.</value>
+  </data>
+  <data name="Tenants.MyTenants.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.MyTenants.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.MyTenants.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.MyTenants.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.MyTenants.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.MyTenants.Lifecycle.FromStatus" xml:space="preserve">
+    <value>Lifecycle from status: {0}</value>
+  </data>
+  <data name="Tenants.MyTenants.Link" xml:space="preserve">
+    <value>My tenants</value>
+  </data>
+  <data name="Tenants.MyTenants.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Tenants.MyTenants.PaginationLabel" xml:space="preserve">
+    <value>My Tenants pages</value>
+  </data>
+  <data name="Tenants.MyTenants.Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Tenants.MyTenants.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Tenants.MyTenants.Role.TenantContributor" xml:space="preserve">
+    <value>Tenant contributor</value>
+  </data>
+  <data name="Tenants.MyTenants.Role.TenantOwner" xml:space="preserve">
+    <value>Tenant owner</value>
+  </data>
+  <data name="Tenants.MyTenants.Role.TenantReader" xml:space="preserve">
+    <value>Tenant reader</value>
+  </data>
+  <data name="Tenants.MyTenants.Role.Unknown" xml:space="preserve">
+    <value>Unknown role</value>
+  </data>
+  <data name="Tenants.MyTenants.RoleAccessible" xml:space="preserve">
+    <value>Role: {0}</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Degraded.Message" xml:space="preserve">
+    <value>Some membership evidence is degraded. Visible rows are not represented as current.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Degraded.Title" xml:space="preserve">
+    <value>My Tenants data is degraded</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Empty.Message" xml:space="preserve">
+    <value>No tenants are visible for your signed-in account. This authorized empty result is not an error.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Empty.Title" xml:space="preserve">
+    <value>No visible memberships</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Loading.Message" xml:space="preserve">
+    <value>Your tenant memberships are loading from the server-side query gateway.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Loading.Title" xml:space="preserve">
+    <value>Loading my tenants</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Stale.Message" xml:space="preserve">
+    <value>The latest freshness evidence says these memberships are stale. Refresh to check the projection again.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Stale.Title" xml:space="preserve">
+    <value>My Tenants data is stale</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Unauthorized.Message" xml:space="preserve">
+    <value>The signed-in user could not be verified for this self-audit view.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Unauthorized.Title" xml:space="preserve">
+    <value>My Tenants is unauthorized</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Unavailable.Message" xml:space="preserve">
+    <value>My Tenants is unavailable until the server-side query gateway can be reached.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Unavailable.Title" xml:space="preserve">
+    <value>My Tenants is unavailable</value>
+  </data>
+  <data name="Tenants.MyTenants.Status.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tenants.MyTenants.Status.Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Tenants.MyTenants.Status.Unknown" xml:space="preserve">
+    <value>Unknown status</value>
+  </data>
+  <data name="Tenants.MyTenants.StatusAccessible" xml:space="preserve">
+    <value>Status: {0}</value>
+  </data>
+  <data name="Tenants.MyTenants.Title" xml:space="preserve">
+    <value>My Tenants</value>
+  </data>
   <data name="Tenants.Detail.Back" xml:space="preserve">
     <value>Back to tenants</value>
   </data>

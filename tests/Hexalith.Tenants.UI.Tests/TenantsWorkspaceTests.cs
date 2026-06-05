@@ -104,6 +104,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.List.StatusFilter.Unknown"] = "Unknown",
             ["Tenants.List.StatusFilterLabel"] = "Status",
             ["Tenants.List.Title"] = "Tenants",
+            ["Tenants.MyTenants.Link"] = "My tenants",
         };
 
         public LocalizedString this[string name]

@@ -3,15 +3,19 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.UserTenants;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient) : ITenantQueryGateway
+internal sealed class TenantQueryGateway(
+    IEventStoreGatewayClient gatewayClient,
+    IUserContextAccessor userContextAccessor) : ITenantQueryGateway
 {
     private const string SystemTenant = "system";
     private const string TenantIndexAggregateId = "index";
@@ -64,6 +68,88 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
         catch (EventStoreGatewayException ex)
         {
             return MapDetailException(request.TenantId, ex);
+        }
+    }
+
+    public async Task<UserTenantMembershipSnapshot> GetMyTenantsAsync(
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        string? authenticatedUserId = userContextAccessor.UserId;
+        if (string.IsNullOrWhiteSpace(authenticatedUserId))
+        {
+            return UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser);
+        }
+
+        try
+        {
+            SubmitQueryRequest query = CreateUserTenantsQuery(authenticatedUserId, request);
+            EventStoreQueryResult<PaginatedResult<UserTenantMembership>> result = await gatewayClient
+                .SubmitQueryAsync<PaginatedResult<UserTenantMembership>>(query, request.ETag, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (result.IsNotModified)
+            {
+                return previous is null
+                    ? UserTenantMembershipSnapshot.Degraded(
+                        [],
+                        UserTenantMembershipReason.NotModifiedWithoutSnapshot,
+                        result.ETag)
+                    : previous with
+                    {
+                        ETag = result.ETag ?? previous.ETag,
+                        Freshness = previous.Kind is UserTenantMembershipSurfaceKind.Ready
+                            or UserTenantMembershipSurfaceKind.Empty
+                                ? TenantFreshnessState.Current
+                                : previous.Freshness,
+                    };
+            }
+
+            PaginatedResult<UserTenantMembership> payload = result.Payload
+                ?? new PaginatedResult<UserTenantMembership>([], null, false);
+            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            IReadOnlyList<UserTenantMembershipRow> rows = payload.Items
+                .Select(m => UserTenantMembershipRow.FromMembership(m) with
+                {
+                    Freshness = freshness,
+                })
+                .ToArray();
+
+            if (result.Metadata?.IsStale == true)
+            {
+                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
+                return UserTenantMembershipSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
+            }
+
+            if (result.Metadata?.IsDegraded == true)
+            {
+                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Unknown }).ToArray();
+                return UserTenantMembershipSnapshot.Degraded(
+                    rows,
+                    UserTenantMembershipReason.ProjectionDegraded,
+                    result.ETag,
+                    payload.Cursor,
+                    payload.HasMore);
+            }
+
+            if (rows.Count == 0)
+            {
+                return UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag);
+            }
+
+            return UserTenantMembershipSnapshot.Ready(
+                rows,
+                payload.Cursor,
+                payload.HasMore,
+                result.ETag,
+                freshness);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapUserTenantException(ex);
         }
     }
 
@@ -136,6 +222,21 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
             }),
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+
+    private static SubmitQueryRequest CreateUserTenantsQuery(string authenticatedUserId, UserTenantMembershipRequest request)
+        => new(
+            authenticatedUserId,
+            GetUserTenantsQuery.Domain,
+            TenantIndexAggregateId,
+            GetUserTenantsQuery.QueryType,
+            ProjectionType: GetUserTenantsQuery.ProjectionType,
+            Payload: JsonSerializer.SerializeToElement(new
+            {
+                cursor = request.Cursor,
+                pageSize = request.PageSize,
+            }),
+            EntityId: authenticatedUserId,
             ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
@@ -229,5 +330,15 @@ internal sealed class TenantQueryGateway(IEventStoreGatewayClient gatewayClient)
             (int)HttpStatusCode.NotFound => TenantDetailSnapshot.NotFound(tenantId),
             (int)HttpStatusCode.BadRequest or (int)HttpStatusCode.ServiceUnavailable => TenantDetailSnapshot.Unavailable("Tenant detail query gateway is unavailable."),
             _ => TenantDetailSnapshot.Degraded(null, "Tenant detail query gateway returned a safe degraded state."),
+        };
+
+    private static UserTenantMembershipSnapshot MapUserTenantException(EventStoreGatewayException exception)
+        => exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => UserTenantMembershipSnapshot.Unauthorized(),
+            (int)HttpStatusCode.BadRequest or (int)HttpStatusCode.ServiceUnavailable
+                => UserTenantMembershipSnapshot.Unavailable(),
+            _ => UserTenantMembershipSnapshot.Degraded([], UserTenantMembershipReason.GatewayFailure),
         };
 }

@@ -1,0 +1,47 @@
+.my-tenants-page {
+    display: grid;
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.my-tenants-page__header {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.my-tenants-page__eyebrow {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.my-tenants-page h1,
+.my-tenants-page h2,
+.my-tenants-page p {
+    margin: 0;
+}
+
+.my-tenants-page__controls,
+.my-tenants-page__pager {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.my-tenants-page__controls button,
+.my-tenants-page__pager button {
+    min-height: 2.25rem;
+}
+
+.my-tenants-page__controls a {
+    color: LinkText;
+}
+
+@media (forced-colors: active) {
+    .my-tenants-page__controls button:focus-visible,
+    .my-tenants-page__controls a:focus-visible,
+    .my-tenants-page__pager button:focus-visible {
+        outline-color: Highlight;
+    }
+}

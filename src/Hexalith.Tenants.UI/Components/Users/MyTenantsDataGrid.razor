@@ -1,0 +1,94 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.UI.State.UserTenants
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<div class="my-tenants-grid" data-testid="tenants-my-list">
+    <FluentDataGrid Items="@Rows.AsQueryable()"
+                    ResizableColumns="true"
+                    ReorderableColumns="false"
+                    GenerateHeader="DataGridGeneratedHeaderType.Sticky"
+                    ItemKey="@(row => row.TenantId)">
+        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Tenant"]"
+                        ColumnId="tenant-id"
+                        Class="tenants-my-critical tenants-my-critical--identity"
+                        Width="240px"
+                        Pin="DataGridColumnPin.Start">
+            <div class="my-tenants-grid__identity"
+                 data-testid="tenants-my-row">
+                <strong data-testid="tenants-my-tenant-id">@context.TenantId</strong>
+                <span>@context.Name</span>
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Role"]"
+                        ColumnId="tenant-role"
+                        Class="tenants-my-critical tenants-my-critical--role"
+                        Width="165px"
+                        Pin="DataGridColumnPin.Start">
+            <span class="my-tenants-grid__badge my-tenants-grid__badge--role-@RoleCss(context.Role)"
+                  aria-label="@Localizer["Tenants.MyTenants.RoleAccessible", RoleLabel(context.Role)]"
+                  data-testid="tenants-my-role">
+                <span aria-hidden="true">@RoleIcon(context.Role)</span>
+                <span>@RoleLabel(context.Role)</span>
+            </span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Status"]"
+                        ColumnId="tenant-status"
+                        Class="tenants-my-critical tenants-my-critical--status"
+                        Width="150px">
+            <span class="my-tenants-grid__badge my-tenants-grid__badge--status-@StatusCss(context.Status)"
+                  aria-label="@Localizer["Tenants.MyTenants.StatusAccessible", StatusLabel(context.Status)]"
+                  data-testid="tenants-my-status">
+                <span aria-hidden="true">@StatusIcon(context.Status)</span>
+                <span>@StatusLabel(context.Status)</span>
+            </span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Lifecycle"]"
+                        ColumnId="tenant-lifecycle"
+                        Class="tenants-my-critical tenants-my-critical--lifecycle"
+                        Width="160px">
+            @Localizer["Tenants.MyTenants.Lifecycle.FromStatus", StatusLabel(context.Status)]
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Freshness"]"
+                        ColumnId="tenant-freshness"
+                        Class="tenants-my-critical tenants-my-critical--freshness"
+                        Width="170px">
+            <TruthStateBadge Freshness="@context.Freshness"
+                             TestId="tenants-my-truth-state"
+                             ResourcePrefix="Tenants.MyTenants" />
+        </TemplateColumn>
+    </FluentDataGrid>
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<UserTenantMembershipRow> Rows { get; set; } = [];
+
+    private string RoleLabel(TenantRole role)
+        => Localizer[$"Tenants.MyTenants.Role.{role}"];
+
+    private string StatusLabel(TenantStatus status)
+        => Localizer[$"Tenants.MyTenants.Status.{status}"];
+
+    private static string RoleCss(TenantRole role)
+        => role.ToString().ToLowerInvariant();
+
+    private static string StatusCss(TenantStatus status)
+        => status.ToString().ToLowerInvariant();
+
+    private static string RoleIcon(TenantRole role)
+        => role switch
+        {
+            TenantRole.TenantOwner => "O",
+            TenantRole.TenantContributor => "C",
+            TenantRole.TenantReader => "R",
+            _ => "?",
+        };
+
+    private static string StatusIcon(TenantStatus status)
+        => status switch
+        {
+            TenantStatus.Active => "OK",
+            TenantStatus.Disabled => "!",
+            _ => "?",
+        };
+}

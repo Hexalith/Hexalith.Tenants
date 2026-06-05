@@ -1,0 +1,103 @@
+@page "/tenants/my"
+@using Hexalith.Tenants.UI.Components.Users
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject ITenantQueryGateway QueryGateway
+
+<PageTitle>@Localizer["Tenants.MyTenants.Title"]</PageTitle>
+
+<main class="my-tenants-page" data-testid="tenants-my-page">
+    <header class="my-tenants-page__header">
+        <p class="my-tenants-page__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
+        <h1>@Localizer["Tenants.MyTenants.Title"]</h1>
+        <p>@Localizer["Tenants.MyTenants.Description"]</p>
+    </header>
+
+    <section class="my-tenants-page__controls" aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
+        <button type="button" data-testid="tenants-my-refresh" @onclick="RefreshAsync">
+            @Localizer["Tenants.MyTenants.Refresh"]
+        </button>
+        <a href="/tenants" data-testid="tenants-my-back">@Localizer["Tenants.MyTenants.Back"]</a>
+    </section>
+
+    @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
+    {
+        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Loading" />
+    }
+    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Empty)
+    {
+        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Empty" />
+    }
+    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unauthorized)
+    {
+        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unauthorized" />
+    }
+    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unavailable)
+    {
+        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unavailable" />
+    }
+    else
+    {
+        @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Stale)
+        {
+            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Stale" OnRefresh="RefreshAsync" />
+        }
+        else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Degraded)
+        {
+            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Degraded" OnRefresh="RefreshAsync" />
+        }
+
+        <MyTenantsDataGrid Rows="@_snapshot.Rows" />
+
+        <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]">
+            <button type="button" data-testid="tenants-my-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                @Localizer["Tenants.MyTenants.Previous"]
+            </button>
+            <button type="button" data-testid="tenants-my-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                @Localizer["Tenants.MyTenants.Next"]
+            </button>
+        </nav>
+    }
+</main>
+
+@code {
+    private UserTenantMembershipSnapshot _snapshot = UserTenantMembershipSnapshot.Loading();
+    private readonly Stack<string?> _cursorHistory = new();
+    private string? _currentCursor;
+
+    protected override async Task OnInitializedAsync()
+        => await LoadAsync(reuseETag: false).ConfigureAwait(false);
+
+    private async Task LoadAsync(bool reuseETag)
+    {
+        UserTenantMembershipSnapshot previous = _snapshot;
+        _snapshot = UserTenantMembershipSnapshot.Loading();
+
+        UserTenantMembershipRequest request = new(
+            Cursor: _currentCursor,
+            PageSize: 20,
+            ETag: reuseETag ? previous.ETag : null);
+
+        _snapshot = await QueryGateway
+            .GetMyTenantsAsync(request, previous, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    private async Task RefreshAsync()
+        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task NextPageAsync()
+    {
+        _cursorHistory.Push(_currentCursor);
+        _currentCursor = _snapshot.NextCursor;
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (_cursorHistory.Count > 0)
+        {
+            _currentCursor = _cursorHistory.Pop();
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+}

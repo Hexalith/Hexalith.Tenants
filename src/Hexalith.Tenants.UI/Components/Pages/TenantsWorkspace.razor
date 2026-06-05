@@ -57,6 +57,11 @@
         <button type="button" data-testid="tenants-list-reset" @onclick="ResetFiltersAsync">
             @Localizer["Tenants.List.Reset"]
         </button>
+        <a class="tenants-workspace__context-link"
+           href="/tenants/my"
+           data-testid="tenants-my-link">
+            @Localizer["Tenants.MyTenants.Link"]
+        </a>
     </section>
 
     @if (_snapshot.Kind is TenantListSurfaceKind.Loading)

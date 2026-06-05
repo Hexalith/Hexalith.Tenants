@@ -1,0 +1,27 @@
+.my-tenants-state {
+    border: 1px solid CanvasText;
+    display: grid;
+    gap: 0.5rem;
+    max-width: 48rem;
+    padding: 1rem;
+}
+
+.my-tenants-state h2,
+.my-tenants-state p {
+    margin: 0;
+}
+
+.my-tenants-state button {
+    min-height: 2.25rem;
+    width: fit-content;
+}
+
+@media (forced-colors: active) {
+    .my-tenants-state {
+        border-color: CanvasText;
+    }
+
+    .my-tenants-state button:focus-visible {
+        outline-color: Highlight;
+    }
+}

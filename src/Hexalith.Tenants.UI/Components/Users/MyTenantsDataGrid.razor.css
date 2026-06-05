@@ -1,0 +1,71 @@
+.my-tenants-grid {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.my-tenants-grid fluent-data-grid {
+    min-width: 56rem;
+}
+
+.my-tenants-grid__identity {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.my-tenants-grid__identity strong,
+.my-tenants-grid__identity span {
+    overflow-wrap: anywhere;
+}
+
+.my-tenants-grid__badge {
+    align-items: center;
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: inline-flex;
+    font-weight: 600;
+    gap: 0.35rem;
+    padding: 0.15rem 0.4rem;
+}
+
+.my-tenants-grid__badge--status-active,
+.my-tenants-grid__badge--role-tenantowner {
+    color: #0f6c2f;
+}
+
+.my-tenants-grid__badge--status-disabled,
+.my-tenants-grid__badge--status-unknown,
+.my-tenants-grid__badge--role-tenantcontributor,
+.my-tenants-grid__badge--role-tenantreader,
+.my-tenants-grid__badge--role-unknown {
+    color: #414042;
+}
+
+.tenants-my-critical {
+    min-width: 7rem;
+}
+
+@media (max-width: 767px) {
+    .my-tenants-grid fluent-data-grid {
+        min-width: 50rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .my-tenants-grid fluent-data-grid {
+        min-width: 54rem;
+    }
+}
+
+@media (min-width: 1440px) {
+    .my-tenants-grid fluent-data-grid {
+        min-width: 64rem;
+    }
+}
+
+@media (forced-colors: active) {
+    .my-tenants-grid__badge {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+}
