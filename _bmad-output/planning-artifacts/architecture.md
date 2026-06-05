@@ -124,11 +124,19 @@ verbatim) — translating directly into a **shared client-side truth-state model
   status assembled client-side from already-loaded read-model fields.
 - **FrontComposer is the mandated UI framework AND the critical path.** Per repo domain-
   boundary policy, missing shared UI capability belongs in FrontComposer, not Tenants.
-  Readiness: `FC-TBL` available; `FC-LYT`/`FC-CMD`/`FC-A11Y`/`FC-L10N`/`FC-DOC`
-  needs-confirmation; `FC-CNC`/`FC-TOK`/`FC-AUD`/`FC-CNS` missing. **FC-LYT gates even
-  the read-only MVP; FC-CMD+FC-CNC gate all commands.** The FC-AUD/FC-CNS/FC-CNC
-  fallbacks are Product/UX-approved (2026-06-03 — see the Fallback Approval Record,
-  `fallback-approval-record-2026-06-03.md`).
+  Readiness updated by Story 1.0 spike note (2026-06-05): `FC-LYT`, `FC-CMD`,
+  `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed; `FC-TBL` is available
+  with caveats; `FC-AUD` and `FC-CNS` remain covered by Product/UX-approved fallbacks;
+  `FC-TOK` remains a missing shared capability covered by Tenants' canonical vocabulary
+  and verified Fluent semantic/icon mapping until a shared token contract exists. The
+  FC-AUD/FC-CNS/FC-CNC fallbacks are Product/UX-approved (2026-06-03 - see the
+  Fallback Approval Record, `fallback-approval-record-2026-06-03.md`). `FC-TBL` does
+  not provide cursor pagination, safety-column pinning, or the six non-collapsing list
+  states required by Tenants. Tenant-list implementation must record a boundary decision
+  before build-start: either compose a Tenants-specific `TenantDataGrid` from
+  Fluent/FrontComposer primitives while keeping generic grid capability in FrontComposer,
+  or move reusable cursor/pinning/list-state support into FrontComposer before consuming
+  it here.
 - **Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
 - **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
@@ -393,8 +401,8 @@ existing projections only.
 **Implementation Sequence:**
 1. **Bootstrap** `Hexalith.Tenants.UI` — shell composition, auth, BFF query gateway, Fluxor
    truth-state foundation + canonical-vocabulary library (the "Epic 1 / Story 1" bootstrap).
-2. **Read surfaces (MVP — FR-1..9, FR-18)** once **FC-LYT** is confirmed.
-3. **First command flows (FR-10/11/13/14)** once **FC-CMD + FC-CNC** resolve.
+2. **Read surfaces (MVP — FR-1..9, FR-18)** using the confirmed **FC-LYT** contract.
+3. **First command flows (FR-10/11/13/14)** using the confirmed **FC-CMD + FC-CNC** contracts.
 4. **High-impact + audit + recovery (FR-12/15-17/19/20-25)** on the approved **FC-AUD/FC-CNS**
    fallbacks.
 
@@ -402,14 +410,18 @@ existing projections only.
 The **Fluxor truth-state model**, **canonical-vocabulary library**, **BFF query/command gateway**,
 **authorization-reflection service**, and **support-safety/redaction layer** are shared foundations
 every surface depends on → built first. FrontComposer contract confirmations (FC-LYT/FC-CMD/FC-CNC)
-gate phases; the FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured** (2026-06-03 —
-see `fallback-approval-record-2026-06-03.md`); the FC-LYT/FC-CMD/FC-CNC contract confirmations gate phase-2c.
+are closed by Story 1.0 (2026-06-05); the FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
+(2026-06-03 - see `fallback-approval-record-2026-06-03.md`). The remaining pre-list implementation
+decision is the `FC-TBL` caveat: Tenants-specific `TenantDataGrid` composition versus a reusable
+FrontComposer grid enhancement.
 
 **Action items this architecture surfaces:**
 - ✅ Product/UX approval for the **FC-AUD flat-audit**, **FC-CNS inline-consequence**, and
   **FC-CNC one-at-a-time** fallbacks — **secured 2026-06-03** (see `fallback-approval-record-2026-06-03.md`);
   the hybrid posture's fallback premise is confirmed.
-- Confirm **FC-LYT / FC-CMD** contracts with the FrontComposer team (the remaining build-start gate).
+- ✅ Confirm **FC-LYT / FC-CMD / FC-CNC** contracts with the FrontComposer team - **closed by Story 1.0**
+  (2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`).
+- Resolve the **FC-TBL grid decision** before Story 1.2 tenant-list implementation.
 - Correct the **ULID-vs-string** spec discrepancy; reconcile the UX **"Auto"** assumption to
   InteractiveServer; resolve the **Users-nav IA** to "contextual."
 
@@ -719,7 +731,7 @@ D5), `Vocabulary/` (CP-10), `Resources/` (D4) — and the five boundaries make t
 (UJ-1..6) land on them.
 
 **Functional Requirements:** all **25 FRs** have an architectural home, including the previously
-story-less FR-22/24/25 (now structurally homed in `Components/Audit/`, pending epics/stories).
+story-less FR-22/24/25 (now structurally homed in `Components/Audit/` and covered by Epic 5 stories).
 
 **Non-Functional Requirements:** NFR-1 (cursor + 304 + freshness; numeric budgets deferred), NFR-2
 (server-enforced + reflection, tokens server-side), NFR-3 (D2 confirm + InteractiveServer + non-
@@ -738,16 +750,16 @@ communication/process + examples + anti-patterns; all conflict points addressed.
 ### Gap Analysis Results
 
 **Critical (block BUILD-START — external/downstream, not architecture deficiencies):**
-- **FrontComposer readiness** — D3 commits to a hybrid posture. The FC-AUD/FC-CNS/FC-CNC fallback
-  **approvals are secured** (2026-06-03 — see `fallback-approval-record-2026-06-03.md`); the
-  FC-LYT/FC-CMD/FC-CNC **contracts** still must be **confirmed** with the FrontComposer team. The
-  architecture documents the dependency; it can't unilaterally close it.
-- **FrontComposer Shell integration spec** — the exact Shell APIs (`AddHexalithFrontComposer*`,
-  manifest registration, projection routing, the FC-TBL contract) need a short verification spike
-  against the Shell source before coding.
-- **Epics & stories layer absent** — this architecture is one of the two layers the readiness report
-  named missing; the other still needs `create-epics-and-stories` (incl. FR-22/24/25 + a bootstrap
-  story).
+- **FrontComposer readiness - CLOSED 2026-06-05 for FC-LYT/FC-CMD/FC-CNC.** D3 commits to a
+  hybrid posture. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured** (2026-06-03 - see
+  `fallback-approval-record-2026-06-03.md`), and Story 1.0 confirms the shell/layout/command/
+  concurrency/accessibility/localization/docs contracts. The remaining pre-list implementation
+  item is the `FC-TBL` grid decision.
+- **FrontComposer Shell integration spec - CLOSED 2026-06-05.** Story 1.0 is complete; see
+  `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`.
+- **Epics & stories layer - CLOSED.** `epics.md` exists and covers FR1-FR25. The active handoff
+  risk is synchronization: `sprint-status.yaml` must match the canonical story IDs before the
+  next story is created.
 
 **Important (refine; non-blocking to the architecture):**
 - Deferred numerics — NFR performance budgets + freshness thresholds (product/ops input).
@@ -811,8 +823,8 @@ unambiguous decisions/patterns/structure for AI agents.
 - Every FR has a home; every cross-cutting concern has a single owner.
 
 **Areas for Future Enhancement:**
-- Close the FrontComposer **contracts** (fallback approvals secured 2026-06-03); run the Shell integration spike.
-- Generate epics/stories (incl. FR-22/24/25 + the bootstrap story).
+- Keep the Story 1.0 gate-clearing evidence current as FrontComposer evolves.
+- Decide the `FC-TBL` tenant-list grid path before Story 1.2.
 - Set the deferred numerics; reconcile the flagged doc items; track Fluent RC→GA.
 
 ### Implementation Handoff

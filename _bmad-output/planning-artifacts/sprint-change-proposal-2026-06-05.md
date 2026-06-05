@@ -6,16 +6,21 @@ author: 'Correct Course workflow (DEV role)'
 trigger: 'Implementation Readiness Assessment 2026-06-05 - NEEDS WORK / PLANNING-READY, BUILD-START-GATED'
 mode: 'Batch'
 scope_classification: 'Moderate (planning artifact reconciliation + backlog/status synchronization)'
-status: 'DRAFT - awaiting approval'
+status: 'APPROVED AND APPLIED 2026-06-05'
 affectedArtifacts:
   - '_bmad-output/planning-artifacts/implementation-readiness-report-2026-06-05.md'
   - '_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md'
+  - '_bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/prd.md'
+  - '_bmad-output/planning-artifacts/prds/prd-tenants-2026-06-02/addendum.md'
   - '_bmad-output/planning-artifacts/epics.md'
   - '_bmad-output/planning-artifacts/architecture.md'
+  - '_bmad-output/planning-artifacts/fallback-approval-record-2026-06-03.md'
   - '_bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/EXPERIENCE.md'
   - '_bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md'
   - 'docs/tenants-ui-frontcomposer-dependency-map.md'
   - 'docs/tenants-ui-accessibility-localization-and-acceptance-evidence-spec.md'
+  - 'docs/tenants-ui-phase-2-story-backlog.md'
+  - 'docs/tenants-ui-responsive-layout-and-visual-system-spec.md'
   - '_bmad-output/implementation-artifacts/sprint-status.yaml'
 ---
 
@@ -24,7 +29,7 @@ affectedArtifacts:
 **Date:** 2026-06-05  
 **Mode:** Batch  
 **Scope:** Moderate  
-**Status:** Draft, awaiting approval before artifact edits
+**Status:** Approved and applied 2026-06-05
 
 ## Section 1 - Issue Summary
 
@@ -404,7 +409,7 @@ Success criteria:
 | 2.3 Remaining epics | [x] Done | Epics 2-5 affected by audit and command sizing clarifications. |
 | 2.4 New/obsolete epics | [N/A] Skip | No epic added or removed. |
 | 2.5 Priority/order | [x] Done | Story 1.1 remains next after status sync; FC-TBL decision before tenant list. |
-| 3.1 PRD conflicts | [N/A] Skip | PRD already states build-ready gates and does not require MVP scope change. |
+| 3.1 PRD conflicts | [x] Done | PRD/addendum updated with post-Story-1.0 readiness state; MVP scope unchanged. |
 | 3.2 Architecture conflicts | [!] Action-needed | Architecture has stale pre-spike gate and absent-epics text. |
 | 3.3 UX conflicts | [!] Action-needed | UX readiness table stale; duplicate FC-CNS bullet. |
 | 3.4 Other artifacts | [!] Action-needed | Docs and sprint-status need synchronization. |
@@ -419,16 +424,22 @@ Success criteria:
 | 5.5 Handoff | [x] Done | Included. |
 | 6.1 Checklist review | [x] Done | Completed with open action-needed items. |
 | 6.2 Proposal accuracy | [x] Done | Drafted from current artifacts. |
-| 6.3 User approval | [!] Action-needed | Awaiting explicit approval. |
-| 6.4 Sprint status update | [!] Action-needed | Required after approval. |
-| 6.5 Next steps | [!] Action-needed | Route to Developer/PO after approval. |
+| 6.3 User approval | [x] Done | User approved with `yes` on 2026-06-05. |
+| 6.4 Sprint status update | [x] Done | `sprint-status.yaml` synchronized to canonical `epics.md`; Story 1.0 preserved as done. |
+| 6.5 Next steps | [x] Done | Route to Developer/PO: Story 1.1 can proceed after using the synchronized status; Story 1.2 requires the FC-TBL decision. |
 
 ## Approval Request
 
-Approve this Sprint Change Proposal for implementation?
+Approved by user on 2026-06-05 and applied.
 
-Reply with:
+## Application Log
 
-- `yes` to apply the artifact edits and synchronize sprint status,
-- `revise` with the specific changes you want,
-- `no` to stop this correction.
+Applied on 2026-06-05:
+
+- Updated `architecture.md` to mark Story 1.0 FrontComposer contract confirmation as closed and to carry the remaining `FC-TBL` grid decision.
+- Updated PRD `prd.md` and `addendum.md` with the post-Story-1.0 readiness state while preserving MVP scope.
+- Updated `epics.md` to mark Story 1.0 as a completed enabler spike, cite the spike evidence in Story 1.1, add the Story 1.2 `FC-TBL` pre-build gate, narrow Story 2.4's audit-proof boundary, and add the command-story sizing guardrail.
+- Updated `EXPERIENCE.md` and `DESIGN.md` to reflect post-spike FrontComposer readiness and remove stale build-blocker language while keeping per-story evidence gates.
+- Added a supersession note to `fallback-approval-record-2026-06-03.md`.
+- Added supersession notes to `docs/tenants-ui-frontcomposer-dependency-map.md`, `docs/tenants-ui-accessibility-localization-and-acceptance-evidence-spec.md`, `docs/tenants-ui-phase-2-story-backlog.md`, and `docs/tenants-ui-responsive-layout-and-visual-system-spec.md`.
+- Synchronized `sprint-status.yaml` to the canonical story IDs from `epics.md`, preserving Story 1.0 as `done`.

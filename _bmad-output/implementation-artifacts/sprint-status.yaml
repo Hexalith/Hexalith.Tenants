@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-05T13:20:22+02:00
+# last_updated: 2026-06-05T15:41:17+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -34,70 +34,71 @@
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 #
-# BUILD-READINESS NOTE (carried from epics.md + readiness report 2026-06-03):
+# BUILD-READINESS NOTE (updated by Correct Course 2026-06-05):
 # ===============
-# These stories form a complete PLAN, not a green light. Every story is externally
-# gated on FrontComposer CONTRACT readiness before it can promote past 'backlog':
-#   - Story 1.0 (Spike) is the gate-closing work for FC-LYT/FC-CMD — it has no blockers
-#     and is the first actionable item. Build-ready of Story 1.1 depends on its outcome.
-#   - Epic 1/2 (read MVP) gate: FC-LYT
-#   - Epic 3 (first commands) gates: FC-CMD, FC-CNC
-#   - Epic 4/5 (high-impact + audit + recovery) gates: FC-CNS, FC-AUD
-#     (FR-15/FR-19 platform-wide ops are categorically 'blocked' — no fallback)
-# 'backlog' here means "planned, not yet build-ready"; promote a story only when its
-# gate clears or a Product/UX-approved fallback is recorded (fallback record 2026-06-03).
+# Canonical story IDs and titles are sourced from:
+#   _bmad-output/planning-artifacts/epics.md
+# Story 1.0 (Spike) is done and clears FC-LYT/FC-CMD/FC-CNC/FC-A11Y/FC-L10N/FC-DOC
+# for Story 1.1 gate purposes. Evidence:
+#   story-1-0-spike-note-2026-06-05.md
+# Remaining planning gates:
+#   - Story 1.2 tenant list: resolve FC-TBL caveat before implementation.
+#   - Command stories: split if shared command/truth/preview foundations do not exist.
+#   - Story 2.4 remove member: audit handoff only until Epic 5 evidence source exists.
+#   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-05T13:20:22+02:00
+last_updated: 2026-06-05T15:41:17+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
 story_location: /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts
 
 development_status:
-  # --- Epic 1: Operations Shell Foundation & Tenant Triage (Phase 2a · gate: FC-LYT) ---
-  # Story 1.0 spike DONE 2026-06-05 (see story-1-0-spike-note-2026-06-05.md):
-  #   FC-LYT CONFIRMED (FcPageLayoutMode contract) -> Story 1.1 build-start gate CLEARED.
-  #   FC-CMD/FC-CNC/FC-A11Y/FC-L10N/FC-DOC also confirmed. FC-TBL available w/ caveats
-  #   (no cursor paging / pinning / 6 list states) -> Story 1.3 grid decision (follow-up F1).
+  # --- Epic 1: Tenant Workspace Triage and Read-Only Insight ---
   epic-1: in-progress
-  1-0-frontcomposer-shell-integration-verification-fc-lyt-fc-cmd-contract-confirmation: done
-  1-1-bootstrap-the-tenants-ui-host-and-operations-shell: backlog
-  1-2-canonical-state-vocabulary-library-and-truth-state-badge: backlog
-  1-3-browse-and-triage-the-tenant-list: backlog
-  1-4-open-tenant-detail-and-return-with-context-preserved: backlog
-  1-5-copy-support-safe-identifiers: backlog
+  1-0-frontcomposer-shell-integration-spike: done
+  1-1-tenants-ui-host-bootstrap: backlog
+  1-2-tenant-list-triage: backlog
+  1-3-tenant-detail-navigation-and-overview: backlog
+  1-4-my-tenants-self-audit-view: backlog
+  1-5-user-membership-lookup: backlog
+  1-6-read-only-tenant-configuration-view: backlog
+  1-7-tenant-member-table-and-action-availability: backlog
+  1-8-support-safe-identifier-copy-and-epic-1-readiness-evidence: backlog
   epic-1-retrospective: optional
 
-  # --- Epic 2: Access, Configuration & Governance Review (Phase 2a · gate: FC-LYT) ---
+  # --- Epic 2: Tenant Membership and Tenant Record Management ---
   epic-2: backlog
-  2-1-review-the-member-table: backlog
-  2-2-see-action-availability-and-unavailable-action-reasons: backlog
-  2-3-view-tenant-configuration-read-only: backlog
-  2-4-self-audit-my-tenants-and-look-up-a-users-memberships: backlog
-  2-5-review-global-administrators: backlog
+  2-1-create-tenant-with-projection-confirmed-command-lifecycle: backlog
+  2-2-add-user-to-tenant-with-explicit-role: backlog
+  2-3-change-tenant-member-role: backlog
+  2-4-remove-tenant-member-with-consequence-preview: backlog
+  2-5-edit-tenant-metadata-with-safe-validation: backlog
   epic-2-retrospective: optional
 
-  # --- Epic 3: Tenant & Membership Provisioning (Phase 2b · gates: FC-CMD, FC-CNC) ---
+  # --- Epic 3: Tenant Lifecycle and Configuration Control ---
   epic-3: backlog
-  3-1-create-a-tenant-and-establish-the-command-confirmation-foundation: backlog
-  3-2-edit-tenant-metadata: backlog
-  3-3-add-a-user-to-a-tenant: backlog
-  3-4-change-a-members-role: backlog
+  3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail: backlog
+  3-2-disable-or-enable-tenant-with-high-impact-confirmation: backlog
+  3-3-set-tenant-configuration-key-value-with-consequence-preview: backlog
+  3-4-remove-tenant-configuration-key-with-consequence-preview: backlog
   epic-3-retrospective: optional
 
-  # --- Epic 4: High-Impact & Destructive Operations (Phase 2c · gate: FC-CNS) ---
+  # --- Epic 4: Global Administrator Governance ---
   epic-4: backlog
-  4-1-remove-a-user-from-a-tenant-flagship-and-establish-the-consequence-preview-foundation: backlog
-  4-2-disable-or-enable-a-tenant: backlog
-  4-3-set-or-remove-a-configuration-value: backlog
-  4-4-grant-or-remove-a-global-administrator: backlog
+  4-1-global-administrators-navigation-and-read-contract-readiness: backlog
+  4-2-review-global-administrators-from-fixed-aggregate: backlog
+  4-3-grant-global-administrator-with-projection-confirmation: backlog
+  4-4-remove-global-administrator-with-last-admin-hard-stop: backlog
   epic-4-retrospective: optional
 
-  # --- Epic 5: Audit Trail, Evidence & Compensating Recovery (Phase 2c · gates: FC-AUD, FC-CNS) ---
+  # --- Epic 5: Audit Evidence and Forward Recovery ---
   epic-5: backlog
-  5-1-browse-a-tenants-audit-trail: backlog
-  5-2-reach-audit-from-context: backlog
-  5-3-view-an-audit-evidence-receipt-and-distinguish-audit-availability-states: backlog
-  5-4-start-preview-and-link-a-compensating-command: backlog
+  5-1-tenant-audit-trail-datagrid: backlog
+  5-2-scoped-audit-evidence-entry-points: backlog
+  5-3-support-safe-audit-evidence-receipt: backlog
+  5-4-audit-availability-state-recovery: backlog
+  5-5-start-forward-correction-from-audit-evidence: backlog
+  5-6-preview-and-confirm-correction-with-linked-proof: backlog
   epic-5-retrospective: optional

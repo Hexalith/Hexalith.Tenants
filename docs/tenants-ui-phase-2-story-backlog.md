@@ -2,11 +2,17 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact
-Last reviewed: 2026-06-01
+Last reviewed: 2026-06-05
 
 This backlog turns the reconciled dependency map into copy-forward candidate Tenants Admin UI stories. It is planning output only: it does not create sprint-status entries, implementation story files, UI screens, `Hexalith.FrontComposer` components, backend endpoints, command/query contracts, package changes, submodule pointer changes, or Phase 1 release gates.
 
 Rows use current repository terminology. `Hexalith.FrontComposer` is the checked-out UI dependency. `FrontShell`, `@hexalith/ui`, `useCommand`, `<AuditTimeline>`, and `<ConsequencePreview>` are legacy or UX aliases until current `Hexalith.FrontComposer` evidence proves a concrete contract.
+
+## 2026-06-05 Status Supersession
+
+This file is retained as a historical Phase 2 planning backlog. The current implementation handoff source is `_bmad-output/planning-artifacts/epics.md` plus `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+
+Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike supersedes older row-level `needs-confirmation` or `missing` statuses in this file for `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`. Historical row data below is not the current sprint-status source.
 
 ## Scope Boundary
 

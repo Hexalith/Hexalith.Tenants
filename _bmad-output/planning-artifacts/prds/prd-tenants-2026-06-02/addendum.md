@@ -14,26 +14,26 @@ Technical-how and downstream bridge material kept out of the PRD body. This maps
 | 7.6 Configuration Mgmt (FR-16..17) | ui-10 | phase-2-backlog, truth-state | 2c |
 | 7.7 Global Admin Governance (FR-18..19) | ui-06, ui-15 | operations-shell | 2a read / 2c cmd |
 | 7.8 Audit Trail & Evidence (FR-20..23) | ui-11, ui-12 | audit-evidence-and-compensating-recovery | 2c (blocked) |
-| 7.9 Compensating Recovery (FR-24..25) | **no backlog row yet** (recovery half of Story 9.5) | audit-evidence-and-compensating-recovery | 2c (needs a story) |
+| 7.9 Compensating Recovery (FR-24..25) | Epic 5 Stories 5.5 and 5.6 (`epics.md`) | audit-evidence-and-compensating-recovery | 2c |
 
-> Scope-honesty note: FR-22/FR-24/FR-25 are not yet backed by a `ui-NN` row or backend evidence (PRD §7.9 note). ui-09 is one backlog row covering both add-user and change-role behind a shared availability gate; the PRD splits it into FR-10/FR-11.
+> Scope-honesty note: FR-22/FR-24/FR-25 now have explicit Epic 5 story coverage in `epics.md` (Stories 5.3, 5.5, and 5.6). Backend/evidence readiness still needs validation before those stories are build-ready. ui-09 is one historical backlog row covering both add-user and change-role behind a shared availability gate; the PRD splits it into FR-10/FR-11.
 
 ## B. FrontComposer dependency readiness (from the dependency map)
 
 | ID | Capability | Readiness | Notes / fallback |
 |---|---|---|---|
-| FC-TBL | Projection list/table (DataGrid, filter/search/empty/loading) | **available** | Backbone of all read surfaces; the only fully-available capability. |
-| FC-LYT | Shell layout contract (full-width vs constrained) | needs-confirmation | Gates ui-01..15 — including the read-only MVP. Product/UX approval or a FrontComposer story. |
-| FC-CMD | Command lifecycle feedback (three-phase, projection-confirmed) | needs-confirmation | Required for ALL command FRs. |
-| FC-CNC | Concurrent-command / toast batching policy | **missing** | Gates remove-user and bulk-revocation; applies to all command FRs. **Approved fallback (Product/UX, 2026-06-03): one-at-a-time commands.** |
-| FC-TOK | Status/severity/timeline tokens | **missing** | Use existing Fluent/FC badges as a (proposed) named fallback. |
+| FC-TBL | Projection list/table (DataGrid, filter/search/empty/loading) | **available with caveats** | Generated projection grid lacks Tenants-required cursor pagination, safety-column pinning, and six non-collapsing list states. Resolve Story 1.2 grid decision before tenant-list implementation. |
+| FC-LYT | Shell layout contract (full-width vs constrained) | **confirmed** | Confirmed by Story 1.0 spike note (2026-06-05). |
+| FC-CMD | Command lifecycle feedback (three-phase, projection-confirmed) | **confirmed** | Confirmed by Story 1.0 spike note (2026-06-05). Required for ALL command FRs. |
+| FC-CNC | Concurrent-command / toast batching policy | **confirmed** | Story 1.0 confirms one-at-a-time commands as the v1 policy. Applies to all command FRs. |
+| FC-TOK | Status/severity/timeline tokens | **missing** | Use Tenants canonical vocabulary plus verified Fluent semantic/icon mapping until a shared token contract exists. |
 | FC-AUD | `<AuditTimeline>` | **missing** | **Approved fallback (Product/UX, 2026-06-03): flat audit DataGrid** (FR-20). See [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md). |
 | FC-CNS | `<ConsequencePreview>` | **missing** | **Approved fallback (Product/UX, 2026-06-03): inline consequence text** (CP-5). See [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md). |
-| FC-A11Y | Accessibility primitives | needs-confirmation | First-class, non-removable even under fallback. |
-| FC-L10N | Localization (shell resources) | needs-confirmation | Resource ownership undecided (PRD §16.4). |
-| FC-DOC | Component documentation/Storybook | needs-confirmation | Required for "ready" (PRD §9 ready-gate). |
+| FC-A11Y | Accessibility primitives | **confirmed** | Confirmed by Story 1.0 spike note (2026-06-05). Per-story accessibility evidence remains required. |
+| FC-L10N | Localization (shell resources) | **confirmed** | Shell boundary confirmed by Story 1.0 spike note (2026-06-05); Tenants-owned domain copy remains story-owned. |
+| FC-DOC | Component documentation/reference | **confirmed** | Equivalent docs exist; Storybook absent. Per-story documentation/reference evidence remains required. |
 
-A story promotes to `ready` only when its `blockedBy` set empties or a **Product/UX-approved** fallback is recorded. The three interim fallbacks (`FC-AUD`/`FC-CNS`/`FC-CNC`) are approved (2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); `FC-LYT`/`FC-CMD` contract confirmations remain. See `tenants-ui-phase-2-story-backlog.md` for per-row `blockedBy`. Readiness criterion split: `planning-only` = read, tenant-scoped; `blocked` = platform-wide (disable-tenant, global-admin) or dependent on a missing component.
+A story promotes to `ready` only when its `blockedBy` set empties or a **Product/UX-approved** fallback is recorded. The three interim fallbacks (`FC-AUD`/`FC-CNS`/`FC-CNC`) are approved (2026-06-03 — see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md)); Story 1.0 confirms `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` (2026-06-05). Remaining gates are story-specific evidence, `FC-TBL` decisioning, `FC-TOK` fallback discipline, and audit/proof evidence readiness. See `tenants-ui-phase-2-story-backlog.md` for historical per-row `blockedBy`; `sprint-status.yaml` and `epics.md` are the current implementation handoff source after the 2026-06-05 correction.
 
 ## C. Backend surfaces consumed (already built — do not add/alter)
 

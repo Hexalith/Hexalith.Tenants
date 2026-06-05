@@ -2,10 +2,16 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact (planning-only)
-Last reviewed: 2026-06-02
+Last reviewed: 2026-06-05
 Story: 9.7 - Define Accessibility, Localization, and UI Acceptance Evidence
 
 This document defines the cross-cutting accessibility, localization, and UI acceptance evidence requirements that future Phase 2 Tenants Admin UI implementation stories must cite before they can be marked `ready` or `ready-with-approved-fallback`. It composes the existing Epic 9 planning artifacts and does not implement screens, components, tests, resources, tokens, routes, endpoints, commands, queries, or generated UI files.
+
+## 2026-06-05 Status Supersession
+
+Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike confirms `FC-A11Y`, `FC-L10N`, and `FC-DOC` as shell capabilities and supersedes older `needs-confirmation` wording in this document for those dependency IDs.
+
+This does not waive the evidence gate. Every UI implementation story still must cite or produce the applicable keyboard, focus, screen-reader, live-region, forced-colors, localization, responsive, and documentation/reference evidence before it is marked ready or complete.
 
 ## Scope and Boundary
 

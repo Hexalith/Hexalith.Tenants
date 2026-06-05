@@ -120,8 +120,8 @@ NFR10: A UI story cannot be marked ready until applicable accessibility, localiz
 ### Additional Requirements
 
 - Starter requirement: create a new `src/Hexalith.Tenants.UI` Blazor web host as the first implementation story. No UI host exists today; `frontcomposer` is an inspect/migrate tool, not a scaffolder. The host uses .NET 10, `Microsoft.NET.Sdk.Web`, Blazor InteractiveServer, and is added to `Hexalith.Tenants.slnx`.
-- Include a Story 1.0 shell-integration spike before bootstrap implementation. It verifies `AddHexalithFrontComposer*` registration APIs, manifest registration, projection routing, and the `FC-TBL` contract against FrontComposer Shell source, and it closes or documents `FC-LYT` and `FC-CMD` contract questions.
-- Compose the UI through the Hexalith.FrontComposer Shell and Fluent UI Blazor v5. `FC-LYT` must be confirmed before read MVP build-start; `FC-CMD` and `FC-CNC` must be confirmed or covered by approved policy before command flows.
+- Include a Story 1.0 shell-integration spike before bootstrap implementation. The spike is complete as of 2026-06-05 and verifies `AddHexalithFrontComposer*` registration APIs, manifest registration, projection routing, and FrontComposer readiness gates; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`.
+- Compose the UI through the Hexalith.FrontComposer Shell and Fluent UI Blazor v5. `FC-LYT`, `FC-CMD`, and `FC-CNC` are confirmed by Story 1.0; tenant-list implementation still requires the Story 1.2 `FC-TBL` decision.
 - Use the architecture's InteractiveServer plus server-side BFF model. The browser must never call the backend directly and must never hold backend access tokens.
 - Wire the UI host through the existing `Hexalith.Tenants.AppHost`, Keycloak/JWT configuration, service references, and SignalR client. In local dev, `EnableKeycloak=false` uses the existing symmetric-key JWT path.
 - The UI host ships as a container image using .NET SDK container support with `ContainerRepository=tenants-ui`; do not add Dockerfiles.
@@ -253,6 +253,16 @@ Every epic inherits the shared quality bar from the requirements inventory: proj
 
 Every story created from these epics must make the safety contract explicit in acceptance criteria and test expectations. Each story states the actor and job, names the projection truth source and staleness behavior, names the permission boundary and server-side authorization result, preserves pending/failed/denied/unknown states without false Success, consumes existing backend endpoints without adding local Tenants infrastructure, includes Tenants-owned `.resx` copy, and identifies the required accessibility, responsive, live-region, forced-colors, and stable `data-testid` evidence. Every command story also includes audit/evidence behavior, including delayed or unavailable audit states, and every story includes a test contract naming the fixture, observable state, and automation level such as unit, component, API, or Playwright.
 
+### Command Story Sizing Guardrail
+
+Command stories may remain single stories only when the shared command lifecycle, TruthState/vocabulary, one-at-a-time admission, consequence-preview fallback, BFF command gateway, projection re-query confirmation, localization, and ready-gate evidence patterns already exist. If those foundations are absent, split the command story into:
+
+1. availability and fail-closed preview,
+2. submit/status/projection confirmation,
+3. audit/evidence handoff or proof.
+
+Do not split platform-wide destructive actions in a way that bypasses their explicit blocked/governance status.
+
 ### Epic 1: Tenant Workspace Triage and Read-Only Insight
 
 Users can open the Tenants workspace, browse and inspect tenants, self-audit memberships, look up user memberships, inspect read-only tenant details/configuration/members, and understand action availability without unsafe mutation.
@@ -299,6 +309,8 @@ Users can open the Tenants workspace, browse and inspect tenants, self-audit mem
 
 ### Story 1.0: FrontComposer Shell Integration Spike
 
+**Story type/status:** Timeboxed enabler spike; completed 2026-06-05. Evidence: `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. This story closes or records the build-start contract gates; it does not deliver user-facing MVP value.
+
 As a Tenants platform maintainer,
 I want to verify the FrontComposer shell integration contracts before building the Tenants UI host,
 So that the first UI implementation uses shared Hexalith composition patterns instead of adding generic shell infrastructure inside Hexalith.Tenants.
@@ -325,7 +337,7 @@ So that the first UI implementation uses shared Hexalith composition patterns in
 **Given** story creation guardrails require implementation-ready evidence
 **When** the spike is complete
 **Then** the output names the projection truth source, permission boundary assumptions, staleness/freshness implications, localization ownership, accessibility and responsive obligations, and stable selector expectations for later UI stories
-**And** it flags `FC-LYT` as blocking read MVP build-start unless confirmed or explicitly approved by Product/UX fallback.
+**And** it records the current gate verdicts. As of the completed 2026-06-05 spike, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed; `FC-TBL` is available with caveats that must be resolved before tenant-list implementation.
 
 **Test Contract:**
 
@@ -344,7 +356,7 @@ So that Tenants read workflows start from a real hosted UI surface rather than l
 
 **Acceptance Criteria:**
 
-**Given** Story 1.0 has confirmed the minimum FrontComposer shell composition path or recorded an approved fallback
+**Given** Story 1.0 has confirmed the minimum FrontComposer shell composition path in `story-1-0-spike-note-2026-06-05.md`
 **When** the Tenants UI host is created
 **Then** `src/Hexalith.Tenants.UI` exists as a .NET 10 Blazor InteractiveServer web project using `Microsoft.NET.Sdk.Web`
 **And** it is added to `Hexalith.Tenants.slnx` without creating a `.sln` file.
@@ -388,6 +400,8 @@ I want to browse, search, filter, sort, and cursor-page tenants from the Tenants
 So that I can quickly understand tenant state and risk without changing anything.
 
 **Requirements:** FR1; NFR1-NFR4, NFR6-NFR9; UX-DR2-UX-DR6, UX-DR10, UX-DR16, UX-DR23, UX-DR28-UX-DR31.
+
+**Pre-build gate:** Resolve the `FC-TBL` caveat from Story 1.0 before implementation. FrontComposer's generated projection grid does not satisfy Tenants' cursor pagination, safety-column pinning, or six-state list-surface requirements. The default decision is to compose a Tenants-specific `TenantDataGrid` from Fluent/FrontComposer primitives for tenant-specific columns and safety states, while filing any reusable cursor/pinning/list-state capability as a FrontComposer enhancement.
 
 **Acceptance Criteria:**
 
@@ -859,7 +873,7 @@ So that member authority can be corrected while preserving domain safety and pro
 
 As an authorized tenant administrator,
 I want to remove a user from a tenant through a consequence preview and confirmed command lifecycle,
-So that access removal is deliberate, auditable, and never shown as successful before proof exists.
+So that access removal is deliberate, projection-confirmed, and never shown as audit-proven before evidence exists.
 
 **Requirements:** FR12; NFR2-NFR8, NFR10; Additional consequence preview, command confirmation, and audit handoff requirements; UX-DR3, UX-DR11-UX-DR15, UX-DR19, UX-DR22-UX-DR28, UX-DR33.
 
@@ -885,9 +899,10 @@ So that access removal is deliberate, auditable, and never shown as successful b
 **Then** the UI shows the exact safe state and does not display Success
 **And** last-confirmed member data is not overwritten by in-flight intent.
 
-**Given** audit evidence is pending, delayed, unavailable, or missing implementation support
+**Given** audit evidence is pending, delayed, unavailable, missing implementation support, or not yet implemented by Epic 5
 **When** the command reaches a terminal or unverifiable state
-**Then** the UI provides the honest audit/evidence handoff state and appropriate recovery action such as wait, retry, inspect audit, continue read-only, or escalate
+**Then** the UI provides only an honest audit/evidence handoff state and appropriate recovery action such as wait, retry, inspect audit, continue read-only, or escalate
+**And** it shows `audit available` or renders an Audit Evidence Receipt only when the Epic 5 evidence source is implemented and available
 **And** the original event is not edited, deleted, or rewritten.
 
 **Given** the destructive flow uses a modal, panel, or preview surface
@@ -899,7 +914,7 @@ So that access removal is deliberate, auditable, and never shown as successful b
 
 **Given** this story is complete
 **When** verification is run
-**Then** unit/component tests cover fail-closed gating, complete preview content, last-owner elevated friction, target-global-admin friction, duplicate/already-applied handling, projection confirmation, audit unavailable states, and no optimistic removal
+**Then** unit/component tests cover fail-closed gating, complete preview content, last-owner elevated friction, target-global-admin friction, duplicate/already-applied handling, projection confirmation, audit unavailable states, no optimistic removal, and the rule that audit proof/receipt UI is not asserted before the Epic 5 evidence source exists
 **And** Playwright or component tests verify destructive confirmation focus behavior, keyboard complete-or-exit, live-region announcements, forced-colors status, stable selectors, and one-command-at-a-time locking.
 
 ### Story 2.5: Edit Tenant Metadata with Safe Validation

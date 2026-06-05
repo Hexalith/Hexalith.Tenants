@@ -2,11 +2,24 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact
-Last reviewed: 2026-06-01
+Last reviewed: 2026-06-05
 
 This map sequences the Hexalith.Tenants Phase 2 Admin UI against the current checked-out `Hexalith.FrontComposer` submodule. It uses `Hexalith.FrontComposer` for the current repository and source evidence. `FrontShell`, `@hexalith/ui`, `useCommand`, `useProjection`, `<PageLayout>`, `<AuditTimeline>`, and `<ConsequencePreview>` appear only as UX/planning aliases from older design language.
 
 This document is not a Phase 1 backend blocker. Backend query, projection, authorization, deployment, package, and documentation stories remain independent of UI dependency readiness unless a future product decision explicitly promotes Admin UI work into Phase 1 scope.
+
+## 2026-06-05 Status Supersession
+
+Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike supersedes older `needs-confirmation` rows in this document for `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`.
+
+The current gate state is:
+
+- `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed by the spike note.
+- `FC-TBL` is available with caveats: FrontComposer's generated projection grid does not provide Tenants' required cursor pagination, safety-column pinning, or six non-collapsing list states. Story 1.2 must record the grid boundary decision before tenant-list implementation.
+- `FC-AUD` and `FC-CNS` still use the Product/UX-approved fallbacks recorded on 2026-06-03.
+- `FC-TOK` remains missing as a shared capability; Tenants uses its canonical vocabulary and verified Fluent semantic/icon mapping until a shared token contract exists.
+
+Historical matrix rows below are retained for planning traceability. Where a row says one of the superseded IDs is `needs-confirmation` or `missing`, read that row through this 2026-06-05 status note.
 
 ## Evidence Scope
 

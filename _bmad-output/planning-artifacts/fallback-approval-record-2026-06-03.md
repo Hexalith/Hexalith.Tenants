@@ -71,6 +71,8 @@ Behaviour and safety conditions are copied verbatim-in-spirit from the UX spines
 
 ## Scope of this approval — what it does and does NOT do
 
+> **2026-06-05 supersession note:** Items 1 and 2 below were true at the time of fallback approval. Story 1.0 later confirmed `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. This record still remains the source of truth for the three Product/UX fallback approvals.
+
 **This approval covers exactly the three interim fallbacks above.** It explicitly does **not**:
 
 1. **Waive the FrontComposer contract confirmations.** `FC-LYT` (shell layout — gates even the read-only MVP) and `FC-CMD` (command-lifecycle feedback — gates all commands), plus the `FC-CNC` policy contract, **still must be confirmed with the FrontComposer team**. These remain the build-start gate (Blocker 1 of the 2026-06-03 readiness report).

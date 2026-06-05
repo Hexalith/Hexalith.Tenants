@@ -2,10 +2,14 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact (planning-only)
-Last reviewed: 2026-06-02
+Last reviewed: 2026-06-05
 Story: 9.6 — Specify Responsive Operational Layout and Visual System Usage
 
 This document is the **cross-cutting responsive-layout and visual-system usage contract** for the Phase 2 Tenants Admin UI. It defines how the already-specified semantic states (Story 9.3) and information architecture (Story 9.2) are rendered: which meaning maps to which semantic role (never a hard-coded color), how typography and density behave on dense operational screens, how command/status layout stays stable and proximate, how layout responds across desktop, tablet, and mobile, the breakpoint set, and how a DataGrid preserves safety-critical state at narrow widths. Every Phase 2 UI implementation story must follow these rules so that dense access-review workflows remain usable **without sacrificing truth or context**.
+
+## 2026-06-05 Status Supersession
+
+Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike confirms `FC-LYT`, so older text below that describes the layout contract as `needs-confirmation` is superseded. The responsive and visual rules remain binding, and implementing stories still must verify exact shell behavior and responsive evidence at build.
 
 This spec **maps** existing semantic states to visual roles and layout. It does **not** redefine, rename, or re-enumerate the badge states, freshness/lifecycle/reason/feedback sets, or navigation model owned by Stories 9.1–9.3. Layout behavior maps primarily to `FC-LYT`; the visual semantic system maps primarily to `FC-TOK`. Accessibility, localization, and the responsive acceptance/test evidence matrix are deferred to Story 9.7.
 

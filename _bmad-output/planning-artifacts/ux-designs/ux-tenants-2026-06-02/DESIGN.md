@@ -159,7 +159,7 @@ All labels — state names, role names, timestamps, reasons, recovery verbs — 
 
 **Full-width operational surfaces, with constrained inner regions.** Tables and work areas span the viewport — this is a dense admin workstation, and full width is what best satisfies "safety-critical columns never drop" with the least horizontal-scroll risk. Forms, consequence previews, command-lifecycle panels, and dialogs render inside **constrained, readable inner regions** within that full-width frame, anchored to the row or panel they concern.
 
-> `[ASSUMPTION]` / needs-confirmation: full-width-with-constrained-inner-regions is the UX **intent**, gated on the FrontComposer shell layout contract **FC-LYT** (`needs-confirmation`). It is recorded as intent, not as given, and must be verified that the shell supports it at build. (`.decision-log.md`, "Layout contract (FC-LYT) → full-width.")
+> Story 1.0 update (2026-06-05): full-width-with-constrained-inner-regions remains the UX **intent**, and the FrontComposer shell layout contract **FC-LYT** is confirmed by `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. Implementing stories still verify exact shell behavior and responsive evidence at build.
 
 **4px spacing rhythm.** All spacing follows the Fluent-compatible scale: `{spacing.1}` 4px · `{spacing.2}` 8px · `{spacing.3}` 12px · `{spacing.4}` 16px · `{spacing.6}` 24px · `{spacing.8}` 32px. Compact density throughout (tight, scannable rows); the larger steps separate major regions, the smaller steps bind tightly-related elements. The positive layout preference is **tables, split views, tabs, side panels, dialogs, and inline status regions over decorative card grids.**
 
