@@ -92,6 +92,14 @@
     font-weight: 400;
 }
 
+.tenant-config__literal-row {
+    align-items: start;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
 .tenant-config code,
 .tenant-config__value {
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;

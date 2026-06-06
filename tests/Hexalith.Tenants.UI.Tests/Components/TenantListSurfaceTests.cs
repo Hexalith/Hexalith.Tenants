@@ -39,6 +39,9 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-search']").GetAttribute("type").ShouldBe("search");
         cut.Find("[data-testid='tenants-list-reset']").GetAttribute("type").ShouldBe("button");
         cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("/tenants/tenant.alpha");
+        cut.Find("[data-testid='tenants-list-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
+        cut.Find("[data-testid='tenants-list-copy-reference']").TextContent.ShouldContain("Copy");
+        cut.Find("[data-testid='tenants-copy-reference']").GetAttribute("type").ShouldBe("button");
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldContain("No pending changes");
@@ -186,6 +189,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         styles.ShouldContain("min-width:");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-critical");
+        styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
     }
 
     private void RegisterServices(TenantListSnapshot snapshot)
@@ -291,6 +295,14 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.State.Stale.Message"] = "Refresh to check the latest projection.",
             ["Tenants.List.State.Degraded.Title"] = "Tenant data is degraded",
             ["Tenants.List.State.Degraded.Message"] = "Some tenant evidence is unavailable.",
+            ["Tenants.Copy.Action"] = "Copy",
+            ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
+            ["Tenants.Copy.Feedback.Copied"] = "Copied.",
+            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed.",
+            ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
+            ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
+            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
+            ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
         };
     }
 }

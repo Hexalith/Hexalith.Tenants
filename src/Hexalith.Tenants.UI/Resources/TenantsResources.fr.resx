@@ -861,4 +861,43 @@
   <data name="Tenants.Members.UserIdAccessible" xml:space="preserve">
     <value>Identifiant utilisateur membre littéral {0}</value>
   </data>
+  <data name="Tenants.Copy.Action" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="Tenants.Copy.Label.ConfigurationKey" xml:space="preserve">
+    <value>Copier la clé de configuration {0}</value>
+  </data>
+  <data name="Tenants.Copy.Label.ConfigurationValue" xml:space="preserve">
+    <value>Copier la valeur de configuration visible pour {0}</value>
+  </data>
+  <data name="Tenants.Copy.Label.TenantId" xml:space="preserve">
+    <value>Copier l'identifiant locataire {0}</value>
+  </data>
+  <data name="Tenants.Copy.Label.UserId" xml:space="preserve">
+    <value>Copier l'identifiant utilisateur {0}</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Copied" xml:space="preserve">
+    <value>Copié.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Disconnected" xml:space="preserve">
+    <value>Presse-papiers déconnecté. La copie n'a pas été effectuée.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Empty" xml:space="preserve">
+    <value>Aucune valeur n'est disponible à copier.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Failed" xml:space="preserve">
+    <value>La copie a échoué.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Insecure" xml:space="preserve">
+    <value>Le presse-papiers est indisponible dans ce contexte de navigateur.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.PermissionDenied" xml:space="preserve">
+    <value>L'autorisation du presse-papiers n'a pas été accordée.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Unavailable" xml:space="preserve">
+    <value>Presse-papiers indisponible.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
+    <value>Cette valeur n'est pas sûre pour le support.</value>
+  </data>
 </root>

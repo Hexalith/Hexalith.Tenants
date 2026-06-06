@@ -15,7 +15,13 @@
                         Pin="DataGridColumnPin.Start">
             <div class="my-tenants-grid__identity"
                  data-testid="@($"{SelectorPrefix}-row")">
-                <strong data-testid="@($"{SelectorPrefix}-tenant-id")">@context.TenantId</strong>
+                <div class="my-tenants-grid__identity-line">
+                    <strong data-testid="@($"{SelectorPrefix}-tenant-id")">@context.TenantId</strong>
+                    <SupportSafeCopyButton Value="@context.TenantId"
+                                           ValueKind="SupportSafeCopyValueKind.TenantId"
+                                           AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", context.TenantId]"
+                                           TestId="@($"{SelectorPrefix}-copy-reference")" />
+                </div>
                 <span>@context.Name</span>
             </div>
         </TemplateColumn>

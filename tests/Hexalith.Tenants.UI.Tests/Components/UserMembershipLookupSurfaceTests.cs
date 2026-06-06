@@ -48,6 +48,8 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-lookup-target']").TextContent.ShouldContain("target.user@example");
         cut.FindAll("[data-testid='tenants-user-row']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-user-tenant-id']").TextContent.ShouldContain("tenant.alpha");
+        cut.FindAll("[data-testid='tenants-user-copy-reference']").Count.ShouldBe(2);
+        cut.Find("[data-testid='tenants-user-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-user-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-user-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-user-truth-state']").TextContent.ShouldContain("Current");
@@ -366,6 +368,14 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             ["Tenants.UserLookup.Submit"] = "Look up",
             ["Tenants.UserLookup.TargetContext"] = "Lookup target: {0}",
             ["Tenants.UserLookup.Title"] = "User membership lookup",
+            ["Tenants.Copy.Action"] = "Copy",
+            ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
+            ["Tenants.Copy.Feedback.Copied"] = "Copied.",
+            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed.",
+            ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
+            ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
+            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
+            ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
         };
     }
 }

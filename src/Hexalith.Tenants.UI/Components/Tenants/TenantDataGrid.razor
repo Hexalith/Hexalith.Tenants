@@ -16,12 +16,18 @@
             <div class="tenant-data-grid__identity"
                  id="@($"tenant-row-{context.TenantId}")"
                  data-testid="tenants-list-tenant-id">
-                <a class="tenant-data-grid__detail-link"
-                   href="@DetailHref(context)"
-                   data-testid="tenants-list-detail-link"
-                   aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
-                    <strong>@context.TenantId</strong>
-                </a>
+                <div class="tenant-data-grid__identity-line">
+                    <a class="tenant-data-grid__detail-link"
+                       href="@DetailHref(context)"
+                       data-testid="tenants-list-detail-link"
+                       aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
+                        <strong>@context.TenantId</strong>
+                    </a>
+                    <SupportSafeCopyButton Value="@context.TenantId"
+                                           ValueKind="SupportSafeCopyValueKind.TenantId"
+                                           AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", context.TenantId]"
+                                           TestId="tenants-list-copy-reference" />
+                </div>
                 <span>@context.Name</span>
             </div>
         </TemplateColumn>

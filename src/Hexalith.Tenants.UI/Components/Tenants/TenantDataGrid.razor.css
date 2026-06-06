@@ -13,6 +13,14 @@
     min-width: 0;
 }
 
+.tenant-data-grid__identity-line {
+    align-items: start;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
 .tenant-data-grid__identity strong,
 .tenant-data-grid__identity span {
     overflow-wrap: anywhere;

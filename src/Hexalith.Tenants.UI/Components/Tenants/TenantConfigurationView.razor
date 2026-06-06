@@ -99,14 +99,29 @@
                             <tr tabindex="0" data-testid="tenants-config-row">
                                 <td>@row.NamespaceLabel</td>
                                 <th scope="row" class="tenant-config__key-header">
-                                    <code data-testid="tenants-config-key"
-                                          aria-label="@Localizer["Tenants.Configuration.KeyAccessible", row.Key]">@row.Key</code>
+                                    <div class="tenant-config__literal-row">
+                                        <code data-testid="tenants-config-key"
+                                              aria-label="@Localizer["Tenants.Configuration.KeyAccessible", row.Key]">@row.Key</code>
+                                        @if (row.IsSafe)
+                                        {
+                                            <SupportSafeCopyButton Value="@row.Key"
+                                                                   ValueKind="SupportSafeCopyValueKind.ConfigurationKey"
+                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationKey", row.Key]"
+                                                                   TestId="tenants-config-copy-reference" />
+                                        }
+                                    </div>
                                 </th>
                                 <td>
                                     @if (row.IsSafe)
                                     {
-                                        <code class="tenant-config__value"
-                                              aria-label="@Localizer["Tenants.Configuration.ValueAccessible", row.DisplayValue]">@row.DisplayValue</code>
+                                        <div class="tenant-config__literal-row">
+                                            <code class="tenant-config__value"
+                                                  aria-label="@Localizer["Tenants.Configuration.ValueAccessible", row.DisplayValue]">@row.DisplayValue</code>
+                                            <SupportSafeCopyButton Value="@row.DisplayValue"
+                                                                   ValueKind="SupportSafeCopyValueKind.SafeConfigurationValue"
+                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationValue", row.Key]"
+                                                                   TestId="tenants-config-copy-reference" />
+                                        </div>
                                     }
                                     else
                                     {
@@ -126,22 +141,6 @@
 </section>
 
 @code {
-    private static readonly string[] SensitiveFragments =
-    [
-        "secret",
-        "password",
-        "token",
-        "credential",
-        "connectionstring",
-        "bearer ",
-        "metadata",
-        "correlation",
-        "stack trace",
-        "exception",
-        "jwt",
-        "@",
-    ];
-
     private string _filter = string.Empty;
 
     [Parameter]
@@ -197,7 +196,8 @@
 
     private ConfigurationRow ToRow(KeyValuePair<string, string> item)
     {
-        bool isSafe = IsSupportSafeValue(item.Key, item.Value);
+        bool isKeySafe = SupportSafeCopyClassifier.IsAllowed(item.Key, SupportSafeCopyValueKind.ConfigurationKey);
+        bool isSafe = isKeySafe && SupportSafeCopyClassifier.IsAllowed(item.Value, SupportSafeCopyValueKind.SafeConfigurationValue);
         string displayValue = isSafe ? item.Value : Localizer["Tenants.Configuration.Value.Unavailable"];
         return new(
             NamespaceLabel(item.Key),
@@ -205,15 +205,6 @@
             displayValue,
             isSafe,
             isSafe ? Localizer["Tenants.Configuration.Value.Safe"] : Localizer["Tenants.Configuration.Value.Sensitive"]);
-    }
-
-    private static bool IsSupportSafeValue(string key, string value)
-    {
-        string normalizedKey = key.Replace(".", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
-        string normalizedValue = value.ToLowerInvariant();
-        return !SensitiveFragments.Any(fragment =>
-            normalizedKey.Contains(fragment, StringComparison.Ordinal)
-            || normalizedValue.Contains(fragment, StringComparison.Ordinal));
     }
 
     private string NamespaceLabel(string key)

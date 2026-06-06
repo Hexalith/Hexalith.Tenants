@@ -28,6 +28,12 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class TenantDetailSurfaceTests : BunitContext
 {
+    private static readonly string[] AllowedConfigurationCopyKinds =
+    [
+        "ConfigurationKey",
+        "SafeConfigurationValue",
+    ];
+
     [Fact]
     public void Detail_page_loads_through_gateway_and_renders_operational_overview()
     {
@@ -49,6 +55,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-back']").GetAttribute("href").ShouldBe("/tenants?search=alpha&selected=tenant.alpha");
         cut.Find("[data-testid='tenants-detail-truth-state']").TextContent.ShouldContain("Current");
         cut.Find("[data-testid='tenants-detail-identity']").TextContent.ShouldContain("tenant.alpha");
+        cut.Find("[data-testid='tenants-detail-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
+        cut.Find("[data-testid='tenants-detail-copy-reference']").TextContent.ShouldContain("Copy");
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
@@ -144,6 +152,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Unavailable");
         cut.Markup.ShouldContain("data-testid=\"tenants-config-key\"");
         cut.Markup.ShouldContain("data-testid=\"tenants-config-value-state\"");
+        cut.FindAll("[data-testid='tenants-config-copy-reference']").Count.ShouldBe(4);
+        cut.FindAll("[data-testid='tenants-config-copy-reference']")
+            .ShouldAllBe(static copy => AllowedConfigurationCopyKinds.Contains(copy.GetAttribute("data-copy-kind"), StringComparer.Ordinal));
         cut.Markup.ShouldContain("aria-label=\"Full configuration key billing.mode\"");
         cut.Markup.ShouldContain("aria-label=\"Visible configuration value trial\"");
         cut.Markup.ShouldNotContain("secret-host");
@@ -175,6 +186,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("trial");
+        cut.FindAll("[data-testid='tenants-config-copy-reference']").Count.ShouldBe(2);
         cut.FindAll("[data-testid='tenants-config-value-state']").Count(item => item.TextContent.Contains("Unavailable", StringComparison.Ordinal)).ShouldBe(5);
         cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
         cut.Markup.ShouldNotContain("raw-cursor", Case.Insensitive);
@@ -291,7 +303,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("stale data");
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
-        memberSection.InnerHtml.ShouldNotContain("<button", Case.Insensitive);
         memberSection.InnerHtml.ShouldNotContain("<form", Case.Insensitive);
         memberSection.InnerHtml.ShouldNotContain("Success");
     }
@@ -318,6 +329,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("OWNER/User.01");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("reader-user-with-a-very-long-literal-identifier");
+        cut.FindAll("[data-testid='tenants-member-copy-reference']").Count.ShouldBe(4);
+        cut.FindAll("[data-testid='tenants-member-copy-reference']").ShouldAllBe(static copy => copy.GetAttribute("data-copy-kind") == "UserId");
         cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(4);
         cut.FindAll("th[scope='row'][data-testid='tenants-member-user-id']").Count.ShouldBe(4);
         cut.FindAll("th[scope='col']").Count.ShouldBeGreaterThanOrEqualTo(6);
@@ -394,9 +407,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBeGreaterThanOrEqualTo(3);
         cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(6);
-        cut.Markup.ShouldNotContain("<button", Case.Insensitive);
         cut.Markup.ShouldNotContain("<form", Case.Insensitive);
         cut.Markup.ShouldNotContain("type=\"submit\"", Case.Insensitive);
+        cut.FindAll("button").ShouldAllBe(static button => button.GetAttribute("data-testid") == "tenants-copy-reference");
         cut.Markup.ShouldNotContain("command payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
@@ -613,6 +626,20 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         memberStyles.ShouldContain("@media (max-width: 767px)");
         memberStyles.ShouldContain("@media (forced-colors: active)");
         memberStyles.ShouldContain(":focus-visible");
+        memberStyles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+
+        string copyStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Shared",
+            "SupportSafeCopyButton.razor.css"));
+
+        copyStyles.ShouldContain("inline-size");
+        copyStyles.ShouldContain(":focus-visible");
+        copyStyles.ShouldContain("@media (forced-colors: active)");
+        copyStyles.ShouldContain("min-inline-size");
     }
 
     [Fact]
@@ -647,6 +674,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         invariantResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
         frenchResources.ShouldContain("Tenants.Members.Title");
         frenchResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
+        invariantResources.ShouldContain("Tenants.Copy.Action");
+        invariantResources.ShouldContain("Tenants.Copy.Feedback.Unsafe");
+        frenchResources.ShouldContain("Tenants.Copy.Action");
+        frenchResources.ShouldContain("Tenants.Copy.Feedback.Unsafe");
     }
 
     [Fact]
@@ -691,6 +722,59 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
     }
 
+    [Fact]
+    public void Copy_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = CopyResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = CopyResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Copy_source_uses_clipboard_module_without_browser_backend_or_legacy_fallbacks()
+    {
+        string projectRoot = ProjectRoot();
+        string component = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Shared",
+            "SupportSafeCopyButton.razor"));
+        string script = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "wwwroot",
+            "js",
+            "tenantsClipboard.js"));
+
+        component.ShouldContain("IJSRuntime");
+        component.ShouldContain("JSDisconnectedException");
+        component.ShouldNotContain("HttpClient");
+        component.ShouldNotContain("localStorage", Case.Insensitive);
+        component.ShouldNotContain("sessionStorage", Case.Insensitive);
+        script.ShouldContain("navigator.clipboard.writeText");
+        script.ShouldNotContain("document.execCommand", Case.Insensitive);
+        script.ShouldNotContain("GET /api/", Case.Insensitive);
+        script.ShouldNotContain("access_token", Case.Insensitive);
+        script.ShouldNotContain("localStorage", Case.Insensitive);
+        script.ShouldNotContain("sessionStorage", Case.Insensitive);
+    }
+
     private static HashSet<string> ConfigurationResourceKeys(string resourcePath)
         => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Configuration[^\"]+)\"")
             .Select(static match => match.Groups[1].Value)
@@ -698,6 +782,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private static HashSet<string> MemberResourceKeys(string resourcePath)
         => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Members[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static HashSet<string> CopyResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Copy[^\"]+)\"")
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
@@ -856,6 +945,17 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Value.Sensitive"] = "Unavailable",
             ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
+            ["Tenants.Copy.Action"] = "Copy",
+            ["Tenants.Copy.Label.ConfigurationKey"] = "Copy configuration key {0}",
+            ["Tenants.Copy.Label.ConfigurationValue"] = "Copy visible configuration value for {0}",
+            ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
+            ["Tenants.Copy.Label.UserId"] = "Copy user identifier {0}",
+            ["Tenants.Copy.Feedback.Copied"] = "Copied.",
+            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed.",
+            ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
+            ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
+            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
+            ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
             ["Tenants.Members.Action.AddMember"] = "Add member",
             ["Tenants.Members.Action.ChangeRole"] = "Change role",
             ["Tenants.Members.Action.RemoveMember"] = "Remove member",

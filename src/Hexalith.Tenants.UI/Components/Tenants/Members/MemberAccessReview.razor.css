@@ -73,6 +73,14 @@
     overflow-wrap: anywhere;
 }
 
+.tenant-members__user-row {
+    align-items: start;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
 .tenant-members__badge,
 .tenant-members__reason,
 .tenant-members__action-state {

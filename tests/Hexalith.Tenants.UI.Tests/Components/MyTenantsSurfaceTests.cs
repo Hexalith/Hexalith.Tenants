@@ -39,6 +39,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-back']").GetAttribute("href").ShouldBe("/tenants");
         cut.FindAll("[data-testid='tenants-my-row']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldContain("tenant.alpha");
+        cut.FindAll("[data-testid='tenants-my-copy-reference']").Count.ShouldBe(2);
+        cut.Find("[data-testid='tenants-my-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-my-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
@@ -230,6 +232,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         styles.ShouldContain("min-width:");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-my-critical");
+        styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
     }
 
     private void RegisterServices(UserTenantMembershipSnapshot snapshot)
@@ -353,6 +356,14 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.MyTenants.Status.Unknown"] = "Unknown status",
             ["Tenants.MyTenants.StatusAccessible"] = "Status: {0}",
             ["Tenants.MyTenants.Title"] = "My Tenants",
+            ["Tenants.Copy.Action"] = "Copy",
+            ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
+            ["Tenants.Copy.Feedback.Copied"] = "Copied.",
+            ["Tenants.Copy.Feedback.Disconnected"] = "Clipboard disconnected. Copy was not completed.",
+            ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
+            ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
+            ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
+            ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
         };
     }
 }

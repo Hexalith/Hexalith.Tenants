@@ -861,4 +861,43 @@
   <data name="Tenants.Members.UserIdAccessible" xml:space="preserve">
     <value>Literal member user identifier {0}</value>
   </data>
+  <data name="Tenants.Copy.Action" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Tenants.Copy.Label.ConfigurationKey" xml:space="preserve">
+    <value>Copy configuration key {0}</value>
+  </data>
+  <data name="Tenants.Copy.Label.ConfigurationValue" xml:space="preserve">
+    <value>Copy visible configuration value for {0}</value>
+  </data>
+  <data name="Tenants.Copy.Label.TenantId" xml:space="preserve">
+    <value>Copy tenant identifier {0}</value>
+  </data>
+  <data name="Tenants.Copy.Label.UserId" xml:space="preserve">
+    <value>Copy user identifier {0}</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Copied" xml:space="preserve">
+    <value>Copied.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Disconnected" xml:space="preserve">
+    <value>Clipboard disconnected. Copy was not completed.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Empty" xml:space="preserve">
+    <value>Nothing is available to copy.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Failed" xml:space="preserve">
+    <value>Copy failed.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Insecure" xml:space="preserve">
+    <value>Clipboard is unavailable in this browser context.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.PermissionDenied" xml:space="preserve">
+    <value>Clipboard permission was not granted.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Unavailable" xml:space="preserve">
+    <value>Clipboard unavailable.</value>
+  </data>
+  <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
+    <value>This value is not support-safe to copy.</value>
+  </data>
 </root>

@@ -39,6 +39,14 @@
     overflow-wrap: anywhere;
 }
 
+.tenant-detail__literal-row {
+    align-items: start;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
 .tenant-detail__facts {
     display: grid;
     gap: 0.75rem;

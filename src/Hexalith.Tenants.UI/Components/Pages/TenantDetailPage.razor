@@ -63,7 +63,13 @@
             <header class="tenant-detail__identity" data-testid="tenants-detail-identity">
                 <p class="tenant-detail__eyebrow">@Localizer["Tenants.Detail.IdentityLabel"]</p>
                 <h1>@Detail.Name</h1>
-                <p class="tenant-detail__literal" aria-label="@Localizer["Tenants.Detail.FullTenantIdLabel", Detail.TenantId]">@Detail.TenantId</p>
+                <div class="tenant-detail__literal-row">
+                    <p class="tenant-detail__literal" aria-label="@Localizer["Tenants.Detail.FullTenantIdLabel", Detail.TenantId]">@Detail.TenantId</p>
+                    <SupportSafeCopyButton Value="@Detail.TenantId"
+                                           ValueKind="SupportSafeCopyValueKind.TenantId"
+                                           AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", Detail.TenantId]"
+                                           TestId="tenants-detail-copy-reference" />
+                </div>
                 @if (!string.IsNullOrWhiteSpace(Detail.Description))
                 {
                     <p>@Detail.Description</p>

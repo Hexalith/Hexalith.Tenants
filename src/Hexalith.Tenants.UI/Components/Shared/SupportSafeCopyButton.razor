@@ -1,0 +1,135 @@
+@using Hexalith.Tenants.UI.Services.SupportSafety
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<span class="support-safe-copy"
+      data-testid="@TestId"
+      data-copy-kind="@ValueKind">
+    <button type="button"
+            class="@ButtonCss"
+            data-testid="tenants-copy-reference"
+            data-surface-testid="@TestId"
+            data-copy-kind="@ValueKind"
+            aria-label="@AccessibleName"
+            @onclick="CopyAsync">
+        <span aria-hidden="true">C</span>
+        <span class="support-safe-copy__text">@Localizer["Tenants.Copy.Action"]</span>
+    </button>
+    <span class="@FeedbackCss"
+          role="status"
+          aria-live="@_livePoliteness"
+          data-testid="@($"{TestId}-feedback")">
+        @_feedback
+    </span>
+</span>
+
+@code {
+    private const string ClipboardModulePath = "./js/tenantsClipboard.js";
+
+    private IJSObjectReference? _module;
+    private string _feedback = string.Empty;
+    private string _livePoliteness = "polite";
+    private CopyFeedbackKind _feedbackKind = CopyFeedbackKind.Ready;
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public SupportSafeCopyValueKind ValueKind { get; set; } = SupportSafeCopyValueKind.ApprovedReference;
+
+    [Parameter]
+    public string AccessibleName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string TestId { get; set; } = "tenants-copy-reference";
+
+    private string ButtonCss
+        => $"support-safe-copy__button support-safe-copy__button--{_feedbackKind.ToString().ToLowerInvariant()}";
+
+    private string FeedbackCss
+        => $"support-safe-copy__feedback support-safe-copy__feedback--{_feedbackKind.ToString().ToLowerInvariant()}";
+
+    private async Task CopyAsync()
+    {
+        SupportSafeCopyEligibility eligibility = SupportSafeCopyClassifier.Classify(Value, ValueKind);
+        if (eligibility is SupportSafeCopyEligibility.Empty)
+        {
+            SetFeedback(CopyFeedbackKind.Empty, "Tenants.Copy.Feedback.Empty", "assertive");
+            return;
+        }
+
+        if (eligibility is SupportSafeCopyEligibility.Unsafe)
+        {
+            SetFeedback(CopyFeedbackKind.Unsafe, "Tenants.Copy.Feedback.Unsafe", "assertive");
+            return;
+        }
+
+        try
+        {
+            IJSObjectReference module = _module
+                ??= await JS.InvokeAsync<IJSObjectReference>("import", ClipboardModulePath).ConfigureAwait(false);
+
+            await module.InvokeVoidAsync("writeText", Value).ConfigureAwait(false);
+            SetFeedback(CopyFeedbackKind.Copied, "Tenants.Copy.Feedback.Copied", "polite");
+        }
+        catch (JSDisconnectedException)
+        {
+            SetFeedback(CopyFeedbackKind.Disconnected, "Tenants.Copy.Feedback.Disconnected", "assertive");
+        }
+        catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_INSECURE", StringComparison.Ordinal))
+        {
+            SetFeedback(CopyFeedbackKind.Insecure, "Tenants.Copy.Feedback.Insecure", "assertive");
+        }
+        catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_MISSING", StringComparison.Ordinal))
+        {
+            SetFeedback(CopyFeedbackKind.Unavailable, "Tenants.Copy.Feedback.Unavailable", "assertive");
+        }
+        catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_NOT_ALLOWED", StringComparison.Ordinal))
+        {
+            SetFeedback(CopyFeedbackKind.Permission, "Tenants.Copy.Feedback.PermissionDenied", "assertive");
+        }
+        catch (JSException)
+        {
+            SetFeedback(CopyFeedbackKind.Failed, "Tenants.Copy.Feedback.Failed", "assertive");
+        }
+    }
+
+    private void SetFeedback(CopyFeedbackKind kind, string resourceKey, string politeness)
+    {
+        _feedbackKind = kind;
+        _feedback = Localizer[resourceKey];
+        _livePoliteness = politeness;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _module.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone; no support-safe value is logged or surfaced here.
+        }
+    }
+
+    private enum CopyFeedbackKind
+    {
+        Ready,
+        Copied,
+        Empty,
+        Unsafe,
+        Unavailable,
+        Insecure,
+        Permission,
+        Disconnected,
+        Failed,
+    }
+}
