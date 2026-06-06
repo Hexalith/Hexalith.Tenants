@@ -112,7 +112,8 @@
                                 Freshness="@_snapshot.Freshness"
                                 OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                 ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
-                                ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync" />
+                                ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
+                                RemoveMemberProjectionEvidenceProvider="@GetRemoveMemberProjectionEvidenceAsync" />
 
             <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
                 <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
@@ -169,6 +170,12 @@
                 : null);
 
     private Task<TenantDetail?> GetChangeRoleProjectionEvidenceAsync(ChangeUserRoleCommandRequest request)
+        => Task.FromResult(
+            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? _snapshot.Detail
+                : null);
+
+    private Task<TenantDetail?> GetRemoveMemberProjectionEvidenceAsync(RemoveUserFromTenantCommandRequest request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail

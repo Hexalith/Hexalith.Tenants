@@ -26,6 +26,10 @@ public sealed record ChangeUserRoleCommandRequest(
     string UserId,
     TenantRole NewRole);
 
+public sealed record RemoveUserFromTenantCommandRequest(
+    string TenantId,
+    string UserId);
+
 public sealed record TenantCommandTrackingHandle(
     string MessageId,
     string CorrelationId);
@@ -33,12 +37,14 @@ public sealed record TenantCommandTrackingHandle(
 public enum TenantCommandLifecycleState
 {
     Idle,
+    Previewed,
     RequestSent,
     Accepted,
     ProjectionPending,
     Confirmed,
     Rejected,
     AlreadyApplied,
+    DuplicatePrevented,
     Failed,
     Degraded,
     UnableToVerify,
@@ -48,6 +54,7 @@ public enum TenantCommandAuditState
 {
     NotStarted,
     AuditPending,
+    AuditDelayed,
     AuditUnavailable,
     MissingSupport,
 }
@@ -623,5 +630,240 @@ public sealed record TenantChangeRoleCommandSnapshot(
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
+    }
+}
+
+public sealed record TenantRemoveMemberCommandSnapshot(
+    TenantCommandLifecycleState State,
+    RemoveUserFromTenantCommandRequest? Intent = null,
+    TenantRole CurrentConfirmedRole = TenantRole.Unknown,
+    int OwnerCount = 0,
+    bool TargetGlobalAdministratorFriction = false,
+    bool IsPreviewComplete = false,
+    TenantDetailProjection? LastConfirmedMemberProjection = null,
+    string? MessageId = null,
+    string? CorrelationId = null,
+    string? SafeMessage = null,
+    string? RejectionCode = null,
+    TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
+    TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite)
+{
+    public static TenantRemoveMemberCommandSnapshot Idle()
+        => new(TenantCommandLifecycleState.Idle);
+
+    public static TenantRemoveMemberCommandSnapshot Blocked(string safeMessage, TenantCommandFocusTarget focusTarget)
+        => new(
+            TenantCommandLifecycleState.UnableToVerify,
+            SafeMessage: safeMessage,
+            AuditState: TenantCommandAuditState.MissingSupport,
+            FocusTarget: focusTarget,
+            LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
+
+    public TenantRemoveMemberCommandSnapshot Previewed(
+        RemoveUserFromTenantCommandRequest intent,
+        TenantRole currentConfirmedRole,
+        int ownerCount,
+        bool targetGlobalAdministratorFriction,
+        TenantDetailProjection lastConfirmedMemberProjection)
+        => this with
+        {
+            State = TenantCommandLifecycleState.Previewed,
+            Intent = intent,
+            CurrentConfirmedRole = currentConfirmedRole,
+            OwnerCount = ownerCount,
+            TargetGlobalAdministratorFriction = targetGlobalAdministratorFriction,
+            IsPreviewComplete = true,
+            LastConfirmedMemberProjection = lastConfirmedMemberProjection,
+            SafeMessage = null,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.MissingSupport,
+            FocusTarget = TenantCommandFocusTarget.Submit,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+
+    public TenantRemoveMemberCommandSnapshot AlreadyApplied(
+        RemoveUserFromTenantCommandRequest intent,
+        TenantRole currentConfirmedRole,
+        int ownerCount,
+        TenantDetailProjection? lastConfirmedMemberProjection,
+        string safeMessage)
+        => this with
+        {
+            State = TenantCommandLifecycleState.AlreadyApplied,
+            Intent = intent,
+            CurrentConfirmedRole = currentConfirmedRole,
+            OwnerCount = ownerCount,
+            LastConfirmedMemberProjection = lastConfirmedMemberProjection,
+            SafeMessage = safeMessage,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.MissingSupport,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+
+    public TenantRemoveMemberCommandSnapshot DuplicatePrevented(string safeMessage)
+        => this with
+        {
+            State = TenantCommandLifecycleState.DuplicatePrevented,
+            SafeMessage = safeMessage,
+            AuditState = TenantCommandAuditState.MissingSupport,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
+
+    public TenantRemoveMemberCommandSnapshot RequestSent()
+        => this with
+        {
+            State = TenantCommandLifecycleState.RequestSent,
+            SafeMessage = null,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.NotStarted,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+
+    public TenantRemoveMemberCommandSnapshot Accepted(TenantCommandSubmissionResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return this with
+        {
+            State = TenantCommandLifecycleState.Accepted,
+            MessageId = result.MessageId,
+            CorrelationId = result.CorrelationId,
+            SafeMessage = null,
+            RejectionCode = null,
+            AuditState = TenantCommandAuditState.AuditPending,
+            FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+        };
+    }
+
+    public TenantRemoveMemberCommandSnapshot ApplyStatus(TenantCommandStatusResult status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+
+        if (status.Status is null)
+        {
+            return this with
+            {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = status.SafeMessage,
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
+        return status.Status.Value switch
+        {
+            CommandStatus.Received or CommandStatus.Processing
+                => this with { State = TenantCommandLifecycleState.Accepted, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
+            CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed
+                => this with { State = TenantCommandLifecycleState.ProjectionPending, AuditState = TenantCommandAuditState.AuditPending, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
+            CommandStatus.Rejected
+                => this with
+                {
+                    State = TenantCommandLifecycleState.Rejected,
+                    SafeMessage = status.SafeMessage,
+                    RejectionCode = status.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                },
+            CommandStatus.PublishFailed
+                => this with
+                {
+                    State = TenantCommandLifecycleState.Degraded,
+                    SafeMessage = status.SafeMessage,
+                    AuditState = TenantCommandAuditState.AuditDelayed,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                },
+            CommandStatus.TimedOut
+                => this with
+                {
+                    State = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = status.SafeMessage,
+                    AuditState = TenantCommandAuditState.AuditDelayed,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                },
+            _ => this with
+            {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = "Command status could not be verified.",
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            },
+        };
+    }
+
+    public TenantRemoveMemberCommandSnapshot SignalRNudge()
+        => this with
+        {
+            State = State is TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.RequestSent
+                ? TenantCommandLifecycleState.ProjectionPending
+                : State,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+        };
+
+    public TenantRemoveMemberCommandSnapshot ConfirmProjection(TenantDetailProjection? detailEvidence)
+    {
+        if (Intent is null)
+        {
+            return this;
+        }
+
+        bool tenantMatches = string.Equals(detailEvidence?.TenantId, Intent.TenantId, StringComparison.Ordinal);
+        if (!tenantMatches)
+        {
+            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+
+        bool targetStillPresent = detailEvidence!.Members.Any(member =>
+            string.Equals(member.UserId, Intent.UserId, StringComparison.Ordinal));
+
+        if (targetStillPresent)
+        {
+            return this with
+            {
+                LastConfirmedMemberProjection = detailEvidence,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+            };
+        }
+
+        if (State is TenantCommandLifecycleState.Accepted or TenantCommandLifecycleState.ProjectionPending)
+        {
+            return this with
+            {
+                State = TenantCommandLifecycleState.Confirmed,
+                LastConfirmedMemberProjection = detailEvidence,
+                SafeMessage = null,
+                RejectionCode = null,
+                AuditState = TenantCommandAuditState.AuditPending,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+
+        if (State is TenantCommandLifecycleState.Rejected
+            && string.Equals(RejectionCode, "UserNotInTenant", StringComparison.Ordinal))
+        {
+            return this with
+            {
+                State = TenantCommandLifecycleState.AlreadyApplied,
+                LastConfirmedMemberProjection = detailEvidence,
+                SafeMessage = "Projection evidence confirms the target user is already absent; no command result or audit proof is asserted.",
+                RejectionCode = null,
+                AuditState = TenantCommandAuditState.MissingSupport,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+
+        return this;
     }
 }

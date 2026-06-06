@@ -370,8 +370,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ToHashSet(StringComparer.Ordinal);
 
         reasonListIds.Count.ShouldBe(2);
-        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(4);
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(2);
         cut.FindAll("[data-testid='tenants-change-role-open']").Count.ShouldBe(2);
+        cut.FindAll("[data-testid='tenants-remove-member-open']").Count.ShouldBe(2);
         foreach (IElement slot in cut.FindAll("[data-testid='tenants-member-action-slot']"))
         {
             string describedBy = slot.GetAttribute("aria-describedby").ShouldNotBeNull();
@@ -381,6 +382,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-change-role-open']")
             .ShouldAllBe(static button => button.GetAttribute("aria-controls") == "tenants-change-role-flow-region");
+        cut.FindAll("[data-testid='tenants-remove-member-open']")
+            .ShouldAllBe(static button => button.GetAttribute("aria-controls") == "tenants-remove-member-flow-region");
         cut.FindAll("[data-testid='tenants-member-row']")
             .ShouldAllBe(static row => row.GetAttribute("tabindex") == "0");
     }
@@ -410,11 +413,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 .TextContent.ShouldContain(category);
         }
 
-        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBeGreaterThanOrEqualTo(3);
-        cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(6);
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBeGreaterThanOrEqualTo(2);
+        cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(4);
         cut.Find("[data-testid='tenants-add-member-flow']");
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("type").ShouldBe("submit");
         cut.FindAll("[data-testid='tenants-change-role-open']").Count.ShouldBe(2);
+        cut.FindAll("[data-testid='tenants-remove-member-open']").Count.ShouldBe(2);
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
         cut.Markup.ShouldNotContain("command payload", Case.Insensitive);
@@ -423,7 +427,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Member_access_review_opens_change_role_flow_without_removing_add_or_remove_unavailable_slots()
+    public void Member_access_review_opens_change_role_flow_without_removing_add_or_remove_action_slots()
     {
         RegisterComponentServices();
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
@@ -439,10 +443,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-change-role-new-role']");
         cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("type").ShouldBe("submit");
         cut.Find("[data-testid='tenants-change-role-lifecycle']");
-        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(4);
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(2);
+        cut.FindAll("[data-testid='tenants-remove-member-open']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-add-member-flow']");
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("type").ShouldBe("submit");
-        cut.Markup.ShouldNotContain("Remove member</button>", Case.Insensitive);
+        cut.Markup.ShouldContain("Remove member", Case.Insensitive);
     }
 
     [Theory]
@@ -742,6 +747,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         invariantResources.ShouldContain("Tenants.ChangeRole.State.AlreadyApplied");
         frenchResources.ShouldContain("Tenants.ChangeRole.Title");
         frenchResources.ShouldContain("Tenants.ChangeRole.State.AlreadyApplied");
+        invariantResources.ShouldContain("Tenants.RemoveMember.Title");
+        invariantResources.ShouldContain("Tenants.RemoveMember.State.ProjectionPending");
+        frenchResources.ShouldContain("Tenants.RemoveMember.Title");
+        frenchResources.ShouldContain("Tenants.RemoveMember.State.ProjectionPending");
         invariantResources.ShouldContain("Tenants.Copy.Action");
         invariantResources.ShouldContain("Tenants.Copy.Feedback.Unsafe");
         frenchResources.ShouldContain("Tenants.Copy.Action");
@@ -854,6 +863,27 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Remove_member_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = RemoveMemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = RemoveMemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
+    [Fact]
     public void Copy_source_uses_clipboard_module_without_browser_backend_or_legacy_fallbacks()
     {
         string projectRoot = ProjectRoot();
@@ -907,6 +937,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private static HashSet<string> ChangeRoleResourceKeys(string resourcePath)
         => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.ChangeRole[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static HashSet<string> RemoveMemberResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.RemoveMember[^\"]+)\"")
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
@@ -1008,6 +1043,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRoleCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenantCommandRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)

@@ -122,6 +122,18 @@
                                                 @ActionLabel(slot.Action)
                                             </button>
                                         }
+                                        else if (slot.Action is MemberAction.RemoveMember && slot.Reasons.Count == 0)
+                                        {
+                                            <button type="button"
+                                                    class="tenant-members__action-button tenant-members__action-button--destructive"
+                                                    data-testid="tenants-remove-member-open"
+                                                    aria-controls="tenants-remove-member-flow-region"
+                                                    aria-describedby="@row.ReasonElementId"
+                                                    @ref="_removeMemberLaunchElements[row.Member.UserId]"
+                                                    @onclick="() => OpenRemoveMember(row.Member.UserId)">
+                                                @ActionLabel(slot.Action)
+                                            </button>
+                                        }
                                         else
                                         {
                                             <div class="tenant-members__action-slot"
@@ -169,6 +181,22 @@
                                             ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
             </div>
         }
+
+        @if (ActiveRemoveMember is not null)
+        {
+            <div id="tenants-remove-member-flow-region" class="tenant-members__remove-member-region">
+                <RemoveTenantMemberFlow Detail="@Detail"
+                                        Member="@ActiveRemoveMember"
+                                        SurfaceKind="@SurfaceKind"
+                                        Freshness="@Freshness"
+                                        IsAuthorized="@IsRemoveMemberAuthorized"
+                                        IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                        TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
+                                        OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                        OnCloseRequested="@CloseRemoveMemberAsync"
+                                        ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
+            </div>
+        }
     }
 </section>
 
@@ -184,12 +212,15 @@
     ];
 
     private string? _activeChangeRoleUserId;
+    private string? _activeRemoveMemberUserId;
 
     // One launch button is rendered per actionable member row, so a single ElementReference would
     // be overwritten by the last row in the loop and return focus to the wrong member on close.
     // Key the captured references by the literal user id so focus returns to the launching control.
     private readonly Dictionary<string, ElementReference> _changeRoleLaunchElements = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ElementReference> _removeMemberLaunchElements = new(StringComparer.Ordinal);
     private string? _focusChangeRoleLaunchUserId;
+    private string? _focusRemoveMemberLaunchUserId;
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -207,7 +238,13 @@
     public bool IsChangeRoleAuthorized { get; set; } = true;
 
     [Parameter]
+    public bool IsRemoveMemberAuthorized { get; set; } = true;
+
+    [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public bool TargetGlobalAdministratorFriction { get; set; }
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
@@ -218,6 +255,9 @@
     [Parameter]
     public Func<ChangeUserRoleCommandRequest, Task<TenantDetail?>>? ChangeRoleProjectionEvidenceProvider { get; set; }
 
+    [Parameter]
+    public Func<RemoveUserFromTenantCommandRequest, Task<TenantDetail?>>? RemoveMemberProjectionEvidenceProvider { get; set; }
+
     private IReadOnlyList<MemberRow> Rows
         => Detail.Members
             .Select((member, index) => ToRow(member, index))
@@ -225,6 +265,9 @@
 
     private TenantMember? ActiveChangeRoleMember
         => Detail.Members.FirstOrDefault(member => string.Equals(member.UserId, _activeChangeRoleUserId, StringComparison.Ordinal));
+
+    private TenantMember? ActiveRemoveMember
+        => Detail.Members.FirstOrDefault(member => string.Equals(member.UserId, _activeRemoveMemberUserId, StringComparison.Ordinal));
 
     private int OwnerCount
         => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
@@ -285,7 +328,7 @@
         [
             new(MemberAction.AddMember, [UnavailableReason.MissingPermission, UnavailableReason.HighImpactFlowNotReady]),
             new(MemberAction.ChangeRole, []),
-            new(MemberAction.RemoveMember, [UnavailableReason.MissingPermission, UnavailableReason.MissingConsequencePreview, UnavailableReason.MissingAuditProof, UnavailableReason.HighImpactFlowNotReady]),
+            new(MemberAction.RemoveMember, []),
         ];
     }
 
@@ -322,10 +365,26 @@
             _focusChangeRoleLaunchUserId = null;
             await launchElement.FocusAsync().ConfigureAwait(false);
         }
+
+        if (_focusRemoveMemberLaunchUserId is not null
+            && _removeMemberLaunchElements.TryGetValue(_focusRemoveMemberLaunchUserId, out ElementReference removeLaunchElement))
+        {
+            _focusRemoveMemberLaunchUserId = null;
+            await removeLaunchElement.FocusAsync().ConfigureAwait(false);
+        }
     }
 
     private void OpenChangeRole(string userId)
-        => _activeChangeRoleUserId = userId;
+    {
+        _activeRemoveMemberUserId = null;
+        _activeChangeRoleUserId = userId;
+    }
+
+    private void OpenRemoveMember(string userId)
+    {
+        _activeChangeRoleUserId = null;
+        _activeRemoveMemberUserId = userId;
+    }
 
     private async Task CloseChangeRoleAsync()
     {
@@ -333,6 +392,13 @@
         // "Change role" control once the flow region is removed and the table re-renders.
         _focusChangeRoleLaunchUserId = _activeChangeRoleUserId;
         _activeChangeRoleUserId = null;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task CloseRemoveMemberAsync()
+    {
+        _focusRemoveMemberLaunchUserId = _activeRemoveMemberUserId;
+        _activeRemoveMemberUserId = null;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 

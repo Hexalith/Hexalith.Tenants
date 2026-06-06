@@ -62,6 +62,10 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("Projection pending; tenant is not confirmed visible yet.");
         manager.GetString("Tenants.Create.State.ProjectionPending", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Projection en attente ; le locataire n'est pas encore confirmé visible.");
+        manager.GetString("Tenants.RemoveMember.State.ProjectionPending", CultureInfo.InvariantCulture)
+            .ShouldBe("Projection pending; the target user is not confirmed absent yet.");
+        manager.GetString("Tenants.RemoveMember.State.ProjectionPending", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Projection en attente ; l'utilisateur cible n'est pas encore confirmé absent.");
     }
 
     [Fact]
@@ -112,6 +116,9 @@ public sealed class TenantsUiCompositionTests
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRoleCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenantCommandRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)

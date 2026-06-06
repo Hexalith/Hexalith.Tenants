@@ -1203,4 +1203,247 @@
   <data name="Tenants.Create.Audit.MissingSupport" xml:space="preserve">
     <value>La prise en charge de l'audit manque pour ce flux.</value>
   </data>
+  <data name="Tenants.RemoveMember.Title" xml:space="preserve">
+    <value>Retirer un membre du locataire</value>
+  </data>
+  <data name="Tenants.RemoveMember.Description" xml:space="preserve">
+    <value>Prévisualiser le retrait de l'utilisateur {1} du locataire {0}. Le rôle confirmé actuel est {2}.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.Title" xml:space="preserve">
+    <value>Aperçu des conséquences</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.Tenant" xml:space="preserve">
+    <value>Locataire</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.TargetUser" xml:space="preserve">
+    <value>Utilisateur cible</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.CurrentRole" xml:space="preserve">
+    <value>Rôle actuel</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.OwnerCount" xml:space="preserve">
+    <value>Nombre de propriétaires</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.AccessPath" xml:space="preserve">
+    <value>Chemin d'accès affecté</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.AccessPath.Value" xml:space="preserve">
+    <value>Appartenance au locataire visible uniquement.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.Freshness" xml:space="preserve">
+    <value>Fraîcheur</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.RecoveryPath" xml:space="preserve">
+    <value>Chemin de reprise</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Attendre, actualiser, inspecter l'audit lorsqu'il est disponible, ou soumettre une correction en avant pour restaurer l'accès prévu.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.AuditExpectation" xml:space="preserve">
+    <value>Attente d'audit</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>La preuve d'audit est en attente ou indisponible tant que la source de preuve de l'Epic 5 n'existe pas.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.KnownConsequences" xml:space="preserve">
+    <value>Conséquences connues</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.KnownConsequences.Value" xml:space="preserve">
+    <value>L'appartenance au locataire est retirée seulement après confirmation par projection que l'utilisateur cible est absent.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Inconnues connues</value>
+  </data>
+  <data name="Tenants.RemoveMember.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>La révocation de session, l'application en aval, l'invalidation de jeton et la preuve d'administration globale ne sont pas prouvées par ce flux.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Freshness.Current" xml:space="preserve">
+    <value>Actuelle</value>
+  </data>
+  <data name="Tenants.RemoveMember.Freshness.Aging" xml:space="preserve">
+    <value>Vieillissante</value>
+  </data>
+  <data name="Tenants.RemoveMember.Freshness.Refreshing" xml:space="preserve">
+    <value>Actualisation</value>
+  </data>
+  <data name="Tenants.RemoveMember.Freshness.Stale" xml:space="preserve">
+    <value>Obsolète</value>
+  </data>
+  <data name="Tenants.RemoveMember.Freshness.Unknown" xml:space="preserve">
+    <value>Inconnue</value>
+  </data>
+  <data name="Tenants.RemoveMember.OwnerContext.NoOwners" xml:space="preserve">
+    <value>0 propriétaire visible ; le contexte propriétaire est indisponible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.OwnerContext.LastOwner" xml:space="preserve">
+    <value>{0} propriétaire visible ; retirer ce membre peut laisser zéro propriétaire visible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.OwnerContext.MultipleOwners" xml:space="preserve">
+    <value>{0} propriétaires visibles.</value>
+  </data>
+  <data name="Tenants.RemoveMember.OwnerRisk.LastOwner" xml:space="preserve">
+    <value>Avertissement : {0} propriétaire visible reste. Le retrait de l'appartenance du dernier propriétaire est autorisé, mais exige une confirmation délibérée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.OwnerRisk.Accessible" xml:space="preserve">
+    <value>Avertissement renforcé de retrait du dernier propriétaire pour {0} propriétaire visible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.GlobalAdminRisk.Known" xml:space="preserve">
+    <value>Une autorité d'administrateur de plateforme est reflétée pour cet utilisateur. Ce flux retire uniquement l'appartenance au locataire et ne retire pas l'autorité d'administrateur global.</value>
+  </data>
+  <data name="Tenants.RemoveMember.GlobalAdminRisk.Unknown" xml:space="preserve">
+    <value>L'autorité d'administrateur global est une inconnue connue dans cette vue. Ce flux n'envoie pas de commandes d'administrateur global.</value>
+  </data>
+  <data name="Tenants.RemoveMember.GlobalAdminRisk.Accessible" xml:space="preserve">
+    <value>Contexte de risque d'autorité de plateforme.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirmation.Label" xml:space="preserve">
+    <value>Saisir l'identifiant utilisateur cible pour confirmer le retrait</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirmation.Help" xml:space="preserve">
+    <value>Saisissez exactement {0}. Annuler ou Échap ferme sans soumettre.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Confirm" xml:space="preserve">
+    <value>Retirer le membre</value>
+  </data>
+  <data name="Tenants.RemoveMember.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.RemoveMember.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.RemoveMember.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la commande de retrait de membre</value>
+  </data>
+  <data name="Tenants.RemoveMember.Validation.ConfirmationRequired" xml:space="preserve">
+    <value>Saisissez exactement {0} avant de retirer ce membre.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.Authorization" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à retirer des membres de ce locataire.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez le détail actuel du locataire avant de retirer un membre.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>Cet état de cycle de vie du locataire ne permet pas de retirer des membres.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.InFlight" xml:space="preserve">
+    <value>Une commande locataire est déjà en cours.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.Identity" xml:space="preserve">
+    <value>L'identifiant locataire et l'identifiant utilisateur cible sont obligatoires avant d'ouvrir l'aperçu.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.UnknownRole" xml:space="preserve">
+    <value>Le rôle actuel est inconnu ; le retrait de membre échoue fermé jusqu'à actualisation de la preuve de projection.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.TargetAbsent" xml:space="preserve">
+    <value>L'utilisateur cible est déjà absent de la projection confirmée actuelle.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Role.TenantOwner" xml:space="preserve">
+    <value>Propriétaire du locataire</value>
+  </data>
+  <data name="Tenants.RemoveMember.Role.TenantContributor" xml:space="preserve">
+    <value>Contributeur du locataire</value>
+  </data>
+  <data name="Tenants.RemoveMember.Role.TenantReader" xml:space="preserve">
+    <value>Lecteur du locataire</value>
+  </data>
+  <data name="Tenants.RemoveMember.Role.Unknown" xml:space="preserve">
+    <value>Rôle inconnu</value>
+  </data>
+  <data name="Tenants.RemoveMember.AlreadyApplied.BeforeSubmit" xml:space="preserve">
+    <value>L'utilisateur {0} est déjà absent de la projection confirmée actuelle ; aucune commande de retrait n'a été soumise.</value>
+  </data>
+  <data name="Tenants.RemoveMember.DuplicatePrevented.Message" xml:space="preserve">
+    <value>Une commande de retrait de membre est déjà en cours pour ce flux.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Idle" xml:space="preserve">
+    <value>Aucun aperçu de retrait de membre ouvert.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Previewed" xml:space="preserve">
+    <value>L'aperçu des conséquences est prêt ; aucune commande n'a été soumise.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.RequestSent" xml:space="preserve">
+    <value>Requête de retrait de membre envoyée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Accepted" xml:space="preserve">
+    <value>Acceptée par EventStore ; traitement du retrait de membre en attente.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; l'utilisateur cible n'est pas encore confirmé absent.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Confirmed" xml:space="preserve">
+    <value>La projection confirme que l'utilisateur cible est absent des membres du locataire.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Rejected" xml:space="preserve">
+    <value>Commande de retrait de membre rejetée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.AlreadyApplied" xml:space="preserve">
+    <value>Déjà appliqué ; la preuve de projection montre que l'utilisateur cible est absent.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.DuplicatePrevented" xml:space="preserve">
+    <value>Soumission de retrait de membre en double empêchée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Failed" xml:space="preserve">
+    <value>Échec de la soumission de retrait de membre.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.Degraded" xml:space="preserve">
+    <value>Le résultat de retrait de membre est dégradé et nécessite une revue.</value>
+  </data>
+  <data name="Tenants.RemoveMember.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de vérifier le résultat du retrait de membre.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.NotStarted" xml:space="preserve">
+    <value>Preuve d'audit non démarrée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente ; aucun reçu n'est disponible dans cette story.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.AuditDelayed" xml:space="preserve">
+    <value>Preuve d'audit retardée ; attendez ou inspectez l'audit lorsque la preuve de l'Epic 5 est disponible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible ; aucune preuve ni aucun reçu n'est affirmé.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Audit.MissingSupport" xml:space="preserve">
+    <value>La prise en charge de la preuve d'audit manque tant que l'Epic 5 n'implémente pas la source de preuve.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Idle" xml:space="preserve">
+    <value>Ouvrez l'aperçu lorsque la preuve de projection actuelle est disponible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Previewed" xml:space="preserve">
+    <value>Confirmez délibérément, annulez ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.RequestSent" xml:space="preserve">
+    <value>Attendez le statut de commande et l'actualisation de projection.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Accepted" xml:space="preserve">
+    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'à confirmation de l'absence par projection.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Actualisez la projection des membres ; ne considérez pas la ligne comme retirée tant que l'absence n'est pas confirmée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Confirmed" xml:space="preserve">
+    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Rejected" xml:space="preserve">
+    <value>Actualisez la preuve de projection, demandez l'autorisation, démarrez une correction ou escaladez.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Continuez en lecture seule ou restaurez l'accès prévu par une correction en avant si nécessaire.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Failed" xml:space="preserve">
+    <value>Réessayez après vérification de la preuve de projection actuelle ou escaladez.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.Degraded" xml:space="preserve">
+    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+  </data>
 </root>

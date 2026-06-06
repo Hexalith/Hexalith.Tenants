@@ -446,6 +446,9 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             return ChangeRoleAsync is null ? Task.FromResult(Submission) : ChangeRoleAsync(request);
         }
 
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
             => StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
     }

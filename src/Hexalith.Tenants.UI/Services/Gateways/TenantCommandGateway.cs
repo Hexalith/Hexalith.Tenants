@@ -144,6 +144,41 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
+        RemoveUserFromTenantCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrEmpty(request.UserId))
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id and user id are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new RemoveUserFromTenant(request.TenantId, request.UserId);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(RemoveUserFromTenant),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapRemoveUserFromTenantGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
@@ -252,6 +287,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapRemoveUserFromTenantGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeRemoveMemberRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to remove members from this tenant.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The remove member request was not accepted. Check the visible member evidence and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+        };
+    }
+
     private static bool IsTenantAlreadyExists(EventStoreGatewayException exception)
         => Contains(exception.ReasonCode, "tenant-already-exists")
         || Contains(exception.Reason, "TenantAlreadyExists")
@@ -277,13 +332,14 @@ internal sealed class TenantCommandGateway(
     private static string? SafeRejectionCode(string? rejectionEventType)
         => SafeSharedStatusRejection(rejectionEventType)?.Code;
 
-    // GetStatusAsync is shared by every Tenants command (create-tenant, add-member, change-role)
+    // GetStatusAsync is shared by every Tenants command (create-tenant, add-member, change-role,
+    // remove-member)
     // and only carries a correlation id, so it cannot tell which command produced a rejection.
     // Command-UNIQUE rejection types (TenantAlreadyExists -> create, UserAlreadyInTenant -> add,
     // UserNotInTenant -> change-role) keep command-specific copy. Rejection types that are SHARED
     // across commands (InsufficientPermissions, TenantDisabled, TenantNotFound, RoleEscalation)
     // must stay command-neutral so one command's copy never leaks into another command's lifecycle
-    // panel. This keeps the Story 2.2 shared-status discipline symmetric for change-role.
+    // panel. This keeps the Story 2.2 shared-status discipline symmetric for member commands.
     private static (string Code, string Message)? SafeSharedStatusRejection(string? value)
     {
         if (Contains(value, "TenantAlreadyExists"))
@@ -394,6 +450,41 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantDisabled"))
         {
             return ("TenantDisabled", "This tenant is disabled, so member roles cannot be changed.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeRemoveMemberRejection(EventStoreGatewayException exception)
+        => SafeRemoveMemberRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeRemoveMemberRejection(string? value)
+    {
+        if (Contains(value, "UserNotInTenant"))
+        {
+            return ("UserNotInTenant", "The target user is not a visible member of this tenant. Refresh the member table before treating removal as already applied.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to remove members from this tenant.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so members cannot be removed.");
         }
 
         if (Contains(value, "TenantNotFound"))

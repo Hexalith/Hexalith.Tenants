@@ -114,6 +114,10 @@
     justify-self: start;
 }
 
+.tenant-members__action-button--destructive {
+    border: 2px solid #c50f1f;
+}
+
 .tenant-members__action-name {
     font-weight: 600;
     overflow-wrap: anywhere;
@@ -131,7 +135,8 @@
     font-weight: 500;
 }
 
-.tenant-members__change-role-region {
+.tenant-members__change-role-region,
+.tenant-members__remove-member-region {
     display: grid;
     gap: 0.75rem;
     min-width: 0;
@@ -182,7 +187,8 @@
     .tenant-members__table td,
     .tenant-members__badge,
     .tenant-members__reason,
-    .tenant-members__action-state {
+    .tenant-members__action-state,
+    .tenant-members__action-button--destructive {
         border-color: CanvasText;
         color: CanvasText;
     }

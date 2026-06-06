@@ -1,0 +1,483 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.Tenants.UI.State.TenantList
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+<section class="tenants-remove-member-flow"
+         data-testid="tenants-remove-member-flow"
+         aria-labelledby="tenants-remove-member-heading"
+         @onkeydown="HandleKeyDownAsync">
+    <div class="tenants-remove-member-flow__heading">
+        <h3 id="tenants-remove-member-heading">@Localizer["Tenants.RemoveMember.Title"]</h3>
+        <p>@Localizer["Tenants.RemoveMember.Description", Detail.TenantId, Member.UserId, RoleLabel(Member.Role)]</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p class="tenants-remove-member-flow__unavailable"
+           id="tenants-remove-member-unavailable"
+           data-testid="tenants-remove-member-unavailable-reason"
+           role="alert">
+            @UnavailableReason
+        </p>
+    }
+
+    @if (IsPreviewComplete)
+    {
+        <section class="tenants-remove-member-flow__preview"
+                 data-testid="tenants-remove-member-preview"
+                 aria-labelledby="tenants-remove-member-preview-heading">
+            <h4 id="tenants-remove-member-preview-heading">@Localizer["Tenants.RemoveMember.Preview.Title"]</h4>
+            <dl>
+                @foreach ((string Label, string Value, string TestId) item in PreviewItems)
+                {
+                    <div data-testid="tenants-remove-member-preview-item">
+                        <dt>@item.Label</dt>
+                        <dd data-testid="@item.TestId">@item.Value</dd>
+                    </div>
+                }
+            </dl>
+        </section>
+    }
+
+    @if (LastOwnerRiskVisible)
+    {
+        <p class="tenants-remove-member-flow__risk"
+           id="tenants-remove-member-owner-risk"
+           data-testid="tenants-remove-member-owner-risk"
+           role="status"
+           aria-label="@Localizer["Tenants.RemoveMember.OwnerRisk.Accessible", OwnerCount]">
+            <span aria-hidden="true">!</span>
+            <span>@Localizer["Tenants.RemoveMember.OwnerRisk.LastOwner", OwnerCount]</span>
+        </p>
+    }
+
+    <p class="tenants-remove-member-flow__risk"
+       id="tenants-remove-member-global-admin-risk"
+       data-testid="tenants-remove-member-global-admin-risk"
+       role="status"
+       aria-label="@Localizer["Tenants.RemoveMember.GlobalAdminRisk.Accessible"]">
+        <span aria-hidden="true">?</span>
+        <span>@GlobalAdministratorRiskText</span>
+    </p>
+
+    <form class="tenants-remove-member-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+        <label for="tenants-remove-member-confirmation">
+            <span>@Localizer["Tenants.RemoveMember.Confirmation.Label"]</span>
+            <input id="tenants-remove-member-confirmation"
+                   @ref="_confirmationElement"
+                   value="@_confirmationText"
+                   data-testid="tenants-remove-member-confirmation"
+                   aria-describedby="@ConfirmationDescribedBy"
+                   @oninput="OnConfirmationInput" />
+            <span id="tenants-remove-member-confirmation-help">@Localizer["Tenants.RemoveMember.Confirmation.Help", Member.UserId]</span>
+        </label>
+
+        @if (!string.IsNullOrWhiteSpace(_validationMessage))
+        {
+            <p id="tenants-remove-member-validation"
+               class="tenants-remove-member-flow__validation"
+               data-testid="tenants-remove-member-validation"
+               role="alert">
+                @_validationMessage
+            </p>
+        }
+
+        <div class="tenants-remove-member-flow__actions">
+            <button type="submit"
+                    class="tenants-remove-member-flow__confirm"
+                    data-testid="tenants-remove-member-confirm"
+                    disabled="@IsSubmitDisabled">
+                @Localizer["Tenants.RemoveMember.Confirm"]
+            </button>
+            <button type="button"
+                    data-testid="tenants-remove-member-refresh"
+                    disabled="@(!CanRefresh)"
+                    @onclick="RefreshStatusAsync">
+                @Localizer["Tenants.RemoveMember.Refresh"]
+            </button>
+            <button type="button"
+                    data-testid="tenants-remove-member-cancel"
+                    @onclick="CloseAsync">
+                @Localizer["Tenants.RemoveMember.Cancel"]
+            </button>
+        </div>
+    </form>
+
+    <section class="tenants-remove-member-flow__lifecycle"
+             @ref="_lifecycleElement"
+             tabindex="-1"
+             data-testid="tenants-remove-member-lifecycle"
+             aria-labelledby="tenants-remove-member-state-label">
+        <h4 id="tenants-remove-member-state-label">@Localizer["Tenants.RemoveMember.Lifecycle.Title"]</h4>
+        <p class="@StateClass" data-testid="tenants-remove-member-state">
+            <span aria-hidden="true">@StateSymbol</span>
+            <span>@StateText</span>
+        </p>
+        <p data-testid="tenants-remove-member-audit">@AuditText</p>
+        <p data-testid="tenants-remove-member-recovery">@RecoveryText</p>
+        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        {
+            <p data-testid="tenants-remove-member-safe-message">@_snapshot.SafeMessage</p>
+        }
+        <p class="tenants-remove-member-flow__live"
+           data-testid="tenants-remove-member-live-region"
+           aria-live="@LiveRegionMode"
+           aria-atomic="true">
+            @StateText
+        </p>
+    </section>
+</section>
+
+@code {
+    private TenantRemoveMemberCommandSnapshot _snapshot = TenantRemoveMemberCommandSnapshot.Idle();
+    private string? _confirmationText;
+    private string? _validationMessage;
+    private bool _isSubmitting;
+    private ElementReference _confirmationElement;
+    private ElementReference _lifecycleElement;
+    private bool _focusConfirmationPending;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantMember Member { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public bool TargetGlobalAdministratorFriction { get; set; }
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnCloseRequested { get; set; }
+
+    [Parameter]
+    public Func<RemoveUserFromTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    internal TenantRemoveMemberCommandSnapshot Snapshot => _snapshot;
+
+    private int OwnerCount
+        => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
+
+    private bool TargetIsVisibleMember
+        => Detail.Members.Any(member => string.Equals(member.UserId, Member.UserId, StringComparison.Ordinal));
+
+    private bool LastOwnerRiskVisible
+        => OwnerCount == 1 && Member.Role is TenantRole.TenantOwner;
+
+    private bool IsPreviewComplete
+        => string.IsNullOrWhiteSpace(UnavailableReason)
+        && !string.IsNullOrWhiteSpace(Detail.TenantId)
+        && !string.IsNullOrWhiteSpace(Member.UserId)
+        && Member.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
+        && Freshness is TenantFreshnessState.Current
+        && TargetIsVisibleMember;
+
+    private string? UnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+            ? Localizer["Tenants.RemoveMember.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+                ? Localizer["Tenants.RemoveMember.Unavailable.Freshness"].Value
+                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value
+                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                        ? Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value
+                            : string.IsNullOrWhiteSpace(Detail.TenantId) || string.IsNullOrWhiteSpace(Member.UserId)
+                                ? Localizer["Tenants.RemoveMember.Unavailable.Identity"].Value
+                                : Member.Role is TenantRole.Unknown
+                                    ? Localizer["Tenants.RemoveMember.Unavailable.UnknownRole"].Value
+                                    : !TargetIsVisibleMember
+                                        ? Localizer["Tenants.RemoveMember.Unavailable.TargetAbsent"].Value
+                                        : null;
+
+    private bool IsSubmitDisabled
+        => !IsPreviewComplete || !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool CanRefresh
+        => _snapshot.Intent is not null
+        && _snapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private IReadOnlyList<(string Label, string Value, string TestId)> PreviewItems
+        =>
+        [
+            (Localizer["Tenants.RemoveMember.Preview.Tenant"], Detail.TenantId, "tenants-remove-member-tenant-id"),
+            (Localizer["Tenants.RemoveMember.Preview.TargetUser"], Member.UserId, "tenants-remove-member-target-user-id"),
+            (Localizer["Tenants.RemoveMember.Preview.CurrentRole"], RoleLabel(Member.Role), "tenants-remove-member-current-role"),
+            (Localizer["Tenants.RemoveMember.Preview.OwnerCount"], OwnerContextText, "tenants-remove-member-owner-context"),
+            (Localizer["Tenants.RemoveMember.Preview.AccessPath"], Localizer["Tenants.RemoveMember.Preview.AccessPath.Value"], "tenants-remove-member-access-path"),
+            (Localizer["Tenants.RemoveMember.Preview.Freshness"], Localizer[$"Tenants.RemoveMember.Freshness.{Freshness}"], "tenants-remove-member-freshness"),
+            (Localizer["Tenants.RemoveMember.Preview.RecoveryPath"], Localizer["Tenants.RemoveMember.Preview.RecoveryPath.Value"], "tenants-remove-member-recovery-path"),
+            (Localizer["Tenants.RemoveMember.Preview.AuditExpectation"], Localizer["Tenants.RemoveMember.Preview.AuditExpectation.Value"], "tenants-remove-member-audit-expectation"),
+            (Localizer["Tenants.RemoveMember.Preview.KnownConsequences"], Localizer["Tenants.RemoveMember.Preview.KnownConsequences.Value"], "tenants-remove-member-known-consequences"),
+            (Localizer["Tenants.RemoveMember.Preview.KnownUnknowns"], Localizer["Tenants.RemoveMember.Preview.KnownUnknowns.Value"], "tenants-remove-member-known-unknowns"),
+        ];
+
+    private string OwnerContextText
+        => OwnerCount switch
+        {
+            0 => Localizer["Tenants.RemoveMember.OwnerContext.NoOwners"],
+            1 => Localizer["Tenants.RemoveMember.OwnerContext.LastOwner", OwnerCount],
+            _ => Localizer["Tenants.RemoveMember.OwnerContext.MultipleOwners", OwnerCount],
+        };
+
+    private string GlobalAdministratorRiskText
+        => TargetGlobalAdministratorFriction
+            ? Localizer["Tenants.RemoveMember.GlobalAdminRisk.Known"]
+            : Localizer["Tenants.RemoveMember.GlobalAdminRisk.Unknown"];
+
+    private string StateClass
+        => $"tenants-remove-member-flow__state tenants-remove-member-flow__state--{_snapshot.State.ToString().ToLowerInvariant()}";
+
+    private string StateSymbol
+        => _snapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.AlreadyApplied => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed or TenantCommandLifecycleState.DuplicatePrevented => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => ">",
+        };
+
+    private string StateText
+        => Localizer[$"Tenants.RemoveMember.State.{_snapshot.State}"];
+
+    private string AuditText
+        => Localizer[$"Tenants.RemoveMember.Audit.{_snapshot.AuditState}"];
+
+    private string RecoveryText
+        => Localizer[$"Tenants.RemoveMember.Recovery.{_snapshot.State}"];
+
+    private string LiveRegionMode
+        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string ConfirmationDescribedBy
+    {
+        get
+        {
+            List<string> ids = ["tenants-remove-member-confirmation-help"];
+            if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                ids.Add("tenants-remove-member-unavailable");
+            }
+
+            if (LastOwnerRiskVisible)
+            {
+                ids.Add("tenants-remove-member-owner-risk");
+            }
+
+            ids.Add("tenants-remove-member-global-admin-risk");
+
+            if (!string.IsNullOrWhiteSpace(_validationMessage))
+            {
+                ids.Add("tenants-remove-member-validation");
+            }
+
+            return string.Join(" ", ids);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_snapshot.State is TenantCommandLifecycleState.Idle && IsPreviewComplete)
+        {
+            _snapshot = _snapshot.Previewed(
+                new RemoveUserFromTenantCommandRequest(Detail.TenantId, Member.UserId),
+                Member.Role,
+                OwnerCount,
+                TargetGlobalAdministratorFriction,
+                Detail);
+            _focusConfirmationPending = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusConfirmationPending)
+        {
+            _focusConfirmationPending = false;
+            await _confirmationElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void SetSnapshot(TenantRemoveMemberCommandSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || _snapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    internal void ApplySignalRNudge()
+        => _snapshot = _snapshot.SignalRNudge();
+
+    internal void ApplyProjectionEvidence(TenantDetail? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
+
+    private string RoleLabel(TenantRole role)
+        => Localizer[$"Tenants.RemoveMember.Role.{role}"];
+
+    private void OnConfirmationInput(ChangeEventArgs args)
+        => _confirmationText = args.Value?.ToString();
+
+    private async Task SubmitAsync()
+    {
+        _validationMessage = null;
+
+        if (_isSubmitting)
+        {
+            SetSnapshot(_snapshot.DuplicatePrevented(Localizer["Tenants.RemoveMember.DuplicatePrevented.Message"].Value));
+            return;
+        }
+
+        RemoveUserFromTenantCommandRequest request = new(Detail.TenantId, Member.UserId);
+        if (!TargetIsVisibleMember
+            && SurfaceKind is TenantDetailSurfaceKind.Ready
+            && Freshness is TenantFreshnessState.Current
+            && !string.IsNullOrWhiteSpace(Detail.TenantId)
+            && !string.IsNullOrWhiteSpace(Member.UserId))
+        {
+            SetSnapshot(_snapshot.AlreadyApplied(
+                request,
+                Member.Role,
+                OwnerCount,
+                Detail,
+                Localizer["Tenants.RemoveMember.AlreadyApplied.BeforeSubmit", Member.UserId].Value));
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (!string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal))
+        {
+            _validationMessage = Localizer["Tenants.RemoveMember.Validation.ConfirmationRequired", Member.UserId];
+            _focusConfirmationPending = true;
+            return;
+        }
+
+        _snapshot = _snapshot.RequestSent();
+        _isSubmitting = true;
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
+                    Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
+
+            TenantCommandSubmissionResult result = await gateway
+                .RemoveUserFromTenantAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                SetSnapshot(_snapshot.Accepted(result));
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = result.State,
+                    SafeMessage = result.SafeMessage,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot.Intent is null)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+
+        // A tracked command (accepted/projection-pending) re-queries its authoritative status
+        // first. A submission-time rejection (for example UserNotInTenant) carries no tracking
+        // handle, so skip the status lookup and rely on the projection re-query below to reconcile
+        // it to already-applied when the target is proven absent (AC4).
+        if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
+        {
+            if (gateway is null)
+            {
+                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value)));
+                return;
+            }
+
+            TenantCommandStatusResult status = await gateway
+                .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                .ConfigureAwait(false);
+            SetSnapshot(_snapshot.ApplyStatus(status));
+        }
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        if (ProjectionEvidenceProvider is not null)
+        {
+            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+        }
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (string.Equals(args.Key, "Escape", StringComparison.Ordinal))
+        {
+            await CloseAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task CloseAsync()
+        => await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
+}
