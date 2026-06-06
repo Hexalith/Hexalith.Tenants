@@ -84,6 +84,7 @@
                 <button type="button"
                         class="audit-data-grid__correction-start"
                         data-testid="tenants-correction-start"
+                        data-correction-focus-reference="@context.EventReference"
                         aria-label="@CorrectionAccessibleName(correctionIntent)"
                         @onclick="() => StartCorrectionAsync(correctionIntent)">
                     @CorrectionActionLabel(correctionIntent)
@@ -91,6 +92,20 @@
             }
             else if (ShouldRenderUnavailableReason(correctionIntent))
             {
+                @if (RequiresRoleSelection(correctionIntent!))
+                {
+                    <select class="audit-data-grid__correction-role"
+                            data-testid="tenants-correction-role"
+                            data-correction-focus-reference="@context.EventReference"
+                            aria-label="@Localizer["Tenants.Correction.RoleChoice.Label"]"
+                            @onchange="args => SelectCorrectionRoleAsync(context, args)">
+                        <option value="">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</option>
+                        @foreach (TenantRole role in AssignableRoles)
+                        {
+                            <option value="@role">@Localizer[$"Tenants.Correction.Role.{role}"]</option>
+                        }
+                    </select>
+                }
                 <span class="audit-data-grid__correction-reason"
                       data-testid="tenants-correction-unavailable-reason">
                     @CorrectionUnavailableReason(correctionIntent!)
@@ -102,6 +117,7 @@
     {
         <span class="audit-data-grid__row-marker"
               data-testid="tenants-audit-row"
+              tabindex="-1"
               data-audit-reference="@row.EventReference"></span>
     }
 </div>
@@ -118,6 +134,16 @@
 
     [Parameter]
     public EventCallback<TenantCorrectionStartIntent> OnStartCorrection { get; set; }
+
+    [Parameter]
+    public EventCallback<TenantCorrectionRoleSelection> OnRoleSelected { get; set; }
+
+    private static readonly TenantRole[] AssignableRoles =
+    [
+        TenantRole.TenantOwner,
+        TenantRole.TenantContributor,
+        TenantRole.TenantReader,
+    ];
 
     private string ReferenceLabel(TenantAuditRow row)
         => string.IsNullOrWhiteSpace(row.ReferenceContext)
@@ -143,6 +169,9 @@
         => intent?.UnavailableReasons.Count > 0
             && !intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
 
+    private static bool RequiresRoleSelection(TenantCorrectionStartIntent intent)
+        => intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
+
     private string CorrectionActionLabel(TenantCorrectionStartIntent intent)
         => intent.IsRestoreAccessAction
             ? Localizer["Tenants.Correction.Action.RestoreAccess"]
@@ -160,4 +189,14 @@
 
     private async Task StartCorrectionAsync(TenantCorrectionStartIntent intent)
         => await OnStartCorrection.InvokeAsync(intent).ConfigureAwait(false);
+
+    private async Task SelectCorrectionRoleAsync(TenantAuditRow row, ChangeEventArgs args)
+    {
+        string? value = args.Value?.ToString();
+        if (Enum.TryParse(value, ignoreCase: false, out TenantRole role)
+            && AssignableRoles.Contains(role))
+        {
+            await OnRoleSelected.InvokeAsync(new(row.EventReference, role)).ConfigureAwait(false);
+        }
+    }
 }

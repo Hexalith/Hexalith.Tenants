@@ -3006,6 +3006,9 @@
   <data name="Tenants.Correction.Unavailable.CurrentStateIndeterminate" xml:space="preserve">
     <value>L'état courant du membre est indéterminé.</value>
   </data>
+  <data name="Tenants.Correction.Unavailable.CurrentRoleConflict" xml:space="preserve">
+    <value>La projection courante montre cet utilisateur avec un rôle différent ; démarrez plutôt une correction de rôle.</value>
+  </data>
   <data name="Tenants.Correction.Unavailable.ExplicitRoleRequired" xml:space="preserve">
     <value>Choisissez le rôle prévu avant de démarrer la correction.</value>
   </data>
@@ -3026,5 +3029,119 @@
   </data>
   <data name="Tenants.Correction.Unavailable.UnsupportedOutcome" xml:space="preserve">
     <value>Ce résultat d'audit n'est pas pris en charge pour démarrer une correction.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.AuditDelayed" xml:space="preserve">
+    <value>La preuve d'audit corrective est retardée.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.AuditPending" xml:space="preserve">
+    <value>La preuve d'audit corrective est en attente.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.AuditUnavailable" xml:space="preserve">
+    <value>La preuve d'audit corrective est indisponible.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.MissingSupport" xml:space="preserve">
+    <value>Le support d'audit correctif est indisponible.</value>
+  </data>
+  <data name="Tenants.Correction.Confirm.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.Correction.Confirm.Refresh" xml:space="preserve">
+    <value>Actualiser l'état</value>
+  </data>
+  <data name="Tenants.Correction.Confirm.Submit" xml:space="preserve">
+    <value>Soumettre la commande corrective</value>
+  </data>
+  <data name="Tenants.Correction.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la correction</value>
+  </data>
+  <data name="Tenants.Correction.Preview.AuditExpectation" xml:space="preserve">
+    <value>Attente d'audit</value>
+  </data>
+  <data name="Tenants.Correction.Preview.AuditExpectation.Text" xml:space="preserve">
+    <value>Une preuve d'audit est attendue après acceptation de la commande et confirmation par la projection de l'état prévu.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequence.Membership" xml:space="preserve">
+    <value>Un nouvel événement d'appartenance peut être ajouté si la projection courante le permet.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequence.RoleChange" xml:space="preserve">
+    <value>Un nouvel événement de changement de rôle peut être ajouté si la projection courante le permet.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequence.Unsupported" xml:space="preserve">
+    <value>Aucune commande corrective ne sera soumise sans support réutilisable.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequences" xml:space="preserve">
+    <value>Conséquences connues</value>
+  </data>
+  <data name="Tenants.Correction.Preview.CurrentProjectionReady" xml:space="preserve">
+    <value>La projection courante du locataire est disponible pour {0}.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.CurrentProjectionUnavailable" xml:space="preserve">
+    <value>La projection courante du locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.CurrentRole" xml:space="preserve">
+    <value>Rôle courant</value>
+  </data>
+  <data name="Tenants.Correction.Preview.IntendedRole" xml:space="preserve">
+    <value>Rôle prévu</value>
+  </data>
+  <data name="Tenants.Correction.Preview.RecoveryPath" xml:space="preserve">
+    <value>Chemin de reprise</value>
+  </data>
+  <data name="Tenants.Correction.Preview.RecoveryPath.Text" xml:space="preserve">
+    <value>Actualiser l'état, inspecter l'audit, continuer en lecture seule ou démarrer une autre correction si la projection courante diverge.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknown.HistoricalRole" xml:space="preserve">
+    <value>La preuve historique du rôle peut être périmée ; le rôle prévu sélectionné fait autorité pour la nouvelle commande.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknown.SignalR" xml:space="preserve">
+    <value>Les notifications en direct peuvent inviter à actualiser mais ne prouvent pas le succès de la correction.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknown.Unsupported" xml:space="preserve">
+    <value>Le support des commandes d'administrateur global est indisponible dans cette surface d'interface.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknowns" xml:space="preserve">
+    <value>Inconnues connues</value>
+  </data>
+  <data name="Tenants.Correction.Proof.Link" xml:space="preserve">
+    <value>Voir la preuve corrective du {0}</value>
+  </data>
+  <data name="Tenants.Correction.RoleChoice.Label" xml:space="preserve">
+    <value>Choisir le rôle prévu</value>
+  </data>
+  <data name="Tenants.Correction.RoleChoice.Placeholder" xml:space="preserve">
+    <value>Sélectionner un rôle</value>
+  </data>
+  <data name="Tenants.Correction.State.Accepted" xml:space="preserve">
+    <value>Commande acceptée ; la confirmation par projection est en attente.</value>
+  </data>
+  <data name="Tenants.Correction.State.AlreadyApplied" xml:space="preserve">
+    <value>La projection courante montre déjà l'état prévu.</value>
+  </data>
+  <data name="Tenants.Correction.State.Confirmed" xml:space="preserve">
+    <value>La projection confirme l'état prévu ; attente de la preuve d'audit corrective.</value>
+  </data>
+  <data name="Tenants.Correction.State.Degraded" xml:space="preserve">
+    <value>Le traitement de commande est dégradé ; actualisez l'état ou inspectez l'audit.</value>
+  </data>
+  <data name="Tenants.Correction.State.Failed" xml:space="preserve">
+    <value>La commande corrective a échoué avant acceptation.</value>
+  </data>
+  <data name="Tenants.Correction.State.Idle" xml:space="preserve">
+    <value>L'aperçu de correction est inactif.</value>
+  </data>
+  <data name="Tenants.Correction.State.Previewed" xml:space="preserve">
+    <value>L'aperçu est prêt pour une confirmation explicite.</value>
+  </data>
+  <data name="Tenants.Correction.State.ProjectionPending" xml:space="preserve">
+    <value>Les événements de commande sont stockés ; la confirmation par projection est en attente.</value>
+  </data>
+  <data name="Tenants.Correction.State.Rejected" xml:space="preserve">
+    <value>La commande corrective a été rejetée.</value>
+  </data>
+  <data name="Tenants.Correction.State.RequestSent" xml:space="preserve">
+    <value>La demande de commande corrective a été envoyée.</value>
+  </data>
+  <data name="Tenants.Correction.State.UnableToVerify" xml:space="preserve">
+    <value>La correction ne peut pas être vérifiée avec les preuves courantes.</value>
   </data>
 </root>

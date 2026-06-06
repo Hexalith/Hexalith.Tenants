@@ -3006,6 +3006,9 @@
   <data name="Tenants.Correction.Unavailable.CurrentStateIndeterminate" xml:space="preserve">
     <value>Current member state is indeterminate.</value>
   </data>
+  <data name="Tenants.Correction.Unavailable.CurrentRoleConflict" xml:space="preserve">
+    <value>Current projection shows this user with a different role; start a role-change correction instead.</value>
+  </data>
   <data name="Tenants.Correction.Unavailable.ExplicitRoleRequired" xml:space="preserve">
     <value>Choose the intended role before starting correction.</value>
   </data>
@@ -3026,5 +3029,119 @@
   </data>
   <data name="Tenants.Correction.Unavailable.UnsupportedOutcome" xml:space="preserve">
     <value>This audit outcome is not supported for correction start.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.AuditDelayed" xml:space="preserve">
+    <value>Corrective audit evidence is delayed.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.AuditPending" xml:space="preserve">
+    <value>Corrective audit evidence is pending.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Corrective audit evidence is unavailable.</value>
+  </data>
+  <data name="Tenants.Correction.Audit.MissingSupport" xml:space="preserve">
+    <value>Corrective audit support is unavailable.</value>
+  </data>
+  <data name="Tenants.Correction.Confirm.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.Correction.Confirm.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.Correction.Confirm.Submit" xml:space="preserve">
+    <value>Submit corrective command</value>
+  </data>
+  <data name="Tenants.Correction.Lifecycle.Title" xml:space="preserve">
+    <value>Correction lifecycle</value>
+  </data>
+  <data name="Tenants.Correction.Preview.AuditExpectation" xml:space="preserve">
+    <value>Audit expectation</value>
+  </data>
+  <data name="Tenants.Correction.Preview.AuditExpectation.Text" xml:space="preserve">
+    <value>Audit evidence is expected after the command is accepted and projection truth confirms the intended state.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequence.Membership" xml:space="preserve">
+    <value>A new membership event may be appended if current projection truth allows it.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequence.RoleChange" xml:space="preserve">
+    <value>A new role-change event may be appended if current projection truth allows it.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequence.Unsupported" xml:space="preserve">
+    <value>No corrective command will be submitted without reusable support.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Consequences" xml:space="preserve">
+    <value>Known consequences</value>
+  </data>
+  <data name="Tenants.Correction.Preview.CurrentProjectionReady" xml:space="preserve">
+    <value>Current tenant projection is available for {0}.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.CurrentProjectionUnavailable" xml:space="preserve">
+    <value>Current tenant projection is unavailable.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.CurrentRole" xml:space="preserve">
+    <value>Current role</value>
+  </data>
+  <data name="Tenants.Correction.Preview.IntendedRole" xml:space="preserve">
+    <value>Intended role</value>
+  </data>
+  <data name="Tenants.Correction.Preview.RecoveryPath" xml:space="preserve">
+    <value>Recovery path</value>
+  </data>
+  <data name="Tenants.Correction.Preview.RecoveryPath.Text" xml:space="preserve">
+    <value>Refresh status, inspect audit evidence, continue read-only, or start a different correction if current projection truth conflicts.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknown.HistoricalRole" xml:space="preserve">
+    <value>Historical role evidence can be stale; the selected intended role is authoritative for the new command.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknown.SignalR" xml:space="preserve">
+    <value>Live notifications can nudge a refresh but do not prove correction success.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknown.Unsupported" xml:space="preserve">
+    <value>Global administrator command support is unavailable in this UI surface.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Unknowns" xml:space="preserve">
+    <value>Known unknowns</value>
+  </data>
+  <data name="Tenants.Correction.Proof.Link" xml:space="preserve">
+    <value>View corrective proof from {0}</value>
+  </data>
+  <data name="Tenants.Correction.RoleChoice.Label" xml:space="preserve">
+    <value>Choose intended role</value>
+  </data>
+  <data name="Tenants.Correction.RoleChoice.Placeholder" xml:space="preserve">
+    <value>Select role</value>
+  </data>
+  <data name="Tenants.Correction.State.Accepted" xml:space="preserve">
+    <value>Command accepted; projection confirmation is pending.</value>
+  </data>
+  <data name="Tenants.Correction.State.AlreadyApplied" xml:space="preserve">
+    <value>Current projection already shows the intended state.</value>
+  </data>
+  <data name="Tenants.Correction.State.Confirmed" xml:space="preserve">
+    <value>Projection confirms the intended state; waiting for corrective audit proof.</value>
+  </data>
+  <data name="Tenants.Correction.State.Degraded" xml:space="preserve">
+    <value>Command processing is degraded; refresh status or inspect audit evidence.</value>
+  </data>
+  <data name="Tenants.Correction.State.Failed" xml:space="preserve">
+    <value>Corrective command failed before acceptance.</value>
+  </data>
+  <data name="Tenants.Correction.State.Idle" xml:space="preserve">
+    <value>Correction preview is idle.</value>
+  </data>
+  <data name="Tenants.Correction.State.Previewed" xml:space="preserve">
+    <value>Preview is ready for deliberate confirmation.</value>
+  </data>
+  <data name="Tenants.Correction.State.ProjectionPending" xml:space="preserve">
+    <value>Command events are stored; projection confirmation is pending.</value>
+  </data>
+  <data name="Tenants.Correction.State.Rejected" xml:space="preserve">
+    <value>Corrective command was rejected.</value>
+  </data>
+  <data name="Tenants.Correction.State.RequestSent" xml:space="preserve">
+    <value>Corrective command request was sent.</value>
+  </data>
+  <data name="Tenants.Correction.State.UnableToVerify" xml:space="preserve">
+    <value>Correction cannot be verified from current evidence.</value>
   </data>
 </root>

@@ -31,6 +31,7 @@ public enum TenantCorrectionUnavailableReason
     TenantDisabled,
     TenantLifecycleUnknown,
     CurrentStateIndeterminate,
+    CurrentRoleConflict,
     NarrowViewportUnavailable,
 }
 
@@ -46,6 +47,8 @@ public sealed record TenantCorrectionStartContext(
     bool HasTenantCommandSupport = true,
     bool HasGlobalAdministratorCommandSupport = false,
     bool IsNarrowViewportSafe = true);
+
+public sealed record TenantCorrectionRoleSelection(string AuditReference, TenantRole Role);
 
 public sealed record TenantCorrectionStartIntent(
     string OriginalAuditReference,
@@ -76,6 +79,7 @@ public sealed record TenantCorrectionStartIntent(
         Dictionary<string, string> previewInputs = new(StringComparer.Ordinal)
         {
             ["originalAuditReference"] = context.Receipt.AuditReference,
+            ["originalTimestamp"] = context.Row.Timestamp.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             ["currentProjectionSnapshot"] = context.CurrentProjectionSnapshotReference,
         };
 
@@ -161,7 +165,9 @@ public sealed record TenantCorrectionStartIntent(
             row,
             IsAuthorized: true,
             HasCurrentProjectionSnapshot: receipt.ProjectionMarker is TenantFreshnessState.Current,
-            CurrentProjectionSnapshotReference: string.IsNullOrWhiteSpace(receipt.Scope) ? "current projection" : $"{receipt.Scope}@{receipt.ProjectionMarker}",
+            CurrentProjectionSnapshotReference: receipt.ProjectionMarker is TenantFreshnessState.Current
+                ? "Current tenant projection is available."
+                : "Current tenant projection is not available.",
             TenantStatus: TenantStatus.Active,
             HasTenantCommandSupport: true,
             HasGlobalAdministratorCommandSupport: false));
@@ -198,6 +204,20 @@ public sealed record TenantCorrectionStartIntent(
         }
 
         previewInputs["intendedRole"] = context.IntendedRole.Value.ToString();
+
+        if (context.CurrentRole is not null and not TenantRole.Unknown)
+        {
+            previewInputs["currentRole"] = context.CurrentRole.Value.ToString();
+
+            if (context.CurrentRole == context.IntendedRole)
+            {
+                reasons.Add(TenantCorrectionUnavailableReason.AlreadyApplied);
+            }
+            else if (context.Row.EventType is "UserRemovedFromTenant")
+            {
+                reasons.Add(TenantCorrectionUnavailableReason.CurrentRoleConflict);
+            }
+        }
     }
 
     private static void AddChangeRoleRequirements(

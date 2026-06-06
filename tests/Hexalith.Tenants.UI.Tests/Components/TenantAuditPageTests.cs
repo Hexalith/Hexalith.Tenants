@@ -496,12 +496,24 @@ public sealed class TenantAuditPageTests : BunitContext
         private readonly Queue<TenantAuditSnapshot> _snapshots = new(snapshots);
 
         public List<TenantAuditRequest> Requests { get; } = [];
+        public List<TenantDetailRequest> DetailRequests { get; } = [];
 
         public Task<TenantDetailSnapshot> GetTenantAsync(
             TenantDetailRequest request,
             TenantDetailSnapshot? previous,
             CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        {
+            DetailRequests.Add(request);
+            TenantDetail detail = new(
+                request.TenantId,
+                "Tenant Alpha",
+                null,
+                TenantStatus.Active,
+                [new TenantMember("target-user", TenantRole.TenantContributor)],
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                DateTimeOffset.Parse("2026-06-01T09:00:00Z", CultureInfo.InvariantCulture));
+            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"detail-etag\"", TenantFreshnessState.Current));
+        }
 
         public Task<TenantListSnapshot> ListTenantsAsync(
             TenantListRequest request,

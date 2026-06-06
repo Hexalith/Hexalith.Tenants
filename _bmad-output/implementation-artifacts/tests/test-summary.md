@@ -160,3 +160,31 @@
 - Story 5.5 critical error cases: missing intended role, `TenantRole.Unknown`, stale/unknown freshness, unavailable current projection, non-ready audit evidence, unsupported outcome, absent tenant command support, absent global-admin command support, disabled/unknown tenant lifecycle, already-applied member state, narrow viewport safety blocking, support-unsafe copy markers, and no raw payload/token/correlation/history mutation language.
 - Story 5.5 QA generation validation (2026-06-06): `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors. `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility. xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed: 595 total, 0 errors, 0 failed, 0 skipped.
 - Story 5.5 checklist result: API tests generated where applicable through existing gateway/static boundary coverage; E2E tests generated for the implemented UI surface using xUnit v3/bUnit; tests use standard APIs, stable selectors, clear descriptions, no hardcoded waits, and independent execution; summary includes coverage metrics and validation evidence.
+
+## Story 5.6 Evidence Addendum
+
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs` - Added QA workflow coverage for restore correction submission through `ITenantCommandGateway.AddUserToTenantAsync`, one-at-a-time in-flight locking, status lookup by support-safe tracking handle, authoritative projection re-query, corrective audit query, projection-confirmed state text, stable `tenants-correction-proof-link`, absolute UTC proof timestamp, and no raw payload/history-rewrite language.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs` - Added QA workflow coverage for wrong-role correction submission through `ITenantCommandGateway.ChangeUserRoleAsync`, exact tenant/user/new-role request assertions, projection re-query, and corrective proof-link rendering.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs` - Added conflict/error coverage proving a restore preview is blocked when current projection shows the target user with a different role; confirmation remains disabled, live-region severity is assertive, no proof link is fabricated, and no command is sent.
+- [x] Existing Story 5.6 state/page/resource coverage remains in `TenantCorrectionPreviewSnapshotTests.cs`, `TenantAuditPageTests.cs`, and resource parity/static guard tests for preview completeness, lifecycle/audit-state distinction, current-state conflict blocking, projection-confirmed correction, corrective proof linking, focus/accessibility hooks, and support-safe localization.
+
+## Story 5.6 Coverage
+
+- API/gateway paths: 2/2 tenant-domain corrective command paths covered (`AddUserToTenant`, `ChangeUserRole`) through server-side gateway doubles; no new backend endpoints were introduced or required.
+- UI workflows: 4/4 critical correction preview workflows covered in bUnit E2E-style tests (eligible restore, eligible role correction, blocked current-role conflict, duplicate-submit lock).
+- Story 5.6 acceptance criteria: 8/8 covered across existing Story 5.6 implementation tests plus the new command/proof workflow tests.
+- Critical error cases: stale historical restore evidence conflicting with current projection, in-flight duplicate submission, projection pending until authoritative re-query, missing/fabricated proof prevention, and support-unsafe copy markers.
+
+## Story 5.6 Validation
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build --filter "FullyQualifiedName~CorrectionStartPanelTests"` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
+- xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -class Hexalith.Tenants.UI.Tests.Components.CorrectionStartPanelTests` passed: 7 total, 0 errors, 0 failed, 0 skipped.
+- xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed: 610 total, 0 errors, 0 failed, 0 skipped.
+
+## Story 5.6 Checklist Result
+
+- API tests generated where applicable through gateway-level command request/status assertions in the component workflow tests; no separate backend correction endpoint exists for this story.
+- E2E tests generated for the implemented Blazor UI surface using the existing xUnit v3/bUnit framework.
+- Tests use standard framework APIs, semantic/stable selectors, clear descriptions, no hardcoded waits or sleeps, and independent test-local gateway/query doubles.
+- Summary includes coverage metrics and validation evidence.

@@ -1,8 +1,13 @@
 @page "/tenants/{TenantId}/audit"
 @using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Microsoft.JSInterop
 @using System.Globalization
+@implements IAsyncDisposable
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
+@inject IJSRuntime JS
 
 <PageTitle>@Localizer["Tenants.Audit.Title", TenantId]</PageTitle>
 
@@ -78,6 +83,7 @@
             <AuditDataGrid Rows="@_snapshot.Rows"
                            OnOpenReceipt="OpenReceiptAsync"
                            CorrectionIntentProvider="CreateCorrectionIntent"
+                           OnRoleSelected="SelectCorrectionRoleAsync"
                            OnStartCorrection="OpenCorrectionAsync" />
             @if (_selectedReceipt is not null)
             {
@@ -90,6 +96,8 @@
             @if (_activeCorrectionIntent is not null)
             {
                 <CorrectionStartPanel Intent="@_activeCorrectionIntent"
+                                      CurrentProjection="@_tenantDetailSnapshot?.Detail"
+                                      OnProjectionRefreshRequested="RefreshTenantProjectionAsync"
                                       OnClose="CloseCorrectionAsync" />
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
@@ -105,6 +113,7 @@
 </main>
 
 @code {
+    private const string FocusModulePath = "./js/tenantsFocus.js";
     private const int PageSize = 50;
     private readonly Stack<string?> _cursorHistory = new();
     private TenantAuditSnapshot _snapshot = TenantAuditSnapshot.Loading();
@@ -115,6 +124,11 @@
     private TenantAuditReceipt? _selectedReceipt;
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
+    private TenantDetailSnapshot? _tenantDetailSnapshot;
+    private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
+    private IJSObjectReference? _focusModule;
+    private string? _activeCorrectionFocusReference;
+    private string? _pendingCorrectionFocusReference;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -228,6 +242,31 @@
     protected override async Task OnInitializedAsync()
         => await LoadAsync(reuseETag: false).ConfigureAwait(false);
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (string.IsNullOrWhiteSpace(_pendingCorrectionFocusReference))
+        {
+            return;
+        }
+
+        string focusReference = _pendingCorrectionFocusReference;
+        _pendingCorrectionFocusReference = null;
+
+        try
+        {
+            IJSObjectReference module = _focusModule
+                ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
+
+            _ = await module
+                .InvokeAsync<bool>("focusCorrectionLauncher", focusReference)
+                .ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone; focus return is no longer observable.
+        }
+    }
+
     private async Task LoadAsync(bool reuseETag)
     {
         TenantAuditSnapshot previous = _snapshot;
@@ -237,6 +276,7 @@
         _snapshot = await QueryGateway
             .GetTenantAuditAsync(request, previous, CancellationToken.None)
             .ConfigureAwait(false);
+        await RefreshTenantProjectionAsync().ConfigureAwait(false);
 
         if (_snapshot.Kind is TenantAuditSurfaceKind.ListRefreshed)
         {
@@ -313,6 +353,8 @@
         _selectedReceipt = null;
         _selectedReceiptCorrectionIntent = null;
         _activeCorrectionIntent = null;
+        _activeCorrectionFocusReference = null;
+        _selectedCorrectionRoles.Clear();
     }
 
     private Task OpenReceiptAsync(TenantAuditRow row)
@@ -329,14 +371,17 @@
         return Task.CompletedTask;
     }
 
-    private Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
+    private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
     {
+        await RefreshTenantProjectionAsync().ConfigureAwait(false);
         _activeCorrectionIntent = intent;
-        return Task.CompletedTask;
+        _activeCorrectionFocusReference = intent.OriginalAuditReference;
     }
 
     private Task CloseCorrectionAsync()
     {
+        _pendingCorrectionFocusReference = _activeCorrectionFocusReference;
+        _activeCorrectionFocusReference = null;
         _activeCorrectionIntent = null;
         return Task.CompletedTask;
     }
@@ -377,9 +422,70 @@
     }
 
     private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)
-        => TenantCorrectionStartIntent.FromReceipt(
+    {
+        Hexalith.Tenants.Contracts.Queries.TenantDetail? detail = _tenantDetailSnapshot?.Detail;
+        TenantMember? member = detail?.Members.FirstOrDefault(member =>
+            string.Equals(member.UserId, ReferenceValue(row, "userId") ?? row.Target, StringComparison.Ordinal));
+        TenantRole? intendedRole = _selectedCorrectionRoles.TryGetValue(row.EventReference, out TenantRole selectedRole)
+            ? selectedRole
+            : IntendedRoleFromNarrative(row);
+
+        return TenantCorrectionStartIntent.Evaluate(new(
             TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind),
-            row);
+            row,
+            IsAuthorized: true,
+            HasCurrentProjectionSnapshot: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready && _tenantDetailSnapshot.Freshness is TenantFreshnessState.Current,
+            CurrentProjectionSnapshotReference: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready
+                ? "Current tenant projection is available."
+                : "Current tenant projection is not available.",
+            TenantStatus: detail?.Status ?? TenantStatus.Unknown,
+            CurrentRole: member?.Role,
+            IntendedRole: intendedRole,
+            HasTenantCommandSupport: true,
+            HasGlobalAdministratorCommandSupport: false));
+    }
+
+    private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
+    {
+        if (selection.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader)
+        {
+            _selectedCorrectionRoles[selection.AuditReference] = selection.Role;
+            ResolveReceiptSelection();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task RefreshTenantProjectionAsync()
+    {
+        _tenantDetailSnapshot = await QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(TenantId, _tenantDetailSnapshot?.ETag), _tenantDetailSnapshot, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    private static TenantRole? IntendedRoleFromNarrative(TenantAuditRow row)
+        => row.EventType switch
+        {
+            "UserRemovedFromTenant" => RoleFromReference(row, "previousRole") ?? RoleFromReference(row, "role"),
+            "UserRoleChanged" => RoleFromReference(row, "oldRole"),
+            _ => null,
+        };
+
+    private static TenantRole? RoleFromReference(TenantAuditRow row, string key)
+        => Enum.TryParse(ReferenceValue(row, key), ignoreCase: false, out TenantRole role)
+            && role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
+                ? role
+                : null;
+
+    private static string? ReferenceValue(TenantAuditRow row, string key)
+    {
+        string marker = key + ": ";
+        string? segment = row.ReferenceContext
+            .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(value => value.StartsWith(marker, StringComparison.Ordinal));
+
+        return segment?.Length > marker.Length ? segment[marker.Length..] : null;
+    }
 
     // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
     // date-range filter stays deterministic and aligns with the UTC-rendered timestamp column,
@@ -409,4 +515,21 @@
         => !string.IsNullOrWhiteSpace(returnUrl)
             && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
             && !returnUrl.StartsWith("//", StringComparison.Ordinal);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_focusModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _focusModule.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone; no support-safe value is logged or surfaced here.
+        }
+    }
 }

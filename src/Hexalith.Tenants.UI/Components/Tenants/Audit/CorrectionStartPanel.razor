@@ -1,104 +1,534 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Services.Gateways
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
 
-@if (Intent is not null)
+@if (_snapshot is not null)
 {
-    <section class="correction-start-panel"
+    <section class="correction-start-panel correction-start-panel--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
              role="region"
              aria-labelledby="tenants-correction-title"
              data-testid="tenants-correction-panel">
-        <header class="correction-start-panel__header">
-            <h3 id="tenants-correction-title">@Localizer["Tenants.Correction.Title"]</h3>
-            <button type="button"
-                    class="correction-start-panel__close"
-                    data-testid="tenants-correction-close"
-                    @onclick="CloseAsync">
-                @Localizer["Tenants.Correction.Close"]
-            </button>
-        </header>
+        <div data-testid="tenants-correction-preview">
+            <header class="correction-start-panel__header">
+                <div>
+                    <h3 id="tenants-correction-title">@Localizer["Tenants.Correction.Title"]</h3>
+                    <p class="correction-start-panel__live"
+                       data-testid="tenants-correction-live-region"
+                       aria-live="@LiveRegionMode"
+                       aria-atomic="true">
+                        @StateText
+                    </p>
+                </div>
+                <button type="button"
+                        class="correction-start-panel__close"
+                        data-testid="tenants-correction-close"
+                        @onclick="CloseAsync">
+                    @Localizer["Tenants.Correction.Close"]
+                </button>
+            </header>
 
-        @if (!Intent.IsAvailable)
-        {
-            <p class="correction-start-panel__reason"
-               data-testid="tenants-correction-unavailable-reason">
-                @UnavailableReason
-            </p>
-        }
+            @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                <p class="correction-start-panel__reason"
+                   id="tenants-correction-unavailable"
+                   data-testid="tenants-correction-unavailable-reason"
+                   role="alert">
+                    @UnavailableReason
+                </p>
+            }
 
-        <dl class="correction-start-panel__fields">
-            <div>
-                <dt>@Localizer["Tenants.Correction.Field.OriginalEvidence"]</dt>
-                <dd data-testid="tenants-correction-original-evidence">@FieldValue(Intent.OriginalAuditReference)</dd>
-            </div>
-            <div>
-                <dt>@Localizer["Tenants.Correction.Field.CurrentSnapshot"]</dt>
-                <dd data-testid="tenants-correction-current-snapshot">@FieldValue(Intent.CurrentProjectionSnapshotReference)</dd>
-            </div>
-            <div>
-                <dt>@Localizer["Tenants.Correction.Field.Domain"]</dt>
-                <dd data-testid="tenants-correction-domain">@CommandDomainLabel</dd>
-            </div>
-            <div>
-                <dt>@Localizer["Tenants.Correction.Field.Command"]</dt>
-                <dd data-testid="tenants-correction-command">@CommandTypeLabel</dd>
-            </div>
-        </dl>
-
-        <section class="correction-start-panel__preview" aria-labelledby="tenants-correction-preview-data-heading">
-            <h4 id="tenants-correction-preview-data-heading">@Localizer["Tenants.Correction.Field.PreviewData"]</h4>
-            <dl data-testid="tenants-correction-preview-data">
-                @foreach (KeyValuePair<string, string> input in Intent.RequiredPreviewInputs)
-                {
-                    <div>
-                        <dt>@Localizer[$"Tenants.Correction.PreviewInput.{input.Key}"]</dt>
-                        <dd>@PreviewValue(input.Key, input.Value)</dd>
-                    </div>
-                }
+            <dl class="correction-start-panel__fields">
+                <div>
+                    <dt>@Localizer["Tenants.Correction.Field.OriginalEvidence"]</dt>
+                    <dd data-testid="tenants-correction-original-evidence">@FieldValue(_snapshot.OriginalAuditReference)</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Correction.Field.CurrentSnapshot"]</dt>
+                    <dd data-testid="tenants-correction-current-snapshot">@ProjectionSnapshotLabel</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Correction.Field.Domain"]</dt>
+                    <dd data-testid="tenants-correction-domain">@CommandDomainLabel</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Correction.Field.Command"]</dt>
+                    <dd data-testid="tenants-correction-command">@CommandTypeLabel</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Correction.Preview.CurrentRole"]</dt>
+                    <dd data-testid="tenants-correction-current-role">@RoleLabel(_snapshot.CurrentRole)</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.Correction.Preview.IntendedRole"]</dt>
+                    <dd>
+                        <label class="correction-start-panel__role-label">
+                            <span>@Localizer["Tenants.Correction.RoleChoice.Label"]</span>
+                            <select value="@_roleValue"
+                                    data-testid="tenants-correction-role"
+                                    aria-describedby="tenants-correction-unavailable"
+                                    disabled="@RoleSelectionDisabled"
+                                    @onchange="OnRoleChanged">
+                                <option value="">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</option>
+                                @foreach (TenantRole role in AssignableRoles)
+                                {
+                                    <option value="@role">@RoleLabel(role)</option>
+                                }
+                            </select>
+                        </label>
+                    </dd>
+                </div>
             </dl>
-        </section>
 
-        @if (Intent.IsAvailable)
-        {
-            <button type="button"
-                    class="correction-start-panel__preview-action"
-                    data-testid="tenants-correction-preview-handoff">
-                @Localizer["Tenants.Correction.Action.PreviewHandoff"]
-            </button>
-        }
+            <section class="correction-start-panel__preview" aria-labelledby="tenants-correction-preview-data-heading">
+                <h4 id="tenants-correction-preview-data-heading">@Localizer["Tenants.Correction.Field.PreviewData"]</h4>
+                <dl data-testid="tenants-correction-preview-data">
+                    <div>
+                        <dt>@Localizer["Tenants.Correction.Preview.Consequences"]</dt>
+                        <dd>@string.Join(" ", _snapshot.KnownConsequences.Select(ConsequenceLabel))</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.Correction.Preview.Unknowns"]</dt>
+                        <dd>@string.Join(" ", _snapshot.KnownUnknowns.Select(UnknownLabel))</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.Correction.Preview.AuditExpectation"]</dt>
+                        <dd>@Localizer["Tenants.Correction.Preview.AuditExpectation.Text"]</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.Correction.Preview.RecoveryPath"]</dt>
+                        <dd>@Localizer["Tenants.Correction.Preview.RecoveryPath.Text"]</dd>
+                    </div>
+                    @foreach (KeyValuePair<string, string> input in _snapshot.Intent.RequiredPreviewInputs.Where(static input => input.Key is not "originalTimestamp"))
+                    {
+                        <div>
+                            <dt>@Localizer[$"Tenants.Correction.PreviewInput.{input.Key}"]</dt>
+                            <dd>@PreviewValue(input.Key, input.Value)</dd>
+                        </div>
+                    }
+                </dl>
+            </section>
+
+            <section class="correction-start-panel__lifecycle"
+                     tabindex="-1"
+                     data-testid="tenants-correction-lifecycle"
+                     aria-labelledby="tenants-correction-state-label">
+                <h4 id="tenants-correction-state-label">@Localizer["Tenants.Correction.Lifecycle.Title"]</h4>
+                <p class="correction-start-panel__state correction-start-panel__state--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
+                   data-testid="tenants-correction-state">
+                    <span aria-hidden="true">@StateSymbol</span>
+                    <span>@StateText</span>
+                </p>
+                @if (!string.IsNullOrWhiteSpace(SafeMessageText))
+                {
+                    <p data-testid="tenants-correction-safe-message">@SafeMessageText</p>
+                }
+                @if (_snapshot.ProofLink is not null)
+                {
+                    <a href="@ProofHref"
+                       data-testid="tenants-correction-proof-link">
+                        @Localizer["Tenants.Correction.Proof.Link", ProofTimestampLabel]
+                    </a>
+                }
+                else if (_snapshot.AuditState is not TenantCommandAuditState.NotStarted)
+                {
+                    <p data-testid="tenants-correction-audit-state">
+                        @Localizer[$"Tenants.Correction.Audit.{_snapshot.AuditState}"]
+                    </p>
+                }
+            </section>
+
+            <div class="correction-start-panel__actions">
+                <button type="button"
+                        class="correction-start-panel__confirm"
+                        data-testid="tenants-correction-confirm"
+                        disabled="@IsConfirmDisabled"
+                        @onclick="SubmitAsync">
+                    @Localizer["Tenants.Correction.Confirm.Submit"]
+                </button>
+                @if (_snapshot.CanSubmit)
+                {
+                    <button type="button"
+                            class="correction-start-panel__preview-action"
+                            data-testid="tenants-correction-preview-handoff"
+                            disabled="@IsConfirmDisabled"
+                            @onclick="SubmitAsync">
+                        @Localizer["Tenants.Correction.Action.PreviewHandoff"]
+                    </button>
+                }
+                <button type="button"
+                        data-testid="tenants-correction-refresh"
+                        disabled="@(!CanRefresh)"
+                        @onclick="RefreshStatusAsync">
+                    @Localizer["Tenants.Correction.Confirm.Refresh"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-correction-cancel"
+                        @onclick="CloseAsync">
+                    @Localizer["Tenants.Correction.Confirm.Cancel"]
+                </button>
+            </div>
+        </div>
     </section>
 }
 
 @code {
+    private static readonly TenantRole[] AssignableRoles =
+    [
+        TenantRole.TenantOwner,
+        TenantRole.TenantContributor,
+        TenantRole.TenantReader,
+    ];
+
+    private TenantCorrectionPreviewSnapshot? _snapshot;
+    private string _roleValue = string.Empty;
+    private bool _isSubmitting;
+    private string? _intentReference;
+
     [Parameter]
     public TenantCorrectionStartIntent? Intent { get; set; }
 
     [Parameter]
+    public TenantDetail? CurrentProjection { get; set; }
+
+    [Parameter]
     public EventCallback OnClose { get; set; }
 
-    private string UnavailableReason
-        => Intent is null
-            ? string.Empty
-            : string.Join(
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    internal TenantCorrectionPreviewSnapshot? Snapshot => _snapshot;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private ITenantQueryGateway? QueryGateway
+        => Services.GetService<ITenantQueryGateway>();
+
+    // Resolve a localized key first so client-derived conflict/blocking copy stays support-safe and
+    // localized (EN/FR); fall back to the gateway-provided SafeMessage, which is already user-facing text.
+    private string? SafeMessageText
+        => _snapshot is null
+            ? null
+            : _snapshot.SafeMessageKey is { } key
+                ? Localizer[key].Value
+                : _snapshot.SafeMessage;
+
+    private string? UnavailableReason
+        => _snapshot is null
+            ? null
+            : SafeMessageText ?? string.Join(
                 " ",
-                Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
+                _snapshot.Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
+
+    private bool IsConfirmDisabled
+        => _isSubmitting || _snapshot?.CanSubmit is not true || CommandGateway is null;
+
+    private bool RoleSelectionDisabled
+        => _isSubmitting || _snapshot?.LifecycleState is TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.Confirmed;
+
+    private bool CanRefresh
+        => _snapshot?.HasCommandTracking is true
+        && (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded);
+
+    private string StateText
+        => _snapshot is null ? string.Empty : Localizer[$"Tenants.Correction.State.{_snapshot.LifecycleState}"];
+
+    private string StateSymbol
+        => _snapshot?.LifecycleState switch
+        {
+            TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.AlreadyApplied => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => ">",
+        };
+
+    private string LiveRegionMode
+        => _snapshot?.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string ProjectionSnapshotLabel
+        => _snapshot?.LastConfirmedProjectionEvidence is not null
+            || _snapshot?.Intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable) is false
+            ? Localizer["Tenants.Correction.Preview.CurrentProjectionReady", _snapshot.TenantId]
+            : Localizer["Tenants.Correction.Preview.CurrentProjectionUnavailable"];
 
     private string CommandDomainLabel
-        => Intent?.IntendedCommandDomain is null
+        => _snapshot?.Intent.IntendedCommandDomain is null
             ? FieldValue(null)
-            : Localizer[$"Tenants.Correction.Domain.{Intent.IntendedCommandDomain}"];
+            : Localizer[$"Tenants.Correction.Domain.{_snapshot.Intent.IntendedCommandDomain}"];
 
     private string CommandTypeLabel
-        => Intent?.IntendedCommandType is null
+        => _snapshot?.Intent.IntendedCommandType is null
             ? FieldValue(null)
-            : Localizer[$"Tenants.Correction.Command.{Intent.IntendedCommandType}"];
+            : Localizer[$"Tenants.Correction.Command.{_snapshot.Intent.IntendedCommandType}"];
+
+    private string ProofHref
+        => _snapshot?.ProofLink is null
+            ? "#"
+            : $"#audit-{Uri.EscapeDataString(_snapshot.ProofLink.CorrectiveAuditReference)}";
+
+    private string ProofTimestampLabel
+        => _snapshot?.ProofLink?.CorrectiveTimestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (Intent is null)
+        {
+            _snapshot = null;
+            _intentReference = null;
+            return;
+        }
+
+        if (!string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal))
+        {
+            _intentReference = Intent.OriginalAuditReference;
+            _roleValue = Intent.IntendedRole?.ToString() ?? string.Empty;
+        }
+
+        if (_snapshot?.LifecycleState is TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.Confirmed)
+        {
+            return;
+        }
+
+        SetSnapshotFromIntent();
+    }
+
+    private void SetSnapshotFromIntent()
+    {
+        if (Intent is null)
+        {
+            return;
+        }
+
+        TenantCorrectionStartIntent resolvedIntent = ResolvedIntent();
+        _snapshot = TenantCorrectionPreviewSnapshot.FromIntent(resolvedIntent, CurrentProjection);
+    }
+
+    private TenantCorrectionStartIntent ResolvedIntent()
+    {
+        if (Intent is null || !TryParseAssignableRole(_roleValue, out TenantRole role))
+        {
+            return Intent!;
+        }
+
+        Dictionary<string, string> inputs = new(Intent.RequiredPreviewInputs, StringComparer.Ordinal)
+        {
+            ["intendedRole"] = role.ToString(),
+        };
+        List<TenantCorrectionUnavailableReason> reasons = Intent.UnavailableReasons
+            .Where(reason => reason is not TenantCorrectionUnavailableReason.ExplicitRoleRequired)
+            .ToList();
+
+        if (CurrentProjection is not null)
+        {
+            TenantMember? member = CurrentProjection.Members.FirstOrDefault(member =>
+                string.Equals(member.UserId, Intent.TargetUserId, StringComparison.Ordinal));
+            if (member is not null)
+            {
+                inputs["currentRole"] = member.Role.ToString();
+                if (Intent.IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant)
+                {
+                    if (member.Role == role)
+                    {
+                        reasons.Add(TenantCorrectionUnavailableReason.AlreadyApplied);
+                    }
+                    else
+                    {
+                        reasons.Add(TenantCorrectionUnavailableReason.CurrentRoleConflict);
+                    }
+                }
+            }
+        }
+
+        return Intent with
+        {
+            IntendedRole = role,
+            RequiredPreviewInputs = inputs,
+            UnavailableReasons = reasons.Distinct().ToArray(),
+        };
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_snapshot is null || IsConfirmDisabled)
+        {
+            return;
+        }
+
+        _snapshot = _snapshot.RequestSent();
+        _isSubmitting = true;
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                _snapshot = _snapshot with
+                {
+                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"],
+                    AuditState = TenantCommandAuditState.MissingSupport,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                };
+                return;
+            }
+
+            TenantCommandSubmissionResult result = _snapshot.Intent.IntendedCommandType switch
+            {
+                TenantCorrectionCommandType.AddUserToTenant => await gateway
+                    .AddUserToTenantAsync(new(_snapshot.TenantId, _snapshot.TargetUserId, _snapshot.IntendedRole), CancellationToken.None)
+                    .ConfigureAwait(false),
+                TenantCorrectionCommandType.ChangeUserRole => await gateway
+                    .ChangeUserRoleAsync(new(_snapshot.TenantId, _snapshot.TargetUserId, _snapshot.IntendedRole), CancellationToken.None)
+                    .ConfigureAwait(false),
+                _ => TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"]),
+            };
+
+            _snapshot = result.State is TenantCommandLifecycleState.Accepted
+                ? _snapshot.Accepted(result)
+                : _snapshot.ApplySubmissionFailure(result);
+
+            if (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot?.TryGetTrackingHandle(out TenantCommandTrackingHandle handle) is not true)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (gateway is null)
+        {
+            _snapshot = _snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"]));
+            return;
+        }
+
+        TenantCommandStatusResult status = await gateway
+            .GetStatusAsync(handle, CancellationToken.None)
+            .ConfigureAwait(false);
+        _snapshot = _snapshot.ApplyStatus(status);
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        TenantDetail? projection = await QueryProjectionAsync().ConfigureAwait(false);
+        _snapshot = _snapshot.ConfirmProjection(projection);
+        if (_snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
+        {
+            TenantAuditRow? proof = await QueryCorrectiveProofAsync().ConfigureAwait(false);
+            _snapshot = _snapshot.WithCorrectiveProof(proof);
+        }
+    }
+
+    private async Task<TenantDetail?> QueryProjectionAsync()
+    {
+        if (_snapshot is null)
+        {
+            return null;
+        }
+
+        if (QueryGateway is null)
+        {
+            return CurrentProjection;
+        }
+
+        TenantDetailSnapshot detail = await QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(_snapshot.TenantId), null, CancellationToken.None)
+            .ConfigureAwait(false);
+        return detail.Detail;
+    }
+
+    private async Task<TenantAuditRow?> QueryCorrectiveProofAsync()
+    {
+        if (_snapshot is null || QueryGateway is null)
+        {
+            return null;
+        }
+
+        TenantAuditSnapshot audit = await QueryGateway
+            .GetTenantAuditAsync(new TenantAuditRequest(_snapshot.TenantId), null, CancellationToken.None)
+            .ConfigureAwait(false);
+        string correctiveEventType = _snapshot.Intent.IntendedCommandType switch
+        {
+            TenantCorrectionCommandType.AddUserToTenant => "UserAddedToTenant",
+            TenantCorrectionCommandType.ChangeUserRole => "UserRoleChanged",
+            _ => string.Empty,
+        };
+
+        return audit.Rows.FirstOrDefault(row =>
+            string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
+            && !string.Equals(row.EventReference, _snapshot.OriginalAuditReference, StringComparison.Ordinal)
+            && string.Equals(row.TenantId, _snapshot.TenantId, StringComparison.Ordinal)
+            && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal));
+    }
+
+    private async Task CloseAsync()
+        => await OnClose.InvokeAsync().ConfigureAwait(false);
+
+    private void OnRoleChanged(ChangeEventArgs args)
+    {
+        _roleValue = args.Value?.ToString() ?? string.Empty;
+        SetSnapshotFromIntent();
+    }
+
+    private string RoleLabel(TenantRole role)
+        => role is TenantRole.Unknown ? FieldValue(null) : Localizer[$"Tenants.Correction.Role.{role}"];
 
     private string PreviewValue(string key, string value)
         => key is "intendedRole" or "currentRole"
             ? Localizer[$"Tenants.Correction.Role.{value}"]
             : FieldValue(value);
 
+    private string ConsequenceLabel(string value)
+        => Localizer[$"Tenants.Correction.Preview.Consequence.{ConsequenceKey(value)}"];
+
+    private string UnknownLabel(string value)
+        => Localizer[$"Tenants.Correction.Preview.Unknown.{ConsequenceKey(value)}"];
+
+    private static string ConsequenceKey(string value)
+        => value.Contains("membership", StringComparison.OrdinalIgnoreCase)
+            ? "Membership"
+            : value.Contains("role-change", StringComparison.OrdinalIgnoreCase)
+                ? "RoleChange"
+                : value.Contains("SignalR", StringComparison.Ordinal)
+                    ? "SignalR"
+                    : value.Contains("Historical role", StringComparison.Ordinal)
+                        ? "HistoricalRole"
+                        : "Unsupported";
+
     private static string FieldValue(string? value)
         => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
-    private async Task CloseAsync()
-        => await OnClose.InvokeAsync().ConfigureAwait(false);
+    private static bool TryParseAssignableRole(string value, out TenantRole role)
+    {
+        if (Enum.TryParse(value, ignoreCase: false, out role)
+            && AssignableRoles.Contains(role))
+        {
+            return true;
+        }
+
+        role = TenantRole.Unknown;
+        return false;
+    }
 }
