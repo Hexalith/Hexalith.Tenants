@@ -28,10 +28,13 @@ builder.Services.AddHexalithDomain<TenantsFrontComposerDomain>();
 if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress)) {
     builder.Services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
     builder.Services.AddEventStoreGatewayClient(o => o.BaseAddress = eventStoreBaseAddress);
+    builder.Services.AddHttpClient<TenantCommandGateway>(client => client.BaseAddress = eventStoreBaseAddress);
     builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
+    builder.Services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
 }
 else {
     builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
+    builder.Services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
 }
 
 builder.Services.Replace(ServiceDescriptor.Scoped<IUserContextAccessor, ClaimsUserContextAccessor>());

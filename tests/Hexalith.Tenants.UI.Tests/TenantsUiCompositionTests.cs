@@ -5,6 +5,7 @@ using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Shouldly;
 
@@ -27,9 +28,18 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
-    public void Bff_composition_marks_read_surface_connected_after_list_gateway_story()
+    public void Bff_composition_marks_read_and_command_surfaces_connected_after_command_gateway_story()
     {
-        ITenantsBffComposition composition = new TenantsBffComposition();
+        ITenantsBffComposition composition = new TenantsBffComposition(new StubTenantCommandGateway());
+
+        composition.IsReadSurfaceConnected.ShouldBeTrue();
+        composition.IsCommandSurfaceConnected.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Bff_composition_keeps_command_surface_disconnected_for_unavailable_gateway()
+    {
+        ITenantsBffComposition composition = new TenantsBffComposition(new UnavailableTenantCommandGateway());
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
@@ -48,6 +58,10 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("User membership lookup");
         manager.GetString("Tenants.UserLookup.Title", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Recherche des appartenances utilisateur");
+        manager.GetString("Tenants.Create.State.ProjectionPending", CultureInfo.InvariantCulture)
+            .ShouldBe("Projection pending; tenant is not confirmed visible yet.");
+        manager.GetString("Tenants.Create.State.ProjectionPending", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Projection en attente ; le locataire n'est pas encore confirmé visible.");
     }
 
     [Fact]
@@ -87,5 +101,14 @@ public sealed class TenantsUiCompositionTests
 
         public void RegisterDomain(DomainManifest manifest)
             => Manifests.Add(manifest);
+    }
+
+    private sealed class StubTenantCommandGateway : ITenantCommandGateway
+    {
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
     }
 }

@@ -5,6 +5,7 @@ using Bunit;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Error("Tenant query gateway configuration is missing.")));
         Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -46,6 +49,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -106,6 +111,34 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.MyTenants.Link"] = "My tenants",
             ["Tenants.UserLookup.Link"] = "User lookup",
+            ["Tenants.Create.Title"] = "Create tenant",
+            ["Tenants.Create.Description"] = "Submit a tenant creation command and wait for projection confirmation.",
+            ["Tenants.Create.TenantId.Label"] = "Tenant id",
+            ["Tenants.Create.TenantId.Help"] = "Use the exact caller-supplied tenant id.",
+            ["Tenants.Create.Name.Label"] = "Name",
+            ["Tenants.Create.Description.Label"] = "Description",
+            ["Tenants.Create.Submit"] = "Create tenant",
+            ["Tenants.Create.Refresh"] = "Refresh status",
+            ["Tenants.Create.Lifecycle.Title"] = "Command lifecycle",
+            ["Tenants.Create.Validation.TenantIdRequired"] = "Tenant id is required.",
+            ["Tenants.Create.Validation.NameRequired"] = "Name is required.",
+            ["Tenants.Create.Unavailable.Authorization"] = "You are not authorized to create tenants.",
+            ["Tenants.Create.Unavailable.Freshness"] = "Refresh tenant data before submitting a command.",
+            ["Tenants.Create.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
+            ["Tenants.Create.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.Create.State.Idle"] = "No command submitted.",
+            ["Tenants.Create.State.RequestSent"] = "Request sent.",
+            ["Tenants.Create.State.Accepted"] = "Accepted by EventStore; waiting for processing.",
+            ["Tenants.Create.State.ProjectionPending"] = "Projection pending; tenant is not confirmed visible yet.",
+            ["Tenants.Create.State.Confirmed"] = "Projection confirmed the tenant exists.",
+            ["Tenants.Create.State.Rejected"] = "Command rejected.",
+            ["Tenants.Create.State.Failed"] = "Command submission failed.",
+            ["Tenants.Create.State.Degraded"] = "Command result is degraded and needs review.",
+            ["Tenants.Create.State.UnableToVerify"] = "Unable to verify command result.",
+            ["Tenants.Create.Audit.NotStarted"] = "Audit evidence not started.",
+            ["Tenants.Create.Audit.AuditPending"] = "Audit evidence pending.",
+            ["Tenants.Create.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
+            ["Tenants.Create.Audit.MissingSupport"] = "Audit support is missing for this flow.",
         };
 
         public LocalizedString this[string name]
@@ -116,5 +149,21 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
             => Values.Select(v => new LocalizedString(v.Key, v.Value));
+    }
+
+    private sealed class StubTenantCommandGateway : ITenantCommandGateway
+    {
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status is unavailable."));
+    }
+
+    private sealed class StubTenantsBffComposition : ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => true;
+
+        public bool IsCommandSurfaceConnected => true;
     }
 }

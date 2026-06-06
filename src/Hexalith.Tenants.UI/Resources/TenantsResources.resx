@@ -900,4 +900,88 @@
   <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
     <value>This value is not support-safe to copy.</value>
   </data>
+  <data name="Tenants.Create.Title" xml:space="preserve">
+    <value>Create tenant</value>
+  </data>
+  <data name="Tenants.Create.Description" xml:space="preserve">
+    <value>Submit a tenant creation command and wait for projection confirmation before treating it as visible.</value>
+  </data>
+  <data name="Tenants.Create.TenantId.Label" xml:space="preserve">
+    <value>Tenant id</value>
+  </data>
+  <data name="Tenants.Create.TenantId.Help" xml:space="preserve">
+    <value>Use the exact caller-supplied tenant id.</value>
+  </data>
+  <data name="Tenants.Create.Name.Label" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Tenants.Create.Description.Label" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Tenants.Create.Submit" xml:space="preserve">
+    <value>Create tenant</value>
+  </data>
+  <data name="Tenants.Create.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.Create.Lifecycle.Title" xml:space="preserve">
+    <value>Command lifecycle</value>
+  </data>
+  <data name="Tenants.Create.Validation.TenantIdRequired" xml:space="preserve">
+    <value>Tenant id is required.</value>
+  </data>
+  <data name="Tenants.Create.Validation.NameRequired" xml:space="preserve">
+    <value>Name is required.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.Authorization" xml:space="preserve">
+    <value>You are not authorized to create tenants.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh tenant data before submitting a command.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.InFlight" xml:space="preserve">
+    <value>A tenant command is already in progress.</value>
+  </data>
+  <data name="Tenants.Create.State.Idle" xml:space="preserve">
+    <value>No command submitted.</value>
+  </data>
+  <data name="Tenants.Create.State.RequestSent" xml:space="preserve">
+    <value>Request sent.</value>
+  </data>
+  <data name="Tenants.Create.State.Accepted" xml:space="preserve">
+    <value>Accepted by EventStore; waiting for processing.</value>
+  </data>
+  <data name="Tenants.Create.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; tenant is not confirmed visible yet.</value>
+  </data>
+  <data name="Tenants.Create.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the tenant exists.</value>
+  </data>
+  <data name="Tenants.Create.State.Rejected" xml:space="preserve">
+    <value>Command rejected.</value>
+  </data>
+  <data name="Tenants.Create.State.Failed" xml:space="preserve">
+    <value>Command submission failed.</value>
+  </data>
+  <data name="Tenants.Create.State.Degraded" xml:space="preserve">
+    <value>Command result is degraded and needs review.</value>
+  </data>
+  <data name="Tenants.Create.State.UnableToVerify" xml:space="preserve">
+    <value>Unable to verify command result.</value>
+  </data>
+  <data name="Tenants.Create.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence not started.</value>
+  </data>
+  <data name="Tenants.Create.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending.</value>
+  </data>
+  <data name="Tenants.Create.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable.</value>
+  </data>
+  <data name="Tenants.Create.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit support is missing for this flow.</value>
+  </data>
 </root>

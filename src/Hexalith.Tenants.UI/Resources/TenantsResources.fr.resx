@@ -900,4 +900,88 @@
   <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
     <value>Cette valeur n'est pas sûre pour le support.</value>
   </data>
+  <data name="Tenants.Create.Title" xml:space="preserve">
+    <value>Créer un locataire</value>
+  </data>
+  <data name="Tenants.Create.Description" xml:space="preserve">
+    <value>Soumettre une commande de création de locataire et attendre la confirmation de projection avant de la traiter comme visible.</value>
+  </data>
+  <data name="Tenants.Create.TenantId.Label" xml:space="preserve">
+    <value>Identifiant locataire</value>
+  </data>
+  <data name="Tenants.Create.TenantId.Help" xml:space="preserve">
+    <value>Utiliser exactement l'identifiant locataire fourni par l'appelant.</value>
+  </data>
+  <data name="Tenants.Create.Name.Label" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Tenants.Create.Description.Label" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Tenants.Create.Submit" xml:space="preserve">
+    <value>Créer le locataire</value>
+  </data>
+  <data name="Tenants.Create.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.Create.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la commande</value>
+  </data>
+  <data name="Tenants.Create.Validation.TenantIdRequired" xml:space="preserve">
+    <value>L'identifiant locataire est obligatoire.</value>
+  </data>
+  <data name="Tenants.Create.Validation.NameRequired" xml:space="preserve">
+    <value>Le nom est obligatoire.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.Authorization" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à créer des locataires.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez les données des locataires avant de soumettre une commande.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.InFlight" xml:space="preserve">
+    <value>Une commande locataire est déjà en cours.</value>
+  </data>
+  <data name="Tenants.Create.State.Idle" xml:space="preserve">
+    <value>Aucune commande soumise.</value>
+  </data>
+  <data name="Tenants.Create.State.RequestSent" xml:space="preserve">
+    <value>Requête envoyée.</value>
+  </data>
+  <data name="Tenants.Create.State.Accepted" xml:space="preserve">
+    <value>Acceptée par EventStore ; traitement en attente.</value>
+  </data>
+  <data name="Tenants.Create.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; le locataire n'est pas encore confirmé visible.</value>
+  </data>
+  <data name="Tenants.Create.State.Confirmed" xml:space="preserve">
+    <value>La projection confirme que le locataire existe.</value>
+  </data>
+  <data name="Tenants.Create.State.Rejected" xml:space="preserve">
+    <value>Commande rejetée.</value>
+  </data>
+  <data name="Tenants.Create.State.Failed" xml:space="preserve">
+    <value>Échec de la soumission de commande.</value>
+  </data>
+  <data name="Tenants.Create.State.Degraded" xml:space="preserve">
+    <value>Le résultat de commande est dégradé et nécessite une revue.</value>
+  </data>
+  <data name="Tenants.Create.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de vérifier le résultat de la commande.</value>
+  </data>
+  <data name="Tenants.Create.Audit.NotStarted" xml:space="preserve">
+    <value>Preuve d'audit non démarrée.</value>
+  </data>
+  <data name="Tenants.Create.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente.</value>
+  </data>
+  <data name="Tenants.Create.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible.</value>
+  </data>
+  <data name="Tenants.Create.Audit.MissingSupport" xml:space="preserve">
+    <value>La prise en charge de l'audit manque pour ce flux.</value>
+  </data>
 </root>

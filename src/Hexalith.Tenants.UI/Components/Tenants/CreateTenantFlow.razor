@@ -1,0 +1,327 @@
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+<section class="tenants-create-flow" data-testid="tenants-create-flow" aria-labelledby="tenants-create-heading">
+    <div class="tenants-create-flow__heading">
+        <h2 id="tenants-create-heading">@Localizer["Tenants.Create.Title"]</h2>
+        <p>@Localizer["Tenants.Create.Description"]</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p class="tenants-create-flow__unavailable"
+           data-testid="tenants-create-unavailable-reason"
+           role="alert">
+            @UnavailableReason
+        </p>
+    }
+
+    <form class="tenants-create-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+        <label for="tenants-create-tenant-id">
+            <span>@Localizer["Tenants.Create.TenantId.Label"]</span>
+            <input id="tenants-create-tenant-id"
+                   @ref="_tenantIdElement"
+                   name="tenant-id"
+                   value="@_tenantId"
+                   data-testid="tenants-create-tenant-id"
+                   aria-describedby="@TenantIdDescribedBy"
+                   @oninput="OnTenantIdInput" />
+            <span id="tenants-create-tenant-id-help">@Localizer["Tenants.Create.TenantId.Help"]</span>
+        </label>
+
+        <label for="tenants-create-name">
+            <span>@Localizer["Tenants.Create.Name.Label"]</span>
+            <input id="tenants-create-name"
+                   @ref="_nameElement"
+                   name="tenant-name"
+                   value="@_name"
+                   data-testid="tenants-create-name"
+                   aria-describedby="@ValidationDescribedBy"
+                   @oninput="OnNameInput" />
+        </label>
+
+        <label for="tenants-create-description">
+            <span>@Localizer["Tenants.Create.Description.Label"]</span>
+            <textarea id="tenants-create-description"
+                      name="tenant-description"
+                      data-testid="tenants-create-description"
+                      @oninput="OnDescriptionInput">@_description</textarea>
+        </label>
+
+        @if (!string.IsNullOrWhiteSpace(_validationMessage))
+        {
+            <p id="tenants-create-validation"
+               class="tenants-create-flow__validation"
+               data-testid="tenants-create-validation"
+               role="alert">
+                @_validationMessage
+            </p>
+        }
+
+        <div class="tenants-create-flow__actions">
+            <button type="submit"
+                    data-testid="tenants-create-submit"
+                    disabled="@IsSubmitDisabled">
+                @Localizer["Tenants.Create.Submit"]
+            </button>
+            <button type="button"
+                    data-testid="tenants-create-refresh"
+                    disabled="@(!CanRefresh)"
+                    @onclick="RefreshStatusAsync">
+                @Localizer["Tenants.Create.Refresh"]
+            </button>
+        </div>
+    </form>
+
+    <section class="tenants-create-flow__lifecycle"
+             @ref="_lifecycleElement"
+             tabindex="-1"
+             data-testid="tenants-create-lifecycle"
+             aria-labelledby="tenants-create-state-label">
+        <h3 id="tenants-create-state-label">@Localizer["Tenants.Create.Lifecycle.Title"]</h3>
+        <p class="@StateClass" data-testid="tenants-create-state">
+            <span aria-hidden="true">@StateSymbol</span>
+            <span>@StateText</span>
+        </p>
+        <p data-testid="tenants-create-audit">@AuditText</p>
+        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        {
+            <p data-testid="tenants-create-safe-message">@_snapshot.SafeMessage</p>
+        }
+        <p class="tenants-create-flow__live"
+           data-testid="tenants-create-live-region"
+           aria-live="@LiveRegionMode"
+           aria-atomic="true">
+            @StateText
+        </p>
+    </section>
+</section>
+
+@code {
+    private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
+    private string? _tenantId;
+    private string? _name;
+    private string? _description;
+    private string? _validationMessage;
+    private bool _isSubmitting;
+    private ElementReference _tenantIdElement;
+    private ElementReference _nameElement;
+    private ElementReference _lifecycleElement;
+    private bool _focusTenantIdPending;
+    private bool _focusNamePending;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsFresh { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public Func<string, Task<TenantSummary?>>? ProjectionEvidenceProvider { get; set; }
+
+    internal TenantCreateCommandSnapshot Snapshot => _snapshot;
+
+    private string? UnavailableReason
+        => !IsAuthorized
+            ? Localizer["Tenants.Create.Unavailable.Authorization"].Value
+            : !IsFresh
+                ? Localizer["Tenants.Create.Unavailable.Freshness"].Value
+                : !IsCommandSurfaceAvailable || CommandGateway is null
+                    ? Localizer["Tenants.Create.Unavailable.CommandSurface"].Value
+                    : _isSubmitting
+                        ? Localizer["Tenants.Create.Unavailable.InFlight"].Value
+                        : null;
+
+    private bool IsSubmitDisabled => !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool CanRefresh
+        => _snapshot.CorrelationId is not null
+        && _snapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private string StateClass
+        => $"tenants-create-flow__state tenants-create-flow__state--{_snapshot.State.ToString().ToLowerInvariant()}";
+
+    private string StateSymbol
+        => _snapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed => "✓",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => "•",
+        };
+
+    private string StateText
+        => Localizer[$"Tenants.Create.State.{_snapshot.State}"];
+
+    private string AuditText
+        => Localizer[$"Tenants.Create.Audit.{_snapshot.AuditState}"];
+
+    private string LiveRegionMode
+        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string TenantIdDescribedBy
+        => string.IsNullOrWhiteSpace(_validationMessage)
+            ? "tenants-create-tenant-id-help"
+            : "tenants-create-tenant-id-help tenants-create-validation";
+
+    private string? ValidationDescribedBy
+        => string.IsNullOrWhiteSpace(_validationMessage) ? null : "tenants-create-validation";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusTenantIdPending)
+        {
+            _focusTenantIdPending = false;
+            await _tenantIdElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusNamePending)
+        {
+            _focusNamePending = false;
+            await _nameElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    // Honours the lifecycle FocusTarget for fail-closed/non-success transitions: when the command
+    // surface becomes blocked, rejected, failed, degraded, or unable-to-verify, the submit button
+    // may disable, so focus is moved to the lifecycle region to keep it recoverable (AC6). Routine
+    // polite progress (request sent, accepted, projection pending, confirmed) never steals focus.
+    private void SetSnapshot(TenantCreateCommandSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    internal void ApplySignalRNudge()
+        => _snapshot = _snapshot.SignalRNudge();
+
+    internal void ApplyProjectionEvidence(TenantSummary? summary)
+        => _snapshot = _snapshot.ConfirmProjection(summary, null);
+
+    private void OnTenantIdInput(ChangeEventArgs args)
+        => _tenantId = args.Value?.ToString();
+
+    private void OnNameInput(ChangeEventArgs args)
+        => _name = args.Value?.ToString();
+
+    private void OnDescriptionInput(ChangeEventArgs args)
+        => _description = args.Value?.ToString();
+
+    private async Task SubmitAsync()
+    {
+        _validationMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            SetSnapshot(TenantCreateCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_tenantId))
+        {
+            _validationMessage = Localizer["Tenants.Create.Validation.TenantIdRequired"];
+            _focusTenantIdPending = true;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_name))
+        {
+            _validationMessage = Localizer["Tenants.Create.Validation.NameRequired"];
+            _focusNamePending = true;
+            return;
+        }
+
+        var request = new CreateTenantCommandRequest(_tenantId, _name, _description);
+        _snapshot = _snapshot.RequestSent(request);
+        _isSubmitting = true;
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(TenantCreateCommandSnapshot.Blocked(
+                    Localizer["Tenants.Create.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
+
+            TenantCommandSubmissionResult result = await gateway
+                .CreateTenantAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                SetSnapshot(_snapshot.Accepted(result));
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = result.State,
+                    SafeMessage = result.SafeMessage,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (gateway is null)
+        {
+            SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Create.Unavailable.CommandSurface"].Value)));
+            return;
+        }
+
+        TenantCommandStatusResult status = await gateway
+            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+            .ConfigureAwait(false);
+        SetSnapshot(_snapshot.ApplyStatus(status));
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
+        {
+            TenantSummary? evidence = await ProjectionEvidenceProvider(_snapshot.Intent.TenantId).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence, null));
+        }
+    }
+}

@@ -1,0 +1,95 @@
+.tenants-create-flow {
+    border: 1px solid CanvasText;
+    border-radius: 8px;
+    display: grid;
+    gap: 1rem;
+    max-width: 56rem;
+    padding: 1rem;
+}
+
+.tenants-create-flow__heading {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.tenants-create-flow h2,
+.tenants-create-flow h3,
+.tenants-create-flow p {
+    margin: 0;
+}
+
+.tenants-create-flow__form {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.tenants-create-flow__form label {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.tenants-create-flow__form input,
+.tenants-create-flow__form textarea,
+.tenants-create-flow__actions button {
+    min-height: 2.25rem;
+}
+
+.tenants-create-flow__form textarea {
+    min-height: 5rem;
+}
+
+.tenants-create-flow__validation,
+.tenants-create-flow__unavailable {
+    border-inline-start: 0.25rem solid CanvasText;
+    padding-inline-start: 0.75rem;
+}
+
+.tenants-create-flow__actions {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.tenants-create-flow__lifecycle {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.tenants-create-flow__state {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tenants-create-flow__state span:first-child {
+    border: 1px solid CanvasText;
+    display: inline-grid;
+    min-height: 1.5rem;
+    min-width: 1.5rem;
+    place-items: center;
+}
+
+.tenants-create-flow__live {
+    block-size: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    inline-size: 1px;
+}
+
+@media (forced-colors: active) {
+    .tenants-create-flow,
+    .tenants-create-flow__state span:first-child {
+        border-color: CanvasText;
+    }
+
+    .tenants-create-flow input:focus-visible,
+    .tenants-create-flow textarea:focus-visible,
+    .tenants-create-flow button:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 3px;
+    }
+}

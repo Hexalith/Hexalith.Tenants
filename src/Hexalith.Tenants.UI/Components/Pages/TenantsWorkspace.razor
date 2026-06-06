@@ -69,6 +69,11 @@
         </a>
     </section>
 
+    <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not TenantListSurfaceKind.Error)"
+                      IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
+                      OnProjectionRefreshRequested="RefreshAsync"
+                      ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+
     @if (_snapshot.Kind is TenantListSurfaceKind.Loading)
     {
         <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
@@ -203,6 +208,19 @@
 
     private async Task RefreshAsync()
         => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task<TenantSummary?> FindTenantProjectionEvidenceAsync(string tenantId)
+    {
+        if (!_snapshot.Rows.Any(row => string.Equals(row.TenantId, tenantId, StringComparison.Ordinal)))
+        {
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+
+        TenantListRow? row = _snapshot.Rows.FirstOrDefault(r => string.Equals(r.TenantId, tenantId, StringComparison.Ordinal));
+        return row is null
+            ? null
+            : new TenantSummary(row.TenantId, row.Name, row.Status);
+    }
 
     private async Task ResetFiltersAsync()
     {
