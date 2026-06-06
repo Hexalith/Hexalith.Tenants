@@ -1,0 +1,125 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.UI.State.TenantCommands
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<section class="tenant-lifecycle"
+         aria-labelledby="tenants-lifecycle-heading"
+         data-testid="tenants-lifecycle-actions">
+    <header class="tenant-lifecycle__header">
+        <div>
+            <h2 id="tenants-lifecycle-heading">@Localizer["Tenants.Lifecycle.Title"]</h2>
+            <p>@Localizer["Tenants.Lifecycle.Description", TenantId]</p>
+        </div>
+        <dl class="tenant-lifecycle__facts" aria-label="@Localizer["Tenants.Lifecycle.FactsLabel"]">
+            <div data-testid="tenants-lifecycle-state">
+                <dt>@Localizer["Tenants.Lifecycle.StateLabel"]</dt>
+                <dd>@Localizer[$"Tenants.Lifecycle.Status.{CurrentStatus}"]</dd>
+            </div>
+            <div data-testid="tenants-lifecycle-current-status">
+                <dt>@Localizer["Tenants.Lifecycle.CurrentStatusLabel"]</dt>
+                <dd>@Localizer[$"Tenants.Lifecycle.Status.{CurrentStatus}"]</dd>
+            </div>
+            <div data-testid="tenants-lifecycle-freshness">
+                <dt>@Localizer["Tenants.Lifecycle.FreshnessLabel"]</dt>
+                <dd><TruthStateBadge Freshness="@Freshness" ResourcePrefix="Tenants.Lifecycle" TestId="tenants-lifecycle-freshness-badge" /></dd>
+            </div>
+            <div data-testid="tenants-lifecycle-governance-gate">
+                <dt>@Localizer["Tenants.Lifecycle.GovernanceGateLabel"]</dt>
+                <dd>@Localizer[$"Tenants.Lifecycle.Governance.{GovernanceReadiness}"]</dd>
+            </div>
+        </dl>
+    </header>
+
+    <div class="tenant-lifecycle__announcer"
+         aria-live="@LiveRegion"
+         aria-atomic="true"
+         data-testid="tenants-lifecycle-live-region">
+        @Localizer[PrimaryAvailability.SafeMessageKey, TenantId, Localizer[$"Tenants.Lifecycle.Operation.{PrimaryAvailability.Operation}"], PrimaryAvailability.ExpectedDomainOutcomeKey ?? string.Empty]
+    </div>
+
+    <div class="tenant-lifecycle__actions" role="list">
+        @foreach (TenantLifecycleAvailability availability in Availabilities)
+        {
+            string actionId = availability.Operation is TenantLifecycleOperation.EnableTenant
+                ? "tenants-lifecycle-enable"
+                : "tenants-lifecycle-disable";
+            string reasonId = $"{actionId}-reason";
+
+            <div class="tenant-lifecycle__action" role="listitem">
+                <button id="@actionId"
+                        type="button"
+                        class="tenant-lifecycle__button"
+                        data-testid="@actionId"
+                        disabled="@availability.IsUnavailable"
+                        aria-disabled="@availability.IsUnavailable.ToString().ToLowerInvariant()"
+                        aria-describedby="@reasonId">
+                    @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
+                </button>
+                <p id="@reasonId"
+                   class="tenant-lifecycle__reason"
+                   tabindex="0"
+                   data-testid="tenants-lifecycle-unavailable-reason"
+                   data-reason-category="@ReasonCategory(availability.UnavailableReasonCategory)">
+                    <span>@Localizer[$"Tenants.Lifecycle.UnavailableReason.{availability.UnavailableReasonCategory}"]</span>
+                    <span>@Localizer[availability.SafeMessageKey, TenantId, Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"], availability.ExpectedDomainOutcomeKey ?? string.Empty]</span>
+                </p>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string TenantId { get; set; } = string.Empty;
+
+    [Parameter]
+    public TenantStatus CurrentStatus { get; set; } = TenantStatus.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public bool IsCommandSurfaceConnected { get; set; }
+
+    [Parameter]
+    public TenantLifecycleAuthorizationReflectionState AuthorizationReflection { get; set; } = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+    [Parameter]
+    public TenantLifecycleGovernanceReadiness GovernanceReadiness { get; set; } = TenantLifecycleGovernanceReadiness.Unresolved;
+
+    [Parameter]
+    public bool IsNarrowSafetyContext { get; set; }
+
+    private TenantLifecycleAvailabilityInput Input
+        => new(
+            TenantId,
+            CurrentStatus,
+            Freshness,
+            SurfaceKind,
+            IsCommandSurfaceConnected,
+            GovernanceReadiness,
+            AuthorizationReflection,
+            IsNarrowSafetyContext);
+
+    private IReadOnlyList<TenantLifecycleAvailability> Availabilities
+        =>
+        [
+            Input.Evaluate(TenantLifecycleOperation.EnableTenant),
+            Input.Evaluate(TenantLifecycleOperation.DisableTenant),
+        ];
+
+    private TenantLifecycleAvailability PrimaryAvailability
+        => Availabilities.FirstOrDefault(static availability => availability.IsUnavailable)
+            ?? Availabilities[0];
+
+    private string LiveRegion
+        => Availabilities.Any(static availability => availability.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
+            ? "assertive"
+            : "polite";
+
+    private static string ReasonCategory(TenantLifecycleUnavailableReasonCategory category)
+        => category.ToString();
+}

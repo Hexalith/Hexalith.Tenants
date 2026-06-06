@@ -1,11 +1,13 @@
 @page "/tenants/{TenantId}"
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Components.Tenants.Lifecycle
 @using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
 @using Hexalith.Tenants.UI.State.TenantCommands
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
+@inject ITenantsBffComposition BffComposition
 
 <PageTitle>@Localizer["Tenants.Detail.Title"]</PageTitle>
 
@@ -110,6 +112,14 @@
                                     OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                     OnCommandActivityChanged="@SetMetadataCommandActivityAsync"
                                     ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
+
+            <TenantLifecycleActionAvailability TenantId="@Detail.TenantId"
+                                                CurrentStatus="@Detail.Status"
+                                                SurfaceKind="@_snapshot.Kind"
+                                                Freshness="@_snapshot.Freshness"
+                                                IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
+                                                AuthorizationReflection="TenantLifecycleAuthorizationReflectionState.Indeterminate"
+                                                GovernanceReadiness="TenantLifecycleGovernanceReadiness.Unresolved" />
 
             <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
                 <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>

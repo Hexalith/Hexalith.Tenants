@@ -1,0 +1,97 @@
+.tenant-lifecycle {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.tenant-lifecycle h2,
+.tenant-lifecycle p,
+.tenant-lifecycle dl,
+.tenant-lifecycle dd {
+    margin: 0;
+}
+
+.tenant-lifecycle__header {
+    display: grid;
+    gap: 1rem;
+}
+
+.tenant-lifecycle__facts {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.tenant-lifecycle__facts div {
+    border-block-start: 1px solid CanvasText;
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    padding-block-start: 0.75rem;
+}
+
+.tenant-lifecycle__facts dt {
+    font-weight: 600;
+}
+
+.tenant-lifecycle__actions {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.tenant-lifecycle__action {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.75rem;
+}
+
+.tenant-lifecycle__button {
+    min-height: 2.25rem;
+}
+
+.tenant-lifecycle__reason,
+.tenant-lifecycle__announcer {
+    overflow-wrap: anywhere;
+}
+
+.tenant-lifecycle__reason {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.tenant-lifecycle__reason span:first-child {
+    font-weight: 600;
+}
+
+.tenant-lifecycle__button:focus-visible,
+.tenant-lifecycle__reason:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .tenant-lifecycle__facts,
+    .tenant-lifecycle__actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (forced-colors: active) {
+    .tenant-lifecycle,
+    .tenant-lifecycle__facts div,
+    .tenant-lifecycle__action {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenant-lifecycle__button:focus-visible,
+    .tenant-lifecycle__reason:focus-visible {
+        outline-color: Highlight;
+    }
+}

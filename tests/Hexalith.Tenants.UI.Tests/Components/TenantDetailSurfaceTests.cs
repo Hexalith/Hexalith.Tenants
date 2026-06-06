@@ -59,6 +59,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-edit-metadata-flow']").TextContent.ShouldContain("Alpha");
         cut.Find("[data-testid='tenants-detail-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-detail-copy-reference']").TextContent.ShouldContain("Copy");
+        cut.Find("[data-testid='tenants-lifecycle-actions']");
+        cut.Find("[data-testid='tenants-lifecycle-current-status']").TextContent.ShouldContain("Active");
+        cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
@@ -664,6 +667,21 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         memberStyles.ShouldContain(":focus-visible");
         memberStyles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
 
+        string lifecycleStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Lifecycle",
+            "TenantLifecycleActionAvailability.razor.css"));
+
+        lifecycleStyles.ShouldContain("overflow-wrap: anywhere");
+        lifecycleStyles.ShouldContain("grid-template-columns");
+        lifecycleStyles.ShouldContain("@media (max-width: 767px)");
+        lifecycleStyles.ShouldContain("@media (forced-colors: active)");
+        lifecycleStyles.ShouldContain(":focus-visible");
+
         string changeRoleStyles = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
@@ -740,6 +758,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         invariantResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
         frenchResources.ShouldContain("Tenants.Members.Title");
         frenchResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
+        invariantResources.ShouldContain("Tenants.Lifecycle.Title");
+        invariantResources.ShouldContain("Tenants.Lifecycle.Unavailable.Governance");
+        invariantResources.ShouldContain("Tenants.Lifecycle.Unavailable.AlreadyActive");
+        frenchResources.ShouldContain("Tenants.Lifecycle.Title");
+        frenchResources.ShouldContain("Tenants.Lifecycle.Unavailable.Governance");
+        frenchResources.ShouldContain("Tenants.Lifecycle.Unavailable.AlreadyActive");
         invariantResources.ShouldContain("Tenants.AddMember.Title");
         invariantResources.ShouldContain("Tenants.AddMember.State.ProjectionPending");
         frenchResources.ShouldContain("Tenants.AddMember.Title");
@@ -790,6 +814,27 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             "Resources",
             "TenantsResources.resx"));
         HashSet<string> frenchKeys = MemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Lifecycle_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = LifecycleResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = LifecycleResourceKeys(Path.Combine(
             projectRoot,
             "src",
             "Hexalith.Tenants.UI",
@@ -926,6 +971,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
+    private static HashSet<string> LifecycleResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Lifecycle[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
     private static HashSet<string> CopyResourceKeys(string resourcePath)
         => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Copy[^\"]+)\"")
             .Select(static match => match.Groups[1].Value)
@@ -951,6 +1001,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
     }
 
@@ -963,6 +1014,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
     }
 
@@ -975,6 +1027,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
     }
 
@@ -987,6 +1040,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
     }
 
@@ -1056,6 +1110,13 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status is unavailable."));
     }
 
+    private sealed class StubTenantsBffComposition : ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => true;
+
+        public bool IsCommandSurfaceConnected => true;
+    }
+
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
         public LocalizedString this[string name] => new(name, Values.TryGetValue(name, out string? value) ? value : name);
@@ -1098,6 +1159,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Detail.StatusAccessibleLabel"] = "Tenant status {0}",
             ["Tenants.Detail.StatusLabel"] = "Status",
             ["Tenants.Detail.Title"] = "Tenant detail",
+            ["Tenants.Lifecycle.Unavailable.AlreadyActive"] = "{1} is unavailable for tenant {0} because the current projection already shows Active. If submitted by another surface, the safe domain outcome is {2}; continue read-only or refresh.",
             ["Tenants.Configuration.Announcement.Results"] = "{0} visible configuration entries across {1} namespace groups.",
             ["Tenants.Configuration.ClearFilter"] = "Clear",
             ["Tenants.Configuration.CommandUnavailable"] = "Configuration commands are unavailable until freshness can be verified.",

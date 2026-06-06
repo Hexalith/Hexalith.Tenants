@@ -603,6 +603,108 @@
   <data name="Tenants.Detail.Title" xml:space="preserve">
     <value>Tenant detail</value>
   </data>
+  <data name="Tenants.Lifecycle.Available" xml:space="preserve">
+    <value>{1} is available for tenant {0} after all server-side safety gates pass.</value>
+  </data>
+  <data name="Tenants.Lifecycle.CurrentStatusLabel" xml:space="preserve">
+    <value>Current status</value>
+  </data>
+  <data name="Tenants.Lifecycle.Description" xml:space="preserve">
+    <value>Read-only high-impact lifecycle availability for tenant {0}. Commands remain unavailable until authority, freshness, command support, and governance are proven.</value>
+  </data>
+  <data name="Tenants.Lifecycle.FactsLabel" xml:space="preserve">
+    <value>Tenant lifecycle safety facts</value>
+  </data>
+  <data name="Tenants.Lifecycle.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.Lifecycle.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.Lifecycle.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.Lifecycle.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.Lifecycle.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Lifecycle.FreshnessLabel" xml:space="preserve">
+    <value>Freshness</value>
+  </data>
+  <data name="Tenants.Lifecycle.Governance.Blocked" xml:space="preserve">
+    <value>Blocked</value>
+  </data>
+  <data name="Tenants.Lifecycle.Governance.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Tenants.Lifecycle.Governance.Unresolved" xml:space="preserve">
+    <value>Unresolved</value>
+  </data>
+  <data name="Tenants.Lifecycle.GovernanceGateLabel" xml:space="preserve">
+    <value>Governance gate</value>
+  </data>
+  <data name="Tenants.Lifecycle.Operation.DisableTenant" xml:space="preserve">
+    <value>Disable tenant</value>
+  </data>
+  <data name="Tenants.Lifecycle.Operation.EnableTenant" xml:space="preserve">
+    <value>Enable tenant</value>
+  </data>
+  <data name="Tenants.Lifecycle.StateLabel" xml:space="preserve">
+    <value>Lifecycle state</value>
+  </data>
+  <data name="Tenants.Lifecycle.Status.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tenants.Lifecycle.Status.Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Tenants.Lifecycle.Status.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Lifecycle.Title" xml:space="preserve">
+    <value>Lifecycle command availability</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.AlreadyActive" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because the current projection already shows Active. If submitted by another surface, the safe domain outcome is {2}; continue read-only or refresh.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.AlreadyDisabled" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because the current projection already shows Disabled. If submitted by another surface, the safe domain outcome is {2}; continue read-only or refresh.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.CommandSurface" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because lifecycle command support is not connected. Continue read-only or escalate command-surface readiness.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.Governance" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because high-impact lifecycle governance is not ready. Continue read-only until the platform gate is cleared.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.MissingPermission" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because server-side global-administrator authority is not proven. Request permission or continue read-only.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.Mobile" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because this viewport cannot preserve the full high-impact safety context. Continue read-only on this view.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.StaleFreshness" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because tenant freshness is stale or unknown. Refresh before considering lifecycle action availability.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.UnknownStatus" xml:space="preserve">
+    <value>{1} is unavailable for tenant {0} because the tenant lifecycle state is unknown. Continue read-only and refresh projection evidence.</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnavailableReason.HighImpactFlowNotReady" xml:space="preserve">
+    <value>high-impact flow not ready</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnavailableReason.MissingLifecycleSupport" xml:space="preserve">
+    <value>missing lifecycle support</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnavailableReason.MissingPermission" xml:space="preserve">
+    <value>missing permission</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnavailableReason.None" xml:space="preserve">
+    <value>available</value>
+  </data>
+  <data name="Tenants.Lifecycle.UnavailableReason.StaleData" xml:space="preserve">
+    <value>stale data</value>
+  </data>
   <data name="Tenants.Configuration.Announcement.Results" xml:space="preserve">
     <value>{0} visible configuration entries across {1} namespace groups.</value>
   </data>
