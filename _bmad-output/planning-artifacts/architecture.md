@@ -79,8 +79,10 @@ construction patterns:
   `accepted → projection-confirmed → audit-available` lifecycle, with client-assembled
   Consequence Previews and Audit Evidence Receipts (no new backend endpoints).
 Phasing: **2a/MVP** (read: FR-1..9, FR-18) → **2b** (first commands: FR-10/11/13/14)
-→ **2c** (high-impact + audit + recovery: FR-12/15/16/17/19/20–25). FR-22/24/25 (and
-weakly FR-7/FR-23) currently lack backing stories.
+→ **2c** (high-impact + audit + recovery: FR-12/15/16/17/19/20–25). Epic 5 now provides
+backing stories for FR-20..FR-25, including the flat audit DataGrid, support-safe receipts,
+audit availability, tenant-domain correction preview/confirmation, and proof linking. FR-19
+global-administrator command work remains separately gated by Epic 4 Stories 4.3 and 4.4.
 
 **Non-Functional Requirements — the honesty contract is the architecture driver.**
 - **NFR-3 Reliability/consistency (defining):** eventually-consistent, event-sourced;
@@ -581,6 +583,8 @@ tenants/                                      # repo root (existing)
 │       │   ├── Layout/
 │       │   │   ├── MainLayout.razor          # composes <FrontComposerShell> (FC-LYT)
 │       │   │   └── TenantsShellManifest.cs   # nav areas, surfaces, columns, routes, command policies
+│       │   ├── Pages/
+│       │   │   └── TenantAuditPage.razor      # FR-20..FR-25 (UJ-4)
 │       │   ├── Shared/                        # the 10 DESIGN.md components + primitives
 │       │   │   ├── TruthStateBadge.razor  ConsequencePreview.razor  CommandLifecyclePanel.razor
 │       │   │   ├── UnavailableActionReason.razor  AuditEvidenceReceipt.razor
@@ -594,6 +598,11 @@ tenants/                                      # repo root (existing)
 │       │   │   ├── CreateTenantFlow.razor     # FR-13      (UJ-6)
 │       │   │   ├── EditTenantMetadataFlow.razor    # FR-14
 │       │   │   ├── DisableEnableTenantFlow.razor   # FR-15
+│       │   │   ├── Audit/                    # Tenants-owned audit/recovery components
+│       │   │   │   ├── AuditDataGrid.razor        # FR-20, FR-21
+│       │   │   │   ├── AuditEvidenceReceipt.razor # FR-22, FR-23
+│       │   │   │   ├── AuditAvailabilityState.razor
+│       │   │   │   └── CorrectionStartPanel.razor # FR-24, FR-25 tenant-domain correction
 │       │   │   └── Members/
 │       │   │       ├── MemberAccessReview.razor    # FR-8, FR-9 (UJ-2)
 │       │   │       ├── AddUserFlow.razor           # FR-10     (UJ-6)
@@ -605,10 +614,6 @@ tenants/                                      # repo root (existing)
 │       │   ├── GlobalAdministrators/          # nav area: Global Administrators
 │       │   │   ├── GlobalAdminReview.razor    # FR-18      (UJ-2)
 │       │   │   └── GlobalAdminCommandFlow.razor    # FR-19
-│       │   └── Audit/                         # nav area: Audit
-│       │       ├── AuditTrailPage.razor       # FR-20, FR-21 (UJ-4)
-│       │       ├── AuditEvidenceReceiptView.razor  # FR-22, FR-23
-│       │       └── CompensatingRecoveryFlow.razor  # FR-24, FR-25 (UJ-4)
 │       ├── State/                            # Fluxor features (immutable state, pure reducers, effects)
 │       │   ├── TruthState/                   # the shared 5-dimension model (D5)
 │       │   ├── CommandLifecycle/             # the D2 confirm state machine
@@ -668,8 +673,8 @@ approved fallbacks (FC-AUD/FC-CNS), per the domain-boundary policy.
 | 7.5 Lifecycle (FR-13..15) | `Components/Tenants/{CreateTenant,EditTenantMetadata,DisableEnableTenant}Flow` | 2b/2c |
 | 7.6 Configuration mgmt (FR-16..17) | `Components/Tenants/TenantConfigurationView` (edit) | 2c |
 | 7.7 Global-admin governance (FR-18..19) | `Components/GlobalAdministrators/*` | 2a/2c |
-| 7.8 Audit trail & evidence (FR-20..23) | `Components/Audit/{AuditTrailPage,AuditEvidenceReceiptView}` | 2c |
-| 7.9 Compensating recovery (FR-24..25) | `Components/Audit/CompensatingRecoveryFlow` | 2c |
+| 7.8 Audit trail & evidence (FR-20..23) | `Components/Pages/TenantAuditPage` and `Components/Tenants/Audit/{AuditDataGrid,AuditEvidenceReceipt,AuditAvailabilityState}` | 2c |
+| 7.9 Compensating recovery (FR-24..25) | `Components/Tenants/Audit/CorrectionStartPanel` plus `State/TenantAudit/TenantCorrection*` models | 2c |
 
 **Cross-cutting concerns → location:** truth-state model → `State/TruthState` + `Vocabulary/`;
 command confirm → `State/CommandLifecycle` + `Services/Gateways/CommandGateway`; authorization

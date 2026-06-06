@@ -287,12 +287,12 @@ An authorized operator can review who holds global-administrator access, separat
 An authorized operator can grant a global administrator, or remove one **except the last**.
 - **Consequences:** **removing the last global administrator is rejected by the domain (`LastGlobalAdministrator`)** — the UI reflects this as an *unavailable* action with a safe reason, not as completable friction (CP-6, asymmetric with last-owner); operations are in the `global-administrators` scope, never conflated with tenant membership.
 
-### 7.8 Audit Trail & Evidence *(ui-11, ui-12 — Phase 2c; blocked on FC-AUD, flat-list fallback proposed)*
+### 7.8 Audit Trail & Evidence *(ui-11, ui-12 — Phase 2c; flat-list fallback approved and implemented in Epic 5)*
 **Description:** The evidentiary surface — see what changed, with support-safe receipts. Realizes UJ-4.
 
 #### FR-20: Browse a tenant's audit trail
 A user can browse a tenant's audit entries as a flat, stably ordered list with date and `AuditEventCategory` (`Access` / `Administrative`) filters. Realizes UJ-4.
-- **Consequences:** list paginates via cursor; targets ~500 events without unacceptable degradation; loading/empty/filtered-empty/error states are distinct and accessible; the flat list is a **proposed fallback** for the absent timeline component, usable only once Product/UX approves it (§12, §16).
+- **Consequences:** list paginates via cursor; targets ~500 events without unacceptable degradation; loading/empty/filtered-empty/error states are distinct and accessible; the flat list uses the Product/UX-approved `FC-AUD` DataGrid fallback implemented by Epic 5. The reusable FrontComposer timeline remains a deferred replacement path, not a prerequisite for the delivered Tenants slice.
 
 #### FR-21: Reach audit from context
 A user can reach audit evidence from navigation, a tenant row, tenant detail, a user lookup, and a command result.
@@ -309,7 +309,7 @@ A user can tell apart `audit pending`, `audit delayed`, `audit unavailable`, and
 ### 7.9 Compensating Recovery *(Phase 2c)*
 **Description:** Correct the effect of a prior action forward, from audit evidence. Inherits §6. Realizes UJ-4.
 
-*Note: compensating recovery (FR-24, FR-25) and the evidence-receipt assembly (FR-22) are committed product intent and now have explicit Epic 5 story coverage (`epics.md` Stories 5.3, 5.5, and 5.6). Backend/evidence readiness still needs validation before those stories are build-ready.* `[NOTE FOR PM]`
+*Post-Epic 5 note: compensating recovery (FR-24, FR-25) and evidence-receipt assembly (FR-22) now have completed Epic 5 implementation evidence (`epics.md` Stories 5.3, 5.5, and 5.6 plus the matching story records). Tenant-domain correction preview, submission, projection confirmation, and proof linking are implemented through existing BFF gateways. Global-administrator correction remains fail-closed until Epic 4 command support is implemented.* `[NOTE FOR PM]`
 
 #### FR-24: Start a compensating command
 From audit evidence, an authorized user can start a correction ("restore intended access" / "start correction").
