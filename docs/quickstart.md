@@ -4,8 +4,6 @@
 
 Clone the repository, run the application with .NET Aspire, send your first tenant management command through the EventStore command gateway, and inspect the command outcome. This guide follows the same developer experience pattern as the [EventStore quickstart](../Hexalith.EventStore/docs/getting-started/quickstart.md).
 
-> **Time estimate:** within 30 minutes from clone to first command when the prerequisites below are already installed. Installing .NET, Docker, or DAPR for the first time is outside that clock and depends on your workstation.
-
 ## Prerequisites
 
 Before you begin, verify that the following tools are installed and working. Run each check command and confirm the expected output.
@@ -290,7 +288,7 @@ Verify the tenant was created by querying the read model. Expand the **GET /api/
 
 The response should contain the tenant details including the name and description you provided.
 
-> **Note:** If the query returns 404, retry after 3–5 seconds. Projections are eventually consistent — the read model processes events asynchronously. If 404 persists beyond 30 seconds, check the Aspire dashboard for service errors and verify the command reached `status: "Completed"` via the status endpoint.
+> **Note:** If the query returns 404, retry after the projection catches up. Projections are eventually consistent — the read model processes events asynchronously. If 404 persists across retries, check the Aspire dashboard for service errors and verify the command reached `status: "Completed"` via the status endpoint.
 
 You can also check the command status via the URL in the `Location` header from the previous response, or query it directly: `GET /api/v1/commands/status/{correlationId}`.
 
@@ -387,6 +385,15 @@ consumerProjection.IsAuthorized("tenant-a", "reader", TenantRole.TenantReader).S
 ```
 
 `Hexalith.Tenants.Testing` provides aggregate-level fake parity: command validation, successful event production, and state transitions execute through the same aggregate logic used by the service. Consuming services are still responsible for testing their own projection-level and query-level isolation, including deduplication behavior and tenant-scoped reads. Keep idempotency assertions aligned with the guidance in [Idempotent Event Processing](idempotent-event-processing.md) rather than duplicating those patterns in each test.
+
+### Run Local Test Projects
+
+Run test projects individually. With the current .NET 10 SDK, `dotnet test` can hit the Microsoft.Testing.Platform/VSTest incompatibility recorded in the Epic 2 implementation evidence. If that happens, build the project and run the generated xUnit v3 executable directly:
+
+```bash
+dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore
+tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none
+```
 
 ## Troubleshooting
 

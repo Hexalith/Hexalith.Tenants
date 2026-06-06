@@ -19,7 +19,7 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 
 ## Quickstart
 
-Get from clone to your first tenant command within 30 minutes when local prerequisites are already installed:
+Get from clone to your first tenant command after local prerequisites are installed:
 
 **[Quickstart Guide](docs/quickstart.md)** — prerequisite-validated path for .NET 10, Docker, full DAPR local runtime, AppHost startup, local auth, and the first EventStore command submission.
 
@@ -110,13 +110,16 @@ scripts/
 
 ### Test Requirements
 
-All pull requests must pass the relevant existing test projects. Run test projects individually, for example:
+All pull requests must pass the relevant existing test projects. Run test projects individually. With the current .NET 10 SDK, `dotnet test` can hit the Microsoft.Testing.Platform/VSTest incompatibility recorded in the Epic 2 story evidence; when that happens, build the test project and run its generated xUnit v3 executable from `bin/Release/net10.0`.
 
 ```bash
 dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release
+
+dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore
+tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none
 ```
 
 Integration and server tests require DAPR initialization (`dapr init`) and the local runtime prerequisites documented in the quickstart.

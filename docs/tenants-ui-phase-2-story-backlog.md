@@ -14,6 +14,8 @@ This file is retained as a historical Phase 2 planning backlog. The current impl
 
 Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike supersedes older row-level `needs-confirmation` or `missing` statuses in this file for `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`. Historical row data below is not the current sprint-status source.
 
+Story 2.4 later implemented `ui-14` tenant-member removal with the approved inline structured-text `FC-CNS` fallback, projection-confirmed removal, duplicate/already-applied handling, and honest audit handoff. The historical `blocked` row remains for planning traceability and reusable FrontComposer component work, but it is no longer the implementation-readiness source for the delivered Epic 2 remove-member flow.
+
 ## Scope Boundary
 
 - Candidate rows consume completed backend evidence from Epics 9 through 11 and earlier backend stories. They must not duplicate backend requirements unless a product or architecture change explicitly reopens scope.

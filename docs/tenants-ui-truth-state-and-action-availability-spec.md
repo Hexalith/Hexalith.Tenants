@@ -1,8 +1,8 @@
 # Tenants UI Truth State, Freshness, and Action-Availability Specification
 
 Owner: Hexalith.Tenants product and UX planning
-Status: Phase 2 planning/readiness artifact (planning-only)
-Last reviewed: 2026-06-01
+Status: Phase 2 planning/readiness artifact with Epic 2 implementation notes
+Last reviewed: 2026-06-06
 Story: 9.3 — Define Truth State, Freshness, and Unavailable Action Patterns
 
 This document is the **canonical truth/feedback contract** for the Phase 2 Tenants Admin UI. It defines the Truth State Badge vocabulary, the freshness-gating rules for access-impacting actions, the Unavailable Action Reason taxonomy, the layered command/projection/audit feedback state set, and the feedback-placement/degradation rules — plus a per-pattern consumption mapping back to the existing source-of-truth artifacts. Every Phase 2 UI implementation story must consume these patterns so that "current", "accepted", "confirmed", and "audited" are never reinterpreted per screen.
@@ -151,7 +151,7 @@ Feedback follows the truth-state model across command, projection, and audit cha
 
 ### 5.1 Feedback states (enumerated distinctly)
 
-The AC4 feedback states are distinct and must not be merged: **request sent (submitted), accepted, projection pending, confirmed, rejected, already applied, degraded, audit pending, audit available, unable to verify.** The `#Feedback Patterns` section enumerates submitted, accepted, projection pending, confirmed, audit pending, audit available, and failed/rejected directly; `already applied`, `degraded`, and `unable to verify` are drawn from the same UX spec's command-trust vocabulary (submitted / awaiting confirmation / reflected / rejected / already applied / unable-to-verify; stale-and-degraded states) so the layered set is complete. [Source: `#Feedback Patterns`; `_bmad-output/planning-artifacts/ux-design-specification.md` command-trust and stale/degraded narrative; AC4]
+The AC4 feedback states are distinct and must not be merged: **request sent (submitted), accepted, projection pending, confirmed, rejected, already applied, degraded, audit pending, audit available, unable to verify.** The Epic 2 implementation adds explicit internal distinctions for `previewed`, duplicate submission prevention, and `audit delayed`; these refine the same contract and do not relax the non-collapse invariant. The `#Feedback Patterns` section enumerates submitted, accepted, projection pending, confirmed, audit pending, audit available, and failed/rejected directly; `already applied`, `degraded`, and `unable to verify` are drawn from the same UX spec's command-trust vocabulary (submitted / awaiting confirmation / reflected / rejected / already applied / unable-to-verify; stale-and-degraded states) so the layered set is complete. [Source: `#Feedback Patterns`; `_bmad-output/planning-artifacts/ux-design-specification.md` command-trust and stale/degraded narrative; `_bmad-output/implementation-artifacts/2-4-remove-tenant-member-with-consequence-preview.md`; `_bmad-output/implementation-artifacts/2-5-edit-tenant-metadata-with-safe-validation.md`; `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs`; AC4]
 
 | Feedback state | Meaning |
 | --- | --- |
@@ -161,8 +161,10 @@ The AC4 feedback states are distinct and must not be merged: **request sent (sub
 | confirmed | Projection or status reconciliation supports the visible change. |
 | rejected | Domain rejection or terminal failure; explain outcome and next safe action. |
 | already applied | The requested change was already in effect (e.g. user already removed). |
+| duplicate prevented | A duplicate submission was blocked before a second command could be sent. |
 | degraded | A capability is unavailable; explain what is unavailable and what still works. |
 | audit pending | Visible state updated but audit proof is not yet available. |
+| audit delayed | Audit proof is expected but delayed; do not show audit success. |
 | audit available | Support-safe proof can be opened or cited. |
 | unable to verify | Status lookup / SignalR / projection confirmation is unavailable; avoid success language. |
 
@@ -197,9 +199,9 @@ These event-sourced cases change feedback state and must be handled explicitly. 
 | Target user already removed before submit | already applied | inspect audit; continue read-only |
 | Tenant status changed while preview open | blocked / stale | refresh; re-evaluate eligibility |
 | Operator lost permission mid-flow | rejected / blocked (missing permission) | request permission; escalate with support-safe reference |
-| Duplicate submit or browser refresh during pending | accepted / projection pending (deduplicated) | wait; retry status lookup; do not double-apply |
+| Duplicate submit or browser refresh during pending | duplicate prevented / accepted / projection pending (deduplicated) | wait; retry status lookup; do not double-apply |
 | Projection lagged after acceptance | projection pending | wait; refresh; retry status lookup |
-| Command accepted but audit delayed | audit pending | wait; inspect audit later; cite support-safe reference |
+| Command accepted but audit delayed | audit pending / audit delayed | wait; inspect audit later; cite support-safe reference |
 | SignalR disconnected / nudge only | unable to verify (freshness nudge only) | refresh; retry status lookup |
 | Confirmation became unknown (status lookup failed) | unable to verify / unknown | retry status lookup; inspect audit; escalate |
 

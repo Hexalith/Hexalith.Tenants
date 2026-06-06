@@ -1,11 +1,13 @@
 # Tenants UI RemoveUserFromTenant Command-Capable Journey Specification
 
 Owner: Hexalith.Tenants product and UX planning
-Status: Phase 2 planning/readiness artifact (planning-only)
-Last reviewed: 2026-06-02
+Status: Phase 2 planning/readiness artifact with Epic 2 implementation notes
+Last reviewed: 2026-06-06
 Story: 9.4 — Specify the RemoveUserFromTenant Command-Capable Journey
 
 This document is the **worked, end-to-end specification for the first command-capable Phase 2 Tenants Admin UI journey**: removing a user's access to a tenant. It composes — and never redefines — the truth-state/feedback contract (Story 9.3, `docs/tenants-ui-truth-state-and-action-availability-spec.md`), the operations shell / information architecture (Story 9.2, `docs/tenants-ui-operations-shell-spec.md`), and the FrontComposer/Fluent UI dependency map (Story 9.1, `docs/tenants-ui-frontcomposer-dependency-map.md`) into a single remove-user flow spec. Its purpose is to make access changes **previewed, submitted, reconciled, and proven without false success**.
+
+> **Implementation supersession (Epic 2):** Story 2.4 implemented this journey in Tenants UI with the Product/UX-approved inline structured-text consequence fallback, the existing EventStore command endpoint, projection-confirmed absence, duplicate/already-applied handling, and honest audit handoff. The historical planning-only blocked-row statements below are superseded for the implemented tenant-member removal flow; they remain useful for future reusable FrontComposer component work and other high-impact rows.
 
 ## Scope and Boundary (read first)
 
@@ -81,7 +83,7 @@ When the remove-user action is prepared, the Consequence Preview must present al
 
 ### 2.2 Compose the preview from read-model evidence only
 
-The preview composes entirely from already-loaded projection/read-model data (`GET /api/tenants/{tenantId}` and `GET /api/tenants/{tenantId}/users`). **Do NOT add a backend "consequence" or "command status" endpoint.** Owner count and affected access path derive from the tenant/users read models; the Consequence Preview component (`FC-CNS`) is recorded `missing`. [Source: `_bmad-output/planning-artifacts/architecture.md#Frontend Architecture`; `_bmad-output/project-context.md#API Surface`; `docs/tenants-ui-frontcomposer-dependency-map.md#Dependency ID Catalog`]
+The preview composes entirely from already-loaded projection/read-model data (`GET /api/tenants/{tenantId}` and `GET /api/tenants/{tenantId}/users`). **Do NOT add a backend "consequence" or "command status" endpoint.** Owner count and affected access path derive from the tenant/users read models. Story 2.4 implements the approved inline structured-text fallback locally in Tenants while reusable `FC-CNS` remains a shared FrontComposer concern. [Source: `_bmad-output/planning-artifacts/architecture.md#Frontend Architecture`; `_bmad-output/project-context.md#API Surface`; `_bmad-output/planning-artifacts/fallback-approval-record-2026-06-03.md`; `_bmad-output/implementation-artifacts/2-4-remove-tenant-member-with-consequence-preview.md`; `docs/tenants-ui-frontcomposer-dependency-map.md#Dependency ID Catalog`]
 
 ### 2.3 Do not over-claim consequences
 
@@ -89,7 +91,7 @@ The UI must not present session revocation, downstream enforcement, or token inv
 
 ### 2.4 Fail-closed: incomplete inputs block submit
 
-**Incomplete consequence inputs block submit** unless product and UX approve a **named** fallback. The UI must not silently submit on a partial preview. This is the fail-closed rule from the 9.3 spec applied to this journey: unknown freshness, indeterminate authorization, incomplete consequence preview, or missing lifecycle support each block destructive action by default unless an explicitly approved override path exists. The block reason surfaces via the Unavailable Action Reason pattern (category **missing consequence preview**, evidence tie `FC-CNS`). Because `FC-CNS` is `missing` and the consuming backlog row's `fallbackDecision` is `deferred` (`inline-consequence-preview-not-approved`), this journey is **not** implementation-ready. [Source: `docs/tenants-ui-truth-state-and-action-availability-spec.md` §3.3, §4.1, §4.4; `_bmad-output/planning-artifacts/ux-design-specification.md#Consequence Preview`; AC2]
+**Incomplete consequence inputs block submit** unless product and UX approve a **named** fallback. The UI must not silently submit on a partial preview. This is the fail-closed rule from the 9.3 spec applied to this journey: unknown freshness, indeterminate authorization, incomplete consequence preview, or missing lifecycle support each block destructive action by default unless an explicitly approved override path exists. The block reason surfaces via the Unavailable Action Reason pattern (category **missing consequence preview**, evidence tie `FC-CNS`). The inline structured-text fallback is approved and implemented for Story 2.4; other high-impact rows still need their own ready evidence or approved fallback before implementation. [Source: `docs/tenants-ui-truth-state-and-action-availability-spec.md` §3.3, §4.1, §4.4; `_bmad-output/planning-artifacts/fallback-approval-record-2026-06-03.md`; `_bmad-output/implementation-artifacts/2-4-remove-tenant-member-with-consequence-preview.md`; AC2]
 
 ## 3. High-Risk Access Cases and Elevated Friction (AC3)
 
@@ -168,9 +170,9 @@ These event-sourced cases change feedback state and must be handled explicitly (
 | Target already removed before submit | already applied | inspect audit; continue read-only |
 | Tenant status changed while preview open | blocked / stale | refresh; re-evaluate eligibility |
 | Operator lost permission mid-flow | rejected / blocked (missing permission) | request permission; escalate with support-safe reference |
-| Duplicate submit / browser refresh during pending | accepted / projection pending (deduplicated) | wait; retry status lookup; do not double-apply |
+| Duplicate submit / browser refresh during pending | duplicate prevented / accepted / projection pending (deduplicated) | wait; retry status lookup; do not double-apply |
 | Projection lagged after acceptance | projection pending | wait; refresh; retry status lookup |
-| Command accepted but audit delayed | audit pending | wait; inspect audit later; cite support-safe reference |
+| Command accepted but audit delayed | audit pending / audit delayed | wait; inspect audit later; cite support-safe reference |
 | SignalR disconnected / nudge only | unable to verify (nudge only) | refresh; retry status lookup |
 | Status lookup failed → confirmation unknown | unable to verify / unknown | retry status lookup; inspect audit; escalate |
 
@@ -182,9 +184,9 @@ The journey binds to a single consuming backlog row and copies its arrays **verb
 
 - **Consuming row:** `ui-14-user-management-remove-user`
 - **Readiness:** `blocked`
-- **`fallbackDecision`:** `deferred` (`inline-consequence-preview-not-approved`)
+- **`fallbackDecision`:** historically `deferred`; superseded for Story 2.4 by the approved inline structured-text fallback.
 - **Decision owner:** Tenants Product/UX + `Hexalith.FrontComposer`
-- **`blockedBy` (verbatim):** `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]`
+- **`blockedBy` (historical):** `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]`; Story 2.4 resolved the implementation path for tenant-member removal using confirmed command contracts plus the approved inline fallback.
 - **`backendEvidence` (verbatim):** `[3-1-user-role-management, 3-2-role-behavior-enforcement, 5-3-query-endpoints-and-authorization, 9-3-query-policy-for-disabled-tenants-and-orphan-memberships, command:RemoveUserFromTenant, endpoint:POST /api/v1/commands]`
 
 ### 6.1 Pattern → dependency map
@@ -192,13 +194,13 @@ The journey binds to a single consuming backlog row and copies its arrays **verb
 | Journey pattern | Custom component (used, not implemented) | Dependency tie | Readiness |
 | --- | --- | --- | --- |
 | Member-row launch context + member re-query | Truth State Badge / member table | `FC-TBL` (available), `FC-LYT`, `FC-TOK` | blocks via `FC-LYT`/`FC-TOK` |
-| Consequence Preview content + incomplete-input block | Consequence Preview | `FC-CNS` (`missing`) | **blocks the row** |
-| Command submission + local hints | Command Lifecycle Panel | `FC-CMD` (`needs-confirmation`), `FC-CNC` (`missing`) | blocks via `FC-CMD`/`FC-CNC` |
+| Consequence Preview content + incomplete-input block | Consequence Preview | `FC-CNS` approved inline structured-text fallback for Story 2.4 | implemented for tenant-member removal; reusable component remains shared work |
+| Command submission + local hints | Command Lifecycle Panel | `FC-CMD` confirmed; `FC-CNC` one-at-a-time policy confirmed | implemented for tenant-member removal |
 | High-risk friction + freshness gate | Freshness Gate / Unavailable Action Reason | `FC-TOK`, `FC-A11Y` | blocks via `FC-TOK` |
 | Audit expectation + recovery path (referenced) | Audit Evidence Receipt (Story 9.5) | `FC-AUD` (referenced; full pattern deferred) | deferred to 9.5 |
 | Accessibility / localization / docs | (cross-cutting) | `FC-A11Y`, `FC-L10N`, `FC-DOC` | blocks the row |
 
-The row is `blocked` (not merely `planning-only`) on two branches: `FC-CNS` is `missing`, and the row carries a `deferred` fallback for a destructive workflow. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories` (`ui-14`), `#Blocked`; `docs/tenants-ui-frontcomposer-dependency-map.md#High-Risk Workflow Dependency Map`]
+The historical row was `blocked` on two branches: `FC-CNS` was missing, and the row carried a deferred fallback for a destructive workflow. Story 2.4 supersedes that row for tenant-member removal by using the approved inline fallback without adding backend consequence endpoints. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories` (`ui-14`), `#Blocked`; `_bmad-output/planning-artifacts/fallback-approval-record-2026-06-03.md`; `_bmad-output/implementation-artifacts/2-4-remove-tenant-member-with-consequence-preview.md`]
 
 ### 6.2 Deferred to Story 9.5
 
