@@ -156,6 +156,9 @@ public sealed class TenantsWorkspaceTests : BunitContext
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenantCommandRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status is unavailable."));
     }

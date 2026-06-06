@@ -900,6 +900,102 @@
   <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
     <value>This value is not support-safe to copy.</value>
   </data>
+  <data name="Tenants.AddMember.Title" xml:space="preserve">
+    <value>Add tenant member</value>
+  </data>
+  <data name="Tenants.AddMember.Description" xml:space="preserve">
+    <value>Add a literal user id to tenant {0}. Current visible owner count is {1}.</value>
+  </data>
+  <data name="Tenants.AddMember.UserId.Label" xml:space="preserve">
+    <value>User id</value>
+  </data>
+  <data name="Tenants.AddMember.UserId.Help" xml:space="preserve">
+    <value>Use the exact caller-supplied user id.</value>
+  </data>
+  <data name="Tenants.AddMember.Role.Label" xml:space="preserve">
+    <value>Tenant role</value>
+  </data>
+  <data name="Tenants.AddMember.Role.Placeholder" xml:space="preserve">
+    <value>Select a role</value>
+  </data>
+  <data name="Tenants.AddMember.Role.TenantOwner" xml:space="preserve">
+    <value>Tenant owner</value>
+  </data>
+  <data name="Tenants.AddMember.Role.TenantContributor" xml:space="preserve">
+    <value>Tenant contributor</value>
+  </data>
+  <data name="Tenants.AddMember.Role.TenantReader" xml:space="preserve">
+    <value>Tenant reader</value>
+  </data>
+  <data name="Tenants.AddMember.Submit" xml:space="preserve">
+    <value>Add member</value>
+  </data>
+  <data name="Tenants.AddMember.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.AddMember.Lifecycle.Title" xml:space="preserve">
+    <value>Add member command lifecycle</value>
+  </data>
+  <data name="Tenants.AddMember.Validation.UserIdRequired" xml:space="preserve">
+    <value>User id is required.</value>
+  </data>
+  <data name="Tenants.AddMember.Validation.RoleRequired" xml:space="preserve">
+    <value>Select TenantOwner, TenantContributor, or TenantReader before adding a member.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.Authorization" xml:space="preserve">
+    <value>You are not authorized to add members to this tenant.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh current tenant detail before adding a member.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>This tenant lifecycle state does not allow adding members.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.InFlight" xml:space="preserve">
+    <value>A tenant command is already in progress.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Idle" xml:space="preserve">
+    <value>No add-member command submitted.</value>
+  </data>
+  <data name="Tenants.AddMember.State.RequestSent" xml:space="preserve">
+    <value>Add-member request sent.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Accepted" xml:space="preserve">
+    <value>Accepted by EventStore; waiting for member processing.</value>
+  </data>
+  <data name="Tenants.AddMember.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; the member role is not confirmed visible yet.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the user is a tenant member with the requested role.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Rejected" xml:space="preserve">
+    <value>Add-member command rejected.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Failed" xml:space="preserve">
+    <value>Add-member command submission failed.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Degraded" xml:space="preserve">
+    <value>Add-member command result is degraded and needs review.</value>
+  </data>
+  <data name="Tenants.AddMember.State.UnableToVerify" xml:space="preserve">
+    <value>Unable to verify the add-member command result.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence not started.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit support is missing for this flow.</value>
+  </data>
   <data name="Tenants.Create.Title" xml:space="preserve">
     <value>Create tenant</value>
   </data>

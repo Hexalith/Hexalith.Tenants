@@ -8,6 +8,10 @@ public interface ITenantCommandGateway
         CreateTenantCommandRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
+        AddUserToTenantCommandRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default);

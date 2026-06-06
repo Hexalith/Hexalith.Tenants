@@ -1,0 +1,356 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.Tenants.UI.State.TenantList
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+<section class="tenants-add-member-flow"
+         data-testid="tenants-add-member-flow"
+         aria-labelledby="tenants-add-member-heading">
+    <div class="tenants-add-member-flow__heading">
+        <h3 id="tenants-add-member-heading">@Localizer["Tenants.AddMember.Title"]</h3>
+        <p>@Localizer["Tenants.AddMember.Description", Detail.TenantId, OwnerCount]</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p class="tenants-add-member-flow__unavailable"
+           data-testid="tenants-add-member-unavailable-reason"
+           role="alert">
+            @UnavailableReason
+        </p>
+    }
+
+    <form class="tenants-add-member-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+        <label for="tenants-add-member-user-id">
+            <span>@Localizer["Tenants.AddMember.UserId.Label"]</span>
+            <input id="tenants-add-member-user-id"
+                   @ref="_userIdElement"
+                   name="member-user-id"
+                   value="@_userId"
+                   data-testid="tenants-add-member-user-id"
+                   aria-describedby="@UserIdDescribedBy"
+                   @oninput="OnUserIdInput" />
+            <span id="tenants-add-member-user-id-help">@Localizer["Tenants.AddMember.UserId.Help"]</span>
+        </label>
+
+        <label for="tenants-add-member-role">
+            <span>@Localizer["Tenants.AddMember.Role.Label"]</span>
+            <select id="tenants-add-member-role"
+                    @ref="_roleElement"
+                    name="member-role"
+                    value="@_roleValue"
+                    data-testid="tenants-add-member-role"
+                    aria-describedby="@RoleDescribedBy"
+                    @onchange="OnRoleChanged">
+                <option value="" disabled>@Localizer["Tenants.AddMember.Role.Placeholder"]</option>
+                @foreach (TenantRole role in AssignableRoles)
+                {
+                    <option value="@role">@RoleLabel(role)</option>
+                }
+            </select>
+        </label>
+
+        @if (!string.IsNullOrWhiteSpace(_validationMessage))
+        {
+            <p id="tenants-add-member-validation"
+               class="tenants-add-member-flow__validation"
+               data-testid="tenants-add-member-validation"
+               role="alert">
+                @_validationMessage
+            </p>
+        }
+
+        <div class="tenants-add-member-flow__actions">
+            <button type="submit"
+                    data-testid="tenants-add-member-submit"
+                    disabled="@IsSubmitDisabled">
+                @Localizer["Tenants.AddMember.Submit"]
+            </button>
+            <button type="button"
+                    data-testid="tenants-add-member-refresh"
+                    disabled="@(!CanRefresh)"
+                    @onclick="RefreshStatusAsync">
+                @Localizer["Tenants.AddMember.Refresh"]
+            </button>
+        </div>
+    </form>
+
+    <section class="tenants-add-member-flow__lifecycle"
+             @ref="_lifecycleElement"
+             tabindex="-1"
+             data-testid="tenants-add-member-lifecycle"
+             aria-labelledby="tenants-add-member-state-label">
+        <h4 id="tenants-add-member-state-label">@Localizer["Tenants.AddMember.Lifecycle.Title"]</h4>
+        <p class="@StateClass" data-testid="tenants-add-member-state">
+            <span aria-hidden="true">@StateSymbol</span>
+            <span>@StateText</span>
+        </p>
+        <p data-testid="tenants-add-member-audit">@AuditText</p>
+        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        {
+            <p data-testid="tenants-add-member-safe-message">@_snapshot.SafeMessage</p>
+        }
+        <p class="tenants-add-member-flow__live"
+           data-testid="tenants-add-member-live-region"
+           aria-live="@LiveRegionMode"
+           aria-atomic="true">
+            @StateText
+        </p>
+    </section>
+</section>
+
+@code {
+    private static readonly TenantRole[] AssignableRoles =
+    [
+        TenantRole.TenantOwner,
+        TenantRole.TenantContributor,
+        TenantRole.TenantReader,
+    ];
+
+    private TenantAddMemberCommandSnapshot _snapshot = TenantAddMemberCommandSnapshot.Idle();
+    private string? _userId;
+    private string _roleValue = string.Empty;
+    private string? _validationMessage;
+    private bool _isSubmitting;
+    private ElementReference _userIdElement;
+    private ElementReference _roleElement;
+    private ElementReference _lifecycleElement;
+    private bool _focusUserIdPending;
+    private bool _focusRolePending;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public Func<AddUserToTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    internal TenantAddMemberCommandSnapshot Snapshot => _snapshot;
+
+    private int OwnerCount
+        => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
+
+    private string? UnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+            ? Localizer["Tenants.AddMember.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+                ? Localizer["Tenants.AddMember.Unavailable.Freshness"].Value
+                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.AddMember.Unavailable.TenantLifecycle"].Value
+                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                        ? Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.AddMember.Unavailable.InFlight"].Value
+                            : null;
+
+    private bool IsSubmitDisabled => !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool CanRefresh
+        => _snapshot.CorrelationId is not null
+        && _snapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private string StateClass
+        => $"tenants-add-member-flow__state tenants-add-member-flow__state--{_snapshot.State.ToString().ToLowerInvariant()}";
+
+    private string StateSymbol
+        => _snapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => ">",
+        };
+
+    private string StateText
+        => Localizer[$"Tenants.AddMember.State.{_snapshot.State}"];
+
+    private string AuditText
+        => Localizer[$"Tenants.AddMember.Audit.{_snapshot.AuditState}"];
+
+    private string LiveRegionMode
+        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string UserIdDescribedBy
+        => string.IsNullOrWhiteSpace(_validationMessage)
+            ? "tenants-add-member-user-id-help"
+            : "tenants-add-member-user-id-help tenants-add-member-validation";
+
+    private string? RoleDescribedBy
+        => string.IsNullOrWhiteSpace(_validationMessage) ? null : "tenants-add-member-validation";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusUserIdPending)
+        {
+            _focusUserIdPending = false;
+            await _userIdElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusRolePending)
+        {
+            _focusRolePending = false;
+            await _roleElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void SetSnapshot(TenantAddMemberCommandSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    internal void ApplySignalRNudge()
+        => _snapshot = _snapshot.SignalRNudge();
+
+    internal void ApplyProjectionEvidence(TenantDetail? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
+
+    private string RoleLabel(TenantRole role)
+        => Localizer[$"Tenants.AddMember.Role.{role}"];
+
+    private void OnUserIdInput(ChangeEventArgs args)
+        => _userId = args.Value?.ToString();
+
+    private void OnRoleChanged(ChangeEventArgs args)
+        => _roleValue = args.Value?.ToString() ?? string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _validationMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_userId))
+        {
+            _validationMessage = Localizer["Tenants.AddMember.Validation.UserIdRequired"];
+            _focusUserIdPending = true;
+            return;
+        }
+
+        if (!TryParseAssignableRole(_roleValue, out TenantRole role))
+        {
+            _validationMessage = Localizer["Tenants.AddMember.Validation.RoleRequired"];
+            _focusRolePending = true;
+            return;
+        }
+
+        var request = new AddUserToTenantCommandRequest(Detail.TenantId, _userId, role);
+        _snapshot = _snapshot.RequestSent(request);
+        _isSubmitting = true;
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(
+                    Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
+
+            TenantCommandSubmissionResult result = await gateway
+                .AddUserToTenantAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                SetSnapshot(_snapshot.Accepted(result));
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = result.State,
+                    SafeMessage = result.SafeMessage,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (gateway is null)
+        {
+            SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value)));
+            return;
+        }
+
+        TenantCommandStatusResult status = await gateway
+            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+            .ConfigureAwait(false);
+        SetSnapshot(_snapshot.ApplyStatus(status));
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
+        {
+            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+        }
+    }
+
+    private static bool TryParseAssignableRole(string value, out TenantRole role)
+    {
+        if (Enum.TryParse(value, ignoreCase: false, out role)
+            && AssignableRoles.Contains(role))
+        {
+            return true;
+        }
+
+        role = TenantRole.Unknown;
+        return false;
+    }
+}

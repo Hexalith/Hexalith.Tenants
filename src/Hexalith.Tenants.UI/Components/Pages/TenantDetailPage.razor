@@ -2,6 +2,7 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.Components.Tenants.Members
+@using Hexalith.Tenants.UI.State.TenantCommands
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 
@@ -108,7 +109,9 @@
 
             <MemberAccessReview Detail="@Detail"
                                 SurfaceKind="@_snapshot.Kind"
-                                Freshness="@_snapshot.Freshness" />
+                                Freshness="@_snapshot.Freshness"
+                                OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync" />
 
             <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
                 <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
@@ -150,6 +153,19 @@
             .GetTenantAsync(new TenantDetailRequest(TenantId), null, CancellationToken.None)
             .ConfigureAwait(false);
     }
+
+    private async Task RefreshTenantDetailAsync()
+    {
+        _snapshot = await QueryGateway
+            .GetTenantAsync(new TenantDetailRequest(TenantId), _snapshot, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenantCommandRequest request)
+        => Task.FromResult(
+            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? _snapshot.Detail
+                : null);
 
     private string ConfigurationSummary(TenantDetail detail)
         => detail.Configuration.Count == 0

@@ -900,6 +900,102 @@
   <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
     <value>Cette valeur n'est pas sûre pour le support.</value>
   </data>
+  <data name="Tenants.AddMember.Title" xml:space="preserve">
+    <value>Ajouter un membre locataire</value>
+  </data>
+  <data name="Tenants.AddMember.Description" xml:space="preserve">
+    <value>Ajouter un identifiant utilisateur littéral au locataire {0}. Le nombre de propriétaires visibles actuel est {1}.</value>
+  </data>
+  <data name="Tenants.AddMember.UserId.Label" xml:space="preserve">
+    <value>Identifiant utilisateur</value>
+  </data>
+  <data name="Tenants.AddMember.UserId.Help" xml:space="preserve">
+    <value>Utiliser exactement l'identifiant utilisateur fourni par l'appelant.</value>
+  </data>
+  <data name="Tenants.AddMember.Role.Label" xml:space="preserve">
+    <value>Rôle locataire</value>
+  </data>
+  <data name="Tenants.AddMember.Role.Placeholder" xml:space="preserve">
+    <value>Sélectionner un rôle</value>
+  </data>
+  <data name="Tenants.AddMember.Role.TenantOwner" xml:space="preserve">
+    <value>Propriétaire locataire</value>
+  </data>
+  <data name="Tenants.AddMember.Role.TenantContributor" xml:space="preserve">
+    <value>Contributeur locataire</value>
+  </data>
+  <data name="Tenants.AddMember.Role.TenantReader" xml:space="preserve">
+    <value>Lecteur locataire</value>
+  </data>
+  <data name="Tenants.AddMember.Submit" xml:space="preserve">
+    <value>Ajouter le membre</value>
+  </data>
+  <data name="Tenants.AddMember.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.AddMember.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la commande d'ajout de membre</value>
+  </data>
+  <data name="Tenants.AddMember.Validation.UserIdRequired" xml:space="preserve">
+    <value>L'identifiant utilisateur est obligatoire.</value>
+  </data>
+  <data name="Tenants.AddMember.Validation.RoleRequired" xml:space="preserve">
+    <value>Sélectionnez TenantOwner, TenantContributor ou TenantReader avant d'ajouter un membre.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.Authorization" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à ajouter des membres à ce locataire.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez le détail actuel du locataire avant d'ajouter un membre.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>Cet état de cycle de vie du locataire ne permet pas d'ajouter des membres.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.InFlight" xml:space="preserve">
+    <value>Une commande locataire est déjà en cours.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Idle" xml:space="preserve">
+    <value>Aucune commande d'ajout de membre soumise.</value>
+  </data>
+  <data name="Tenants.AddMember.State.RequestSent" xml:space="preserve">
+    <value>Requête d'ajout de membre envoyée.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Accepted" xml:space="preserve">
+    <value>Acceptée par EventStore ; traitement du membre en attente.</value>
+  </data>
+  <data name="Tenants.AddMember.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; le rôle du membre n'est pas encore confirmé visible.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Confirmed" xml:space="preserve">
+    <value>La projection confirme que l'utilisateur est membre du locataire avec le rôle demandé.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Rejected" xml:space="preserve">
+    <value>Commande d'ajout de membre rejetée.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Failed" xml:space="preserve">
+    <value>Échec de la soumission de la commande d'ajout de membre.</value>
+  </data>
+  <data name="Tenants.AddMember.State.Degraded" xml:space="preserve">
+    <value>Le résultat de la commande d'ajout de membre est dégradé et nécessite une revue.</value>
+  </data>
+  <data name="Tenants.AddMember.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de vérifier le résultat de la commande d'ajout de membre.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.NotStarted" xml:space="preserve">
+    <value>Preuve d'audit non démarrée.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible.</value>
+  </data>
+  <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
+    <value>La prise en charge de l'audit manque pour ce flux.</value>
+  </data>
   <data name="Tenants.Create.Title" xml:space="preserve">
     <value>Créer un locataire</value>
   </data>

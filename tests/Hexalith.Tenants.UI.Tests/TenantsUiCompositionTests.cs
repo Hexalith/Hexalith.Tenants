@@ -108,6 +108,9 @@ public sealed class TenantsUiCompositionTests
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenantCommandRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
     }

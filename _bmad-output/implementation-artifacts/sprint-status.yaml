@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T04:24:44+02:00
+# last_updated: 2026-06-06T05:45:00+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -48,7 +48,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T04:24:44+02:00
+last_updated: 2026-06-06T05:45:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -71,7 +71,7 @@ development_status:
   # --- Epic 2: Tenant Membership and Tenant Record Management ---
   epic-2: in-progress
   2-1-create-tenant-with-projection-confirmed-command-lifecycle: done
-  2-2-add-user-to-tenant-with-explicit-role: backlog
+  2-2-add-user-to-tenant-with-explicit-role: done
   2-3-change-tenant-member-role: backlog
   2-4-remove-tenant-member-with-consequence-preview: backlog
   2-5-edit-tenant-metadata-with-safe-validation: backlog

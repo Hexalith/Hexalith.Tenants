@@ -12,6 +12,7 @@ using Hexalith.Tenants.UI.Components.Tenants;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 
@@ -301,9 +302,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         memberSection.TextContent.ShouldContain("Member evidence is stale.");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("owner-user");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("stale data");
+        cut.Find("[data-testid='tenants-add-member-flow']").TextContent.ShouldContain("Refresh current tenant detail");
+        cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
-        memberSection.InnerHtml.ShouldNotContain("<form", Case.Insensitive);
         memberSection.InnerHtml.ShouldNotContain("Success");
     }
 
@@ -407,9 +409,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBeGreaterThanOrEqualTo(3);
         cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(6);
-        cut.Markup.ShouldNotContain("<form", Case.Insensitive);
-        cut.Markup.ShouldNotContain("type=\"submit\"", Case.Insensitive);
-        cut.FindAll("button").ShouldAllBe(static button => button.GetAttribute("data-testid") == "tenants-copy-reference");
+        cut.Find("[data-testid='tenants-add-member-flow']");
+        cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("type").ShouldBe("submit");
+        cut.FindAll("[data-testid='tenants-member-action-slot']")
+            .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
         cut.Markup.ShouldNotContain("command payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
@@ -628,6 +631,21 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         memberStyles.ShouldContain(":focus-visible");
         memberStyles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
 
+        string addMemberStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Members",
+            "AddTenantMemberFlow.razor.css"));
+
+        addMemberStyles.ShouldContain("overflow-wrap: anywhere");
+        addMemberStyles.ShouldContain("grid-template-columns");
+        addMemberStyles.ShouldContain("@media (max-width: 767px)");
+        addMemberStyles.ShouldContain("@media (forced-colors: active)");
+        addMemberStyles.ShouldContain(":focus-visible");
+
         string copyStyles = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
@@ -674,6 +692,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         invariantResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
         frenchResources.ShouldContain("Tenants.Members.Title");
         frenchResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
+        invariantResources.ShouldContain("Tenants.AddMember.Title");
+        invariantResources.ShouldContain("Tenants.AddMember.State.ProjectionPending");
+        frenchResources.ShouldContain("Tenants.AddMember.Title");
+        frenchResources.ShouldContain("Tenants.AddMember.State.ProjectionPending");
         invariantResources.ShouldContain("Tenants.Copy.Action");
         invariantResources.ShouldContain("Tenants.Copy.Feedback.Unsafe");
         frenchResources.ShouldContain("Tenants.Copy.Action");
@@ -744,6 +766,27 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Add_member_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = AddMemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = AddMemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
+    [Fact]
     public void Copy_source_uses_clipboard_module_without_browser_backend_or_legacy_fallbacks()
     {
         string projectRoot = ProjectRoot();
@@ -790,10 +833,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
+    private static HashSet<string> AddMemberResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.AddMember[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
     private void RegisterComponentServices()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddFluentUIComponents();
     }
 
@@ -805,6 +854,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(Task.FromResult(snapshot));
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddFluentUIComponents();
     }
 
@@ -816,6 +866,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(resultFactory);
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddFluentUIComponents();
     }
 
@@ -827,6 +878,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(detailFactory);
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddFluentUIComponents();
     }
 
@@ -874,6 +926,18 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             members,
             configuration,
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
+
+    private sealed class StubTenantCommandGateway : ITenantCommandGateway
+    {
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
+
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status is unavailable."));
+    }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
@@ -956,6 +1020,38 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Copy.Feedback.Failed"] = "Copy failed.",
             ["Tenants.Copy.Feedback.Unavailable"] = "Clipboard unavailable.",
             ["Tenants.Copy.Feedback.Unsafe"] = "This value is not support-safe to copy.",
+            ["Tenants.AddMember.Title"] = "Add tenant member",
+            ["Tenants.AddMember.Description"] = "Add a literal user id to tenant {0}. Current visible owner count is {1}.",
+            ["Tenants.AddMember.UserId.Label"] = "User id",
+            ["Tenants.AddMember.UserId.Help"] = "Use the exact caller-supplied user id.",
+            ["Tenants.AddMember.Role.Label"] = "Tenant role",
+            ["Tenants.AddMember.Role.Placeholder"] = "Select a role",
+            ["Tenants.AddMember.Role.TenantOwner"] = "Tenant owner",
+            ["Tenants.AddMember.Role.TenantContributor"] = "Tenant contributor",
+            ["Tenants.AddMember.Role.TenantReader"] = "Tenant reader",
+            ["Tenants.AddMember.Submit"] = "Add member",
+            ["Tenants.AddMember.Refresh"] = "Refresh status",
+            ["Tenants.AddMember.Lifecycle.Title"] = "Add member command lifecycle",
+            ["Tenants.AddMember.Validation.UserIdRequired"] = "User id is required.",
+            ["Tenants.AddMember.Validation.RoleRequired"] = "Select TenantOwner, TenantContributor, or TenantReader before adding a member.",
+            ["Tenants.AddMember.Unavailable.Authorization"] = "You are not authorized to add members to this tenant.",
+            ["Tenants.AddMember.Unavailable.Freshness"] = "Refresh current tenant detail before adding a member.",
+            ["Tenants.AddMember.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow adding members.",
+            ["Tenants.AddMember.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
+            ["Tenants.AddMember.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.AddMember.State.Idle"] = "No add-member command submitted.",
+            ["Tenants.AddMember.State.RequestSent"] = "Add-member request sent.",
+            ["Tenants.AddMember.State.Accepted"] = "Accepted by EventStore; waiting for member processing.",
+            ["Tenants.AddMember.State.ProjectionPending"] = "Projection pending; the member role is not confirmed visible yet.",
+            ["Tenants.AddMember.State.Confirmed"] = "Projection confirmed the user is a tenant member with the requested role.",
+            ["Tenants.AddMember.State.Rejected"] = "Add-member command rejected.",
+            ["Tenants.AddMember.State.Failed"] = "Add-member command submission failed.",
+            ["Tenants.AddMember.State.Degraded"] = "Add-member command result is degraded and needs review.",
+            ["Tenants.AddMember.State.UnableToVerify"] = "Unable to verify the add-member command result.",
+            ["Tenants.AddMember.Audit.NotStarted"] = "Audit evidence not started.",
+            ["Tenants.AddMember.Audit.AuditPending"] = "Audit evidence pending.",
+            ["Tenants.AddMember.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
+            ["Tenants.AddMember.Audit.MissingSupport"] = "Audit support is missing for this flow.",
             ["Tenants.Members.Action.AddMember"] = "Add member",
             ["Tenants.Members.Action.ChangeRole"] = "Change role",
             ["Tenants.Members.Action.RemoveMember"] = "Remove member",

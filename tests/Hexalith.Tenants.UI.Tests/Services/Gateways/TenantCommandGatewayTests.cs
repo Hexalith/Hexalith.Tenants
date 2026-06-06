@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
@@ -16,6 +17,146 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantCommandGatewayTests
 {
+    [Fact]
+    public async Task Add_user_to_tenant_submits_literal_command_with_explicit_role_and_captures_correlation_id()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-456"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenantCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor),
+            CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("tenants");
+        submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
+        submitted.CommandType.ShouldBe(nameof(AddUserToTenant));
+        submitted.Payload.GetProperty("TenantId").GetString().ShouldBe("Tenant.Mixed-01");
+        submitted.Payload.GetProperty("UserId").GetString().ShouldBe("User/CaseSensitive.01");
+        submitted.Payload.GetProperty("Role").GetString().ShouldBe(nameof(TenantRole.TenantContributor));
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBe("correlation-456");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task Add_user_to_tenant_validation_failure_does_not_submit_to_eventstore(string? userId)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-456"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenantCommandRequest("tenant.alpha", userId!, TenantRole.TenantReader),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("Tenant id, user id, and role are required");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Add_user_to_tenant_rejects_unknown_role_before_submission()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-456"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.Unknown),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("role");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("UserAlreadyInTenantRejection", "UserAlreadyInTenant", "already a member")]
+    [InlineData("RoleEscalationRejection", "RoleEscalation", "role cannot be assigned")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
+    [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
+    [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+    public async Task Add_user_to_tenant_maps_safe_rejection_text(
+        string reason,
+        string expectedCode,
+        string expectedText)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            reason,
+            detail: "raw payload bearer-token stack trace correlation-456"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
+            new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantReader),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-456", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("UserAlreadyInTenantRejection", "UserAlreadyInTenant", "already a member")]
+    [InlineData("RoleEscalationRejection", "RoleEscalation", "role cannot be assigned")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
+    [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
+    [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+    public async Task Status_lookup_maps_add_member_rejections_to_safe_text(
+        string rejectionType,
+        string expectedCode,
+        string expectedText)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-456",
+              "status": "Rejected",
+              "statusCode": 5,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "tenant.alpha",
+              "eventCount": 1,
+              "rejectionEventType": "Hexalith.Tenants.Contracts.Events.Rejections.{{rejectionType}}",
+              "failureReason": "raw payload token stack trace correlation-456",
+              "timeoutDuration": null
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-456")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-456", "correlation-456"),
+            CancellationToken.None);
+
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-456", Case.Insensitive);
+    }
+
     [Fact]
     public async Task Create_tenant_submits_literal_command_with_ulid_message_id_and_captures_correlation_id()
     {
@@ -247,6 +388,76 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
         safeMessage.ShouldNotContain("token", Case.Insensitive);
         safeMessage.ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Status_lookup_generic_rejection_stays_command_neutral_for_shared_status_path()
+    {
+        // GetStatusAsync is shared by create-tenant and add-member; an unrecognized rejection type
+        // must not surface create-tenant-specific copy in another command's lifecycle panel.
+        StatusHandler handler = new("""
+            {
+              "correlationId": "correlation-456",
+              "status": "Rejected",
+              "statusCode": 5,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "tenant.alpha",
+              "eventCount": 0,
+              "rejectionEventType": "Hexalith.Tenants.Contracts.Events.Rejections.SomeUnmappedRejection",
+              "failureReason": null,
+              "timeoutDuration": null
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-456")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-456", "correlation-456"),
+            CancellationToken.None);
+
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldBe("The command was rejected.");
+        safeMessage.ShouldNotContain("create tenant", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("leaked bearer value")]
+    [InlineData("decoded jwt eyJhbGciOiJ")]
+    [InlineData("internal cursor 00ff")]
+    [InlineData("eventstore etag abc123")]
+    public async Task Status_lookup_redacts_unsafe_support_markers_in_failure_reason(string failureReason)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-456",
+              "status": "Processing",
+              "statusCode": 1,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "tenant.alpha",
+              "eventCount": 0,
+              "rejectionEventType": null,
+              "failureReason": "{{failureReason}}",
+              "timeoutDuration": null
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-456")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-456", "correlation-456"),
+            CancellationToken.None);
+
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldBe("The command status included an unavailable support detail.");
+        safeMessage.ShouldNotContain("bearer", Case.Insensitive);
+        safeMessage.ShouldNotContain("jwt", Case.Insensitive);
+        safeMessage.ShouldNotContain("cursor", Case.Insensitive);
+        safeMessage.ShouldNotContain("etag", Case.Insensitive);
     }
 
     private sealed class CapturingGatewayClient(object response) : IEventStoreGatewayClient

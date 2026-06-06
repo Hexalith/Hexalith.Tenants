@@ -1,0 +1,112 @@
+.tenants-add-member-flow {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.85rem;
+}
+
+.tenants-add-member-flow h3,
+.tenants-add-member-flow h4,
+.tenants-add-member-flow p {
+    margin: 0;
+}
+
+.tenants-add-member-flow__heading,
+.tenants-add-member-flow__form,
+.tenants-add-member-flow__lifecycle {
+    display: grid;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.tenants-add-member-flow__form {
+    grid-template-columns: minmax(0, 1.4fr) minmax(12rem, 0.8fr) auto;
+}
+
+.tenants-add-member-flow__form label {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.tenants-add-member-flow__form input,
+.tenants-add-member-flow__form select {
+    inline-size: 100%;
+    min-inline-size: 0;
+}
+
+.tenants-add-member-flow__actions {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tenants-add-member-flow__unavailable,
+.tenants-add-member-flow__validation,
+.tenants-add-member-flow__state,
+.tenants-add-member-flow__lifecycle {
+    overflow-wrap: anywhere;
+}
+
+.tenants-add-member-flow__state {
+    align-items: center;
+    border: 1px solid CanvasText;
+    border-radius: 999px;
+    display: inline-flex;
+    gap: 0.4rem;
+    justify-self: start;
+    padding: 0.25rem 0.55rem;
+}
+
+.tenants-add-member-flow__state--rejected,
+.tenants-add-member-flow__state--failed,
+.tenants-add-member-flow__state--degraded,
+.tenants-add-member-flow__state--unabletoverify {
+    border-style: dashed;
+}
+
+.tenants-add-member-flow__live {
+    block-size: 1px;
+    inline-size: 1px;
+    overflow: hidden;
+    position: absolute;
+}
+
+.tenants-add-member-flow__lifecycle:focus-visible,
+.tenants-add-member-flow button:focus-visible,
+.tenants-add-member-flow input:focus-visible,
+.tenants-add-member-flow select:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .tenants-add-member-flow {
+        padding: 0.75rem;
+    }
+
+    .tenants-add-member-flow__form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tenants-add-member-flow__actions {
+        align-items: stretch;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenants-add-member-flow,
+    .tenants-add-member-flow__state {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenants-add-member-flow__lifecycle:focus-visible,
+    .tenants-add-member-flow button:focus-visible,
+    .tenants-add-member-flow input:focus-visible,
+    .tenants-add-member-flow select:focus-visible {
+        outline-color: Highlight;
+    }
+}
