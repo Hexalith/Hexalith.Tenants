@@ -110,13 +110,28 @@
                                 <div class="tenant-members__actions">
                                     @foreach (ActionSlot slot in row.ActionSlots)
                                     {
-                                        <div class="tenant-members__action-slot"
-                                             data-testid="tenants-member-action-slot"
-                                             aria-describedby="@row.ReasonElementId"
-                                             aria-label="@Localizer["Tenants.Members.ActionSlotAccessible", ActionLabel(slot.Action), row.Member.UserId, ReasonSummary(slot.Reasons)]">
-                                            <span class="tenant-members__action-name">@ActionLabel(slot.Action)</span>
-                                            <span class="tenant-members__action-state">@Localizer["Tenants.Members.Action.Unavailable"]</span>
-                                        </div>
+                                        @if (slot.Action is MemberAction.ChangeRole && slot.Reasons.Count == 0)
+                                        {
+                                            <button type="button"
+                                                    class="tenant-members__action-button"
+                                                    data-testid="tenants-change-role-open"
+                                                    aria-controls="tenants-change-role-flow-region"
+                                                    aria-describedby="@row.ReasonElementId"
+                                                    @ref="_changeRoleLaunchElements[row.Member.UserId]"
+                                                    @onclick="() => OpenChangeRole(row.Member.UserId)">
+                                                @ActionLabel(slot.Action)
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div class="tenant-members__action-slot"
+                                                 data-testid="tenants-member-action-slot"
+                                                 aria-describedby="@row.ReasonElementId"
+                                                 aria-label="@Localizer["Tenants.Members.ActionSlotAccessible", ActionLabel(slot.Action), row.Member.UserId, ReasonSummary(slot.Reasons)]">
+                                                <span class="tenant-members__action-name">@ActionLabel(slot.Action)</span>
+                                                <span class="tenant-members__action-state">@Localizer["Tenants.Members.Action.Unavailable"]</span>
+                                            </div>
+                                        }
                                     }
                                     <ul id="@row.ReasonElementId"
                                         class="tenant-members__reasons"
@@ -139,6 +154,21 @@
                 </tbody>
             </table>
         </div>
+
+        @if (ActiveChangeRoleMember is not null)
+        {
+            <div id="tenants-change-role-flow-region" class="tenant-members__change-role-region">
+                <ChangeTenantMemberRoleFlow Detail="@Detail"
+                                            Member="@ActiveChangeRoleMember"
+                                            SurfaceKind="@SurfaceKind"
+                                            Freshness="@Freshness"
+                                            IsAuthorized="@IsChangeRoleAuthorized"
+                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                            OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                            OnCloseRequested="@CloseChangeRoleAsync"
+                                            ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
+            </div>
+        }
     }
 </section>
 
@@ -153,6 +183,14 @@
         UnavailableReason.HighImpactFlowNotReady,
     ];
 
+    private string? _activeChangeRoleUserId;
+
+    // One launch button is rendered per actionable member row, so a single ElementReference would
+    // be overwritten by the last row in the loop and return focus to the wrong member on close.
+    // Key the captured references by the literal user id so focus returns to the launching control.
+    private readonly Dictionary<string, ElementReference> _changeRoleLaunchElements = new(StringComparer.Ordinal);
+    private string? _focusChangeRoleLaunchUserId;
+
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
 
@@ -166,6 +204,9 @@
     public bool IsAddMemberAuthorized { get; set; } = true;
 
     [Parameter]
+    public bool IsChangeRoleAuthorized { get; set; } = true;
+
+    [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
@@ -174,10 +215,16 @@
     [Parameter]
     public Func<AddUserToTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
+    [Parameter]
+    public Func<ChangeUserRoleCommandRequest, Task<TenantDetail?>>? ChangeRoleProjectionEvidenceProvider { get; set; }
+
     private IReadOnlyList<MemberRow> Rows
         => Detail.Members
             .Select((member, index) => ToRow(member, index))
             .ToArray();
+
+    private TenantMember? ActiveChangeRoleMember
+        => Detail.Members.FirstOrDefault(member => string.Equals(member.UserId, _activeChangeRoleUserId, StringComparison.Ordinal));
 
     private int OwnerCount
         => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
@@ -237,7 +284,7 @@
         return
         [
             new(MemberAction.AddMember, [UnavailableReason.MissingPermission, UnavailableReason.HighImpactFlowNotReady]),
-            new(MemberAction.ChangeRole, [UnavailableReason.MissingPermission, UnavailableReason.MissingConsequencePreview, UnavailableReason.MissingAuditProof, UnavailableReason.HighImpactFlowNotReady]),
+            new(MemberAction.ChangeRole, []),
             new(MemberAction.RemoveMember, [UnavailableReason.MissingPermission, UnavailableReason.MissingConsequencePreview, UnavailableReason.MissingAuditProof, UnavailableReason.HighImpactFlowNotReady]),
         ];
     }
@@ -265,6 +312,28 @@
         }
 
         return [];
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusChangeRoleLaunchUserId is not null
+            && _changeRoleLaunchElements.TryGetValue(_focusChangeRoleLaunchUserId, out ElementReference launchElement))
+        {
+            _focusChangeRoleLaunchUserId = null;
+            await launchElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void OpenChangeRole(string userId)
+        => _activeChangeRoleUserId = userId;
+
+    private async Task CloseChangeRoleAsync()
+    {
+        // Capture the launching member before clearing it so focus returns to that exact row's
+        // "Change role" control once the flow region is removed and the table re-renders.
+        _focusChangeRoleLaunchUserId = _activeChangeRoleUserId;
+        _activeChangeRoleUserId = null;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private string ActionLabel(MemberAction action)

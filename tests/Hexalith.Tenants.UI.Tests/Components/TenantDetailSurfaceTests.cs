@@ -370,7 +370,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ToHashSet(StringComparer.Ordinal);
 
         reasonListIds.Count.ShouldBe(2);
-        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(6);
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(4);
+        cut.FindAll("[data-testid='tenants-change-role-open']").Count.ShouldBe(2);
         foreach (IElement slot in cut.FindAll("[data-testid='tenants-member-action-slot']"))
         {
             string describedBy = slot.GetAttribute("aria-describedby").ShouldNotBeNull();
@@ -378,6 +379,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             slot.GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("unavailable");
         }
 
+        cut.FindAll("[data-testid='tenants-change-role-open']")
+            .ShouldAllBe(static button => button.GetAttribute("aria-controls") == "tenants-change-role-flow-region");
         cut.FindAll("[data-testid='tenants-member-row']")
             .ShouldAllBe(static row => row.GetAttribute("tabindex") == "0");
     }
@@ -411,11 +414,35 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(6);
         cut.Find("[data-testid='tenants-add-member-flow']");
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("type").ShouldBe("submit");
+        cut.FindAll("[data-testid='tenants-change-role-open']").Count.ShouldBe(2);
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
         cut.Markup.ShouldNotContain("command payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Member_access_review_opens_change_role_flow_without_removing_add_or_remove_unavailable_slots()
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha"))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-change-role-open']").Click();
+
+        cut.Find("[data-testid='tenants-change-role-flow']");
+        cut.Find("[data-testid='tenants-change-role-user-id']").TextContent.ShouldContain("owner-user");
+        cut.Find("[data-testid='tenants-change-role-current-role']").TextContent.ShouldContain("Tenant owner");
+        cut.Find("[data-testid='tenants-change-role-new-role']");
+        cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("type").ShouldBe("submit");
+        cut.Find("[data-testid='tenants-change-role-lifecycle']");
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(4);
+        cut.Find("[data-testid='tenants-add-member-flow']");
+        cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("type").ShouldBe("submit");
+        cut.Markup.ShouldNotContain("Remove member</button>", Case.Insensitive);
     }
 
     [Theory]
@@ -631,6 +658,21 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         memberStyles.ShouldContain(":focus-visible");
         memberStyles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
 
+        string changeRoleStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Members",
+            "ChangeTenantMemberRoleFlow.razor.css"));
+
+        changeRoleStyles.ShouldContain("overflow-wrap: anywhere");
+        changeRoleStyles.ShouldContain("grid-template-columns");
+        changeRoleStyles.ShouldContain("@media (max-width: 767px)");
+        changeRoleStyles.ShouldContain("@media (forced-colors: active)");
+        changeRoleStyles.ShouldContain(":focus-visible");
+
         string addMemberStyles = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
@@ -696,6 +738,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         invariantResources.ShouldContain("Tenants.AddMember.State.ProjectionPending");
         frenchResources.ShouldContain("Tenants.AddMember.Title");
         frenchResources.ShouldContain("Tenants.AddMember.State.ProjectionPending");
+        invariantResources.ShouldContain("Tenants.ChangeRole.Title");
+        invariantResources.ShouldContain("Tenants.ChangeRole.State.AlreadyApplied");
+        frenchResources.ShouldContain("Tenants.ChangeRole.Title");
+        frenchResources.ShouldContain("Tenants.ChangeRole.State.AlreadyApplied");
         invariantResources.ShouldContain("Tenants.Copy.Action");
         invariantResources.ShouldContain("Tenants.Copy.Feedback.Unsafe");
         frenchResources.ShouldContain("Tenants.Copy.Action");
@@ -787,6 +833,27 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Change_role_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = ChangeRoleResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = ChangeRoleResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
+    [Fact]
     public void Copy_source_uses_clipboard_module_without_browser_backend_or_legacy_fallbacks()
     {
         string projectRoot = ProjectRoot();
@@ -835,6 +902,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
     private static HashSet<string> AddMemberResourceKeys(string resourcePath)
         => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.AddMember[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static HashSet<string> ChangeRoleResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.ChangeRole[^\"]+)\"")
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
@@ -933,6 +1005,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenantCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRoleCommandRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
@@ -1052,6 +1127,46 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.AddMember.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.AddMember.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.AddMember.Audit.MissingSupport"] = "Audit support is missing for this flow.",
+            ["Tenants.ChangeRole.Title"] = "Change tenant member role",
+            ["Tenants.ChangeRole.Description"] = "Change the role for user {1} in tenant {0}. The current confirmed role is {2}.",
+            ["Tenants.ChangeRole.UserId.Label"] = "User id",
+            ["Tenants.ChangeRole.CurrentRole.Label"] = "Current confirmed role",
+            ["Tenants.ChangeRole.OwnerContext.Label"] = "Owner context",
+            ["Tenants.ChangeRole.OwnerContext.NoOwners"] = "0 visible owners; owner context is unavailable.",
+            ["Tenants.ChangeRole.OwnerContext.LastOwner"] = "{0} visible owner; changing this owner can leave the tenant with zero visible owners.",
+            ["Tenants.ChangeRole.OwnerContext.MultipleOwners"] = "{0} visible owners.",
+            ["Tenants.ChangeRole.NewRole.Label"] = "New role",
+            ["Tenants.ChangeRole.NewRole.Help"] = "Select TenantOwner, TenantContributor, or TenantReader. Selecting the current role records an already applied state.",
+            ["Tenants.ChangeRole.Role.TenantOwner"] = "Tenant owner",
+            ["Tenants.ChangeRole.Role.TenantContributor"] = "Tenant contributor",
+            ["Tenants.ChangeRole.Role.TenantReader"] = "Tenant reader",
+            ["Tenants.ChangeRole.Submit"] = "Change role",
+            ["Tenants.ChangeRole.Refresh"] = "Refresh status",
+            ["Tenants.ChangeRole.Cancel"] = "Close",
+            ["Tenants.ChangeRole.Lifecycle.Title"] = "Change role command lifecycle",
+            ["Tenants.ChangeRole.Validation.RoleRequired"] = "Select TenantOwner, TenantContributor, or TenantReader before changing a role.",
+            ["Tenants.ChangeRole.Unavailable.Authorization"] = "You are not authorized to change member roles in this tenant.",
+            ["Tenants.ChangeRole.Unavailable.Freshness"] = "Refresh current tenant detail before changing a member role.",
+            ["Tenants.ChangeRole.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow changing member roles.",
+            ["Tenants.ChangeRole.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
+            ["Tenants.ChangeRole.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.ChangeRole.Unavailable.UnknownRole"] = "The current role is unknown, so role change fails closed until projection evidence is refreshed.",
+            ["Tenants.ChangeRole.OwnerRisk.LastOwner"] = "Warning: {0} visible owner remains. This change can reduce the visible owner count to zero, but the command is not blocked solely for that reason.",
+            ["Tenants.ChangeRole.AlreadyApplied.Message"] = "User {0} already has role {1}; no role-change command was submitted.",
+            ["Tenants.ChangeRole.State.Idle"] = "No change-role command submitted.",
+            ["Tenants.ChangeRole.State.RequestSent"] = "Change-role request sent.",
+            ["Tenants.ChangeRole.State.Accepted"] = "Accepted by EventStore; waiting for member role processing.",
+            ["Tenants.ChangeRole.State.ProjectionPending"] = "Projection pending; the requested role is not confirmed visible yet.",
+            ["Tenants.ChangeRole.State.Confirmed"] = "Projection confirmed the target user has the requested role.",
+            ["Tenants.ChangeRole.State.Rejected"] = "Change-role command rejected.",
+            ["Tenants.ChangeRole.State.AlreadyApplied"] = "Already applied; the confirmed role already matches the selected role.",
+            ["Tenants.ChangeRole.State.Failed"] = "Change-role command submission failed.",
+            ["Tenants.ChangeRole.State.Degraded"] = "Change-role command result is degraded and needs review.",
+            ["Tenants.ChangeRole.State.UnableToVerify"] = "Unable to verify the change-role command result.",
+            ["Tenants.ChangeRole.Audit.NotStarted"] = "Audit evidence not started.",
+            ["Tenants.ChangeRole.Audit.AuditPending"] = "Audit evidence pending.",
+            ["Tenants.ChangeRole.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
+            ["Tenants.ChangeRole.Audit.MissingSupport"] = "Audit support is missing for this flow.",
             ["Tenants.Members.Action.AddMember"] = "Add member",
             ["Tenants.Members.Action.ChangeRole"] = "Change role",
             ["Tenants.Members.Action.RemoveMember"] = "Remove member",

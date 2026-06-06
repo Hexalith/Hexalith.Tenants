@@ -996,6 +996,129 @@
   <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
     <value>La prise en charge de l'audit manque pour ce flux.</value>
   </data>
+  <data name="Tenants.ChangeRole.Title" xml:space="preserve">
+    <value>Changer le rôle du membre locataire</value>
+  </data>
+  <data name="Tenants.ChangeRole.Description" xml:space="preserve">
+    <value>Changer le rôle de l'utilisateur {1} dans le locataire {0}. Le rôle confirmé actuel est {2}.</value>
+  </data>
+  <data name="Tenants.ChangeRole.UserId.Label" xml:space="preserve">
+    <value>Identifiant utilisateur</value>
+  </data>
+  <data name="Tenants.ChangeRole.CurrentRole.Label" xml:space="preserve">
+    <value>Rôle confirmé actuel</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.Label" xml:space="preserve">
+    <value>Contexte propriétaires</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.NoOwners" xml:space="preserve">
+    <value>0 propriétaire visible ; le contexte propriétaire est indisponible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.LastOwner" xml:space="preserve">
+    <value>{0} propriétaire visible ; changer ce propriétaire peut laisser le locataire avec zéro propriétaire visible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.MultipleOwners" xml:space="preserve">
+    <value>{0} propriétaires visibles.</value>
+  </data>
+  <data name="Tenants.ChangeRole.NewRole.Label" xml:space="preserve">
+    <value>Nouveau rôle</value>
+  </data>
+  <data name="Tenants.ChangeRole.NewRole.Help" xml:space="preserve">
+    <value>Sélectionnez TenantOwner, TenantContributor ou TenantReader. Sélectionner le rôle actuel enregistre un état déjà appliqué.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.TenantOwner" xml:space="preserve">
+    <value>Propriétaire locataire</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.TenantContributor" xml:space="preserve">
+    <value>Contributeur locataire</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.TenantReader" xml:space="preserve">
+    <value>Lecteur locataire</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.Unknown" xml:space="preserve">
+    <value>Rôle inconnu</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submit" xml:space="preserve">
+    <value>Changer le rôle</value>
+  </data>
+  <data name="Tenants.ChangeRole.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.ChangeRole.Cancel" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Tenants.ChangeRole.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la commande de changement de rôle</value>
+  </data>
+  <data name="Tenants.ChangeRole.Validation.RoleRequired" xml:space="preserve">
+    <value>Sélectionnez TenantOwner, TenantContributor ou TenantReader avant de changer un rôle.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.Authorization" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à changer les rôles des membres dans ce locataire.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez le détail locataire actuel avant de changer le rôle d'un membre.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>Cet état de cycle de vie du locataire ne permet pas de changer les rôles des membres.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.InFlight" xml:space="preserve">
+    <value>Une commande locataire est déjà en cours.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.UnknownRole" xml:space="preserve">
+    <value>Le rôle actuel est inconnu ; le changement de rôle échoue fermé jusqu'à l'actualisation de la preuve de projection.</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerRisk.LastOwner" xml:space="preserve">
+    <value>Avertissement : {0} propriétaire visible reste. Ce changement peut réduire le nombre de propriétaires visibles à zéro, mais la commande n'est pas bloquée uniquement pour cette raison.</value>
+  </data>
+  <data name="Tenants.ChangeRole.AlreadyApplied.Message" xml:space="preserve">
+    <value>L'utilisateur {0} a déjà le rôle {1} ; aucune commande de changement de rôle n'a été soumise.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Idle" xml:space="preserve">
+    <value>Aucune commande de changement de rôle soumise.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.RequestSent" xml:space="preserve">
+    <value>Requête de changement de rôle envoyée.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Accepted" xml:space="preserve">
+    <value>Acceptée par EventStore ; traitement du rôle du membre en attente.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; le rôle demandé n'est pas encore confirmé visible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Confirmed" xml:space="preserve">
+    <value>La projection confirme que l'utilisateur cible a le rôle demandé.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Rejected" xml:space="preserve">
+    <value>Commande de changement de rôle rejetée.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.AlreadyApplied" xml:space="preserve">
+    <value>Déjà appliqué ; le rôle confirmé correspond déjà au rôle sélectionné.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Failed" xml:space="preserve">
+    <value>Échec de la soumission de la commande de changement de rôle.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Degraded" xml:space="preserve">
+    <value>Le résultat de la commande de changement de rôle est dégradé et nécessite une revue.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de vérifier le résultat de la commande de changement de rôle.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.NotStarted" xml:space="preserve">
+    <value>Preuve d'audit non démarrée.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.MissingSupport" xml:space="preserve">
+    <value>La prise en charge de l'audit manque pour ce flux.</value>
+  </data>
   <data name="Tenants.Create.Title" xml:space="preserve">
     <value>Créer un locataire</value>
   </data>

@@ -110,6 +110,10 @@
     grid-template-columns: minmax(7rem, 1fr) auto;
 }
 
+.tenant-members__action-button {
+    justify-self: start;
+}
+
 .tenant-members__action-name {
     font-weight: 600;
     overflow-wrap: anywhere;
@@ -127,8 +131,15 @@
     font-weight: 500;
 }
 
+.tenant-members__change-role-region {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
 .tenant-members__table [tabindex]:focus-visible,
-.tenant-members__reasons:focus-visible {
+.tenant-members__reasons:focus-visible,
+.tenant-members__action-button:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -177,7 +188,8 @@
     }
 
     .tenant-members__table [tabindex]:focus-visible,
-    .tenant-members__reasons:focus-visible {
+    .tenant-members__reasons:focus-visible,
+    .tenant-members__action-button:focus-visible {
         outline-color: Highlight;
     }
 }

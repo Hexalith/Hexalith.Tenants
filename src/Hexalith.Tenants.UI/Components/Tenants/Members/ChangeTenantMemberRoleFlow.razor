@@ -1,0 +1,417 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.Tenants.UI.State.TenantList
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+<section class="tenants-change-role-flow"
+         data-testid="tenants-change-role-flow"
+         aria-labelledby="tenants-change-role-heading">
+    <div class="tenants-change-role-flow__heading">
+        <h3 id="tenants-change-role-heading">@Localizer["Tenants.ChangeRole.Title"]</h3>
+        <p>@Localizer["Tenants.ChangeRole.Description", Detail.TenantId, Member.UserId, RoleLabel(Member.Role)]</p>
+    </div>
+
+    <dl class="tenants-change-role-flow__context">
+        <div>
+            <dt>@Localizer["Tenants.ChangeRole.UserId.Label"]</dt>
+            <dd data-testid="tenants-change-role-user-id">@Member.UserId</dd>
+        </div>
+        <div>
+            <dt>@Localizer["Tenants.ChangeRole.CurrentRole.Label"]</dt>
+            <dd data-testid="tenants-change-role-current-role">@RoleLabel(Member.Role)</dd>
+        </div>
+        <div>
+            <dt>@Localizer["Tenants.ChangeRole.OwnerContext.Label"]</dt>
+            <dd data-testid="tenants-change-role-owner-context">@OwnerContextText</dd>
+        </div>
+    </dl>
+
+    @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p class="tenants-change-role-flow__unavailable"
+           id="tenants-change-role-unavailable"
+           data-testid="tenants-change-role-unavailable-reason"
+           role="alert">
+            @UnavailableReason
+        </p>
+    }
+
+    <form class="tenants-change-role-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+        <label for="tenants-change-role-new-role">
+            <span>@Localizer["Tenants.ChangeRole.NewRole.Label"]</span>
+            <select id="tenants-change-role-new-role"
+                    @ref="_roleElement"
+                    name="new-role"
+                    value="@_roleValue"
+                    data-testid="tenants-change-role-new-role"
+                    aria-describedby="@RoleDescribedBy"
+                    @onchange="OnRoleChanged">
+                @foreach (TenantRole role in AssignableRoles)
+                {
+                    <option value="@role">@RoleLabel(role)</option>
+                }
+            </select>
+            <span id="tenants-change-role-new-role-help">@Localizer["Tenants.ChangeRole.NewRole.Help"]</span>
+        </label>
+
+        @if (OwnerRiskVisible)
+        {
+            <p class="tenants-change-role-flow__risk"
+               id="tenants-change-role-risk"
+               data-testid="tenants-change-role-risk"
+               role="status">
+                <span aria-hidden="true">!</span>
+                <span>@Localizer["Tenants.ChangeRole.OwnerRisk.LastOwner", OwnerCount]</span>
+            </p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_validationMessage))
+        {
+            <p id="tenants-change-role-validation"
+               class="tenants-change-role-flow__validation"
+               data-testid="tenants-change-role-validation"
+               role="alert">
+                @_validationMessage
+            </p>
+        }
+
+        <div class="tenants-change-role-flow__actions">
+            <button type="submit"
+                    data-testid="tenants-change-role-submit"
+                    disabled="@IsSubmitDisabled">
+                @Localizer["Tenants.ChangeRole.Submit"]
+            </button>
+            <button type="button"
+                    data-testid="tenants-change-role-refresh"
+                    disabled="@(!CanRefresh)"
+                    @onclick="RefreshStatusAsync">
+                @Localizer["Tenants.ChangeRole.Refresh"]
+            </button>
+            <button type="button"
+                    data-testid="tenants-change-role-cancel"
+                    @onclick="CloseAsync">
+                @Localizer["Tenants.ChangeRole.Cancel"]
+            </button>
+        </div>
+    </form>
+
+    <section class="tenants-change-role-flow__lifecycle"
+             @ref="_lifecycleElement"
+             tabindex="-1"
+             data-testid="tenants-change-role-lifecycle"
+             aria-labelledby="tenants-change-role-state-label">
+        <h4 id="tenants-change-role-state-label">@Localizer["Tenants.ChangeRole.Lifecycle.Title"]</h4>
+        <p class="@StateClass" data-testid="tenants-change-role-state">
+            <span aria-hidden="true">@StateSymbol</span>
+            <span>@StateText</span>
+        </p>
+        <p data-testid="tenants-change-role-audit">@AuditText</p>
+        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        {
+            <p data-testid="tenants-change-role-safe-message">@_snapshot.SafeMessage</p>
+        }
+        <p class="tenants-change-role-flow__live"
+           data-testid="tenants-change-role-live-region"
+           aria-live="@LiveRegionMode"
+           aria-atomic="true">
+            @StateText
+        </p>
+    </section>
+</section>
+
+@code {
+    private static readonly TenantRole[] AssignableRoles =
+    [
+        TenantRole.TenantOwner,
+        TenantRole.TenantContributor,
+        TenantRole.TenantReader,
+    ];
+
+    private TenantChangeRoleCommandSnapshot _snapshot = TenantChangeRoleCommandSnapshot.Idle();
+    private string _roleValue = string.Empty;
+    private string? _validationMessage;
+    private bool _isSubmitting;
+    private ElementReference _roleElement;
+    private ElementReference _lifecycleElement;
+    private bool _focusRolePending;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantMember Member { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnCloseRequested { get; set; }
+
+    [Parameter]
+    public Func<ChangeUserRoleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    internal TenantChangeRoleCommandSnapshot Snapshot => _snapshot;
+
+    private int OwnerCount
+        => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
+
+    private string OwnerContextText
+        => OwnerCount switch
+        {
+            0 => Localizer["Tenants.ChangeRole.OwnerContext.NoOwners"],
+            1 => Localizer["Tenants.ChangeRole.OwnerContext.LastOwner", OwnerCount],
+            _ => Localizer["Tenants.ChangeRole.OwnerContext.MultipleOwners", OwnerCount],
+        };
+
+    private string? UnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+            ? Localizer["Tenants.ChangeRole.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+                ? Localizer["Tenants.ChangeRole.Unavailable.Freshness"].Value
+                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.ChangeRole.Unavailable.TenantLifecycle"].Value
+                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                        ? Localizer["Tenants.ChangeRole.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.ChangeRole.Unavailable.InFlight"].Value
+                            : Member.Role is TenantRole.Unknown
+                                ? Localizer["Tenants.ChangeRole.Unavailable.UnknownRole"].Value
+                                : null;
+
+    private bool IsSubmitDisabled => !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool CanRefresh
+        => _snapshot.CorrelationId is not null
+        && _snapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private bool OwnerRiskVisible
+        => Member.Role is TenantRole.TenantOwner
+        && OwnerCount <= 1
+        && TryParseAssignableRole(_roleValue, out TenantRole role)
+        && role is not TenantRole.TenantOwner;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private string StateClass
+        => $"tenants-change-role-flow__state tenants-change-role-flow__state--{_snapshot.State.ToString().ToLowerInvariant()}";
+
+    private string StateSymbol
+        => _snapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.AlreadyApplied => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => ">",
+        };
+
+    private string StateText
+        => Localizer[$"Tenants.ChangeRole.State.{_snapshot.State}"];
+
+    private string AuditText
+        => Localizer[$"Tenants.ChangeRole.Audit.{_snapshot.AuditState}"];
+
+    private string LiveRegionMode
+        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string RoleDescribedBy
+    {
+        get
+        {
+            List<string> ids = ["tenants-change-role-new-role-help"];
+            if (OwnerRiskVisible)
+            {
+                ids.Add("tenants-change-role-risk");
+            }
+
+            if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                ids.Add("tenants-change-role-unavailable");
+            }
+
+            if (!string.IsNullOrWhiteSpace(_validationMessage))
+            {
+                ids.Add("tenants-change-role-validation");
+            }
+
+            return string.Join(" ", ids);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(_roleValue) || !AssignableRoles.Any(role => string.Equals(_roleValue, role.ToString(), StringComparison.Ordinal)))
+        {
+            _roleValue = Member.Role is TenantRole.Unknown ? TenantRole.TenantReader.ToString() : Member.Role.ToString();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusRolePending)
+        {
+            _focusRolePending = false;
+            await _roleElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void SetSnapshot(TenantChangeRoleCommandSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || _snapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    internal void ApplySignalRNudge()
+        => _snapshot = _snapshot.SignalRNudge();
+
+    internal void ApplyProjectionEvidence(TenantDetail? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
+
+    private string RoleLabel(TenantRole role)
+        => Localizer[$"Tenants.ChangeRole.Role.{role}"];
+
+    private void OnRoleChanged(ChangeEventArgs args)
+        => _roleValue = args.Value?.ToString() ?? string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        _validationMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            SetSnapshot(TenantChangeRoleCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (!TryParseAssignableRole(_roleValue, out TenantRole newRole))
+        {
+            _validationMessage = Localizer["Tenants.ChangeRole.Validation.RoleRequired"];
+            _focusRolePending = true;
+            return;
+        }
+
+        var request = new ChangeUserRoleCommandRequest(Detail.TenantId, Member.UserId, newRole);
+        if (Member.Role == newRole)
+        {
+            SetSnapshot(_snapshot.AlreadyApplied(
+                request,
+                Member.Role,
+                OwnerCount,
+                Localizer["Tenants.ChangeRole.AlreadyApplied.Message", Member.UserId, RoleLabel(newRole)].Value));
+            return;
+        }
+
+        _snapshot = _snapshot.RequestSent(request, Member.Role, OwnerCount);
+        _isSubmitting = true;
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(TenantChangeRoleCommandSnapshot.Blocked(
+                    Localizer["Tenants.ChangeRole.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
+
+            TenantCommandSubmissionResult result = await gateway
+                .ChangeUserRoleAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                SetSnapshot(_snapshot.Accepted(result));
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = result.State,
+                    SafeMessage = result.SafeMessage,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (gateway is null)
+        {
+            SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.ChangeRole.Unavailable.CommandSurface"].Value)));
+            return;
+        }
+
+        TenantCommandStatusResult status = await gateway
+            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+            .ConfigureAwait(false);
+        SetSnapshot(_snapshot.ApplyStatus(status));
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
+        {
+            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+        }
+    }
+
+    private async Task CloseAsync()
+        => await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
+
+    private static bool TryParseAssignableRole(string value, out TenantRole role)
+    {
+        if (Enum.TryParse(value, ignoreCase: false, out role)
+            && AssignableRoles.Contains(role))
+        {
+            return true;
+        }
+
+        role = TenantRole.Unknown;
+        return false;
+    }
+}

@@ -107,6 +107,43 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
+        ChangeUserRoleCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId)
+            || string.IsNullOrEmpty(request.UserId)
+            || !IsAssignableTenantRole(request.NewRole))
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id, user id, and new role are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new ChangeUserRole(request.TenantId, request.UserId, request.NewRole);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(ChangeUserRole),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapChangeUserRoleGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
@@ -141,7 +178,8 @@ internal sealed class TenantCommandGateway(
             return new TenantCommandStatusResult(
                 parsedStatus,
                 SafeMessageForStatus(parsedStatus, status.RejectionEventType, status.FailureReason),
-                SafeRejectionCode(status.RejectionEventType));
+                SafeRejectionCode(status.RejectionEventType),
+                status.EventCount);
         }
         catch (JsonException)
         {
@@ -194,6 +232,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapChangeUserRoleGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeChangeRoleRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to change member roles in this tenant.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The change role request was not accepted. Check the form fields and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+        };
+    }
+
     private static bool IsTenantAlreadyExists(EventStoreGatewayException exception)
         => Contains(exception.ReasonCode, "tenant-already-exists")
         || Contains(exception.Reason, "TenantAlreadyExists")
@@ -204,16 +262,12 @@ internal sealed class TenantCommandGateway(
     private static string? SafeMessageForStatus(CommandStatus status, string? rejectionEventType, string? failureReason)
         => status switch
         {
-            CommandStatus.Rejected when Contains(rejectionEventType, "TenantAlreadyExists")
-                => "A tenant with this id already exists. Refresh the list or open the existing tenant if it is visible.",
-            CommandStatus.Rejected when Contains(rejectionEventType, "InsufficientPermissions")
-                => "You are not authorized to submit this tenant command.",
-            CommandStatus.Rejected when SafeAddMemberRejection(rejectionEventType) is { } addMemberRejection
-                => addMemberRejection.Message,
-            // GetStatusAsync is shared by every Tenants command (create-tenant and add-member),
-            // so the generic rejected fallback must stay command-neutral instead of naming a
-            // single command, otherwise an unrecognized add-member rejection would surface
-            // create-tenant copy in the add-member lifecycle panel.
+            CommandStatus.Rejected when SafeSharedStatusRejection(rejectionEventType) is { } rejection
+                => rejection.Message,
+            // GetStatusAsync is shared by every Tenants command (create-tenant, add-member,
+            // change-role), so the generic rejected fallback must stay command-neutral instead of
+            // naming a single command, otherwise an unrecognized rejection would surface one
+            // command's copy in another command's lifecycle panel.
             CommandStatus.Rejected => "The command was rejected.",
             CommandStatus.PublishFailed => "The command was accepted, but publication could not be verified.",
             CommandStatus.TimedOut => "The command status timed out before the result could be verified.",
@@ -221,11 +275,54 @@ internal sealed class TenantCommandGateway(
         };
 
     private static string? SafeRejectionCode(string? rejectionEventType)
-        => Contains(rejectionEventType, "TenantAlreadyExists")
-            ? "TenantAlreadyExists"
-            : Contains(rejectionEventType, "InsufficientPermissions")
-                ? "InsufficientPermissions"
-                : SafeAddMemberRejection(rejectionEventType)?.Code;
+        => SafeSharedStatusRejection(rejectionEventType)?.Code;
+
+    // GetStatusAsync is shared by every Tenants command (create-tenant, add-member, change-role)
+    // and only carries a correlation id, so it cannot tell which command produced a rejection.
+    // Command-UNIQUE rejection types (TenantAlreadyExists -> create, UserAlreadyInTenant -> add,
+    // UserNotInTenant -> change-role) keep command-specific copy. Rejection types that are SHARED
+    // across commands (InsufficientPermissions, TenantDisabled, TenantNotFound, RoleEscalation)
+    // must stay command-neutral so one command's copy never leaks into another command's lifecycle
+    // panel. This keeps the Story 2.2 shared-status discipline symmetric for change-role.
+    private static (string Code, string Message)? SafeSharedStatusRejection(string? value)
+    {
+        if (Contains(value, "TenantAlreadyExists"))
+        {
+            return ("TenantAlreadyExists", "A tenant with this id already exists. Refresh the list or open the existing tenant if it is visible.");
+        }
+
+        if (Contains(value, "UserAlreadyInTenant"))
+        {
+            return ("UserAlreadyInTenant", "This user is already a member of the tenant. Refresh the member table before trying another action.");
+        }
+
+        if (Contains(value, "UserNotInTenant"))
+        {
+            return ("UserNotInTenant", "The target user is not a visible member of this tenant. Refresh the member table before trying again.");
+        }
+
+        if (Contains(value, "RoleEscalation"))
+        {
+            return ("RoleEscalation", "The requested tenant role cannot be assigned by this command.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to submit this tenant command.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so the command cannot be completed.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
 
     private static (string Code, string Message)? SafeAddMemberRejection(EventStoreGatewayException exception)
         => SafeAddMemberRejection(
@@ -257,6 +354,46 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantDisabled"))
         {
             return ("TenantDisabled", "This tenant is disabled, so members cannot be added.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeChangeRoleRejection(EventStoreGatewayException exception)
+        => SafeChangeRoleRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeChangeRoleRejection(string? value)
+    {
+        if (Contains(value, "RoleEscalation"))
+        {
+            return ("RoleEscalation", "The requested tenant role cannot be assigned by this command.");
+        }
+
+        if (Contains(value, "UserNotInTenant"))
+        {
+            return ("UserNotInTenant", "The target user is not a visible member of this tenant. Refresh the member table before trying again.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to change member roles in this tenant.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so member roles cannot be changed.");
         }
 
         if (Contains(value, "TenantNotFound"))

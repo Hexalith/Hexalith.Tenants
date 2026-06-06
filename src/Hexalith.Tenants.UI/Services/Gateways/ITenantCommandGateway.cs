@@ -12,6 +12,10 @@ public interface ITenantCommandGateway
         AddUserToTenantCommandRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
+        ChangeUserRoleCommandRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default);

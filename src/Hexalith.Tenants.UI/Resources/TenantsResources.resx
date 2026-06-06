@@ -996,6 +996,129 @@
   <data name="Tenants.AddMember.Audit.MissingSupport" xml:space="preserve">
     <value>Audit support is missing for this flow.</value>
   </data>
+  <data name="Tenants.ChangeRole.Title" xml:space="preserve">
+    <value>Change tenant member role</value>
+  </data>
+  <data name="Tenants.ChangeRole.Description" xml:space="preserve">
+    <value>Change the role for user {1} in tenant {0}. The current confirmed role is {2}.</value>
+  </data>
+  <data name="Tenants.ChangeRole.UserId.Label" xml:space="preserve">
+    <value>User id</value>
+  </data>
+  <data name="Tenants.ChangeRole.CurrentRole.Label" xml:space="preserve">
+    <value>Current confirmed role</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.Label" xml:space="preserve">
+    <value>Owner context</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.NoOwners" xml:space="preserve">
+    <value>0 visible owners; owner context is unavailable.</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.LastOwner" xml:space="preserve">
+    <value>{0} visible owner; changing this owner can leave the tenant with zero visible owners.</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerContext.MultipleOwners" xml:space="preserve">
+    <value>{0} visible owners.</value>
+  </data>
+  <data name="Tenants.ChangeRole.NewRole.Label" xml:space="preserve">
+    <value>New role</value>
+  </data>
+  <data name="Tenants.ChangeRole.NewRole.Help" xml:space="preserve">
+    <value>Select TenantOwner, TenantContributor, or TenantReader. Selecting the current role records an already applied state.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.TenantOwner" xml:space="preserve">
+    <value>Tenant owner</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.TenantContributor" xml:space="preserve">
+    <value>Tenant contributor</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.TenantReader" xml:space="preserve">
+    <value>Tenant reader</value>
+  </data>
+  <data name="Tenants.ChangeRole.Role.Unknown" xml:space="preserve">
+    <value>Unknown role</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submit" xml:space="preserve">
+    <value>Change role</value>
+  </data>
+  <data name="Tenants.ChangeRole.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.ChangeRole.Cancel" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Tenants.ChangeRole.Lifecycle.Title" xml:space="preserve">
+    <value>Change role command lifecycle</value>
+  </data>
+  <data name="Tenants.ChangeRole.Validation.RoleRequired" xml:space="preserve">
+    <value>Select TenantOwner, TenantContributor, or TenantReader before changing a role.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.Authorization" xml:space="preserve">
+    <value>You are not authorized to change member roles in this tenant.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh current tenant detail before changing a member role.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>This tenant lifecycle state does not allow changing member roles.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.InFlight" xml:space="preserve">
+    <value>A tenant command is already in progress.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.UnknownRole" xml:space="preserve">
+    <value>The current role is unknown, so role change fails closed until projection evidence is refreshed.</value>
+  </data>
+  <data name="Tenants.ChangeRole.OwnerRisk.LastOwner" xml:space="preserve">
+    <value>Warning: {0} visible owner remains. This change can reduce the visible owner count to zero, but the command is not blocked solely for that reason.</value>
+  </data>
+  <data name="Tenants.ChangeRole.AlreadyApplied.Message" xml:space="preserve">
+    <value>User {0} already has role {1}; no role-change command was submitted.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Idle" xml:space="preserve">
+    <value>No change-role command submitted.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.RequestSent" xml:space="preserve">
+    <value>Change-role request sent.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Accepted" xml:space="preserve">
+    <value>Accepted by EventStore; waiting for member role processing.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; the requested role is not confirmed visible yet.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the target user has the requested role.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Rejected" xml:space="preserve">
+    <value>Change-role command rejected.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.AlreadyApplied" xml:space="preserve">
+    <value>Already applied; the confirmed role already matches the selected role.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Failed" xml:space="preserve">
+    <value>Change-role command submission failed.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.Degraded" xml:space="preserve">
+    <value>Change-role command result is degraded and needs review.</value>
+  </data>
+  <data name="Tenants.ChangeRole.State.UnableToVerify" xml:space="preserve">
+    <value>Unable to verify the change-role command result.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence not started.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit support is missing for this flow.</value>
+  </data>
   <data name="Tenants.Create.Title" xml:space="preserve">
     <value>Create tenant</value>
   </data>

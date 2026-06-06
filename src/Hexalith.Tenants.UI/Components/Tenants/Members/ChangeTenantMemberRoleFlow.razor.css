@@ -1,0 +1,137 @@
+.tenants-change-role-flow {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.85rem;
+}
+
+.tenants-change-role-flow h3,
+.tenants-change-role-flow h4,
+.tenants-change-role-flow p,
+.tenants-change-role-flow dl {
+    margin: 0;
+}
+
+.tenants-change-role-flow__heading,
+.tenants-change-role-flow__form,
+.tenants-change-role-flow__lifecycle {
+    display: grid;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.tenants-change-role-flow__context {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.tenants-change-role-flow__context div {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.tenants-change-role-flow__context dt {
+    font-weight: 600;
+}
+
+.tenants-change-role-flow__context dd {
+    overflow-wrap: anywhere;
+}
+
+.tenants-change-role-flow__form {
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1fr) auto;
+}
+
+.tenants-change-role-flow__form label {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.tenants-change-role-flow__form select {
+    inline-size: 100%;
+    min-inline-size: 0;
+}
+
+.tenants-change-role-flow__actions {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tenants-change-role-flow__unavailable,
+.tenants-change-role-flow__validation,
+.tenants-change-role-flow__risk,
+.tenants-change-role-flow__state,
+.tenants-change-role-flow__lifecycle {
+    overflow-wrap: anywhere;
+}
+
+.tenants-change-role-flow__risk,
+.tenants-change-role-flow__state {
+    align-items: center;
+    border: 1px solid CanvasText;
+    border-radius: 999px;
+    display: inline-flex;
+    gap: 0.4rem;
+    justify-self: start;
+    padding: 0.25rem 0.55rem;
+}
+
+.tenants-change-role-flow__risk {
+    border-style: dashed;
+}
+
+.tenants-change-role-flow__state--rejected,
+.tenants-change-role-flow__state--failed,
+.tenants-change-role-flow__state--degraded,
+.tenants-change-role-flow__state--unabletoverify {
+    border-style: dashed;
+}
+
+.tenants-change-role-flow__live {
+    block-size: 1px;
+    inline-size: 1px;
+    overflow: hidden;
+    position: absolute;
+}
+
+.tenants-change-role-flow__lifecycle:focus-visible,
+.tenants-change-role-flow button:focus-visible,
+.tenants-change-role-flow select:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .tenants-change-role-flow {
+        padding: 0.75rem;
+    }
+
+    .tenants-change-role-flow__form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tenants-change-role-flow__actions {
+        align-items: stretch;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenants-change-role-flow,
+    .tenants-change-role-flow__risk,
+    .tenants-change-role-flow__state {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenants-change-role-flow__lifecycle:focus-visible,
+    .tenants-change-role-flow button:focus-visible,
+    .tenants-change-role-flow select:focus-visible {
+        outline-color: Highlight;
+    }
+}
