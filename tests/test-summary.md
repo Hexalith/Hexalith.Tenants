@@ -3,29 +3,27 @@
 ## Generated Tests
 
 ### API Tests
-- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` - Story 1.5 target-user BFF gateway coverage for authenticated requester versus explicit target handling, `GetUserTenantsQuery` construction, projection actor routing, opaque cursor payloads, ETag pass-through, target-specific `304` reuse, authorization-scoped empty results, stale/degraded metadata, invalid input, unavailable/unauthorized failures, and sanitized error states.
+- [x] Not applicable for Story 1.7. The implemented member access review uses the already-loaded `TenantDetail.Members` projection through the existing detail gateway; no dedicated member gateway or browser API path was added.
 
 ### E2E Tests
-- [x] `tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs` - bUnit workflow coverage for the `/tenants/users` lookup surface, direct route prefill, literal user id submission, clear/reset, empty/invalid/unauthorized/unavailable/stale/degraded/ready states, paging, sorting, refresh, live-region announcements, stable `tenants-user-*` selectors, no mutation controls, no browser-side backend/token access, responsive styles, and forced-colors hooks.
-- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs` - Hosted route smoke coverage for `/tenants/users?userId=...` safe unavailable rendering with prefilled support-safe target context and no live membership data requirement.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` - bUnit workflow coverage for the tenant detail route composing the read-only member access review, preserving existing detail/configuration surfaces, stale routed detail fail-closed action availability, literal member ids, role/status/owner/freshness context, all canonical unavailable reason categories, unsafe authorization states, empty state safety, row/action reason associations, keyboard reachability, stable selectors, responsive/forced-colors hooks, localization parity, and no mutation/backend/token/command lifecycle leakage.
 
 ## Coverage
-- Story 1.5 acceptance criteria: 7/7 covered across gateway/API-adapter tests, component workflow tests, style/accessibility checks, and hosted route smoke tests.
-- API behaviors covered: requester/target separation, `Domain = tenants`, `ProjectionType = tenant-index`, aggregate id `index`, `EntityId = target user`, `ProjectionActorType`, cursor pass-through, no offset conversion, conditional `If-None-Match` handling, target-specific `304` snapshot reuse, authorization-safe empty results, stale/degraded metadata, invalid target handling, unauthorized/unavailable mappings, and sanitized gateway failures.
-- UI workflows covered: route prefill, manual keyboard/form submission, clear/reset, target context, tenant identity, role/status/lifecycle/freshness rendering, loading, empty, invalid, unauthorized, unavailable, stale, degraded, ready, refresh controls, next/previous paging, sorting, stable `data-testid` selectors, accessible state roles/live announcements, visible non-color-only badges, responsive critical-column preservation, no command or mutation affordances, and no browser-side backend/token behavior.
-- Route smoke coverage: `/tenants`, `/tenants/{tenantId}`, `/tenants/my`, and `/tenants/users?userId=...`; user lookup asserts the safe unavailable prefilled state without requiring live membership data.
+- Story 1.7 acceptance criteria: 7/7 covered across routed detail surface tests, member access review component workflow tests, style/accessibility checks, and resource parity checks.
+- API behaviors covered: no new API adapter required; existing detail gateway remains the source for `TenantDetail.Members`, status, and freshness.
+- UI workflows covered: member table rendering, stale/degraded/readiness fail-closed states, disabled/unknown tenant lifecycle, unauthorized/unavailable/unknown authorization states, owner-count context, table semantics, row headers, action-slot `aria-describedby` links, keyboard-reachable reason content, six localized unavailable reason categories, read-only behavior, stable `tenants-member-*` selectors, responsive constraints, forced-colors hooks, and support-safe markup.
 
 ## Validation
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 -nr:false` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest target error.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -warnaserror -m:1 -nr:false` passed with 0 warnings and 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 118 total, 0 errors, 0 failed, 0 skipped.
 - `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` passed with 0 warnings and 0 errors.
-- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -m:1 -nr:false` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest target error.
-- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 92 total, 0 errors, 0 failed, 0 skipped.
-- `tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests -noLogo -noColor -parallel none -class Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests` discovered the new `/tenants/users?userId=...` route smoke test; 4 total, 0 failed, 4 skipped because DAPR prerequisites are unavailable.
 
 ## Checklist
 - [x] API tests generated if applicable.
 - [x] E2E tests generated for the implemented UI surface.
-- [x] Tests use standard xUnit v3, Shouldly, NSubstitute, bUnit, and existing hosted route smoke APIs.
-- [x] Tests cover happy path and critical empty/invalid/unauthorized/unavailable/stale/degraded/error cases.
+- [x] Tests use standard xUnit v3, Shouldly, NSubstitute, bUnit, and existing file-based style/resource assertions.
+- [x] Tests cover happy path and critical disabled/stale/unknown/degraded/unauthorized/unavailable/error cases.
 - [x] Tests use semantic/accessibility-oriented assertions and stable selectors.
 - [x] No hardcoded waits or sleeps.
 - [x] Tests are independent and order-free.

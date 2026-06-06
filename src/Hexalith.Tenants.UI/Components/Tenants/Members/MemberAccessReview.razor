@@ -1,0 +1,315 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<section class="tenant-members"
+         aria-labelledby="tenants-member-heading"
+         data-testid="tenants-member-section">
+    <header class="tenant-members__header">
+        <div>
+            <h2 id="tenants-member-heading">@Localizer["Tenants.Members.Title"]</h2>
+            <p>@Localizer["Tenants.Members.Description"]</p>
+            <p class="tenant-members__scope">@Localizer["Tenants.Members.ScopeNotice"]</p>
+        </div>
+        <div class="tenant-members__truth" data-testid="tenants-member-truth-state">
+            <TruthStateBadge Freshness="@Freshness"
+                             TestId="tenants-member-truth-badge"
+                             ResourcePrefix="Tenants.Members" />
+            @if (SurfaceKind is TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded)
+            {
+                <p>@StateMessage</p>
+            }
+        </div>
+    </header>
+
+    <div class="tenant-members__reason-catalog"
+         role="list"
+         aria-label="@Localizer["Tenants.Members.ReasonCatalogLabel"]">
+        @foreach (UnavailableReason reason in AllReasons)
+        {
+            <span class="tenant-members__reason tenant-members__reason--catalog"
+                  role="listitem"
+                  data-testid="@ReasonTestId(reason)">
+                <span aria-hidden="true">@ReasonIcon(reason)</span>
+                <span>@ReasonLabel(reason)</span>
+            </span>
+        }
+    </div>
+
+    @if (Rows.Count == 0)
+    {
+        <section class="tenant-members__state"
+                 data-testid="tenants-member-empty"
+                 role="status">
+            <h3>@Localizer["Tenants.Members.Empty.Title"]</h3>
+            <p>@Localizer["Tenants.Members.Empty.Message", ReasonLabel(PrimaryUnavailableReason)]</p>
+        </section>
+    }
+    else
+    {
+        <div class="tenant-members__table-wrap">
+            <table class="tenant-members__table" data-testid="tenants-member-table">
+                <caption>@Localizer["Tenants.Members.Table.Caption"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">@Localizer["Tenants.Members.Column.UserId"]</th>
+                        <th scope="col">@Localizer["Tenants.Members.Column.Role"]</th>
+                        <th scope="col">@Localizer["Tenants.Members.Column.OwnerContext"]</th>
+                        <th scope="col">@Localizer["Tenants.Members.Column.Status"]</th>
+                        <th scope="col">@Localizer["Tenants.Members.Column.Freshness"]</th>
+                        <th scope="col">@Localizer["Tenants.Members.Column.Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (MemberRow row in Rows)
+                    {
+                        <tr tabindex="0" data-testid="tenants-member-row">
+                            <th scope="row"
+                                class="tenant-members__user"
+                                data-testid="tenants-member-user-id">
+                                <code aria-label="@Localizer["Tenants.Members.UserIdAccessible", row.Member.UserId]">@row.Member.UserId</code>
+                            </th>
+                            <td>
+                                <span class="tenant-members__badge tenant-members__badge--role"
+                                      aria-label="@Localizer["Tenants.Members.RoleAccessible", RoleLabel(row.Member.Role)]">
+                                    <span aria-hidden="true">@RoleIcon(row.Member.Role)</span>
+                                    <span>@RoleLabel(row.Member.Role)</span>
+                                </span>
+                            </td>
+                            <td data-testid="tenants-member-owner-context">@OwnerContext</td>
+                            <td>
+                                <span class="tenant-members__badge tenant-members__badge--status tenant-members__badge--@StatusCss"
+                                      aria-label="@Localizer["Tenants.Members.StatusAccessible", StatusLabel]">
+                                    <span aria-hidden="true">@StatusIcon</span>
+                                    <span>@StatusLabel</span>
+                                </span>
+                            </td>
+                            <td>
+                                <TruthStateBadge Freshness="@Freshness"
+                                                 TestId="tenants-member-row-freshness"
+                                                 ResourcePrefix="Tenants.Members" />
+                            </td>
+                            <td>
+                                <div class="tenant-members__actions">
+                                    @foreach (ActionSlot slot in row.ActionSlots)
+                                    {
+                                        <div class="tenant-members__action-slot"
+                                             data-testid="tenants-member-action-slot"
+                                             aria-describedby="@row.ReasonElementId"
+                                             aria-label="@Localizer["Tenants.Members.ActionSlotAccessible", ActionLabel(slot.Action), row.Member.UserId, ReasonSummary(slot.Reasons)]">
+                                            <span class="tenant-members__action-name">@ActionLabel(slot.Action)</span>
+                                            <span class="tenant-members__action-state">@Localizer["Tenants.Members.Action.Unavailable"]</span>
+                                        </div>
+                                    }
+                                    <ul id="@row.ReasonElementId"
+                                        class="tenant-members__reasons"
+                                        data-testid="tenants-member-reason-list"
+                                        tabindex="0"
+                                        aria-label="@Localizer["Tenants.Members.ReasonListLabel", row.Member.UserId]">
+                                        @foreach (UnavailableReason reason in row.Reasons)
+                                        {
+                                            <li class="tenant-members__reason"
+                                                data-testid="tenants-member-unavailable-reason">
+                                                <span aria-hidden="true">@ReasonIcon(reason)</span>
+                                                <span>@ReasonLabel(reason)</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly UnavailableReason[] AllReasons =
+    [
+        UnavailableReason.MissingPermission,
+        UnavailableReason.StaleData,
+        UnavailableReason.MissingLifecycleSupport,
+        UnavailableReason.MissingConsequencePreview,
+        UnavailableReason.MissingAuditProof,
+        UnavailableReason.HighImpactFlowNotReady,
+    ];
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    private IReadOnlyList<MemberRow> Rows
+        => Detail.Members
+            .Select((member, index) => ToRow(member, index))
+            .ToArray();
+
+    private int OwnerCount
+        => Detail.Members.Count(static member => member.Role == TenantRole.TenantOwner);
+
+    private string OwnerContext
+        => OwnerCount switch
+        {
+            0 => Localizer["Tenants.Members.OwnerContext.NoOwners"],
+            1 => Localizer["Tenants.Members.OwnerContext.LastOwner", OwnerCount],
+            _ => Localizer["Tenants.Members.OwnerContext.MultipleOwners", OwnerCount],
+        };
+
+    private string StatusLabel
+        => Localizer[$"Tenants.Members.Status.{Detail.Status}"];
+
+    private string StatusCss
+        => Detail.Status.ToString().ToLowerInvariant();
+
+    private string StatusIcon
+        => Detail.Status switch
+        {
+            TenantStatus.Active => "OK",
+            TenantStatus.Disabled => "!",
+            _ => "?",
+        };
+
+    private UnavailableReason PrimaryUnavailableReason
+        => ResolveFailClosedReasons(TenantRole.Unknown).FirstOrDefault(UnavailableReason.StaleData);
+
+    private string StateMessage
+        => SurfaceKind switch
+        {
+            TenantDetailSurfaceKind.Stale => Localizer["Tenants.Members.State.Stale"],
+            TenantDetailSurfaceKind.Degraded => Localizer["Tenants.Members.State.Degraded"],
+            _ => string.Empty,
+        };
+
+    private MemberRow ToRow(TenantMember member, int index)
+    {
+        IReadOnlyList<ActionSlot> slots = BuildActionSlots(member.Role);
+        return new(member, $"tenants-member-reasons-{index}", slots, slots.SelectMany(static slot => slot.Reasons).Distinct().ToArray());
+    }
+
+    private IReadOnlyList<ActionSlot> BuildActionSlots(TenantRole role)
+    {
+        IReadOnlyList<UnavailableReason> failClosedReasons = ResolveFailClosedReasons(role);
+        if (failClosedReasons.Count > 0)
+        {
+            return
+            [
+                new(MemberAction.AddMember, failClosedReasons),
+                new(MemberAction.ChangeRole, failClosedReasons),
+                new(MemberAction.RemoveMember, failClosedReasons),
+            ];
+        }
+
+        return
+        [
+            new(MemberAction.AddMember, [UnavailableReason.MissingPermission, UnavailableReason.HighImpactFlowNotReady]),
+            new(MemberAction.ChangeRole, [UnavailableReason.MissingPermission, UnavailableReason.MissingConsequencePreview, UnavailableReason.MissingAuditProof, UnavailableReason.HighImpactFlowNotReady]),
+            new(MemberAction.RemoveMember, [UnavailableReason.MissingPermission, UnavailableReason.MissingConsequencePreview, UnavailableReason.MissingAuditProof, UnavailableReason.HighImpactFlowNotReady]),
+        ];
+    }
+
+    private IReadOnlyList<UnavailableReason> ResolveFailClosedReasons(TenantRole role)
+    {
+        if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded)
+        {
+            return [UnavailableReason.MissingPermission];
+        }
+
+        if (Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown)
+        {
+            return [UnavailableReason.MissingLifecycleSupport];
+        }
+
+        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current)
+        {
+            return [UnavailableReason.StaleData];
+        }
+
+        if (role is TenantRole.Unknown)
+        {
+            return [UnavailableReason.MissingPermission];
+        }
+
+        return [];
+    }
+
+    private string ActionLabel(MemberAction action)
+        => Localizer[$"Tenants.Members.Action.{action}"];
+
+    private string RoleLabel(TenantRole role)
+        => Localizer[$"Tenants.Members.Role.{role}"];
+
+    private static string RoleIcon(TenantRole role)
+        => role switch
+        {
+            TenantRole.TenantOwner => "O",
+            TenantRole.TenantContributor => "C",
+            TenantRole.TenantReader => "R",
+            _ => "?",
+        };
+
+    private string ReasonLabel(UnavailableReason reason)
+        => Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
+
+    private string ReasonSummary(IReadOnlyList<UnavailableReason> reasons)
+        => string.Join(", ", reasons.Select(ReasonLabel));
+
+    private static string ReasonTestId(UnavailableReason reason)
+        => $"tenants-member-reason-{ReasonSlug(reason)}";
+
+    private static string ReasonSlug(UnavailableReason reason)
+        => reason switch
+        {
+            UnavailableReason.MissingPermission => "missing-permission",
+            UnavailableReason.StaleData => "stale-data",
+            UnavailableReason.MissingLifecycleSupport => "missing-lifecycle-support",
+            UnavailableReason.MissingConsequencePreview => "missing-consequence-preview",
+            UnavailableReason.MissingAuditProof => "missing-audit-proof",
+            UnavailableReason.HighImpactFlowNotReady => "high-impact-flow-not-ready",
+            _ => "unknown",
+        };
+
+    private static string ReasonIcon(UnavailableReason reason)
+        => reason switch
+        {
+            UnavailableReason.MissingPermission => "!",
+            UnavailableReason.StaleData => "!",
+            UnavailableReason.MissingLifecycleSupport => "!",
+            UnavailableReason.MissingConsequencePreview => "?",
+            UnavailableReason.MissingAuditProof => "?",
+            UnavailableReason.HighImpactFlowNotReady => "!",
+            _ => "?",
+        };
+
+    private sealed record MemberRow(
+        TenantMember Member,
+        string ReasonElementId,
+        IReadOnlyList<ActionSlot> ActionSlots,
+        IReadOnlyList<UnavailableReason> Reasons);
+
+    private sealed record ActionSlot(MemberAction Action, IReadOnlyList<UnavailableReason> Reasons);
+
+    private enum MemberAction
+    {
+        AddMember,
+        ChangeRole,
+        RemoveMember,
+    }
+
+    private enum UnavailableReason
+    {
+        MissingPermission,
+        StaleData,
+        MissingLifecycleSupport,
+        MissingConsequencePreview,
+        MissingAuditProof,
+        HighImpactFlowNotReady,
+    }
+}

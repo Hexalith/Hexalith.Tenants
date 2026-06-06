@@ -1,12 +1,15 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
+using AngleSharp.Dom;
+
 using Bunit;
 
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Components.Tenants;
+using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -256,6 +259,239 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_page_composes_member_access_review_without_replacing_existing_surfaces()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-table']");
+
+        cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
+        cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain("Member access review");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("owner-user");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Markup.ShouldContain("data-testid=\"tenants-member-truth-badge\"");
+        cut.Markup.ShouldNotContain("tenants-list-truth-state");
+    }
+
+    [Fact]
+    public void Detail_page_keeps_member_actions_fail_closed_when_routed_detail_is_stale()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Stale(Detail("tenant.alpha"), "\"etag\"")));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-table']");
+
+        cut.Find("[data-testid='tenants-detail-stale']").TextContent.ShouldContain("stale", Case.Insensitive);
+        IElement memberSection = cut.Find("[data-testid='tenants-member-section']");
+        memberSection.TextContent.ShouldContain("Member evidence is stale.");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("owner-user");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("stale data");
+        cut.FindAll("[data-testid='tenants-member-action-slot']")
+            .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
+        memberSection.InnerHtml.ShouldNotContain("<button", Case.Insensitive);
+        memberSection.InnerHtml.ShouldNotContain("<form", Case.Insensitive);
+        memberSection.InnerHtml.ShouldNotContain("Success");
+    }
+
+    [Fact]
+    public void Member_access_review_renders_literal_members_roles_context_and_accessible_table_semantics()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(),
+            TenantStatus.Active,
+            [
+                new TenantMember("OWNER/User.01", TenantRole.TenantOwner),
+                new TenantMember("reader-user-with-a-very-long-literal-identifier", TenantRole.TenantReader),
+                new TenantMember("contributor-user", TenantRole.TenantContributor),
+                new TenantMember("unknown-role-user", TenantRole.Unknown),
+            ]);
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("OWNER/User.01");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("reader-user-with-a-very-long-literal-identifier");
+        cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(4);
+        cut.FindAll("th[scope='row'][data-testid='tenants-member-user-id']").Count.ShouldBe(4);
+        cut.FindAll("th[scope='col']").Count.ShouldBeGreaterThanOrEqualTo(6);
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Tenant owner");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Tenant contributor");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Tenant reader");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Unknown role");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("1 visible owner");
+        cut.Find("[data-testid='tenants-member-truth-state']").TextContent.ShouldContain("Current");
+        cut.Markup.ShouldContain("aria-describedby=\"tenants-member-reasons-0\"");
+        cut.Markup.ShouldContain("aria-label=\"Literal member user identifier OWNER/User.01\"");
+        cut.Find("[data-testid='tenants-member-reason-list']").GetAttribute("tabindex").ShouldBe("0");
+    }
+
+    [Fact]
+    public void Member_access_review_associates_every_action_slot_with_its_row_reason_list()
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string>(),
+            TenantStatus.Active,
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+            ]);
+
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        HashSet<string> reasonListIds = cut.FindAll("[data-testid='tenants-member-reason-list']")
+            .Select(static list => list.GetAttribute("id").ShouldNotBeNull())
+            .ToHashSet(StringComparer.Ordinal);
+
+        reasonListIds.Count.ShouldBe(2);
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBe(6);
+        foreach (IElement slot in cut.FindAll("[data-testid='tenants-member-action-slot']"))
+        {
+            string describedBy = slot.GetAttribute("aria-describedby").ShouldNotBeNull();
+            reasonListIds.ShouldContain(describedBy);
+            slot.GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("unavailable");
+        }
+
+        cut.FindAll("[data-testid='tenants-member-row']")
+            .ShouldAllBe(static row => row.GetAttribute("tabindex") == "0");
+    }
+
+    [Fact]
+    public void Member_access_review_surfaces_all_canonical_unavailable_reason_categories_without_mutation_affordances()
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha"))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        string[] categories =
+        [
+            "missing permission",
+            "stale data",
+            "missing lifecycle support",
+            "missing consequence preview",
+            "missing audit proof",
+            "high-impact flow not ready",
+        ];
+
+        foreach (string category in categories)
+        {
+            cut.Find($"[data-testid='tenants-member-reason-{category.Replace(' ', '-')}']")
+                .TextContent.ShouldContain(category);
+        }
+
+        cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBeGreaterThanOrEqualTo(3);
+        cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(6);
+        cut.Markup.ShouldNotContain("<button", Case.Insensitive);
+        cut.Markup.ShouldNotContain("<form", Case.Insensitive);
+        cut.Markup.ShouldNotContain("type=\"submit\"", Case.Insensitive);
+        cut.Markup.ShouldNotContain("command payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
+        cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(TenantStatus.Disabled, TenantDetailSurfaceKind.Ready, TenantFreshnessState.Current, "missing lifecycle support")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, "stale data")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown, "stale data")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown, "missing permission")]
+    [InlineData(TenantStatus.Unknown, TenantDetailSurfaceKind.Ready, TenantFreshnessState.Current, "missing lifecycle support")]
+    public void Member_access_review_fails_closed_for_disabled_stale_unknown_and_degraded_states(
+        TenantStatus status,
+        TenantDetailSurfaceKind surfaceKind,
+        TenantFreshnessState freshness,
+        string expectedReason)
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail(
+                "tenant.alpha",
+                new Dictionary<string, string>(),
+                status,
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]))
+            .Add(view => view.SurfaceKind, surfaceKind)
+            .Add(view => view.Freshness, freshness));
+
+        cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain(expectedReason);
+        cut.FindAll("[data-testid='tenants-member-action-slot']")
+            .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
+        cut.Markup.ShouldNotContain("Success");
+    }
+
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Unauthorized)]
+    [InlineData(TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(TenantDetailSurfaceKind.Unknown)]
+    public void Member_access_review_fails_closed_for_unsafe_detail_authorization_states(TenantDetailSurfaceKind surfaceKind)
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha"))
+            .Add(view => view.SurfaceKind, surfaceKind)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("missing permission");
+        cut.FindAll("[data-testid='tenants-member-action-slot']")
+            .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
+        cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
+        cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Member_access_review_does_not_render_backend_urls_tokens_payloads_or_command_lifecycle_context()
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail(
+                "tenant.alpha",
+                new Dictionary<string, string>(),
+                TenantStatus.Active,
+                [new TenantMember("literal-user", TenantRole.TenantOwner)]))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("literal-user");
+        cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
+        cut.Markup.ShouldNotContain("Bearer ", Case.Insensitive);
+        cut.Markup.ShouldNotContain("jwt", Case.Insensitive);
+        cut.Markup.ShouldNotContain("command payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("correlation", Case.Insensitive);
+        cut.Markup.ShouldNotContain("audit available", Case.Insensitive);
+        cut.Markup.ShouldNotContain("preview available", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Member_access_review_renders_authorization_safe_empty_state()
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail(
+                "tenant.empty",
+                new Dictionary<string, string>(),
+                TenantStatus.Active,
+                []))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Unknown));
+
+        cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("No visible members");
+        cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("does not reveal hidden memberships");
+        cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("stale data");
+        cut.Markup.ShouldNotContain("tenants-member-row");
+    }
+
+    [Fact]
     public void Workspace_detail_link_preserves_list_context_in_return_url()
     {
         TenantListSnapshot snapshot = TenantListSnapshot.Ready(
@@ -361,6 +597,22 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         configurationStyles.ShouldContain("@media (max-width: 767px)");
         configurationStyles.ShouldContain("@media (forced-colors: active)");
         configurationStyles.ShouldContain(":focus-visible");
+
+        string memberStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Members",
+            "MemberAccessReview.razor.css"));
+
+        memberStyles.ShouldContain("overflow-wrap: anywhere");
+        memberStyles.ShouldContain("grid-template-columns");
+        memberStyles.ShouldContain("min-width");
+        memberStyles.ShouldContain("@media (max-width: 767px)");
+        memberStyles.ShouldContain("@media (forced-colors: active)");
+        memberStyles.ShouldContain(":focus-visible");
     }
 
     [Fact]
@@ -391,6 +643,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         frenchResources.ShouldContain("Tenants.Configuration.State.Unauthorized");
         frenchResources.ShouldContain("Tenants.Configuration.State.Unavailable");
         frenchResources.ShouldContain("Tenants.Configuration.Value.Unavailable");
+        invariantResources.ShouldContain("Tenants.Members.Title");
+        invariantResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
+        frenchResources.ShouldContain("Tenants.Members.Title");
+        frenchResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
     }
 
     [Fact]
@@ -414,10 +670,43 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
     }
 
+    [Fact]
+    public void Member_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = MemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = MemberResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
     private static HashSet<string> ConfigurationResourceKeys(string resourcePath)
         => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Configuration[^\"]+)\"")
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
+
+    private static HashSet<string> MemberResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Members[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private void RegisterComponentServices()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+    }
 
     private void RegisterServices(TenantListSnapshot snapshot)
     {
@@ -474,15 +763,26 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         });
 
     private static TenantDetail Detail(string tenantId, IReadOnlyDictionary<string, string> configuration)
-        => new(
+        => Detail(
             tenantId,
-            "Alpha",
-            "Tenant alpha description",
+            configuration,
             TenantStatus.Active,
             [
                 new TenantMember("owner-user", TenantRole.TenantOwner),
                 new TenantMember("reader-user", TenantRole.TenantReader),
-            ],
+            ]);
+
+    private static TenantDetail Detail(
+        string tenantId,
+        IReadOnlyDictionary<string, string> configuration,
+        TenantStatus status,
+        IReadOnlyList<TenantMember> members)
+        => new(
+            tenantId,
+            "Alpha",
+            "Tenant alpha description",
+            status,
+            members,
             configuration,
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
 
@@ -556,6 +856,51 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Value.Sensitive"] = "Unavailable",
             ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
+            ["Tenants.Members.Action.AddMember"] = "Add member",
+            ["Tenants.Members.Action.ChangeRole"] = "Change role",
+            ["Tenants.Members.Action.RemoveMember"] = "Remove member",
+            ["Tenants.Members.Action.Unavailable"] = "Unavailable",
+            ["Tenants.Members.ActionSlotAccessible"] = "{0} is unavailable for {1}: {2}",
+            ["Tenants.Members.Column.Actions"] = "Action availability",
+            ["Tenants.Members.Column.Freshness"] = "Freshness",
+            ["Tenants.Members.Column.OwnerContext"] = "Owner context",
+            ["Tenants.Members.Column.Role"] = "Role",
+            ["Tenants.Members.Column.Status"] = "Tenant status",
+            ["Tenants.Members.Column.UserId"] = "User id",
+            ["Tenants.Members.Description"] = "Read-only member access context from the authorized tenant detail projection.",
+            ["Tenants.Members.Empty.Message"] = "No visible members are available. This state does not reveal hidden memberships, and actions remain unavailable until visibility and freshness are verified: {0}.",
+            ["Tenants.Members.Empty.Title"] = "No visible members",
+            ["Tenants.Members.Freshness.Aging"] = "Aging",
+            ["Tenants.Members.Freshness.Current"] = "Current",
+            ["Tenants.Members.Freshness.Refreshing"] = "Refreshing",
+            ["Tenants.Members.Freshness.Stale"] = "Stale",
+            ["Tenants.Members.Freshness.Unknown"] = "Unknown",
+            ["Tenants.Members.OwnerContext.LastOwner"] = "{0} visible owner; last-owner changes require a later high-impact flow.",
+            ["Tenants.Members.OwnerContext.MultipleOwners"] = "{0} visible owners.",
+            ["Tenants.Members.OwnerContext.NoOwners"] = "0 visible owners; owner context is unavailable.",
+            ["Tenants.Members.ReasonCatalogLabel"] = "Canonical unavailable action reason categories",
+            ["Tenants.Members.ReasonListLabel"] = "Unavailable action reasons for {0}",
+            ["Tenants.Members.Role.TenantContributor"] = "Tenant contributor",
+            ["Tenants.Members.Role.TenantOwner"] = "Tenant owner",
+            ["Tenants.Members.Role.TenantReader"] = "Tenant reader",
+            ["Tenants.Members.Role.Unknown"] = "Unknown role",
+            ["Tenants.Members.RoleAccessible"] = "Role: {0}",
+            ["Tenants.Members.ScopeNotice"] = "Visible members only. Orphan context is unavailable in this read model; disabled lifecycle is shown from tenant status.",
+            ["Tenants.Members.State.Degraded"] = "Member evidence is degraded.",
+            ["Tenants.Members.State.Stale"] = "Member evidence is stale.",
+            ["Tenants.Members.Status.Active"] = "Active",
+            ["Tenants.Members.Status.Disabled"] = "Disabled",
+            ["Tenants.Members.Status.Unknown"] = "Unknown",
+            ["Tenants.Members.StatusAccessible"] = "Tenant status {0}",
+            ["Tenants.Members.Table.Caption"] = "Visible tenant members and read-only action availability",
+            ["Tenants.Members.Title"] = "Member access review",
+            ["Tenants.Members.UnavailableReason.HighImpactFlowNotReady"] = "high-impact flow not ready",
+            ["Tenants.Members.UnavailableReason.MissingAuditProof"] = "missing audit proof",
+            ["Tenants.Members.UnavailableReason.MissingConsequencePreview"] = "missing consequence preview",
+            ["Tenants.Members.UnavailableReason.MissingLifecycleSupport"] = "missing lifecycle support",
+            ["Tenants.Members.UnavailableReason.MissingPermission"] = "missing permission",
+            ["Tenants.Members.UnavailableReason.StaleData"] = "stale data",
+            ["Tenants.Members.UserIdAccessible"] = "Literal member user identifier {0}",
             ["Tenants.List.Column.Freshness"] = "Truth state",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",
