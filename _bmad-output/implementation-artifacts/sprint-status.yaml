@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T14:39:16+02:00
+# last_updated: 2026-06-06T15:11:40+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T14:39:16+02:00
+last_updated: 2026-06-06T15:11:40+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
