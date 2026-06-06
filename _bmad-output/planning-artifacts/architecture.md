@@ -85,7 +85,7 @@ weakly FR-7/FR-23) currently lack backing stories.
 **Non-Functional Requirements — the honesty contract is the architecture driver.**
 - **NFR-3 Reliability/consistency (defining):** eventually-consistent, event-sourced;
   projection is the source of truth; correct under at-least-once delivery + projection
-  lag; under Blazor Auto (prerender→Server→WASM + reconnect) the UI re-derives truth and
+  lag; under Blazor InteractiveServer the UI re-derives truth from server-side BFF reads and
   never resurrects optimistic success.
 - **NFR-2 Security/authorization:** server-enforced at API (L1) + domain RBAC (L2); the
   UI **reflects, never enforces**, and must stay safe even if it misjudges; role-scoping
@@ -101,7 +101,7 @@ destruction, asymmetric high-risk, correct-forward-never-undo, canonical-vocabul
 verbatim) — translating directly into a **shared client-side truth-state model**.
 
 **Scale & Complexity:**
-- Primary domain: **Web frontend** — a Blazor (Auto) domain UI composed on the
+- Primary domain: **Web frontend** — a Blazor InteractiveServer domain UI composed on the
   **Hexalith.FrontComposer** shell, consuming an event-sourced CQRS backend over
   REST + DAPR/SignalR. .NET 10; Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`.
 - Complexity level: **HIGH.** Drivers: eventual-consistency correctness as the core
@@ -112,8 +112,8 @@ verbatim) — translating directly into a **shared client-side truth-state model
   a11y/l10n/responsive-fail-closed; hard support-safety rules.
 - Estimated architectural surface: a **new Blazor UI host** + ~6 client layers (shell
   composition, query/API client, command-lifecycle client, truth-state model,
-  authorization-reflection, localization) composing the **10 domain UI components**
-  (DESIGN.md) over FC-TBL.
+  authorization-reflection, localization) composing the domain UI components over the
+  FrontComposer shell and Tenants-specific read components where required.
 
 ### Technical Constraints & Dependencies
 
@@ -133,10 +133,9 @@ verbatim) — translating directly into a **shared client-side truth-state model
   Fallback Approval Record, `fallback-approval-record-2026-06-03.md`). `FC-TBL` does
   not provide cursor pagination, safety-column pinning, or the six non-collapsing list
   states required by Tenants. Tenant-list implementation must record a boundary decision
-  before build-start: either compose a Tenants-specific `TenantDataGrid` from
-  Fluent/FrontComposer primitives while keeping generic grid capability in FrontComposer,
-  or move reusable cursor/pinning/list-state support into FrontComposer before consuming
-  it here.
+  before build-start. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
+  `TenantDataGrid` from Fluent/FrontComposer primitives while keeping generic reusable
+  cursor/pinning/list-state capability as a FrontComposer concern.
 - **Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
 - **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
@@ -219,10 +218,11 @@ Verified ecosystem facts:
 
 **Rationale for Selection:**
 It is the only foundation that satisfies the "Operations Shell within a FrontComposer shell"
-requirement and the domain-boundary policy, reuses the available FC-TBL DataGrid for every read
-surface, and inherits Fluent v5 + theming + manifest-driven navigation instead of rebuilding
-them in Tenants — while mirroring the proven EventStore reference UIs for host bootstrap, auth,
-and backend access. (Option 2 is recorded as the FC-LYT-blocked fallback.)
+requirement and the domain-boundary policy. Epic 1 reuses FrontComposer shell/layout contracts and
+uses Tenants-specific read components where FC-TBL does not meet cursor/safety-state needs, while
+inheriting Fluent v5 + theming + manifest-driven navigation instead of rebuilding them in Tenants.
+The implementation mirrors the proven EventStore reference UIs for host bootstrap, auth, and
+backend access. (Option 2 remains a historical fallback path.)
 
 **Initialization Command** *(no scaffolder exists — manual recipe; this is the first
 implementation story):*
@@ -230,14 +230,15 @@ implementation story):*
 ```bash
 # from repo root: create the Blazor Web App host, then wire FrontComposer + Fluent
 dotnet new blazor -n Hexalith.Tenants.UI -o src/Hexalith.Tenants.UI \
-  --interactivity Auto --all-interactive -f net10.0
+  --interactivity Server -f net10.0
 # then: add to Hexalith.Tenants.slnx; reference Tenants.Client (+ a ServiceDefaults);
 # add FrontComposer.Shell + Fluent UI Blazor packages (versions via Directory.Packages.props);
 # compose the shell in MainLayout and register the Tenants domain manifest.
 ```
 
-> The `--interactivity` value (Auto vs Server) is an **open decision finalized in step-4**; no
-> package versions go in the .csproj (central `Directory.Packages.props`).
+> The implemented host uses Blazor InteractiveServer (`AddInteractiveServerComponents` and
+> `AddInteractiveServerRenderMode`). No package versions go in `.csproj` files; versions stay in
+> central `Directory.Packages.props`.
 
 **Architectural Decisions Provided by Starter:**
 
@@ -269,11 +270,10 @@ selectors are first-class.
 `Hexalith.Tenants.AppHost` (Aspire) with references to tenants/eventstore/keycloak; SDK container
 support (`EnableContainer`, `ContainerRepository=tenants-ui`), no Dockerfile.
 
-**Open foundation decisions (resolved in step-4 — Decisions):**
-- **Render mode** — UX `EXPERIENCE.md` assumes **Blazor Auto** (prerender→Server→WASM+reconnect)
-  and frames the honesty contract around reconnect-safety; the ecosystem reference UIs use
-  **InteractiveServer**, which most directly satisfies "never resurrect optimistic success"
-  (server-held circuit state). Pick one and align the consistency model to it.
+**Foundation decisions (resolved in step-4 — Decisions):**
+- **Render mode** — resolved to **InteractiveServer**. Earlier UX material assumed Blazor Auto
+  (prerender→Server→WASM+reconnect), but the ecosystem reference UIs use InteractiveServer and
+  Epic 1 implemented `AddInteractiveServerComponents` / `AddInteractiveServerRenderMode`.
 - **Use the Shell vs. fallback custom layout** — tied to FC-LYT readiness.
 - **Backend transport** — DAPR service invocation vs. HttpClient + Aspire service discovery.
 
@@ -366,8 +366,9 @@ existing projections only.
   shell. *(Reconcile the UX `EXPERIENCE.md` "Auto" assumption to InteractiveServer.)*
 - **Shell composition:** compose `Hexalith.FrontComposer.Shell` — Operations Shell IA (**Tenants**
   default / **Global Administrators** / **Audit** primary; **Users contextual**, per the UX
-  decision); register a Tenants domain manifest (surfaces, columns, routes, command policies);
-  render read surfaces via the **FC-TBL** DataGrid. *(FC-LYT contract to confirm.)*
+  decision); register a Tenants domain manifest. Story 1.0 confirmed FC-LYT, and Story 1.2
+  resolved the FC-TBL caveat by using Tenants-specific grid/table components for Epic 1 read
+  surfaces while leaving generic reusable grid capability in FrontComposer.
 - **Truth-state model (D5):** a single Fluxor **truth-state feature** is the one source for the 5
   truth dimensions and the canonical vocabularies (13 badge / 10 lifecycle / 10 feedback / 6
   reasons / 5 freshness / 4 audit), exposed as a typed, **casing-faithful** library used verbatim
@@ -421,9 +422,11 @@ FrontComposer grid enhancement.
   the hybrid posture's fallback premise is confirmed.
 - ✅ Confirm **FC-LYT / FC-CMD / FC-CNC** contracts with the FrontComposer team - **closed by Story 1.0**
   (2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`).
-- Resolve the **FC-TBL grid decision** before Story 1.2 tenant-list implementation.
-- Correct the **ULID-vs-string** spec discrepancy; reconcile the UX **"Auto"** assumption to
-  InteractiveServer; resolve the **Users-nav IA** to "contextual."
+- ✅ Resolve the **FC-TBL grid decision** before Story 1.2 tenant-list implementation — closed by
+  Story 1.2 with Tenants-specific grid/table composition.
+- ✅ Correct the **ULID-vs-string** spec discrepancy; reconcile the UX **"Auto"** assumption to
+  InteractiveServer; resolve the **Users-nav IA** to "contextual." Epic 1 implementation follows
+  all three.
 
 ## Implementation Patterns & Consistency Rules
 

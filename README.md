@@ -13,6 +13,7 @@ Multi-tenant management for the Hexalith ecosystem. Built on event sourcing, DAP
 - **Global Administration** — Bootstrap a global administrator to authorize initial tenant operations
 - **Tenant Configuration** — Set and manage per-tenant key-value configuration with domain events for every change
 - **Tenant Query and Audit APIs** — Query tenant lists, tenant details, user memberships, and tenant audit history through protected cursor-paginated endpoints
+- **Tenants Admin UI Foundation** — Blazor InteractiveServer UI host composed through FrontComposer for read-only tenant triage, detail, memberships, configuration, and support-safe copy
 - **Event-Driven Integration** — Subscribe to tenant domain events (`TenantCreated`, `UserAddedToTenant`, etc.) in consuming services via DAPR pub/sub
 - **In-Memory Testing Fakes** — Production-parity domain logic with in-memory stores for fast, reliable tests without infrastructure dependencies
 
@@ -58,6 +59,7 @@ src/
   Hexalith.Tenants.Server/           # Aggregates, projections, domain logic
   Hexalith.Tenants.ServiceDefaults/  # Shared service config, OpenTelemetry
   Hexalith.Tenants.Testing/          # In-memory fakes and test helpers
+  Hexalith.Tenants.UI/               # Blazor InteractiveServer Tenants Admin UI host
 
 tests/
   Hexalith.Tenants.Client.Tests/
@@ -65,6 +67,7 @@ tests/
   Hexalith.Tenants.IntegrationTests/
   Hexalith.Tenants.Server.Tests/
   Hexalith.Tenants.Testing.Tests/
+  Hexalith.Tenants.UI.Tests/
 
 samples/
   Hexalith.Tenants.Sample/           # Example consuming service with event subscription
@@ -101,12 +104,22 @@ scripts/
 1. Fork and clone, then initialize root-level submodules: `git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer`
 2. Create a feature branch from `main`
 3. Make changes following the code style defined in [`.editorconfig`](.editorconfig)
-4. Ensure all tests pass: `dotnet test Hexalith.Tenants.slnx`
-5. Submit a pull request against `main`
+4. Build the solution with `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror`
+5. Run test projects individually; do not use solution-level `dotnet test`
+6. Submit a pull request against `main`
 
 ### Test Requirements
 
-All pull requests must pass the existing test suite. New functionality should include appropriate unit tests. Integration tests require DAPR initialization (`dapr init`).
+All pull requests must pass the relevant existing test projects. Run test projects individually, for example:
+
+```bash
+dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release
+dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj -c Release
+dotnet test tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj -c Release
+dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release
+```
+
+Integration and server tests require DAPR initialization (`dapr init`) and the local runtime prerequisites documented in the quickstart.
 
 ## License
 

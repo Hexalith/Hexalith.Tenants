@@ -93,7 +93,7 @@ dotnet build Hexalith.Tenants.slnx --configuration Release
 
 ## Run the Application
 
-Start the Aspire AppHost, which launches the EventStore command gateway, the Tenants domain service, Keycloak, Redis, DAPR sidecars, and the sample consuming service:
+Start the Aspire AppHost, which launches the EventStore command gateway, the Tenants domain service, the Tenants UI host, Keycloak, Redis, DAPR sidecars, and the sample consuming service:
 
 ```bash
 dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
@@ -107,6 +107,7 @@ Before sending a command, confirm the dashboard shows these local resources as r
 
 - `eventstore`: EventStore command gateway, including `POST /api/v1/commands`
 - `tenants`: Tenants domain processor for `/process` and query endpoints
+- `tenants-ui`: Blazor InteractiveServer Tenants workspace composed through FrontComposer
 - `keycloak`: local identity provider, unless you explicitly set `EnableKeycloak=false`
 - `redis`: local state store backing DAPR actor and projection state
 - `sample`: consuming service subscribed to tenant events

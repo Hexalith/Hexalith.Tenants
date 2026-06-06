@@ -7,6 +7,13 @@ Story: 9.2 — Specify the Operations Shell and Read-Only Access Review Surfaces
 
 This document specifies the Phase 2 Admin UI **information architecture (Operations Shell)** and the **read-only access-review surfaces** that let a tenant administrator find tenants, inspect access, and reach audit evidence *before* command-capable workflows are enabled. It is the navigation and read-only surface contract that future Phase 2 implementation stories consume.
 
+## 2026-06-06 Implementation Supersession
+
+Epic 1 implementation supersedes two older planning assumptions in this document:
+
+- Primary navigation is **Tenants**, **Global Administrators**, and **Audit**. Users is contextual through `/tenants/my`, `/tenants/users`, member rows, and lookup entry points; it is not a co-equal primary shell area.
+- Tenant IDs and user IDs are literal caller-supplied strings. They are not assumed to be ULIDs or GUIDs and must not be parsed, normalized, or reformatted.
+
 ## Scope and Boundary (read first)
 
 - **Planning/specification only.** Epic 9 is readiness/planning-only. This story produces an Operations Shell + read-only access-review surface specification, not shippable Admin UI. It must not route a Developer agent into product UI delivery until separate Phase 2 implementation stories are created from this spec. [Source: `_bmad-output/planning-artifacts/epics.md#Epic 9: Administrators Can Plan Phase 2 UI Access Operations Safely`]
@@ -30,12 +37,11 @@ The Operations Shell is the stable navigation model. [Source: `_bmad-output/plan
 
 ### 1.1 Primary navigation
 
-Primary navigation areas are exactly these four, in this order:
+Primary navigation areas are exactly these three, in this order:
 
 1. **Tenants**
-2. **Users**
-3. **Global Administrators**
-4. **Audit**
+2. **Global Administrators**
+3. **Audit**
 
 The **tenant list is the default triage surface** — the landing surface of the shell. Command lifecycle is **not** promoted into a separate primary navigation area; it is shown inside the affected workflow. (AC1)
 
@@ -43,7 +49,7 @@ The **tenant list is the default triage surface** — the landing surface of the
 
 - Preserve the selected tenant and active list filters when returning from tenant detail to the tenant list. (AC3)
 - Keep tenant, user, and role context visible during command preview. (Forward-looking; this spec defines read-only context, command preview is a later story.)
-- **User lookup is secondary but reachable** from shell navigation (the Users area) and from access-review contexts (tenant detail member rows, audit results). (AC4)
+- **User lookup is contextual but reachable** from Tenants workspace entry points and access-review contexts (tenant detail member rows, audit results). Users is not a co-equal primary navigation area. (AC4)
 - **Audit is reachable from multiple entry points**: global navigation (the Audit area), tenant rows, tenant detail, user lookup, and command result. Audit is never the only way to reach proof, but it is always reachable from any access-review context.
 - **Command lifecycle is never a separate primary navigation model.** Show it inside the affected workflow, close to the affected row or tenant context. (AC1)
 
@@ -56,7 +62,7 @@ The **tenant list is the default triage surface** — the landing surface of the
 | Shell nav → Tenants | Tenant list (default triage) | n/a (entry surface) |
 | Tenant list row → | Tenant detail | Selected tenant; list filters retained for return |
 | Tenant detail → back | Tenant list | Selected tenant highlighted + filters restored (AC3) |
-| Shell nav → Users | User lookup / My Tenants | n/a |
+| Tenants context → Users | User lookup / My Tenants | Target user where supplied; no primary Users nav |
 | Tenant detail member row → | User lookup (that user) | Tenant + user context |
 | Shell nav → Global Administrators | Global admin read-only review | n/a |
 | Shell nav → Audit | Audit surface (planning-only/blocked) | n/a |
@@ -158,7 +164,7 @@ Access questions can begin with a user or a platform role, not only a tenant. Bo
 Surface key: `ui-02-my-tenants-and-user-search-read-only`.
 
 - **Source query/endpoint:** `GET /api/users/{userId}/tenants` (`GetUserTenantsQuery`). Cursor-based pagination, signed opaque scoped cursors only.
-- **Reachability:** reachable from shell navigation (Users area) and from access-review contexts (a tenant detail member row links to that user's lookup). (AC4)
+- **Reachability:** reachable from contextual Tenants workspace entry points and access-review contexts (a tenant detail member row links to that user's lookup). Users remains contextual. (AC4)
 - **Authorization-safe states:** expose authorization-safe empty and error states. A user who has no accessible tenants, or whose scope the caller is not authorized to view, must see an authorization-safe empty/error state that does not leak whether memberships exist beyond the caller's authorized scope. Authorization and filtering live in projection/query handling, not in the UI. [Source: `_bmad-output/project-context.md#API Surface`]
 - Cross-tenant revoke/remove actions are custom high-risk command flows and must **not** be generated from query rows.
 - Readiness: `planning-only`; `blockedBy: [FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` (verbatim).
@@ -177,7 +183,7 @@ Surface key: `ui-06-global-admin-read-only`.
 
 ### 5.1 Identifier truncation and accessibility
 
-- **IDs are ULIDs, not GUIDs.** Long tenant IDs (ULIDs), user IDs, and references truncate **visually** but remain fully accessible:
+- **IDs are literal caller-supplied strings, not ULIDs or GUIDs.** Long tenant IDs, user IDs, and references truncate **visually** but remain fully accessible:
   - Full value is copyable.
   - Full accessible name is exposed (no information loss for screen readers).
   - Truncation is visual only; no semantic truncation. [Source: `#Search, Filtering, and Table Patterns`; `_bmad-output/project-context.md#Identity Scheme`]

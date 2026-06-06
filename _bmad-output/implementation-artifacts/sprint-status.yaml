@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T03:31:49+02:00
+# last_updated: 2026-06-06T03:53:54+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -48,7 +48,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T03:31:49+02:00
+last_updated: 2026-06-06T03:53:54+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ story_location: /home/administrator/projects/hexalith/tenants/_bmad-output/imple
 
 development_status:
   # --- Epic 1: Tenant Workspace Triage and Read-Only Insight ---
-  epic-1: in-progress
+  epic-1: done
   1-0-frontcomposer-shell-integration-spike: done
   1-1-tenants-ui-host-bootstrap: done
   1-2-tenant-list-triage: done
@@ -66,7 +66,7 @@ development_status:
   1-6-read-only-tenant-configuration-view: done
   1-7-tenant-member-table-and-action-availability: done
   1-8-support-safe-identifier-copy-and-epic-1-readiness-evidence: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # --- Epic 2: Tenant Membership and Tenant Record Management ---
   epic-2: backlog
