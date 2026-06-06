@@ -244,7 +244,7 @@ Consumed by `ui-01`…`ui-06` (all `planning-only`):
 
 ### 7.2 Command lifecycle / feedback — Command Lifecycle Panel + Feedback Patterns + Unavailable Action Reason (lifecycle gaps)
 
-Consumed by `ui-07`, `ui-08`, `ui-09` (`planning-only`) and `ui-10`, `ui-13`, `ui-14`, `ui-15` (`blocked`):
+Consumed by `ui-07`, `ui-08`, `ui-09`, `ui-13` (`planning-only`) and `ui-10`, `ui-14`, `ui-15` (`blocked`):
 
 | Backlog row | Readiness | `blockedBy` (verbatim) |
 | --- | --- | --- |
@@ -252,7 +252,7 @@ Consumed by `ui-07`, `ui-08`, `ui-09` (`planning-only`) and `ui-10`, `ui-13`, `u
 | `ui-08-edit-tenant-metadata-command` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-09-user-management-add-or-change-role` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-10-tenant-configuration-edit` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-13-disable-or-enable-tenant` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-13-disable-or-enable-tenant` | `planning-only` | `[FC-TOK]` after the approved 2026-06-06 FR15 soft-delete correction; implementation stories still require status/severity evidence before marking ready |
 | `ui-14-user-management-remove-user` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-15-global-admin-command-management` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 

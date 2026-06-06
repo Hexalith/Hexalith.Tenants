@@ -8,6 +8,7 @@ using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
@@ -251,6 +252,76 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant)
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new EnableTenant(request.TenantId);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(EnableTenant),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapLifecycleGatewayException(ex);
+        }
+    }
+
+    public async Task<TenantCommandSubmissionResult> DisableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant)
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new DisableTenant(request.TenantId);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(DisableTenant),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapLifecycleGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
@@ -419,6 +490,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapLifecycleGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeLifecycleRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to submit tenant lifecycle commands.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The lifecycle request was not accepted. Check the visible tenant evidence and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+        };
+    }
+
     private static bool IsTenantAlreadyExists(EventStoreGatewayException exception)
         => Contains(exception.ReasonCode, "tenant-already-exists")
         || Contains(exception.Reason, "TenantAlreadyExists")
@@ -492,6 +583,11 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "ConfigurationLimitExceeded"))
         {
             return ("ConfigurationLimitExceeded", "The configuration change exceeded tenant configuration limits.");
+        }
+
+        if (Contains(value, "TenantLifecycleStateAlreadySet"))
+        {
+            return ("TenantLifecycleStateAlreadySet", "The tenant lifecycle already matches the requested state. Refresh tenant detail before trying another lifecycle action.");
         }
 
         return null;
@@ -672,6 +768,41 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantNotFound"))
         {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeLifecycleRejection(EventStoreGatewayException exception)
+        => SafeLifecycleRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeLifecycleRejection(string? value)
+    {
+        if (Contains(value, "TenantLifecycleStateAlreadySet"))
+        {
+            return ("TenantLifecycleStateAlreadySet", "The tenant lifecycle already matches the requested state. Refresh tenant detail before trying another lifecycle action.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so the requested tenant command cannot be completed.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to submit tenant lifecycle commands.");
         }
 
         return null;

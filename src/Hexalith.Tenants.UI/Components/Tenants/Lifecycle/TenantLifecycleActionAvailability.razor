@@ -1,4 +1,5 @@
 @using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantCommands
 @inject IStringLocalizer<TenantsResources> Localizer
 
@@ -46,31 +47,69 @@
             string reasonId = $"{actionId}-reason";
 
             <div class="tenant-lifecycle__action" role="listitem">
-                <button id="@actionId"
-                        type="button"
-                        class="tenant-lifecycle__button"
-                        data-testid="@actionId"
-                        disabled="@availability.IsUnavailable"
-                        aria-disabled="@availability.IsUnavailable.ToString().ToLowerInvariant()"
-                        aria-describedby="@reasonId">
-                    @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
-                </button>
+                @if (availability.Operation is TenantLifecycleOperation.EnableTenant)
+                {
+                    <button id="@actionId"
+                            @ref="_enableElement"
+                            type="button"
+                            class="tenant-lifecycle__button"
+                            data-testid="@actionId"
+                            disabled="@IsActionDisabled(availability)"
+                            aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
+                            aria-describedby="@reasonId"
+                            @onclick="() => OpenFlowAsync(availability)">
+                        @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
+                    </button>
+                }
+                else
+                {
+                    <button id="@actionId"
+                            @ref="_disableElement"
+                            type="button"
+                            class="tenant-lifecycle__button"
+                            data-testid="@actionId"
+                            disabled="@IsActionDisabled(availability)"
+                            aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
+                            aria-describedby="@reasonId"
+                            @onclick="() => OpenFlowAsync(availability)">
+                        @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
+                    </button>
+                }
                 <p id="@reasonId"
                    class="tenant-lifecycle__reason"
                    tabindex="0"
                    data-testid="tenants-lifecycle-unavailable-reason"
-                   data-reason-category="@ReasonCategory(availability.UnavailableReasonCategory)">
-                    <span>@Localizer[$"Tenants.Lifecycle.UnavailableReason.{availability.UnavailableReasonCategory}"]</span>
-                    <span>@Localizer[availability.SafeMessageKey, TenantId, Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"], availability.ExpectedDomainOutcomeKey ?? string.Empty]</span>
+                   data-reason-category="@ReasonCategory(ReasonCategoryFor(availability))">
+                    <span>@Localizer[$"Tenants.Lifecycle.UnavailableReason.{ReasonCategoryFor(availability)}"]</span>
+                    <span>@ReasonText(availability)</span>
                 </p>
             </div>
         }
     </div>
+
+    @if (_activeAvailability is not null && Detail is not null)
+    {
+        <TenantLifecycleCommandFlow Detail="@Detail"
+                                    Availability="@_activeAvailability"
+                                    IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                    OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                    OnCloseRequested="@CloseFlowAsync"
+                                    OnCommandActivityChanged="@OnCommandActivityChanged"
+                                    ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
+    }
 </section>
 
 @code {
+    private TenantLifecycleAvailability? _activeAvailability;
+    private ElementReference _enableElement;
+    private ElementReference _disableElement;
+    private TenantLifecycleOperation? _returnFocusOperation;
+
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
+
+    [Parameter]
+    public TenantDetail? Detail { get; set; }
 
     [Parameter]
     public TenantStatus CurrentStatus { get; set; } = TenantStatus.Unknown;
@@ -92,6 +131,18 @@
 
     [Parameter]
     public bool IsNarrowSafetyContext { get; set; }
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<TenantLifecycleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     private TenantLifecycleAvailabilityInput Input
         => new(
@@ -117,9 +168,63 @@
 
     private string LiveRegion
         => Availabilities.Any(static availability => availability.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
+            || !IsCommandSurfaceAvailable
             ? "assertive"
             : "polite";
 
+    private bool IsActionDisabled(TenantLifecycleAvailability availability)
+        => availability.IsUnavailable || !IsCommandSurfaceAvailable;
+
+    private TenantLifecycleUnavailableReasonCategory ReasonCategoryFor(TenantLifecycleAvailability availability)
+        => !IsCommandSurfaceAvailable && !availability.IsUnavailable
+            ? TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport
+            : availability.UnavailableReasonCategory;
+
+    private string ReasonText(TenantLifecycleAvailability availability)
+        => !IsCommandSurfaceAvailable && !availability.IsUnavailable
+            ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
+            : Localizer[
+                availability.SafeMessageKey,
+                TenantId,
+                Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"],
+                availability.ExpectedDomainOutcomeKey ?? string.Empty].Value;
+
     private static string ReasonCategory(TenantLifecycleUnavailableReasonCategory category)
         => category.ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_returnFocusOperation is null)
+        {
+            return;
+        }
+
+        TenantLifecycleOperation operation = _returnFocusOperation.Value;
+        _returnFocusOperation = null;
+        if (operation is TenantLifecycleOperation.EnableTenant)
+        {
+            await _enableElement.FocusAsync().ConfigureAwait(false);
+            return;
+        }
+
+        await _disableElement.FocusAsync().ConfigureAwait(false);
+    }
+
+    private async Task OpenFlowAsync(TenantLifecycleAvailability availability)
+    {
+        if (IsActionDisabled(availability))
+        {
+            return;
+        }
+
+        _activeAvailability = availability;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task CloseFlowAsync()
+    {
+        _returnFocusOperation = _activeAvailability?.Operation;
+        _activeAvailability = null;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
 }

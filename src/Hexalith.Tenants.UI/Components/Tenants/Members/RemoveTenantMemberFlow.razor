@@ -171,6 +171,9 @@
     public EventCallback OnCloseRequested { get; set; }
 
     [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
     public Func<RemoveUserFromTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantRemoveMemberCommandSnapshot Snapshot => _snapshot;
@@ -395,6 +398,7 @@
 
         _snapshot = _snapshot.RequestSent();
         _isSubmitting = true;
+        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -432,6 +436,7 @@
         finally
         {
             _isSubmitting = false;
+            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
         }
     }
 

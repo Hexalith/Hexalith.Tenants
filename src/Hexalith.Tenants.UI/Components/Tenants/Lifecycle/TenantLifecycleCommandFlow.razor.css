@@ -1,0 +1,96 @@
+.tenant-lifecycle-flow {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    position: relative;
+}
+
+.tenant-lifecycle-flow h3,
+.tenant-lifecycle-flow h4,
+.tenant-lifecycle-flow p,
+.tenant-lifecycle-flow dl,
+.tenant-lifecycle-flow dd {
+    margin: 0;
+}
+
+.tenant-lifecycle-flow__preview dl {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.tenant-lifecycle-flow__preview div,
+.tenant-lifecycle-flow__lifecycle {
+    border-block-start: 1px solid CanvasText;
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    padding-block-start: 0.75rem;
+}
+
+.tenant-lifecycle-flow__preview dt {
+    font-weight: 600;
+}
+
+.tenant-lifecycle-flow__form,
+.tenant-lifecycle-flow__form label,
+.tenant-lifecycle-flow__actions,
+.tenant-lifecycle-flow__lifecycle {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.tenant-lifecycle-flow__actions {
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.tenant-lifecycle-flow input,
+.tenant-lifecycle-flow button {
+    min-height: 2.25rem;
+}
+
+.tenant-lifecycle-flow__focus-sentinel {
+    block-size: 1px;
+    inline-size: 1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+}
+
+.tenant-lifecycle-flow p,
+.tenant-lifecycle-flow dd {
+    overflow-wrap: anywhere;
+}
+
+.tenant-lifecycle-flow input:focus-visible,
+.tenant-lifecycle-flow button:focus-visible,
+.tenant-lifecycle-flow__lifecycle:focus-visible,
+.tenant-lifecycle-flow__focus-sentinel:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .tenant-lifecycle-flow__preview dl,
+    .tenant-lifecycle-flow__actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (forced-colors: active) {
+    .tenant-lifecycle-flow,
+    .tenant-lifecycle-flow__preview div,
+    .tenant-lifecycle-flow__lifecycle {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenant-lifecycle-flow input:focus-visible,
+    .tenant-lifecycle-flow button:focus-visible,
+    .tenant-lifecycle-flow__lifecycle:focus-visible,
+    .tenant-lifecycle-flow__focus-sentinel:focus-visible {
+        outline-color: Highlight;
+    }
+}

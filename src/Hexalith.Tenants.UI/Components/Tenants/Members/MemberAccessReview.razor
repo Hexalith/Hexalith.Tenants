@@ -45,6 +45,7 @@
                          IsAuthorized="@IsAddMemberAuthorized"
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                          OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                         OnCommandActivityChanged="@OnCommandActivityChanged"
                          ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 
     @if (Rows.Count == 0)
@@ -178,6 +179,7 @@
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                             OnCloseRequested="@CloseChangeRoleAsync"
+                                            OnCommandActivityChanged="@OnCommandActivityChanged"
                                             ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
             </div>
         }
@@ -194,6 +196,7 @@
                                         TargetGlobalAdministratorFriction="@TargetGlobalAdministratorFriction"
                                         OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                         OnCloseRequested="@CloseRemoveMemberAsync"
+                                        OnCommandActivityChanged="@OnCommandActivityChanged"
                                         ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
             </div>
         }
@@ -248,6 +251,9 @@
 
     [Parameter]
     public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
     public Func<AddUserToTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }

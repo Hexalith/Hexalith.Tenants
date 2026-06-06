@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T00:00:00+02:00
+# last_updated: 2026-06-06T11:57:09+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -44,11 +44,13 @@
 # Remaining planning gates:
 #   - Story 1.2 tenant list: resolve FC-TBL caveat before implementation.
 #   - Command stories: split if shared command/truth/preview foundations do not exist.
+#   - Story 3.2: FR15 disable/enable is approved as reversible soft-delete / availability control;
+#     hard tenant deletion is future administrators-only CLI tooling, not Tenants UI.
 #   - Story 2.4 remove member: audit handoff only until Epic 5 evidence source exists.
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T00:00:00+02:00
+last_updated: 2026-06-06T11:57:09+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -80,7 +82,7 @@ development_status:
   # --- Epic 3: Tenant Lifecycle and Configuration Control ---
   epic-3: in-progress
   3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail: done
-  3-2-disable-or-enable-tenant-with-high-impact-confirmation: backlog
+  3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
   3-3-set-tenant-configuration-key-value-with-consequence-preview: in-progress
   3-4-remove-tenant-configuration-key-with-consequence-preview: backlog
   epic-3-retrospective: optional

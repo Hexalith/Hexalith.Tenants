@@ -10,6 +10,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Shouldly;
 
@@ -17,6 +18,69 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantCommandGatewayTests
 {
+    [Theory]
+    [InlineData(TenantLifecycleOperation.EnableTenant, nameof(EnableTenant), "correlation-enable")]
+    [InlineData(TenantLifecycleOperation.DisableTenant, nameof(DisableTenant), "correlation-disable")]
+    public async Task Lifecycle_command_submits_literal_tenant_id_payload_and_captures_correlation_id(
+        TenantLifecycleOperation operation,
+        string expectedCommandType,
+        string correlationId)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse(correlationId));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+        var request = new TenantLifecycleCommandRequest("Tenant.Mixed-01", operation);
+
+        TenantCommandSubmissionResult result = operation is TenantLifecycleOperation.EnableTenant
+            ? await gateway.EnableTenantAsync(request, CancellationToken.None)
+            : await gateway.DisableTenantAsync(request, CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("tenants");
+        submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
+        submitted.CommandType.ShouldBe(expectedCommandType);
+        submitted.Payload.GetProperty("TenantId").GetString().ShouldBe("Tenant.Mixed-01");
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBe(correlationId);
+    }
+
+    [Theory]
+    [InlineData("TenantLifecycleStateAlreadySetRejection", "TenantLifecycleStateAlreadySet", "already matches")]
+    [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
+    [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
+    public async Task Lifecycle_command_maps_safe_rejection_text(
+        string reason,
+        string expectedCode,
+        string expectedText)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            reason,
+            detail: "raw payload bearer-token stack trace correlation-life"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.DisableTenantAsync(
+            new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-life", Case.Insensitive);
+    }
+
     [Fact]
     public async Task Update_tenant_submits_literal_command_with_payload_and_captures_correlation_id()
     {

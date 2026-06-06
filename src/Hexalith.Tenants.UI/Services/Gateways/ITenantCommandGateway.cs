@@ -28,6 +28,16 @@ public interface ITenantCommandGateway
         SetTenantConfigurationCommandRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TenantCommandSubmissionResult> EnableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
+
+    Task<TenantCommandSubmissionResult> DisableTenantAsync(
+        TenantLifecycleCommandRequest request,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
+
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default);

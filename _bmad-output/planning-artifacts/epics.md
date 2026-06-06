@@ -144,7 +144,7 @@ NFR10: A UI story cannot be marked ready until applicable accessibility, localiz
 - Organize the new UI project by surface (`Components/Tenants`, `Components/Users`, `Components/GlobalAdministrators`, `Components/Audit`, `Components/Shared`), with `State/`, `Services/`, `Vocabulary/`, `Resources/`, and `wwwroot/css/` as described by architecture.
 - Add a separate `tests/Hexalith.Tenants.UI.Tests` project for bUnit/xUnit v3/Shouldly tests and a Playwright E2E tier for the required acceptance scenarios. Follow Tenants test conventions: plural test class files, Shouldly assertions, per-project `dotnet test`.
 - Product/UX-approved fallbacks are available for `FC-AUD` as flat audit DataGrid, `FC-CNS` as inline consequence text, and `FC-CNC` as one-at-a-time command policy. Missing shared UI capabilities still belong in FrontComposer, not Tenants.
-- Platform-wide destructive actions (`FR15`, `FR19`) remain categorically blocked until real FrontComposer contract confirmations and governance decisions clear; tenant-scoped destructive flows (`FR12`, `FR16`, `FR17`) are fallback-eligible.
+- FR15 disable/enable is a reversible lifecycle soft-delete / availability-control operation, not hard destructive tenant deletion, and may proceed under approved command and preview fallbacks once story-specific evidence is satisfied. FR19 remains categorically blocked. Hard destructive tenant deletion is future administrators-only CLI tooling and out of scope for this phase; tenant-scoped destructive flows (`FR12`, `FR16`, `FR17`) remain fallback-eligible.
 - Build sequencing is externally gated: shell-integration spike, bootstrap, read surfaces after `FC-LYT`, first commands after `FC-CMD` plus one-at-a-time policy, then high-impact/audit/recovery on approved fallbacks and remaining contract confirmations.
 
 ### UX Design Requirements
@@ -1016,7 +1016,7 @@ As an authorized global administrator,
 I want to disable or enable a tenant through high-impact confirmation and projection proof,
 So that tenant availability changes are deliberate, auditable, and never shown as successful before truth is confirmed.
 
-**Requirements:** FR15; NFR2-NFR10; Additional command confirmation and platform-wide destructive gate requirements; UX-DR3, UX-DR11-UX-DR15, UX-DR19, UX-DR22-UX-DR28, UX-DR30-UX-DR33.
+**Requirements:** FR15; NFR2-NFR10; Additional command confirmation and high-impact lifecycle-control requirements; UX-DR3, UX-DR11-UX-DR15, UX-DR19, UX-DR22-UX-DR28, UX-DR30-UX-DR33.
 
 **Acceptance Criteria:**
 
@@ -1045,10 +1045,10 @@ So that tenant availability changes are deliberate, auditable, and never shown a
 **Then** every state remains distinct and accessible
 **And** audit/evidence handoff is honest and never fabricated.
 
-**Given** platform policy still blocks lifecycle commands
+**Given** lifecycle disable/enable is approved as a reversible soft-delete availability control
 **When** this story is selected for implementation
-**Then** the story is not ready for development until the blocking gate is cleared or Product/UX explicitly records an approved fallback
-**And** blocked status is preserved in sprint planning rather than bypassed inside Tenants.
+**Then** the story is ready only when global-admin authorization reflection, complete consequence preview, one-at-a-time command policy, projection-confirmed lifecycle feedback, accessibility, localization, and responsive evidence are present
+**And** hard destructive tenant deletion remains out of scope for this UI story and is reserved for future independent administrators-only CLI tooling.
 
 **Test Contract:**
 

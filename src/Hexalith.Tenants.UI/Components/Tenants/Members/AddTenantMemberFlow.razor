@@ -142,6 +142,9 @@
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
     [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
     public Func<AddUserToTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantAddMemberCommandSnapshot Snapshot => _snapshot;
@@ -275,6 +278,7 @@
         var request = new AddUserToTenantCommandRequest(Detail.TenantId, _userId, role);
         _snapshot = _snapshot.RequestSent(request);
         _isSubmitting = true;
+        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -312,6 +316,7 @@
         finally
         {
             _isSubmitting = false;
+            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
         }
     }
 

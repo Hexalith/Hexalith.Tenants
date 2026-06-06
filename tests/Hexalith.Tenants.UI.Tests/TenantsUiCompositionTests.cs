@@ -1,11 +1,15 @@
 using System.Globalization;
 using System.Resources;
+using System.Security.Claims;
 
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantDetail;
+
+using Microsoft.AspNetCore.Http;
 
 using Shouldly;
 
@@ -43,6 +47,28 @@ public sealed class TenantsUiCompositionTests
 
         composition.IsReadSurfaceConnected.ShouldBeTrue();
         composition.IsCommandSurfaceConnected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Bff_composition_reflects_lifecycle_authority_from_server_side_global_admin_principal()
+    {
+        ITenantsBffComposition composition = new TenantsBffComposition(
+            new StubTenantCommandGateway(),
+            ContextAccessor(
+                new Claim("eventstore:tenant", "system"),
+                new Claim(ClaimTypes.Role, "GlobalAdministrator")));
+
+        composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
+    [Fact]
+    public void Bff_composition_fails_closed_for_global_admin_shape_without_system_tenant_claim()
+    {
+        ITenantsBffComposition composition = new TenantsBffComposition(
+            new StubTenantCommandGateway(),
+            ContextAccessor(new Claim(ClaimTypes.Role, "GlobalAdministrator")));
+
+        composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
     }
 
     [Fact]
@@ -90,6 +116,15 @@ public sealed class TenantsUiCompositionTests
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+
+    private static IHttpContextAccessor ContextAccessor(params Claim[] claims)
+        => new HttpContextAccessor
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test")),
+            },
+        };
 
     private sealed class CapturingRegistry : IFrontComposerRegistry
     {

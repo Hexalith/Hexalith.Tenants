@@ -108,18 +108,23 @@
             <EditTenantMetadataFlow Detail="@Detail"
                                     SurfaceKind="@_snapshot.Kind"
                                     Freshness="@_snapshot.Freshness"
-                                    IsCommandSurfaceAvailable="@(!_metadataCommandInFlight)"
+                                    IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                    OnCommandActivityChanged="@SetMetadataCommandActivityAsync"
+                                    OnCommandActivityChanged="@SetCommandActivityAsync"
                                     ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
 
             <TenantLifecycleActionAvailability TenantId="@Detail.TenantId"
+                                                Detail="@Detail"
                                                 CurrentStatus="@Detail.Status"
                                                 SurfaceKind="@_snapshot.Kind"
                                                 Freshness="@_snapshot.Freshness"
                                                 IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
-                                                AuthorizationReflection="TenantLifecycleAuthorizationReflectionState.Indeterminate"
-                                                GovernanceReadiness="TenantLifecycleGovernanceReadiness.Unresolved" />
+                                                AuthorizationReflection="@BffComposition.LifecycleAuthorizationReflection"
+                                                GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
+                                                IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                                OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                                OnCommandActivityChanged="@SetCommandActivityAsync"
+                                                ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync" />
 
             <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
                 <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
@@ -129,7 +134,8 @@
             <MemberAccessReview Detail="@Detail"
                                 SurfaceKind="@_snapshot.Kind"
                                 Freshness="@_snapshot.Freshness"
-                                IsCommandSurfaceAvailable="@(!_metadataCommandInFlight)"
+                                IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                OnCommandActivityChanged="@SetCommandActivityAsync"
                                 OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                 ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                 ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
@@ -156,7 +162,7 @@
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
-    private bool _metadataCommandInFlight;
+    private bool _commandInFlight;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -168,6 +174,9 @@
     private string BackHref => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : "/tenants";
 
     private TenantDetail Detail => _snapshot.Detail ?? throw new InvalidOperationException("Detail is only used when a snapshot is available.");
+
+    private bool IsCommandSurfaceAvailable
+        => !_commandInFlight && BffComposition.IsCommandSurfaceConnected;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -208,9 +217,15 @@
                 ? _snapshot.Detail
                 : null);
 
-    private async Task SetMetadataCommandActivityAsync(bool isActive)
+    private Task<TenantDetail?> GetLifecycleProjectionEvidenceAsync(TenantLifecycleCommandRequest request)
+        => Task.FromResult(
+            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? _snapshot.Detail
+                : null);
+
+    private async Task SetCommandActivityAsync(bool isActive)
     {
-        _metadataCommandInFlight = isActive;
+        _commandInFlight = isActive;
         await Task.CompletedTask.ConfigureAwait(false);
     }
 

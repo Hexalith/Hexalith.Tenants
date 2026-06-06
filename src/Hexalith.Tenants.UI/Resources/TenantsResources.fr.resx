@@ -705,6 +705,195 @@
   <data name="Tenants.Lifecycle.UnavailableReason.StaleData" xml:space="preserve">
     <value>données périmées</value>
   </data>
+  <data name="Tenants.Lifecycle.Preview.Title" xml:space="preserve">
+    <value>Aperçu des conséquences pour {0}</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.Description" xml:space="preserve">
+    <value>Examinez l'aperçu complet des conséquences de cycle de vie pour le locataire {0} avant de soumettre.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.ListTitle" xml:space="preserve">
+    <value>Aperçu des conséquences de cycle de vie</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.TenantIdentity" xml:space="preserve">
+    <value>Identité du locataire</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.CurrentLifecycle" xml:space="preserve">
+    <value>Cycle de vie actuel</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.IntendedLifecycle" xml:space="preserve">
+    <value>Cycle de vie prévu</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownConsequences" xml:space="preserve">
+    <value>Conséquences connues</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownConsequences.EnableTenant" xml:space="preserve">
+    <value>La disponibilité du locataire est rétablie seulement après confirmation de l'état de commande et de la projection Active.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownConsequences.DisableTenant" xml:space="preserve">
+    <value>La disponibilité du locataire est suspendue comme contrôle soft-delete réversible seulement après confirmation de l'état de commande et de la projection Désactivé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Inconnues connues</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>Les consommateurs aval peuvent observer la disponibilité du locataire de manière asynchrone ; la preuve d'audit peut arriver après la confirmation de projection.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuditExpectation" xml:space="preserve">
+    <value>Attente d'audit</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>La preuve d'audit est attendue depuis le pipeline commande/événement et reste en attente jusqu'à preuve explicite.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.RecoveryPath" xml:space="preserve">
+    <value>Chemin de récupération</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Soumettez la commande de cycle de vie opposée après preuve de projection actualisée de l'état courant.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.ProjectionEvidence" xml:space="preserve">
+    <value>Fraîcheur et preuve de projection</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.ProjectionEvidence.Value" xml:space="preserve">
+    <value>La dernière projection confirmée indique actuellement {0} ; l'interface ne la remplace pas par l'état prévu avant preuve par nouvelle requête.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance" xml:space="preserve">
+    <value>Faits d'autorisation et de gouvernance</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance.Value" xml:space="preserve">
+    <value>L'autorité administrateur globale reflétée côté serveur et le chemin de gouvernance FR15 soft-delete réversible approuvé sont présents.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.CommandSurface" xml:space="preserve">
+    <value>Préparation de la surface de commande</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.CommandSurface.Value" xml:space="preserve">
+    <value>La passerelle de commande locataire existante est connectée et la soumission une commande à la fois est appliquée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Confirmation.Label" xml:space="preserve">
+    <value>Saisissez l'identifiant du locataire pour confirmer</value>
+  </data>
+  <data name="Tenants.Lifecycle.Confirmation.Help" xml:space="preserve">
+    <value>Saisissez {0} exactement. Annuler ou Échap ferme sans soumettre.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Confirm" xml:space="preserve">
+    <value>Confirmer {0}</value>
+  </data>
+  <data name="Tenants.Lifecycle.Refresh" xml:space="preserve">
+    <value>Actualiser l'état</value>
+  </data>
+  <data name="Tenants.Lifecycle.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.Lifecycle.Result.Title" xml:space="preserve">
+    <value>Résultat de commande de cycle de vie</value>
+  </data>
+  <data name="Tenants.Lifecycle.ConfirmedStatus" xml:space="preserve">
+    <value>Cycle de vie confirmé en dernier : {0}</value>
+  </data>
+  <data name="Tenants.Lifecycle.Validation.ConfirmationRequired" xml:space="preserve">
+    <value>Saisissez exactement l'identifiant locataire {0} avant de soumettre cette commande de cycle de vie.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface" xml:space="preserve">
+    <value>Une commande locataire est déjà en cours ou la surface de commande de cycle de vie n'est pas connectée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.Identity" xml:space="preserve">
+    <value>L'identité du locataire est incomplète ; la soumission de cycle de vie est bloquée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.SameState" xml:space="preserve">
+    <value>La projection actuelle indique déjà {0} ; la soumission de cycle de vie est bloquée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.PreviewIncomplete" xml:space="preserve">
+    <value>L'aperçu des conséquences est incomplet ; la soumission de cycle de vie est bloquée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.DuplicatePrevented.Message" xml:space="preserve">
+    <value>Une commande de cycle de vie est déjà en cours de soumission. Attendez le résultat actuel avant une autre action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Idle" xml:space="preserve">
+    <value>Aucune commande de cycle de vie n'a été soumise.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Previewed" xml:space="preserve">
+    <value>Aperçu prêt ; aucune commande de cycle de vie n'a été soumise.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.RequestSent" xml:space="preserve">
+    <value>Demande de commande de cycle de vie envoyée ; la projection montre encore le dernier cycle de vie confirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Accepted" xml:space="preserve">
+    <value>Commande de cycle de vie acceptée ; attente de preuve de projection.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; le changement de cycle de vie n'est pas encore confirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Confirmed" xml:space="preserve">
+    <value>La projection a confirmé le changement de cycle de vie.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Rejected" xml:space="preserve">
+    <value>Commande de cycle de vie rejetée ; aucun changement réussi n'est affirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.AlreadyApplied" xml:space="preserve">
+    <value>La projection correspondait déjà au cycle de vie demandé ; aucun succès de commande n'est affirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.DuplicatePrevented" xml:space="preserve">
+    <value>Soumission de cycle de vie en double empêchée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Failed" xml:space="preserve">
+    <value>La commande de cycle de vie a échoué avant vérification.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Degraded" xml:space="preserve">
+    <value>Commande de cycle de vie dégradée ; la publication ou l'audit n'a pas pu être vérifié.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de vérifier le résultat de la commande de cycle de vie.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.NotStarted" xml:space="preserve">
+    <value>La preuve d'audit n'a pas commencé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente ; aucun reçu n'est fabriqué.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.AuditDelayed" xml:space="preserve">
+    <value>Preuve d'audit retardée ; vérifiez de nouveau plus tard.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible pour ce résultat.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.MissingSupport" xml:space="preserve">
+    <value>Support d'audit manquant pour cet état visible.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Idle" xml:space="preserve">
+    <value>Examinez la projection du locataire avant de démarrer une commande de cycle de vie.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Previewed" xml:space="preserve">
+    <value>Annulez pour revenir sans soumettre, ou soumettez seulement après confirmation exacte.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.RequestSent" xml:space="preserve">
+    <value>Gardez visible le dernier cycle de vie confirmé et actualisez l'état.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Accepted" xml:space="preserve">
+    <value>Actualisez l'état et la projection jusqu'à confirmation ou indisponibilité de la preuve.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Actualisez les détails du locataire ; ne considérez pas encore le cycle de vie prévu comme confirmé.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Confirmed" xml:space="preserve">
+    <value>Utilisez la projection actualisée du locataire comme source de vérité.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Rejected" xml:space="preserve">
+    <value>Lisez le texte sûr du rejet, actualisez les détails, puis choisissez une prochaine action valide.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Actualisez les détails du locataire avant de décider si une autre commande est nécessaire.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Attendez le résultat de la commande actuelle avant une autre action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Failed" xml:space="preserve">
+    <value>Actualisez les détails et réessayez seulement si la surface de commande est saine.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Degraded" xml:space="preserve">
+    <value>Actualisez l'état ; la preuve d'audit ou de publication peut être retardée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Actualisez les détails et évitez d'affirmer un changement avant preuve de projection.</value>
+  </data>
   <data name="Tenants.Configuration.Announcement.Results" xml:space="preserve">
     <value>{0} entrées de configuration visibles dans {1} groupes d'espace de noms.</value>
   </data>

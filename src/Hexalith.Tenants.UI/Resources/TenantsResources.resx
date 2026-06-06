@@ -705,6 +705,195 @@
   <data name="Tenants.Lifecycle.UnavailableReason.StaleData" xml:space="preserve">
     <value>stale data</value>
   </data>
+  <data name="Tenants.Lifecycle.Preview.Title" xml:space="preserve">
+    <value>{0} consequence preview</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.Description" xml:space="preserve">
+    <value>Review the full lifecycle consequence preview for tenant {0} before submitting.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.ListTitle" xml:space="preserve">
+    <value>Lifecycle consequence preview</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.TenantIdentity" xml:space="preserve">
+    <value>Tenant identity</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.CurrentLifecycle" xml:space="preserve">
+    <value>Current lifecycle</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.IntendedLifecycle" xml:space="preserve">
+    <value>Intended lifecycle</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownConsequences" xml:space="preserve">
+    <value>Known consequences</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownConsequences.EnableTenant" xml:space="preserve">
+    <value>Tenant availability is restored only after command status and tenant projection evidence confirm Active.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownConsequences.DisableTenant" xml:space="preserve">
+    <value>Tenant availability is suspended as a reversible soft-delete control only after command status and tenant projection evidence confirm Disabled.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Known unknowns</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>Downstream consumers may observe tenant availability asynchronously; audit proof may arrive after projection confirmation.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuditExpectation" xml:space="preserve">
+    <value>Audit expectation</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>Audit evidence is expected from the command/event pipeline and is shown as pending until explicit evidence is available.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.RecoveryPath" xml:space="preserve">
+    <value>Recovery path</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Submit the opposite lifecycle command after refreshed projection evidence shows the current state.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.ProjectionEvidence" xml:space="preserve">
+    <value>Freshness and projection evidence</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.ProjectionEvidence.Value" xml:space="preserve">
+    <value>The last confirmed tenant projection currently shows {0}; the UI will not replace it with the intended state before re-query proof.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance" xml:space="preserve">
+    <value>Authorization and governance facts</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.AuthorizationGovernance.Value" xml:space="preserve">
+    <value>Server-reflected global-administrator authority and the approved FR15 reversible soft-delete governance path are present.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.CommandSurface" xml:space="preserve">
+    <value>Command-surface readiness</value>
+  </data>
+  <data name="Tenants.Lifecycle.Preview.CommandSurface.Value" xml:space="preserve">
+    <value>The existing tenant command gateway is connected and one-at-a-time command submission is enforced.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Confirmation.Label" xml:space="preserve">
+    <value>Type the tenant id to confirm</value>
+  </data>
+  <data name="Tenants.Lifecycle.Confirmation.Help" xml:space="preserve">
+    <value>Type {0} exactly. Cancel or Escape closes without submitting.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Confirm" xml:space="preserve">
+    <value>Confirm {0}</value>
+  </data>
+  <data name="Tenants.Lifecycle.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.Lifecycle.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.Lifecycle.Result.Title" xml:space="preserve">
+    <value>Lifecycle command result</value>
+  </data>
+  <data name="Tenants.Lifecycle.ConfirmedStatus" xml:space="preserve">
+    <value>Last confirmed lifecycle: {0}</value>
+  </data>
+  <data name="Tenants.Lifecycle.Validation.ConfirmationRequired" xml:space="preserve">
+    <value>Type tenant id {0} exactly before submitting this lifecycle command.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface" xml:space="preserve">
+    <value>A tenant command is already in flight or the lifecycle command surface is not connected.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.Identity" xml:space="preserve">
+    <value>Tenant identity is incomplete, so lifecycle submission is blocked.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.SameState" xml:space="preserve">
+    <value>The current projection already shows {0}; lifecycle submission is blocked.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.PreviewIncomplete" xml:space="preserve">
+    <value>The consequence preview is incomplete, so lifecycle submission is blocked.</value>
+  </data>
+  <data name="Tenants.Lifecycle.DuplicatePrevented.Message" xml:space="preserve">
+    <value>A lifecycle command is already being submitted. Wait for the current result before trying another action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Idle" xml:space="preserve">
+    <value>No lifecycle command has been submitted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Previewed" xml:space="preserve">
+    <value>Preview ready; no lifecycle command has been submitted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.RequestSent" xml:space="preserve">
+    <value>Lifecycle command request sent; projection still shows the last confirmed lifecycle.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Accepted" xml:space="preserve">
+    <value>Lifecycle command accepted; waiting for projection evidence.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; lifecycle is not confirmed changed yet.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the lifecycle change.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Rejected" xml:space="preserve">
+    <value>Lifecycle command rejected; no successful lifecycle change is asserted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.AlreadyApplied" xml:space="preserve">
+    <value>Projection already matched the requested lifecycle; no command success is asserted.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.DuplicatePrevented" xml:space="preserve">
+    <value>Duplicate lifecycle submission prevented.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Failed" xml:space="preserve">
+    <value>Lifecycle command failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.Degraded" xml:space="preserve">
+    <value>Lifecycle command is degraded; publication or audit evidence could not be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.State.UnableToVerify" xml:space="preserve">
+    <value>Lifecycle command outcome is unable to verify.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence has not started.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending; no receipt is fabricated.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.AuditDelayed" xml:space="preserve">
+    <value>Audit evidence delayed; verify again later.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable for this result.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit support is missing for this visible state.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Idle" xml:space="preserve">
+    <value>Review the tenant projection before starting a lifecycle command.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Previewed" xml:space="preserve">
+    <value>Cancel to return without submitting, or submit only after confirmation is exact.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.RequestSent" xml:space="preserve">
+    <value>Keep the last confirmed lifecycle visible and refresh status.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Accepted" xml:space="preserve">
+    <value>Refresh status and tenant projection until evidence is confirmed or unavailable.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Refresh tenant detail; do not treat the intended lifecycle as confirmed yet.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Confirmed" xml:space="preserve">
+    <value>Use the refreshed tenant projection as the source of truth.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Rejected" xml:space="preserve">
+    <value>Read the safe rejection text, refresh tenant detail, then choose a valid next action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Refresh tenant detail before deciding whether another lifecycle command is needed.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Wait for the current lifecycle command result before trying another action.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Failed" xml:space="preserve">
+    <value>Refresh tenant detail and retry only if the command surface is healthy.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.Degraded" xml:space="preserve">
+    <value>Refresh status; audit or publication evidence may be delayed.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Refresh tenant detail and avoid asserting a lifecycle change until projection proof exists.</value>
+  </data>
   <data name="Tenants.Configuration.Announcement.Results" xml:space="preserve">
     <value>{0} visible configuration entries across {1} namespace groups.</value>
   </data>

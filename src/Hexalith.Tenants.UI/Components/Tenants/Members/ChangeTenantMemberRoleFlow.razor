@@ -165,6 +165,9 @@
     public EventCallback OnCloseRequested { get; set; }
 
     [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
     public Func<ChangeUserRoleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantChangeRoleCommandSnapshot Snapshot => _snapshot;
@@ -333,6 +336,7 @@
 
         _snapshot = _snapshot.RequestSent(request, Member.Role, OwnerCount);
         _isSubmitting = true;
+        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -370,6 +374,7 @@
         finally
         {
             _isSubmitting = false;
+            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
         }
     }
 

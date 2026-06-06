@@ -364,7 +364,7 @@ The honest caveat — stated consistently by the PRD (§14), Architecture (§Gap
 | # | Gate | Affects | Status |
 |---|------|---------|--------|
 | G1 | **`FC-TBL` tenant-list grid decision** (compose Tenants-specific `TenantDataGrid` vs. FrontComposer enhancement) | Story 1.2 (tenant list) | Open — resolve before 1.2 build; Story 1.1 bootstrap is unaffected |
-| G2 | **Platform-wide destructive actions categorically blocked** pending governance/contract confirmation | Epic 3 Story 3.2 (disable/enable), Epic 4 Stories 4.3/4.4 (global-admin grant/remove) | Blocked by design; correctly modeled (3.1/4.1 readiness/availability stories *are* buildable) |
+| G2 | **Platform-governance destructive actions categorically blocked** pending governance/contract confirmation; hard tenant delete reserved for future CLI tooling | Epic 4 Stories 4.3/4.4 (global-admin grant/remove) | FR15 disable/enable was reclassified on 2026-06-06 as reversible lifecycle soft-delete / availability control and is no longer part of this blocked gate; 4.1 readiness/availability stories remain buildable |
 | G3 | **Epic 5 audit/proof backend evidence readiness** | Stories 5.3 (receipt), 5.5/5.6 (recovery) | Needs validation before build; Story 2.4 degrades gracefully meanwhile |
 | G4 | **Per-story a11y / l10n / responsive / `FC-DOC` ready-gate evidence** | Every UI story | Required per story before it is marked "ready" |
 | G5 | **`sprint-status.yaml` ↔ canonical story-ID synchronization** | Story-creation handoff | Flagged in architecture as the active handoff risk after the 2026-06-05 correction |
@@ -385,7 +385,7 @@ The honest caveat — stated consistently by the PRD (§14), Architecture (§Gap
 1. **Start Story 1.1 (Tenants UI Host Bootstrap) now** — it is unblocked (Story 1.0 cleared its gates) and is the mandated greenfield starter story; it unlocks the entire Epic 1 read foundation.
 2. **Resolve the `FC-TBL` grid decision (G1)** as the immediate next planning action so Story 1.2 (tenant list) can follow 1.1 without stalling.
 3. **Synchronize `sprint-status.yaml` (G5)** to the canonical `epics.md` story IDs before creating the next story — this is the live handoff risk.
-4. **Keep platform-wide destructive stories (3.2, 4.3, 4.4) in `blocked` status (G2)** — build their `blocked-state` readiness siblings (3.1, 4.1) instead; do not bypass the governance gate inside Tenants.
+4. **Keep platform-governance destructive stories (4.3, 4.4) in `blocked` status (G2)** — build their `blocked-state` readiness sibling (4.1) instead. Story 3.2 may proceed after the approved 2026-06-06 correction and story-specific evidence refresh; hard tenant deletion stays out of Tenants UI and belongs to future administrators-only CLI tooling.
 5. **Validate Epic 5 audit/proof backend evidence (G3)** before scheduling Stories 5.3/5.5/5.6; until then, rely on Story 2.4's honest audit-handoff degradation.
 6. **Set the deferred numerics (G6)** and clear the 5 minor polish items opportunistically — none blocks the MVP.
 
