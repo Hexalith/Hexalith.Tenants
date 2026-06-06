@@ -103,6 +103,10 @@
                 <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
                 <p>@ConfigurationSummary(Detail)</p>
             </section>
+
+            <TenantConfigurationView Detail="@Detail"
+                                     SurfaceKind="@_snapshot.Kind"
+                                     Freshness="@_snapshot.Freshness" />
         </section>
     }
     else

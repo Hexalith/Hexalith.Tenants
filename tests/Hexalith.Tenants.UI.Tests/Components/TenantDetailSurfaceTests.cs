@@ -1,10 +1,12 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 using Bunit;
 
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Components.Tenants;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -46,6 +48,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-identity']").TextContent.ShouldContain("tenant.alpha");
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
         cut.Markup.ShouldContain("aria-label=\"Full tenant identifier tenant.alpha\"");
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
     }
@@ -94,6 +97,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [InlineData(TenantDetailSurfaceKind.Unauthorized, "tenants-detail-unauthorized", "authorized")]
     [InlineData(TenantDetailSurfaceKind.NotFound, "tenants-detail-error", "not found")]
     [InlineData(TenantDetailSurfaceKind.Unavailable, "tenants-detail-error", "unavailable")]
+    [InlineData(TenantDetailSurfaceKind.Unknown, "tenants-detail-error", "unavailable")]
     public void Detail_page_renders_distinct_safe_states(
         TenantDetailSurfaceKind kind,
         string selector,
@@ -106,10 +110,149 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForElement($"[data-testid='{selector}']");
 
         cut.Find($"[data-testid='{selector}']").TextContent.ShouldContain(expectedText, Case.Insensitive);
-        if (kind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.NotFound or TenantDetailSurfaceKind.Unavailable)
+        if (kind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.NotFound or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
         {
             cut.Markup.ShouldNotContain("Tenant alpha description");
+            cut.Markup.ShouldNotContain("tenants-config-table");
         }
+    }
+
+    [Fact]
+    public void Configuration_view_groups_namespaces_redacts_sensitive_values_and_preserves_accessible_literals()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
+        {
+            ["billing.mode"] = "trial",
+            ["billing.endpoint"] = "Bearer raw-token",
+            ["billing.connectionString"] = "Server=secret-host;Password=hidden",
+            ["feature"] = "enabled",
+        });
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.FindAll("[data-testid='tenants-config-group']").Count.ShouldBe(2);
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("feature");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Other");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Unavailable");
+        cut.Markup.ShouldContain("data-testid=\"tenants-config-key\"");
+        cut.Markup.ShouldContain("data-testid=\"tenants-config-value-state\"");
+        cut.Markup.ShouldContain("aria-label=\"Full configuration key billing.mode\"");
+        cut.Markup.ShouldContain("aria-label=\"Visible configuration value trial\"");
+        cut.Markup.ShouldNotContain("secret-host");
+        cut.Markup.ShouldNotContain("Password=hidden");
+        cut.Markup.ShouldNotContain("raw-token");
+        cut.Markup.ShouldNotContain("Edit");
+        cut.Markup.ShouldNotContain("Remove");
+        cut.Markup.ShouldNotContain("Set configuration");
+    }
+
+    [Fact]
+    public void Configuration_view_redacts_backend_error_metadata_correlation_ids_tokens_stack_traces_and_pii()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
+        {
+            ["billing.mode"] = "trial",
+            ["diagnostics.metadata"] = "EventStore metadata page=raw-cursor",
+            ["diagnostics.correlation"] = "correlation-123",
+            ["diagnostics.failure"] = "System.InvalidOperationException: stack trace with internal frame",
+            ["identity.contact"] = "jane.doe@example.test",
+            ["security.jwt"] = "eyJhbGciOiJIUzI1NiJ9.raw.payload",
+        });
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("trial");
+        cut.FindAll("[data-testid='tenants-config-value-state']").Count(item => item.TextContent.Contains("Unavailable", StringComparison.Ordinal)).ShouldBe(5);
+        cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
+        cut.Markup.ShouldNotContain("raw-cursor", Case.Insensitive);
+        cut.Markup.ShouldNotContain("correlation-123", Case.Insensitive);
+        cut.Markup.ShouldNotContain("InvalidOperationException", Case.Insensitive);
+        cut.Markup.ShouldNotContain("stack trace", Case.Insensitive);
+        cut.Markup.ShouldNotContain("jane.doe@example.test", Case.Insensitive);
+        cut.Markup.ShouldNotContain("eyJhbGciOiJIUzI1NiJ9", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Configuration_view_keeps_empty_and_filtered_empty_states_distinct()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        IRenderedComponent<TenantConfigurationView> empty = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string>()))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        empty.Find("[data-testid='tenants-config-empty']").TextContent.ShouldContain("No visible configuration");
+        empty.Markup.ShouldNotContain("tenants-config-filtered-empty");
+
+        IRenderedComponent<TenantConfigurationView> filtered = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        filtered.Find("[data-testid='tenants-config-filter']").Change("missing");
+
+        filtered.Find("[data-testid='tenants-config-filtered-empty']").TextContent.ShouldContain("No visible configuration matches");
+        filtered.Find("[data-testid='tenants-config-announcer']").TextContent.ShouldContain("0 visible configuration entries");
+        filtered.Find("[data-testid='tenants-config-clear-filter']").Click();
+        filtered.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+    }
+
+    [Fact]
+    public void Configuration_view_preserves_namespace_context_scope_freshness_and_keyboard_semantics_while_filtering()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string>
+            {
+                ["billing.mode"] = "trial",
+                ["identity.region"] = "eu",
+            }))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.Find("[data-testid='tenants-config-filter']").Change("billing");
+
+        cut.FindAll("[data-testid='tenants-config-group']").Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Namespace billing");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldNotContain("identity.region");
+        cut.Find("[data-testid='tenants-config-truth-state']").TextContent.ShouldContain("Current");
+        cut.Find(".tenant-config__scope").TextContent.ShouldContain("Prefix ownership cannot be verified");
+        cut.Find("[data-testid='tenants-config-announcer']").TextContent.ShouldContain("1 visible configuration entries");
+        cut.Find("[data-testid='tenants-config-filter']").GetAttribute("aria-describedby").ShouldBe("tenants-config-filter-help");
+        cut.Find("[data-testid='tenants-config-clear-filter']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-config-row']").GetAttribute("tabindex").ShouldBe("0");
+    }
+
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, "stale")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown, "degraded")]
+    [InlineData(TenantDetailSurfaceKind.Unknown, TenantFreshnessState.Unknown, "Unknown")]
+    public void Configuration_view_surfaces_non_current_truth_without_collapsing_to_success(
+        TenantDetailSurfaceKind kind,
+        TenantFreshnessState freshness,
+        string expectedText)
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha"))
+            .Add(view => view.SurfaceKind, kind)
+            .Add(view => view.Freshness, freshness));
+
+        cut.Find("[data-testid='tenants-config-truth-state']").TextContent.ShouldContain(expectedText, Case.Insensitive);
+        cut.Find("[data-testid='tenants-config-command-unavailable']").TextContent.ShouldContain("unavailable", Case.Insensitive);
+        cut.Markup.ShouldNotContain("Success");
     }
 
     [Fact]
@@ -204,12 +347,32 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr)");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(":focus-visible");
+
+        string configurationStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "TenantConfigurationView.razor.css"));
+
+        configurationStyles.ShouldContain("overflow-wrap: anywhere");
+        configurationStyles.ShouldContain("grid-template-columns");
+        configurationStyles.ShouldContain("@media (max-width: 767px)");
+        configurationStyles.ShouldContain("@media (forced-colors: active)");
+        configurationStyles.ShouldContain(":focus-visible");
     }
 
     [Fact]
-    public void French_resources_include_detail_keys()
+    public void French_resources_include_detail_and_configuration_keys()
     {
         string projectRoot = ProjectRoot();
+        string invariantResources = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
         string frenchResources = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
@@ -220,7 +383,41 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         frenchResources.ShouldContain("Tenants.Detail.Title");
         frenchResources.ShouldContain("Tenants.Detail.State.Unauthorized.Message");
         frenchResources.ShouldContain("Tenants.Detail.Configuration.Summary");
+        invariantResources.ShouldContain("Tenants.Configuration.Title");
+        invariantResources.ShouldContain("Tenants.Configuration.State.Unauthorized");
+        invariantResources.ShouldContain("Tenants.Configuration.State.Unavailable");
+        invariantResources.ShouldContain("Tenants.Configuration.Value.Unavailable");
+        frenchResources.ShouldContain("Tenants.Configuration.Title");
+        frenchResources.ShouldContain("Tenants.Configuration.State.Unauthorized");
+        frenchResources.ShouldContain("Tenants.Configuration.State.Unavailable");
+        frenchResources.ShouldContain("Tenants.Configuration.Value.Unavailable");
     }
+
+    [Fact]
+    public void Configuration_resources_have_full_invariant_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> invariantKeys = ConfigurationResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.resx"));
+        HashSet<string> frenchKeys = ConfigurationResourceKeys(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Resources",
+            "TenantsResources.fr.resx"));
+
+        invariantKeys.ShouldNotBeEmpty();
+        frenchKeys.ShouldBe(invariantKeys, ignoreOrder: true);
+    }
+
+    private static HashSet<string> ConfigurationResourceKeys(string resourcePath)
+        => Regex.Matches(File.ReadAllText(resourcePath), "name=\"(Tenants\\.Configuration[^\"]+)\"")
+            .Select(static match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
 
     private void RegisterServices(TenantListSnapshot snapshot)
     {
@@ -263,6 +460,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantDetailSurfaceKind.Unauthorized => TenantDetailSnapshot.Unauthorized("tenant.alpha"),
             TenantDetailSurfaceKind.NotFound => TenantDetailSnapshot.NotFound("tenant.alpha"),
             TenantDetailSurfaceKind.Unavailable => TenantDetailSnapshot.Unavailable("Tenant detail query gateway is unavailable."),
+            TenantDetailSurfaceKind.Unknown => TenantDetailSnapshot.Unknown("Tenant detail projection returned no payload."),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 
@@ -270,6 +468,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
     private static TenantDetail Detail(string tenantId)
+        => Detail(tenantId, new Dictionary<string, string>
+        {
+            ["billing.mode"] = "trial",
+        });
+
+    private static TenantDetail Detail(string tenantId, IReadOnlyDictionary<string, string> configuration)
         => new(
             tenantId,
             "Alpha",
@@ -279,10 +483,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 new TenantMember("owner-user", TenantRole.TenantOwner),
                 new TenantMember("reader-user", TenantRole.TenantReader),
             ],
-            new Dictionary<string, string>
-            {
-                ["billing.mode"] = "trial",
-            },
+            configuration,
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -327,6 +528,34 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Detail.StatusAccessibleLabel"] = "Tenant status {0}",
             ["Tenants.Detail.StatusLabel"] = "Status",
             ["Tenants.Detail.Title"] = "Tenant detail",
+            ["Tenants.Configuration.Announcement.Results"] = "{0} visible configuration entries across {1} namespace groups.",
+            ["Tenants.Configuration.ClearFilter"] = "Clear",
+            ["Tenants.Configuration.CommandUnavailable"] = "Configuration commands are unavailable until freshness can be verified.",
+            ["Tenants.Configuration.Description"] = "Read-only visible configuration from the authorized tenant detail projection.",
+            ["Tenants.Configuration.Filter.Help"] = "Scan visible namespaces and literal keys. Prefix ownership is not inferred.",
+            ["Tenants.Configuration.Filter.Label"] = "Filter visible configuration",
+            ["Tenants.Configuration.Filter.Placeholder"] = "Namespace or key",
+            ["Tenants.Configuration.GroupLabel"] = "Namespace {0}",
+            ["Tenants.Configuration.Header.Freshness"] = "Freshness",
+            ["Tenants.Configuration.Header.Key"] = "Key",
+            ["Tenants.Configuration.Header.Namespace"] = "Namespace",
+            ["Tenants.Configuration.Header.Safety"] = "Safety",
+            ["Tenants.Configuration.Header.Value"] = "Value",
+            ["Tenants.Configuration.KeyAccessible"] = "Full configuration key {0}",
+            ["Tenants.Configuration.ScopeNotice"] = "Visible configuration only. Prefix ownership cannot be verified in this read model.",
+            ["Tenants.Configuration.State.Degraded"] = "Configuration evidence is degraded.",
+            ["Tenants.Configuration.State.Empty"] = "No visible configuration is available in this tenant detail projection.",
+            ["Tenants.Configuration.State.Empty.Title"] = "No visible configuration",
+            ["Tenants.Configuration.State.FilteredEmpty"] = "No visible configuration matches the current namespace filter.",
+            ["Tenants.Configuration.State.FilteredEmpty.Title"] = "No matching configuration",
+            ["Tenants.Configuration.State.Stale"] = "Configuration evidence is stale.",
+            ["Tenants.Configuration.Table.Caption"] = "Visible tenant configuration grouped by namespace",
+            ["Tenants.Configuration.Title"] = "Visible configuration",
+            ["Tenants.Configuration.UnscopedNamespace"] = "Other",
+            ["Tenants.Configuration.Value.Safe"] = "Visible",
+            ["Tenants.Configuration.Value.Sensitive"] = "Unavailable",
+            ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
+            ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
             ["Tenants.List.Column.Freshness"] = "Truth state",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",

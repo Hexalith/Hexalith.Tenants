@@ -603,4 +603,127 @@
   <data name="Tenants.Detail.Title" xml:space="preserve">
     <value>Tenant detail</value>
   </data>
+  <data name="Tenants.Configuration.Announcement.Results" xml:space="preserve">
+    <value>{0} visible configuration entries across {1} namespace groups.</value>
+  </data>
+  <data name="Tenants.Configuration.Announcement.Unauthorized" xml:space="preserve">
+    <value>Configuration is not authorized for this tenant detail request.</value>
+  </data>
+  <data name="Tenants.Configuration.Announcement.Unavailable" xml:space="preserve">
+    <value>Configuration is unavailable until tenant detail evidence can be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.ClearFilter" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Tenants.Configuration.CommandUnavailable" xml:space="preserve">
+    <value>Configuration command previews are unavailable until tenant freshness can be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.Description" xml:space="preserve">
+    <value>Read-only visible configuration from the authorized tenant detail projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Filter.Help" xml:space="preserve">
+    <value>Scan visible namespaces and literal keys. Prefix ownership is not inferred from this read model.</value>
+  </data>
+  <data name="Tenants.Configuration.Filter.Label" xml:space="preserve">
+    <value>Filter visible configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Filter.Placeholder" xml:space="preserve">
+    <value>Namespace or key</value>
+  </data>
+  <data name="Tenants.Configuration.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.Configuration.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.Configuration.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.Configuration.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.Configuration.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Configuration.GroupLabel" xml:space="preserve">
+    <value>Namespace {0}</value>
+  </data>
+  <data name="Tenants.Configuration.Header.Freshness" xml:space="preserve">
+    <value>Freshness</value>
+  </data>
+  <data name="Tenants.Configuration.Header.Key" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="Tenants.Configuration.Header.Namespace" xml:space="preserve">
+    <value>Namespace</value>
+  </data>
+  <data name="Tenants.Configuration.Header.Safety" xml:space="preserve">
+    <value>Safety</value>
+  </data>
+  <data name="Tenants.Configuration.Header.Value" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Tenants.Configuration.KeyAccessible" xml:space="preserve">
+    <value>Full configuration key {0}</value>
+  </data>
+  <data name="Tenants.Configuration.ScopeNotice" xml:space="preserve">
+    <value>Visible configuration only. Prefix ownership cannot be verified in this read model.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Degraded" xml:space="preserve">
+    <value>Configuration evidence is degraded.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Degraded.Title" xml:space="preserve">
+    <value>Configuration evidence is degraded</value>
+  </data>
+  <data name="Tenants.Configuration.State.Empty" xml:space="preserve">
+    <value>No visible configuration is available in this tenant detail projection.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Empty.Title" xml:space="preserve">
+    <value>No visible configuration</value>
+  </data>
+  <data name="Tenants.Configuration.State.FilteredEmpty" xml:space="preserve">
+    <value>No visible configuration matches the current namespace filter.</value>
+  </data>
+  <data name="Tenants.Configuration.State.FilteredEmpty.Title" xml:space="preserve">
+    <value>No visible configuration matches filters</value>
+  </data>
+  <data name="Tenants.Configuration.State.Stale" xml:space="preserve">
+    <value>Configuration evidence is stale.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Stale.Title" xml:space="preserve">
+    <value>Configuration evidence is stale</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unauthorized" xml:space="preserve">
+    <value>Configuration is not authorized for this tenant detail request.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unauthorized.Title" xml:space="preserve">
+    <value>Configuration unauthorized</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unavailable" xml:space="preserve">
+    <value>Configuration is unavailable until tenant detail evidence can be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.State.Unavailable.Title" xml:space="preserve">
+    <value>Configuration unavailable</value>
+  </data>
+  <data name="Tenants.Configuration.Table.Caption" xml:space="preserve">
+    <value>Visible tenant configuration grouped by namespace</value>
+  </data>
+  <data name="Tenants.Configuration.Title" xml:space="preserve">
+    <value>Visible configuration</value>
+  </data>
+  <data name="Tenants.Configuration.UnscopedNamespace" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Tenants.Configuration.Value.Safe" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="Tenants.Configuration.Value.Sensitive" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Tenants.Configuration.Value.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Tenants.Configuration.ValueAccessible" xml:space="preserve">
+    <value>Visible configuration value {0}</value>
+  </data>
 </root>

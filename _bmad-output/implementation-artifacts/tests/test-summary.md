@@ -3,37 +3,36 @@
 ## Generated Tests
 
 ### API Tests
-- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` - BFF query gateway coverage for Story 1.3 detail reads, literal tenant id submission, conditional `304` reuse, safe unauthorized/not-found/unavailable states, stale/degraded metadata, sanitized gateway errors, and list detail-enrichment behavior.
+- [x] Not applicable for Story 1.6: the read-only configuration view uses the existing tenant detail BFF/query gateway path and no new API endpoint, query contract, or gateway transport was added.
+- [x] Existing `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` continues to cover tenant-detail source usage, safe gateway state mapping, stale/degraded metadata, `304` reuse, and sanitized backend errors.
 
 ### E2E Tests
-- [x] `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` - Tenant detail workflow coverage for direct detail loading, loading-to-ready transition, operational overview fields, stale/degraded/unauthorized/not-found/unavailable states, safe return navigation, list-context restoration, localization keys, stable selectors, and responsive safety CSS.
-- [x] `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` - Tenant-list workflow coverage for search, filter, sort, cursor paging, detail launch URLs, truth-state markers, pending markers, no browser backend/token access, and forced-colors grid hooks.
-- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs` - Hosted route smoke coverage for `/tenants` and `/tenants/{tenantId}` without requiring live tenant data.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` - Added Story 1.6 configuration-view workflow coverage for unknown detail state safety, backend metadata/correlation/stack/PII/JWT redaction, namespace filtering with visible context, freshness visibility, scope copy, stable selectors, keyboard row traversal, filter controls, and no mutation affordances.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` - Existing Story 1.6 coverage remains for namespace grouping, unscoped keys, empty vs filtered-empty states, sensitive candidate redaction, accessible literal key/value labels, stale/degraded truth states, EN/FR resource parity, forced-colors hooks, focus-visible styling, and responsive no-overlap CSS hooks.
 
 ## Coverage
 
-- API/BFF gateway paths: detail happy path, `304` with previous snapshot, `304` without previous snapshot, `401`/`403`, `404`, `503`, stale metadata, degraded metadata, sanitized errors, and list enrichment degradation.
-- UI detail states: loading, ready/current, stale, degraded, unauthorized, not found, and unavailable.
-- UI workflows: deep-link detail loading, back link context preservation, unsafe return URL fallback, list query context restoration before rendering, stable detail/list selectors, keyboard-reachable links/buttons, and no direct browser API/token storage usage.
-- Responsive/accessibility safety: full tenant identifier accessible text, text-plus-shape status semantics, truth-state badge selector, mobile detail grid fallback, forced-colors hooks, visible focus hooks, and critical list-column overflow.
-- Hosted route smoke: `/tenants` and `/tenants/tenant.alpha` are covered; locally skipped when DAPR/Aspire prerequisites are unavailable.
+- API endpoints: 0 new endpoints for Story 1.6; existing tenant-detail gateway coverage remains in place.
+- UI configuration workflows: namespace grouping, first-dot namespace derivation, unscoped fallback group, filter/clear interaction, empty and filtered-empty states, stale/degraded/unknown freshness handling, visible authorization scope notice, live result announcement, stable `tenants-config-*` selectors, and keyboard-focusable rows.
+- Safety/error cases: sensitive key candidates, bearer/JWT-like values, backend metadata, raw cursors, internal correlation ids, stack traces/exceptions, and email-shaped PII fail closed to localized unavailable text without rendering raw payloads.
+- Accessibility/responsive coverage: semantic table headers/caption, rowgroup scopes, accessible full key/value labels, filter help linkage, button type stability, focus-visible hooks, forced-colors hooks, and responsive table/container CSS.
+- Mutation safety: configuration UI tests assert edit/remove/set affordances are absent.
 
 ## Validation
 
-- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build -m:1 /nr:false -p:NuGetAudit=false` is blocked before test execution by the known .NET 10 Microsoft.Testing.Platform VSTest target error.
-- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -m:1 /nr:false -p:NuGetAudit=false -v:minimal` passed.
-- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -parallel none -noLogo` passed: 46/46.
-- `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release --no-restore -m:1 /nr:false -p:NuGetAudit=false -v:minimal` passed.
-- `tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests -parallel none -noLogo -class Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests` completed with 2/2 skipped because DAPR integration prerequisites are unavailable.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 -nr:false --no-restore` is blocked before execution by the known .NET 10 Microsoft.Testing.Platform/VSTest target error.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` passed with 0 warnings and 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 101 total, 0 failed, 0 skipped.
+- `dotnet build Hexalith.Tenants.slnx -c Release --no-restore -warnaserror -m:1 -nr:false` passed with 0 warnings and 0 errors.
 
 ## Checklist
 
 - [x] API tests generated if applicable.
-- [x] E2E tests generated for the Story 1.3 UI route and tenant detail/list workflows.
-- [x] Tests use standard xUnit v3, Shouldly, Aspire.Hosting.Testing, and bUnit APIs.
-- [x] Tests cover happy paths for detail loading, overview rendering, gateway detail mapping, list return context, and hosted routes.
-- [x] Tests cover critical error/degraded cases for unauthorized, not found, unavailable, stale, degraded, gateway exceptions, and unsafe return URLs.
-- [x] Tests use stable selectors and accessible status/error semantics.
+- [x] E2E tests generated for the Story 1.6 UI workflow.
+- [x] Tests use standard xUnit v3, Shouldly, and bUnit APIs.
+- [x] Tests cover happy paths for configuration source rendering, namespace grouping, filtering, freshness visibility, and stable selectors.
+- [x] Tests cover critical error/safety cases for unknown detail state, stale/degraded freshness, sensitive candidates, backend metadata, internal correlation ids, stack traces, JWT-like values, and PII-shaped values.
+- [x] Tests use semantic and stable locators/selectors.
 - [x] Tests have clear descriptions.
 - [x] No hardcoded waits or sleeps were added.
 - [x] Tests are independent and order-free.

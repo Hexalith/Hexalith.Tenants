@@ -1,0 +1,239 @@
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.Tenants.UI.State.TenantList
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<section class="tenant-config"
+         aria-labelledby="tenants-config-heading"
+         data-testid="tenants-config-section">
+    <header class="tenant-config__header">
+        <div>
+            <h2 id="tenants-config-heading">@Localizer["Tenants.Configuration.Title"]</h2>
+            <p>@Localizer["Tenants.Configuration.Description"]</p>
+            <p class="tenant-config__scope">@Localizer["Tenants.Configuration.ScopeNotice"]</p>
+        </div>
+        <div class="tenant-config__truth" data-testid="tenants-config-truth-state">
+            <TruthStateBadge Freshness="@Freshness"
+                             TestId="tenants-config-truth-badge"
+                             ResourcePrefix="Tenants.Configuration" />
+            @if (SurfaceKind is TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded)
+            {
+                <p>@StateMessage</p>
+            }
+        </div>
+    </header>
+
+    @if (IsCommandPreviewBlocked)
+    {
+        <p class="tenant-config__state"
+           data-testid="tenants-config-command-unavailable">
+            @Localizer["Tenants.Configuration.CommandUnavailable"]
+        </p>
+    }
+
+    <div class="tenant-config__controls" role="search" aria-label="@Localizer["Tenants.Configuration.Filter.Label"]">
+        <label for="tenants-config-filter">@Localizer["Tenants.Configuration.Filter.Label"]</label>
+        <input id="tenants-config-filter"
+               class="tenant-config__filter"
+               data-testid="tenants-config-filter"
+               value="@_filter"
+               placeholder="@Localizer["Tenants.Configuration.Filter.Placeholder"]"
+               aria-describedby="tenants-config-filter-help"
+               @onchange="OnFilterChanged" />
+        <button type="button"
+                class="tenant-config__clear"
+                data-testid="tenants-config-clear-filter"
+                @onclick="ClearFilter">
+            @Localizer["Tenants.Configuration.ClearFilter"]
+        </button>
+        <p id="tenants-config-filter-help">@Localizer["Tenants.Configuration.Filter.Help"]</p>
+    </div>
+
+    <p class="tenant-config__announcer"
+       role="status"
+       aria-live="@LivePoliteness"
+       data-testid="tenants-config-announcer">
+        @Announcement
+    </p>
+
+    @if (Rows.Count == 0)
+    {
+        <section class="tenant-config__state"
+                 data-testid="tenants-config-empty"
+                 role="status">
+            <h3>@Localizer["Tenants.Configuration.State.Empty.Title"]</h3>
+            <p>@Localizer["Tenants.Configuration.State.Empty"]</p>
+        </section>
+    }
+    else if (FilteredRows.Count == 0)
+    {
+        <section class="tenant-config__state"
+                 data-testid="tenants-config-filtered-empty"
+                 role="status">
+            <h3>@Localizer["Tenants.Configuration.State.FilteredEmpty.Title"]</h3>
+            <p>@Localizer["Tenants.Configuration.State.FilteredEmpty"]</p>
+        </section>
+    }
+    else
+    {
+        <div class="tenant-config__table-wrap">
+            <table class="tenant-config__table" data-testid="tenants-config-table">
+                <caption>@Localizer["Tenants.Configuration.Table.Caption"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">@Localizer["Tenants.Configuration.Header.Namespace"]</th>
+                        <th scope="col">@Localizer["Tenants.Configuration.Header.Key"]</th>
+                        <th scope="col">@Localizer["Tenants.Configuration.Header.Value"]</th>
+                        <th scope="col">@Localizer["Tenants.Configuration.Header.Safety"]</th>
+                        <th scope="col">@Localizer["Tenants.Configuration.Header.Freshness"]</th>
+                    </tr>
+                </thead>
+                @foreach (IGrouping<string, ConfigurationRow> group in FilteredRows.GroupBy(static row => row.NamespaceLabel))
+                {
+                    <tbody data-testid="tenants-config-group">
+                        <tr class="tenant-config__group-row">
+                            <th scope="rowgroup" colspan="5">@Localizer["Tenants.Configuration.GroupLabel", group.Key]</th>
+                        </tr>
+                        @foreach (ConfigurationRow row in group)
+                        {
+                            <tr tabindex="0" data-testid="tenants-config-row">
+                                <td>@row.NamespaceLabel</td>
+                                <th scope="row" class="tenant-config__key-header">
+                                    <code data-testid="tenants-config-key"
+                                          aria-label="@Localizer["Tenants.Configuration.KeyAccessible", row.Key]">@row.Key</code>
+                                </th>
+                                <td>
+                                    @if (row.IsSafe)
+                                    {
+                                        <code class="tenant-config__value"
+                                              aria-label="@Localizer["Tenants.Configuration.ValueAccessible", row.DisplayValue]">@row.DisplayValue</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="tenant-config__value tenant-config__value--unavailable"
+                                              aria-label="@Localizer["Tenants.Configuration.Value.Unavailable"]">@Localizer["Tenants.Configuration.Value.Unavailable"]</span>
+                                    }
+                                </td>
+                                <td data-testid="tenants-config-value-state">@row.SafetyLabel</td>
+                                <td><TruthStateBadge Freshness="@Freshness" TestId="tenants-config-row-freshness" ResourcePrefix="Tenants.Configuration" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                }
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly string[] SensitiveFragments =
+    [
+        "secret",
+        "password",
+        "token",
+        "credential",
+        "connectionstring",
+        "bearer ",
+        "metadata",
+        "correlation",
+        "stack trace",
+        "exception",
+        "jwt",
+        "@",
+    ];
+
+    private string _filter = string.Empty;
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    private IReadOnlyList<ConfigurationRow> Rows
+        => Detail.Configuration
+            .OrderBy(static item => NamespaceKey(item.Key), StringComparer.Ordinal)
+            .ThenBy(static item => item.Key, StringComparer.Ordinal)
+            .Select(ToRow)
+            .ToArray();
+
+    private IReadOnlyList<ConfigurationRow> FilteredRows
+        => string.IsNullOrWhiteSpace(_filter)
+            ? Rows
+            : Rows
+                .Where(row => row.NamespaceLabel.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)
+                    || row.Key.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
+                .ToArray();
+
+    private string Announcement
+        => Localizer[
+            "Tenants.Configuration.Announcement.Results",
+            FilteredRows.Count,
+            FilteredRows.Select(static row => row.NamespaceLabel).Distinct(StringComparer.Ordinal).Count()];
+
+    private bool IsCommandPreviewBlocked
+        => SurfaceKind is TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded or TenantDetailSurfaceKind.Unknown
+            || Freshness is TenantFreshnessState.Stale or TenantFreshnessState.Unknown;
+
+    private string LivePoliteness
+        => SurfaceKind is TenantDetailSurfaceKind.Degraded or TenantDetailSurfaceKind.Unknown ? "assertive" : "polite";
+
+    private string StateMessage
+        => SurfaceKind switch
+        {
+            TenantDetailSurfaceKind.Stale => Localizer["Tenants.Configuration.State.Stale"],
+            TenantDetailSurfaceKind.Degraded => Localizer["Tenants.Configuration.State.Degraded"],
+            _ => string.Empty,
+        };
+
+    private void OnFilterChanged(ChangeEventArgs args)
+        => _filter = args.Value?.ToString() ?? string.Empty;
+
+    private void ClearFilter()
+        => _filter = string.Empty;
+
+    private ConfigurationRow ToRow(KeyValuePair<string, string> item)
+    {
+        bool isSafe = IsSupportSafeValue(item.Key, item.Value);
+        string displayValue = isSafe ? item.Value : Localizer["Tenants.Configuration.Value.Unavailable"];
+        return new(
+            NamespaceLabel(item.Key),
+            item.Key,
+            displayValue,
+            isSafe,
+            isSafe ? Localizer["Tenants.Configuration.Value.Safe"] : Localizer["Tenants.Configuration.Value.Sensitive"]);
+    }
+
+    private static bool IsSupportSafeValue(string key, string value)
+    {
+        string normalizedKey = key.Replace(".", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+        string normalizedValue = value.ToLowerInvariant();
+        return !SensitiveFragments.Any(fragment =>
+            normalizedKey.Contains(fragment, StringComparison.Ordinal)
+            || normalizedValue.Contains(fragment, StringComparison.Ordinal));
+    }
+
+    private string NamespaceLabel(string key)
+    {
+        string namespaceKey = NamespaceKey(key);
+        return string.IsNullOrEmpty(namespaceKey)
+            ? Localizer["Tenants.Configuration.UnscopedNamespace"]
+            : namespaceKey;
+    }
+
+    private static string NamespaceKey(string key)
+    {
+        int separator = key.IndexOf('.', StringComparison.Ordinal);
+        return separator > 0 ? key[..separator] : string.Empty;
+    }
+
+    private sealed record ConfigurationRow(
+        string NamespaceLabel,
+        string Key,
+        string DisplayValue,
+        bool IsSafe,
+        string SafetyLabel);
+}
