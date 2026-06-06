@@ -76,6 +76,36 @@ public class QueryDtoSerializationTests {
     }
 
     [Fact]
+    public void PaginatedResult_of_GlobalAdministratorSummary_round_trip_preserves_literal_user_ids() {
+        PaginatedResult<GlobalAdministratorSummary> original = new(
+            Items:
+            [
+                new("platform-admin.alpha"),
+                new("ops_admin-2"),
+            ],
+            Cursor: "opaque-cursor",
+            HasMore: true);
+
+        string json = JsonSerializer.Serialize(original, JsonOptions);
+        PaginatedResult<GlobalAdministratorSummary>? deserialized = JsonSerializer.Deserialize<PaginatedResult<GlobalAdministratorSummary>>(json, JsonOptions);
+
+        _ = deserialized.ShouldNotBeNull();
+        deserialized.Items.Count.ShouldBe(2);
+        deserialized.Items[0].UserId.ShouldBe("platform-admin.alpha");
+        deserialized.Items[1].UserId.ShouldBe("ops_admin-2");
+        deserialized.Cursor.ShouldBe("opaque-cursor");
+        deserialized.HasMore.ShouldBeTrue();
+
+        using var document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        root.TryGetProperty("items", out JsonElement items).ShouldBeTrue();
+        items[0].GetProperty("userId").GetString().ShouldBe("platform-admin.alpha");
+        items[0].TryGetProperty("UserId", out _).ShouldBeFalse();
+        root.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
+        root.GetProperty("hasMore").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
     public void UserTenantMembership_round_trip_uses_camelCase_shape_and_string_enums() {
         UserTenantMembership original = new(
             TenantId: "tenant-1",

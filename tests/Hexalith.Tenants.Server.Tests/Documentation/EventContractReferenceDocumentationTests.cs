@@ -139,6 +139,7 @@ public class EventContractReferenceDocumentationTests {
         reference.ShouldContain("PaginatedResult<TenantMember>");
         reference.ShouldContain("PaginatedResult<UserTenantMembership>");
         reference.ShouldContain("PaginatedResult<TenantAuditEntry>");
+        reference.ShouldContain("PaginatedResult<GlobalAdministratorSummary>");
     }
 
     [Fact]
@@ -176,7 +177,7 @@ public class EventContractReferenceDocumentationTests {
         contractTypes.Count(static type => type.Namespace == typeof(CreateTenant).Namespace).ShouldBe(12);
         contractTypes.Count(static type => type.Namespace == typeof(TenantCreated).Namespace).ShouldBe(11);
         contractTypes.Count(static type => type.Namespace == typeof(TenantNotFoundRejection).Namespace).ShouldBe(14);
-        contractTypes.Count(static type => typeof(IQueryContract).IsAssignableFrom(type)).ShouldBe(5);
+        contractTypes.Count(static type => typeof(IQueryContract).IsAssignableFrom(type)).ShouldBe(6);
         contractTypes.ShouldContain(typeof(PaginatedResult<>));
         contractTypes.Count(static type => type.IsEnum).ShouldBe(3);
 

@@ -1,3 +1,4 @@
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -24,5 +25,10 @@ public interface ITenantQueryGateway
     Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
         UserTenantMembershipRequest request,
         UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default);
+
+    Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+        GlobalAdministratorsRequest request,
+        GlobalAdministratorsSnapshot? previous,
         CancellationToken cancellationToken = default);
 }

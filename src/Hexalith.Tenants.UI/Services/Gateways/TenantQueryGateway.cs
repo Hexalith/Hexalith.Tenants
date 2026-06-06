@@ -7,6 +7,7 @@ using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -18,6 +19,7 @@ internal sealed class TenantQueryGateway(
     IUserContextAccessor userContextAccessor) : ITenantQueryGateway
 {
     private const string SystemTenant = "system";
+    private const string GlobalAdministratorsAggregateId = "global-administrators";
     private const string TenantIndexAggregateId = "index";
 
     public async Task<TenantDetailSnapshot> GetTenantAsync(
@@ -200,6 +202,100 @@ internal sealed class TenantQueryGateway(
         }
     }
 
+    public async Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+        GlobalAdministratorsRequest request,
+        GlobalAdministratorsSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        string? authenticatedUserId = userContextAccessor.UserId;
+        if (string.IsNullOrWhiteSpace(authenticatedUserId))
+        {
+            return GlobalAdministratorsSnapshot.Unauthorized(GlobalAdministratorsReason.MissingAuthenticatedUser);
+        }
+
+        try
+        {
+            SubmitQueryRequest query = CreateGlobalAdministratorsQuery(request);
+            EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>> result = await gatewayClient
+                .SubmitQueryAsync<PaginatedResult<GlobalAdministratorSummary>>(query, request.ETag, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (result.IsNotModified)
+            {
+                return previous is null
+                    ? GlobalAdministratorsSnapshot.Degraded(
+                        [],
+                        GlobalAdministratorsReason.NotModifiedWithoutSnapshot,
+                        result.ETag)
+                    : previous with
+                    {
+                        ETag = result.ETag ?? previous.ETag,
+                        Freshness = previous.Kind is GlobalAdministratorsSurfaceKind.Ready
+                            or GlobalAdministratorsSurfaceKind.Empty
+                                ? TenantFreshnessState.Current
+                                : previous.Freshness,
+                    };
+            }
+
+            PaginatedResult<GlobalAdministratorSummary>? payload = result.Payload;
+            if (payload is null)
+            {
+                return previous is null
+                    ? GlobalAdministratorsSnapshot.Degraded(
+                        [],
+                        GlobalAdministratorsReason.MissingPayload,
+                        result.ETag)
+                    : previous with
+                    {
+                        Kind = GlobalAdministratorsSurfaceKind.Degraded,
+                        Reason = GlobalAdministratorsReason.MissingPayload,
+                        ETag = result.ETag ?? previous.ETag,
+                        Freshness = TenantFreshnessState.Unknown,
+                    };
+            }
+
+            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            IReadOnlyList<GlobalAdministratorRow> rows = payload.Items
+                .Select(m => GlobalAdministratorRow.FromSummary(m) with { Freshness = freshness })
+                .ToArray();
+
+            if (result.Metadata?.IsStale == true)
+            {
+                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
+                return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
+            }
+
+            if (result.Metadata?.IsDegraded == true)
+            {
+                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Unknown }).ToArray();
+                return GlobalAdministratorsSnapshot.Degraded(
+                    rows,
+                    GlobalAdministratorsReason.ProjectionDegraded,
+                    result.ETag,
+                    payload.Cursor,
+                    payload.HasMore);
+            }
+
+            if (rows.Count == 0)
+            {
+                return GlobalAdministratorsSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag);
+            }
+
+            return GlobalAdministratorsSnapshot.Ready(
+                rows,
+                payload.Cursor,
+                payload.HasMore,
+                result.ETag,
+                freshness);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapGlobalAdministratorsException(ex);
+        }
+    }
+
     public async Task<TenantListSnapshot> ListTenantsAsync(
         TenantListRequest request,
         TenantListSnapshot? previous,
@@ -284,6 +380,21 @@ internal sealed class TenantQueryGateway(
                 pageSize = request.PageSize,
             }),
             EntityId: request.TargetUserId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+
+    private static SubmitQueryRequest CreateGlobalAdministratorsQuery(GlobalAdministratorsRequest request)
+        => new(
+            SystemTenant,
+            GetGlobalAdministratorsQuery.Domain,
+            GlobalAdministratorsAggregateId,
+            GetGlobalAdministratorsQuery.QueryType,
+            ProjectionType: GetGlobalAdministratorsQuery.ProjectionType,
+            Payload: JsonSerializer.SerializeToElement(new
+            {
+                cursor = request.Cursor,
+                pageSize = request.PageSize,
+            }),
+            EntityId: GlobalAdministratorsAggregateId,
             ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
@@ -389,5 +500,17 @@ internal sealed class TenantQueryGateway(
             (int)HttpStatusCode.ServiceUnavailable
                 => UserTenantMembershipSnapshot.Unavailable(targetUserId: targetUserId),
             _ => UserTenantMembershipSnapshot.Degraded([], UserTenantMembershipReason.GatewayFailure, targetUserId: targetUserId),
+        };
+
+    private static GlobalAdministratorsSnapshot MapGlobalAdministratorsException(EventStoreGatewayException exception)
+        => exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => GlobalAdministratorsSnapshot.Unauthorized(),
+            (int)HttpStatusCode.BadRequest
+                => GlobalAdministratorsSnapshot.Invalid(),
+            (int)HttpStatusCode.NotFound or (int)HttpStatusCode.NotImplemented or (int)HttpStatusCode.ServiceUnavailable
+                => GlobalAdministratorsSnapshot.Unavailable(),
+            _ => GlobalAdministratorsSnapshot.Degraded([], GlobalAdministratorsReason.GatewayFailure),
         };
 }

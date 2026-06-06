@@ -1,6 +1,7 @@
 @page "/global-administrators"
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
+@inject ITenantQueryGateway QueryGateway
 
 <PageTitle>@PageTitleText</PageTitle>
 
@@ -8,104 +9,231 @@
     <header class="global-admins__header">
         <p class="global-admins__eyebrow">@Localizer["Tenants.GlobalAdministrators.Eyebrow"]</p>
         <h1 id="global-admins-heading">@PageTitleText</h1>
+        <p>@Localizer["Tenants.GlobalAdministrators.Description"]</p>
     </header>
 
-    <section class="global-admins__unavailable"
-             role="alert"
-             aria-label="@UnavailableTitle"
+    <section class="global-admins__scope"
+             aria-labelledby="global-admins-scope-heading"
+             data-testid="tenants-global-admins-scope">
+        <h2 id="global-admins-scope-heading">@Localizer["Tenants.GlobalAdministrators.Scope.Title"]</h2>
+        <p>@Localizer["Tenants.GlobalAdministrators.Scope.Message"]</p>
+        <dl>
+            <div>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
+                <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
+            </div>
+            <div>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Label"]</dt>
+                <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Value"]</dd>
+            </div>
+            <div>
+                <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Label"]</dt>
+                <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Value"]</dd>
+            </div>
+        </dl>
+    </section>
+
+    <section class="global-admins__state global-admins__state--@StateCss"
+             role="@StatusRole"
+             aria-live="@StatusLive"
              tabindex="0"
-             data-testid="tenants-global-admins-unavailable">
+             data-testid="@StateTestId">
         <span class="global-admins__state-icon" aria-hidden="true">@StateIcon</span>
         <div class="global-admins__state-copy">
-            <h2>@UnavailableTitle</h2>
-            <p id="global-admins-live-region"
-               aria-live="assertive"
-               data-testid="tenants-global-admins-live-region">@UnavailableMessage</p>
+            <h2>@StatusHeading</h2>
+            <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
         </div>
     </section>
 
-    @if (IsAuthorized)
+    @if (ShouldRenderRows)
     {
-        <section class="global-admins__contract"
-                 aria-labelledby="global-admins-read-contract-heading"
-                 data-testid="tenants-global-admins-read-contract">
-            <h2 id="global-admins-read-contract-heading">@Localizer["Tenants.GlobalAdministrators.ReadContract.Title"]</h2>
-            <p>@Localizer["Tenants.GlobalAdministrators.ReadContract.Description"]</p>
-            <dl>
-                <div>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
-                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
-                </div>
-                <div>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Label"]</dt>
-                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Value"]</dd>
-                </div>
-                <div>
-                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Label"]</dt>
-                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Value"]</dd>
-                </div>
-            </dl>
+        <section class="global-admins__table-shell"
+                 aria-labelledby="global-admins-list-heading"
+                 data-testid="tenants-global-admins-list">
+            <div class="global-admins__table-header">
+                <h2 id="global-admins-list-heading">@Localizer["Tenants.GlobalAdministrators.List.Title"]</h2>
+                <button type="button" data-testid="tenants-global-admins-refresh" @onclick="RefreshAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Refresh"]
+                </button>
+            </div>
+            <div class="global-admins__table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Identity"]</th>
+                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Scope"]</th>
+                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Freshness"]</th>
+                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (GlobalAdministratorRow row in _snapshot.Rows)
+                        {
+                            <tr data-testid="tenants-global-admins-row">
+                                <td>
+                                    <div class="global-admins__identity">
+                                        <span class="global-admins__identity-value"
+                                              title="@row.UserId"
+                                              aria-label="@Localizer["Tenants.GlobalAdministrators.Identity.Accessible", row.UserId]"
+                                              data-testid="tenants-global-admins-user-id">@row.UserId</span>
+                                        <SupportSafeCopyButton Value="@row.UserId"
+                                                               ValueKind="SupportSafeCopyValueKind.UserId"
+                                                               AccessibleName="@Localizer["Tenants.GlobalAdministrators.Copy.UserId", row.UserId]"
+                                                               TestId="tenants-global-admins-copy-user-id" />
+                                    </div>
+                                </td>
+                                <td data-testid="tenants-global-admins-authority-scope">
+                                    @Localizer["Tenants.GlobalAdministrators.Row.Scope"]
+                                </td>
+                                <td data-testid="tenants-global-admins-freshness">
+                                    <TruthStateBadge Freshness="@row.Freshness"
+                                                     TestId="tenants-global-admins-truth-state"
+                                                     ResourcePrefix="Tenants.GlobalAdministrators" />
+                                </td>
+                                <td>
+                                    <div class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
+                                        <span data-testid="tenants-global-admins-grant-reason">@UnavailableActionReason</span>
+                                        <span data-testid="tenants-global-admins-remove-reason">@UnavailableActionReason</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <nav class="global-admins__pager" aria-label="@Localizer["Tenants.GlobalAdministrators.PaginationLabel"]">
+                <button type="button" data-testid="tenants-global-admins-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Previous"]
+                </button>
+                <button type="button" data-testid="tenants-global-admins-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Next"]
+                </button>
+            </nav>
         </section>
     }
-
-    <section class="global-admins__recovery"
-             aria-labelledby="global-admins-recovery-heading"
-             data-testid="tenants-global-admins-recovery">
-        <h2 id="global-admins-recovery-heading">@RecoveryHeading</h2>
-        <p>@RecoveryMessage</p>
-        @if (IsAuthorized)
-        {
-            <ul class="global-admins__facts">
-                <li>
-                    <span aria-hidden="true">!</span>
-                    <span>@Localizer["Tenants.GlobalAdministrators.States.MissingReadSupport"]</span>
-                </li>
-                <li>
-                    <span aria-hidden="true">?</span>
-                    <span>@Localizer["Tenants.GlobalAdministrators.States.UnknownFreshness"]</span>
-                </li>
-            </ul>
-        }
-        else
-        {
-            <ul class="global-admins__facts">
-                <li>
-                    <span aria-hidden="true">!</span>
-                    <span>@Localizer["Tenants.GlobalAdministrators.States.MissingPermission"]</span>
-                </li>
-            </ul>
-        }
-    </section>
 </main>
 
 @code {
+    private const int PageSize = 20;
+    private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
+    private readonly Stack<string?> _cursorHistory = new();
+    private string? _currentCursor;
+
     private bool IsAuthorized
         => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
+
+    private bool ShouldRenderRows
+        => (_snapshot.Kind is GlobalAdministratorsSurfaceKind.Ready
+            or GlobalAdministratorsSurfaceKind.Stale
+            or GlobalAdministratorsSurfaceKind.Degraded)
+            && _snapshot.Rows.Count > 0;
 
     private string PageTitleText
         => IsAuthorized
             ? Localizer["Tenants.GlobalAdministrators.Title"]
             : Localizer["Tenants.GlobalAdministrators.RestrictedTitle"];
 
-    private string UnavailableTitle
-        => IsAuthorized
-            ? Localizer["Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title"]
-            : Localizer["Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title"];
+    private string StatusHeading
+        => !IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.State.Unauthorized.Title"]
+            : Localizer[$"Tenants.GlobalAdministrators.State.{ResourceState}.Title"];
 
-    private string UnavailableMessage
-        => IsAuthorized
-            ? Localizer["Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Message"]
-            : Localizer["Tenants.GlobalAdministrators.Unavailable.MissingPermission.Message"];
+    private string StatusMessage
+        => !IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.State.Unauthorized.Message"]
+            : Localizer[$"Tenants.GlobalAdministrators.State.{ResourceState}.Message"];
 
-    private string RecoveryHeading
-        => IsAuthorized
-            ? Localizer["Tenants.GlobalAdministrators.Recovery.MissingReadSupport.Title"]
-            : Localizer["Tenants.GlobalAdministrators.Recovery.MissingPermission.Title"];
+    private string ResourceState => _snapshot.Kind switch
+    {
+        GlobalAdministratorsSurfaceKind.Loading => "Loading",
+        GlobalAdministratorsSurfaceKind.Ready => "Ready",
+        GlobalAdministratorsSurfaceKind.Empty => "Empty",
+        GlobalAdministratorsSurfaceKind.Stale => "Stale",
+        GlobalAdministratorsSurfaceKind.Degraded => "Degraded",
+        GlobalAdministratorsSurfaceKind.Unauthorized => "Unauthorized",
+        GlobalAdministratorsSurfaceKind.Unavailable => "Unavailable",
+        GlobalAdministratorsSurfaceKind.Invalid => "Invalid",
+        _ => "Unavailable",
+    };
 
-    private string RecoveryMessage
+    private string StateTestId
         => IsAuthorized
-            ? Localizer["Tenants.GlobalAdministrators.Recovery.MissingReadSupport"]
-            : Localizer["Tenants.GlobalAdministrators.Recovery.MissingPermission"];
+            ? $"tenants-global-admins-{ResourceState.ToLowerInvariant()}"
+            : "tenants-global-admins-unavailable";
 
-    private string StateIcon => IsAuthorized ? "!" : "?";
+    private string StateCss
+        => IsAuthorized ? ResourceState.ToLowerInvariant() : "unauthorized";
+
+    private string StatusRole
+        => !IsAuthorized
+            || _snapshot.Kind is GlobalAdministratorsSurfaceKind.Invalid
+                or GlobalAdministratorsSurfaceKind.Stale
+                or GlobalAdministratorsSurfaceKind.Degraded
+                or GlobalAdministratorsSurfaceKind.Unauthorized
+                or GlobalAdministratorsSurfaceKind.Unavailable
+            ? "alert"
+            : "status";
+
+    private string StatusLive => StatusRole == "alert" ? "assertive" : "polite";
+
+    private string StateIcon => _snapshot.Kind switch
+    {
+        GlobalAdministratorsSurfaceKind.Ready => "OK",
+        GlobalAdministratorsSurfaceKind.Empty => "0",
+        GlobalAdministratorsSurfaceKind.Loading => "...",
+        GlobalAdministratorsSurfaceKind.Stale => "!",
+        GlobalAdministratorsSurfaceKind.Degraded => "!",
+        GlobalAdministratorsSurfaceKind.Invalid => "!",
+        _ => "?",
+    };
+
+    private string UnavailableActionReason
+        => _snapshot.Freshness is TenantFreshnessState.Current
+            ? Localizer["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"]
+            : Localizer["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsAuthorized)
+        {
+            _snapshot = GlobalAdministratorsSnapshot.Unauthorized();
+            return;
+        }
+
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task LoadAsync(bool reuseETag)
+    {
+        GlobalAdministratorsSnapshot previous = _snapshot;
+        _snapshot = GlobalAdministratorsSnapshot.Loading();
+
+        GlobalAdministratorsRequest request = new(
+            Cursor: _currentCursor,
+            PageSize: PageSize,
+            ETag: reuseETag ? previous.ETag : null);
+
+        _snapshot = await QueryGateway
+            .GetGlobalAdministratorsAsync(request, previous, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    private async Task RefreshAsync()
+        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task NextPageAsync()
+    {
+        _cursorHistory.Push(_currentCursor);
+        _currentCursor = _snapshot.NextCursor;
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (_cursorHistory.Count > 0)
+        {
+            _currentCursor = _cursorHistory.Pop();
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
 }

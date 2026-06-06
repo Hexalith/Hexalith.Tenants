@@ -112,6 +112,7 @@ builder.Services.AddScoped<IDomainQueryHandler, GetTenantUsersQueryHandler>();
 builder.Services.AddScoped<IDomainQueryHandler, GetUserTenantsQueryHandler>();
 builder.Services.AddScoped<IDomainQueryHandler, ListTenantsQueryHandler>();
 builder.Services.AddScoped<IDomainQueryHandler, GetTenantAuditQueryHandler>();
+builder.Services.AddScoped<IDomainQueryHandler, GetGlobalAdministratorsQueryHandler>();
 
 // Command status and archive stores required by SubmitCommandHandler
 builder.Services.Configure<CommandStatusOptions>(

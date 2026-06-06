@@ -2409,49 +2409,124 @@
   <data name="Tenants.GlobalAdministrators.Eyebrow" xml:space="preserve">
     <value>Platform governance</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.ReadContract.Description" xml:space="preserve">
-    <value>The fixed aggregate has projection write evidence, but no current query contract or REST endpoint exposes a global-administrator read route.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.ReadContract.Title" xml:space="preserve">
-    <value>Read contract boundary</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingPermission" xml:space="preserve">
-    <value>Request platform authority through the approved operations path; this page does not reveal hidden authority data.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingPermission.Title" xml:space="preserve">
-    <value>Recovery guidance</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingReadSupport" xml:space="preserve">
-    <value>Do not use tenant, member, or user membership endpoints as a substitute. Wait for a backend/API read-contract story.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingReadSupport.Title" xml:space="preserve">
-    <value>Recovery guidance</value>
-  </data>
   <data name="Tenants.GlobalAdministrators.RestrictedTitle" xml:space="preserve">
     <value>Platform area unavailable</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.States.MissingPermission" xml:space="preserve">
-    <value>Missing platform authority</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.States.MissingReadSupport" xml:space="preserve">
-    <value>Missing implementation support</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.States.UnknownFreshness" xml:space="preserve">
-    <value>Freshness unknown until a read route exists</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Title" xml:space="preserve">
     <value>Global Administrators</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingPermission.Message" xml:space="preserve">
-    <value>Server-side authorization reflection did not confirm platform authority. The area fails closed.</value>
+  <data name="Tenants.GlobalAdministrators.Action.Unavailable.Freshness" xml:space="preserve">
+    <value>Unavailable until projection freshness is current.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title" xml:space="preserve">
+  <data name="Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly" xml:space="preserve">
+    <value>Unavailable in this read-only review.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Actions" xml:space="preserve">
+    <value>Grant/remove availability</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Freshness" xml:space="preserve">
+    <value>Freshness</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Identity" xml:space="preserve">
+    <value>Administrator identity</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Scope" xml:space="preserve">
+    <value>Authority scope</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Copy.UserId" xml:space="preserve">
+    <value>Copy global administrator identifier {0}</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Description" xml:space="preserve">
+    <value>Review platform-level administrators from the fixed global-administrators authority scope.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Identity.Accessible" xml:space="preserve">
+    <value>Global administrator identifier {0}</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.List.Title" xml:space="preserve">
+    <value>Current global administrators</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.PaginationLabel" xml:space="preserve">
+    <value>Global administrator pages</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Row.Scope" xml:space="preserve">
+    <value>Platform authority, not tenant ownership</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Scope.Message" xml:space="preserve">
+    <value>This surface uses the singleton platform authority aggregate and never substitutes tenant membership data.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Scope.Title" xml:space="preserve">
+    <value>Fixed aggregate scope</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Degraded.Message" xml:space="preserve">
+    <value>Projection data is degraded. Last confirmed administrators remain visible and actions are unavailable.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Degraded.Title" xml:space="preserve">
+    <value>Global administrator data degraded</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Empty.Message" xml:space="preserve">
+    <value>No global administrators were returned for the authorized fixed scope.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Empty.Title" xml:space="preserve">
+    <value>No global administrators returned</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Invalid.Message" xml:space="preserve">
+    <value>The requested page cursor is invalid. No administrator data is revealed.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Invalid.Title" xml:space="preserve">
+    <value>Invalid global administrator page</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Loading.Message" xml:space="preserve">
+    <value>Loading global administrators from the fixed platform authority scope.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Loading.Title" xml:space="preserve">
+    <value>Loading global administrators</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Ready.Message" xml:space="preserve">
+    <value>Global administrators are loaded from the fixed platform authority projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Ready.Title" xml:space="preserve">
+    <value>Global administrators loaded</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Stale.Message" xml:space="preserve">
+    <value>Projection freshness is stale. Last confirmed administrators remain visible and actions are unavailable.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Stale.Title" xml:space="preserve">
+    <value>Global administrator data stale</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unauthorized.Message" xml:space="preserve">
+    <value>Platform authority was not confirmed. The area fails closed and does not reveal administrator data.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unauthorized.Title" xml:space="preserve">
     <value>Platform area unavailable</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Message" xml:space="preserve">
-    <value>The fixed aggregate is global-administrators, but this UI has no confirmed read contract for administrator data yet.</value>
+  <data name="Tenants.GlobalAdministrators.State.Unavailable.Message" xml:space="preserve">
+    <value>The global administrator read surface is unavailable. No hidden administrator data is shown.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title" xml:space="preserve">
-    <value>Global administrator read support is not implemented yet</value>
+  <data name="Tenants.GlobalAdministrators.State.Unavailable.Title" xml:space="preserve">
+    <value>Global administrator data unavailable</value>
   </data>
 </root>

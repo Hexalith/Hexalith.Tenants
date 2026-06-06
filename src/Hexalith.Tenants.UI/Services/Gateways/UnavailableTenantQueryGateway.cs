@@ -1,3 +1,4 @@
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -33,4 +34,10 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway
 
         return Task.FromResult(UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId));
     }
+
+    public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+        GlobalAdministratorsRequest request,
+        GlobalAdministratorsSnapshot? previous,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(GlobalAdministratorsSnapshot.Unavailable());
 }

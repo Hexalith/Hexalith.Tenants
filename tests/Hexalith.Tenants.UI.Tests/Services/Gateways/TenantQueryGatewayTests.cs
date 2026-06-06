@@ -9,6 +9,7 @@ using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -181,6 +182,119 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Empty);
         snapshot.IsAuthorizationScopedEmpty.ShouldBeTrue();
         snapshot.ErrorMessage.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_submits_fixed_platform_scope_query()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<GlobalAdministratorSummary>(
+            [new GlobalAdministratorSummary("admin-1")],
+            "next-cursor",
+            true));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot snapshot = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(Cursor: "opaque-cursor", PageSize: 10, ETag: "\"known\""), null, CancellationToken.None);
+
+        SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
+        query.Request.Tenant.ShouldBe("system");
+        query.Request.Domain.ShouldBe(GetGlobalAdministratorsQuery.Domain);
+        query.Request.AggregateId.ShouldBe("global-administrators");
+        query.Request.EntityId.ShouldBe("global-administrators");
+        query.Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
+        query.Request.ProjectionType.ShouldBe(GetGlobalAdministratorsQuery.ProjectionType);
+        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.IfNoneMatch.ShouldBe("\"known\"");
+        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
+        payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
+        payload.GetProperty("pageSize").GetInt32().ShouldBe(10);
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
+        snapshot.NextCursor.ShouldBe("next-cursor");
+        snapshot.HasMore.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_preserves_previous_rows_for_not_modified()
+    {
+        GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: TenantFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueGlobalAdministratorsNotModified("\"known\"");
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot snapshot = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
+        snapshot.ETag.ShouldBe("\"known\"");
+        snapshot.Freshness.ShouldBe(TenantFreshnessState.Current);
+    }
+
+    [Theory]
+    [InlineData(true, false, GlobalAdministratorsSurfaceKind.Stale, TenantFreshnessState.Stale)]
+    [InlineData(false, true, GlobalAdministratorsSurfaceKind.Degraded, TenantFreshnessState.Unknown)]
+    public async Task Get_global_administrators_maps_stale_and_degraded_metadata_without_losing_rows(
+        bool isStale,
+        bool isDegraded,
+        GlobalAdministratorsSurfaceKind expectedKind,
+        TenantFreshnessState expectedFreshness)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot snapshot = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Freshness.ShouldBe(expectedFreshness);
+        snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
+    }
+
+    [Theory]
+    [InlineData(401, GlobalAdministratorsSurfaceKind.Unauthorized)]
+    [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized)]
+    [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid)]
+    [InlineData(404, GlobalAdministratorsSurfaceKind.Unavailable)]
+    [InlineData(501, GlobalAdministratorsSurfaceKind.Unavailable)]
+    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable)]
+    public async Task Get_global_administrators_maps_gateway_status_to_safe_snapshot_state(
+        int statusCode,
+        GlobalAdministratorsSurfaceKind expected)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            statusCode,
+            "Problem title",
+            detail: "raw payload token secret stack trace correlation-123 cursor etag"));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot snapshot = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.Reason.ToString().ShouldNotContain("raw", Case.Insensitive);
+        snapshot.Reason.ToString().ShouldNotContain("token", Case.Insensitive);
+        client.SubmittedQueries.Count.ShouldBe(1);
+        client.SubmittedQueries[0].Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
+        string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
+        client.SubmittedQueries
+            .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
+            .ShouldBeFalse();
     }
 
     [Fact]
@@ -650,6 +764,16 @@ public sealed class TenantQueryGatewayTests
 
         public void EnqueueUserTenantsNotModified(string? eTag)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<UserTenantMembership>>(
+                null,
+                null,
+                IsNotModified: true,
+                eTag)
+            {
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+            });
+
+        public void EnqueueGlobalAdministratorsNotModified(string? eTag)
+            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>>(
                 null,
                 null,
                 IsNotModified: true,

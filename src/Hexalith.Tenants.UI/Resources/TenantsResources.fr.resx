@@ -2409,49 +2409,124 @@
   <data name="Tenants.GlobalAdministrators.Eyebrow" xml:space="preserve">
     <value>Gouvernance plateforme</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.ReadContract.Description" xml:space="preserve">
-    <value>L'agregat fixe dispose d'une preuve d'ecriture de projection, mais aucun contrat de requete ni endpoint REST actuel n'expose une route de lecture des administrateurs globaux.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.ReadContract.Title" xml:space="preserve">
-    <value>Limite du contrat de lecture</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingPermission" xml:space="preserve">
-    <value>Demandez l'autorite plateforme par le parcours d'operations approuve ; cette page ne revele aucune donnee d'autorite cachee.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingPermission.Title" xml:space="preserve">
-    <value>Guide de reprise</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingReadSupport" xml:space="preserve">
-    <value>N'utilisez pas les endpoints de locataires, membres ou appartenances utilisateur comme substitut. Attendez une story backend/API de contrat de lecture.</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.Recovery.MissingReadSupport.Title" xml:space="preserve">
-    <value>Guide de reprise</value>
-  </data>
   <data name="Tenants.GlobalAdministrators.RestrictedTitle" xml:space="preserve">
     <value>Zone plateforme indisponible</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.States.MissingPermission" xml:space="preserve">
-    <value>Autorite plateforme manquante</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.States.MissingReadSupport" xml:space="preserve">
-    <value>Prise en charge d'implementation manquante</value>
-  </data>
-  <data name="Tenants.GlobalAdministrators.States.UnknownFreshness" xml:space="preserve">
-    <value>Fraicheur inconnue tant qu'une route de lecture n'existe pas</value>
   </data>
   <data name="Tenants.GlobalAdministrators.Title" xml:space="preserve">
     <value>Administrateurs globaux</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingPermission.Message" xml:space="preserve">
-    <value>La reflexion d'autorisation cote serveur n'a pas confirme l'autorite plateforme. La zone echoue fermee.</value>
+  <data name="Tenants.GlobalAdministrators.Action.Unavailable.Freshness" xml:space="preserve">
+    <value>Indisponible tant que la fraicheur de projection n'est pas actuelle.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title" xml:space="preserve">
+  <data name="Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly" xml:space="preserve">
+    <value>Indisponible dans cette revue en lecture seule.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Actions" xml:space="preserve">
+    <value>Disponibilite accorder/retirer</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Freshness" xml:space="preserve">
+    <value>Fraicheur</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Identity" xml:space="preserve">
+    <value>Identite administrateur</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Column.Scope" xml:space="preserve">
+    <value>Portee d'autorite</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Copy.UserId" xml:space="preserve">
+    <value>Copier l'identifiant administrateur global {0}</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Description" xml:space="preserve">
+    <value>Revoyez les administrateurs de niveau plateforme depuis la portee d'autorite fixe global-administrators.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Aging" xml:space="preserve">
+    <value>Vieillissant</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Current" xml:space="preserve">
+    <value>Actuelle</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Refreshing" xml:space="preserve">
+    <value>Actualisation</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Stale" xml:space="preserve">
+    <value>Perimee</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Freshness.Unknown" xml:space="preserve">
+    <value>Inconnue</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Identity.Accessible" xml:space="preserve">
+    <value>Identifiant administrateur global {0}</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.List.Title" xml:space="preserve">
+    <value>Administrateurs globaux actuels</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Next" xml:space="preserve">
+    <value>Suivant</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.PaginationLabel" xml:space="preserve">
+    <value>Pages des administrateurs globaux</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Previous" xml:space="preserve">
+    <value>Precedent</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Refresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Row.Scope" xml:space="preserve">
+    <value>Autorite plateforme, pas proprietaire de locataire</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Scope.Message" xml:space="preserve">
+    <value>Cette surface utilise l'agregat singleton d'autorite plateforme et ne substitue jamais les donnees d'appartenance locataire.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Scope.Title" xml:space="preserve">
+    <value>Portee d'agregat fixe</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Degraded.Message" xml:space="preserve">
+    <value>Les donnees de projection sont degradees. Les administrateurs confirmes restent visibles et les actions sont indisponibles.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Degraded.Title" xml:space="preserve">
+    <value>Donnees d'administrateurs globaux degradees</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Empty.Message" xml:space="preserve">
+    <value>Aucun administrateur global n'a ete retourne pour la portee fixe autorisee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Empty.Title" xml:space="preserve">
+    <value>Aucun administrateur global retourne</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Invalid.Message" xml:space="preserve">
+    <value>Le curseur de page demande est invalide. Aucune donnee d'administrateur n'est revelee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Invalid.Title" xml:space="preserve">
+    <value>Page des administrateurs globaux invalide</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Loading.Message" xml:space="preserve">
+    <value>Chargement des administrateurs globaux depuis la portee d'autorite plateforme fixe.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Loading.Title" xml:space="preserve">
+    <value>Chargement des administrateurs globaux</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Ready.Message" xml:space="preserve">
+    <value>Les administrateurs globaux sont charges depuis la projection d'autorite plateforme fixe.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Ready.Title" xml:space="preserve">
+    <value>Administrateurs globaux charges</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Stale.Message" xml:space="preserve">
+    <value>La fraicheur de projection est perimee. Les administrateurs confirmes restent visibles et les actions sont indisponibles.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Stale.Title" xml:space="preserve">
+    <value>Donnees d'administrateurs globaux perimees</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unauthorized.Message" xml:space="preserve">
+    <value>L'autorite plateforme n'a pas ete confirmee. La zone echoue fermee et ne revele aucune donnee d'administrateur.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.State.Unauthorized.Title" xml:space="preserve">
     <value>Zone plateforme indisponible</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Message" xml:space="preserve">
-    <value>L'agregat fixe est global-administrators, mais cette UI n'a pas encore de contrat de lecture confirme pour les donnees d'administrateurs.</value>
+  <data name="Tenants.GlobalAdministrators.State.Unavailable.Message" xml:space="preserve">
+    <value>La surface de lecture des administrateurs globaux est indisponible. Aucune donnee d'administrateur cachee n'est affichee.</value>
   </data>
-  <data name="Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title" xml:space="preserve">
-    <value>La lecture des administrateurs globaux n'est pas encore implementee</value>
+  <data name="Tenants.GlobalAdministrators.State.Unavailable.Title" xml:space="preserve">
+    <value>Donnees d'administrateurs globaux indisponibles</value>
   </data>
 </root>

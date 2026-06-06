@@ -29,6 +29,11 @@ internal static class TenantQueryCursorScopes {
             .Build();
     }
 
+    public static string GetGlobalAdministrators(string requesterUserId) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(requesterUserId);
+        return QueryCursorScope.Create().Add("requester", requesterUserId).Build();
+    }
+
     public static string GetTenantAudit(
         string tenantId,
         DateTimeOffset? from,

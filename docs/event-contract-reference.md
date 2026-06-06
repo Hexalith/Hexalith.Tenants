@@ -110,6 +110,7 @@ All query contracts implement `IQueryContract`; controllers are REST adapters th
 | `GetTenantUsersQuery` | `Hexalith.Tenants.Contracts` | `get-tenant-users` | `tenants` | `tenants` | `PaginatedResult<TenantMember>` | `GET /api/tenants/{tenantId}/users` | Tenant access review screens and owner tooling |
 | `GetUserTenantsQuery` | `Hexalith.Tenants.Contracts` | `get-user-tenants` | `tenants` | `tenant-index` | `PaginatedResult<UserTenantMembership>` | `GET /api/users/{userId}/tenants` | User access review screens and self-service access views |
 | `GetTenantAuditQuery` | `Hexalith.Tenants.Contracts` | `get-tenant-audit` | `tenants` | `tenants` | `PaginatedResult<TenantAuditEntry>` | `GET /api/tenants/{tenantId}/audit` | Support, audit, and compliance evidence workflows |
+| `GetGlobalAdministratorsQuery` | `Hexalith.Tenants.Contracts` | `get-global-administrators` | `global-administrators` | `global-administrators` | `PaginatedResult<GlobalAdministratorSummary>` | `GET /api/global-administrators` | Platform governance review screens |
 
 | DTO | Fields |
 | --- | --- |
@@ -119,6 +120,7 @@ All query contracts implement `IQueryContract`; controllers are REST adapters th
 | `TenantMember` | `UserId`, `Role` |
 | `UserTenantMembership` | `TenantId`, `Name`, `Status`, `Role` |
 | `TenantAuditEntry` | `EventId`, `EventType`, `Category`, `ActorId`, `Timestamp`, `TenantId`, `NarrativePayload`, computed `Target`, computed `Scope`, computed `Outcome` |
+| `GlobalAdministratorSummary` | `UserId` |
 
 ### Rejection and Enum Contracts
 
@@ -788,6 +790,7 @@ Tenant query endpoints are protected REST adapters over EventStore `SubmitQuery`
 | `GET /api/tenants/{tenantId}/users` | `GetTenantUsersQuery` | `PaginatedResult<TenantMember>` |
 | `GET /api/users/{userId}/tenants` | `GetUserTenantsQuery` | `PaginatedResult<UserTenantMembership>` |
 | `GET /api/tenants/{tenantId}/audit` | `GetTenantAuditQuery` | `PaginatedResult<TenantAuditEntry>` |
+| `GET /api/global-administrators` | `GetGlobalAdministratorsQuery` | `PaginatedResult<GlobalAdministratorSummary>` |
 
 Paginated responses use the standard shape `{ "items": [...], "cursor": "...", "hasMore": true }`. Standard query endpoints default to page size `20` and clamp at `100`. Audit queries default to page size `100` and clamp at `1000`.
 

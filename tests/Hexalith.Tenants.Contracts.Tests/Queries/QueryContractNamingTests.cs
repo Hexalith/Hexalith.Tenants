@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Queries;
 
 using Shouldly;
 
@@ -76,8 +77,15 @@ public class QueryContractNamingTests {
     }
 
     [Fact]
-    public void Exactly_5_IQueryContract_implementations_exist() {
+    public void Exactly_6_IQueryContract_implementations_exist() {
         List<Type> types = GetQueryContractTypes();
-        types.Count.ShouldBe(5, $"Expected 5 IQueryContract implementations, found {types.Count}: {string.Join(", ", types.Select(t => t.Name))}");
+        types.Count.ShouldBe(6, $"Expected 6 IQueryContract implementations, found {types.Count}: {string.Join(", ", types.Select(t => t.Name))}");
+    }
+
+    [Fact]
+    public void GetGlobalAdministratorsQuery_uses_fixed_platform_authority_scope() {
+        GetGlobalAdministratorsQuery.QueryType.ShouldBe("get-global-administrators");
+        GetGlobalAdministratorsQuery.Domain.ShouldBe("global-administrators");
+        GetGlobalAdministratorsQuery.ProjectionType.ShouldBe("global-administrators");
     }
 }

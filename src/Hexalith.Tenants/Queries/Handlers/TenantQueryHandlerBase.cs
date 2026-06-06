@@ -69,7 +69,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     }
 
     /// <inheritdoc/>
-    public string Domain => GetTenantQuery.Domain;
+    public virtual string Domain => GetTenantQuery.Domain;
 
     /// <inheritdoc/>
     public abstract string QueryType { get; }

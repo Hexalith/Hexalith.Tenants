@@ -81,17 +81,19 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
-    public void Global_administrators_read_contract_has_no_tenant_query_or_controller_route()
+    public void Global_administrators_read_contract_uses_fixed_platform_scope_without_tenant_substitute()
     {
         string contractsQueryRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.Contracts", "Queries");
         string[] queryFiles = Directory.GetFiles(contractsQueryRoot, "*.cs", SearchOption.TopDirectoryOnly);
-        queryFiles.Select(Path.GetFileName).ShouldNotContain("GetGlobalAdministratorsQuery.cs");
+        queryFiles.Select(Path.GetFileName).ShouldContain("GetGlobalAdministratorsQuery.cs");
         queryFiles.Select(Path.GetFileName).ShouldNotContain("ListGlobalAdministratorsQuery.cs");
 
         string controller = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants", "Controllers", "TenantsQueryController.cs"));
-        controller.ShouldNotContain("global-administrators");
-        controller.ShouldNotContain("GlobalAdministrators");
+        controller.ShouldContain("[HttpGet(\"~/api/global-administrators\")]");
+        controller.ShouldContain("GetGlobalAdministratorsQuery.Domain");
+        controller.ShouldContain("TenantIdentity.GlobalAdministratorsAggregateId");
+        controller.ShouldNotContain("[HttpGet(\"~/api/global-administrators/users\")]");
     }
 
     [Fact]
@@ -119,13 +121,17 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("Global Administrators");
         manager.GetString("Tenants.GlobalAdministrators.Title", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Administrateurs globaux");
-        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title", CultureInfo.InvariantCulture)
-            .ShouldBe("Global administrator read support is not implemented yet");
-        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title", CultureInfo.GetCultureInfo("fr"))
-            .ShouldBe("La lecture des administrateurs globaux n'est pas encore implementee");
-        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title", CultureInfo.InvariantCulture)
+        manager.GetString("Tenants.GlobalAdministrators.State.Stale.Title", CultureInfo.InvariantCulture)
+            .ShouldBe("Global administrator data stale");
+        manager.GetString("Tenants.GlobalAdministrators.State.Stale.Title", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Donnees d'administrateurs globaux perimees");
+        manager.GetString("Tenants.GlobalAdministrators.State.Ready.Title", CultureInfo.InvariantCulture)
+            .ShouldBe("Global administrators loaded");
+        manager.GetString("Tenants.GlobalAdministrators.State.Ready.Title", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Administrateurs globaux charges");
+        manager.GetString("Tenants.GlobalAdministrators.State.Unauthorized.Title", CultureInfo.InvariantCulture)
             .ShouldBe("Platform area unavailable");
-        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title", CultureInfo.GetCultureInfo("fr"))
+        manager.GetString("Tenants.GlobalAdministrators.State.Unauthorized.Title", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Zone plateforme indisponible");
     }
 

@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries;
 
@@ -230,6 +231,52 @@ public sealed partial class TenantsQueryController(
             correlationId: correlationId,
             userId: authenticatedUserId,
             entityId: userId);
+
+        return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets global administrators from the fixed platform authority scope.
+    /// </summary>
+    [HttpGet("~/api/global-administrators")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetGlobalAdministratorsAsync(
+        [FromQuery] string? cursor = null,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default) {
+        string? userId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(userId)) {
+            return Unauthorized();
+        }
+
+        pageSize = TenantQueryPaginationPolicy.ClampStandardPageSize(pageSize);
+        string correlationId = GetCorrelationId();
+        IActionResult? cursorValidation = ValidateSubmittedCursor(
+            cursor,
+            GetGlobalAdministratorsQuery.QueryType,
+            TenantQueryCursorScopes.GetGlobalAdministrators(userId),
+            "get-global-administrators",
+            correlationId,
+            TenantIdentity.GlobalAdministratorsAggregateId,
+            userId);
+        if (cursorValidation is not null) {
+            return cursorValidation;
+        }
+
+        byte[] payloadBytes = JsonSerializer.SerializeToUtf8Bytes(new { cursor, pageSize });
+
+        var envelope = new QueryEnvelope(
+            tenantId: SystemTenant,
+            domain: GetGlobalAdministratorsQuery.Domain,
+            aggregateId: TenantIdentity.GlobalAdministratorsAggregateId,
+            queryType: GetGlobalAdministratorsQuery.QueryType,
+            payload: payloadBytes,
+            correlationId: correlationId,
+            userId: userId,
+            entityId: TenantIdentity.GlobalAdministratorsAggregateId);
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }

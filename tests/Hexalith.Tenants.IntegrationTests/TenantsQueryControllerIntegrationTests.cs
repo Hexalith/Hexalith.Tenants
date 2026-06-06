@@ -12,6 +12,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using Hexalith.EventStore.Client.Queries;
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Configuration;
@@ -66,20 +68,82 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
-    [Theory]
-    [InlineData("/api/global-administrators")]
-    [InlineData("/api/global-administrators/users")]
-    [InlineData("/api/global-administrators/global-administrators")]
-    public async Task GlobalAdministrators_read_api_route_is_not_exposed_or_routed(string route) {
-        IQueryRouter router = Substitute.For<IQueryRouter>();
+    [Fact]
+    public async Task GlobalAdministrators_read_api_route_dispatches_fixed_platform_scope_query() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new PaginatedResult<GlobalAdministratorSummary>(
+            [new GlobalAdministratorSummary("test-user")],
+            null,
+            false), s_queryJsonOptions);
+        var handler = new CapturingDomainQueryHandler(
+            GetGlobalAdministratorsQuery.Domain,
+            GetGlobalAdministratorsQuery.QueryType,
+            new QueryResult(true, JsonSerializer.SerializeToUtf8Bytes(payload), ProjectionType: GetGlobalAdministratorsQuery.ProjectionType));
 
-        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
         using HttpClient client = CreateAuthenticatedClient(factory);
 
-        HttpResponseMessage response = await client.GetAsync(route);
+        HttpResponseMessage response = await client.GetAsync("/api/global-administrators?pageSize=25");
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(1);
+        result.GetProperty("items")[0].GetProperty("userId").GetString().ShouldBe("test-user");
+
+        QueryEnvelope query = handler.Envelopes.ShouldHaveSingleItem();
+        query.TenantId.ShouldBe("system");
+        query.Domain.ShouldBe(GetGlobalAdministratorsQuery.Domain);
+        query.AggregateId.ShouldBe("global-administrators");
+        query.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
+        query.EntityId.ShouldBe("global-administrators");
+        query.UserId.ShouldBe("test-user");
+        ReadPayloadPageSize(query.Payload).ShouldBe(25);
+        ReadPayloadCursor(query.Payload).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GlobalAdministrators_read_api_returns_401_when_authorization_header_is_missing() {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryJwtWebApplicationFactory(router);
+        using HttpClient client = factory.CreateClient();
+
+        HttpResponseMessage response = await client.GetAsync("/api/global-administrators");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GlobalAdministrators_read_api_route_forwards_valid_signed_cursor_in_fixed_scope() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new PaginatedResult<GlobalAdministratorSummary>(
+            [new GlobalAdministratorSummary("test-user")],
+            null,
+            false), s_queryJsonOptions);
+        var handler = new CapturingDomainQueryHandler(
+            GetGlobalAdministratorsQuery.Domain,
+            GetGlobalAdministratorsQuery.QueryType,
+            new QueryResult(true, JsonSerializer.SerializeToUtf8Bytes(payload), ProjectionType: GetGlobalAdministratorsQuery.ProjectionType));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        IQueryCursorCodec cursorCodec = factory.Services.GetRequiredService<IQueryCursorCodec>();
+        string cursor = cursorCodec.Encode(
+            GetGlobalAdministratorsQuery.QueryType,
+            TenantQueryCursorScopes.GetGlobalAdministrators("test-user"),
+            "admin-1");
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(
+            $"/api/global-administrators?cursor={Uri.EscapeDataString(cursor)}&pageSize=25");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        QueryEnvelope query = handler.Envelopes.ShouldHaveSingleItem();
+        query.TenantId.ShouldBe("system");
+        query.Domain.ShouldBe(GetGlobalAdministratorsQuery.Domain);
+        query.AggregateId.ShouldBe("global-administrators");
+        query.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
+        query.EntityId.ShouldBe("global-administrators");
+        ReadPayloadPageSize(query.Payload).ShouldBe(25);
+        ReadPayloadCursor(query.Payload).ShouldBe(cursor);
     }
 
     [Fact]
@@ -1012,6 +1076,7 @@ public class TenantsQueryControllerIntegrationTests {
     [InlineData("/api/tenants?cursor=not-a-protected-cursor")]
     [InlineData("/api/tenants/tenant-1/users?cursor=not-a-protected-cursor")]
     [InlineData("/api/users/user-2/tenants?cursor=not-a-protected-cursor")]
+    [InlineData("/api/global-administrators?cursor=not-a-protected-cursor")]
     [InlineData("/api/tenants/tenant-1/audit?cursor=not-a-protected-cursor")]
     public async Task Paginated_queries_return_400_problem_details_when_cursor_is_invalid(string path) {
         IQueryRouter router = Substitute.For<IQueryRouter>();
@@ -1172,6 +1237,7 @@ public class TenantsQueryControllerIntegrationTests {
     [InlineData("/api/tenants/tenant-1/users?cursor={cursor}", "get-tenant-users", "tenant:tenant-2")]
     [InlineData("/api/users/user-2/tenants?cursor={cursor}", "get-user-tenants", "requester:other-user|target-user:user-2")]
     [InlineData("/api/users/user-2/tenants?cursor={cursor}", "get-user-tenants", "requester:test-user|target-user:user-3")]
+    [InlineData("/api/global-administrators?cursor={cursor}", "get-global-administrators", "requester:other-user")]
     [InlineData("/api/tenants/tenant-1/audit?cursor={cursor}", "get-tenant-audit", "tenant:tenant-2|from:|to:|category:")]
     [InlineData("/api/tenants/tenant-1/audit?category=Administrative&cursor={cursor}", "get-tenant-audit", "tenant:tenant-1|from:|to:|category:Access")]
     public async Task Paginated_queries_return_400_before_routing_when_signed_cursor_scope_does_not_match(
@@ -1410,6 +1476,11 @@ public class TenantsQueryControllerIntegrationTests {
         return document.RootElement.GetProperty("pageSize").GetInt32();
     }
 
+    private static int ReadPayloadPageSize(byte[] payload) {
+        using JsonDocument document = JsonDocument.Parse(payload);
+        return document.RootElement.GetProperty("pageSize").GetInt32();
+    }
+
     private static DateTimeOffset? ReadPayloadDateTimeOffset(SubmitQuery query, string propertyName) {
         using JsonDocument document = JsonDocument.Parse(query.Payload);
         JsonElement property = document.RootElement.GetProperty(propertyName);
@@ -1424,6 +1495,12 @@ public class TenantsQueryControllerIntegrationTests {
 
     private static string? ReadPayloadCursor(SubmitQuery query) {
         using JsonDocument document = JsonDocument.Parse(query.Payload);
+        JsonElement cursor = document.RootElement.GetProperty("cursor");
+        return cursor.ValueKind == JsonValueKind.Null ? null : cursor.GetString();
+    }
+
+    private static string? ReadPayloadCursor(byte[] payload) {
+        using JsonDocument document = JsonDocument.Parse(payload);
         JsonElement cursor = document.RootElement.GetProperty("cursor");
         return cursor.ValueKind == JsonValueKind.Null ? null : cursor.GetString();
     }
@@ -1546,6 +1623,16 @@ public class TenantsQueryControllerIntegrationTests {
         });
     }
 
+    private sealed class TenantsDomainQueryWebApplicationFactory(IDomainQueryHandler handler) : WebApplicationFactory<TenantBootstrapOptions> {
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
+            _ = services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+
+            _ = services.RemoveAll<IDomainQueryHandler>();
+            _ = services.AddSingleton(handler);
+        });
+    }
+
     private sealed class TenantsQueryNoSubjectWebApplicationFactory(IQueryRouter router) : WebApplicationFactory<TenantBootstrapOptions> {
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
             _ = services.AddAuthentication(TestAuthHandler.SchemeName)
@@ -1592,6 +1679,24 @@ public class TenantsQueryControllerIntegrationTests {
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, TestAuthHandler.SchemeName);
             return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+
+    private sealed class CapturingDomainQueryHandler(
+        string domain,
+        string queryType,
+        QueryResult result) : IDomainQueryHandler {
+        private readonly QueryResult _result = result;
+
+        public List<QueryEnvelope> Envelopes { get; } = [];
+
+        public string Domain { get; } = domain;
+
+        public string QueryType { get; } = queryType;
+
+        public Task<QueryResult> ExecuteAsync(QueryEnvelope query, CancellationToken cancellationToken) {
+            Envelopes.Add(query);
+            return Task.FromResult(_result);
         }
     }
 }
