@@ -90,6 +90,19 @@
             <span>@StateText</span>
         </p>
         <p data-testid="tenants-add-member-audit">@AuditText</p>
+        @if (ShouldRenderAuditEntryPoint)
+        {
+            <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                     TargetUserId="@_userId"
+                                     SourceKind="command-result"
+                                     SourceTestId="tenants-command-audit-entrypoint"
+                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                     ReturnUrl="@CommandAuditReturnUrl"
+                                     ReturnFocus="tenants-add-member-lifecycle"
+                                     AvailabilityText="@AuditText"
+                                     UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+        }
         @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
         {
             <p data-testid="tenants-add-member-safe-message">@_snapshot.SafeMessage</p>
@@ -194,6 +207,12 @@
 
     private string AuditText
         => Localizer[$"Tenants.AddMember.Audit.{_snapshot.AuditState}"];
+
+    private bool ShouldRenderAuditEntryPoint
+        => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
+
+    private string CommandAuditReturnUrl
+        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";

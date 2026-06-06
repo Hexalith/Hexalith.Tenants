@@ -2380,7 +2380,7 @@
     <value>Audit</value>
   </data>
   <data name="Tenants.Navigation.AuditUnavailable" xml:space="preserve">
-    <value>La zone Audit est indisponible tant que la surface de lecture UI d'audit n'est pas implementee.</value>
+    <value>Choisissez un locataire avant d'ouvrir les preuves d'audit.</value>
   </data>
   <data name="Tenants.Navigation.GlobalAdministrators" xml:space="preserve">
     <value>Administrateurs globaux</value>
@@ -2687,5 +2687,80 @@
   </data>
   <data name="Tenants.Audit.Title" xml:space="preserve">
     <value>Journal d'audit pour {0}</value>
+  </data>
+  <data name="Tenants.Audit.Context.Command" xml:space="preserve">
+    <value>Le contexte d'audit de commande {0} est selectionne. Les filtres d'audit limites au locataire restent la reference.</value>
+  </data>
+  <data name="Tenants.Audit.Context.Source" xml:space="preserve">
+    <value>Audit ouvert depuis {0}. Les filtres d'audit limites au locataire restent la reference.</value>
+  </data>
+  <data name="Tenants.Audit.Context.User" xml:space="preserve">
+    <value>Le contexte d'audit pour l'utilisateur {0} est selectionne. Les filtres d'audit limites au locataire restent la reference.</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.TenantList" xml:space="preserve">
+    <value>la liste des locataires</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.TenantDetail" xml:space="preserve">
+    <value>le detail locataire</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.MemberRow" xml:space="preserve">
+    <value>une ligne de membre</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.UserLookup" xml:space="preserve">
+    <value>la recherche d'utilisateur</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.MyTenants" xml:space="preserve">
+    <value>vos locataires</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.CommandResult" xml:space="preserve">
+    <value>un resultat de commande</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.Default" xml:space="preserve">
+    <value>une autre surface locataire</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Accessible.Command" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour {0} dans le locataire {1}</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Accessible.Member" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour l'utilisateur {0} dans le locataire {1}</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Accessible.Tenant" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour le locataire {0} depuis {1}</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.CommandReason" xml:space="preserve">
+    <value>La preuve specifique a la commande n'est pas disponible ici; ouvrez la liste d'audit du locataire et utilisez l'etat d'audit visible.</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Label" xml:space="preserve">
+    <value>Preuves d'audit</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.ScopeRequired" xml:space="preserve">
+    <value>La portee locataire est requise avant d'ouvrir les preuves d'audit.</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.StaleScope" xml:space="preserve">
+    <value>Actualisez la portee locataire avant d'ouvrir les preuves d'audit.</value>
+  </data>
+  <data name="Tenants.Audit.ReturnContext" xml:space="preserve">
+    <value>Contexte de retour restaure. Cible de focus : {0}</value>
+  </data>
+  <data name="Tenants.Detail.AuditAccessibleLabel" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour le locataire {0} depuis le detail locataire</value>
+  </data>
+  <data name="Tenants.List.AuditAccessibleLabel" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour le locataire {0} depuis la liste des locataires</value>
+  </data>
+  <data name="Tenants.List.Column.Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Tenants.Members.AuditAccessibleLabel" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour l'utilisateur {0} dans le locataire {1}</value>
+  </data>
+  <data name="Tenants.Members.Column.Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Tenants.MyTenants.AuditAccessibleLabel" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour le locataire {0}</value>
+  </data>
+  <data name="Tenants.UserLookup.AuditAccessibleLabel" xml:space="preserve">
+    <value>Ouvrir les preuves d'audit pour l'utilisateur {0} dans le locataire {1}</value>
   </data>
 </root>

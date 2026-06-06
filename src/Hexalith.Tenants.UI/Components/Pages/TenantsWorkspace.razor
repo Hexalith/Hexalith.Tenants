@@ -105,7 +105,7 @@
             <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Detail="@_snapshot.ErrorMessage" />
         }
 
-        <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" />
+        <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
 
         <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
             <button type="button" data-testid="tenants-list-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
@@ -312,6 +312,9 @@
 
     private string CreateDetailHref(TenantListRow row)
         => CurrentNavigationContext().ToDetailUrl(row);
+
+    private string CreateAuditHref(TenantListRow row)
+        => CurrentNavigationContext().ToAuditUrl(row);
 
     private TenantListNavigationContext CurrentNavigationContext()
         => new(

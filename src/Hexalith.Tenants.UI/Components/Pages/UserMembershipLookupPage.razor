@@ -122,7 +122,10 @@
 
                 <MyTenantsDataGrid Rows="@VisibleRows"
                                    ResourcePrefix="Tenants.UserLookup"
-                                   SelectorPrefix="tenants-user" />
+                                   SelectorPrefix="tenants-user"
+                                   TargetUserId="@_targetUserId"
+                                   SourceKind="user-lookup"
+                                   ReturnUrl="@UserLookupReturnUrl" />
 
                 <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
                     <button type="button" data-testid="tenants-user-lookup-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
@@ -154,6 +157,14 @@
     [Parameter]
     [SupplyParameterFromQuery(Name = "userId")]
     public string? QueryUserId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "sort")]
+    public string? QuerySort { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cursor")]
+    public string? QueryCursor { get; set; }
 
     private bool CanRefresh
         => !string.IsNullOrEmpty(_targetUserId) && _snapshot is not null;
@@ -197,11 +208,24 @@
     private string StatusLive
         => StatusRole == "alert" ? "assertive" : "polite";
 
+    private string UserLookupReturnUrl
+    {
+        get
+        {
+            string userId = Uri.EscapeDataString(_targetUserId ?? _inputUserId);
+            string sort = Uri.EscapeDataString(_sortColumn);
+            string cursor = string.IsNullOrWhiteSpace(_currentCursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(_currentCursor)}";
+            return $"/tenants/users?userId={userId}&sort={sort}{cursor}";
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrEmpty(QueryUserId))
         {
             _inputUserId = QueryUserId;
+            _sortColumn = string.IsNullOrWhiteSpace(QuerySort) ? _sortColumn : QuerySort;
+            _currentCursor = QueryCursor;
             await RunLookupAsync(QueryUserId, reuseETag: false).ConfigureAwait(false);
         }
     }
@@ -314,7 +338,7 @@
             .ConfigureAwait(false);
         _announcement = AnnouncementFor(_snapshot, validTargetUserId);
         _focusStatusPending = true;
-        Navigation.NavigateTo($"/tenants/users?userId={Uri.EscapeDataString(validTargetUserId)}", replace: true);
+        Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
     }
 
     private string AnnouncementFor(UserTenantMembershipSnapshot snapshot, string targetUserId)

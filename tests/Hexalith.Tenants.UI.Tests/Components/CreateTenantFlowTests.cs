@@ -306,6 +306,11 @@ public sealed class CreateTenantFlowTests : BunitContext
             ["Tenants.Create.Audit.AuditPending"] = "Audit evidence pending.",
             ["Tenants.Create.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
             ["Tenants.Create.Audit.MissingSupport"] = "Audit support is missing for this flow.",
+            ["Tenants.Audit.EntryPoint.Accessible.Command"] = "Open audit evidence for {0} in tenant {1}",
+            ["Tenants.Audit.EntryPoint.CommandReason"] = "Open the tenant audit list and use the visible audit state.",
+            ["Tenants.Audit.EntryPoint.Label"] = "Audit evidence",
+            ["Tenants.Audit.EntryPoint.Unavailable.ScopeRequired"] = "Tenant scope is required.",
+            ["Tenants.Audit.EntryPoint.Unavailable.StaleScope"] = "Refresh tenant scope.",
         };
 
         public LocalizedString this[string name]

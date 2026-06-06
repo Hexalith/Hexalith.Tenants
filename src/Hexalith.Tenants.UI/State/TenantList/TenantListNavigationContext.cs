@@ -41,6 +41,20 @@ public sealed record TenantListNavigationContext(
         return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}?returnUrl={returnUrl}");
     }
 
+    public string ToAuditUrl(TenantListRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        TenantListNavigationContext selected = this with
+        {
+            SelectedTenantId = row.TenantId,
+            Anchor = $"tenant-row-{row.TenantId}",
+        };
+        string tenantId = Uri.EscapeDataString(row.TenantId);
+        string returnUrl = Uri.EscapeDataString(selected.ToReturnUrl());
+        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor)}");
+    }
+
     private static void AppendQuery(StringBuilder builder, string key, string? value)
     {
         if (string.IsNullOrWhiteSpace(value))

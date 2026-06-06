@@ -78,6 +78,13 @@
                 {
                     <p>@Detail.Description</p>
                 }
+                <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                         SourceKind="tenant-detail"
+                                         SourceTestId="tenants-detail-audit-entrypoint"
+                                         Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                         AccessibleName="@Localizer["Tenants.Detail.AuditAccessibleLabel", Detail.TenantId]"
+                                         ReturnUrl="@DetailReturnUrl"
+                                         ReturnFocus="tenants-detail-identity" />
             </header>
 
             <dl class="tenant-detail__facts">
@@ -177,6 +184,9 @@
     public string? ReturnUrl { get; set; }
 
     private string BackHref => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : "/tenants";
+
+    private string DetailReturnUrl
+        => $"/tenants/{Uri.EscapeDataString(TenantId)}";
 
     private TenantDetail Detail => _snapshot.Detail ?? throw new InvalidOperationException("Detail is only used when a snapshot is available.");
 

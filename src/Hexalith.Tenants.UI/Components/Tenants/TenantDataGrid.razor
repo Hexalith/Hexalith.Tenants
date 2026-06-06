@@ -58,6 +58,15 @@
                         Width="160px">
             <TruthStateBadge Freshness="@context.Freshness" />
         </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
+            <AuditEvidenceEntryPoint TenantId="@context.TenantId"
+                                     SourceKind="tenant-list"
+                                     SourceTestId="tenants-list-audit-entrypoint"
+                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@Localizer["Tenants.List.AuditAccessibleLabel", context.TenantId]"
+                                     ReturnUrl="@ListReturnUrl(context)"
+                                     ReturnFocus="@($"tenant-row-{context.TenantId}")" />
+        </TemplateColumn>
     </FluentDataGrid>
 </div>
 
@@ -67,6 +76,28 @@
 
     [Parameter]
     public Func<TenantListRow, string> DetailHref { get; set; } = static row => $"/tenants/{Uri.EscapeDataString(row.TenantId)}";
+
+    [Parameter]
+    public Func<TenantListRow, string> AuditHref { get; set; } = static row => $"/tenants/{Uri.EscapeDataString(row.TenantId)}/audit?source=tenant-list";
+
+    private string ListReturnUrl(TenantListRow row)
+    {
+        string href = AuditHref(row);
+        int returnUrlIndex = href.IndexOf("returnUrl=", StringComparison.Ordinal);
+        if (returnUrlIndex < 0)
+        {
+            return "/tenants";
+        }
+
+        string encodedReturnUrl = href[(returnUrlIndex + "returnUrl=".Length)..];
+        int nextParameterIndex = encodedReturnUrl.IndexOf('&', StringComparison.Ordinal);
+        if (nextParameterIndex >= 0)
+        {
+            encodedReturnUrl = encodedReturnUrl[..nextParameterIndex];
+        }
+
+        return Uri.UnescapeDataString(encodedReturnUrl);
+    }
 
     private string CountLabel(TenantCountValue count)
         => count.IsKnown

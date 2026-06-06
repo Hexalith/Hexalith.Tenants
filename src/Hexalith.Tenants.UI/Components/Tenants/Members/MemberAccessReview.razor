@@ -69,6 +69,7 @@
                         <th scope="col">@Localizer["Tenants.Members.Column.OwnerContext"]</th>
                         <th scope="col">@Localizer["Tenants.Members.Column.Status"]</th>
                         <th scope="col">@Localizer["Tenants.Members.Column.Freshness"]</th>
+                        <th scope="col">@Localizer["Tenants.Members.Column.Audit"]</th>
                         <th scope="col">@Localizer["Tenants.Members.Column.Actions"]</th>
                     </tr>
                 </thead>
@@ -106,6 +107,17 @@
                                 <TruthStateBadge Freshness="@Freshness"
                                                  TestId="tenants-member-row-freshness"
                                                  ResourcePrefix="Tenants.Members" />
+                            </td>
+                            <td>
+                                <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                                         TargetUserId="@row.Member.UserId"
+                                                         SourceKind="member-row"
+                                                         SourceTestId="tenants-member-audit-entrypoint"
+                                                         Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                                         AccessibleName="@Localizer["Tenants.Members.AuditAccessibleLabel", row.Member.UserId, Detail.TenantId]"
+                                                         ReturnUrl="@MemberReturnUrl"
+                                                         ReturnFocus="@($"tenants-member-{row.Member.UserId}")"
+                                                         IsAvailable="@CanOpenMemberAudit" />
                             </td>
                             <td>
                                 <div class="tenant-members__actions">
@@ -310,6 +322,12 @@
             TenantDetailSurfaceKind.Degraded => Localizer["Tenants.Members.State.Degraded"],
             _ => string.Empty,
         };
+
+    private bool CanOpenMemberAudit
+        => SurfaceKind is TenantDetailSurfaceKind.Ready or TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded;
+
+    private string MemberReturnUrl
+        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private MemberRow ToRow(TenantMember member, int index)
     {

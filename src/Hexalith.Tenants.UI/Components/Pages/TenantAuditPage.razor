@@ -11,7 +11,21 @@
         <p class="tenant-audit__eyebrow">@Localizer["Tenants.Audit.Eyebrow"]</p>
         <h1 id="tenant-audit-heading">@Localizer["Tenants.Audit.Title", TenantId]</h1>
         <p>@Localizer["Tenants.Audit.Description"]</p>
-        <a href="@TenantDetailHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
+        @if (HasContext)
+        {
+            <p class="tenant-audit__context"
+               data-testid="tenants-audit-context"
+               aria-live="@ContextLiveRegion">
+                @ContextText
+            </p>
+        }
+        @if (!string.IsNullOrWhiteSpace(ReturnFocus))
+        {
+            <p class="tenant-audit__return-context" data-testid="tenants-audit-return-context">
+                @Localizer["Tenants.Audit.ReturnContext", ReturnFocus]
+            </p>
+        }
+        <a href="@BackHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
     </header>
 
     <section class="tenant-audit__controls" aria-label="@Localizer["Tenants.Audit.ControlsLabel"]">
@@ -86,8 +100,57 @@
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
 
-    private string TenantDetailHref
-        => $"/tenants/{Uri.EscapeDataString(TenantId)}";
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "targetUserId")]
+    public string? TargetUserId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "supportSafeCommandReference")]
+    public string? SupportSafeCommandReference { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnFocus")]
+    public string? ReturnFocus { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "source")]
+    public string? SourceKind { get; set; }
+
+    private string BackHref
+        => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : $"/tenants/{Uri.EscapeDataString(TenantId)}";
+
+    private bool HasContext
+        => !string.IsNullOrWhiteSpace(TargetUserId)
+            || !string.IsNullOrWhiteSpace(SupportSafeCommandReference)
+            || !string.IsNullOrWhiteSpace(SourceKind);
+
+    // Context restoration is informational, never a blocking state, so it is always polite.
+    private string ContextLiveRegion
+        => "polite";
+
+    private string ContextText
+        => !string.IsNullOrWhiteSpace(TargetUserId)
+            ? Localizer["Tenants.Audit.Context.User", TargetUserId]
+            : !string.IsNullOrWhiteSpace(SupportSafeCommandReference)
+                ? Localizer["Tenants.Audit.Context.Command", SupportSafeCommandReference]
+                : Localizer["Tenants.Audit.Context.Source", SourceLabel];
+
+    // Resolve the machine source kind to a localized whole phrase so raw tokens never reach visible copy.
+    private string SourceLabel
+        => SourceKind switch
+        {
+            "tenant-list" => Localizer["Tenants.Audit.Context.SourceKind.TenantList"],
+            "tenant-detail" => Localizer["Tenants.Audit.Context.SourceKind.TenantDetail"],
+            "member-row" => Localizer["Tenants.Audit.Context.SourceKind.MemberRow"],
+            "user-lookup" => Localizer["Tenants.Audit.Context.SourceKind.UserLookup"],
+            "my-tenants" => Localizer["Tenants.Audit.Context.SourceKind.MyTenants"],
+            "command-result" => Localizer["Tenants.Audit.Context.SourceKind.CommandResult"],
+            _ => Localizer["Tenants.Audit.Context.SourceKind.Default"],
+        };
 
     private bool ShouldRenderRows
         => (_snapshot.Kind is TenantAuditSurfaceKind.Ready
@@ -247,4 +310,9 @@
 
         return result;
     }
+
+    private static bool IsSafeReturnUrl(string? returnUrl)
+        => !string.IsNullOrWhiteSpace(returnUrl)
+            && returnUrl.StartsWith("/tenants", StringComparison.Ordinal)
+            && !returnUrl.StartsWith("//", StringComparison.Ordinal);
 }

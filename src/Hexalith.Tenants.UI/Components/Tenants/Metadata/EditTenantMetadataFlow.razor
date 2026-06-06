@@ -122,6 +122,18 @@
             <span>@StateText</span>
         </p>
         <p data-testid="tenants-edit-metadata-audit">@AuditText</p>
+        @if (ShouldRenderAuditEntryPoint)
+        {
+            <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                     SourceKind="command-result"
+                                     SourceTestId="tenants-command-audit-entrypoint"
+                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                     ReturnUrl="@CommandAuditReturnUrl"
+                                     ReturnFocus="tenants-edit-metadata-lifecycle"
+                                     AvailabilityText="@AuditText"
+                                     UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+        }
         <p data-testid="tenants-edit-metadata-recovery">@RecoveryText</p>
         @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
         {
@@ -249,6 +261,12 @@
 
     private string AuditText
         => Localizer[$"Tenants.EditMetadata.Audit.{_snapshot.AuditState}"];
+
+    private bool ShouldRenderAuditEntryPoint
+        => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
+
+    private string CommandAuditReturnUrl
+        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.EditMetadata.Recovery.{_snapshot.State}"];

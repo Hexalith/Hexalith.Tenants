@@ -62,6 +62,16 @@
                              TestId="@($"{SelectorPrefix}-truth-state")"
                              ResourcePrefix="@ResourcePrefix" />
         </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
+            <AuditEvidenceEntryPoint TenantId="@context.TenantId"
+                                     TargetUserId="@TargetUserId"
+                                     SourceKind="@SourceKind"
+                                     SourceTestId="@AuditTestId"
+                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@AuditAccessibleName(context)"
+                                     ReturnUrl="@ReturnUrl"
+                                     ReturnFocus="@($"{SelectorPrefix}-row-{context.TenantId}")" />
+        </TemplateColumn>
     </FluentDataGrid>
 </div>
 
@@ -74,6 +84,23 @@
 
     [Parameter]
     public string SelectorPrefix { get; set; } = "tenants-my";
+
+    [Parameter]
+    public string? TargetUserId { get; set; }
+
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    public string SourceKind { get; set; } = "my-tenants";
+
+    private string AuditTestId
+        => SelectorPrefix == "tenants-user" ? "tenants-user-audit-entrypoint" : "tenants-my-audit-entrypoint";
+
+    private string AuditAccessibleName(UserTenantMembershipRow row)
+        => !string.IsNullOrWhiteSpace(TargetUserId)
+            ? Localizer["Tenants.UserLookup.AuditAccessibleLabel", TargetUserId, row.TenantId]
+            : Localizer["Tenants.MyTenants.AuditAccessibleLabel", row.TenantId];
 
     private string RoleLabel(TenantRole role)
         => Localizer[$"{ResourcePrefix}.Role.{role}"];

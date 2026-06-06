@@ -2380,7 +2380,7 @@
     <value>Audit</value>
   </data>
   <data name="Tenants.Navigation.AuditUnavailable" xml:space="preserve">
-    <value>Audit area is unavailable until the audit UI read surface is implemented.</value>
+    <value>Choose a tenant before opening audit evidence.</value>
   </data>
   <data name="Tenants.Navigation.GlobalAdministrators" xml:space="preserve">
     <value>Global Administrators</value>
@@ -2687,5 +2687,80 @@
   </data>
   <data name="Tenants.Audit.Title" xml:space="preserve">
     <value>Audit trail for {0}</value>
+  </data>
+  <data name="Tenants.Audit.Context.Command" xml:space="preserve">
+    <value>Command audit context {0} is selected. Tenant-scoped audit filters remain authoritative.</value>
+  </data>
+  <data name="Tenants.Audit.Context.Source" xml:space="preserve">
+    <value>Audit opened from {0}. Tenant-scoped audit filters remain authoritative.</value>
+  </data>
+  <data name="Tenants.Audit.Context.User" xml:space="preserve">
+    <value>Audit context for user {0} is selected. Tenant-scoped audit filters remain authoritative.</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.TenantList" xml:space="preserve">
+    <value>the tenant list</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.TenantDetail" xml:space="preserve">
+    <value>tenant detail</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.MemberRow" xml:space="preserve">
+    <value>a member row</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.UserLookup" xml:space="preserve">
+    <value>user lookup</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.MyTenants" xml:space="preserve">
+    <value>your tenants</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.CommandResult" xml:space="preserve">
+    <value>a command result</value>
+  </data>
+  <data name="Tenants.Audit.Context.SourceKind.Default" xml:space="preserve">
+    <value>another tenant surface</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Accessible.Command" xml:space="preserve">
+    <value>Open audit evidence for {0} in tenant {1}</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Accessible.Member" xml:space="preserve">
+    <value>Open audit evidence for user {0} in tenant {1}</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Accessible.Tenant" xml:space="preserve">
+    <value>Open audit evidence for tenant {0} from {1}</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.CommandReason" xml:space="preserve">
+    <value>Command-specific proof is not available here; open the tenant audit list and use the visible audit state.</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Label" xml:space="preserve">
+    <value>Audit evidence</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.ScopeRequired" xml:space="preserve">
+    <value>Tenant scope is required before audit evidence can be opened.</value>
+  </data>
+  <data name="Tenants.Audit.EntryPoint.Unavailable.StaleScope" xml:space="preserve">
+    <value>Refresh tenant scope before opening audit evidence.</value>
+  </data>
+  <data name="Tenants.Audit.ReturnContext" xml:space="preserve">
+    <value>Return context restored. Focus target: {0}</value>
+  </data>
+  <data name="Tenants.Detail.AuditAccessibleLabel" xml:space="preserve">
+    <value>Open audit evidence for tenant {0} from tenant detail</value>
+  </data>
+  <data name="Tenants.List.AuditAccessibleLabel" xml:space="preserve">
+    <value>Open audit evidence for tenant {0} from tenant list</value>
+  </data>
+  <data name="Tenants.List.Column.Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Tenants.Members.AuditAccessibleLabel" xml:space="preserve">
+    <value>Open audit evidence for user {0} in tenant {1}</value>
+  </data>
+  <data name="Tenants.Members.Column.Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Tenants.MyTenants.AuditAccessibleLabel" xml:space="preserve">
+    <value>Open audit evidence for tenant {0}</value>
+  </data>
+  <data name="Tenants.UserLookup.AuditAccessibleLabel" xml:space="preserve">
+    <value>Open audit evidence for user {0} in tenant {1}</value>
   </data>
 </root>

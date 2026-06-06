@@ -102,6 +102,18 @@
             <span>@StateText</span>
         </p>
         <p data-testid="tenants-lifecycle-audit">@AuditText</p>
+        @if (ShouldRenderAuditEntryPoint)
+        {
+            <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                     SourceKind="command-result"
+                                     SourceTestId="tenants-command-audit-entrypoint"
+                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                     ReturnUrl="@CommandAuditReturnUrl"
+                                     ReturnFocus="tenants-lifecycle-lifecycle"
+                                     AvailabilityText="@AuditText"
+                                     UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+        }
         <p data-testid="tenants-lifecycle-recovery">@RecoveryText</p>
         <p data-testid="tenants-lifecycle-confirmed-status">
             @Localizer["Tenants.Lifecycle.ConfirmedStatus", StatusLabel(_snapshot.LastConfirmedStatus)]
@@ -250,6 +262,12 @@
 
     private string AuditText
         => Localizer[$"Tenants.Lifecycle.Audit.{_snapshot.AuditState}"];
+
+    private bool ShouldRenderAuditEntryPoint
+        => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
+
+    private string CommandAuditReturnUrl
+        => $"/tenants/{Uri.EscapeDataString(Detail.TenantId)}";
 
     private string RecoveryText
         => Localizer[$"Tenants.Lifecycle.Recovery.{_snapshot.State}"];

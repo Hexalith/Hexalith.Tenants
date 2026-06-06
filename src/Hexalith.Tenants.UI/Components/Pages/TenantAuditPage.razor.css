@@ -18,6 +18,28 @@
     text-transform: uppercase;
 }
 
+.tenant-audit__context,
+.tenant-audit__return-context {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.tenant-audit__context {
+    border-inline-start: 3px solid var(--accent-stroke-rest, #0f6cbd);
+    padding-inline-start: 0.5rem;
+}
+
+.tenant-audit__return-context {
+    color: var(--neutral-foreground-hint, #616161);
+    font-size: 0.875rem;
+}
+
+@media (forced-colors: active) {
+    .tenant-audit__context {
+        border-inline-start-color: CanvasText;
+    }
+}
+
 .tenant-audit__controls {
     align-items: end;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
