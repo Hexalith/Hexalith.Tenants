@@ -14,6 +14,7 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -48,10 +49,69 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-previous']").GetAttribute("type").ShouldBe("button");
         cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference").ShouldBe("event-safe-reference");
         cut.Find("[data-testid='tenants-audit-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
+        cut.Find("[data-testid='tenants-audit-receipt-open']").GetAttribute("type").ShouldBe("button");
         cut.Markup.ShouldContain("target-user");
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
         cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_opens_receipt_from_loaded_row_without_extra_backend_query()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([Row("event-safe-reference", AuditEventCategory.Access)]));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha/audit?supportSafeCommandReference=command-safe-reference");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-receipt-copy']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
+        cut.Markup.ShouldContain("command-safe-reference");
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_receipt_reference_query_fails_closed_when_row_is_not_loaded()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([Row("event-loaded", AuditEventCategory.Access)]));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha/audit?receiptReference=event-not-loaded");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent.ShouldContain("not loaded");
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-not-loaded");
+        cut.Markup.ShouldNotContain("Success", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_receipt_reference_query_opens_loaded_row_without_extra_backend_query()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([Row("event-safe-reference", AuditEventCategory.Access)]));
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/tenant.alpha/audit?receiptReference=event-safe-reference&supportSafeCommandReference=command-safe-reference");
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent.ShouldContain("ready");
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-receipt-copy']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
+        cut.Markup.ShouldContain("command-safe-reference");
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
     }
 
     [Fact]
@@ -180,6 +240,8 @@ public sealed class TenantAuditPageTests : BunitContext
         [
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantAuditPage.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditDataGrid.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditEvidenceReceipt.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantAuditReceipt.cs"),
         ];
         string combined = string.Join('\n', componentFiles.Select(File.ReadAllText));
 
@@ -219,6 +281,20 @@ public sealed class TenantAuditPageTests : BunitContext
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
         pageStyles.ShouldContain(":focus-visible");
         pageStyles.ShouldContain("@media (forced-colors: active)");
+
+        string receiptStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Audit",
+            "AuditEvidenceReceipt.razor.css"));
+
+        receiptStyles.ShouldContain(":focus-visible");
+        receiptStyles.ShouldContain("@media (forced-colors: active)");
+        receiptStyles.ShouldContain("@media (prefers-reduced-motion: reduce)");
+        receiptStyles.ShouldContain("grid-template-columns: repeat(auto-fit");
     }
 
     [Fact]
@@ -375,6 +451,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Column.Freshness"] = "Freshness",
             ["Tenants.Audit.Column.Outcome"] = "Outcome",
             ["Tenants.Audit.Column.Reference"] = "Reference context",
+            ["Tenants.Audit.Column.Receipt"] = "Receipt",
             ["Tenants.Audit.Column.Scope"] = "Tenant scope",
             ["Tenants.Audit.Column.Target"] = "Target",
             ["Tenants.Audit.Column.Timestamp"] = "Timestamp",
@@ -395,6 +472,34 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Previous"] = "Previous",
             ["Tenants.Audit.Refresh"] = "Refresh",
             ["Tenants.Audit.Reset"] = "Reset filters",
+            ["Tenants.Audit.Receipt.ActionsLabel"] = "Audit receipt recovery actions",
+            ["Tenants.Audit.Receipt.Action.ContinueReadOnly"] = "Continue read-only",
+            ["Tenants.Audit.Receipt.Action.Escalate"] = "Escalate with reference",
+            ["Tenants.Audit.Receipt.Action.InspectAudit"] = "Inspect audit",
+            ["Tenants.Audit.Receipt.Action.Refresh"] = "Refresh",
+            ["Tenants.Audit.Receipt.Action.Retry"] = "Retry",
+            ["Tenants.Audit.Receipt.Action.Wait"] = "Wait for audit evidence",
+            ["Tenants.Audit.Receipt.Copy"] = "Copy audit receipt reference",
+            ["Tenants.Audit.Receipt.Field.Actor"] = "Actor",
+            ["Tenants.Audit.Receipt.Field.CommandReference"] = "Command reference",
+            ["Tenants.Audit.Receipt.Field.Outcome"] = "Outcome",
+            ["Tenants.Audit.Receipt.Field.ProjectionMarker"] = "Projection marker",
+            ["Tenants.Audit.Receipt.Field.Reference"] = "Audit reference",
+            ["Tenants.Audit.Receipt.Field.Scope"] = "Tenant scope",
+            ["Tenants.Audit.Receipt.Field.Target"] = "Target",
+            ["Tenants.Audit.Receipt.Field.Timestamp"] = "Timestamp",
+            ["Tenants.Audit.Receipt.Open"] = "View receipt",
+            ["Tenants.Audit.Receipt.State.Degraded"] = "Audit evidence is degraded.",
+            ["Tenants.Audit.Receipt.State.Delayed"] = "Audit evidence is delayed.",
+            ["Tenants.Audit.Receipt.State.InvalidReference"] = "The requested receipt reference is not loaded.",
+            ["Tenants.Audit.Receipt.State.MissingSupport"] = "Audit evidence support is missing.",
+            ["Tenants.Audit.Receipt.State.Partial"] = "Audit evidence is partial.",
+            ["Tenants.Audit.Receipt.State.Pending"] = "Audit evidence is pending.",
+            ["Tenants.Audit.Receipt.State.Ready"] = "Audit evidence is ready.",
+            ["Tenants.Audit.Receipt.State.Stale"] = "Audit evidence is stale.",
+            ["Tenants.Audit.Receipt.State.Unauthorized"] = "Audit evidence is not authorized.",
+            ["Tenants.Audit.Receipt.State.Unavailable"] = "Audit evidence is unavailable.",
+            ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
             ["Tenants.Audit.State.Degraded.Message"] = "Audit evidence is degraded.",
             ["Tenants.Audit.State.Degraded.Title"] = "Audit data degraded",
             ["Tenants.Audit.State.Empty.Message"] = "No audit entries are visible.",

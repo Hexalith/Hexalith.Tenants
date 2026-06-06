@@ -2553,6 +2553,9 @@
   <data name="Tenants.Audit.Column.Reference" xml:space="preserve">
     <value>Reference context</value>
   </data>
+  <data name="Tenants.Audit.Column.Receipt" xml:space="preserve">
+    <value>Receipt</value>
+  </data>
   <data name="Tenants.Audit.Column.Scope" xml:space="preserve">
     <value>Tenant scope</value>
   </data>
@@ -2567,6 +2570,90 @@
   </data>
   <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
     <value>Copy audit event reference {0}</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.ActionsLabel" xml:space="preserve">
+    <value>Audit receipt recovery actions</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continue read-only</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Escalate" xml:space="preserve">
+    <value>Escalate with reference</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.InspectAudit" xml:space="preserve">
+    <value>Inspect audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Wait" xml:space="preserve">
+    <value>Wait for audit evidence</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
+    <value>Copy audit receipt reference</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Actor" xml:space="preserve">
+    <value>Actor</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.CommandReference" xml:space="preserve">
+    <value>Command reference</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Outcome" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.ProjectionMarker" xml:space="preserve">
+    <value>Projection marker</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Reference" xml:space="preserve">
+    <value>Audit reference</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Scope" xml:space="preserve">
+    <value>Tenant scope</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Target" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Timestamp" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Open" xml:space="preserve">
+    <value>View receipt</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Degraded" xml:space="preserve">
+    <value>Audit evidence is degraded. Use the reference only with this limitation.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Delayed" xml:space="preserve">
+    <value>Audit evidence is delayed. Inspect audit or retry before citing proof.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.InvalidReference" xml:space="preserve">
+    <value>The requested receipt reference is not loaded in the current tenant-scoped audit result.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.MissingSupport" xml:space="preserve">
+    <value>Audit evidence support is missing. Escalate with the support-safe reference.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Partial" xml:space="preserve">
+    <value>Audit evidence is partial. The receipt cannot cite a complete proof.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Pending" xml:space="preserve">
+    <value>Audit evidence is pending. Wait or refresh before citing proof.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Ready" xml:space="preserve">
+    <value>Audit evidence is ready to cite.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Stale" xml:space="preserve">
+    <value>Audit evidence is stale. Refresh before treating it as current.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Unauthorized" xml:space="preserve">
+    <value>Audit evidence is not available for the current authorization scope.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Unavailable" xml:space="preserve">
+    <value>Audit evidence is unavailable. Continue read-only or retry later.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Title" xml:space="preserve">
+    <value>Audit evidence receipt</value>
   </data>
   <data name="Tenants.Audit.Description" xml:space="preserve">
     <value>Read-only tenant audit evidence from the server-side query gateway.</value>

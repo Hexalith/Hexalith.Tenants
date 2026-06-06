@@ -2553,6 +2553,9 @@
   <data name="Tenants.Audit.Column.Reference" xml:space="preserve">
     <value>Contexte de reference</value>
   </data>
+  <data name="Tenants.Audit.Column.Receipt" xml:space="preserve">
+    <value>Recu</value>
+  </data>
   <data name="Tenants.Audit.Column.Scope" xml:space="preserve">
     <value>Portee locataire</value>
   </data>
@@ -2567,6 +2570,90 @@
   </data>
   <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
     <value>Copier la reference d'evenement d'audit {0}</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.ActionsLabel" xml:space="preserve">
+    <value>Actions de reprise du recu d'audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continuer en lecture seule</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Escalate" xml:space="preserve">
+    <value>Escalader avec la reference</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.InspectAudit" xml:space="preserve">
+    <value>Inspecter l'audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Refresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Retry" xml:space="preserve">
+    <value>Reessayer</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Action.Wait" xml:space="preserve">
+    <value>Attendre la preuve d'audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Copy" xml:space="preserve">
+    <value>Copier la reference du recu d'audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Actor" xml:space="preserve">
+    <value>Acteur</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.CommandReference" xml:space="preserve">
+    <value>Reference de commande</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Outcome" xml:space="preserve">
+    <value>Resultat</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.ProjectionMarker" xml:space="preserve">
+    <value>Marqueur de projection</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Reference" xml:space="preserve">
+    <value>Reference d'audit</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Scope" xml:space="preserve">
+    <value>Portee locataire</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Target" xml:space="preserve">
+    <value>Cible</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Field.Timestamp" xml:space="preserve">
+    <value>Horodatage</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Open" xml:space="preserve">
+    <value>Voir le recu</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Degraded" xml:space="preserve">
+    <value>La preuve d'audit est degradee. Utilisez la reference seulement avec cette limite.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Delayed" xml:space="preserve">
+    <value>La preuve d'audit est retardee. Inspectez l'audit ou reessayez avant de citer une preuve.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.InvalidReference" xml:space="preserve">
+    <value>La reference de recu demandee n'est pas chargee dans le resultat d'audit limite au locataire actuel.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.MissingSupport" xml:space="preserve">
+    <value>Le support de preuve d'audit manque. Escaladez avec la reference sure pour le support.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Partial" xml:space="preserve">
+    <value>La preuve d'audit est partielle. Le recu ne peut pas citer une preuve complete.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Pending" xml:space="preserve">
+    <value>La preuve d'audit est en attente. Attendez ou actualisez avant de citer une preuve.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Ready" xml:space="preserve">
+    <value>La preuve d'audit est prete a citer.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Stale" xml:space="preserve">
+    <value>La preuve d'audit est perimee. Actualisez avant de la traiter comme actuelle.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Unauthorized" xml:space="preserve">
+    <value>La preuve d'audit n'est pas disponible dans la portee d'autorisation actuelle.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.State.Unavailable" xml:space="preserve">
+    <value>La preuve d'audit est indisponible. Continuez en lecture seule ou reessayez plus tard.</value>
+  </data>
+  <data name="Tenants.Audit.Receipt.Title" xml:space="preserve">
+    <value>Recu de preuve d'audit</value>
   </data>
   <data name="Tenants.Audit.Description" xml:space="preserve">
     <value>Preuves d'audit locataire en lecture seule depuis la passerelle de requete cote serveur.</value>

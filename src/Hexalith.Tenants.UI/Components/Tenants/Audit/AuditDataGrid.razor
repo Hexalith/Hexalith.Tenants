@@ -63,6 +63,16 @@
                                        TestId="tenants-audit-copy-reference" />
             </div>
         </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Receipt"]"
+                        ColumnId="audit-receipt"
+                        Width="150px">
+            <button type="button"
+                    class="audit-data-grid__receipt-open"
+                    data-testid="tenants-audit-receipt-open"
+                    @onclick="() => OpenReceiptAsync(context)">
+                @Localizer["Tenants.Audit.Receipt.Open"]
+            </button>
+        </TemplateColumn>
     </FluentDataGrid>
     @foreach (TenantAuditRow row in Rows)
     {
@@ -75,6 +85,9 @@
 @code {
     [Parameter]
     public IReadOnlyList<TenantAuditRow> Rows { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<TenantAuditRow> OnOpenReceipt { get; set; }
 
     private string ReferenceLabel(TenantAuditRow row)
         => string.IsNullOrWhiteSpace(row.ReferenceContext)
@@ -89,4 +102,7 @@
 
     private static string CategoryCss(AuditEventCategory category)
         => category.ToString().ToLowerInvariant();
+
+    private async Task OpenReceiptAsync(TenantAuditRow row)
+        => await OnOpenReceipt.InvokeAsync(row).ConfigureAwait(false);
 }

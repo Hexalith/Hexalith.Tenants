@@ -37,6 +37,10 @@
     min-width: 0;
 }
 
+.audit-data-grid__receipt-open {
+    min-height: 2.25rem;
+}
+
 .audit-data-grid__row-marker {
     clip: rect(0 0 0 0);
     clip-path: inset(50%);
@@ -53,19 +57,19 @@
 
 @media (max-width: 767px) {
     .audit-data-grid fluent-data-grid {
-        min-width: 78rem;
+        min-width: 86rem;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
     .audit-data-grid fluent-data-grid {
-        min-width: 80rem;
+        min-width: 88rem;
     }
 }
 
 @media (min-width: 1440px) {
     .audit-data-grid fluent-data-grid {
-        min-width: 88rem;
+        min-width: 96rem;
     }
 }
 

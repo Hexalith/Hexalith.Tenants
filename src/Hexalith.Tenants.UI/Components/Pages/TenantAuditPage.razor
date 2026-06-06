@@ -75,7 +75,13 @@
     {
         <section class="tenant-audit__grid-shell" aria-labelledby="tenant-audit-grid-heading">
             <h2 id="tenant-audit-grid-heading">@Localizer["Tenants.Audit.GridTitle"]</h2>
-            <AuditDataGrid Rows="@_snapshot.Rows" />
+            <AuditDataGrid Rows="@_snapshot.Rows" OnOpenReceipt="OpenReceiptAsync" />
+            @if (_selectedReceipt is not null)
+            {
+                <AuditEvidenceReceipt Receipt="@_selectedReceipt"
+                                      OnRetry="RefreshAsync"
+                                      OnClose="CloseReceiptAsync" />
+            }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
                 <button type="button" data-testid="tenants-audit-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
                     @Localizer["Tenants.Audit.Previous"]
@@ -96,6 +102,7 @@
     private string? _fromText;
     private string? _toText;
     private string? _categoryText;
+    private TenantAuditReceipt? _selectedReceipt;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -119,6 +126,10 @@
     [Parameter]
     [SupplyParameterFromQuery(Name = "source")]
     public string? SourceKind { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "receiptReference")]
+    public string? ReceiptReference { get; set; }
 
     private string BackHref
         => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : $"/tenants/{Uri.EscapeDataString(TenantId)}";
@@ -220,6 +231,8 @@
             _cursorHistory.Clear();
             _currentCursor = null;
         }
+
+        ResolveReceiptSelection();
     }
 
     private async Task RefreshAsync()
@@ -285,6 +298,49 @@
     {
         _cursorHistory.Clear();
         _currentCursor = null;
+        _selectedReceipt = null;
+    }
+
+    private Task OpenReceiptAsync(TenantAuditRow row)
+    {
+        _selectedReceipt = TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind);
+        return Task.CompletedTask;
+    }
+
+    private Task CloseReceiptAsync()
+    {
+        _selectedReceipt = null;
+        return Task.CompletedTask;
+    }
+
+    private void ResolveReceiptSelection()
+    {
+        if (!ShouldRenderRows && string.IsNullOrWhiteSpace(ReceiptReference))
+        {
+            _selectedReceipt = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ReceiptReference))
+        {
+            TenantAuditRow? requestedRow = _snapshot.Rows.FirstOrDefault(row =>
+                string.Equals(row.EventReference, ReceiptReference, StringComparison.Ordinal));
+            _selectedReceipt = requestedRow is null
+                ? TenantAuditReceipt.Unavailable(ReceiptReference, TenantId, SupportSafeCommandReference)
+                : TenantAuditReceipt.FromRow(requestedRow, SupportSafeCommandReference, _snapshot.Kind);
+            return;
+        }
+
+        if (_selectedReceipt is null)
+        {
+            return;
+        }
+
+        TenantAuditRow? selectedRow = _snapshot.Rows.FirstOrDefault(row =>
+            string.Equals(row.EventReference, _selectedReceipt.AuditReference, StringComparison.Ordinal));
+        _selectedReceipt = selectedRow is null
+            ? null
+            : TenantAuditReceipt.FromRow(selectedRow, SupportSafeCommandReference, _snapshot.Kind);
     }
 
     // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
