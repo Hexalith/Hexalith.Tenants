@@ -20,4 +20,9 @@ public interface ITenantQueryGateway
         UserTenantMembershipRequest request,
         UserTenantMembershipSnapshot? previous,
         CancellationToken cancellationToken = default);
+
+    Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default);
 }

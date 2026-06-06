@@ -10,7 +10,8 @@ public sealed record UserTenantMembershipSnapshot(
     string? ETag,
     TenantFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
-    UserTenantMembershipReason Reason)
+    UserTenantMembershipReason Reason,
+    string? TargetUserId = null)
 {
     public static UserTenantMembershipSnapshot Loading()
         => new(
@@ -28,7 +29,8 @@ public sealed record UserTenantMembershipSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness)
+        TenantFreshnessState freshness,
+        string? targetUserId = null)
         => new(
             freshness == TenantFreshnessState.Stale ? UserTenantMembershipSurfaceKind.Stale : UserTenantMembershipSurfaceKind.Ready,
             rows,
@@ -37,9 +39,14 @@ public sealed record UserTenantMembershipSnapshot(
             eTag,
             freshness,
             false,
-            freshness == TenantFreshnessState.Stale ? UserTenantMembershipReason.ProjectionStale : UserTenantMembershipReason.None);
+            freshness == TenantFreshnessState.Stale ? UserTenantMembershipReason.ProjectionStale : UserTenantMembershipReason.None,
+            targetUserId);
 
-    public static UserTenantMembershipSnapshot Empty(bool isAuthorizationScoped, TenantFreshnessState freshness, string? eTag)
+    public static UserTenantMembershipSnapshot Empty(
+        bool isAuthorizationScoped,
+        TenantFreshnessState freshness,
+        string? eTag,
+        string? targetUserId = null)
         => new(
             UserTenantMembershipSurfaceKind.Empty,
             [],
@@ -48,13 +55,29 @@ public sealed record UserTenantMembershipSnapshot(
             eTag,
             freshness,
             isAuthorizationScoped,
-            UserTenantMembershipReason.None);
+            UserTenantMembershipReason.None,
+            targetUserId);
+
+    public static UserTenantMembershipSnapshot Invalid(
+        UserTenantMembershipReason reason = UserTenantMembershipReason.InvalidTargetUser,
+        string? targetUserId = null)
+        => new(
+            UserTenantMembershipSurfaceKind.Invalid,
+            [],
+            null,
+            false,
+            null,
+            TenantFreshnessState.Unknown,
+            false,
+            reason,
+            targetUserId);
 
     public static UserTenantMembershipSnapshot Stale(
         IReadOnlyList<UserTenantMembershipRow> rows,
         string? nextCursor,
         bool hasMore,
-        string? eTag)
+        string? eTag,
+        string? targetUserId = null)
         => new(
             UserTenantMembershipSurfaceKind.Stale,
             rows,
@@ -63,14 +86,16 @@ public sealed record UserTenantMembershipSnapshot(
             eTag,
             TenantFreshnessState.Stale,
             false,
-            UserTenantMembershipReason.ProjectionStale);
+            UserTenantMembershipReason.ProjectionStale,
+            targetUserId);
 
     public static UserTenantMembershipSnapshot Degraded(
         IReadOnlyList<UserTenantMembershipRow> rows,
         UserTenantMembershipReason reason,
         string? eTag = null,
         string? nextCursor = null,
-        bool hasMore = false)
+        bool hasMore = false,
+        string? targetUserId = null)
         => new(
             UserTenantMembershipSurfaceKind.Degraded,
             rows,
@@ -79,9 +104,12 @@ public sealed record UserTenantMembershipSnapshot(
             eTag,
             TenantFreshnessState.Unknown,
             false,
-            reason);
+            reason,
+            targetUserId);
 
-    public static UserTenantMembershipSnapshot Unauthorized(UserTenantMembershipReason reason = UserTenantMembershipReason.Unauthorized)
+    public static UserTenantMembershipSnapshot Unauthorized(
+        UserTenantMembershipReason reason = UserTenantMembershipReason.Unauthorized,
+        string? targetUserId = null)
         => new(
             UserTenantMembershipSurfaceKind.Unauthorized,
             [],
@@ -90,9 +118,12 @@ public sealed record UserTenantMembershipSnapshot(
             null,
             TenantFreshnessState.Unknown,
             false,
-            reason);
+            reason,
+            targetUserId);
 
-    public static UserTenantMembershipSnapshot Unavailable(UserTenantMembershipReason reason = UserTenantMembershipReason.GatewayUnavailable)
+    public static UserTenantMembershipSnapshot Unavailable(
+        UserTenantMembershipReason reason = UserTenantMembershipReason.GatewayUnavailable,
+        string? targetUserId = null)
         => new(
             UserTenantMembershipSurfaceKind.Unavailable,
             [],
@@ -101,5 +132,6 @@ public sealed record UserTenantMembershipSnapshot(
             null,
             TenantFreshnessState.Unknown,
             false,
-            reason);
+            reason,
+            targetUserId);
 }

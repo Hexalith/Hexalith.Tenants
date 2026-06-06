@@ -2,59 +2,59 @@
 @using Hexalith.Tenants.UI.State.UserTenants
 @inject IStringLocalizer<TenantsResources> Localizer
 
-<div class="my-tenants-grid" data-testid="tenants-my-list">
+<div class="my-tenants-grid" data-testid="@($"{SelectorPrefix}-list")">
     <FluentDataGrid Items="@Rows.AsQueryable()"
                     ResizableColumns="true"
                     ReorderableColumns="false"
                     GenerateHeader="DataGridGeneratedHeaderType.Sticky"
                     ItemKey="@(row => row.TenantId)">
-        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Tenant"]"
+        <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Tenant"]"
                         ColumnId="tenant-id"
-                        Class="tenants-my-critical tenants-my-critical--identity"
+                        Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--identity")"
                         Width="240px"
                         Pin="DataGridColumnPin.Start">
             <div class="my-tenants-grid__identity"
-                 data-testid="tenants-my-row">
-                <strong data-testid="tenants-my-tenant-id">@context.TenantId</strong>
+                 data-testid="@($"{SelectorPrefix}-row")">
+                <strong data-testid="@($"{SelectorPrefix}-tenant-id")">@context.TenantId</strong>
                 <span>@context.Name</span>
             </div>
         </TemplateColumn>
-        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Role"]"
+        <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Role"]"
                         ColumnId="tenant-role"
-                        Class="tenants-my-critical tenants-my-critical--role"
+                        Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--role")"
                         Width="165px"
                         Pin="DataGridColumnPin.Start">
             <span class="my-tenants-grid__badge my-tenants-grid__badge--role-@RoleCss(context.Role)"
-                  aria-label="@Localizer["Tenants.MyTenants.RoleAccessible", RoleLabel(context.Role)]"
-                  data-testid="tenants-my-role">
+                  aria-label="@Localizer[$"{ResourcePrefix}.RoleAccessible", RoleLabel(context.Role)]"
+                  data-testid="@($"{SelectorPrefix}-role")">
                 <span aria-hidden="true">@RoleIcon(context.Role)</span>
                 <span>@RoleLabel(context.Role)</span>
             </span>
         </TemplateColumn>
-        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Status"]"
+        <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Status"]"
                         ColumnId="tenant-status"
-                        Class="tenants-my-critical tenants-my-critical--status"
+                        Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--status")"
                         Width="150px">
             <span class="my-tenants-grid__badge my-tenants-grid__badge--status-@StatusCss(context.Status)"
-                  aria-label="@Localizer["Tenants.MyTenants.StatusAccessible", StatusLabel(context.Status)]"
-                  data-testid="tenants-my-status">
+                  aria-label="@Localizer[$"{ResourcePrefix}.StatusAccessible", StatusLabel(context.Status)]"
+                  data-testid="@($"{SelectorPrefix}-status")">
                 <span aria-hidden="true">@StatusIcon(context.Status)</span>
                 <span>@StatusLabel(context.Status)</span>
             </span>
         </TemplateColumn>
-        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Lifecycle"]"
+        <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Lifecycle"]"
                         ColumnId="tenant-lifecycle"
-                        Class="tenants-my-critical tenants-my-critical--lifecycle"
+                        Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--lifecycle")"
                         Width="160px">
-            @Localizer["Tenants.MyTenants.Lifecycle.FromStatus", StatusLabel(context.Status)]
+            @Localizer[$"{ResourcePrefix}.Lifecycle.FromStatus", StatusLabel(context.Status)]
         </TemplateColumn>
-        <TemplateColumn Title="@Localizer["Tenants.MyTenants.Column.Freshness"]"
+        <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Freshness"]"
                         ColumnId="tenant-freshness"
-                        Class="tenants-my-critical tenants-my-critical--freshness"
+                        Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--freshness")"
                         Width="170px">
             <TruthStateBadge Freshness="@context.Freshness"
-                             TestId="tenants-my-truth-state"
-                             ResourcePrefix="Tenants.MyTenants" />
+                             TestId="@($"{SelectorPrefix}-truth-state")"
+                             ResourcePrefix="@ResourcePrefix" />
         </TemplateColumn>
     </FluentDataGrid>
 </div>
@@ -63,11 +63,17 @@
     [Parameter]
     public IReadOnlyList<UserTenantMembershipRow> Rows { get; set; } = [];
 
+    [Parameter]
+    public string ResourcePrefix { get; set; } = "Tenants.MyTenants";
+
+    [Parameter]
+    public string SelectorPrefix { get; set; } = "tenants-my";
+
     private string RoleLabel(TenantRole role)
-        => Localizer[$"Tenants.MyTenants.Role.{role}"];
+        => Localizer[$"{ResourcePrefix}.Role.{role}"];
 
     private string StatusLabel(TenantStatus status)
-        => Localizer[$"Tenants.MyTenants.Status.{status}"];
+        => Localizer[$"{ResourcePrefix}.Status.{status}"];
 
     private static string RoleCss(TenantRole role)
         => role.ToString().ToLowerInvariant();

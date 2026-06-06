@@ -41,7 +41,8 @@
     color: #414042;
 }
 
-.tenants-my-critical {
+.tenants-my-critical,
+.tenants-user-critical {
     min-width: 7rem;
 }
 

@@ -5,6 +5,7 @@ public enum UserTenantMembershipSurfaceKind
     Loading,
     Ready,
     Empty,
+    Invalid,
     Stale,
     Degraded,
     Unauthorized,

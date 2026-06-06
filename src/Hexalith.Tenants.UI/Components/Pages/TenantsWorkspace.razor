@@ -62,6 +62,11 @@
            data-testid="tenants-my-link">
             @Localizer["Tenants.MyTenants.Link"]
         </a>
+        <a class="tenants-workspace__context-link"
+           href="/tenants/users"
+           data-testid="tenants-user-lookup-link">
+            @Localizer["Tenants.UserLookup.Link"]
+        </a>
     </section>
 
     @if (_snapshot.Kind is TenantListSurfaceKind.Loading)

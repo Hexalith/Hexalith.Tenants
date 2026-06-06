@@ -23,4 +23,14 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway
         UserTenantMembershipSnapshot? previous,
         CancellationToken cancellationToken = default)
         => Task.FromResult(UserTenantMembershipSnapshot.Unavailable());
+
+    public Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return Task.FromResult(UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId));
+    }
 }

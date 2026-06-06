@@ -276,6 +276,181 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_my_tenants_keeps_signed_in_user_as_target_even_when_request_has_target()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>([], null, false));
+        TenantQueryGateway gateway = CreateGateway(client, "user.self");
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetMyTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "user.other"), null, CancellationToken.None);
+
+        SubmittedQuery query = client.SubmittedQueries[0];
+        query.Request.Tenant.ShouldBe("user.self");
+        query.Request.EntityId.ShouldBe("user.self");
+        snapshot.TargetUserId.ShouldBe("user.self");
+    }
+
+    [Fact]
+    public async Task Get_user_tenants_submits_authenticated_requester_and_explicit_target_user_query()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
+            [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader)],
+            "opaque-next",
+            true));
+        TenantQueryGateway gateway = CreateGateway(client, "operator-user");
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(
+                new UserTenantMembershipRequest(
+                    TargetUserId: "target.user@example",
+                    Cursor: "signed-target-cursor",
+                    PageSize: 12,
+                    ETag: "\"known\""),
+                null,
+                CancellationToken.None);
+
+        SubmittedQuery query = client.SubmittedQueries[0];
+        query.Request.Tenant.ShouldBe("operator-user");
+        query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
+        query.Request.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
+        query.Request.AggregateId.ShouldBe("index");
+        query.Request.EntityId.ShouldBe("target.user@example");
+        query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
+        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.Request.Paging.ShouldBeNull();
+        query.IfNoneMatch.ShouldBe("\"known\"");
+        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
+        payload.GetProperty("cursor").GetString().ShouldBe("signed-target-cursor");
+        payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
+        payload.TryGetProperty("offset", out _).ShouldBeFalse();
+        snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
+        snapshot.TargetUserId.ShouldBe("target.user@example");
+        snapshot.NextCursor.ShouldBe("opaque-next");
+    }
+
+    [Fact]
+    public async Task Get_user_tenants_reuses_not_modified_snapshot_only_for_same_target_user()
+    {
+        UserTenantMembershipSnapshot previous = UserTenantMembershipSnapshot.Ready(
+            [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, TenantFreshnessState.Current)],
+            nextCursor: "next",
+            hasMore: true,
+            eTag: "\"known\"",
+            freshness: TenantFreshnessState.Current,
+            targetUserId: "target.one");
+        CapturingGatewayClient client = new();
+        client.EnqueueUserTenantsNotModified("\"known\"");
+        client.EnqueueUserTenantsNotModified("\"known\"");
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        UserTenantMembershipSnapshot sameTarget = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.one", ETag: "\"known\""), previous, CancellationToken.None);
+        UserTenantMembershipSnapshot differentTarget = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.two", ETag: "\"known\""), previous, CancellationToken.None);
+
+        sameTarget.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        sameTarget.TargetUserId.ShouldBe("target.one");
+        differentTarget.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Degraded);
+        differentTarget.Reason.ShouldBe(UserTenantMembershipReason.NotModifiedWithoutSnapshot);
+        differentTarget.TargetUserId.ShouldBe("target.two");
+    }
+
+    [Fact]
+    public async Task Get_user_tenants_rejects_missing_target_without_backend_call()
+    {
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: ""), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Invalid);
+        snapshot.Reason.ShouldBe(UserTenantMembershipReason.MissingTargetUser);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_user_tenants_maps_authorization_scoped_empty_without_disclosing_hidden_memberships()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>([], null, false));
+        TenantQueryGateway gateway = CreateGateway(client, "operator-user");
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.user", PageSize: 10), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Empty);
+        snapshot.IsAuthorizationScopedEmpty.ShouldBeTrue();
+        snapshot.TargetUserId.ShouldBe("target.user");
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.ToString().ShouldNotContain("hidden", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("missing user", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("orphan", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(true, false, UserTenantMembershipSurfaceKind.Stale, TenantFreshnessState.Stale, UserTenantMembershipReason.ProjectionStale)]
+    [InlineData(false, true, UserTenantMembershipSurfaceKind.Degraded, TenantFreshnessState.Unknown, UserTenantMembershipReason.ProjectionDegraded)]
+    public async Task Get_user_tenants_maps_target_lookup_stale_and_degraded_metadata_to_distinct_states(
+        bool isStale,
+        bool isDegraded,
+        UserTenantMembershipSurfaceKind expectedKind,
+        TenantFreshnessState expectedFreshness,
+        UserTenantMembershipReason expectedReason)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<UserTenantMembership>(
+                [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
+                "next",
+                true),
+            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+        TenantQueryGateway gateway = CreateGateway(client, "operator-user");
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.user", PageSize: 10), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.TargetUserId.ShouldBe("target.user");
+        snapshot.Freshness.ShouldBe(expectedFreshness);
+        snapshot.Reason.ShouldBe(expectedReason);
+        snapshot.NextCursor.ShouldBe("next");
+        snapshot.HasMore.ShouldBeTrue();
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(expectedFreshness);
+    }
+
+    [Theory]
+    [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized)]
+    [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
+    [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
+    [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable)]
+    [InlineData(500, UserTenantMembershipSurfaceKind.Degraded)]
+    public async Task Get_user_tenants_maps_target_lookup_gateway_failures_to_sanitized_states(
+        int statusCode,
+        UserTenantMembershipSurfaceKind expected)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            statusCode,
+            "Problem title",
+            detail: "raw payload token secret stack trace correlation-123 EventStore metadata"));
+        TenantQueryGateway gateway = CreateGateway(client, "operator-user");
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.user"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+        snapshot.TargetUserId.ShouldBe("target.user");
+        snapshot.ToString().ShouldNotContain("raw payload", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("token", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("stack trace", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("correlation-123", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
     public async Task Get_my_tenants_requires_authenticated_user_context()
     {
         CapturingGatewayClient client = new();
@@ -313,7 +488,8 @@ public sealed class TenantQueryGatewayTests
             nextCursor: "next",
             hasMore: true,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current);
+            freshness: TenantFreshnessState.Current,
+            targetUserId: "operator-user");
         CapturingGatewayClient client = new();
         client.EnqueueUserTenantsNotModified("\"known\"");
         TenantQueryGateway gateway = CreateGateway(client);
@@ -376,7 +552,7 @@ public sealed class TenantQueryGatewayTests
     [Theory]
     [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized)]
     [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
-    [InlineData(400, UserTenantMembershipSurfaceKind.Unavailable)]
+    [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
     [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable)]
     [InlineData(500, UserTenantMembershipSurfaceKind.Degraded)]
     public async Task Get_my_tenants_maps_gateway_failures_to_sanitized_states(int statusCode, UserTenantMembershipSurfaceKind expected)

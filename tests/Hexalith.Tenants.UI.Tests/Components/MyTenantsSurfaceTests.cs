@@ -63,6 +63,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-my-link']");
 
         cut.Find("[data-testid='tenants-my-link']").GetAttribute("href").ShouldBe("/tenants/my");
+        cut.Find("[data-testid='tenants-user-lookup-link']").GetAttribute("href").ShouldBe("/tenants/users");
         cut.Markup.ShouldNotContain("Users", Case.Sensitive);
     }
 
@@ -141,6 +142,21 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-list']").TextContent.ShouldContain("tenant.alpha");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain(expectedFreshness);
         cut.Find("[data-testid='tenants-my-next']").GetAttribute("disabled").ShouldBeNull();
+        cut.Markup.ShouldNotContain("success", Case.Insensitive);
+    }
+
+    [Fact]
+    public void My_tenants_invalid_state_does_not_collapse_into_an_empty_grid()
+    {
+        RegisterServices(UserTenantMembershipSnapshot.Invalid());
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForElement("[data-testid='tenants-my-invalid']");
+
+        cut.Find("[data-testid='tenants-my-invalid']").GetAttribute("role").ShouldBe("alert");
+        cut.Markup.ShouldContain("Membership lookup is invalid");
+        cut.FindAll("[data-testid='tenants-my-list']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-my-next']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
     }
 
@@ -308,6 +324,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.MyTenants.Freshness.Unknown"] = "Unknown",
             ["Tenants.MyTenants.Lifecycle.FromStatus"] = "Lifecycle from status: {0}",
             ["Tenants.MyTenants.Link"] = "My tenants",
+            ["Tenants.UserLookup.Link"] = "User lookup",
             ["Tenants.MyTenants.Next"] = "Next",
             ["Tenants.MyTenants.PaginationLabel"] = "My Tenants pages",
             ["Tenants.MyTenants.Previous"] = "Previous",
@@ -321,6 +338,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.MyTenants.State.Degraded.Title"] = "My Tenants data is degraded",
             ["Tenants.MyTenants.State.Empty.Message"] = "No tenants are visible for your signed-in account. This authorized empty result is not an error.",
             ["Tenants.MyTenants.State.Empty.Title"] = "No visible memberships",
+            ["Tenants.MyTenants.State.Invalid.Message"] = "The membership request could not be validated. Enter a supported user identifier and try again.",
+            ["Tenants.MyTenants.State.Invalid.Title"] = "Membership lookup is invalid",
             ["Tenants.MyTenants.State.Loading.Message"] = "Your tenant memberships are loading from the server-side query gateway.",
             ["Tenants.MyTenants.State.Loading.Title"] = "Loading my tenants",
             ["Tenants.MyTenants.State.Stale.Message"] = "The latest freshness evidence says these memberships are stale. Refresh to check the projection again.",

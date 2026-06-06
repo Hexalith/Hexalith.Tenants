@@ -5,12 +5,12 @@
          role="@Role"
          aria-live="@AriaLive"
          data-testid="@TestId">
-    <h2>@Localizer[$"Tenants.MyTenants.State.{ResourceName}.Title"]</h2>
-    <p>@Localizer[$"Tenants.MyTenants.State.{ResourceName}.Message"]</p>
+    <h2>@Localizer[$"{ResourcePrefix}.State.{ResourceName}.Title"]</h2>
+    <p>@Localizer[$"{ResourcePrefix}.State.{ResourceName}.Message"]</p>
     @if (Kind is UserTenantMembershipSurfaceKind.Stale or UserTenantMembershipSurfaceKind.Degraded)
     {
-        <button type="button" data-testid="tenants-my-state-refresh" @onclick="OnRefresh">
-            @Localizer["Tenants.MyTenants.Refresh"]
+        <button type="button" data-testid="@($"{SelectorPrefix}-state-refresh")" @onclick="OnRefresh">
+            @Localizer[$"{ResourcePrefix}.Refresh"]
         </button>
     }
 </section>
@@ -22,10 +22,17 @@
     [Parameter]
     public EventCallback OnRefresh { get; set; }
 
+    [Parameter]
+    public string ResourcePrefix { get; set; } = "Tenants.MyTenants";
+
+    [Parameter]
+    public string SelectorPrefix { get; set; } = "tenants-my";
+
     private string ResourceName => Kind switch
     {
         UserTenantMembershipSurfaceKind.Loading => "Loading",
         UserTenantMembershipSurfaceKind.Empty => "Empty",
+        UserTenantMembershipSurfaceKind.Invalid => "Invalid",
         UserTenantMembershipSurfaceKind.Stale => "Stale",
         UserTenantMembershipSurfaceKind.Degraded => "Degraded",
         UserTenantMembershipSurfaceKind.Unauthorized => "Unauthorized",
@@ -35,18 +42,24 @@
 
     private string TestId => Kind switch
     {
-        UserTenantMembershipSurfaceKind.Loading => "tenants-my-loading",
-        UserTenantMembershipSurfaceKind.Empty => "tenants-my-empty",
-        UserTenantMembershipSurfaceKind.Stale => "tenants-my-stale",
-        UserTenantMembershipSurfaceKind.Degraded => "tenants-my-degraded",
-        UserTenantMembershipSurfaceKind.Unauthorized => "tenants-my-error",
-        UserTenantMembershipSurfaceKind.Unavailable => "tenants-my-error",
-        _ => "tenants-my-error",
+        UserTenantMembershipSurfaceKind.Loading => $"{SelectorPrefix}-loading",
+        UserTenantMembershipSurfaceKind.Empty => $"{SelectorPrefix}-empty",
+        UserTenantMembershipSurfaceKind.Stale => $"{SelectorPrefix}-stale",
+        UserTenantMembershipSurfaceKind.Degraded => $"{SelectorPrefix}-degraded",
+        UserTenantMembershipSurfaceKind.Invalid => $"{SelectorPrefix}-invalid",
+        UserTenantMembershipSurfaceKind.Unauthorized => $"{SelectorPrefix}-error",
+        UserTenantMembershipSurfaceKind.Unavailable => $"{SelectorPrefix}-error",
+        _ => $"{SelectorPrefix}-error",
     };
 
     private string CssClass => ResourceName.ToLowerInvariant();
 
-    private string Role => Kind is UserTenantMembershipSurfaceKind.Unauthorized or UserTenantMembershipSurfaceKind.Unavailable ? "alert" : "status";
+    private string Role => Kind is UserTenantMembershipSurfaceKind.Invalid
+        or UserTenantMembershipSurfaceKind.Unauthorized
+        or UserTenantMembershipSurfaceKind.Unavailable
+        or UserTenantMembershipSurfaceKind.Degraded
+            ? "alert"
+            : "status";
 
     private string AriaLive => Role == "alert" ? "assertive" : "polite";
 }

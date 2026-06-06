@@ -84,6 +84,45 @@ internal sealed class TenantQueryGateway(
             return UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser);
         }
 
+        UserTenantMembershipRequest selfRequest = request with
+        {
+            TargetUserId = authenticatedUserId,
+        };
+
+        return await GetUserTenantsCoreAsync(authenticatedUserId, selfRequest, previous, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        string? authenticatedUserId = userContextAccessor.UserId;
+        if (string.IsNullOrWhiteSpace(authenticatedUserId))
+        {
+            return UserTenantMembershipSnapshot.Unauthorized(
+                UserTenantMembershipReason.MissingAuthenticatedUser,
+                request.TargetUserId);
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TargetUserId))
+        {
+            return UserTenantMembershipSnapshot.Invalid(UserTenantMembershipReason.MissingTargetUser);
+        }
+
+        return await GetUserTenantsCoreAsync(authenticatedUserId, request, previous, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<UserTenantMembershipSnapshot> GetUserTenantsCoreAsync(
+        string authenticatedUserId,
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken)
+    {
         try
         {
             SubmitQueryRequest query = CreateUserTenantsQuery(authenticatedUserId, request);
@@ -93,11 +132,12 @@ internal sealed class TenantQueryGateway(
 
             if (result.IsNotModified)
             {
-                return previous is null
+                return previous is null || !string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
                     ? UserTenantMembershipSnapshot.Degraded(
                         [],
                         UserTenantMembershipReason.NotModifiedWithoutSnapshot,
-                        result.ETag)
+                        result.ETag,
+                        targetUserId: request.TargetUserId)
                     : previous with
                     {
                         ETag = result.ETag ?? previous.ETag,
@@ -121,7 +161,12 @@ internal sealed class TenantQueryGateway(
             if (result.Metadata?.IsStale == true)
             {
                 rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
-                return UserTenantMembershipSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
+                return UserTenantMembershipSnapshot.Stale(
+                    rows,
+                    payload.Cursor,
+                    payload.HasMore,
+                    result.ETag,
+                    request.TargetUserId);
             }
 
             if (result.Metadata?.IsDegraded == true)
@@ -132,12 +177,13 @@ internal sealed class TenantQueryGateway(
                     UserTenantMembershipReason.ProjectionDegraded,
                     result.ETag,
                     payload.Cursor,
-                    payload.HasMore);
+                    payload.HasMore,
+                    request.TargetUserId);
             }
 
             if (rows.Count == 0)
             {
-                return UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag);
+                return UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request.TargetUserId);
             }
 
             return UserTenantMembershipSnapshot.Ready(
@@ -145,11 +191,12 @@ internal sealed class TenantQueryGateway(
                 payload.Cursor,
                 payload.HasMore,
                 result.ETag,
-                freshness);
+                freshness,
+                request.TargetUserId);
         }
         catch (EventStoreGatewayException ex)
         {
-            return MapUserTenantException(ex);
+            return MapUserTenantException(ex, request.TargetUserId);
         }
     }
 
@@ -236,7 +283,7 @@ internal sealed class TenantQueryGateway(
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
             }),
-            EntityId: authenticatedUserId,
+            EntityId: request.TargetUserId,
             ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
@@ -332,13 +379,15 @@ internal sealed class TenantQueryGateway(
             _ => TenantDetailSnapshot.Degraded(null, "Tenant detail query gateway returned a safe degraded state."),
         };
 
-    private static UserTenantMembershipSnapshot MapUserTenantException(EventStoreGatewayException exception)
+    private static UserTenantMembershipSnapshot MapUserTenantException(EventStoreGatewayException exception, string? targetUserId)
         => exception.StatusCode switch
         {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
-                => UserTenantMembershipSnapshot.Unauthorized(),
-            (int)HttpStatusCode.BadRequest or (int)HttpStatusCode.ServiceUnavailable
-                => UserTenantMembershipSnapshot.Unavailable(),
-            _ => UserTenantMembershipSnapshot.Degraded([], UserTenantMembershipReason.GatewayFailure),
+                => UserTenantMembershipSnapshot.Unauthorized(targetUserId: targetUserId),
+            (int)HttpStatusCode.BadRequest
+                => UserTenantMembershipSnapshot.Invalid(targetUserId: targetUserId),
+            (int)HttpStatusCode.ServiceUnavailable
+                => UserTenantMembershipSnapshot.Unavailable(targetUserId: targetUserId),
+            _ => UserTenantMembershipSnapshot.Degraded([], UserTenantMembershipReason.GatewayFailure, targetUserId: targetUserId),
         };
 }

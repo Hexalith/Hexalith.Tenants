@@ -27,6 +27,10 @@
     {
         <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Empty" />
     }
+    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Invalid)
+    {
+        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Invalid" />
+    }
     else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unauthorized)
     {
         <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unauthorized" />

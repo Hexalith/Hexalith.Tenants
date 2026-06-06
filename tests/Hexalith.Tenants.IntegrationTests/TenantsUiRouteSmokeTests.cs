@@ -94,4 +94,29 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldNotContain("access_token", Case.Insensitive);
         markup.ShouldNotContain("success", Case.Insensitive);
     }
+
+    [DaprFact]
+    public async Task User_lookup_route_renders_safe_unavailable_prefilled_state_in_hosted_ui() {
+        _fixture.SkipIfUnavailable();
+
+        using HttpResponseMessage response = await _fixture.TenantsUiClient
+            .GetAsync("/tenants/users?userId=operator.support-01")
+            .ConfigureAwait(false);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        string markup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        markup.ShouldContain("data-testid=\"tenants-user-lookup\"");
+        markup.ShouldContain("data-testid=\"tenants-user-lookup-input\"");
+        markup.ShouldContain("value=\"operator.support-01\"");
+        markup.ShouldContain("data-testid=\"tenants-user-lookup-target\"");
+        markup.ShouldContain("operator.support-01");
+        markup.ShouldContain("data-testid=\"tenants-user-error\"");
+        markup.ShouldContain("role=\"alert\"");
+        markup.ShouldContain("User membership lookup is unavailable");
+        markup.ShouldNotContain("data-testid=\"tenants-user-row\"");
+        markup.ShouldNotContain("hidden membership", Case.Insensitive);
+        markup.ShouldNotContain("access_token", Case.Insensitive);
+        markup.ShouldNotContain("success", Case.Insensitive);
+    }
 }

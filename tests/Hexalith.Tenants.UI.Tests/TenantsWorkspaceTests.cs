@@ -105,6 +105,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.List.StatusFilterLabel"] = "Status",
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.MyTenants.Link"] = "My tenants",
+            ["Tenants.UserLookup.Link"] = "User lookup",
         };
 
         public LocalizedString this[string name]

@@ -44,6 +44,10 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("Tenant read surfaces are not connected yet");
         manager.GetString("Tenants.Workspace.UnavailableHeading", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Les surfaces de lecture des locataires ne sont pas encore connectées");
+        manager.GetString("Tenants.UserLookup.Title", CultureInfo.InvariantCulture)
+            .ShouldBe("User membership lookup");
+        manager.GetString("Tenants.UserLookup.Title", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Recherche des appartenances utilisateur");
     }
 
     [Fact]

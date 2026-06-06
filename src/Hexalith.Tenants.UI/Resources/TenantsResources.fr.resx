@@ -270,6 +270,12 @@
   <data name="Tenants.MyTenants.State.Empty.Title" xml:space="preserve">
     <value>Aucune appartenance visible</value>
   </data>
+  <data name="Tenants.MyTenants.State.Invalid.Message" xml:space="preserve">
+    <value>La demande d'appartenance n'a pas pu être validée. Saisissez un identifiant utilisateur pris en charge, puis réessayez.</value>
+  </data>
+  <data name="Tenants.MyTenants.State.Invalid.Title" xml:space="preserve">
+    <value>La recherche d'appartenance est invalide</value>
+  </data>
   <data name="Tenants.MyTenants.State.Loading.Message" xml:space="preserve">
     <value>Vos appartenances aux locataires sont chargées depuis la passerelle de requête côté serveur.</value>
   </data>
@@ -308,6 +314,204 @@
   </data>
   <data name="Tenants.MyTenants.Title" xml:space="preserve">
     <value>Mes locataires</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Cleared" xml:space="preserve">
+    <value>Recherche des appartenances utilisateur effacée.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Degraded" xml:space="preserve">
+    <value>Les preuves d'appartenance pour {0} sont dégradées.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Empty" xml:space="preserve">
+    <value>Aucune appartenance n'est visible pour {0} dans cette recherche limitée par autorisation.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Invalid" xml:space="preserve">
+    <value>Saisissez un identifiant utilisateur avant d'exécuter la recherche.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Loading" xml:space="preserve">
+    <value>Recherche des appartenances visibles pour {0}.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Ready" xml:space="preserve">
+    <value>{0} appartenances visibles chargées pour {1}.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Sorted" xml:space="preserve">
+    <value>Appartenances visibles triées.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Stale" xml:space="preserve">
+    <value>Les preuves d'appartenance pour {0} sont périmées.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Unauthorized" xml:space="preserve">
+    <value>La recherche des appartenances utilisateur n'est pas autorisée pour {0}.</value>
+  </data>
+  <data name="Tenants.UserLookup.Announcement.Unavailable" xml:space="preserve">
+    <value>La recherche des appartenances utilisateur est indisponible pour {0}.</value>
+  </data>
+  <data name="Tenants.UserLookup.Back" xml:space="preserve">
+    <value>Retour aux locataires</value>
+  </data>
+  <data name="Tenants.UserLookup.Clear" xml:space="preserve">
+    <value>Effacer</value>
+  </data>
+  <data name="Tenants.UserLookup.Column.Freshness" xml:space="preserve">
+    <value>Fraîcheur</value>
+  </data>
+  <data name="Tenants.UserLookup.Column.Lifecycle" xml:space="preserve">
+    <value>Cycle de vie</value>
+  </data>
+  <data name="Tenants.UserLookup.Column.Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="Tenants.UserLookup.Column.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Tenants.UserLookup.Column.Tenant" xml:space="preserve">
+    <value>Locataire</value>
+  </data>
+  <data name="Tenants.UserLookup.Description" xml:space="preserve">
+    <value>Recherche d'appartenance en lecture seule pour un identifiant utilisateur fourni par l'appelant. Les résultats incluent uniquement les appartenances visibles pour l'opérateur connecté.</value>
+  </data>
+  <data name="Tenants.UserLookup.FormLabel" xml:space="preserve">
+    <value>Contrôles de recherche des appartenances utilisateur</value>
+  </data>
+  <data name="Tenants.UserLookup.Freshness.Aging" xml:space="preserve">
+    <value>Vieillissant</value>
+  </data>
+  <data name="Tenants.UserLookup.Freshness.Current" xml:space="preserve">
+    <value>Actuel</value>
+  </data>
+  <data name="Tenants.UserLookup.Freshness.Refreshing" xml:space="preserve">
+    <value>Actualisation</value>
+  </data>
+  <data name="Tenants.UserLookup.Freshness.Stale" xml:space="preserve">
+    <value>Périmé</value>
+  </data>
+  <data name="Tenants.UserLookup.Freshness.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.UserLookup.Initial.Message" xml:space="preserve">
+    <value>Saisissez un identifiant utilisateur pour exécuter une recherche d'appartenance limitée par autorisation.</value>
+  </data>
+  <data name="Tenants.UserLookup.Initial.Title" xml:space="preserve">
+    <value>Recherche des appartenances utilisateur prête</value>
+  </data>
+  <data name="Tenants.UserLookup.InputHelp" xml:space="preserve">
+    <value>Utilisez l'identifiant utilisateur exact fourni par l'appelant. La valeur n'est pas analysée comme GUID ou ULID.</value>
+  </data>
+  <data name="Tenants.UserLookup.InputLabel" xml:space="preserve">
+    <value>Identifiant utilisateur</value>
+  </data>
+  <data name="Tenants.UserLookup.Lifecycle.FromStatus" xml:space="preserve">
+    <value>Cycle de vie depuis le statut : {0}</value>
+  </data>
+  <data name="Tenants.UserLookup.Link" xml:space="preserve">
+    <value>Recherche utilisateur</value>
+  </data>
+  <data name="Tenants.UserLookup.Next" xml:space="preserve">
+    <value>Suivant</value>
+  </data>
+  <data name="Tenants.UserLookup.PaginationLabel" xml:space="preserve">
+    <value>Pages de résultats des appartenances utilisateur</value>
+  </data>
+  <data name="Tenants.UserLookup.Previous" xml:space="preserve">
+    <value>Précédent</value>
+  </data>
+  <data name="Tenants.UserLookup.Refresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="Tenants.UserLookup.Role.TenantContributor" xml:space="preserve">
+    <value>Contributeur du locataire</value>
+  </data>
+  <data name="Tenants.UserLookup.Role.TenantOwner" xml:space="preserve">
+    <value>Propriétaire du locataire</value>
+  </data>
+  <data name="Tenants.UserLookup.Role.TenantReader" xml:space="preserve">
+    <value>Lecteur du locataire</value>
+  </data>
+  <data name="Tenants.UserLookup.Role.Unknown" xml:space="preserve">
+    <value>Rôle inconnu</value>
+  </data>
+  <data name="Tenants.UserLookup.RoleAccessible" xml:space="preserve">
+    <value>Rôle : {0}</value>
+  </data>
+  <data name="Tenants.UserLookup.Sort.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Tenants.UserLookup.Sort.Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="Tenants.UserLookup.Sort.Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Tenants.UserLookup.Sort.Tenant" xml:space="preserve">
+    <value>Identifiant du locataire</value>
+  </data>
+  <data name="Tenants.UserLookup.SortLabel" xml:space="preserve">
+    <value>Trier les résultats</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Degraded.Message" xml:space="preserve">
+    <value>Certaines preuves d'appartenance sont dégradées. Les lignes visibles ne sont pas présentées comme actuelles.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Degraded.Title" xml:space="preserve">
+    <value>Les données d'appartenance utilisateur sont dégradées</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Empty.Message" xml:space="preserve">
+    <value>Aucune appartenance n'est visible pour cette recherche. Cela ne révèle pas s'il existe des appartenances masquées, manquantes, orphelines ou hors périmètre.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Empty.Title" xml:space="preserve">
+    <value>Aucune appartenance visible pour cette recherche</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Invalid.Message" xml:space="preserve">
+    <value>Saisissez un identifiant utilisateur pris en charge avant d'exécuter la recherche. La valeur est conservée telle que fournie et n'est pas analysée comme identifiant généré.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Invalid.Title" xml:space="preserve">
+    <value>L'entrée de recherche utilisateur est invalide</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Loading.Message" xml:space="preserve">
+    <value>Les appartenances utilisateur sont chargées via la passerelle de requête côté serveur.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Loading.Title" xml:space="preserve">
+    <value>Chargement des appartenances utilisateur</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Ready.Title" xml:space="preserve">
+    <value>Appartenances visibles chargées</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Stale.Message" xml:space="preserve">
+    <value>La dernière preuve de fraîcheur indique que ces appartenances sont périmées. Actualisez pour revérifier la projection.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Stale.Title" xml:space="preserve">
+    <value>Les données d'appartenance utilisateur sont périmées</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Unauthorized.Message" xml:space="preserve">
+    <value>L'opérateur connecté n'a pas pu être autorisé pour cette recherche d'appartenance utilisateur.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Unauthorized.Title" xml:space="preserve">
+    <value>La recherche d'appartenance utilisateur n'est pas autorisée</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Unavailable.Message" xml:space="preserve">
+    <value>La recherche d'appartenance utilisateur est indisponible tant que la passerelle de requête côté serveur n'est pas joignable.</value>
+  </data>
+  <data name="Tenants.UserLookup.State.Unavailable.Title" xml:space="preserve">
+    <value>La recherche d'appartenance utilisateur est indisponible</value>
+  </data>
+  <data name="Tenants.UserLookup.Status.Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="Tenants.UserLookup.Status.Disabled" xml:space="preserve">
+    <value>Désactivé</value>
+  </data>
+  <data name="Tenants.UserLookup.Status.Unknown" xml:space="preserve">
+    <value>Statut inconnu</value>
+  </data>
+  <data name="Tenants.UserLookup.StatusAccessible" xml:space="preserve">
+    <value>Statut : {0}</value>
+  </data>
+  <data name="Tenants.UserLookup.Submit" xml:space="preserve">
+    <value>Rechercher</value>
+  </data>
+  <data name="Tenants.UserLookup.TargetContext" xml:space="preserve">
+    <value>Cible de recherche : {0}</value>
+  </data>
+  <data name="Tenants.UserLookup.Title" xml:space="preserve">
+    <value>Recherche des appartenances utilisateur</value>
   </data>
   <data name="Tenants.Detail.Back" xml:space="preserve">
     <value>Retour aux locataires</value>
