@@ -42,6 +42,20 @@
                                 OnCommandActivityChanged="@OnCommandActivityChanged"
                                 ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 
+    @if (!string.IsNullOrWhiteSpace(_removeKey))
+    {
+        <RemoveTenantConfigurationFlow Detail="@Detail"
+                                       TargetKey="@_removeKey"
+                                       SurfaceKind="@SurfaceKind"
+                                       Freshness="@Freshness"
+                                       IsAuthorized="@IsAuthorized"
+                                       IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                       OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                       OnCommandActivityChanged="@OnCommandActivityChanged"
+                                       OnCloseRequested="@CloseRemoveFlowAsync"
+                                       ProjectionEvidenceProvider="@RemoveProjectionEvidenceProvider" />
+    }
+
     <div class="tenant-config__controls" role="search" aria-label="@Localizer["Tenants.Configuration.Filter.Label"]">
         <label for="tenants-config-filter">@Localizer["Tenants.Configuration.Filter.Label"]</label>
         <input id="tenants-config-filter"
@@ -97,13 +111,14 @@
                         <th scope="col">@Localizer["Tenants.Configuration.Header.Value"]</th>
                         <th scope="col">@Localizer["Tenants.Configuration.Header.Safety"]</th>
                         <th scope="col">@Localizer["Tenants.Configuration.Header.Freshness"]</th>
+                        <th scope="col">@Localizer["Tenants.Configuration.Header.Actions"]</th>
                     </tr>
                 </thead>
                 @foreach (IGrouping<string, ConfigurationRow> group in FilteredRows.GroupBy(static row => row.NamespaceLabel))
                 {
                     <tbody data-testid="tenants-config-group">
                         <tr class="tenant-config__group-row">
-                            <th scope="rowgroup" colspan="5">@Localizer["Tenants.Configuration.GroupLabel", group.Key]</th>
+                            <th scope="rowgroup" colspan="6">@Localizer["Tenants.Configuration.GroupLabel", group.Key]</th>
                         </tr>
                         @foreach (ConfigurationRow row in group)
                         {
@@ -142,6 +157,25 @@
                                 </td>
                                 <td data-testid="tenants-config-value-state">@row.SafetyLabel</td>
                                 <td><TruthStateBadge Freshness="@Freshness" TestId="tenants-config-row-freshness" ResourcePrefix="Tenants.Configuration" /></td>
+                                <td>
+                                    <button type="button"
+                                            class="tenant-config__remove"
+                                            data-testid="tenants-config-remove-open"
+                                            aria-describedby="@RemoveActionDescriptionId(row.Key)"
+                                            disabled="@(!string.IsNullOrWhiteSpace(RemoveUnavailableReason))"
+                                            @ref="_removeLaunchElements[row.Key]"
+                                            @onclick="() => OpenRemoveFlow(row.Key)">
+                                        @Localizer["Tenants.Configuration.Remove.Open"]
+                                    </button>
+                                    @if (!string.IsNullOrWhiteSpace(RemoveUnavailableReason))
+                                    {
+                                        <p id="@RemoveActionDescriptionId(row.Key)"
+                                           class="tenant-config__remove-reason"
+                                           data-testid="tenants-config-remove-unavailable-reason">
+                                            @RemoveUnavailableReason
+                                        </p>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -153,6 +187,9 @@
 
 @code {
     private string _filter = string.Empty;
+    private string? _removeKey;
+    private readonly Dictionary<string, ElementReference> _removeLaunchElements = new(StringComparer.Ordinal);
+    private string? _focusRemoveLaunchKey;
 
     [Parameter]
     public TenantDetail Detail { get; set; } = default!;
@@ -177,6 +214,9 @@
 
     [Parameter]
     public Func<SetTenantConfigurationCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    [Parameter]
+    public Func<RemoveTenantConfigurationCommandRequest, Task<TenantDetail?>>? RemoveProjectionEvidenceProvider { get; set; }
 
     private IReadOnlyList<ConfigurationRow> Rows
         => Detail.Configuration
@@ -203,6 +243,19 @@
         => SurfaceKind is TenantDetailSurfaceKind.Stale or TenantDetailSurfaceKind.Degraded or TenantDetailSurfaceKind.Unknown
             || Freshness is TenantFreshnessState.Stale or TenantFreshnessState.Unknown;
 
+    private string? RemoveUnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+            ? Localizer["Tenants.Configuration.Remove.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+                ? Localizer["Tenants.Configuration.Remove.Unavailable.ProjectionState"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+                ? Localizer["Tenants.Configuration.Remove.Unavailable.Freshness"].Value
+                : !IsCommandSurfaceAvailable
+                    ? Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value
+                    : string.IsNullOrWhiteSpace(Detail.TenantId)
+                        ? Localizer["Tenants.Configuration.Remove.Unavailable.Identity"].Value
+                        : null;
+
     private string LivePoliteness
         => SurfaceKind is TenantDetailSurfaceKind.Degraded or TenantDetailSurfaceKind.Unknown ? "assertive" : "polite";
 
@@ -219,6 +272,29 @@
 
     private void ClearFilter()
         => _filter = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusRemoveLaunchKey is not null
+            && _removeLaunchElements.TryGetValue(_focusRemoveLaunchKey, out ElementReference launchElement))
+        {
+            _focusRemoveLaunchKey = null;
+            await launchElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void OpenRemoveFlow(string key)
+        => _removeKey = key;
+
+    private async Task CloseRemoveFlowAsync()
+    {
+        _focusRemoveLaunchKey = _removeKey;
+        _removeKey = null;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private static string RemoveActionDescriptionId(string key)
+        => $"tenants-config-remove-reason-{Math.Abs(StringComparer.Ordinal.GetHashCode(key))}";
 
     private ConfigurationRow ToRow(KeyValuePair<string, string> item)
     {

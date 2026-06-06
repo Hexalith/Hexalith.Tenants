@@ -152,7 +152,8 @@
                                      IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                      OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                      OnCommandActivityChanged="@SetCommandActivityAsync"
-                                     ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync" />
+                                     ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
+                                     RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync" />
         </section>
     }
     else
@@ -222,6 +223,12 @@
                 : null);
 
     private Task<TenantDetail?> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfigurationCommandRequest request)
+        => Task.FromResult(
+            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? _snapshot.Detail
+                : null);
+
+    private Task<TenantDetail?> GetRemoveConfigurationProjectionEvidenceAsync(RemoveTenantConfigurationCommandRequest request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail

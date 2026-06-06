@@ -28,6 +28,11 @@ public interface ITenantCommandGateway
         SetTenantConfigurationCommandRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
+        RemoveTenantConfigurationCommandRequest request,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant configuration removal gateway is unavailable."));
+
     Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)

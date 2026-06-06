@@ -1,0 +1,148 @@
+.tenants-config-remove {
+    border-block-start: 1px solid CanvasText;
+    display: grid;
+    gap: 1rem;
+    padding-block-start: 1rem;
+}
+
+.tenants-config-remove__header {
+    align-items: start;
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tenants-config-remove h3,
+.tenants-config-remove h4,
+.tenants-config-remove p {
+    margin: 0;
+}
+
+.tenants-config-remove__narrow {
+    display: none;
+}
+
+.tenants-config-remove__form {
+    display: grid;
+    gap: .75rem;
+    max-inline-size: 60rem;
+}
+
+.tenants-config-remove__confirmation {
+    display: grid;
+    gap: .35rem;
+    max-inline-size: 36rem;
+}
+
+.tenants-config-remove__confirmation input {
+    inline-size: 100%;
+}
+
+.tenants-config-remove__preview {
+    border-inline-start: .25rem solid #c50f1f;
+    max-inline-size: 56rem;
+    padding-inline-start: 1rem;
+}
+
+.tenants-config-remove__preview dl {
+    display: grid;
+    gap: .6rem;
+    margin: 0;
+}
+
+.tenants-config-remove__preview div {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+}
+
+.tenants-config-remove__preview dt {
+    font-weight: 700;
+}
+
+.tenants-config-remove__preview dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.tenants-config-remove__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.tenants-config-remove__unavailable,
+.tenants-config-remove__validation,
+.tenants-config-remove__preview-blocked,
+.tenants-config-remove__narrow {
+    border-inline-start: .25rem solid currentcolor;
+    padding-inline-start: .75rem;
+}
+
+.tenants-config-remove__state {
+    align-items: center;
+    display: flex;
+    gap: .5rem;
+    font-weight: 700;
+}
+
+.tenants-config-remove__state--confirmed {
+    color: #107c10;
+}
+
+.tenants-config-remove__state--rejected,
+.tenants-config-remove__state--failed,
+.tenants-config-remove__state--duplicateprevented {
+    color: #c50f1f;
+}
+
+.tenants-config-remove__state--degraded,
+.tenants-config-remove__state--unabletoverify {
+    color: #8a6a00;
+}
+
+.tenants-config-remove__live {
+    block-size: 1px;
+    inline-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+}
+
+.tenants-config-remove :focus-visible {
+    outline: 3px solid var(--focus-stroke-outer, #000);
+    outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+    .tenants-config-remove__header {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tenants-config-remove__form {
+        display: none;
+    }
+
+    .tenants-config-remove__narrow {
+        display: block;
+    }
+
+    .tenants-config-remove__preview div {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenants-config-remove {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenants-config-remove__preview {
+        border-color: CanvasText;
+    }
+
+    .tenants-config-remove__state {
+        color: CanvasText;
+    }
+}

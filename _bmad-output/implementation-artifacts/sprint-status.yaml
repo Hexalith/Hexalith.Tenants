@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T12:19:12+02:00
+# last_updated: 2026-06-06T13:30:00+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T12:19:12+02:00
+last_updated: 2026-06-06T13:30:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -84,7 +84,7 @@ development_status:
   3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail: done
   3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
   3-3-set-tenant-configuration-key-value-with-consequence-preview: done
-  3-4-remove-tenant-configuration-key-with-consequence-preview: backlog
+  3-4-remove-tenant-configuration-key-with-consequence-preview: done
   epic-3-retrospective: optional
 
   # --- Epic 4: Global Administrator Governance ---

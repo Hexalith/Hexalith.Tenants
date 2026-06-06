@@ -252,6 +252,41 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
+        RemoveTenantConfigurationCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Key))
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id and configuration key are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new RemoveTenantConfiguration(request.TenantId, request.Key);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(RemoveTenantConfiguration),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapRemoveTenantConfigurationGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
@@ -490,6 +525,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapRemoveTenantConfigurationGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeRemoveConfigurationRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to remove configuration for this tenant.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The configuration removal request was not accepted. Check the visible key evidence and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+        };
+    }
+
     private static TenantCommandSubmissionResult MapLifecycleGatewayException(EventStoreGatewayException exception)
     {
         (string Code, string Message)? rejection = SafeLifecycleRejection(exception);
@@ -583,6 +638,11 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "ConfigurationLimitExceeded"))
         {
             return ("ConfigurationLimitExceeded", "The configuration change exceeded tenant configuration limits.");
+        }
+
+        if (Contains(value, "ConfigurationKeyNotFound"))
+        {
+            return ("ConfigurationKeyNotFound", "The configuration key was not found in the current tenant projection. Refresh tenant detail before treating removal as complete.");
         }
 
         if (Contains(value, "TenantLifecycleStateAlreadySet"))
@@ -698,6 +758,41 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantDisabled"))
         {
             return ("TenantDisabled", "This tenant is disabled, so members cannot be removed.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeRemoveConfigurationRejection(EventStoreGatewayException exception)
+        => SafeRemoveConfigurationRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeRemoveConfigurationRejection(string? value)
+    {
+        if (Contains(value, "ConfigurationKeyNotFound"))
+        {
+            return ("ConfigurationKeyNotFound", "The configuration key was not found in the current tenant projection. Refresh tenant detail before treating removal as complete.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to remove configuration for this tenant.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so configuration cannot be removed.");
         }
 
         if (Contains(value, "TenantNotFound"))

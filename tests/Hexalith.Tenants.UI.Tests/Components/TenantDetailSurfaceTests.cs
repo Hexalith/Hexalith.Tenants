@@ -167,7 +167,61 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Markup.ShouldNotContain("Password=hidden");
         cut.Markup.ShouldNotContain("raw-token");
         cut.Find("[data-testid='tenants-config-set-flow']");
-        cut.Markup.ShouldNotContain("Remove");
+        cut.FindAll("[data-testid='tenants-config-remove-open']").Count.ShouldBe(4);
+        cut.FindAll("[data-testid='tenants-config-remove-open']")
+            .ShouldAllBe(static action => action.GetAttribute("type") == "button");
+        cut.Markup.ShouldNotContain("tenants-config-remove-flow");
+    }
+
+    [Fact]
+    public void Configuration_view_launches_remove_flow_from_visible_rows_without_hiding_read_or_set_context()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
+        {
+            ["billing.mode"] = "trial",
+            ["identity.region"] = "eu",
+        });
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.FindAll("[data-testid='tenants-config-remove-open']").First().Click();
+
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+        cut.Find("[data-testid='tenants-config-remove-preview']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
+        cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("identity.region");
+        cut.Find("[data-testid='tenants-config-set-flow']");
+    }
+
+    [Fact]
+    public void Configuration_view_returns_focus_to_launching_remove_control_on_cancel()
+    {
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
+        {
+            ["billing.mode"] = "trial",
+            ["identity.region"] = "eu",
+        });
+
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        cut.FindAll("[data-testid='tenants-config-remove-open']").First().Click();
+        cut.Find("[data-testid='tenants-config-remove-flow']");
+        int focusInvocationCount = JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+
+        cut.Find("[data-testid='tenants-config-remove-cancel']").Click();
+
+        cut.FindAll("[data-testid='tenants-config-remove-flow']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
     }
 
     [Fact]
@@ -758,6 +812,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         invariantResources.ShouldContain("Tenants.Configuration.Set.State.ProjectionPending");
         frenchResources.ShouldContain("Tenants.Configuration.Set.Title");
         frenchResources.ShouldContain("Tenants.Configuration.Set.State.ProjectionPending");
+        invariantResources.ShouldContain("Tenants.Configuration.Remove.Title");
+        invariantResources.ShouldContain("Tenants.Configuration.Remove.State.ProjectionPending");
+        frenchResources.ShouldContain("Tenants.Configuration.Remove.Title");
+        frenchResources.ShouldContain("Tenants.Configuration.Remove.State.ProjectionPending");
         invariantResources.ShouldContain("Tenants.Members.Title");
         invariantResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
         frenchResources.ShouldContain("Tenants.Members.Title");
@@ -1113,6 +1171,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfigurationCommandRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
 
+        public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(RemoveTenantConfigurationCommandRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."));
+
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status is unavailable."));
     }
@@ -1180,6 +1241,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Header.Namespace"] = "Namespace",
             ["Tenants.Configuration.Header.Safety"] = "Safety",
             ["Tenants.Configuration.Header.Value"] = "Value",
+            ["Tenants.Configuration.Header.Actions"] = "Actions",
             ["Tenants.Configuration.KeyAccessible"] = "Full configuration key {0}",
             ["Tenants.Configuration.ScopeNotice"] = "Visible configuration only. Prefix ownership cannot be verified in this read model.",
             ["Tenants.Configuration.State.Degraded"] = "Configuration evidence is degraded.",
@@ -1195,6 +1257,83 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Value.Sensitive"] = "Unavailable",
             ["Tenants.Configuration.Value.Unavailable"] = "Unavailable",
             ["Tenants.Configuration.ValueAccessible"] = "Visible configuration value {0}",
+            ["Tenants.Configuration.Remove.Open"] = "Remove",
+            ["Tenants.Configuration.Remove.Title"] = "Remove configuration",
+            ["Tenants.Configuration.Remove.Description"] = "Remove tenant {0} configuration.",
+            ["Tenants.Configuration.Remove.Submit"] = "Confirm removal",
+            ["Tenants.Configuration.Remove.Refresh"] = "Refresh status",
+            ["Tenants.Configuration.Remove.Cancel"] = "Cancel",
+            ["Tenants.Configuration.Remove.Confirmation.Label"] = "Type the full configuration key to confirm removal",
+            ["Tenants.Configuration.Remove.Confirmation.Help"] = "Type {0} exactly. Cancel or Escape closes without submitting.",
+            ["Tenants.Configuration.Remove.Lifecycle.Title"] = "Configuration removal lifecycle",
+            ["Tenants.Configuration.Remove.Unavailable.Authorization"] = "You are not authorized to remove configuration for this tenant.",
+            ["Tenants.Configuration.Remove.Unavailable.ProjectionState"] = "Tenant detail is unavailable or degraded.",
+            ["Tenants.Configuration.Remove.Unavailable.Freshness"] = "Refresh current tenant detail before removing configuration.",
+            ["Tenants.Configuration.Remove.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow configuration removal.",
+            ["Tenants.Configuration.Remove.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
+            ["Tenants.Configuration.Remove.Unavailable.InFlight"] = "A tenant command is already in progress.",
+            ["Tenants.Configuration.Remove.Unavailable.Identity"] = "Tenant identity is unavailable.",
+            ["Tenants.Configuration.Remove.Unavailable.Scope"] = "No authorized namespace prefix evidence is available.",
+            ["Tenants.Configuration.Remove.Unavailable.Target"] = "The selected configuration key is not visible in the current authorized projection.",
+            ["Tenants.Configuration.Remove.Unavailable.Narrow"] = "Configuration removal is unavailable on narrow layouts.",
+            ["Tenants.Configuration.Remove.Validation.KeyRequired"] = "Select a visible configuration key before previewing removal.",
+            ["Tenants.Configuration.Remove.Validation.KeyVisible"] = "The selected key cannot be proven from the current authorized projection.",
+            ["Tenants.Configuration.Remove.Validation.NamespaceScope"] = "The namespace prefix cannot be proven from the current authorized projection.",
+            ["Tenants.Configuration.Remove.Validation.ConfirmationRequired"] = "Type {0} exactly before removing this configuration key.",
+            ["Tenants.Configuration.Remove.Preview.Title"] = "Consequence preview",
+            ["Tenants.Configuration.Remove.Preview.Blocked.Required"] = "Complete required preview inputs.",
+            ["Tenants.Configuration.Remove.Preview.Tenant"] = "Tenant",
+            ["Tenants.Configuration.Remove.Preview.Namespace"] = "Namespace",
+            ["Tenants.Configuration.Remove.Preview.Key"] = "Full key",
+            ["Tenants.Configuration.Remove.Preview.CurrentState"] = "Current known state",
+            ["Tenants.Configuration.Remove.Preview.IntendedEffect"] = "Intended effect",
+            ["Tenants.Configuration.Remove.Preview.IntendedEffect.Value"] = "The selected configuration key will be removed after projection proof.",
+            ["Tenants.Configuration.Remove.Preview.Freshness"] = "Freshness evidence",
+            ["Tenants.Configuration.Remove.Preview.Authorization"] = "Authorization and scope evidence",
+            ["Tenants.Configuration.Remove.Preview.Authorization.Value"] = "The namespace prefix and key are visible in the authorized projection.",
+            ["Tenants.Configuration.Remove.Preview.KnownConsequences"] = "Known consequences",
+            ["Tenants.Configuration.Remove.Preview.KnownConsequences.Value"] = "Consumers may lose this configured value.",
+            ["Tenants.Configuration.Remove.Preview.KnownUnknowns"] = "Known unknowns",
+            ["Tenants.Configuration.Remove.Preview.KnownUnknowns.Value"] = "Downstream impact is not proven.",
+            ["Tenants.Configuration.Remove.Preview.AuditExpectation"] = "Audit expectation",
+            ["Tenants.Configuration.Remove.Preview.AuditExpectation.Value"] = "Audit evidence is pending.",
+            ["Tenants.Configuration.Remove.Preview.RecoveryPath"] = "Recovery path",
+            ["Tenants.Configuration.Remove.Preview.RecoveryPath.Value"] = "Refresh tenant detail or submit a forward correction.",
+            ["Tenants.Configuration.Remove.Freshness.Current"] = "Current",
+            ["Tenants.Configuration.Remove.Freshness.Aging"] = "Aging",
+            ["Tenants.Configuration.Remove.Freshness.Refreshing"] = "Refreshing",
+            ["Tenants.Configuration.Remove.Freshness.Stale"] = "Stale",
+            ["Tenants.Configuration.Remove.Freshness.Unknown"] = "Unknown",
+            ["Tenants.Configuration.Remove.DuplicatePrevented.Message"] = "A configuration removal command is already in progress.",
+            ["Tenants.Configuration.Remove.State.Idle"] = "No configuration removal command submitted.",
+            ["Tenants.Configuration.Remove.State.Previewed"] = "Configuration removal preview ready.",
+            ["Tenants.Configuration.Remove.State.RequestSent"] = "Configuration removal request sent.",
+            ["Tenants.Configuration.Remove.State.Accepted"] = "Accepted by EventStore; waiting for configuration removal processing.",
+            ["Tenants.Configuration.Remove.State.ProjectionPending"] = "Projection pending; the key is not confirmed removed yet.",
+            ["Tenants.Configuration.Remove.State.Confirmed"] = "Projection confirmed the selected configuration key is removed.",
+            ["Tenants.Configuration.Remove.State.Rejected"] = "Configuration removal command rejected.",
+            ["Tenants.Configuration.Remove.State.AlreadyApplied"] = "Already applied.",
+            ["Tenants.Configuration.Remove.State.DuplicatePrevented"] = "Duplicate configuration removal prevented.",
+            ["Tenants.Configuration.Remove.State.Failed"] = "Configuration removal submission failed.",
+            ["Tenants.Configuration.Remove.State.Degraded"] = "Configuration removal result is degraded.",
+            ["Tenants.Configuration.Remove.State.UnableToVerify"] = "Unable to verify the configuration removal result.",
+            ["Tenants.Configuration.Remove.Audit.NotStarted"] = "Audit evidence not started.",
+            ["Tenants.Configuration.Remove.Audit.AuditPending"] = "Audit evidence pending.",
+            ["Tenants.Configuration.Remove.Audit.AuditDelayed"] = "Audit evidence delayed.",
+            ["Tenants.Configuration.Remove.Audit.AuditUnavailable"] = "Audit evidence unavailable.",
+            ["Tenants.Configuration.Remove.Audit.MissingSupport"] = "Audit evidence support is missing.",
+            ["Tenants.Configuration.Remove.Recovery.Idle"] = "Choose a visible key when projection evidence is available.",
+            ["Tenants.Configuration.Remove.Recovery.Previewed"] = "Confirm removal, cancel, or continue read-only.",
+            ["Tenants.Configuration.Remove.Recovery.RequestSent"] = "Wait for command status and projection refresh.",
+            ["Tenants.Configuration.Remove.Recovery.Accepted"] = "Wait, refresh status, or continue read-only.",
+            ["Tenants.Configuration.Remove.Recovery.ProjectionPending"] = "Refresh tenant detail; do not display removal as complete.",
+            ["Tenants.Configuration.Remove.Recovery.Confirmed"] = "Continue read-only or inspect audit later.",
+            ["Tenants.Configuration.Remove.Recovery.Rejected"] = "Refresh projection evidence, request permission, start correction, or escalate.",
+            ["Tenants.Configuration.Remove.Recovery.AlreadyApplied"] = "Refresh projection evidence before treating the missing key as already removed.",
+            ["Tenants.Configuration.Remove.Recovery.DuplicatePrevented"] = "Wait for the in-flight command.",
+            ["Tenants.Configuration.Remove.Recovery.Failed"] = "Retry after checking projection evidence.",
+            ["Tenants.Configuration.Remove.Recovery.Degraded"] = "Wait, retry status lookup, or escalate.",
+            ["Tenants.Configuration.Remove.Recovery.UnableToVerify"] = "Refresh, retry status lookup, or escalate.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Label.ConfigurationKey"] = "Copy configuration key {0}",
             ["Tenants.Copy.Label.ConfigurationValue"] = "Copy visible configuration value for {0}",

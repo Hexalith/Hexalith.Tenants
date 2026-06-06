@@ -58,6 +58,18 @@
     padding: 0.35rem 0.75rem;
 }
 
+.tenant-config__remove {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    min-block-size: 2.25rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.tenant-config__remove-reason {
+    margin-block-start: 0.35rem;
+    max-inline-size: 18rem;
+}
+
 .tenant-config__table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -112,6 +124,7 @@
 
 .tenant-config__filter:focus-visible,
 .tenant-config__clear:focus-visible,
+.tenant-config__remove:focus-visible,
 .tenant-config__table [tabindex]:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
@@ -146,6 +159,7 @@
     .tenant-config,
     .tenant-config__filter,
     .tenant-config__clear,
+    .tenant-config__remove,
     .tenant-config__table th,
     .tenant-config__table td {
         border-color: CanvasText;
@@ -154,6 +168,7 @@
 
     .tenant-config__filter:focus-visible,
     .tenant-config__clear:focus-visible,
+    .tenant-config__remove:focus-visible,
     .tenant-config__table [tabindex]:focus-visible {
         outline-color: Highlight;
     }

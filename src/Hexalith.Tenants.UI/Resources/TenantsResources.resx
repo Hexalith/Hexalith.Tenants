@@ -1269,6 +1269,240 @@
   <data name="Tenants.Configuration.Set.Recovery.UnableToVerify" xml:space="preserve">
     <value>Refresh, retry status lookup, continue read-only, or escalate.</value>
   </data>
+  <data name="Tenants.Configuration.Header.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Title" xml:space="preserve">
+    <value>Remove configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Description" xml:space="preserve">
+    <value>Prepare a scoped configuration removal for tenant {0} with projection confirmation.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Open" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submit" xml:space="preserve">
+    <value>Confirm removal</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Confirmation.Label" xml:space="preserve">
+    <value>Type the full configuration key to confirm removal</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Confirmation.Help" xml:space="preserve">
+    <value>Type {0} exactly. Cancel or Escape closes without submitting.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Lifecycle.Title" xml:space="preserve">
+    <value>Configuration removal lifecycle</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Authorization" xml:space="preserve">
+    <value>You are not authorized to remove configuration for this tenant.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.ProjectionState" xml:space="preserve">
+    <value>Tenant detail is unavailable or degraded. Refresh current tenant detail before removing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh current tenant detail before removing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>This tenant lifecycle state does not allow configuration removal.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.InFlight" xml:space="preserve">
+    <value>A tenant command is already in progress.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Identity" xml:space="preserve">
+    <value>Tenant identity is unavailable, so configuration removal fails closed.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Scope" xml:space="preserve">
+    <value>No authorized namespace prefix evidence is available from the current projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Target" xml:space="preserve">
+    <value>The selected configuration key is not visible in the current authorized projection. Refresh tenant detail before trying again.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Narrow" xml:space="preserve">
+    <value>Configuration removal is unavailable on narrow layouts because preview, tenant identity, freshness, target key, and confirmed configuration context must remain visible together.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Validation.KeyRequired" xml:space="preserve">
+    <value>Select a visible configuration key before previewing removal.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Validation.KeyVisible" xml:space="preserve">
+    <value>The selected key cannot be proven from the current authorized projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Validation.NamespaceScope" xml:space="preserve">
+    <value>The namespace prefix cannot be proven from the current authorized projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Validation.ConfirmationRequired" xml:space="preserve">
+    <value>Type {0} exactly before removing this configuration key.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Title" xml:space="preserve">
+    <value>Consequence preview</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Blocked.Required" xml:space="preserve">
+    <value>Complete tenant identity, namespace, key, current state, freshness, authorization, and scope evidence before submitting.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Tenant" xml:space="preserve">
+    <value>Tenant</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Namespace" xml:space="preserve">
+    <value>Namespace</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Key" xml:space="preserve">
+    <value>Full key</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.CurrentState" xml:space="preserve">
+    <value>Current known state</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.IntendedEffect" xml:space="preserve">
+    <value>Intended effect</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.IntendedEffect.Value" xml:space="preserve">
+    <value>The selected configuration key will be removed only after command acceptance and projection proof.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Freshness" xml:space="preserve">
+    <value>Freshness evidence</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Authorization" xml:space="preserve">
+    <value>Authorization and scope evidence</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.Authorization.Value" xml:space="preserve">
+    <value>The namespace prefix and key are visible in the authorized tenant projection; backend authorization still enforces the command.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.KnownConsequences" xml:space="preserve">
+    <value>Known consequences</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.KnownConsequences.Value" xml:space="preserve">
+    <value>Consumers that own this prefix may lose the configured value after projection catches up.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Known unknowns</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>This UI cannot prove downstream consumer impact or audit receipt availability.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.AuditExpectation" xml:space="preserve">
+    <value>Audit expectation</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>Audit evidence is pending until the Epic 5 evidence source exists.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.RecoveryPath" xml:space="preserve">
+    <value>Recovery path</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Refresh tenant detail, retry only from current projection proof, or submit a forward correction to set the key again.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.DuplicatePrevented.Message" xml:space="preserve">
+    <value>A configuration removal command is already in progress.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Idle" xml:space="preserve">
+    <value>No configuration removal command submitted.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Previewed" xml:space="preserve">
+    <value>Configuration removal preview ready.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.RequestSent" xml:space="preserve">
+    <value>Configuration removal request sent.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Accepted" xml:space="preserve">
+    <value>Accepted by EventStore; waiting for configuration removal processing.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; the key is not confirmed removed yet.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the selected configuration key is removed.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Rejected" xml:space="preserve">
+    <value>Configuration removal command rejected.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.AlreadyApplied" xml:space="preserve">
+    <value>Already applied.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.DuplicatePrevented" xml:space="preserve">
+    <value>Duplicate configuration removal prevented.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Failed" xml:space="preserve">
+    <value>Configuration removal submission failed.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.Degraded" xml:space="preserve">
+    <value>Configuration removal result is degraded and needs review.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.State.UnableToVerify" xml:space="preserve">
+    <value>Unable to verify the configuration removal result.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence not started.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Audit.AuditDelayed" xml:space="preserve">
+    <value>Audit evidence delayed.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit evidence support is missing until Epic 5 implements the evidence source.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Idle" xml:space="preserve">
+    <value>Choose a visible key when current projection evidence and namespace scope are available.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Previewed" xml:space="preserve">
+    <value>Confirm removal, cancel, or continue read-only.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.RequestSent" xml:space="preserve">
+    <value>Wait for command status and projection refresh.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Accepted" xml:space="preserve">
+    <value>Wait, refresh status, or continue read-only until projection confirms removal.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Refresh tenant detail; do not display removal as complete until the key is absent from projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Confirmed" xml:space="preserve">
+    <value>Continue read-only or inspect audit when evidence becomes available.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Rejected" xml:space="preserve">
+    <value>Refresh projection evidence, request permission, start correction, or escalate.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Refresh projection evidence before treating the missing key as already removed.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Wait for the in-flight command, retry status lookup, or continue read-only.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Failed" xml:space="preserve">
+    <value>Retry after checking current projection evidence or escalate.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.Degraded" xml:space="preserve">
+    <value>Wait, retry status lookup, inspect audit when available, or escalate.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Refresh, retry status lookup, continue read-only, or escalate.</value>
+  </data>
   <data name="Tenants.Members.Action.AddMember" xml:space="preserve">
     <value>Add member</value>
   </data>
