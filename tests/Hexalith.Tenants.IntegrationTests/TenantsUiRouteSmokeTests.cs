@@ -119,4 +119,33 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldNotContain("access_token", Case.Insensitive);
         markup.ShouldNotContain("success", Case.Insensitive);
     }
+
+    [DaprFact]
+    public async Task Global_administrators_route_renders_fail_closed_unavailable_state_in_hosted_ui() {
+        _fixture.SkipIfUnavailable();
+
+        using HttpResponseMessage response = await _fixture.TenantsUiClient
+            .GetAsync("/global-administrators")
+            .ConfigureAwait(false);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        string markup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        markup.ShouldContain("data-testid=\"tenants-global-admins-area\"");
+        markup.ShouldContain("data-testid=\"tenants-global-admins-unavailable\"");
+        markup.ShouldContain("data-testid=\"tenants-global-admins-live-region\"");
+        markup.ShouldContain("data-testid=\"tenants-global-admins-recovery\"");
+        markup.ShouldContain("role=\"alert\"");
+        markup.ShouldContain("aria-live=\"assertive\"");
+        markup.ShouldContain("Platform area unavailable");
+        markup.ShouldContain("The area fails closed");
+        markup.ShouldNotContain("data-testid=\"tenants-global-admins-nav\"");
+        markup.ShouldNotContain("data-testid=\"tenants-global-admins-read-contract\"");
+        markup.ShouldNotContain("administrator row", Case.Insensitive);
+        markup.ShouldNotContain("administrator count", Case.Insensitive);
+        markup.ShouldNotContain("/api/tenants", Case.Insensitive);
+        markup.ShouldNotContain("/api/users", Case.Insensitive);
+        markup.ShouldNotContain("access_token", Case.Insensitive);
+        markup.ShouldNotContain("success", Case.Insensitive);
+    }
 }

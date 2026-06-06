@@ -1,0 +1,111 @@
+@page "/global-administrators"
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject ITenantsBffComposition BffComposition
+
+<PageTitle>@PageTitleText</PageTitle>
+
+<main class="global-admins" data-testid="tenants-global-admins-area" aria-labelledby="global-admins-heading">
+    <header class="global-admins__header">
+        <p class="global-admins__eyebrow">@Localizer["Tenants.GlobalAdministrators.Eyebrow"]</p>
+        <h1 id="global-admins-heading">@PageTitleText</h1>
+    </header>
+
+    <section class="global-admins__unavailable"
+             role="alert"
+             aria-label="@UnavailableTitle"
+             tabindex="0"
+             data-testid="tenants-global-admins-unavailable">
+        <span class="global-admins__state-icon" aria-hidden="true">@StateIcon</span>
+        <div class="global-admins__state-copy">
+            <h2>@UnavailableTitle</h2>
+            <p id="global-admins-live-region"
+               aria-live="assertive"
+               data-testid="tenants-global-admins-live-region">@UnavailableMessage</p>
+        </div>
+    </section>
+
+    @if (IsAuthorized)
+    {
+        <section class="global-admins__contract"
+                 aria-labelledby="global-admins-read-contract-heading"
+                 data-testid="tenants-global-admins-read-contract">
+            <h2 id="global-admins-read-contract-heading">@Localizer["Tenants.GlobalAdministrators.ReadContract.Title"]</h2>
+            <p>@Localizer["Tenants.GlobalAdministrators.ReadContract.Description"]</p>
+            <dl>
+                <div>
+                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
+                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Label"]</dt>
+                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Value"]</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Label"]</dt>
+                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Value"]</dd>
+                </div>
+            </dl>
+        </section>
+    }
+
+    <section class="global-admins__recovery"
+             aria-labelledby="global-admins-recovery-heading"
+             data-testid="tenants-global-admins-recovery">
+        <h2 id="global-admins-recovery-heading">@RecoveryHeading</h2>
+        <p>@RecoveryMessage</p>
+        @if (IsAuthorized)
+        {
+            <ul class="global-admins__facts">
+                <li>
+                    <span aria-hidden="true">!</span>
+                    <span>@Localizer["Tenants.GlobalAdministrators.States.MissingReadSupport"]</span>
+                </li>
+                <li>
+                    <span aria-hidden="true">?</span>
+                    <span>@Localizer["Tenants.GlobalAdministrators.States.UnknownFreshness"]</span>
+                </li>
+            </ul>
+        }
+        else
+        {
+            <ul class="global-admins__facts">
+                <li>
+                    <span aria-hidden="true">!</span>
+                    <span>@Localizer["Tenants.GlobalAdministrators.States.MissingPermission"]</span>
+                </li>
+            </ul>
+        }
+    </section>
+</main>
+
+@code {
+    private bool IsAuthorized
+        => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
+
+    private string PageTitleText
+        => IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Title"]
+            : Localizer["Tenants.GlobalAdministrators.RestrictedTitle"];
+
+    private string UnavailableTitle
+        => IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title"]
+            : Localizer["Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title"];
+
+    private string UnavailableMessage
+        => IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Message"]
+            : Localizer["Tenants.GlobalAdministrators.Unavailable.MissingPermission.Message"];
+
+    private string RecoveryHeading
+        => IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Recovery.MissingReadSupport.Title"]
+            : Localizer["Tenants.GlobalAdministrators.Recovery.MissingPermission.Title"];
+
+    private string RecoveryMessage
+        => IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Recovery.MissingReadSupport"]
+            : Localizer["Tenants.GlobalAdministrators.Recovery.MissingPermission"];
+
+    private string StateIcon => IsAuthorized ? "!" : "?";
+}

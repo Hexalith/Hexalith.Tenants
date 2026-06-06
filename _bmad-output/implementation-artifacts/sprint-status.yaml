@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T13:30:00+02:00
+# last_updated: 2026-06-06T14:01:05+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T13:30:00+02:00
+last_updated: 2026-06-06T14:01:05+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -88,8 +88,8 @@ development_status:
   epic-3-retrospective: optional
 
   # --- Epic 4: Global Administrator Governance ---
-  epic-4: backlog
-  4-1-global-administrators-navigation-and-read-contract-readiness: backlog
+  epic-4: in-progress
+  4-1-global-administrators-navigation-and-read-contract-readiness: done
   4-2-review-global-administrators-from-fixed-aggregate: backlog
   4-3-grant-global-administrator-with-projection-confirmation: backlog
   4-4-remove-global-administrator-with-last-admin-hard-stop: backlog

@@ -10,4 +10,7 @@ public interface ITenantsBffComposition
 
     TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+    TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+        => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 }

@@ -208,7 +208,7 @@ Each pattern names the consuming backlog rows and copies the relevant `blockedBy
 
 ### 6.2 Cross-cutting consuming rows (receipt + compensating recovery)
 
-The Audit Evidence Receipt and compensating-recovery patterns are **cross-cutting** and are also consumed by the command rows `ui-13-disable-or-enable-tenant`, `ui-14-user-management-remove-user`, and `ui-15-global-admin-command-management`. Each is `blocked` with `blockedBy: [FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]`. Reference these; do not re-bind or change their arrays (`ui-14` is owned by Story 9.4). [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
+The Audit Evidence Receipt and compensating-recovery patterns are **cross-cutting** and are also consumed by the command rows `ui-13-disable-or-enable-tenant`, `ui-14-user-management-remove-user`, and `ui-15-global-admin-command-management`. Epic 3 implementation evidence now supersedes the older blocked status for `ui-13`: FR15 lifecycle disable/enable uses the approved inline consequence-preview fallback and honest audit handoff states until Epic 5 evidence sources exist. `ui-14` remains owned by Story 9.4/Epic 2 implementation evidence, and `ui-15` remains blocked for global-administrator governance. Reference the current Phase 2 backlog before copying row arrays. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
 
 ### 6.3 Pattern → dependency map
 
@@ -221,7 +221,7 @@ The Audit Evidence Receipt and compensating-recovery patterns are **cross-cuttin
 | Compensating-recovery language + flow (§5) | (forward command via `FC-CMD`; preview via `FC-CNS`) | `FC-CMD`, `FC-CNS` (`missing`), `FC-CNC` | blocks command rows |
 | Accessibility / localization / docs (§7) | (cross-cutting) | `FC-A11Y`, `FC-L10N`, `FC-DOC` | blocks all rows |
 
-All consuming rows stay `blocked` (`FC-AUD`/`FC-CNS` `missing` plus deferred high-impact fallbacks). None becomes implementation-ready here. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `#Blocked`]
+Rows that depend on audit timeline/receipt evidence still stay blocked where `FC-AUD` is missing. Epic 3 command stories deliberately stop at honest audit handoff states (`audit pending`, `audit delayed`, `audit unavailable`, or `missing implementation support`) and do not fabricate receipts before Epic 5 evidence sources exist. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `#Blocked`]
 
 ### 6.4 Implementation Story Rules (what a future UI story must satisfy)
 

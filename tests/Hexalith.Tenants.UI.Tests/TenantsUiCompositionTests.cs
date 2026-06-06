@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Resources;
 using System.Security.Claims;
+using System.Xml.Linq;
 
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.Tenants.UI.Composition;
@@ -24,7 +25,13 @@ public sealed class TenantsUiCompositionTests
 
         TenantsFrontComposerRegistration.RegisterDomain(registry);
 
-        registry.NavGroups.ShouldContain(("Tenants", "tenants"));
+        registry.NavGroups.ShouldBe(
+        [
+            ("Tenants", "tenants"),
+            ("Global Administrators", "global-administrators"),
+            ("Audit", "audit"),
+        ]);
+        registry.NavGroups.ShouldNotContain(static nav => string.Equals(nav.Name, "Users", StringComparison.Ordinal));
         DomainManifest manifest = registry.Manifests.ShouldHaveSingleItem();
         manifest.BoundedContext.ShouldBe("tenants");
         manifest.Projections.ShouldBeEmpty();
@@ -59,6 +66,7 @@ public sealed class TenantsUiCompositionTests
                 new Claim(ClaimTypes.Role, "GlobalAdministrator")));
 
         composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+        composition.GlobalAdministratorsAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
     }
 
     [Fact]
@@ -69,6 +77,21 @@ public sealed class TenantsUiCompositionTests
             ContextAccessor(new Claim(ClaimTypes.Role, "GlobalAdministrator")));
 
         composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        composition.GlobalAdministratorsAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+    }
+
+    [Fact]
+    public void Global_administrators_read_contract_has_no_tenant_query_or_controller_route()
+    {
+        string contractsQueryRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.Contracts", "Queries");
+        string[] queryFiles = Directory.GetFiles(contractsQueryRoot, "*.cs", SearchOption.TopDirectoryOnly);
+        queryFiles.Select(Path.GetFileName).ShouldNotContain("GetGlobalAdministratorsQuery.cs");
+        queryFiles.Select(Path.GetFileName).ShouldNotContain("ListGlobalAdministratorsQuery.cs");
+
+        string controller = File.ReadAllText(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants", "Controllers", "TenantsQueryController.cs"));
+        controller.ShouldNotContain("global-administrators");
+        controller.ShouldNotContain("GlobalAdministrators");
     }
 
     [Fact]
@@ -92,6 +115,30 @@ public sealed class TenantsUiCompositionTests
             .ShouldBe("Projection pending; the target user is not confirmed absent yet.");
         manager.GetString("Tenants.RemoveMember.State.ProjectionPending", CultureInfo.GetCultureInfo("fr"))
             .ShouldBe("Projection en attente ; l'utilisateur cible n'est pas encore confirmé absent.");
+        manager.GetString("Tenants.GlobalAdministrators.Title", CultureInfo.InvariantCulture)
+            .ShouldBe("Global Administrators");
+        manager.GetString("Tenants.GlobalAdministrators.Title", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Administrateurs globaux");
+        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title", CultureInfo.InvariantCulture)
+            .ShouldBe("Global administrator read support is not implemented yet");
+        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("La lecture des administrateurs globaux n'est pas encore implementee");
+        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title", CultureInfo.InvariantCulture)
+            .ShouldBe("Platform area unavailable");
+        manager.GetString("Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title", CultureInfo.GetCultureInfo("fr"))
+            .ShouldBe("Zone plateforme indisponible");
+    }
+
+    [Fact]
+    public void Global_administrators_and_navigation_resources_have_english_french_key_parity()
+    {
+        string resourceRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources");
+        string[] prefixes = ["Tenants.GlobalAdministrators.", "Tenants.Navigation."];
+
+        HashSet<string> englishKeys = ReadResourceKeys(Path.Combine(resourceRoot, "TenantsResources.resx"), prefixes);
+        HashSet<string> frenchKeys = ReadResourceKeys(Path.Combine(resourceRoot, "TenantsResources.fr.resx"), prefixes);
+
+        englishKeys.ShouldBe(frenchKeys);
     }
 
     [Fact]
@@ -100,7 +147,10 @@ public sealed class TenantsUiCompositionTests
         string layout = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Layout", "MainLayout.razor"));
 
-        layout.ShouldContain("<FrontComposerShell>@Body</FrontComposerShell>");
+        layout.ShouldContain("<FrontComposerShell>");
+        layout.ShouldContain("<Navigation>");
+        layout.ShouldContain("<OperationsShellNavigation />");
+        layout.ShouldContain("@Body");
     }
 
     [Fact]
@@ -112,10 +162,33 @@ public sealed class TenantsUiCompositionTests
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(":focus-visible");
         styles.ShouldContain("outline");
+
+        string globalAdminStyles = File.ReadAllText(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages", "GlobalAdministratorsPage.razor.css"));
+
+        globalAdminStyles.ShouldContain("@media (forced-colors: active)");
+        globalAdminStyles.ShouldContain(":focus-visible");
+        globalAdminStyles.ShouldContain("outline");
+
+        string navigationStyles = File.ReadAllText(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Layout", "OperationsShellNavigation.razor.css"));
+
+        navigationStyles.ShouldContain("@media (forced-colors: active)");
+        navigationStyles.ShouldContain(":focus-visible");
+        navigationStyles.ShouldContain("outline");
     }
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+
+    private static HashSet<string> ReadResourceKeys(string path, string[] prefixes)
+        => XDocument
+            .Load(path)
+            .Descendants("data")
+            .Select(static element => element.Attribute("name")?.Value)
+            .Where(name => name is not null && prefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
+            .Select(name => name!)
+            .ToHashSet(StringComparer.Ordinal);
 
     private static IHttpContextAccessor ContextAccessor(params Claim[] claims)
         => new HttpContextAccessor

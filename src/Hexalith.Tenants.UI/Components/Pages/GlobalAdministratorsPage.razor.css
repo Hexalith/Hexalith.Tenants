@@ -1,0 +1,121 @@
+.global-admins {
+    display: grid;
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.global-admins__header {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.global-admins__eyebrow,
+.global-admins h1,
+.global-admins h2,
+.global-admins p {
+    margin: 0;
+}
+
+.global-admins__eyebrow {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.global-admins__unavailable,
+.global-admins__contract,
+.global-admins__recovery {
+    border: 1px solid CanvasText;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    max-width: 48rem;
+    padding: 1rem;
+}
+
+.global-admins__unavailable {
+    align-items: start;
+    grid-template-columns: auto 1fr;
+}
+
+.global-admins__unavailable:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+.global-admins__state-icon {
+    border: 2px solid currentColor;
+    display: inline-grid;
+    font-weight: 700;
+    height: 2rem;
+    place-items: center;
+    width: 2rem;
+}
+
+.global-admins__state-copy {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.global-admins__contract dl {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.global-admins__contract div {
+    display: grid;
+    gap: 0.25rem;
+    grid-template-columns: minmax(8rem, max-content) 1fr;
+}
+
+.global-admins__contract dt {
+    font-weight: 600;
+}
+
+.global-admins__contract dd {
+    margin: 0;
+}
+
+.global-admins__facts {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.global-admins__facts li {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.global-admins__facts span[aria-hidden="true"] {
+    border: 1px solid currentColor;
+    display: inline-grid;
+    font-weight: 700;
+    min-height: 1.5rem;
+    min-width: 1.5rem;
+    place-items: center;
+}
+
+@media (max-width: 42rem) {
+    .global-admins__unavailable,
+    .global-admins__contract div {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (forced-colors: active) {
+    .global-admins__unavailable,
+    .global-admins__contract,
+    .global-admins__recovery,
+    .global-admins__state-icon,
+    .global-admins__facts span[aria-hidden="true"] {
+        border-color: CanvasText;
+    }
+
+    .global-admins__unavailable:focus-visible {
+        outline-color: Highlight;
+    }
+}

@@ -15,6 +15,8 @@ public static class TenantsFrontComposerRegistration
         ArgumentNullException.ThrowIfNull(registry);
 
         registry.AddNavGroup("Tenants", "tenants");
+        registry.AddNavGroup("Global Administrators", "global-administrators");
+        registry.AddNavGroup("Audit", "audit");
         registry.RegisterDomain(Manifest);
     }
 }

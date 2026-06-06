@@ -2373,4 +2373,85 @@
   <data name="Tenants.EditMetadata.Recovery.UnableToVerify" xml:space="preserve">
     <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
   </data>
+  <data name="Tenants.Navigation.AriaLabel" xml:space="preserve">
+    <value>Navigation primaire du shell d'operations</value>
+  </data>
+  <data name="Tenants.Navigation.Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Tenants.Navigation.AuditUnavailable" xml:space="preserve">
+    <value>La zone Audit est indisponible tant que la surface de lecture UI d'audit n'est pas implementee.</value>
+  </data>
+  <data name="Tenants.Navigation.GlobalAdministrators" xml:space="preserve">
+    <value>Administrateurs globaux</value>
+  </data>
+  <data name="Tenants.Navigation.Tenants" xml:space="preserve">
+    <value>Locataires</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Aggregate.Domain.Label" xml:space="preserve">
+    <value>Domaine</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Aggregate.Domain.Value" xml:space="preserve">
+    <value>global-administrators</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Aggregate.Id.Label" xml:space="preserve">
+    <value>Identifiant d'agregat</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Aggregate.Id.Value" xml:space="preserve">
+    <value>global-administrators</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Aggregate.Tenant.Label" xml:space="preserve">
+    <value>Portee locataire</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Aggregate.Tenant.Value" xml:space="preserve">
+    <value>system</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Eyebrow" xml:space="preserve">
+    <value>Gouvernance plateforme</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.ReadContract.Description" xml:space="preserve">
+    <value>L'agregat fixe dispose d'une preuve d'ecriture de projection, mais aucun contrat de requete ni endpoint REST actuel n'expose une route de lecture des administrateurs globaux.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.ReadContract.Title" xml:space="preserve">
+    <value>Limite du contrat de lecture</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.MissingPermission" xml:space="preserve">
+    <value>Demandez l'autorite plateforme par le parcours d'operations approuve ; cette page ne revele aucune donnee d'autorite cachee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.MissingPermission.Title" xml:space="preserve">
+    <value>Guide de reprise</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.MissingReadSupport" xml:space="preserve">
+    <value>N'utilisez pas les endpoints de locataires, membres ou appartenances utilisateur comme substitut. Attendez une story backend/API de contrat de lecture.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Recovery.MissingReadSupport.Title" xml:space="preserve">
+    <value>Guide de reprise</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.RestrictedTitle" xml:space="preserve">
+    <value>Zone plateforme indisponible</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.States.MissingPermission" xml:space="preserve">
+    <value>Autorite plateforme manquante</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.States.MissingReadSupport" xml:space="preserve">
+    <value>Prise en charge d'implementation manquante</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.States.UnknownFreshness" xml:space="preserve">
+    <value>Fraicheur inconnue tant qu'une route de lecture n'existe pas</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Title" xml:space="preserve">
+    <value>Administrateurs globaux</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Unavailable.MissingPermission.Message" xml:space="preserve">
+    <value>La reflexion d'autorisation cote serveur n'a pas confirme l'autorite plateforme. La zone echoue fermee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Unavailable.MissingPermission.Title" xml:space="preserve">
+    <value>Zone plateforme indisponible</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Message" xml:space="preserve">
+    <value>L'agregat fixe est global-administrators, mais cette UI n'a pas encore de contrat de lecture confirme pour les donnees d'administrateurs.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Unavailable.MissingReadSupport.Title" xml:space="preserve">
+    <value>La lecture des administrateurs globaux n'est pas encore implementee</value>
+  </data>
 </root>

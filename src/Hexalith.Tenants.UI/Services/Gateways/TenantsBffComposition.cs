@@ -18,6 +18,11 @@ internal sealed class TenantsBffComposition(
             ? TenantLifecycleAuthorizationReflectionState.Authorized
             : TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
+    public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+        => IsServerReflectedGlobalAdministrator(httpContextAccessor?.HttpContext?.User)
+            ? TenantLifecycleAuthorizationReflectionState.Authorized
+            : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
     private static bool IsServerReflectedGlobalAdministrator(ClaimsPrincipal? principal)
         => principal?.Identity?.IsAuthenticated == true
         && principal.HasClaim(static claim =>

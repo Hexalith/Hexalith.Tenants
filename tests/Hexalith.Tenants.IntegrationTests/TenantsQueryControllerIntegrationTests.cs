@@ -66,6 +66,22 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
+    [Theory]
+    [InlineData("/api/global-administrators")]
+    [InlineData("/api/global-administrators/users")]
+    [InlineData("/api/global-administrators/global-administrators")]
+    public async Task GlobalAdministrators_read_api_route_is_not_exposed_or_routed(string route) {
+        IQueryRouter router = Substitute.For<IQueryRouter>();
+
+        await using var factory = new TenantsQueryWebApplicationFactory(router);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync(route);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        await router.DidNotReceiveWithAnyArgs().RouteQueryAsync(default!, default);
+    }
+
     [Fact]
     public async Task ListTenants_returns_200_when_authorization_header_has_valid_jwt() {
         JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });

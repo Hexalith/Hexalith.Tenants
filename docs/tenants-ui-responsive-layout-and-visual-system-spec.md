@@ -165,14 +165,16 @@ Deferred Decision: "Confirm semantic role/status/timeline/consequence token usag
 | `ui-07-create-tenant-command` | `planning-only` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-08-edit-tenant-metadata-command` | `planning-only` | yes | no | `[FC-LYT, FC-CMD, FC-CNC, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-09-user-management-add-or-change-role` | `planning-only` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-10-tenant-configuration-edit` | `blocked` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-10-tenant-configuration-edit` | `ready-with-approved-fallback` | yes | yes | `[]` |
 | `ui-11-audit-trail-flat-timeline` | `blocked` | yes | yes | `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-12-tenant-detail-audit-tab` | `blocked` | yes | yes | `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-13-disable-or-enable-tenant` | `blocked` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-13-disable-or-enable-tenant` | `ready-with-approved-fallback` | yes | yes | `[]` |
 | `ui-14-user-management-remove-user` | `blocked` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-15-global-admin-command-management` | `blocked` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 
 `ui-08` carries `FC-LYT` but not `FC-TOK` (its `blockedBy` has no `FC-TOK`), so it is governed by the layout rules of this spec but is not a `FC-TOK` token-consuming row. The `FC-TOK` row set in §6.2 (`ui-02`/`ui-03`/`ui-04`/`ui-06`/`ui-07`/`ui-09`/`ui-10`/`ui-11`/`ui-12`/`ui-13`/`ui-14`/`ui-15`) is the authoritative token-consuming set. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `#Deferred Decisions`; `#Readiness Order`]
+
+Epic 3 implementation evidence supersedes the older blocked status for `ui-10` and `ui-13`: Story 3.2 delivered FR15 lifecycle disable/enable with high-impact preview, one-at-a-time command locking, focus-loop and focus-return evidence, responsive fail-closed behavior, and projection-confirmed lifecycle truth; Stories 3.3 and 3.4 delivered configuration set/remove with inline consequence previews, projection proof, support-safe copy, and EN/FR parity. These rows still consume the visual semantic rules in this spec, but their implementation-readiness source is now the Epic 3 story evidence rather than the historical blocked rows.
 
 ### 6.4 Custom components this spec governs but does NOT implement
 

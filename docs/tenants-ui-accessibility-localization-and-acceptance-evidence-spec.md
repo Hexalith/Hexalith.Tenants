@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact (planning-only)
-Last reviewed: 2026-06-05
+Last reviewed: 2026-06-06
 Story: 9.7 - Define Accessibility, Localization, and UI Acceptance Evidence
 
 This document defines the cross-cutting accessibility, localization, and UI acceptance evidence requirements that future Phase 2 Tenants Admin UI implementation stories must cite before they can be marked `ready` or `ready-with-approved-fallback`. It composes the existing Epic 9 planning artifacts and does not implement screens, components, tests, resources, tokens, routes, endpoints, commands, queries, or generated UI files.
@@ -12,6 +12,8 @@ This document defines the cross-cutting accessibility, localization, and UI acce
 Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike confirms `FC-A11Y`, `FC-L10N`, and `FC-DOC` as shell capabilities and supersedes older `needs-confirmation` wording in this document for those dependency IDs.
 
 This does not waive the evidence gate. Every UI implementation story still must cite or produce the applicable keyboard, focus, screen-reader, live-region, forced-colors, localization, responsive, and documentation/reference evidence before it is marked ready or complete.
+
+Epic 3 implementation evidence now supersedes the older blocked/planning-only row status for FR15/FR16/FR17. Story 3.2 delivered lifecycle disable/enable with focus-loop sentinels, focus return, typed confirmation, live-region politeness, forced-colors hooks, responsive fail-closed behavior, and EN/FR parity. Stories 3.3 and 3.4 delivered configuration set/remove with field-specific validation focus, exact-key destructive confirmation for removal, support-safe copy, resource parity, and projection-confirmation evidence. The evidence gate remains active for future stories, but these delivered flows should cite their Epic 3 story records rather than the older row-level blocked status.
 
 ## Scope and Boundary
 
@@ -171,14 +173,14 @@ This planning story does not create those sub-stories.
 | `ui-07-create-tenant-command` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-08-edit-tenant-metadata-command` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-09-user-management-add-or-change-role` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-10-tenant-configuration-edit` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-10-tenant-configuration-edit` | `ready-with-approved-fallback` | `[]` |
 | `ui-11-audit-trail-flat-timeline` | `blocked` | `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-12-tenant-detail-audit-tab` | `blocked` | `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-13-disable-or-enable-tenant` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-13-disable-or-enable-tenant` | `ready-with-approved-fallback` | `[]` |
 | `ui-14-user-management-remove-user` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-15-global-admin-command-management` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 
-Rows `ui-01` through `ui-09` remain `planning-only`. Rows `ui-10` through `ui-15` remain `blocked`. None becomes `ready` or `ready-with-approved-fallback` here.
+Rows `ui-01` through `ui-09` remain `planning-only`. Rows `ui-11`, `ui-12`, `ui-14`, and `ui-15` remain `blocked`. Rows `ui-10` and `ui-13` now have story-specific approved fallback evidence from Epic 3; future documentation should cite the delivered story files for their accessibility, localization, responsive, and reference evidence.
 
 ## 9. Future Implementation Story Rules
 
