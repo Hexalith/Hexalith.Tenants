@@ -2898,4 +2898,133 @@
   <data name="Tenants.UserLookup.AuditAccessibleLabel" xml:space="preserve">
     <value>Open audit evidence for user {0} in tenant {1}</value>
   </data>
+  <data name="Tenants.Audit.Column.Correction" xml:space="preserve">
+    <value>Correction</value>
+  </data>
+  <data name="Tenants.Correction.Action.PreviewHandoff" xml:space="preserve">
+    <value>Continue to correction preview</value>
+  </data>
+  <data name="Tenants.Correction.Action.RestoreAccess" xml:space="preserve">
+    <value>restore intended access</value>
+  </data>
+  <data name="Tenants.Correction.Action.RestoreAccessAccessible" xml:space="preserve">
+    <value>restore intended access for audit evidence {0}</value>
+  </data>
+  <data name="Tenants.Correction.Action.Start" xml:space="preserve">
+    <value>start correction</value>
+  </data>
+  <data name="Tenants.Correction.Action.StartAccessible" xml:space="preserve">
+    <value>start correction for audit evidence {0}</value>
+  </data>
+  <data name="Tenants.Correction.Close" xml:space="preserve">
+    <value>Close correction start</value>
+  </data>
+  <data name="Tenants.Correction.Command.AddUserToTenant" xml:space="preserve">
+    <value>Add user to tenant</value>
+  </data>
+  <data name="Tenants.Correction.Command.ChangeUserRole" xml:space="preserve">
+    <value>Change user role</value>
+  </data>
+  <data name="Tenants.Correction.Command.RemoveGlobalAdministrator" xml:space="preserve">
+    <value>Remove global administrator</value>
+  </data>
+  <data name="Tenants.Correction.Command.SetGlobalAdministrator" xml:space="preserve">
+    <value>Set global administrator</value>
+  </data>
+  <data name="Tenants.Correction.Domain.GlobalAdministrators" xml:space="preserve">
+    <value>Global administrators</value>
+  </data>
+  <data name="Tenants.Correction.Domain.Tenants" xml:space="preserve">
+    <value>Tenants</value>
+  </data>
+  <data name="Tenants.Correction.Field.Command" xml:space="preserve">
+    <value>Intended command</value>
+  </data>
+  <data name="Tenants.Correction.Field.CurrentSnapshot" xml:space="preserve">
+    <value>Current projection snapshot</value>
+  </data>
+  <data name="Tenants.Correction.Field.Domain" xml:space="preserve">
+    <value>Command domain</value>
+  </data>
+  <data name="Tenants.Correction.Field.OriginalEvidence" xml:space="preserve">
+    <value>Original evidence</value>
+  </data>
+  <data name="Tenants.Correction.Field.PreviewData" xml:space="preserve">
+    <value>Required preview data</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.aggregateId" xml:space="preserve">
+    <value>Aggregate</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.currentProjectionSnapshot" xml:space="preserve">
+    <value>Current projection snapshot</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.currentRole" xml:space="preserve">
+    <value>Current role</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.domain" xml:space="preserve">
+    <value>Domain</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.intendedRole" xml:space="preserve">
+    <value>Intended role</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.originalAuditReference" xml:space="preserve">
+    <value>Original audit reference</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.tenantId" xml:space="preserve">
+    <value>Tenant</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.userId" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Tenants.Correction.Role.TenantContributor" xml:space="preserve">
+    <value>Tenant contributor</value>
+  </data>
+  <data name="Tenants.Correction.Role.TenantOwner" xml:space="preserve">
+    <value>Tenant owner</value>
+  </data>
+  <data name="Tenants.Correction.Role.TenantReader" xml:space="preserve">
+    <value>Tenant reader</value>
+  </data>
+  <data name="Tenants.Correction.Title" xml:space="preserve">
+    <value>Start correction</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AlreadyApplied" xml:space="preserve">
+    <value>The current projection already matches the intended state.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AuditEvidenceUnavailable" xml:space="preserve">
+    <value>Audit evidence is not ready for correction start.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AuthorizationIndeterminate" xml:space="preserve">
+    <value>Authorization evidence is indeterminate.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.CommandSupportUnavailable" xml:space="preserve">
+    <value>The tenant correction command path is not connected.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.CurrentProjectionUnavailable" xml:space="preserve">
+    <value>Current projection evidence is unavailable.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.CurrentStateIndeterminate" xml:space="preserve">
+    <value>Current member state is indeterminate.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ExplicitRoleRequired" xml:space="preserve">
+    <value>Choose the intended role before starting correction.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.FreshnessIndeterminate" xml:space="preserve">
+    <value>Refresh current evidence before starting correction.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable" xml:space="preserve">
+    <value>Global administrator correction commands are not connected.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.NarrowViewportUnavailable" xml:space="preserve">
+    <value>Use a wider viewport to review the required safety context.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.TenantDisabled" xml:space="preserve">
+    <value>The tenant is disabled, so member correction is blocked.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.TenantLifecycleUnknown" xml:space="preserve">
+    <value>Tenant lifecycle state is unknown.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.UnsupportedOutcome" xml:space="preserve">
+    <value>This audit outcome is not supported for correction start.</value>
+  </data>
 </root>

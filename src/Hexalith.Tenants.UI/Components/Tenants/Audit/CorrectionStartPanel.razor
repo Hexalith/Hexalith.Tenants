@@ -1,0 +1,104 @@
+@inject IStringLocalizer<TenantsResources> Localizer
+
+@if (Intent is not null)
+{
+    <section class="correction-start-panel"
+             role="region"
+             aria-labelledby="tenants-correction-title"
+             data-testid="tenants-correction-panel">
+        <header class="correction-start-panel__header">
+            <h3 id="tenants-correction-title">@Localizer["Tenants.Correction.Title"]</h3>
+            <button type="button"
+                    class="correction-start-panel__close"
+                    data-testid="tenants-correction-close"
+                    @onclick="CloseAsync">
+                @Localizer["Tenants.Correction.Close"]
+            </button>
+        </header>
+
+        @if (!Intent.IsAvailable)
+        {
+            <p class="correction-start-panel__reason"
+               data-testid="tenants-correction-unavailable-reason">
+                @UnavailableReason
+            </p>
+        }
+
+        <dl class="correction-start-panel__fields">
+            <div>
+                <dt>@Localizer["Tenants.Correction.Field.OriginalEvidence"]</dt>
+                <dd data-testid="tenants-correction-original-evidence">@FieldValue(Intent.OriginalAuditReference)</dd>
+            </div>
+            <div>
+                <dt>@Localizer["Tenants.Correction.Field.CurrentSnapshot"]</dt>
+                <dd data-testid="tenants-correction-current-snapshot">@FieldValue(Intent.CurrentProjectionSnapshotReference)</dd>
+            </div>
+            <div>
+                <dt>@Localizer["Tenants.Correction.Field.Domain"]</dt>
+                <dd data-testid="tenants-correction-domain">@CommandDomainLabel</dd>
+            </div>
+            <div>
+                <dt>@Localizer["Tenants.Correction.Field.Command"]</dt>
+                <dd data-testid="tenants-correction-command">@CommandTypeLabel</dd>
+            </div>
+        </dl>
+
+        <section class="correction-start-panel__preview" aria-labelledby="tenants-correction-preview-data-heading">
+            <h4 id="tenants-correction-preview-data-heading">@Localizer["Tenants.Correction.Field.PreviewData"]</h4>
+            <dl data-testid="tenants-correction-preview-data">
+                @foreach (KeyValuePair<string, string> input in Intent.RequiredPreviewInputs)
+                {
+                    <div>
+                        <dt>@Localizer[$"Tenants.Correction.PreviewInput.{input.Key}"]</dt>
+                        <dd>@PreviewValue(input.Key, input.Value)</dd>
+                    </div>
+                }
+            </dl>
+        </section>
+
+        @if (Intent.IsAvailable)
+        {
+            <button type="button"
+                    class="correction-start-panel__preview-action"
+                    data-testid="tenants-correction-preview-handoff">
+                @Localizer["Tenants.Correction.Action.PreviewHandoff"]
+            </button>
+        }
+    </section>
+}
+
+@code {
+    [Parameter]
+    public TenantCorrectionStartIntent? Intent { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string UnavailableReason
+        => Intent is null
+            ? string.Empty
+            : string.Join(
+                " ",
+                Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
+
+    private string CommandDomainLabel
+        => Intent?.IntendedCommandDomain is null
+            ? FieldValue(null)
+            : Localizer[$"Tenants.Correction.Domain.{Intent.IntendedCommandDomain}"];
+
+    private string CommandTypeLabel
+        => Intent?.IntendedCommandType is null
+            ? FieldValue(null)
+            : Localizer[$"Tenants.Correction.Command.{Intent.IntendedCommandType}"];
+
+    private string PreviewValue(string key, string value)
+        => key is "intendedRole" or "currentRole"
+            ? Localizer[$"Tenants.Correction.Role.{value}"]
+            : FieldValue(value);
+
+    private static string FieldValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private async Task CloseAsync()
+        => await OnClose.InvokeAsync().ConfigureAwait(false);
+}

@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T17:53:58+02:00
+# last_updated: 2026-06-06T18:33:18+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T17:53:58+02:00
+last_updated: 2026-06-06T18:33:18+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -101,6 +101,6 @@ development_status:
   5-2-scoped-audit-evidence-entry-points: done
   5-3-support-safe-audit-evidence-receipt: done
   5-4-audit-availability-state-recovery: done
-  5-5-start-forward-correction-from-audit-evidence: backlog
+  5-5-start-forward-correction-from-audit-evidence: done
   5-6-preview-and-confirm-correction-with-linked-proof: backlog
   epic-5-retrospective: optional

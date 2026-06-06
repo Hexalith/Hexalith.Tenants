@@ -76,6 +76,28 @@
         }
         else
         {
+            @if (ShouldRenderCorrection)
+            {
+                <div class="audit-evidence-receipt__correction">
+                    @if (CorrectionIntent!.IsAvailable)
+                    {
+                        <button type="button"
+                                class="audit-evidence-receipt__action audit-evidence-receipt__correction-start"
+                                data-testid="tenants-correction-start"
+                                aria-label="@CorrectionAccessibleName"
+                                @onclick="StartCorrectionAsync">
+                            @CorrectionActionLabel
+                        </button>
+                    }
+                    else
+                    {
+                        <p class="audit-evidence-receipt__correction-reason"
+                           data-testid="tenants-correction-unavailable-reason">
+                            @CorrectionUnavailableReason
+                        </p>
+                    }
+                </div>
+            }
             <div class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
                 @foreach (string action in ActionResourceKeys)
                 {
@@ -99,6 +121,42 @@
 
     [Parameter]
     public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public TenantCorrectionStartIntent? CorrectionIntent { get; set; }
+
+    [Parameter]
+    public EventCallback<TenantCorrectionStartIntent> OnStartCorrection { get; set; }
+
+    // Mirror AuditDataGrid: only surface correction UI on a ready receipt, and never show a
+    // correction reason for outcomes that are not correctable at all (e.g. UserAddedToTenant),
+    // so opening any receipt does not render a confusing "not supported for correction" message.
+    private bool ShouldRenderCorrection
+        => CorrectionIntent is not null
+            && Receipt?.State is TenantAuditReceiptState.Ready
+            && (CorrectionIntent.IsAvailable || HasRenderableUnavailableReason);
+
+    private bool HasRenderableUnavailableReason
+        => CorrectionIntent is not null
+            && CorrectionIntent.UnavailableReasons.Count > 0
+            && !CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+
+    private string CorrectionActionLabel
+        => CorrectionIntent?.IsRestoreAccessAction is true
+            ? Localizer["Tenants.Correction.Action.RestoreAccess"]
+            : Localizer["Tenants.Correction.Action.Start"];
+
+    private string CorrectionAccessibleName
+        => CorrectionIntent?.IsRestoreAccessAction is true
+            ? Localizer["Tenants.Correction.Action.RestoreAccessAccessible", CorrectionIntent.OriginalAuditReference]
+            : Localizer["Tenants.Correction.Action.StartAccessible", CorrectionIntent?.OriginalAuditReference ?? string.Empty];
+
+    private string CorrectionUnavailableReason
+        => CorrectionIntent is null
+            ? string.Empty
+            : string.Join(
+                " ",
+                CorrectionIntent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
 
     private string StateCss
         => Receipt?.State.ToString().ToLowerInvariant() ?? "unavailable";
@@ -156,5 +214,13 @@
         }
 
         await OnRetry.InvokeAsync().ConfigureAwait(false);
+    }
+
+    private async Task StartCorrectionAsync()
+    {
+        if (CorrectionIntent is not null)
+        {
+            await OnStartCorrection.InvokeAsync(CorrectionIntent).ConfigureAwait(false);
+        }
     }
 }

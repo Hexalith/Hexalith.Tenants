@@ -115,6 +115,60 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void Tenant_audit_page_fails_closed_for_membership_correction_when_intended_role_is_missing()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot(
+            [
+                Row(
+                    "event-removed-member",
+                    AuditEventCategory.Access,
+                    referenceContext: "userId: target-user",
+                    eventType: "UserRemovedFromTenant"),
+            ]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldContain("Choose the intended role");
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Markup.ShouldNotContain("POST /api/v1/commands", Case.Insensitive);
+        cut.Markup.ShouldNotContain("undo", Case.Insensitive);
+        cut.Markup.ShouldNotContain("rollback", Case.Insensitive);
+        cut.Markup.ShouldNotContain("hidden edit", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_receipt_flow_keeps_original_evidence_visible_when_correction_is_blocked()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot(
+            [
+                Row(
+                    "event-removed-member",
+                    AuditEventCategory.Access,
+                    referenceContext: "userId: target-user",
+                    eventType: "UserRemovedFromTenant"),
+            ]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-removed-member");
+        cut.FindAll("[data-testid='tenants-correction-unavailable-reason']")
+            .Any(reason => reason.TextContent.Contains("Choose the intended role", StringComparison.Ordinal))
+            .ShouldBeTrue();
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        gateway.Requests.Count.ShouldBe(1);
+    }
+
+    [Fact]
     public void Tenant_audit_page_renders_timestamps_in_utc_independent_of_host_timezone()
     {
         RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
@@ -241,17 +295,48 @@ public sealed class TenantAuditPageTests : BunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantAuditPage.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditDataGrid.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditEvidenceReceipt.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "CorrectionStartPanel.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantAuditReceipt.cs"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantCorrectionStartIntent.cs"),
         ];
         string combined = string.Join('\n', componentFiles.Select(File.ReadAllText));
 
         combined.ShouldNotContain("GET /api/tenants", Case.Insensitive);
+        combined.ShouldNotContain("POST /api/v1/commands", Case.Insensitive);
+        combined.ShouldNotContain("GET /api/v1/commands/status", Case.Insensitive);
         combined.ShouldNotContain("HttpClient", Case.Insensitive);
         combined.ShouldNotContain("localStorage", Case.Insensitive);
         combined.ShouldNotContain("sessionStorage", Case.Insensitive);
         combined.ShouldNotContain("access_token", Case.Insensitive);
         combined.ShouldNotContain("raw payload", Case.Insensitive);
         combined.ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_correction_copy_uses_forward_recovery_language_and_omits_diagnostic_markers()
+    {
+        string projectRoot = ProjectRoot();
+        string[] files =
+        [
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditDataGrid.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditEvidenceReceipt.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "CorrectionStartPanel.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantCorrectionStartIntent.cs"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.resx"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.fr.resx"),
+        ];
+        string combined = string.Join('\n', files.Select(File.ReadAllText));
+
+        combined.ShouldNotContain("undo", Case.Insensitive);
+        combined.ShouldNotContain("rollback", Case.Insensitive);
+        combined.ShouldNotContain("hidden edit", Case.Insensitive);
+        combined.ShouldNotContain("Bearer ", Case.Insensitive);
+        combined.ShouldNotContain("JWT", Case.Insensitive);
+        combined.ShouldNotContain("stack trace", Case.Insensitive);
+        combined.ShouldNotContain("correlation id", Case.Insensitive);
+        combined.ShouldNotContain("MessageId", Case.Insensitive);
+        combined.ShouldNotContain("protected cursor", Case.Insensitive);
+        combined.ShouldNotContain("ETag", Case.Insensitive);
     }
 
     [Fact]
@@ -295,6 +380,19 @@ public sealed class TenantAuditPageTests : BunitContext
         receiptStyles.ShouldContain("@media (forced-colors: active)");
         receiptStyles.ShouldContain("@media (prefers-reduced-motion: reduce)");
         receiptStyles.ShouldContain("grid-template-columns: repeat(auto-fit");
+
+        string correctionStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Audit",
+            "CorrectionStartPanel.razor.css"));
+
+        correctionStyles.ShouldContain(":focus-visible");
+        correctionStyles.ShouldContain("@media (forced-colors: active)");
+        correctionStyles.ShouldContain("@media (prefers-reduced-motion: reduce)");
     }
 
     [Fact]
@@ -303,7 +401,10 @@ public sealed class TenantAuditPageTests : BunitContext
         string projectRoot = ProjectRoot();
         HashSet<string> english = ResourceKeys(Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.resx"));
         HashSet<string> french = ResourceKeys(Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.fr.resx"));
-        string[] auditKeys = english.Where(key => key.StartsWith("Tenants.Audit.", StringComparison.Ordinal)).ToArray();
+        string[] auditKeys = english
+            .Where(key => key.StartsWith("Tenants.Audit.", StringComparison.Ordinal)
+                || key.StartsWith("Tenants.Correction.", StringComparison.Ordinal))
+            .ToArray();
 
         auditKeys.ShouldNotBeEmpty();
         foreach (string key in auditKeys)
@@ -359,19 +460,24 @@ public sealed class TenantAuditPageTests : BunitContext
         string eventReference,
         AuditEventCategory category,
         string referenceContext = "userId: target-user",
-        TenantFreshnessState freshness = TenantFreshnessState.Current)
-        => new(
+        TenantFreshnessState freshness = TenantFreshnessState.Current,
+        string? eventType = null)
+    {
+        string outcome = eventType ?? (category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet");
+
+        return new(
             eventReference,
-            category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet",
+            outcome,
             category,
             "actor-user",
             DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
             "tenant.alpha",
             "target-user",
             "tenant.alpha",
-            category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet",
+            outcome,
             referenceContext,
             freshness);
+    }
 
     private static HashSet<string> ResourceKeys(string path)
         => XDocument.Load(path)
@@ -448,6 +554,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.Category.Administrative"] = "Administrative",
             ["Tenants.Audit.Column.Actor"] = "Actor",
             ["Tenants.Audit.Column.Category"] = "Category",
+            ["Tenants.Audit.Column.Correction"] = "Correction",
             ["Tenants.Audit.Column.Freshness"] = "Freshness",
             ["Tenants.Audit.Column.Outcome"] = "Outcome",
             ["Tenants.Audit.Column.Reference"] = "Reference context",
@@ -539,6 +646,11 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.State.Unavailable.Message"] = "The tenant audit read surface is unavailable.",
             ["Tenants.Audit.State.Unavailable.Title"] = "Audit read surface unavailable",
             ["Tenants.Audit.Title"] = "Audit trail for {0}",
+            ["Tenants.Correction.Action.RestoreAccess"] = "restore intended access",
+            ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
+            ["Tenants.Correction.Action.Start"] = "start correction",
+            ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
+            ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Copied"] = "Copied",
         };

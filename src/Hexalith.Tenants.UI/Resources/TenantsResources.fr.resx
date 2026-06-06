@@ -2898,4 +2898,133 @@
   <data name="Tenants.UserLookup.AuditAccessibleLabel" xml:space="preserve">
     <value>Ouvrir les preuves d'audit pour l'utilisateur {0} dans le locataire {1}</value>
   </data>
+  <data name="Tenants.Audit.Column.Correction" xml:space="preserve">
+    <value>Correction</value>
+  </data>
+  <data name="Tenants.Correction.Action.PreviewHandoff" xml:space="preserve">
+    <value>Continuer vers l'aperçu de correction</value>
+  </data>
+  <data name="Tenants.Correction.Action.RestoreAccess" xml:space="preserve">
+    <value>restaurer l'accès prévu</value>
+  </data>
+  <data name="Tenants.Correction.Action.RestoreAccessAccessible" xml:space="preserve">
+    <value>restaurer l'accès prévu pour la preuve d'audit {0}</value>
+  </data>
+  <data name="Tenants.Correction.Action.Start" xml:space="preserve">
+    <value>démarrer la correction</value>
+  </data>
+  <data name="Tenants.Correction.Action.StartAccessible" xml:space="preserve">
+    <value>démarrer la correction pour la preuve d'audit {0}</value>
+  </data>
+  <data name="Tenants.Correction.Close" xml:space="preserve">
+    <value>Fermer le démarrage de correction</value>
+  </data>
+  <data name="Tenants.Correction.Command.AddUserToTenant" xml:space="preserve">
+    <value>Ajouter l'utilisateur au locataire</value>
+  </data>
+  <data name="Tenants.Correction.Command.ChangeUserRole" xml:space="preserve">
+    <value>Modifier le rôle utilisateur</value>
+  </data>
+  <data name="Tenants.Correction.Command.RemoveGlobalAdministrator" xml:space="preserve">
+    <value>Retirer l'administrateur global</value>
+  </data>
+  <data name="Tenants.Correction.Command.SetGlobalAdministrator" xml:space="preserve">
+    <value>Définir l'administrateur global</value>
+  </data>
+  <data name="Tenants.Correction.Domain.GlobalAdministrators" xml:space="preserve">
+    <value>Administrateurs globaux</value>
+  </data>
+  <data name="Tenants.Correction.Domain.Tenants" xml:space="preserve">
+    <value>Locataires</value>
+  </data>
+  <data name="Tenants.Correction.Field.Command" xml:space="preserve">
+    <value>Commande prévue</value>
+  </data>
+  <data name="Tenants.Correction.Field.CurrentSnapshot" xml:space="preserve">
+    <value>Instantané de projection courant</value>
+  </data>
+  <data name="Tenants.Correction.Field.Domain" xml:space="preserve">
+    <value>Domaine de commande</value>
+  </data>
+  <data name="Tenants.Correction.Field.OriginalEvidence" xml:space="preserve">
+    <value>Preuve d'origine</value>
+  </data>
+  <data name="Tenants.Correction.Field.PreviewData" xml:space="preserve">
+    <value>Données requises pour l'aperçu</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.aggregateId" xml:space="preserve">
+    <value>Agrégat</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.currentProjectionSnapshot" xml:space="preserve">
+    <value>Instantané de projection courant</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.currentRole" xml:space="preserve">
+    <value>Rôle courant</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.domain" xml:space="preserve">
+    <value>Domaine</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.intendedRole" xml:space="preserve">
+    <value>Rôle prévu</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.originalAuditReference" xml:space="preserve">
+    <value>Référence d'audit d'origine</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.tenantId" xml:space="preserve">
+    <value>Locataire</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.userId" xml:space="preserve">
+    <value>Utilisateur</value>
+  </data>
+  <data name="Tenants.Correction.Role.TenantContributor" xml:space="preserve">
+    <value>Contributeur du locataire</value>
+  </data>
+  <data name="Tenants.Correction.Role.TenantOwner" xml:space="preserve">
+    <value>Propriétaire du locataire</value>
+  </data>
+  <data name="Tenants.Correction.Role.TenantReader" xml:space="preserve">
+    <value>Lecteur du locataire</value>
+  </data>
+  <data name="Tenants.Correction.Title" xml:space="preserve">
+    <value>Démarrer la correction</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AlreadyApplied" xml:space="preserve">
+    <value>La projection courante correspond déjà à l'état prévu.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AuditEvidenceUnavailable" xml:space="preserve">
+    <value>La preuve d'audit n'est pas prête pour démarrer une correction.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AuthorizationIndeterminate" xml:space="preserve">
+    <value>La preuve d'autorisation est indéterminée.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.CommandSupportUnavailable" xml:space="preserve">
+    <value>Le chemin de commande de correction locataire n'est pas connecté.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.CurrentProjectionUnavailable" xml:space="preserve">
+    <value>La preuve de projection courante est indisponible.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.CurrentStateIndeterminate" xml:space="preserve">
+    <value>L'état courant du membre est indéterminé.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ExplicitRoleRequired" xml:space="preserve">
+    <value>Choisissez le rôle prévu avant de démarrer la correction.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.FreshnessIndeterminate" xml:space="preserve">
+    <value>Actualisez les preuves courantes avant de démarrer la correction.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable" xml:space="preserve">
+    <value>Les commandes de correction des administrateurs globaux ne sont pas connectées.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.NarrowViewportUnavailable" xml:space="preserve">
+    <value>Utilisez une fenêtre plus large pour vérifier le contexte de sécurité requis.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.TenantDisabled" xml:space="preserve">
+    <value>Le locataire est désactivé, donc la correction de membre est bloquée.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.TenantLifecycleUnknown" xml:space="preserve">
+    <value>L'état du cycle de vie du locataire est inconnu.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.UnsupportedOutcome" xml:space="preserve">
+    <value>Ce résultat d'audit n'est pas pris en charge pour démarrer une correction.</value>
+  </data>
 </root>

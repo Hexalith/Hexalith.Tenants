@@ -75,12 +75,22 @@
     {
         <section class="tenant-audit__grid-shell" aria-labelledby="tenant-audit-grid-heading">
             <h2 id="tenant-audit-grid-heading">@Localizer["Tenants.Audit.GridTitle"]</h2>
-            <AuditDataGrid Rows="@_snapshot.Rows" OnOpenReceipt="OpenReceiptAsync" />
+            <AuditDataGrid Rows="@_snapshot.Rows"
+                           OnOpenReceipt="OpenReceiptAsync"
+                           CorrectionIntentProvider="CreateCorrectionIntent"
+                           OnStartCorrection="OpenCorrectionAsync" />
             @if (_selectedReceipt is not null)
             {
                 <AuditEvidenceReceipt Receipt="@_selectedReceipt"
+                                      CorrectionIntent="@_selectedReceiptCorrectionIntent"
+                                      OnStartCorrection="OpenCorrectionAsync"
                                       OnRetry="RefreshAsync"
                                       OnClose="CloseReceiptAsync" />
+            }
+            @if (_activeCorrectionIntent is not null)
+            {
+                <CorrectionStartPanel Intent="@_activeCorrectionIntent"
+                                      OnClose="CloseCorrectionAsync" />
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
                 <button type="button" data-testid="tenants-audit-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
@@ -103,6 +113,8 @@
     private string? _toText;
     private string? _categoryText;
     private TenantAuditReceipt? _selectedReceipt;
+    private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
+    private TenantCorrectionStartIntent? _activeCorrectionIntent;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -299,17 +311,33 @@
         _cursorHistory.Clear();
         _currentCursor = null;
         _selectedReceipt = null;
+        _selectedReceiptCorrectionIntent = null;
+        _activeCorrectionIntent = null;
     }
 
     private Task OpenReceiptAsync(TenantAuditRow row)
     {
         _selectedReceipt = TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind);
+        _selectedReceiptCorrectionIntent = CreateCorrectionIntent(row);
         return Task.CompletedTask;
     }
 
     private Task CloseReceiptAsync()
     {
         _selectedReceipt = null;
+        _selectedReceiptCorrectionIntent = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
+    {
+        _activeCorrectionIntent = intent;
+        return Task.CompletedTask;
+    }
+
+    private Task CloseCorrectionAsync()
+    {
+        _activeCorrectionIntent = null;
         return Task.CompletedTask;
     }
 
@@ -318,6 +346,8 @@
         if (!ShouldRenderRows && string.IsNullOrWhiteSpace(ReceiptReference))
         {
             _selectedReceipt = null;
+            _selectedReceiptCorrectionIntent = null;
+            _activeCorrectionIntent = null;
             return;
         }
 
@@ -328,11 +358,13 @@
             _selectedReceipt = requestedRow is null
                 ? TenantAuditReceipt.Unavailable(ReceiptReference, TenantId, SupportSafeCommandReference)
                 : TenantAuditReceipt.FromRow(requestedRow, SupportSafeCommandReference, _snapshot.Kind);
+            _selectedReceiptCorrectionIntent = requestedRow is null ? null : CreateCorrectionIntent(requestedRow);
             return;
         }
 
         if (_selectedReceipt is null)
         {
+            _selectedReceiptCorrectionIntent = null;
             return;
         }
 
@@ -341,7 +373,13 @@
         _selectedReceipt = selectedRow is null
             ? null
             : TenantAuditReceipt.FromRow(selectedRow, SupportSafeCommandReference, _snapshot.Kind);
+        _selectedReceiptCorrectionIntent = selectedRow is null ? null : CreateCorrectionIntent(selectedRow);
     }
+
+    private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)
+        => TenantCorrectionStartIntent.FromReceipt(
+            TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind),
+            row);
 
     // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
     // date-range filter stays deterministic and aligns with the UTC-rendered timestamp column,

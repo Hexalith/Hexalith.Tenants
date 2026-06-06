@@ -73,6 +73,30 @@
                 @Localizer["Tenants.Audit.Receipt.Open"]
             </button>
         </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Correction"]"
+                        ColumnId="audit-correction"
+                        Width="190px">
+            @{
+                TenantCorrectionStartIntent? correctionIntent = CorrectionIntentFor(context);
+            }
+            @if (correctionIntent?.IsAvailable is true)
+            {
+                <button type="button"
+                        class="audit-data-grid__correction-start"
+                        data-testid="tenants-correction-start"
+                        aria-label="@CorrectionAccessibleName(correctionIntent)"
+                        @onclick="() => StartCorrectionAsync(correctionIntent)">
+                    @CorrectionActionLabel(correctionIntent)
+                </button>
+            }
+            else if (ShouldRenderUnavailableReason(correctionIntent))
+            {
+                <span class="audit-data-grid__correction-reason"
+                      data-testid="tenants-correction-unavailable-reason">
+                    @CorrectionUnavailableReason(correctionIntent!)
+                </span>
+            }
+        </TemplateColumn>
     </FluentDataGrid>
     @foreach (TenantAuditRow row in Rows)
     {
@@ -88,6 +112,12 @@
 
     [Parameter]
     public EventCallback<TenantAuditRow> OnOpenReceipt { get; set; }
+
+    [Parameter]
+    public Func<TenantAuditRow, TenantCorrectionStartIntent>? CorrectionIntentProvider { get; set; }
+
+    [Parameter]
+    public EventCallback<TenantCorrectionStartIntent> OnStartCorrection { get; set; }
 
     private string ReferenceLabel(TenantAuditRow row)
         => string.IsNullOrWhiteSpace(row.ReferenceContext)
@@ -105,4 +135,29 @@
 
     private async Task OpenReceiptAsync(TenantAuditRow row)
         => await OnOpenReceipt.InvokeAsync(row).ConfigureAwait(false);
+
+    private TenantCorrectionStartIntent? CorrectionIntentFor(TenantAuditRow row)
+        => CorrectionIntentProvider?.Invoke(row);
+
+    private static bool ShouldRenderUnavailableReason(TenantCorrectionStartIntent? intent)
+        => intent?.UnavailableReasons.Count > 0
+            && !intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+
+    private string CorrectionActionLabel(TenantCorrectionStartIntent intent)
+        => intent.IsRestoreAccessAction
+            ? Localizer["Tenants.Correction.Action.RestoreAccess"]
+            : Localizer["Tenants.Correction.Action.Start"];
+
+    private string CorrectionAccessibleName(TenantCorrectionStartIntent intent)
+        => intent.IsRestoreAccessAction
+            ? Localizer["Tenants.Correction.Action.RestoreAccessAccessible", intent.OriginalAuditReference]
+            : Localizer["Tenants.Correction.Action.StartAccessible", intent.OriginalAuditReference];
+
+    private string CorrectionUnavailableReason(TenantCorrectionStartIntent intent)
+        => string.Join(
+            " ",
+            intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
+
+    private async Task StartCorrectionAsync(TenantCorrectionStartIntent intent)
+        => await OnStartCorrection.InvokeAsync(intent).ConfigureAwait(false);
 }

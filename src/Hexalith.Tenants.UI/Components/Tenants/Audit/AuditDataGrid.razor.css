@@ -37,8 +37,16 @@
     min-width: 0;
 }
 
-.audit-data-grid__receipt-open {
+.audit-data-grid__receipt-open,
+.audit-data-grid__correction-start {
     min-height: 2.25rem;
+}
+
+.audit-data-grid__correction-reason {
+    border-inline-start: 3px solid CanvasText;
+    display: inline-block;
+    overflow-wrap: anywhere;
+    padding-inline-start: 0.4rem;
 }
 
 .audit-data-grid__row-marker {
@@ -57,25 +65,26 @@
 
 @media (max-width: 767px) {
     .audit-data-grid fluent-data-grid {
-        min-width: 86rem;
+        min-width: 94rem;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
     .audit-data-grid fluent-data-grid {
-        min-width: 88rem;
+        min-width: 96rem;
     }
 }
 
 @media (min-width: 1440px) {
     .audit-data-grid fluent-data-grid {
-        min-width: 96rem;
+        min-width: 104rem;
     }
 }
 
 @media (forced-colors: active) {
     .audit-data-grid__state,
-    .audit-data-grid__category {
+    .audit-data-grid__category,
+    .audit-data-grid__correction-reason {
         border-color: CanvasText;
         color: CanvasText;
     }

@@ -1,0 +1,75 @@
+.correction-start-panel {
+    border: 1px solid CanvasText;
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.correction-start-panel__header {
+    align-items: start;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.correction-start-panel__header h3,
+.correction-start-panel__preview h4,
+.correction-start-panel__reason {
+    margin-block: 0 0.25rem;
+    overflow-wrap: anywhere;
+}
+
+.correction-start-panel__fields,
+.correction-start-panel__preview dl {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    margin: 0;
+}
+
+.correction-start-panel dt {
+    font-weight: 700;
+}
+
+.correction-start-panel dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.correction-start-panel__reason {
+    border-inline-start: 3px solid CanvasText;
+    padding-inline-start: 0.5rem;
+}
+
+.correction-start-panel__close,
+.correction-start-panel__preview-action {
+    min-height: 2.5rem;
+}
+
+.correction-start-panel :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .correction-start-panel__header,
+    .correction-start-panel__fields,
+    .correction-start-panel__preview dl {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .correction-start-panel *,
+    .correction-start-panel *::before,
+    .correction-start-panel *::after {
+        transition-duration: 0.01ms;
+    }
+}
+
+@media (forced-colors: active) {
+    .correction-start-panel,
+    .correction-start-panel__reason {
+        border-color: CanvasText;
+    }
+}

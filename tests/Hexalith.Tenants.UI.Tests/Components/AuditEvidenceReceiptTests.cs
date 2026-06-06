@@ -84,6 +84,63 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
     }
 
     [Fact]
+    public void Receipt_component_renders_available_correction_start_action_and_invokes_callback()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartIntent? startedIntent = null;
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row(eventType: "UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(eventType: "UserRemovedFromTenant")))
+            .Add(component => component.CorrectionIntent, intent)
+            .Add(component => component.OnStartCorrection, value => startedIntent = value));
+
+        var action = cut.Find("[data-testid='tenants-correction-start']");
+        action.TextContent.ShouldContain("restore intended access");
+        action.GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("restore intended access");
+        action.GetAttribute("type").ShouldBe("button");
+
+        action.Click();
+
+        startedIntent.ShouldBe(intent);
+    }
+
+    [Fact]
+    public void Receipt_component_renders_unavailable_correction_reason_without_start_action()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row(eventType: "UserRemovedFromTenant")));
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(eventType: "UserRemovedFromTenant")))
+            .Add(component => component.CorrectionIntent, intent));
+
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldContain("Choose the intended role");
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("undo", Case.Insensitive);
+        cut.Markup.ShouldNotContain("rollback", Case.Insensitive);
+        cut.Markup.ShouldNotContain("hidden edit", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Receipt_component_omits_correction_copy_for_uncorrectable_outcomes()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row()));
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
+            .Add(component => component.CorrectionIntent, intent));
+
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+        cut.FindAll("[data-testid='tenants-correction-unavailable-reason']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Receipt_availability_continue_and_inspect_actions_return_focus_through_close_callback()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -149,17 +206,26 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
     }
 
-    private static TenantAuditRow Row(string eventReference = "event-safe-reference")
+    private static TenantCorrectionStartContext Context(TenantAuditRow row, TenantRole? intendedRole = null)
+        => new(
+            TenantAuditReceipt.FromRow(row),
+            row,
+            IsAuthorized: true,
+            HasCurrentProjectionSnapshot: true,
+            CurrentProjectionSnapshotReference: "tenant.alpha@current",
+            IntendedRole: intendedRole);
+
+    private static TenantAuditRow Row(string eventReference = "event-safe-reference", string eventType = "UserAddedToTenant")
         => new(
             eventReference,
-            "UserAddedToTenant",
+            eventType,
             AuditEventCategory.Access,
             "actor-user",
             DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
             "tenant.alpha",
             "target-user",
             "tenant.alpha",
-            "UserAddedToTenant",
+            eventType,
             "userId: target-user",
             TenantFreshnessState.Current);
 
@@ -218,6 +284,11 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
             ["Tenants.Audit.Receipt.State.Unauthorized"] = "Audit evidence is not authorized.",
             ["Tenants.Audit.Receipt.State.Unavailable"] = "Audit evidence is unavailable.",
             ["Tenants.Audit.Receipt.Title"] = "Audit evidence receipt",
+            ["Tenants.Correction.Action.Start"] = "start correction",
+            ["Tenants.Correction.Action.RestoreAccess"] = "restore intended access",
+            ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
+            ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
+            ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing safe to copy",
         };
