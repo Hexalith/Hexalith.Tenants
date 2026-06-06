@@ -1,4 +1,5 @@
 @using System.Globalization
+@using Hexalith.Tenants.UI.State.TenantCommands
 @inject IStringLocalizer<TenantsResources> Localizer
 
 @if (Receipt is not null)
@@ -11,11 +12,14 @@
         <header class="audit-evidence-receipt__header">
             <div>
                 <h3 id="tenants-audit-receipt-heading">@Localizer["Tenants.Audit.Receipt.Title"]</h3>
-                <p class="audit-evidence-receipt__state"
-                   data-testid="tenants-audit-receipt-state">
-                    <span class="audit-evidence-receipt__state-icon" aria-hidden="true">@StateGlyph</span>
-                    @Localizer[$"Tenants.Audit.Receipt.State.{Receipt.State}"]
-                </p>
+                @if (ReceiptAuditState is null)
+                {
+                    <p class="audit-evidence-receipt__state"
+                       data-testid="tenants-audit-receipt-state">
+                        <span class="audit-evidence-receipt__state-icon" aria-hidden="true">@StateGlyph</span>
+                        @Localizer[$"Tenants.Audit.Receipt.State.{Receipt.State}"]
+                    </p>
+                }
             </div>
             <SupportSafeCopyButton Value="@Receipt.CopyableReferenceText"
                                    ValueKind="SupportSafeCopyValueKind.ApprovedReference"
@@ -61,16 +65,28 @@
             }
         </dl>
 
-        <div class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
-            @foreach (string action in ActionResourceKeys)
-            {
-                <button type="button"
-                        class="audit-evidence-receipt__action"
-                        @onclick="() => InvokeActionAsync(action)">
-                    @Localizer[action]
-                </button>
-            }
-        </div>
+        @if (ReceiptAuditState is not null)
+        {
+            <AuditAvailabilityState AuditState="@ReceiptAuditState.Value"
+                                    StateTestId="tenants-audit-receipt-state"
+                                    OnRefresh="OnRetry"
+                                    OnInspectAudit="OnClose"
+                                    OnContinueReadOnly="OnClose"
+                                    OnEscalate="OnRetry" />
+        }
+        else
+        {
+            <div class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
+                @foreach (string action in ActionResourceKeys)
+                {
+                    <button type="button"
+                            class="audit-evidence-receipt__action"
+                            @onclick="() => InvokeActionAsync(action)">
+                        @Localizer[action]
+                    </button>
+                }
+            </div>
+        }
     </section>
 }
 
@@ -88,7 +104,10 @@
         => Receipt?.State.ToString().ToLowerInvariant() ?? "unavailable";
 
     private string LiveRegion
-        => Receipt?.State is TenantAuditReceiptState.Ready ? "polite" : "assertive";
+        => ReceiptAuditAvailability?.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Polite
+            || Receipt?.State is TenantAuditReceiptState.Ready
+            ? "polite"
+            : "assertive";
 
     private string StateGlyph
         => Receipt?.State switch
@@ -106,15 +125,24 @@
         => Receipt?.State switch
         {
             TenantAuditReceiptState.Ready => ["Tenants.Audit.Receipt.Action.InspectAudit"],
-            TenantAuditReceiptState.Pending => ["Tenants.Audit.Receipt.Action.Wait", "Tenants.Audit.Receipt.Action.Refresh"],
-            TenantAuditReceiptState.Delayed => ["Tenants.Audit.Receipt.Action.Retry", "Tenants.Audit.Receipt.Action.InspectAudit"],
-            TenantAuditReceiptState.Unavailable => ["Tenants.Audit.Receipt.Action.ContinueReadOnly", "Tenants.Audit.Receipt.Action.Retry"],
-            TenantAuditReceiptState.MissingSupport => ["Tenants.Audit.Receipt.Action.Escalate"],
             TenantAuditReceiptState.InvalidReference => ["Tenants.Audit.Receipt.Action.InspectAudit", "Tenants.Audit.Receipt.Action.Refresh"],
             TenantAuditReceiptState.Unauthorized => ["Tenants.Audit.Receipt.Action.ContinueReadOnly"],
             TenantAuditReceiptState.Stale or TenantAuditReceiptState.Degraded or TenantAuditReceiptState.Partial => ["Tenants.Audit.Receipt.Action.Refresh"],
             _ => ["Tenants.Audit.Receipt.Action.Refresh"],
         };
+
+    private TenantCommandAuditState? ReceiptAuditState
+        => Receipt?.State switch
+        {
+            TenantAuditReceiptState.Pending => TenantCommandAuditState.AuditPending,
+            TenantAuditReceiptState.Delayed => TenantCommandAuditState.AuditDelayed,
+            TenantAuditReceiptState.Unavailable => TenantCommandAuditState.AuditUnavailable,
+            TenantAuditReceiptState.MissingSupport => TenantCommandAuditState.MissingSupport,
+            _ => null,
+        };
+
+    private TenantAuditAvailability? ReceiptAuditAvailability
+        => ReceiptAuditState is null ? null : TenantAuditAvailability.FromCommandAuditState(ReceiptAuditState.Value);
 
     private static string FieldValue(string? value)
         => string.IsNullOrWhiteSpace(value) ? "-" : value;

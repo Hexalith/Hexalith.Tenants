@@ -68,9 +68,7 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: TenantCommandAuditState.AuditPending))
             .Add(component => component.OnRetry, () => retryCount++));
 
-        pending.FindAll(".audit-evidence-receipt__action")
-            .Single(button => button.TextContent.Contains("Refresh", StringComparison.Ordinal))
-            .Click();
+        pending.Find("[data-recovery-verb='refresh']").Click();
 
         retryCount.ShouldBe(1);
 
@@ -85,14 +83,42 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
         closeCount.ShouldBe(1);
     }
 
+    [Fact]
+    public void Receipt_availability_continue_and_inspect_actions_return_focus_through_close_callback()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        int retryCount = 0;
+        int closeCount = 0;
+        IRenderedComponent<AuditEvidenceReceipt> unavailable = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: TenantCommandAuditState.AuditUnavailable))
+            .Add(component => component.OnRetry, () => retryCount++)
+            .Add(component => component.OnClose, () => closeCount++));
+
+        unavailable.Find("[data-recovery-verb='continuereadonly']").Click();
+
+        closeCount.ShouldBe(1);
+        retryCount.ShouldBe(0);
+
+        IRenderedComponent<AuditEvidenceReceipt> delayed = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row(), auditState: TenantCommandAuditState.AuditDelayed))
+            .Add(component => component.OnRetry, () => retryCount++)
+            .Add(component => component.OnClose, () => closeCount++));
+
+        delayed.Find("[data-recovery-verb='inspectaudit']").Click();
+
+        closeCount.ShouldBe(2);
+        retryCount.ShouldBe(0);
+    }
+
     [Theory]
-    [InlineData(TenantCommandAuditState.AuditPending, "Wait for audit evidence")]
-    [InlineData(TenantCommandAuditState.AuditDelayed, "Inspect audit")]
-    [InlineData(TenantCommandAuditState.AuditUnavailable, "Continue read-only")]
-    [InlineData(TenantCommandAuditState.MissingSupport, "Escalate with reference")]
+    [InlineData(TenantCommandAuditState.AuditPending, "Wait", "polite")]
+    [InlineData(TenantCommandAuditState.AuditDelayed, "Inspect audit", "polite")]
+    [InlineData(TenantCommandAuditState.AuditUnavailable, "Continue read-only", "assertive")]
+    [InlineData(TenantCommandAuditState.MissingSupport, "Escalate", "assertive")]
     public void Receipt_component_renders_recovery_actions_without_success_copy(
         TenantCommandAuditState auditState,
-        string expectedAction)
+        string expectedAction,
+        string expectedLiveRegion)
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -101,7 +127,8 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
 
         cut.Markup.ShouldContain(expectedAction);
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
-        cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("aria-live").ShouldBe(expectedLiveRegion);
+        cut.Find("[data-testid='tenants-audit-availability']");
     }
 
     [Theory]
@@ -149,6 +176,22 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
             ["Tenants.Audit.Freshness.Current"] = "Current",
+            ["Tenants.Audit.Availability.Accessible.Delayed"] = "Audit delayed; retry status lookup or inspect audit.",
+            ["Tenants.Audit.Availability.Accessible.MissingSupport"] = "Missing implementation support; continue read-only or escalate.",
+            ["Tenants.Audit.Availability.Accessible.Pending"] = "Audit pending; wait, retry status lookup, or inspect audit.",
+            ["Tenants.Audit.Availability.Accessible.Unavailable"] = "Audit unavailable; continue read-only, retry status lookup, or escalate.",
+            ["Tenants.Audit.Availability.Action.ContinueReadOnly"] = "Continue read-only",
+            ["Tenants.Audit.Availability.Action.Escalate"] = "Escalate",
+            ["Tenants.Audit.Availability.Action.InspectAudit"] = "Inspect audit",
+            ["Tenants.Audit.Availability.Action.Refresh"] = "Retry status lookup",
+            ["Tenants.Audit.Availability.Action.Wait"] = "Wait",
+            ["Tenants.Audit.Availability.ActionsLabel"] = "Audit availability recovery actions",
+            ["Tenants.Audit.Availability.Reason.MissingSupport"] = "Continue read-only or escalate using support-safe information.",
+            ["Tenants.Audit.Availability.Reason.Unavailable"] = "Continue read-only, retry status lookup, or escalate without raw diagnostics.",
+            ["Tenants.Audit.Availability.State.Delayed"] = "Audit delayed",
+            ["Tenants.Audit.Availability.State.MissingSupport"] = "Missing implementation support",
+            ["Tenants.Audit.Availability.State.Pending"] = "Audit pending",
+            ["Tenants.Audit.Availability.State.Unavailable"] = "Audit unavailable",
             ["Tenants.Audit.Receipt.Action.ContinueReadOnly"] = "Continue read-only",
             ["Tenants.Audit.Receipt.Action.Escalate"] = "Escalate with reference",
             ["Tenants.Audit.Receipt.Action.InspectAudit"] = "Inspect audit",

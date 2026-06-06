@@ -1,0 +1,124 @@
+@using Hexalith.Tenants.UI.State.TenantCommands
+@inject IStringLocalizer<TenantsResources> Localizer
+
+@if (Availability.ShouldRender)
+{
+    <section class="tenants-audit-availability tenants-audit-availability--@StateCss"
+             data-testid="tenants-audit-availability"
+             data-state="@StateCss"
+             aria-label="@AccessibleLabel"
+             aria-live="@LiveRegion"
+             aria-atomic="true">
+        <p class="tenants-audit-availability__state" data-testid="@StateTestId">
+            <span class="tenants-audit-availability__icon" aria-hidden="true">@StateGlyph</span>
+            <span>@StateText</span>
+        </p>
+        @if (!string.IsNullOrWhiteSpace(ReasonText))
+        {
+            <p class="tenants-audit-availability__reason">@ReasonText</p>
+        }
+        <div class="tenants-audit-availability__actions" aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
+            @foreach (TenantAuditRecoveryVerb verb in Availability.RecoveryVerbs)
+            {
+                @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
+                {
+                    <span class="tenants-audit-availability__action-shell">
+                        @InspectAuditAction
+                    </span>
+                }
+                else
+                {
+                    <button type="button"
+                            class="tenants-audit-availability__action"
+                            data-recovery-verb="@VerbCss(verb)"
+                            @onclick="() => InvokeRecoveryAsync(verb)">
+                        @Localizer[$"Tenants.Audit.Availability.Action.{verb}"]
+                    </button>
+                }
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public TenantCommandAuditState AuditState { get; set; } = TenantCommandAuditState.NotStarted;
+
+    [Parameter]
+    public string StateTestId { get; set; } = "tenants-audit-availability-state";
+
+    [Parameter]
+    public RenderFragment? InspectAuditAction { get; set; }
+
+    [Parameter]
+    public EventCallback OnRefresh { get; set; }
+
+    [Parameter]
+    public EventCallback OnInspectAudit { get; set; }
+
+    [Parameter]
+    public EventCallback OnContinueReadOnly { get; set; }
+
+    [Parameter]
+    public EventCallback OnEscalate { get; set; }
+
+    private TenantAuditAvailability Availability
+        => TenantAuditAvailability.FromCommandAuditState(AuditState);
+
+    private string StateCss
+        => Availability.State?.ToString().ToLowerInvariant() ?? "not-started";
+
+    private string LiveRegion
+        => Availability.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string StateText
+        => Availability.State is null
+            ? string.Empty
+            : Localizer[$"Tenants.Audit.Availability.State.{Availability.State}"];
+
+    private string AccessibleLabel
+        => Availability.State is null
+            ? string.Empty
+            : Localizer[$"Tenants.Audit.Availability.Accessible.{Availability.State}"];
+
+    private string ReasonText
+        => Availability.State is TenantAuditAvailabilityState.Unavailable or TenantAuditAvailabilityState.MissingSupport
+            ? Localizer[$"Tenants.Audit.Availability.Reason.{Availability.State}"]
+            : string.Empty;
+
+    private string StateGlyph
+        => Availability.State switch
+        {
+            TenantAuditAvailabilityState.Pending => "...",
+            TenantAuditAvailabilityState.Delayed => "!",
+            TenantAuditAvailabilityState.Unavailable => "?",
+            TenantAuditAvailabilityState.MissingSupport => "?",
+            _ => string.Empty,
+        };
+
+    private static string VerbCss(TenantAuditRecoveryVerb verb)
+        => verb.ToString().ToLowerInvariant();
+
+    private async Task InvokeRecoveryAsync(TenantAuditRecoveryVerb verb)
+    {
+        switch (verb)
+        {
+            case TenantAuditRecoveryVerb.Wait:
+                break;
+            case TenantAuditRecoveryVerb.Refresh:
+                await OnRefresh.InvokeAsync().ConfigureAwait(false);
+                break;
+            case TenantAuditRecoveryVerb.InspectAudit:
+                await OnInspectAudit.InvokeAsync().ConfigureAwait(false);
+                break;
+            case TenantAuditRecoveryVerb.ContinueReadOnly:
+                await OnContinueReadOnly.InvokeAsync().ConfigureAwait(false);
+                break;
+            case TenantAuditRecoveryVerb.Escalate:
+                await OnEscalate.InvokeAsync().ConfigureAwait(false);
+                break;
+            default:
+                break;
+        }
+    }
+}

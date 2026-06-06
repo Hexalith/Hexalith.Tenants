@@ -119,12 +119,12 @@ public sealed record TenantAuditReceipt(
             return surfaceState;
         }
 
-        TenantAuditReceiptState auditReceiptState = auditState switch
+        TenantAuditReceiptState auditReceiptState = TenantAuditAvailability.FromCommandAuditState(auditState).State switch
         {
-            TenantCommandAuditState.AuditPending => TenantAuditReceiptState.Pending,
-            TenantCommandAuditState.AuditDelayed => TenantAuditReceiptState.Delayed,
-            TenantCommandAuditState.AuditUnavailable => TenantAuditReceiptState.Unavailable,
-            TenantCommandAuditState.MissingSupport => TenantAuditReceiptState.MissingSupport,
+            TenantAuditAvailabilityState.Pending => TenantAuditReceiptState.Pending,
+            TenantAuditAvailabilityState.Delayed => TenantAuditReceiptState.Delayed,
+            TenantAuditAvailabilityState.Unavailable => TenantAuditReceiptState.Unavailable,
+            TenantAuditAvailabilityState.MissingSupport => TenantAuditReceiptState.MissingSupport,
             _ => TenantAuditReceiptState.Ready,
         };
 

@@ -148,6 +148,28 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Audit_availability_resources_have_english_french_key_parity_and_no_machine_tokens()
+    {
+        string resourceRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources");
+        string[] prefixes = ["Tenants.Audit.Availability."];
+
+        string englishPath = Path.Combine(resourceRoot, "TenantsResources.resx");
+        string frenchPath = Path.Combine(resourceRoot, "TenantsResources.fr.resx");
+        HashSet<string> englishKeys = ReadResourceKeys(englishPath, prefixes);
+        HashSet<string> frenchKeys = ReadResourceKeys(frenchPath, prefixes);
+        string englishAvailabilityValues = string.Join('\n', ReadResourceValues(englishPath, prefixes));
+        string frenchAvailabilityValues = string.Join('\n', ReadResourceValues(frenchPath, prefixes));
+
+        englishKeys.ShouldBe(frenchKeys);
+        englishKeys.ShouldContain("Tenants.Audit.Availability.State.Pending");
+        englishKeys.ShouldContain("Tenants.Audit.Availability.Action.ContinueReadOnly");
+        englishAvailabilityValues.ShouldNotContain("AuditPending", Case.Insensitive);
+        englishAvailabilityValues.ShouldNotContain("audit_pending", Case.Insensitive);
+        frenchAvailabilityValues.ShouldNotContain("AuditPending", Case.Insensitive);
+        frenchAvailabilityValues.ShouldNotContain("audit_pending", Case.Insensitive);
+    }
+
+    [Fact]
     public void Main_layout_composes_body_through_frontcomposer_shell()
     {
         string layout = File.ReadAllText(
@@ -195,6 +217,19 @@ public sealed class TenantsUiCompositionTests
             .Where(name => name is not null && prefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
+
+    private static IEnumerable<string> ReadResourceValues(string path, string[] prefixes)
+        => XDocument
+            .Load(path)
+            .Descendants("data")
+            .Where(element =>
+            {
+                string? name = element.Attribute("name")?.Value;
+                return name is not null && prefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal));
+            })
+            .Select(static element => element.Element("value")?.Value)
+            .Where(static value => value is not null)
+            .Select(static value => value!);
 
     private static IHttpContextAccessor ContextAccessor(params Claim[] claims)
         => new HttpContextAccessor

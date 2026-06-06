@@ -109,20 +109,26 @@
             <span aria-hidden="true">@StateSymbol</span>
             <span>@StateText</span>
         </p>
-        <p data-testid="tenants-change-role-audit">@AuditText</p>
-        @if (ShouldRenderAuditEntryPoint)
-        {
-            <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
-                                     TargetUserId="@Member.UserId"
-                                     SourceKind="command-result"
-                                     SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
-                                     ReturnUrl="@CommandAuditReturnUrl"
-                                     ReturnFocus="tenants-change-role-lifecycle"
-                                     AvailabilityText="@AuditText"
-                                     UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
-        }
+        <div data-testid="tenants-change-role-audit">
+            @if (ShouldRenderAuditEntryPoint)
+            {
+                <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                        OnRefresh="RefreshStatusAsync">
+                    <InspectAuditAction>
+                        <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                                 TargetUserId="@Member.UserId"
+                                                 SourceKind="command-result"
+                                                 SourceTestId="tenants-command-audit-entrypoint"
+                                                 Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                                 ReturnUrl="@CommandAuditReturnUrl"
+                                                 ReturnFocus="tenants-change-role-lifecycle"
+                                                 AvailabilityText="@AuditText"
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                    </InspectAuditAction>
+                </AuditAvailabilityState>
+            }
+        </div>
         @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
         {
             <p data-testid="tenants-change-role-safe-message">@_snapshot.SafeMessage</p>

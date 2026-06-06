@@ -146,3 +146,25 @@
 - [x] No hardcoded waits or sleeps.
 - [x] Tests are independent and order-free.
 - [x] Test summary created with coverage metrics.
+
+## Story 5.4 Evidence Addendum
+
+- [x] API tests: not applicable. Story 5.4 adds Tenants UI state, localized copy, shared Blazor controls, and command/receipt rendering paths; it adds no backend endpoint, query contract, direct browser API call, token storage, or command dispatch surface.
+- [x] `tests/Hexalith.Tenants.UI.Tests/State/TenantAuditAvailabilityTests.cs` - Covers every `TenantCommandAuditState` audit availability mapping, canonical recovery verbs, non-rendered `NotStarted`, live-region politeness, and no false audit-success state.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs` - Covers visible state text, icon/shape, accessible label, stable `tenants-audit-availability` selectors, polite/assertive live-region behavior, native keyboard-operable recovery controls, passive wait, refresh/continue/escalate callbacks, inspect-audit fragment reuse, forced-colors/focus/reduced-motion CSS hooks, stable dimensions, and no machine-token or Success leakage.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs` - Covers shared availability rendering from pending/delayed/unavailable/missing-support receipt states, refresh recovery, continue-read-only and inspect-audit focus-return callbacks through `OnClose`, support-safe receipt fields/copy, live-region behavior, and no false Success.
+- [x] Existing representative command-flow and reducer tests cover create, add member, change role, remove member, lifecycle, set/remove configuration, and edit metadata audit handoffs while preserving command acceptance, projection confirmation, and audit availability as distinct state tokens.
+- Story 5.4 acceptance criteria: 7/7 covered across audit availability state tests, shared component tests, receipt/page tests, representative command-flow tests, resource parity/source-safety checks, CSS accessibility checks, and no false Success assertions.
+- Story 5.4 critical error cases covered: audit pending, audit delayed, audit unavailable, missing implementation support, `NotStarted`, rejected/degraded/unable-to-verify non-success states, projection-free command completion, missing loaded receipt reference, partial receipt with no safe copy reference, unavailable receipt support-safe copy, machine-token leakage, browser backend/token storage, forced-colors rendering, keyboard recovery action semantics, focus-return callback routing, and polite/assertive live-region boundaries.
+- Story 5.4 QA generation validation (2026-06-06T17:59:48+02:00): `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors. `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build --no-restore` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility. xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 572 total, 0 errors, 0 failed, 0 skipped.
+
+## Story 5.4 Checklist
+
+- [x] API tests generated if applicable.
+- [x] E2E-style workflow tests generated for the implemented UI surfaces using the existing xUnit v3/bUnit framework.
+- [x] Tests use standard xUnit v3, Shouldly, bUnit, and existing file/resource/style assertions.
+- [x] Tests cover happy path and critical pending/delayed/unavailable/missing-support error cases.
+- [x] Tests use semantic/accessibility-oriented assertions and stable selectors.
+- [x] No hardcoded waits or sleeps.
+- [x] Tests are independent and order-free.
+- [x] Test summary created with coverage metrics.

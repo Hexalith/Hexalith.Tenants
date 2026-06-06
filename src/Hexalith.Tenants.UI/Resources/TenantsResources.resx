@@ -2571,6 +2571,54 @@
   <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
     <value>Copy audit event reference {0}</value>
   </data>
+  <data name="Tenants.Audit.Availability.Accessible.Delayed" xml:space="preserve">
+    <value>Audit evidence is delayed; retry status lookup or inspect audit before citing proof.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.MissingSupport" xml:space="preserve">
+    <value>Audit evidence support is missing; continue read-only or escalate with support-safe information.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.Pending" xml:space="preserve">
+    <value>Audit evidence is pending; wait, refresh status, or inspect audit before citing proof.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Accessible.Unavailable" xml:space="preserve">
+    <value>Audit evidence is unavailable; continue read-only, retry status lookup, or escalate with support-safe information.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Action.ContinueReadOnly" xml:space="preserve">
+    <value>Continue read-only</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Action.Escalate" xml:space="preserve">
+    <value>Escalate</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Action.InspectAudit" xml:space="preserve">
+    <value>Inspect audit</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Action.Refresh" xml:space="preserve">
+    <value>Retry status lookup</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Action.Wait" xml:space="preserve">
+    <value>Wait</value>
+  </data>
+  <data name="Tenants.Audit.Availability.ActionsLabel" xml:space="preserve">
+    <value>Audit availability recovery actions</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.MissingSupport" xml:space="preserve">
+    <value>This flow cannot verify audit proof from the available implementation support. Continue read-only or escalate using only the visible support-safe reference.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.Reason.Unavailable" xml:space="preserve">
+    <value>Audit proof cannot be verified right now. Continue read-only, retry status lookup, or escalate without including raw diagnostics, tokens, payloads, or personal data.</value>
+  </data>
+  <data name="Tenants.Audit.Availability.State.Delayed" xml:space="preserve">
+    <value>Audit delayed</value>
+  </data>
+  <data name="Tenants.Audit.Availability.State.MissingSupport" xml:space="preserve">
+    <value>Missing implementation support</value>
+  </data>
+  <data name="Tenants.Audit.Availability.State.Pending" xml:space="preserve">
+    <value>Audit pending</value>
+  </data>
+  <data name="Tenants.Audit.Availability.State.Unavailable" xml:space="preserve">
+    <value>Audit unavailable</value>
+  </data>
   <data name="Tenants.Audit.Receipt.ActionsLabel" xml:space="preserve">
     <value>Audit receipt recovery actions</value>
   </data>

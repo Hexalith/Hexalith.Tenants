@@ -121,19 +121,25 @@
             <span aria-hidden="true">@StateSymbol</span>
             <span>@StateText</span>
         </p>
-        <p data-testid="tenants-edit-metadata-audit">@AuditText</p>
-        @if (ShouldRenderAuditEntryPoint)
-        {
-            <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
-                                     SourceKind="command-result"
-                                     SourceTestId="tenants-command-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                     AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
-                                     ReturnUrl="@CommandAuditReturnUrl"
-                                     ReturnFocus="tenants-edit-metadata-lifecycle"
-                                     AvailabilityText="@AuditText"
-                                     UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
-        }
+        <div data-testid="tenants-edit-metadata-audit">
+            @if (ShouldRenderAuditEntryPoint)
+            {
+                <AuditAvailabilityState AuditState="@_snapshot.AuditState"
+                                        OnRefresh="RefreshStatusAsync">
+                    <InspectAuditAction>
+                        <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                                 SourceKind="command-result"
+                                                 SourceTestId="tenants-command-audit-entrypoint"
+                                                 Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                                 AccessibleName="@Localizer["Tenants.Audit.EntryPoint.Accessible.Command", AuditText, Detail.TenantId]"
+                                                 ReturnUrl="@CommandAuditReturnUrl"
+                                                 ReturnFocus="tenants-edit-metadata-lifecycle"
+                                                 AvailabilityText="@AuditText"
+                                                 UnavailableReason="@Localizer["Tenants.Audit.EntryPoint.CommandReason"]" />
+                    </InspectAuditAction>
+                </AuditAvailabilityState>
+            }
+        </div>
         <p data-testid="tenants-edit-metadata-recovery">@RecoveryText</p>
         @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
         {
