@@ -6,6 +6,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -269,6 +270,12 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             PreviousSnapshots.Add(previous);
             return Task.FromResult(_snapshots.Dequeue());
         }
+
+        public Task<TenantAuditSnapshot> GetTenantAuditAsync(
+            TenantAuditRequest request,
+            TenantAuditSnapshot? previous,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(TenantAuditSnapshot.Unavailable(request));
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>

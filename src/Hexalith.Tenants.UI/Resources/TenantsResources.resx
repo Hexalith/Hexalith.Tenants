@@ -2529,4 +2529,163 @@
   <data name="Tenants.GlobalAdministrators.State.Unavailable.Title" xml:space="preserve">
     <value>Global administrator data unavailable</value>
   </data>
+  <data name="Tenants.Audit.Back" xml:space="preserve">
+    <value>Back to tenant details</value>
+  </data>
+  <data name="Tenants.Audit.Category.Access" xml:space="preserve">
+    <value>Access</value>
+  </data>
+  <data name="Tenants.Audit.Category.Administrative" xml:space="preserve">
+    <value>Administrative</value>
+  </data>
+  <data name="Tenants.Audit.Column.Actor" xml:space="preserve">
+    <value>Actor</value>
+  </data>
+  <data name="Tenants.Audit.Column.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Tenants.Audit.Column.Freshness" xml:space="preserve">
+    <value>Freshness</value>
+  </data>
+  <data name="Tenants.Audit.Column.Outcome" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="Tenants.Audit.Column.Reference" xml:space="preserve">
+    <value>Reference context</value>
+  </data>
+  <data name="Tenants.Audit.Column.Scope" xml:space="preserve">
+    <value>Tenant scope</value>
+  </data>
+  <data name="Tenants.Audit.Column.Target" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="Tenants.Audit.Column.Timestamp" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+  <data name="Tenants.Audit.ControlsLabel" xml:space="preserve">
+    <value>Tenant audit filters and paging controls</value>
+  </data>
+  <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
+    <value>Copy audit event reference {0}</value>
+  </data>
+  <data name="Tenants.Audit.Description" xml:space="preserve">
+    <value>Read-only tenant audit evidence from the server-side query gateway.</value>
+  </data>
+  <data name="Tenants.Audit.Eyebrow" xml:space="preserve">
+    <value>Tenant audit trail</value>
+  </data>
+  <data name="Tenants.Audit.Filter.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Tenants.Audit.Filter.Category.All" xml:space="preserve">
+    <value>All categories</value>
+  </data>
+  <data name="Tenants.Audit.Filter.From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Tenants.Audit.Filter.To" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Audit.GridTitle" xml:space="preserve">
+    <value>Audit entries</value>
+  </data>
+  <data name="Tenants.Audit.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Tenants.Audit.PaginationLabel" xml:space="preserve">
+    <value>Tenant audit pages</value>
+  </data>
+  <data name="Tenants.Audit.Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Tenants.Audit.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Tenants.Audit.Reset" xml:space="preserve">
+    <value>Reset filters</value>
+  </data>
+  <data name="Tenants.Audit.State.Degraded.Message" xml:space="preserve">
+    <value>Audit evidence is degraded. Last confirmed support-safe rows remain visible for this exact tenant and filter scope only.</value>
+  </data>
+  <data name="Tenants.Audit.State.Degraded.Title" xml:space="preserve">
+    <value>Audit data degraded</value>
+  </data>
+  <data name="Tenants.Audit.State.Empty.Message" xml:space="preserve">
+    <value>No audit entries are visible for this tenant scope.</value>
+  </data>
+  <data name="Tenants.Audit.State.Empty.Title" xml:space="preserve">
+    <value>No audit entries</value>
+  </data>
+  <data name="Tenants.Audit.State.Error.Message" xml:space="preserve">
+    <value>Audit data could not be loaded. No raw event payloads or internal gateway details are shown.</value>
+  </data>
+  <data name="Tenants.Audit.State.Error.Title" xml:space="preserve">
+    <value>Audit data unavailable</value>
+  </data>
+  <data name="Tenants.Audit.State.FilteredEmpty.Message" xml:space="preserve">
+    <value>No audit entries match the selected date range and category filters.</value>
+  </data>
+  <data name="Tenants.Audit.State.FilteredEmpty.Title" xml:space="preserve">
+    <value>No audit entries match filters</value>
+  </data>
+  <data name="Tenants.Audit.State.InvalidCursor.Message" xml:space="preserve">
+    <value>The audit cursor is no longer valid. Use refresh to request the first page again.</value>
+  </data>
+  <data name="Tenants.Audit.State.InvalidCursor.Title" xml:space="preserve">
+    <value>Audit page cursor invalid</value>
+  </data>
+  <data name="Tenants.Audit.State.ListRefreshed.Message" xml:space="preserve">
+    <value>The audit cursor changed, so the list was refreshed from page one for this tenant and filter scope.</value>
+  </data>
+  <data name="Tenants.Audit.State.ListRefreshed.Title" xml:space="preserve">
+    <value>Audit list refreshed</value>
+  </data>
+  <data name="Tenants.Audit.State.Loading.Message" xml:space="preserve">
+    <value>Audit entries are loading through the server-side query gateway.</value>
+  </data>
+  <data name="Tenants.Audit.State.Loading.Title" xml:space="preserve">
+    <value>Loading audit entries</value>
+  </data>
+  <data name="Tenants.Audit.State.Ready.Message" xml:space="preserve">
+    <value>Audit entries are loaded with support-safe row fields only.</value>
+  </data>
+  <data name="Tenants.Audit.State.Ready.Title" xml:space="preserve">
+    <value>Audit entries loaded</value>
+  </data>
+  <data name="Tenants.Audit.State.Stale.Message" xml:space="preserve">
+    <value>Audit freshness is stale. Refresh to check the projection again before treating the list as current.</value>
+  </data>
+  <data name="Tenants.Audit.State.Stale.Title" xml:space="preserve">
+    <value>Audit data stale</value>
+  </data>
+  <data name="Tenants.Audit.State.Unauthorized.Message" xml:space="preserve">
+    <value>You are not authorized to view tenant audit entries. No hidden audit data is shown.</value>
+  </data>
+  <data name="Tenants.Audit.State.Unauthorized.Title" xml:space="preserve">
+    <value>Audit access unavailable</value>
+  </data>
+  <data name="Tenants.Audit.State.Unavailable.Message" xml:space="preserve">
+    <value>The tenant audit read surface is unavailable. No audit payloads are shown.</value>
+  </data>
+  <data name="Tenants.Audit.State.Unavailable.Title" xml:space="preserve">
+    <value>Audit read surface unavailable</value>
+  </data>
+  <data name="Tenants.Audit.Title" xml:space="preserve">
+    <value>Audit trail for {0}</value>
+  </data>
 </root>

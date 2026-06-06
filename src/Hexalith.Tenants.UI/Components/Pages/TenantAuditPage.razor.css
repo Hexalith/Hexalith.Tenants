@@ -1,0 +1,98 @@
+.tenant-audit {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.tenant-audit__header,
+.tenant-audit__controls,
+.tenant-audit__grid-shell {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.tenant-audit__eyebrow {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.tenant-audit__controls {
+    align-items: end;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.tenant-audit__controls label {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.tenant-audit__controls input,
+.tenant-audit__controls select,
+.tenant-audit__controls button,
+.tenant-audit__pager button {
+    min-height: 2.5rem;
+}
+
+.tenant-audit__state {
+    align-items: start;
+    border: 1px solid CanvasText;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 0.75rem;
+}
+
+.tenant-audit__state:focus-visible,
+.tenant-audit__controls input:focus-visible,
+.tenant-audit__controls select:focus-visible,
+.tenant-audit__controls button:focus-visible,
+.tenant-audit__pager button:focus-visible,
+.tenant-audit__header a:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+.tenant-audit__state-icon {
+    border: 1px solid CanvasText;
+    border-radius: 50%;
+    display: inline-grid;
+    font-weight: 700;
+    height: 2rem;
+    place-items: center;
+    width: 2rem;
+}
+
+.tenant-audit__state-copy {
+    min-width: 0;
+}
+
+.tenant-audit__state-copy h2,
+.tenant-audit__state-copy p {
+    margin-block: 0 0.25rem;
+    overflow-wrap: anywhere;
+}
+
+.tenant-audit__pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .tenant-audit {
+        padding: 0.75rem;
+    }
+
+    .tenant-audit__controls {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenant-audit__state,
+    .tenant-audit__state-icon {
+        border-color: CanvasText;
+    }
+}

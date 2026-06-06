@@ -8,6 +8,7 @@ using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -296,6 +297,137 @@ internal sealed class TenantQueryGateway(
         }
     }
 
+    public async Task<TenantAuditSnapshot> GetTenantAuditAsync(
+        TenantAuditRequest request,
+        TenantAuditSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.TenantId))
+        {
+            return TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingTenantId, request);
+        }
+
+        try
+        {
+            return await GetTenantAuditCoreAsync(request, previous, isListRefreshed: false, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (EventStoreGatewayException ex) when (IsInvalidAuditCursor(ex))
+        {
+            TenantAuditRequest firstPageRequest = request with
+            {
+                Cursor = null,
+                ETag = null,
+            };
+
+            try
+            {
+                return await GetTenantAuditCoreAsync(firstPageRequest, null, isListRefreshed: true, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (EventStoreGatewayException retryException)
+            {
+                return MapTenantAuditException(firstPageRequest, retryException);
+            }
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapTenantAuditException(request, ex);
+        }
+    }
+
+    private async Task<TenantAuditSnapshot> GetTenantAuditCoreAsync(
+        TenantAuditRequest request,
+        TenantAuditSnapshot? previous,
+        bool isListRefreshed,
+        CancellationToken cancellationToken)
+    {
+        SubmitQueryRequest query = CreateTenantAuditQuery(request);
+        EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = await gatewayClient
+            .SubmitQueryAsync<PaginatedResult<TenantAuditEntry>>(query, request.ETag, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (result.IsNotModified)
+        {
+            if (previous is null || !previous.MatchesScope(request))
+            {
+                return TenantAuditSnapshot.Degraded(
+                    [],
+                    TenantAuditReason.NotModifiedWithoutSnapshot,
+                    request,
+                    result.ETag);
+            }
+
+            return previous with
+            {
+                ETag = result.ETag ?? previous.ETag,
+                Freshness = previous.Kind is TenantAuditSurfaceKind.Ready
+                    or TenantAuditSurfaceKind.Empty
+                    or TenantAuditSurfaceKind.FilteredEmpty
+                    or TenantAuditSurfaceKind.ListRefreshed
+                        ? TenantFreshnessState.Current
+                        : previous.Freshness,
+            };
+        }
+
+        PaginatedResult<TenantAuditEntry>? payload = result.Payload;
+        if (payload is null)
+        {
+            return previous is not null && previous.MatchesScope(request)
+                ? previous with
+                {
+                    Kind = TenantAuditSurfaceKind.Degraded,
+                    Reason = TenantAuditReason.MissingPayload,
+                    ETag = result.ETag ?? previous.ETag,
+                    Freshness = TenantFreshnessState.Unknown,
+                }
+                : TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingPayload, request, result.ETag);
+        }
+
+        TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+        IReadOnlyList<TenantAuditRow> rows = payload.Items
+            .Select(entry => TenantAuditRow.FromEntry(entry, freshness))
+            .ToArray();
+
+        if (result.Metadata?.IsStale == true)
+        {
+            rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
+            return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request);
+        }
+
+        if (result.Metadata?.IsDegraded == true)
+        {
+            rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Unknown }).ToArray();
+            return TenantAuditSnapshot.Degraded(
+                rows,
+                TenantAuditReason.ProjectionDegraded,
+                request,
+                result.ETag,
+                payload.Cursor,
+                payload.HasMore);
+        }
+
+        if (isListRefreshed)
+        {
+            return TenantAuditSnapshot.ListRefreshed(
+                rows,
+                payload.Cursor,
+                payload.HasMore,
+                result.ETag,
+                freshness,
+                request);
+        }
+
+        if (rows.Count == 0)
+        {
+            return TenantAuditSnapshot.Empty(isAuthorizationScoped: true, freshness, result.ETag, request);
+        }
+
+        return TenantAuditSnapshot.Ready(rows, payload.Cursor, payload.HasMore, result.ETag, freshness, request);
+    }
+
     public async Task<TenantListSnapshot> ListTenantsAsync(
         TenantListRequest request,
         TenantListSnapshot? previous,
@@ -395,6 +527,24 @@ internal sealed class TenantQueryGateway(
                 pageSize = request.PageSize,
             }),
             EntityId: GlobalAdministratorsAggregateId,
+            ProjectionActorType: TenantProjectionRouting.ActorTypeName);
+
+    private static SubmitQueryRequest CreateTenantAuditQuery(TenantAuditRequest request)
+        => new(
+            SystemTenant,
+            GetTenantAuditQuery.Domain,
+            request.TenantId,
+            GetTenantAuditQuery.QueryType,
+            ProjectionType: GetTenantAuditQuery.ProjectionType,
+            Payload: JsonSerializer.SerializeToElement(new
+            {
+                from = request.From,
+                to = request.To,
+                category = request.Category?.ToString(),
+                cursor = request.Cursor,
+                pageSize = request.PageSize,
+            }),
+            EntityId: request.TenantId,
             ProjectionActorType: TenantProjectionRouting.ActorTypeName);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
@@ -513,4 +663,27 @@ internal sealed class TenantQueryGateway(
                 => GlobalAdministratorsSnapshot.Unavailable(),
             _ => GlobalAdministratorsSnapshot.Degraded([], GlobalAdministratorsReason.GatewayFailure),
         };
+
+    private static TenantAuditSnapshot MapTenantAuditException(TenantAuditRequest request, EventStoreGatewayException exception)
+        => exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantAuditSnapshot.Unauthorized(request),
+            (int)HttpStatusCode.BadRequest when IsInvalidAuditCursor(exception)
+                => TenantAuditSnapshot.InvalidCursor(request),
+            (int)HttpStatusCode.NotFound or (int)HttpStatusCode.NotImplemented or (int)HttpStatusCode.ServiceUnavailable
+                => TenantAuditSnapshot.Unavailable(request),
+            _ => TenantAuditSnapshot.Error(request),
+        };
+
+    private static bool IsInvalidAuditCursor(EventStoreGatewayException exception)
+        => exception.StatusCode is (int)HttpStatusCode.BadRequest
+        && (Contains(exception.ReasonCode, "invalid-cursor")
+            || Contains(exception.Reason, "invalid-cursor")
+            || Contains(exception.Title, "invalid-cursor")
+            || Contains(exception.Type, "invalid-cursor")
+            || Contains(exception.Detail, "invalid-cursor"));
+
+    private static bool Contains(string? value, string expected)
+        => value?.Contains(expected, StringComparison.OrdinalIgnoreCase) == true;
 }

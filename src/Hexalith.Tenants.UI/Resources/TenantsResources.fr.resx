@@ -2529,4 +2529,163 @@
   <data name="Tenants.GlobalAdministrators.State.Unavailable.Title" xml:space="preserve">
     <value>Donnees d'administrateurs globaux indisponibles</value>
   </data>
+  <data name="Tenants.Audit.Back" xml:space="preserve">
+    <value>Retour aux details du locataire</value>
+  </data>
+  <data name="Tenants.Audit.Category.Access" xml:space="preserve">
+    <value>Acces</value>
+  </data>
+  <data name="Tenants.Audit.Category.Administrative" xml:space="preserve">
+    <value>Administratif</value>
+  </data>
+  <data name="Tenants.Audit.Column.Actor" xml:space="preserve">
+    <value>Acteur</value>
+  </data>
+  <data name="Tenants.Audit.Column.Category" xml:space="preserve">
+    <value>Categorie</value>
+  </data>
+  <data name="Tenants.Audit.Column.Freshness" xml:space="preserve">
+    <value>Fraicheur</value>
+  </data>
+  <data name="Tenants.Audit.Column.Outcome" xml:space="preserve">
+    <value>Resultat</value>
+  </data>
+  <data name="Tenants.Audit.Column.Reference" xml:space="preserve">
+    <value>Contexte de reference</value>
+  </data>
+  <data name="Tenants.Audit.Column.Scope" xml:space="preserve">
+    <value>Portee locataire</value>
+  </data>
+  <data name="Tenants.Audit.Column.Target" xml:space="preserve">
+    <value>Cible</value>
+  </data>
+  <data name="Tenants.Audit.Column.Timestamp" xml:space="preserve">
+    <value>Horodatage</value>
+  </data>
+  <data name="Tenants.Audit.ControlsLabel" xml:space="preserve">
+    <value>Filtres et pagination de l'audit locataire</value>
+  </data>
+  <data name="Tenants.Audit.Copy.EventReference" xml:space="preserve">
+    <value>Copier la reference d'evenement d'audit {0}</value>
+  </data>
+  <data name="Tenants.Audit.Description" xml:space="preserve">
+    <value>Preuves d'audit locataire en lecture seule depuis la passerelle de requete cote serveur.</value>
+  </data>
+  <data name="Tenants.Audit.Eyebrow" xml:space="preserve">
+    <value>Journal d'audit locataire</value>
+  </data>
+  <data name="Tenants.Audit.Filter.Category" xml:space="preserve">
+    <value>Categorie</value>
+  </data>
+  <data name="Tenants.Audit.Filter.Category.All" xml:space="preserve">
+    <value>Toutes les categories</value>
+  </data>
+  <data name="Tenants.Audit.Filter.From" xml:space="preserve">
+    <value>Debut</value>
+  </data>
+  <data name="Tenants.Audit.Filter.To" xml:space="preserve">
+    <value>Fin</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Aging" xml:space="preserve">
+    <value>Vieillissant</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Current" xml:space="preserve">
+    <value>Actuel</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Refreshing" xml:space="preserve">
+    <value>Actualisation</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Stale" xml:space="preserve">
+    <value>Perime</value>
+  </data>
+  <data name="Tenants.Audit.Freshness.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.Audit.GridTitle" xml:space="preserve">
+    <value>Entrees d'audit</value>
+  </data>
+  <data name="Tenants.Audit.Next" xml:space="preserve">
+    <value>Suivant</value>
+  </data>
+  <data name="Tenants.Audit.PaginationLabel" xml:space="preserve">
+    <value>Pages de l'audit locataire</value>
+  </data>
+  <data name="Tenants.Audit.Previous" xml:space="preserve">
+    <value>Precedent</value>
+  </data>
+  <data name="Tenants.Audit.Refresh" xml:space="preserve">
+    <value>Actualiser</value>
+  </data>
+  <data name="Tenants.Audit.Reset" xml:space="preserve">
+    <value>Reinitialiser les filtres</value>
+  </data>
+  <data name="Tenants.Audit.State.Degraded.Message" xml:space="preserve">
+    <value>Les preuves d'audit sont degradees. Les lignes confirmees et sures restent visibles uniquement pour cette portee exacte.</value>
+  </data>
+  <data name="Tenants.Audit.State.Degraded.Title" xml:space="preserve">
+    <value>Donnees d'audit degradees</value>
+  </data>
+  <data name="Tenants.Audit.State.Empty.Message" xml:space="preserve">
+    <value>Aucune entree d'audit n'est visible pour cette portee locataire.</value>
+  </data>
+  <data name="Tenants.Audit.State.Empty.Title" xml:space="preserve">
+    <value>Aucune entree d'audit</value>
+  </data>
+  <data name="Tenants.Audit.State.Error.Message" xml:space="preserve">
+    <value>Les donnees d'audit n'ont pas pu etre chargees. Aucun payload brut ni detail interne de passerelle n'est affiche.</value>
+  </data>
+  <data name="Tenants.Audit.State.Error.Title" xml:space="preserve">
+    <value>Donnees d'audit indisponibles</value>
+  </data>
+  <data name="Tenants.Audit.State.FilteredEmpty.Message" xml:space="preserve">
+    <value>Aucune entree d'audit ne correspond a la plage de dates et aux filtres de categorie.</value>
+  </data>
+  <data name="Tenants.Audit.State.FilteredEmpty.Title" xml:space="preserve">
+    <value>Aucune entree d'audit ne correspond aux filtres</value>
+  </data>
+  <data name="Tenants.Audit.State.InvalidCursor.Message" xml:space="preserve">
+    <value>Le curseur d'audit n'est plus valide. Actualisez pour redemander la premiere page.</value>
+  </data>
+  <data name="Tenants.Audit.State.InvalidCursor.Title" xml:space="preserve">
+    <value>Curseur de page d'audit invalide</value>
+  </data>
+  <data name="Tenants.Audit.State.ListRefreshed.Message" xml:space="preserve">
+    <value>Le curseur d'audit a change, donc la liste a ete actualisee depuis la premiere page pour cette portee.</value>
+  </data>
+  <data name="Tenants.Audit.State.ListRefreshed.Title" xml:space="preserve">
+    <value>Liste d'audit actualisee</value>
+  </data>
+  <data name="Tenants.Audit.State.Loading.Message" xml:space="preserve">
+    <value>Les entrees d'audit sont chargees par la passerelle de requete cote serveur.</value>
+  </data>
+  <data name="Tenants.Audit.State.Loading.Title" xml:space="preserve">
+    <value>Chargement des entrees d'audit</value>
+  </data>
+  <data name="Tenants.Audit.State.Ready.Message" xml:space="preserve">
+    <value>Les entrees d'audit sont chargees avec uniquement des champs de ligne surs.</value>
+  </data>
+  <data name="Tenants.Audit.State.Ready.Title" xml:space="preserve">
+    <value>Entrees d'audit chargees</value>
+  </data>
+  <data name="Tenants.Audit.State.Stale.Message" xml:space="preserve">
+    <value>La fraicheur d'audit est perimee. Actualisez pour verifier la projection avant de traiter la liste comme actuelle.</value>
+  </data>
+  <data name="Tenants.Audit.State.Stale.Title" xml:space="preserve">
+    <value>Donnees d'audit perimees</value>
+  </data>
+  <data name="Tenants.Audit.State.Unauthorized.Message" xml:space="preserve">
+    <value>Vous n'etes pas autorise a voir les entrees d'audit locataire. Aucune donnee cachee n'est affichee.</value>
+  </data>
+  <data name="Tenants.Audit.State.Unauthorized.Title" xml:space="preserve">
+    <value>Acces audit indisponible</value>
+  </data>
+  <data name="Tenants.Audit.State.Unavailable.Message" xml:space="preserve">
+    <value>La surface de lecture d'audit locataire est indisponible. Aucun payload d'audit n'est affiche.</value>
+  </data>
+  <data name="Tenants.Audit.State.Unavailable.Title" xml:space="preserve">
+    <value>Surface de lecture d'audit indisponible</value>
+  </data>
+  <data name="Tenants.Audit.Title" xml:space="preserve">
+    <value>Journal d'audit pour {0}</value>
+  </data>
 </root>

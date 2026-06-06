@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -10,6 +11,7 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.UserTenants;
@@ -295,6 +297,285 @@ public sealed class TenantQueryGatewayTests
         client.SubmittedQueries
             .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
             .ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_submits_exact_audit_query_shape_and_preserves_opaque_cursor()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-1", AuditEventCategory.Access)],
+            "next-audit-cursor",
+            true));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(
+                new TenantAuditRequest(
+                    "tenant.alpha",
+                    From: DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture),
+                    To: DateTimeOffset.Parse("2026-06-02T00:00:00Z", CultureInfo.InvariantCulture),
+                    Category: AuditEventCategory.Access,
+                    Cursor: "opaque-audit-cursor",
+                    PageSize: 25,
+                    ETag: "\"known\""),
+                null,
+                CancellationToken.None);
+
+        SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
+        query.Request.Tenant.ShouldBe("system");
+        query.Request.Domain.ShouldBe(GetTenantAuditQuery.Domain);
+        query.Request.AggregateId.ShouldBe("tenant.alpha");
+        query.Request.EntityId.ShouldBe("tenant.alpha");
+        query.Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
+        query.Request.ProjectionType.ShouldBe(GetTenantAuditQuery.ProjectionType);
+        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.Request.Paging.ShouldBeNull();
+        query.IfNoneMatch.ShouldBe("\"known\"");
+        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
+        payload.GetProperty("from").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture));
+        payload.GetProperty("to").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-02T00:00:00Z", CultureInfo.InvariantCulture));
+        payload.GetProperty("category").GetString().ShouldBe(nameof(AuditEventCategory.Access));
+        payload.GetProperty("cursor").GetString().ShouldBe("opaque-audit-cursor");
+        payload.GetProperty("pageSize").GetInt32().ShouldBe(25);
+        payload.TryGetProperty("offset", out _).ShouldBeFalse();
+        payload.TryGetProperty("limit", out _).ShouldBeFalse();
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        snapshot.NextCursor.ShouldBe("next-audit-cursor");
+        snapshot.HasMore.ShouldBeTrue();
+        snapshot.Rows.ShouldHaveSingleItem().ReferenceContext.ShouldContain("userId: target-user");
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_requeries_page_one_for_invalid_cursor_and_reports_list_refreshed()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            400,
+            "Bad request",
+            reasonCode: "invalid-cursor",
+            detail: "cursor raw payload token correlation-123"));
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [AuditEntry("event-2", AuditEventCategory.Administrative)],
+            "fresh-cursor",
+            true));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(
+                new TenantAuditRequest(
+                    "tenant.alpha",
+                    Category: AuditEventCategory.Administrative,
+                    Cursor: "expired-protected-cursor",
+                    PageSize: 25),
+                null,
+                CancellationToken.None);
+
+        client.SubmittedQueries.Count.ShouldBe(2);
+        client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("expired-protected-cursor");
+        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.ListRefreshed);
+        snapshot.Reason.ShouldBe(TenantAuditReason.ListRefreshed);
+        snapshot.NextCursor.ShouldBe("fresh-cursor");
+        snapshot.ToString().ShouldNotContain("expired-protected-cursor", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("token", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(true, false, TenantAuditSurfaceKind.Stale, TenantFreshnessState.Stale)]
+    [InlineData(false, true, TenantAuditSurfaceKind.Degraded, TenantFreshnessState.Unknown)]
+    public async Task Get_tenant_audit_maps_stale_and_degraded_metadata_to_distinct_states(
+        bool isStale,
+        bool isDegraded,
+        TenantAuditSurfaceKind expectedKind,
+        TenantFreshnessState expectedFreshness)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<TenantAuditEntry>([AuditEntry("event-3", AuditEventCategory.Access)], null, false),
+            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Freshness.ShouldBe(expectedFreshness);
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(expectedFreshness);
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_reuses_not_modified_snapshot_only_for_same_scope()
+    {
+        TenantAuditRequest originalRequest = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "\"known\"");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), TenantFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: TenantFreshnessState.Current,
+            originalRequest);
+        CapturingGatewayClient client = new();
+        client.EnqueueAuditNotModified("\"known\"");
+        client.EnqueueAuditNotModified("\"known\"");
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot sameScope = await gateway
+            .GetTenantAuditAsync(originalRequest, previous, CancellationToken.None);
+        TenantAuditSnapshot differentScope = await gateway
+            .GetTenantAuditAsync(originalRequest with { Category = AuditEventCategory.Administrative }, previous, CancellationToken.None);
+
+        sameScope.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-4");
+        differentScope.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
+        differentScope.Reason.ShouldBe(TenantAuditReason.NotModifiedWithoutSnapshot);
+        differentScope.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_maps_missing_payload_to_safe_degraded_state()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
+        snapshot.Reason.ShouldBe(TenantAuditReason.MissingPayload);
+        snapshot.Rows.ShouldBeEmpty();
+        client.SubmittedQueries.ShouldHaveSingleItem().Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
+        string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
+        client.SubmittedQueries
+            .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_preserves_previous_rows_for_missing_payload_when_scope_matches()
+    {
+        TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access);
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-5", AuditEventCategory.Access), TenantFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: TenantFreshnessState.Current,
+            request);
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(request, previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Degraded);
+        snapshot.Reason.ShouldBe(TenantAuditReason.MissingPayload);
+        snapshot.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-5");
+    }
+
+    [Theory]
+    [InlineData(401, TenantAuditSurfaceKind.Unauthorized)]
+    [InlineData(403, TenantAuditSurfaceKind.Unauthorized)]
+    [InlineData(404, TenantAuditSurfaceKind.Unavailable)]
+    [InlineData(503, TenantAuditSurfaceKind.Unavailable)]
+    [InlineData(500, TenantAuditSurfaceKind.Error)]
+    public async Task Get_tenant_audit_maps_gateway_status_to_safe_snapshot_state(int statusCode, TenantAuditSurfaceKind expected)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            statusCode,
+            "Problem title",
+            detail: "raw payload token secret stack trace correlation-123 EventStore metadata cursor etag"));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.ToString().ShouldNotContain("raw payload", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("token", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("stack trace", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("correlation-123", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_maps_only_support_safe_narrative_fields()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [
+                new TenantAuditEntry(
+                    "event-safe-reference",
+                    "TenantConfigurationSet",
+                    AuditEventCategory.Administrative,
+                    "actor-user",
+                    DateTimeOffset.UtcNow,
+                    "tenant.alpha",
+                    new Dictionary<string, string>
+                    {
+                        ["userId"] = "target-user",
+                        ["key"] = "billing.mode",
+                        ["rawPayload"] = "raw payload token secret",
+                        ["correlationId"] = "correlation-123",
+                        ["etag"] = "\"etag\"",
+                    }),
+            ],
+            null,
+            false));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.ReferenceContext.ShouldContain("userId: target-user");
+        row.ReferenceContext.ShouldContain("key: billing.mode");
+        row.ReferenceContext.ShouldNotContain("raw payload", Case.Insensitive);
+        row.ReferenceContext.ShouldNotContain("token", Case.Insensitive);
+        row.ReferenceContext.ShouldNotContain("correlation-123", Case.Insensitive);
+        row.ReferenceContext.ShouldNotContain("etag", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Get_tenant_audit_scrubs_unsafe_row_fields_before_rendering()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+            [
+                new TenantAuditEntry(
+                    "event-safe-reference",
+                    "stack trace internal detail",
+                    AuditEventCategory.Administrative,
+                    "actor-user",
+                    DateTimeOffset.UtcNow,
+                    "cursor protected value",
+                    new Dictionary<string, string>
+                    {
+                        ["userId"] = "raw payload token secret",
+                        ["key"] = "billing.mode",
+                    }),
+            ],
+            null,
+            false));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.Target.ShouldBeEmpty();
+        row.Scope.ShouldBeEmpty();
+        row.Outcome.ShouldBeEmpty();
+        row.ReferenceContext.ShouldContain("key: billing.mode");
+        row.ReferenceContext.ShouldNotContain("raw payload", Case.Insensitive);
+        row.ReferenceContext.ShouldNotContain("token", Case.Insensitive);
+        row.Target.ShouldNotContain("raw payload", Case.Insensitive);
+        row.Scope.ShouldNotContain("cursor", Case.Insensitive);
+        row.Outcome.ShouldNotContain("stack trace", Case.Insensitive);
     }
 
     [Fact]
@@ -782,6 +1063,16 @@ public sealed class TenantQueryGatewayTests
                 Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
             });
 
+        public void EnqueueAuditNotModified(string? eTag)
+            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantAuditEntry>>(
+                null,
+                null,
+                IsNotModified: true,
+                eTag)
+            {
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+            });
+
         public void EnqueueException(Exception exception)
             => _responses.Enqueue(exception);
     }
@@ -803,4 +1094,19 @@ public sealed class TenantQueryGatewayTests
                 ["billing.mode"] = "trial",
             },
             DateTimeOffset.UtcNow);
+
+    private static TenantAuditEntry AuditEntry(string eventId, AuditEventCategory category)
+        => new(
+            eventId,
+            category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet",
+            category,
+            "actor-user",
+            DateTimeOffset.UtcNow,
+            "tenant.alpha",
+            new Dictionary<string, string>
+            {
+                ["userId"] = "target-user",
+                ["key"] = "billing.mode",
+                ["role"] = "TenantReader",
+            });
 }

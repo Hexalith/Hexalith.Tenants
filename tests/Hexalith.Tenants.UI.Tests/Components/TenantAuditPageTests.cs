@@ -1,0 +1,425 @@
+using System.Globalization;
+using System.Xml.Linq;
+
+using Bunit;
+
+using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.State.TenantDetail;
+using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.UserTenants;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Microsoft.FluentUI.AspNetCore.Components;
+
+using Shouldly;
+
+namespace Hexalith.Tenants.UI.Tests.Components;
+
+public sealed class TenantAuditPageTests : BunitContext
+{
+    [Fact]
+    public void Tenant_audit_page_renders_grid_filters_paging_and_support_safe_rows()
+    {
+        TenantAuditSnapshot snapshot = ReadySnapshot(
+            [
+                Row("event-safe-reference", AuditEventCategory.Access, "userId: target-user; role: TenantReader"),
+            ],
+            nextCursor: "next-cursor",
+            hasMore: true);
+        StubTenantQueryGateway gateway = RegisterServices(snapshot);
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        gateway.Requests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        cut.Find("[data-testid='tenants-audit-filter-category']").GetAttribute("value").ShouldBeNull();
+        cut.Find("[data-testid='tenants-audit-filter-from']").GetAttribute("type").ShouldBe("datetime-local");
+        cut.Find("[data-testid='tenants-audit-filter-to']").GetAttribute("type").ShouldBe("datetime-local");
+        cut.Find("[data-testid='tenants-audit-refresh']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-audit-next']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-audit-previous']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference").ShouldBe("event-safe-reference");
+        cut.Find("[data-testid='tenants-audit-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
+        cut.Markup.ShouldContain("target-user");
+        cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_renders_timestamps_in_utc_independent_of_host_timezone()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        // Row timestamp is 2026-06-01T10:00:00Z; rendering must stay UTC, not shift to the server's tz.
+        cut.Find("[data-testid='tenants-audit-row-timestamp']").TextContent.ShouldBe("2026-06-01 10:00:00 UTC");
+    }
+
+    [Fact]
+    public void Tenant_audit_page_exposes_keyboard_native_controls_with_accessible_labels()
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "next-cursor", hasMore: true));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.FindAll("label").Count.ShouldBeGreaterThanOrEqualTo(3);
+        cut.Find("[data-testid='tenants-audit-filter-from']").ParentElement!.TextContent.ShouldContain("From");
+        cut.Find("[data-testid='tenants-audit-filter-to']").ParentElement!.TextContent.ShouldContain("To");
+        cut.Find("[data-testid='tenants-audit-filter-category']").ParentElement!.TextContent.ShouldContain("Category");
+        cut.Find("[data-testid='tenants-audit-refresh']").TagName.ShouldBe("BUTTON");
+        cut.Find("[data-testid='tenants-audit-reset']").TagName.ShouldBe("BUTTON");
+        cut.Find("[data-testid='tenants-audit-next']").TagName.ShouldBe("BUTTON");
+        cut.Find("[data-testid='tenants-audit-previous']").TagName.ShouldBe("BUTTON");
+        cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-audit-next']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Date_and_category_filters_trigger_server_side_audit_query_and_clear_cursor()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            ReadySnapshot([Row("event-2", AuditEventCategory.Administrative)]),
+            ReadySnapshot([Row("event-3", AuditEventCategory.Administrative)]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        gateway.Requests[1].Cursor.ShouldBe("opaque-next");
+
+        cut.Find("[data-testid='tenants-audit-filter-category']").Change(AuditEventCategory.Administrative.ToString());
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+
+        gateway.Requests[2].Cursor.ShouldBeNull();
+        gateway.Requests[2].Category.ShouldBe(AuditEventCategory.Administrative);
+    }
+
+    [Fact]
+    public void Date_filters_pass_absolute_values_to_gateway()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-2", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-3", AuditEventCategory.Access)]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-06-01T10:15");
+        cut.Find("[data-testid='tenants-audit-filter-to']").Change("2026-06-02T11:45");
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+
+        gateway.Requests[1].From.ShouldNotBeNull();
+        gateway.Requests[2].To.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Cursor_paging_passes_opaque_cursor_and_previous_history()
+    {
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
+            ReadySnapshot([Row("event-2", AuditEventCategory.Access)]),
+            ReadySnapshot([Row("event-1", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.Find("[data-testid='tenants-audit-next']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        gateway.Requests[1].Cursor.ShouldBe("opaque-next");
+
+        cut.Find("[data-testid='tenants-audit-previous']").Click();
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
+        gateway.Requests[2].Cursor.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Loading, "tenants-audit-loading")]
+    [InlineData(TenantAuditSurfaceKind.Empty, "tenants-audit-empty")]
+    [InlineData(TenantAuditSurfaceKind.FilteredEmpty, "tenants-audit-filtered-empty")]
+    [InlineData(TenantAuditSurfaceKind.Stale, "tenants-audit-stale")]
+    [InlineData(TenantAuditSurfaceKind.Degraded, "tenants-audit-degraded")]
+    [InlineData(TenantAuditSurfaceKind.Unauthorized, "tenants-audit-unauthorized")]
+    [InlineData(TenantAuditSurfaceKind.InvalidCursor, "tenants-audit-invalid-cursor")]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, "tenants-audit-list-refreshed")]
+    [InlineData(TenantAuditSurfaceKind.Unavailable, "tenants-audit-unavailable")]
+    [InlineData(TenantAuditSurfaceKind.Error, "tenants-audit-error")]
+    public void Tenant_audit_page_renders_distinct_accessible_states(TenantAuditSurfaceKind kind, string selector)
+    {
+        RegisterServices(SnapshotFor(kind));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement($"[data-testid='{selector}']");
+
+        cut.Find($"[data-testid='{selector}']").GetAttribute("role").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-audit-live-region']").TextContent.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void Tenant_audit_components_do_not_call_backend_or_use_browser_token_storage()
+    {
+        string projectRoot = ProjectRoot();
+        string[] componentFiles =
+        [
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantAuditPage.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditDataGrid.razor"),
+        ];
+        string combined = string.Join('\n', componentFiles.Select(File.ReadAllText));
+
+        combined.ShouldNotContain("GET /api/tenants", Case.Insensitive);
+        combined.ShouldNotContain("HttpClient", Case.Insensitive);
+        combined.ShouldNotContain("localStorage", Case.Insensitive);
+        combined.ShouldNotContain("sessionStorage", Case.Insensitive);
+        combined.ShouldNotContain("access_token", Case.Insensitive);
+        combined.ShouldNotContain("raw payload", Case.Insensitive);
+        combined.ShouldNotContain("EventStore metadata", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Audit_styles_preserve_responsive_safety_and_accessibility_hooks()
+    {
+        string projectRoot = ProjectRoot();
+        string styles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Audit",
+            "AuditDataGrid.razor.css"));
+        string pageStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Pages",
+            "TenantAuditPage.razor.css"));
+
+        styles.ShouldContain("overflow-x: auto");
+        styles.ShouldContain("min-width:");
+        styles.ShouldContain("@media (forced-colors: active)");
+        styles.ShouldContain("tenants-audit-critical");
+        styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+        pageStyles.ShouldContain(":focus-visible");
+        pageStyles.ShouldContain("@media (forced-colors: active)");
+    }
+
+    [Fact]
+    public void Audit_resource_keys_have_english_and_french_parity()
+    {
+        string projectRoot = ProjectRoot();
+        HashSet<string> english = ResourceKeys(Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.resx"));
+        HashSet<string> french = ResourceKeys(Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.fr.resx"));
+        string[] auditKeys = english.Where(key => key.StartsWith("Tenants.Audit.", StringComparison.Ordinal)).ToArray();
+
+        auditKeys.ShouldNotBeEmpty();
+        foreach (string key in auditKeys)
+        {
+            french.ShouldContain(key);
+        }
+    }
+
+    private StubTenantQueryGateway RegisterServices(params TenantAuditSnapshot[] snapshots)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        StubTenantQueryGateway gateway = new(snapshots);
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        return gateway;
+    }
+
+    private static TenantAuditSnapshot ReadySnapshot(
+        IReadOnlyList<TenantAuditRow> rows,
+        string? nextCursor = null,
+        bool hasMore = false)
+        => TenantAuditSnapshot.Ready(
+            rows,
+            nextCursor,
+            hasMore,
+            eTag: "\"etag\"",
+            freshness: rows.Any(row => row.Freshness == TenantFreshnessState.Stale)
+                ? TenantFreshnessState.Stale
+                : TenantFreshnessState.Current,
+            new TenantAuditRequest("tenant.alpha"));
+
+    private static TenantAuditSnapshot SnapshotFor(TenantAuditSurfaceKind kind)
+    {
+        TenantAuditRequest request = new("tenant.alpha", Category: kind is TenantAuditSurfaceKind.FilteredEmpty ? AuditEventCategory.Access : null);
+        return kind switch
+        {
+            TenantAuditSurfaceKind.Loading => TenantAuditSnapshot.Loading("tenant.alpha"),
+            TenantAuditSurfaceKind.Empty => TenantAuditSnapshot.Empty(true, TenantFreshnessState.Current, "\"etag\"", request),
+            TenantAuditSurfaceKind.FilteredEmpty => TenantAuditSnapshot.Empty(true, TenantFreshnessState.Current, "\"etag\"", request),
+            TenantAuditSurfaceKind.Stale => TenantAuditSnapshot.Stale([Row("event-stale", AuditEventCategory.Access, freshness: TenantFreshnessState.Stale)], null, false, "\"etag\"", request),
+            TenantAuditSurfaceKind.Degraded => TenantAuditSnapshot.Degraded([Row("event-degraded", AuditEventCategory.Access)], TenantAuditReason.ProjectionDegraded, request),
+            TenantAuditSurfaceKind.Unauthorized => TenantAuditSnapshot.Unauthorized(request),
+            TenantAuditSurfaceKind.InvalidCursor => TenantAuditSnapshot.InvalidCursor(request),
+            TenantAuditSurfaceKind.ListRefreshed => TenantAuditSnapshot.ListRefreshed([Row("event-refreshed", AuditEventCategory.Access)], null, false, "\"etag\"", TenantFreshnessState.Current, request),
+            TenantAuditSurfaceKind.Unavailable => TenantAuditSnapshot.Unavailable(request),
+            TenantAuditSurfaceKind.Error => TenantAuditSnapshot.Error(request),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
+    private static TenantAuditRow Row(
+        string eventReference,
+        AuditEventCategory category,
+        string referenceContext = "userId: target-user",
+        TenantFreshnessState freshness = TenantFreshnessState.Current)
+        => new(
+            eventReference,
+            category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet",
+            category,
+            "actor-user",
+            DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
+            "tenant.alpha",
+            "target-user",
+            "tenant.alpha",
+            category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet",
+            referenceContext,
+            freshness);
+
+    private static HashSet<string> ResourceKeys(string path)
+        => XDocument.Load(path)
+            .Root!
+            .Elements("data")
+            .Select(element => element.Attribute("name")?.Value)
+            .Where(static name => name is not null)
+            .Cast<string>()
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static string ProjectRoot()
+        => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+
+    private sealed class StubTenantQueryGateway(params TenantAuditSnapshot[] snapshots) : ITenantQueryGateway
+    {
+        private readonly Queue<TenantAuditSnapshot> _snapshots = new(snapshots);
+
+        public List<TenantAuditRequest> Requests { get; } = [];
+
+        public Task<TenantDetailSnapshot> GetTenantAsync(
+            TenantDetailRequest request,
+            TenantDetailSnapshot? previous,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantListSnapshot> ListTenantsAsync(
+            TenantListRequest request,
+            TenantListSnapshot? previous,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<UserTenantMembershipSnapshot> GetMyTenantsAsync(
+            UserTenantMembershipRequest request,
+            UserTenantMembershipSnapshot? previous,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
+            UserTenantMembershipRequest request,
+            UserTenantMembershipSnapshot? previous,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+            GlobalAdministratorsRequest request,
+            GlobalAdministratorsSnapshot? previous,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantAuditSnapshot> GetTenantAuditAsync(
+            TenantAuditRequest request,
+            TenantAuditSnapshot? previous,
+            CancellationToken cancellationToken = default)
+        {
+            Requests.Add(request);
+            return Task.FromResult(_snapshots.Dequeue());
+        }
+    }
+
+    private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
+    {
+        public LocalizedString this[string name] => new(name, Values.TryGetValue(name, out string? value) ? value : name);
+
+        public LocalizedString this[string name, params object[] arguments]
+            => new(name, string.Format(CultureInfo.CurrentCulture, Values.TryGetValue(name, out string? value) ? value : name, arguments));
+
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
+            => Values.Select(v => new LocalizedString(v.Key, v.Value));
+
+        private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
+        {
+            ["Tenants.Audit.Back"] = "Back to tenant details",
+            ["Tenants.Audit.Category.Access"] = "Access",
+            ["Tenants.Audit.Category.Administrative"] = "Administrative",
+            ["Tenants.Audit.Column.Actor"] = "Actor",
+            ["Tenants.Audit.Column.Category"] = "Category",
+            ["Tenants.Audit.Column.Freshness"] = "Freshness",
+            ["Tenants.Audit.Column.Outcome"] = "Outcome",
+            ["Tenants.Audit.Column.Reference"] = "Reference context",
+            ["Tenants.Audit.Column.Scope"] = "Tenant scope",
+            ["Tenants.Audit.Column.Target"] = "Target",
+            ["Tenants.Audit.Column.Timestamp"] = "Timestamp",
+            ["Tenants.Audit.ControlsLabel"] = "Tenant audit controls",
+            ["Tenants.Audit.Copy.EventReference"] = "Copy audit event reference {0}",
+            ["Tenants.Audit.Description"] = "Read-only tenant audit evidence.",
+            ["Tenants.Audit.Eyebrow"] = "Tenant audit trail",
+            ["Tenants.Audit.Filter.Category"] = "Category",
+            ["Tenants.Audit.Filter.Category.All"] = "All categories",
+            ["Tenants.Audit.Filter.From"] = "From",
+            ["Tenants.Audit.Filter.To"] = "To",
+            ["Tenants.Audit.Freshness.Current"] = "Current",
+            ["Tenants.Audit.Freshness.Stale"] = "Stale",
+            ["Tenants.Audit.Freshness.Unknown"] = "Unknown",
+            ["Tenants.Audit.GridTitle"] = "Audit entries",
+            ["Tenants.Audit.Next"] = "Next",
+            ["Tenants.Audit.PaginationLabel"] = "Tenant audit pages",
+            ["Tenants.Audit.Previous"] = "Previous",
+            ["Tenants.Audit.Refresh"] = "Refresh",
+            ["Tenants.Audit.Reset"] = "Reset filters",
+            ["Tenants.Audit.State.Degraded.Message"] = "Audit evidence is degraded.",
+            ["Tenants.Audit.State.Degraded.Title"] = "Audit data degraded",
+            ["Tenants.Audit.State.Empty.Message"] = "No audit entries are visible.",
+            ["Tenants.Audit.State.Empty.Title"] = "No audit entries",
+            ["Tenants.Audit.State.Error.Message"] = "Audit data could not be loaded.",
+            ["Tenants.Audit.State.Error.Title"] = "Audit data unavailable",
+            ["Tenants.Audit.State.FilteredEmpty.Message"] = "No audit entries match filters.",
+            ["Tenants.Audit.State.FilteredEmpty.Title"] = "No audit entries match filters",
+            ["Tenants.Audit.State.InvalidCursor.Message"] = "The audit cursor is no longer valid.",
+            ["Tenants.Audit.State.InvalidCursor.Title"] = "Audit page cursor invalid",
+            ["Tenants.Audit.State.ListRefreshed.Message"] = "The list was refreshed from page one.",
+            ["Tenants.Audit.State.ListRefreshed.Title"] = "Audit list refreshed",
+            ["Tenants.Audit.State.Loading.Message"] = "Audit entries are loading.",
+            ["Tenants.Audit.State.Loading.Title"] = "Loading audit entries",
+            ["Tenants.Audit.State.Ready.Message"] = "Audit entries are loaded.",
+            ["Tenants.Audit.State.Ready.Title"] = "Audit entries loaded",
+            ["Tenants.Audit.State.Stale.Message"] = "Audit freshness is stale.",
+            ["Tenants.Audit.State.Stale.Title"] = "Audit data stale",
+            ["Tenants.Audit.State.Unauthorized.Message"] = "You are not authorized.",
+            ["Tenants.Audit.State.Unauthorized.Title"] = "Audit access unavailable",
+            ["Tenants.Audit.State.Unavailable.Message"] = "The tenant audit read surface is unavailable.",
+            ["Tenants.Audit.State.Unavailable.Title"] = "Audit read surface unavailable",
+            ["Tenants.Audit.Title"] = "Audit trail for {0}",
+            ["Tenants.Copy.Action"] = "Copy",
+            ["Tenants.Copy.Feedback.Copied"] = "Copied",
+        };
+    }
+}

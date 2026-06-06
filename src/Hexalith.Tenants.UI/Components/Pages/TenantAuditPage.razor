@@ -1,0 +1,250 @@
+@page "/tenants/{TenantId}/audit"
+@using Hexalith.Tenants.Contracts.Enums
+@using System.Globalization
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject ITenantQueryGateway QueryGateway
+
+<PageTitle>@Localizer["Tenants.Audit.Title", TenantId]</PageTitle>
+
+<main class="tenant-audit" data-testid="tenants-audit-surface" aria-labelledby="tenant-audit-heading">
+    <header class="tenant-audit__header">
+        <p class="tenant-audit__eyebrow">@Localizer["Tenants.Audit.Eyebrow"]</p>
+        <h1 id="tenant-audit-heading">@Localizer["Tenants.Audit.Title", TenantId]</h1>
+        <p>@Localizer["Tenants.Audit.Description"]</p>
+        <a href="@TenantDetailHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
+    </header>
+
+    <section class="tenant-audit__controls" aria-label="@Localizer["Tenants.Audit.ControlsLabel"]">
+        <label>
+            <span>@Localizer["Tenants.Audit.Filter.From"]</span>
+            <input type="datetime-local"
+                   value="@_fromText"
+                   data-testid="tenants-audit-filter-from"
+                   @onchange="OnFromChanged" />
+        </label>
+        <label>
+            <span>@Localizer["Tenants.Audit.Filter.To"]</span>
+            <input type="datetime-local"
+                   value="@_toText"
+                   data-testid="tenants-audit-filter-to"
+                   @onchange="OnToChanged" />
+        </label>
+        <label>
+            <span>@Localizer["Tenants.Audit.Filter.Category"]</span>
+            <select value="@_categoryText" data-testid="tenants-audit-filter-category" @onchange="OnCategoryChanged">
+                <option value="">@Localizer["Tenants.Audit.Filter.Category.All"]</option>
+                <option value="@AuditEventCategory.Access">@Localizer["Tenants.Audit.Category.Access"]</option>
+                <option value="@AuditEventCategory.Administrative">@Localizer["Tenants.Audit.Category.Administrative"]</option>
+            </select>
+        </label>
+        <button type="button" data-testid="tenants-audit-refresh" @onclick="RefreshAsync">
+            @Localizer["Tenants.Audit.Refresh"]
+        </button>
+        <button type="button" data-testid="tenants-audit-reset" @onclick="ResetFiltersAsync">
+            @Localizer["Tenants.Audit.Reset"]
+        </button>
+    </section>
+
+    <section class="tenant-audit__state tenant-audit__state--@ResourceState.ToLowerInvariant()"
+             role="@StatusRole"
+             aria-live="@StatusLive"
+             tabindex="0"
+             data-testid="@StateTestId">
+        <span class="tenant-audit__state-icon" aria-hidden="true">@StateIcon</span>
+        <div class="tenant-audit__state-copy">
+            <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
+            <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
+        </div>
+    </section>
+
+    @if (ShouldRenderRows)
+    {
+        <section class="tenant-audit__grid-shell" aria-labelledby="tenant-audit-grid-heading">
+            <h2 id="tenant-audit-grid-heading">@Localizer["Tenants.Audit.GridTitle"]</h2>
+            <AuditDataGrid Rows="@_snapshot.Rows" />
+            <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
+                <button type="button" data-testid="tenants-audit-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                    @Localizer["Tenants.Audit.Previous"]
+                </button>
+                <button type="button" data-testid="tenants-audit-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                    @Localizer["Tenants.Audit.Next"]
+                </button>
+            </nav>
+        </section>
+    }
+</main>
+
+@code {
+    private const int PageSize = 50;
+    private readonly Stack<string?> _cursorHistory = new();
+    private TenantAuditSnapshot _snapshot = TenantAuditSnapshot.Loading();
+    private string? _currentCursor;
+    private string? _fromText;
+    private string? _toText;
+    private string? _categoryText;
+
+    [Parameter]
+    public string TenantId { get; set; } = string.Empty;
+
+    private string TenantDetailHref
+        => $"/tenants/{Uri.EscapeDataString(TenantId)}";
+
+    private bool ShouldRenderRows
+        => (_snapshot.Kind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Degraded
+            or TenantAuditSurfaceKind.ListRefreshed)
+            && _snapshot.Rows.Count > 0;
+
+    private string ResourceState => _snapshot.Kind switch
+    {
+        TenantAuditSurfaceKind.Loading => "Loading",
+        TenantAuditSurfaceKind.Ready => "Ready",
+        TenantAuditSurfaceKind.Empty => "Empty",
+        TenantAuditSurfaceKind.FilteredEmpty => "FilteredEmpty",
+        TenantAuditSurfaceKind.Stale => "Stale",
+        TenantAuditSurfaceKind.Degraded => "Degraded",
+        TenantAuditSurfaceKind.Unauthorized => "Unauthorized",
+        TenantAuditSurfaceKind.InvalidCursor => "InvalidCursor",
+        TenantAuditSurfaceKind.ListRefreshed => "ListRefreshed",
+        TenantAuditSurfaceKind.Unavailable => "Unavailable",
+        TenantAuditSurfaceKind.Error => "Error",
+        _ => "Error",
+    };
+
+    private string StateTestId
+        => $"tenants-audit-{TestIdState(ResourceState)}";
+
+    private string StatusRole
+        => _snapshot.Kind is TenantAuditSurfaceKind.Unauthorized
+            or TenantAuditSurfaceKind.InvalidCursor
+            or TenantAuditSurfaceKind.Degraded
+            or TenantAuditSurfaceKind.Unavailable
+            or TenantAuditSurfaceKind.Error
+                ? "alert"
+                : "status";
+
+    private string StatusLive => StatusRole == "alert" ? "assertive" : "polite";
+
+    private string StateIcon => _snapshot.Kind switch
+    {
+        TenantAuditSurfaceKind.Ready => "OK",
+        TenantAuditSurfaceKind.Empty => "0",
+        TenantAuditSurfaceKind.FilteredEmpty => "0",
+        TenantAuditSurfaceKind.Loading => "...",
+        TenantAuditSurfaceKind.ListRefreshed => "R",
+        TenantAuditSurfaceKind.Stale => "!",
+        TenantAuditSurfaceKind.Degraded => "!",
+        TenantAuditSurfaceKind.InvalidCursor => "!",
+        _ => "?",
+    };
+
+    protected override async Task OnInitializedAsync()
+        => await LoadAsync(reuseETag: false).ConfigureAwait(false);
+
+    private async Task LoadAsync(bool reuseETag)
+    {
+        TenantAuditSnapshot previous = _snapshot;
+        _snapshot = TenantAuditSnapshot.Loading(TenantId);
+
+        TenantAuditRequest request = CreateRequest(reuseETag ? previous.ETag : null);
+        _snapshot = await QueryGateway
+            .GetTenantAuditAsync(request, previous, CancellationToken.None)
+            .ConfigureAwait(false);
+
+        if (_snapshot.Kind is TenantAuditSurfaceKind.ListRefreshed)
+        {
+            _cursorHistory.Clear();
+            _currentCursor = null;
+        }
+    }
+
+    private async Task RefreshAsync()
+        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+
+    private async Task ResetFiltersAsync()
+    {
+        _fromText = null;
+        _toText = null;
+        _categoryText = null;
+        ClearPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task NextPageAsync()
+    {
+        _cursorHistory.Push(_currentCursor);
+        _currentCursor = _snapshot.NextCursor;
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (_cursorHistory.Count > 0)
+        {
+            _currentCursor = _cursorHistory.Pop();
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+
+    private async Task OnFromChanged(ChangeEventArgs args)
+    {
+        _fromText = args.Value?.ToString();
+        ClearPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task OnToChanged(ChangeEventArgs args)
+    {
+        _toText = args.Value?.ToString();
+        ClearPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private async Task OnCategoryChanged(ChangeEventArgs args)
+    {
+        _categoryText = args.Value?.ToString();
+        ClearPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private TenantAuditRequest CreateRequest(string? eTag)
+        => new(
+            TenantId,
+            From: ParseDate(_fromText),
+            To: ParseDate(_toText),
+            Category: Enum.TryParse(_categoryText, out AuditEventCategory category) ? category : null,
+            Cursor: _currentCursor,
+            PageSize: PageSize,
+            ETag: eTag);
+
+    private void ClearPaging()
+    {
+        _cursorHistory.Clear();
+        _currentCursor = null;
+    }
+
+    // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
+    // date-range filter stays deterministic and aligns with the UTC-rendered timestamp column,
+    // rather than depending on the InteractiveServer host's local timezone.
+    private static DateTimeOffset? ParseDate(string? value)
+        => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset parsed)
+            ? parsed
+            : null;
+
+    private static string TestIdState(string resourceState)
+    {
+        string result = string.Empty;
+        foreach (char character in resourceState)
+        {
+            if (char.IsUpper(character) && result.Length > 0)
+            {
+                result += "-";
+            }
+
+            result += char.ToLowerInvariant(character);
+        }
+
+        return result;
+    }
+}

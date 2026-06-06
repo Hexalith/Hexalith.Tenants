@@ -1,0 +1,92 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using System.Globalization
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<div class="audit-data-grid" data-testid="tenants-audit-grid">
+    <FluentDataGrid Items="@Rows.AsQueryable()"
+                    ResizableColumns="true"
+                    ReorderableColumns="false"
+                    GenerateHeader="DataGridGeneratedHeaderType.Sticky"
+                    ItemKey="@(row => row.EventReference)">
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Timestamp"]"
+                        ColumnId="audit-timestamp"
+                        Class="tenants-audit-critical tenants-audit-critical--timestamp"
+                        Width="190px"
+                        Pin="DataGridColumnPin.Start">
+            <span data-testid="tenants-audit-row-timestamp">@TimestampLabel(context.Timestamp)</span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Actor"]"
+                        ColumnId="audit-actor"
+                        Class="tenants-audit-critical tenants-audit-critical--actor"
+                        Width="190px"
+                        Pin="DataGridColumnPin.Start">
+            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-actor">@context.ActorId</span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Outcome"]"
+                        ColumnId="audit-outcome"
+                        Class="tenants-audit-critical tenants-audit-critical--outcome"
+                        Width="190px"
+                        Pin="DataGridColumnPin.Start">
+            <span class="audit-data-grid__state">@context.Outcome</span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Target"]" ColumnId="audit-target" Width="180px">
+            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-target">@context.Target</span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Scope"]" ColumnId="audit-scope" Width="160px">
+            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-scope">@context.Scope</span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Category"]"
+                        ColumnId="audit-category"
+                        Class="tenants-audit-critical tenants-audit-critical--category"
+                        Width="160px">
+            <span class="audit-data-grid__category audit-data-grid__category--@CategoryCss(context.Category)">
+                @Localizer[$"Tenants.Audit.Category.{context.Category}"]
+            </span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Freshness"]"
+                        ColumnId="audit-freshness"
+                        Class="tenants-audit-critical tenants-audit-critical--freshness"
+                        Width="160px">
+            <TruthStateBadge Freshness="@context.Freshness"
+                             TestId="tenants-audit-row-freshness"
+                             ResourcePrefix="Tenants.Audit" />
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Reference"]"
+                        ColumnId="audit-reference"
+                        Class="tenants-audit-critical tenants-audit-critical--reference"
+                        Width="260px">
+            <div class="audit-data-grid__reference" data-testid="tenants-audit-row-reference">
+                <span class="audit-data-grid__wrap">@ReferenceLabel(context)</span>
+                <SupportSafeCopyButton Value="@context.EventReference"
+                                       ValueKind="SupportSafeCopyValueKind.ApprovedReference"
+                                       AccessibleName="@Localizer["Tenants.Audit.Copy.EventReference", context.EventReference]"
+                                       TestId="tenants-audit-copy-reference" />
+            </div>
+        </TemplateColumn>
+    </FluentDataGrid>
+    @foreach (TenantAuditRow row in Rows)
+    {
+        <span class="audit-data-grid__row-marker"
+              data-testid="tenants-audit-row"
+              data-audit-reference="@row.EventReference"></span>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TenantAuditRow> Rows { get; set; } = [];
+
+    private string ReferenceLabel(TenantAuditRow row)
+        => string.IsNullOrWhiteSpace(row.ReferenceContext)
+            ? row.EventReference
+            : $"{row.EventReference} - {row.ReferenceContext}";
+
+    // Render in UTC: Blazor InteractiveServer runs server-side, so ToLocalTime() would bind the
+    // displayed timestamp to the server's timezone (non-deterministic across deployments) and
+    // disagree with the absolute date-range filter and the app-wide UTC convention (TenantDetailPage "u").
+    private static string TimestampLabel(DateTimeOffset timestamp)
+        => timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture);
+
+    private static string CategoryCss(AuditEventCategory category)
+        => category.ToString().ToLowerInvariant();
+}

@@ -1,0 +1,83 @@
+.audit-data-grid {
+    overflow-x: auto;
+    position: relative;
+    width: 100%;
+}
+
+.audit-data-grid fluent-data-grid {
+    min-width: 82rem;
+}
+
+.audit-data-grid__wrap {
+    overflow-wrap: anywhere;
+}
+
+.audit-data-grid__state,
+.audit-data-grid__category {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+}
+
+.audit-data-grid__category--access {
+    color: #005a9e;
+}
+
+.audit-data-grid__category--administrative {
+    color: #5c2d91;
+}
+
+.audit-data-grid__reference {
+    align-items: start;
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
+.audit-data-grid__row-marker {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.tenants-audit-critical {
+    min-width: 9rem;
+}
+
+@media (max-width: 767px) {
+    .audit-data-grid fluent-data-grid {
+        min-width: 78rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .audit-data-grid fluent-data-grid {
+        min-width: 80rem;
+    }
+}
+
+@media (min-width: 1440px) {
+    .audit-data-grid fluent-data-grid {
+        min-width: 88rem;
+    }
+}
+
+@media (forced-colors: active) {
+    .audit-data-grid__state,
+    .audit-data-grid__category {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .audit-data-grid :focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 3px;
+    }
+}
