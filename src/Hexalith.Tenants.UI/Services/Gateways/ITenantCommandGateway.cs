@@ -20,6 +20,10 @@ public interface ITenantCommandGateway
         RemoveUserFromTenantCommandRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TenantCommandSubmissionResult> UpdateTenantAsync(
+        UpdateTenantCommandRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default);

@@ -1446,4 +1446,154 @@
   <data name="Tenants.RemoveMember.Recovery.UnableToVerify" xml:space="preserve">
     <value>Refresh, retry status lookup, continue read-only, or escalate.</value>
   </data>
+  <data name="Tenants.EditMetadata.Title" xml:space="preserve">
+    <value>Tenant metadata</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description" xml:space="preserve">
+    <value>Edit the confirmed metadata for tenant {0} through a command and projection-confirmed refresh.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Open" xml:space="preserve">
+    <value>Edit metadata</value>
+  </data>
+  <data name="Tenants.EditMetadata.ConfirmedName.Label" xml:space="preserve">
+    <value>Last confirmed name</value>
+  </data>
+  <data name="Tenants.EditMetadata.ConfirmedDescription.Label" xml:space="preserve">
+    <value>Last confirmed description</value>
+  </data>
+  <data name="Tenants.EditMetadata.Name.Label" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Tenants.EditMetadata.Name.Help" xml:space="preserve">
+    <value>Use the tenant display name to submit with this command.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description.Label" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description.Help" xml:space="preserve">
+    <value>Leave empty to clear the tenant description.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description.Empty" xml:space="preserve">
+    <value>No description is confirmed.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submit" xml:space="preserve">
+    <value>Submit metadata update</value>
+  </data>
+  <data name="Tenants.EditMetadata.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.EditMetadata.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.EditMetadata.Lifecycle.Title" xml:space="preserve">
+    <value>Metadata command lifecycle</value>
+  </data>
+  <data name="Tenants.EditMetadata.Validation.NameRequired" xml:space="preserve">
+    <value>Enter the complete tenant name before submitting metadata changes.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.Authorization" xml:space="preserve">
+    <value>You are not authorized to edit this tenant's metadata.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh current tenant detail before editing metadata.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>This tenant lifecycle state does not allow metadata editing.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.InFlight" xml:space="preserve">
+    <value>A tenant command is already in progress.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.Identity" xml:space="preserve">
+    <value>Tenant identity is unavailable, so metadata editing fails closed.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Idle" xml:space="preserve">
+    <value>No metadata command submitted.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Previewed" xml:space="preserve">
+    <value>Metadata edit is ready for submission.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.RequestSent" xml:space="preserve">
+    <value>Metadata update request sent.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Accepted" xml:space="preserve">
+    <value>Accepted by EventStore; waiting for metadata processing.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; submitted metadata is not confirmed visible yet.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the submitted metadata.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Rejected" xml:space="preserve">
+    <value>Metadata update command rejected.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.AlreadyApplied" xml:space="preserve">
+    <value>Already applied is not used for metadata updates.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.DuplicatePrevented" xml:space="preserve">
+    <value>Duplicate metadata submission prevented.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Failed" xml:space="preserve">
+    <value>Metadata command submission failed.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Degraded" xml:space="preserve">
+    <value>Metadata command result is degraded and needs review.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.UnableToVerify" xml:space="preserve">
+    <value>Unable to verify the metadata command result.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence not started.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending; no receipt is available in this story.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.AuditDelayed" xml:space="preserve">
+    <value>Audit evidence delayed; wait or inspect audit when Epic 5 evidence is available.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable; no proof or receipt is asserted.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit evidence support is missing until Epic 5 implements the evidence source.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Idle" xml:space="preserve">
+    <value>Open the form when current projection evidence is available.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Previewed" xml:space="preserve">
+    <value>Submit, cancel, or continue read-only.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.RequestSent" xml:space="preserve">
+    <value>Wait for command status and projection refresh.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Accepted" xml:space="preserve">
+    <value>Wait, refresh status, or continue read-only until projection confirms the metadata.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Refresh the tenant detail; do not display success until submitted metadata is confirmed.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Confirmed" xml:space="preserve">
+    <value>Continue read-only or inspect audit when evidence becomes available.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Rejected" xml:space="preserve">
+    <value>Refresh projection evidence, request permission, start correction, or escalate.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Continue read-only or submit a forward correction if the intended metadata differs.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Wait for the in-flight command, retry status lookup, or continue read-only.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Failed" xml:space="preserve">
+    <value>Retry after checking current projection evidence or escalate.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Degraded" xml:space="preserve">
+    <value>Wait, retry status lookup, inspect audit when available, or escalate.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Refresh, retry status lookup, continue read-only, or escalate.</value>
+  </data>
 </root>

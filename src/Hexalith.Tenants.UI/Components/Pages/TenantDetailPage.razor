@@ -1,6 +1,7 @@
 @page "/tenants/{TenantId}"
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Components.Tenants.Metadata
 @using Hexalith.Tenants.UI.Components.Tenants.Members
 @using Hexalith.Tenants.UI.State.TenantCommands
 @inject IStringLocalizer<TenantsResources> Localizer
@@ -102,6 +103,14 @@
                 </div>
             </dl>
 
+            <EditTenantMetadataFlow Detail="@Detail"
+                                    SurfaceKind="@_snapshot.Kind"
+                                    Freshness="@_snapshot.Freshness"
+                                    IsCommandSurfaceAvailable="@(!_metadataCommandInFlight)"
+                                    OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                    OnCommandActivityChanged="@SetMetadataCommandActivityAsync"
+                                    ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
+
             <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
                 <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
                 <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
@@ -110,6 +119,7 @@
             <MemberAccessReview Detail="@Detail"
                                 SurfaceKind="@_snapshot.Kind"
                                 Freshness="@_snapshot.Freshness"
+                                IsCommandSurfaceAvailable="@(!_metadataCommandInFlight)"
                                 OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                 ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                 ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
@@ -136,6 +146,7 @@
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
+    private bool _metadataCommandInFlight;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -180,6 +191,18 @@
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
+
+    private Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenantCommandRequest request)
+        => Task.FromResult(
+            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? _snapshot.Detail
+                : null);
+
+    private async Task SetMetadataCommandActivityAsync(bool isActive)
+    {
+        _metadataCommandInFlight = isActive;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
 
     private string ConfigurationSummary(TenantDetail detail)
         => detail.Configuration.Count == 0

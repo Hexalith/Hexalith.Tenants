@@ -1,0 +1,461 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.Tenants.UI.State.TenantList
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+<section class="tenants-edit-metadata"
+         data-testid="tenants-edit-metadata-flow"
+         aria-labelledby="tenants-edit-metadata-heading"
+         @onkeydown="HandleKeyDownAsync">
+    <header class="tenants-edit-metadata__header">
+        <div>
+            <h2 id="tenants-edit-metadata-heading">@Localizer["Tenants.EditMetadata.Title"]</h2>
+            <p>@Localizer["Tenants.EditMetadata.Description", Detail.TenantId]</p>
+        </div>
+        @if (CanOpen)
+        {
+            <button type="button"
+                    @ref="_openElement"
+                    data-testid="tenants-edit-metadata-open"
+                    aria-controls="tenants-edit-metadata-editor"
+                    @onclick="OpenEditorAsync">
+                @Localizer["Tenants.EditMetadata.Open"]
+            </button>
+        }
+    </header>
+
+    <dl class="tenants-edit-metadata__confirmed"
+        data-testid="tenants-edit-metadata-confirmed">
+        <div>
+            <dt>@Localizer["Tenants.EditMetadata.ConfirmedName.Label"]</dt>
+            <dd>@ConfirmedName</dd>
+        </div>
+        <div>
+            <dt>@Localizer["Tenants.EditMetadata.ConfirmedDescription.Label"]</dt>
+            <dd>@ConfirmedDescriptionText</dd>
+        </div>
+    </dl>
+
+    @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p class="tenants-edit-metadata__unavailable"
+           id="tenants-edit-metadata-unavailable"
+           data-testid="tenants-edit-metadata-unavailable-reason"
+           role="alert">
+            @UnavailableReason
+        </p>
+    }
+
+    @if (_isOpen)
+    {
+        <form id="tenants-edit-metadata-editor"
+              class="tenants-edit-metadata__form"
+              @onsubmit="SubmitAsync"
+              @onsubmit:preventDefault="true">
+            <label for="tenants-edit-metadata-name">
+                <span>@Localizer["Tenants.EditMetadata.Name.Label"]</span>
+                <input id="tenants-edit-metadata-name"
+                       @ref="_nameElement"
+                       name="tenant-name"
+                       value="@_name"
+                       data-testid="tenants-edit-metadata-name"
+                       aria-describedby="@NameDescribedBy"
+                       @oninput="OnNameInput" />
+                <span id="tenants-edit-metadata-name-help">@Localizer["Tenants.EditMetadata.Name.Help"]</span>
+            </label>
+
+            <label for="tenants-edit-metadata-description">
+                <span>@Localizer["Tenants.EditMetadata.Description.Label"]</span>
+                <textarea id="tenants-edit-metadata-description"
+                          @ref="_descriptionElement"
+                          name="tenant-description"
+                          value="@_description"
+                          data-testid="tenants-edit-metadata-description"
+                          aria-describedby="@DescriptionDescribedBy"
+                          @oninput="OnDescriptionInput"></textarea>
+                <span id="tenants-edit-metadata-description-help">@Localizer["Tenants.EditMetadata.Description.Help"]</span>
+            </label>
+
+            @if (!string.IsNullOrWhiteSpace(_validationMessage))
+            {
+                <p id="tenants-edit-metadata-validation"
+                   class="tenants-edit-metadata__validation"
+                   data-testid="tenants-edit-metadata-validation"
+                   role="alert">
+                    @_validationMessage
+                </p>
+            }
+
+            <div class="tenants-edit-metadata__actions">
+                <button type="submit"
+                        data-testid="tenants-edit-metadata-submit"
+                        disabled="@IsSubmitDisabled">
+                    @Localizer["Tenants.EditMetadata.Submit"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-edit-metadata-refresh"
+                        disabled="@(!CanRefresh)"
+                        @onclick="RefreshStatusAsync">
+                    @Localizer["Tenants.EditMetadata.Refresh"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-edit-metadata-cancel"
+                        @onclick="CloseEditorAsync">
+                    @Localizer["Tenants.EditMetadata.Cancel"]
+                </button>
+            </div>
+        </form>
+    }
+
+    <section class="tenants-edit-metadata__lifecycle"
+             @ref="_lifecycleElement"
+             tabindex="-1"
+             data-testid="tenants-edit-metadata-lifecycle"
+             aria-labelledby="tenants-edit-metadata-state-label">
+        <h3 id="tenants-edit-metadata-state-label">@Localizer["Tenants.EditMetadata.Lifecycle.Title"]</h3>
+        <p class="@StateClass" data-testid="tenants-edit-metadata-state">
+            <span aria-hidden="true">@StateSymbol</span>
+            <span>@StateText</span>
+        </p>
+        <p data-testid="tenants-edit-metadata-audit">@AuditText</p>
+        <p data-testid="tenants-edit-metadata-recovery">@RecoveryText</p>
+        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        {
+            <p data-testid="tenants-edit-metadata-safe-message">@_snapshot.SafeMessage</p>
+        }
+        <p class="tenants-edit-metadata__live"
+           data-testid="tenants-edit-metadata-live-region"
+           aria-live="@LiveRegionMode"
+           aria-atomic="true">
+            @StateText
+        </p>
+    </section>
+</section>
+
+@code {
+    private TenantUpdateMetadataCommandSnapshot _snapshot = TenantUpdateMetadataCommandSnapshot.Idle();
+    private string? _name;
+    private string? _description;
+    private string? _validationMessage;
+    private bool _isOpen;
+    private bool _isSubmitting;
+    private ElementReference _openElement;
+    private ElementReference _nameElement;
+    private ElementReference _descriptionElement;
+    private ElementReference _lifecycleElement;
+    private bool _focusOpenPending;
+    private bool _focusNamePending;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnCloseRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<UpdateTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    internal TenantUpdateMetadataCommandSnapshot Snapshot => _snapshot;
+
+    // Source the confirmed display from the last-confirmed projection evidence, not the ambient
+    // Detail parameter. LastConfirmedDescription is null both for "no confirmation yet" and for a
+    // confirmed clear-to-null, so a `?? Detail.Description` fallback would resurrect the ambient
+    // (potentially newer/optimistic) description after a successful clear, violating AC2/AC8's
+    // "keep last-confirmed visible, never ambient" rule. The snapshot already carries the
+    // unambiguous projection, which the Idle factory seeds and ConfirmProjection advances only on
+    // proof, so it is the single source of confirmed truth here.
+    private string ConfirmedName
+        => _snapshot.LastConfirmedDetailProjection?.Name ?? _snapshot.LastConfirmedName ?? Detail.Name;
+
+    private string? ConfirmedDescription
+        => _snapshot.LastConfirmedDetailProjection is { } projection
+            ? projection.Description
+            : Detail.Description;
+
+    private string ConfirmedDescriptionText
+        => string.IsNullOrWhiteSpace(ConfirmedDescription)
+            ? Localizer["Tenants.EditMetadata.Description.Empty"]
+            : ConfirmedDescription!;
+
+    private string? UnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+            ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+                ? Localizer["Tenants.EditMetadata.Unavailable.Freshness"].Value
+                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value
+                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                        ? Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value
+                            : string.IsNullOrWhiteSpace(Detail.TenantId)
+                                ? Localizer["Tenants.EditMetadata.Unavailable.Identity"].Value
+                                : null;
+
+    private bool CanOpen
+        => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool IsSubmitDisabled
+        => !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool CanRefresh
+        => _snapshot.MessageId is not null
+        && _snapshot.CorrelationId is not null
+        && _snapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private string StateClass
+        => $"tenants-edit-metadata__state tenants-edit-metadata__state--{_snapshot.State.ToString().ToLowerInvariant()}";
+
+    private string StateSymbol
+        => _snapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => ">",
+        };
+
+    private string StateText
+        => Localizer[$"Tenants.EditMetadata.State.{_snapshot.State}"];
+
+    private string AuditText
+        => Localizer[$"Tenants.EditMetadata.Audit.{_snapshot.AuditState}"];
+
+    private string RecoveryText
+        => Localizer[$"Tenants.EditMetadata.Recovery.{_snapshot.State}"];
+
+    private string LiveRegionMode
+        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string NameDescribedBy
+    {
+        get
+        {
+            List<string> ids = ["tenants-edit-metadata-name-help"];
+            if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                ids.Add("tenants-edit-metadata-unavailable");
+            }
+
+            if (!string.IsNullOrWhiteSpace(_validationMessage))
+            {
+                ids.Add("tenants-edit-metadata-validation");
+            }
+
+            return string.Join(" ", ids);
+        }
+    }
+
+    private string DescriptionDescribedBy
+    {
+        get
+        {
+            List<string> ids = ["tenants-edit-metadata-description-help"];
+            if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                ids.Add("tenants-edit-metadata-unavailable");
+            }
+
+            return string.Join(" ", ids);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_snapshot.State is TenantCommandLifecycleState.Idle)
+        {
+            _snapshot = TenantUpdateMetadataCommandSnapshot.Idle(Detail.Name, Detail.Description, Detail);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusOpenPending)
+        {
+            _focusOpenPending = false;
+            await _openElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusNamePending)
+        {
+            _focusNamePending = false;
+            await _nameElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void SetSnapshot(TenantUpdateMetadataCommandSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || _snapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    internal void ApplySignalRNudge()
+        => _snapshot = _snapshot.SignalRNudge();
+
+    internal void ApplyProjectionEvidence(TenantDetail? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
+
+    private async Task OpenEditorAsync()
+    {
+        _validationMessage = null;
+        _name = ConfirmedName;
+        _description = ConfirmedDescription;
+        _isOpen = true;
+        _focusNamePending = true;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task CloseEditorAsync()
+    {
+        _isOpen = false;
+        _validationMessage = null;
+        _focusOpenPending = true;
+        await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
+    }
+
+    private void OnNameInput(ChangeEventArgs args)
+        => _name = args.Value?.ToString();
+
+    private void OnDescriptionInput(ChangeEventArgs args)
+        => _description = args.Value?.ToString();
+
+    private async Task SubmitAsync()
+    {
+        _validationMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        string? submittedName = _name;
+        if (string.IsNullOrWhiteSpace(submittedName))
+        {
+            _validationMessage = Localizer["Tenants.EditMetadata.Validation.NameRequired"];
+            _focusNamePending = true;
+            return;
+        }
+
+        var request = new UpdateTenantCommandRequest(
+            Detail.TenantId,
+            submittedName,
+            string.IsNullOrWhiteSpace(_description) ? null : _description);
+        _snapshot = _snapshot.RequestSent(request);
+        _isSubmitting = true;
+        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(
+                    Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
+
+            TenantCommandSubmissionResult result = await gateway
+                .UpdateTenantAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                SetSnapshot(_snapshot.Accepted(result));
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = result.State,
+                    SafeMessage = result.SafeMessage,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (gateway is null)
+        {
+            SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value)));
+            return;
+        }
+
+        TenantCommandStatusResult status = await gateway
+            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+            .ConfigureAwait(false);
+        SetSnapshot(_snapshot.ApplyStatus(status));
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
+        {
+            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+        }
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (string.Equals(args.Key, "Escape", StringComparison.Ordinal) && _isOpen)
+        {
+            await CloseEditorAsync().ConfigureAwait(false);
+        }
+    }
+}

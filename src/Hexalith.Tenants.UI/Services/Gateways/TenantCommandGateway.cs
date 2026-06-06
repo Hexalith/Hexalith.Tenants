@@ -179,6 +179,41 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> UpdateTenantAsync(
+        UpdateTenantCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new UpdateTenant(request.TenantId, request.Name, request.Description);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(UpdateTenant),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapUpdateTenantGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
@@ -301,6 +336,26 @@ internal sealed class TenantCommandGateway(
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to remove members from this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
                 => TenantCommandSubmissionResult.Failed("The remove member request was not accepted. Check the visible member evidence and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+        };
+    }
+
+    private static TenantCommandSubmissionResult MapUpdateTenantGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeUpdateTenantRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to edit this tenant's metadata.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The metadata update request was not accepted. Check the form fields and try again."),
             (int)HttpStatusCode.ServiceUnavailable
                 => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
             _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
@@ -485,6 +540,36 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantDisabled"))
         {
             return ("TenantDisabled", "This tenant is disabled, so members cannot be removed.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeUpdateTenantRejection(EventStoreGatewayException exception)
+        => SafeUpdateTenantRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeUpdateTenantRejection(string? value)
+    {
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to edit this tenant's metadata.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so metadata cannot be edited.");
         }
 
         if (Contains(value, "TenantNotFound"))

@@ -1446,4 +1446,154 @@
   <data name="Tenants.RemoveMember.Recovery.UnableToVerify" xml:space="preserve">
     <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
   </data>
+  <data name="Tenants.EditMetadata.Title" xml:space="preserve">
+    <value>Metadonnees du locataire</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description" xml:space="preserve">
+    <value>Modifiez les metadonnees confirmees du locataire {0} avec une commande et une actualisation confirmee par projection.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Open" xml:space="preserve">
+    <value>Modifier les metadonnees</value>
+  </data>
+  <data name="Tenants.EditMetadata.ConfirmedName.Label" xml:space="preserve">
+    <value>Nom confirme le plus recent</value>
+  </data>
+  <data name="Tenants.EditMetadata.ConfirmedDescription.Label" xml:space="preserve">
+    <value>Description confirmee la plus recente</value>
+  </data>
+  <data name="Tenants.EditMetadata.Name.Label" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Tenants.EditMetadata.Name.Help" xml:space="preserve">
+    <value>Utilisez le nom d'affichage du locataire a soumettre avec cette commande.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description.Label" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description.Help" xml:space="preserve">
+    <value>Laissez vide pour effacer la description du locataire.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Description.Empty" xml:space="preserve">
+    <value>Aucune description n'est confirmee.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submit" xml:space="preserve">
+    <value>Soumettre la mise a jour des metadonnees</value>
+  </data>
+  <data name="Tenants.EditMetadata.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.EditMetadata.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.EditMetadata.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la commande de metadonnees</value>
+  </data>
+  <data name="Tenants.EditMetadata.Validation.NameRequired" xml:space="preserve">
+    <value>Saisissez le nom complet du locataire avant de soumettre les changements de metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.Authorization" xml:space="preserve">
+    <value>Vous n'etes pas autorise a modifier les metadonnees de ce locataire.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez le detail courant du locataire avant de modifier les metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>Cet etat de cycle de vie du locataire ne permet pas la modification des metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.InFlight" xml:space="preserve">
+    <value>Une commande de locataire est deja en cours.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.Identity" xml:space="preserve">
+    <value>L'identite du locataire est indisponible ; la modification des metadonnees echoue fermee.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Idle" xml:space="preserve">
+    <value>Aucune commande de metadonnees soumise.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Previewed" xml:space="preserve">
+    <value>La modification des metadonnees est prete a etre soumise.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.RequestSent" xml:space="preserve">
+    <value>Demande de mise a jour des metadonnees envoyee.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Accepted" xml:space="preserve">
+    <value>Acceptee par EventStore ; traitement des metadonnees en attente.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; les metadonnees soumises ne sont pas encore confirmees visibles.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Confirmed" xml:space="preserve">
+    <value>La projection confirme les metadonnees soumises.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Rejected" xml:space="preserve">
+    <value>Commande de mise a jour des metadonnees rejetee.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.AlreadyApplied" xml:space="preserve">
+    <value>Deja applique n'est pas utilise pour les mises a jour de metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.DuplicatePrevented" xml:space="preserve">
+    <value>Soumission de metadonnees en double empechee.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Failed" xml:space="preserve">
+    <value>Echec de la soumission de la commande de metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.Degraded" xml:space="preserve">
+    <value>Le resultat de la commande de metadonnees est degrade et necessite une revue.</value>
+  </data>
+  <data name="Tenants.EditMetadata.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de verifier le resultat de la commande de metadonnees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.NotStarted" xml:space="preserve">
+    <value>Preuve d'audit non demarree.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente ; aucun recu n'est disponible dans cette story.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.AuditDelayed" xml:space="preserve">
+    <value>Preuve d'audit retardee ; attendez ou inspectez l'audit lorsque la preuve de l'Epic 5 est disponible.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible ; aucune preuve ni aucun recu n'est affirme.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Audit.MissingSupport" xml:space="preserve">
+    <value>La prise en charge de la preuve d'audit manque tant que l'Epic 5 n'implemente pas la source de preuve.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Idle" xml:space="preserve">
+    <value>Ouvrez le formulaire lorsque la preuve de projection actuelle est disponible.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Previewed" xml:space="preserve">
+    <value>Soumettez, annulez ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.RequestSent" xml:space="preserve">
+    <value>Attendez le statut de commande et l'actualisation de projection.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Accepted" xml:space="preserve">
+    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'a confirmation des metadonnees par projection.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Actualisez le detail du locataire ; n'affichez pas la reussite tant que les metadonnees soumises ne sont pas confirmees.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Confirmed" xml:space="preserve">
+    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Rejected" xml:space="preserve">
+    <value>Actualisez la preuve de projection, demandez l'autorisation, demarrez une correction ou escaladez.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Continuez en lecture seule ou soumettez une correction en avant si les metadonnees attendues different.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Failed" xml:space="preserve">
+    <value>Reessayez apres verification de la preuve de projection actuelle ou escaladez.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.Degraded" xml:space="preserve">
+    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+  </data>
 </root>

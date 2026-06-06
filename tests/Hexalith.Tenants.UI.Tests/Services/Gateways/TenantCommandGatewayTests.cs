@@ -18,6 +18,84 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantCommandGatewayTests
 {
     [Fact]
+    public async Task Update_tenant_submits_literal_command_with_payload_and_captures_correlation_id()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-update"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
+            new UpdateTenantCommandRequest("Tenant.Mixed-01", "Updated tenant", string.Empty),
+            CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("tenants");
+        submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
+        submitted.CommandType.ShouldBe(nameof(UpdateTenant));
+        submitted.Payload.GetProperty("TenantId").GetString().ShouldBe("Tenant.Mixed-01");
+        submitted.Payload.GetProperty("Name").GetString().ShouldBe("Updated tenant");
+        submitted.Payload.GetProperty("Description").GetString().ShouldBe(string.Empty);
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBe("correlation-update");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task Update_tenant_validation_failure_does_not_submit_to_eventstore(string? name)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-update"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
+            new UpdateTenantCommandRequest("tenant.alpha", name!, "description"),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("Tenant id and name are required");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
+    [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
+    [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+    public async Task Update_tenant_maps_safe_rejection_text(
+        string reason,
+        string expectedCode,
+        string expectedText)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            reason,
+            detail: "raw payload bearer-token stack trace correlation-update"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
+            new UpdateTenantCommandRequest("tenant.alpha", "Alpha", null),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-update", Case.Insensitive);
+    }
+
+    [Fact]
     public async Task Remove_user_from_tenant_submits_literal_command_and_captures_correlation_id()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-999"));
