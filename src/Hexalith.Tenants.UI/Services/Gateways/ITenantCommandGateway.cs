@@ -24,6 +24,10 @@ public interface ITenantCommandGateway
         UpdateTenantCommandRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
+        SetTenantConfigurationCommandRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default);

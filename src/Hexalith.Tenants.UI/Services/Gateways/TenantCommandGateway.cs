@@ -214,6 +214,43 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
+        SetTenantConfigurationCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.TenantId)
+            || string.IsNullOrWhiteSpace(request.Key)
+            || request.Value is null)
+        {
+            return TenantCommandSubmissionResult.Failed("Tenant id, configuration key, and value are required before the command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new SetTenantConfiguration(request.TenantId, request.Key, request.Value);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            TenantsDomain,
+            request.TenantId,
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapSetTenantConfigurationGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
@@ -362,6 +399,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapSetTenantConfigurationGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeSetConfigurationRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to set configuration for this tenant.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The configuration change request was not accepted. Check the form fields and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+        };
+    }
+
     private static bool IsTenantAlreadyExists(EventStoreGatewayException exception)
         => Contains(exception.ReasonCode, "tenant-already-exists")
         || Contains(exception.Reason, "TenantAlreadyExists")
@@ -430,6 +487,11 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantNotFound"))
         {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        if (Contains(value, "ConfigurationLimitExceeded"))
+        {
+            return ("ConfigurationLimitExceeded", "The configuration change exceeded tenant configuration limits.");
         }
 
         return null;
@@ -570,6 +632,41 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantDisabled"))
         {
             return ("TenantDisabled", "This tenant is disabled, so metadata cannot be edited.");
+        }
+
+        if (Contains(value, "TenantNotFound"))
+        {
+            return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeSetConfigurationRejection(EventStoreGatewayException exception)
+        => SafeSetConfigurationRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeSetConfigurationRejection(string? value)
+    {
+        if (Contains(value, "ConfigurationLimitExceeded"))
+        {
+            return ("ConfigurationLimitExceeded", "The configuration value exceeds the tenant configuration limits.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to set configuration for this tenant.");
+        }
+
+        if (Contains(value, "TenantDisabled"))
+        {
+            return ("TenantDisabled", "This tenant is disabled, so configuration cannot be changed.");
         }
 
         if (Contains(value, "TenantNotFound"))
