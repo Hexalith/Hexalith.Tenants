@@ -1017,6 +1017,258 @@
   <data name="Tenants.Configuration.ValueAccessible" xml:space="preserve">
     <value>Visible configuration value {0}</value>
   </data>
+  <data name="Tenants.Configuration.Set.Title" xml:space="preserve">
+    <value>Set configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Description" xml:space="preserve">
+    <value>Prepare a scoped configuration change for tenant {0} with projection confirmation.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Open" xml:space="preserve">
+    <value>Set configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Namespace.Label" xml:space="preserve">
+    <value>Namespace prefix</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Namespace.Help" xml:space="preserve">
+    <value>Use a visible authorized namespace prefix without the trailing dot.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Key.Label" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Key.Help" xml:space="preserve">
+    <value>Use the key segment after the namespace prefix.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Value.Label" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Value.Help" xml:space="preserve">
+    <value>Value is required and is not echoed in lifecycle messages.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submit" xml:space="preserve">
+    <value>Submit configuration change</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Title" xml:space="preserve">
+    <value>Configuration command lifecycle</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Authorization" xml:space="preserve">
+    <value>You are not authorized to set configuration for this tenant.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.ProjectionState" xml:space="preserve">
+    <value>Tenant detail is unavailable or degraded. Refresh current tenant detail before changing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh current tenant detail before changing configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>This tenant lifecycle state does not allow configuration changes.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.CommandSurface" xml:space="preserve">
+    <value>Tenant command support is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.InFlight" xml:space="preserve">
+    <value>A tenant command is already in progress.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Identity" xml:space="preserve">
+    <value>Tenant identity is unavailable, so configuration changes fail closed.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Scope" xml:space="preserve">
+    <value>No authorized namespace prefix evidence is available from the current projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Narrow" xml:space="preserve">
+    <value>Configuration changes are unavailable on narrow layouts because preview, tenant identity, freshness, and confirmed configuration context must remain visible together.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.NamespaceRequired" xml:space="preserve">
+    <value>Enter an authorized namespace prefix before previewing the configuration change.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.NamespaceScope" xml:space="preserve">
+    <value>The namespace prefix cannot be proven from the current authorized projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.KeyRequired" xml:space="preserve">
+    <value>Enter a configuration key before previewing the configuration change.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.KeyLength" xml:space="preserve">
+    <value>The full configuration key must be {0} characters or fewer.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.ValueRequired" xml:space="preserve">
+    <value>Enter a configuration value before previewing the configuration change.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.ValueLength" xml:space="preserve">
+    <value>The configuration value must be {0} characters or fewer.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Title" xml:space="preserve">
+    <value>Consequence preview</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Blocked.Required" xml:space="preserve">
+    <value>Complete tenant identity, namespace, key, value, freshness, authorization, and scope evidence before submitting.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Tenant" xml:space="preserve">
+    <value>Tenant</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Namespace" xml:space="preserve">
+    <value>Namespace</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Key" xml:space="preserve">
+    <value>Full key</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState" xml:space="preserve">
+    <value>Current known state</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve">
+    <value>No current value is visible for this key.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.IntendedEffect" xml:space="preserve">
+    <value>Intended effect</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.IntendedEffect.Value" xml:space="preserve">
+    <value>The selected configuration key will be set after command acceptance and projection proof.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Freshness" xml:space="preserve">
+    <value>Freshness evidence</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Authorization" xml:space="preserve">
+    <value>Authorization and scope evidence</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Authorization.Value" xml:space="preserve">
+    <value>The namespace prefix is visible in the authorized tenant projection; backend authorization still enforces the command.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownConsequences" xml:space="preserve">
+    <value>Known consequences</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownConsequences.Value" xml:space="preserve">
+    <value>Consumers that own this prefix may react after projection catches up.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Known unknowns</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>This UI cannot prove downstream consumer impact or audit receipt availability.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.AuditExpectation" xml:space="preserve">
+    <value>Audit expectation</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>Audit evidence is pending until the Epic 5 evidence source exists.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.RecoveryPath" xml:space="preserve">
+    <value>Recovery path</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Refresh tenant detail, retry only from current projection proof, or submit a forward correction.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Current" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Aging" xml:space="preserve">
+    <value>Aging</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Refreshing" xml:space="preserve">
+    <value>Refreshing</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Stale" xml:space="preserve">
+    <value>Stale</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit" xml:space="preserve">
+    <value>The submitted key and value are already applied in the last confirmed projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.DuplicatePrevented.Message" xml:space="preserve">
+    <value>A configuration command is already in progress.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Idle" xml:space="preserve">
+    <value>No configuration command submitted.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Previewed" xml:space="preserve">
+    <value>Configuration change preview ready.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.RequestSent" xml:space="preserve">
+    <value>Configuration change request sent.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Accepted" xml:space="preserve">
+    <value>Accepted by EventStore; waiting for configuration processing.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; submitted configuration is not confirmed visible yet.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the submitted configuration change.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Rejected" xml:space="preserve">
+    <value>Configuration command rejected.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.AlreadyApplied" xml:space="preserve">
+    <value>Already applied.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.DuplicatePrevented" xml:space="preserve">
+    <value>Duplicate configuration submission prevented.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Failed" xml:space="preserve">
+    <value>Configuration command submission failed.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Degraded" xml:space="preserve">
+    <value>Configuration command result is degraded and needs review.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.UnableToVerify" xml:space="preserve">
+    <value>Unable to verify the configuration command result.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.NotStarted" xml:space="preserve">
+    <value>Audit evidence not started.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence pending.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.AuditDelayed" xml:space="preserve">
+    <value>Audit evidence delayed.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit evidence support is missing until Epic 5 implements the evidence source.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Idle" xml:space="preserve">
+    <value>Open the form when current projection evidence and namespace scope are available.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Previewed" xml:space="preserve">
+    <value>Submit, cancel, or continue read-only.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.RequestSent" xml:space="preserve">
+    <value>Wait for command status and projection refresh.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Accepted" xml:space="preserve">
+    <value>Wait, refresh status, or continue read-only until projection confirms the configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Refresh tenant detail; do not display success until the submitted key and value are confirmed.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Confirmed" xml:space="preserve">
+    <value>Continue read-only or inspect audit when evidence becomes available.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Rejected" xml:space="preserve">
+    <value>Refresh projection evidence, request permission, start correction, or escalate.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Continue read-only or submit a forward correction if the intended configuration differs.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Wait for the in-flight command, retry status lookup, or continue read-only.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Failed" xml:space="preserve">
+    <value>Retry after checking current projection evidence or escalate.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Degraded" xml:space="preserve">
+    <value>Wait, retry status lookup, inspect audit when available, or escalate.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Refresh, retry status lookup, continue read-only, or escalate.</value>
+  </data>
   <data name="Tenants.Members.Action.AddMember" xml:space="preserve">
     <value>Add member</value>
   </data>

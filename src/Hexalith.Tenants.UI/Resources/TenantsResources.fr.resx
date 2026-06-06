@@ -1017,6 +1017,258 @@
   <data name="Tenants.Configuration.ValueAccessible" xml:space="preserve">
     <value>Valeur de configuration visible {0}</value>
   </data>
+  <data name="Tenants.Configuration.Set.Title" xml:space="preserve">
+    <value>Définir une configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Description" xml:space="preserve">
+    <value>Préparez un changement de configuration borné pour le locataire {0} avec confirmation par projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Open" xml:space="preserve">
+    <value>Définir une configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Namespace.Label" xml:space="preserve">
+    <value>Préfixe d'espace de noms</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Namespace.Help" xml:space="preserve">
+    <value>Utilisez un préfixe d'espace de noms autorisé visible, sans point final.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Key.Label" xml:space="preserve">
+    <value>Clé</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Key.Help" xml:space="preserve">
+    <value>Utilisez le segment de clé après le préfixe d'espace de noms.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Value.Label" xml:space="preserve">
+    <value>Valeur</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Value.Help" xml:space="preserve">
+    <value>La valeur est obligatoire et n'est pas reprise dans les messages de cycle de vie.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submit" xml:space="preserve">
+    <value>Soumettre le changement de configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de la commande de configuration</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Authorization" xml:space="preserve">
+    <value>Vous n'êtes pas autorisé à définir la configuration de ce locataire.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.ProjectionState" xml:space="preserve">
+    <value>Le détail du locataire est indisponible ou dégradé. Actualisez le détail actuel du locataire avant de modifier la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez le détail actuel du locataire avant de modifier la configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.TenantLifecycle" xml:space="preserve">
+    <value>L'état de cycle de vie de ce locataire ne permet pas les changements de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La prise en charge des commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.InFlight" xml:space="preserve">
+    <value>Une commande de locataire est déjà en cours.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Identity" xml:space="preserve">
+    <value>L'identité du locataire est indisponible ; les changements de configuration échouent fermés.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Scope" xml:space="preserve">
+    <value>Aucune preuve de préfixe d'espace de noms autorisé n'est disponible dans la projection actuelle.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.Narrow" xml:space="preserve">
+    <value>Les changements de configuration sont indisponibles sur les vues étroites car l'aperçu, l'identité du locataire, la fraîcheur et le contexte confirmé doivent rester visibles ensemble.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.NamespaceRequired" xml:space="preserve">
+    <value>Entrez un préfixe d'espace de noms autorisé avant d'afficher l'aperçu du changement de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.NamespaceScope" xml:space="preserve">
+    <value>Le préfixe d'espace de noms ne peut pas être prouvé depuis la projection autorisée actuelle.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.KeyRequired" xml:space="preserve">
+    <value>Entrez une clé de configuration avant d'afficher l'aperçu du changement de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.KeyLength" xml:space="preserve">
+    <value>La clé de configuration complète doit contenir {0} caractères ou moins.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.ValueRequired" xml:space="preserve">
+    <value>Entrez une valeur de configuration avant d'afficher l'aperçu du changement de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.ValueLength" xml:space="preserve">
+    <value>La valeur de configuration doit contenir {0} caractères ou moins.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Title" xml:space="preserve">
+    <value>Aperçu des conséquences</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Blocked.Required" xml:space="preserve">
+    <value>Complétez l'identité du locataire, l'espace de noms, la clé, la valeur, la fraîcheur, l'autorisation et la preuve de portée avant de soumettre.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Tenant" xml:space="preserve">
+    <value>Locataire</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Namespace" xml:space="preserve">
+    <value>Espace de noms</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Key" xml:space="preserve">
+    <value>Clé complète</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState" xml:space="preserve">
+    <value>État connu actuel</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.CurrentState.Absent" xml:space="preserve">
+    <value>Aucune valeur actuelle n'est visible pour cette clé.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.IntendedEffect" xml:space="preserve">
+    <value>Effet attendu</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.IntendedEffect.Value" xml:space="preserve">
+    <value>La clé de configuration sélectionnée sera définie après acceptation de la commande et preuve par projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Freshness" xml:space="preserve">
+    <value>Preuve de fraîcheur</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Authorization" xml:space="preserve">
+    <value>Preuve d'autorisation et de portée</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.Authorization.Value" xml:space="preserve">
+    <value>Le préfixe d'espace de noms est visible dans la projection autorisée du locataire ; l'autorisation backend applique toujours la commande.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownConsequences" xml:space="preserve">
+    <value>Conséquences connues</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownConsequences.Value" xml:space="preserve">
+    <value>Les consommateurs propriétaires de ce préfixe peuvent réagir après rattrapage de la projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Inconnues connues</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>Cette interface ne peut pas prouver l'impact consommateur aval ni la disponibilité d'un reçu d'audit.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.AuditExpectation" xml:space="preserve">
+    <value>Attente d'audit</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>La preuve d'audit est en attente jusqu'à l'existence de la source de preuve de l'Epic 5.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.RecoveryPath" xml:space="preserve">
+    <value>Chemin de récupération</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Actualisez le détail du locataire, réessayez seulement depuis la preuve de projection actuelle ou soumettez une correction en avant.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Current" xml:space="preserve">
+    <value>Actuel</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Aging" xml:space="preserve">
+    <value>Vieillissant</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Refreshing" xml:space="preserve">
+    <value>Actualisation</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Stale" xml:space="preserve">
+    <value>Périmé</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Freshness.Unknown" xml:space="preserve">
+    <value>Inconnu</value>
+  </data>
+  <data name="Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit" xml:space="preserve">
+    <value>La clé et la valeur soumises sont déjà appliquées dans la dernière projection confirmée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.DuplicatePrevented.Message" xml:space="preserve">
+    <value>Une commande de configuration est déjà en cours.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Idle" xml:space="preserve">
+    <value>Aucune commande de configuration soumise.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Previewed" xml:space="preserve">
+    <value>Aperçu du changement de configuration prêt.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.RequestSent" xml:space="preserve">
+    <value>Demande de changement de configuration envoyée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Accepted" xml:space="preserve">
+    <value>Acceptée par EventStore ; attente du traitement de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente ; la configuration soumise n'est pas encore confirmée visible.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Confirmed" xml:space="preserve">
+    <value>La projection a confirmé le changement de configuration soumis.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Rejected" xml:space="preserve">
+    <value>Commande de configuration rejetée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.AlreadyApplied" xml:space="preserve">
+    <value>Déjà appliqué.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.DuplicatePrevented" xml:space="preserve">
+    <value>Soumission de configuration en double empêchée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Failed" xml:space="preserve">
+    <value>Échec de soumission de la commande de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.Degraded" xml:space="preserve">
+    <value>Le résultat de commande de configuration est dégradé et nécessite une revue.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.State.UnableToVerify" xml:space="preserve">
+    <value>Impossible de vérifier le résultat de la commande de configuration.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.NotStarted" xml:space="preserve">
+    <value>Preuve d'audit non démarrée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.AuditPending" xml:space="preserve">
+    <value>Preuve d'audit en attente.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.AuditDelayed" xml:space="preserve">
+    <value>Preuve d'audit retardée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Preuve d'audit indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Audit.MissingSupport" xml:space="preserve">
+    <value>La prise en charge de la preuve d'audit manque tant que l'Epic 5 n'implémente pas la source de preuve.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Idle" xml:space="preserve">
+    <value>Ouvrez le formulaire lorsque la preuve de projection actuelle et la portée d'espace de noms sont disponibles.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Previewed" xml:space="preserve">
+    <value>Soumettez, annulez ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.RequestSent" xml:space="preserve">
+    <value>Attendez le statut de commande et l'actualisation de projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Accepted" xml:space="preserve">
+    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'à confirmation de la configuration par projection.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.ProjectionPending" xml:space="preserve">
+    <value>Actualisez le détail du locataire ; n'affichez pas la réussite tant que la clé et la valeur soumises ne sont pas confirmées.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Confirmed" xml:space="preserve">
+    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Rejected" xml:space="preserve">
+    <value>Actualisez la preuve de projection, demandez l'autorisation, démarrez une correction ou escaladez.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.AlreadyApplied" xml:space="preserve">
+    <value>Continuez en lecture seule ou soumettez une correction en avant si la configuration attendue diffère.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.DuplicatePrevented" xml:space="preserve">
+    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Failed" xml:space="preserve">
+    <value>Réessayez après vérification de la preuve de projection actuelle ou escaladez.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.Degraded" xml:space="preserve">
+    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Recovery.UnableToVerify" xml:space="preserve">
+    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+  </data>
   <data name="Tenants.Members.Action.AddMember" xml:space="preserve">
     <value>Ajouter un membre</value>
   </data>

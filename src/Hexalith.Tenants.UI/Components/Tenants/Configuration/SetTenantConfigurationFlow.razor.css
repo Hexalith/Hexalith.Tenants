@@ -1,0 +1,157 @@
+.tenants-config-set {
+    border-block-start: 1px solid CanvasText;
+    display: grid;
+    gap: 1rem;
+    padding-block-start: 1rem;
+}
+
+.tenants-config-set__header {
+    align-items: start;
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tenants-config-set h3,
+.tenants-config-set h4,
+.tenants-config-set p {
+    margin: 0;
+}
+
+.tenants-config-set__narrow {
+    display: none;
+}
+
+.tenants-config-set__form {
+    display: grid;
+    gap: .75rem;
+    max-inline-size: 60rem;
+}
+
+.tenants-config-set__form label {
+    display: grid;
+    gap: .35rem;
+}
+
+.tenants-config-set__form input,
+.tenants-config-set__form textarea {
+    border: 1px solid CanvasText;
+    border-radius: 6px;
+    max-inline-size: 36rem;
+    min-block-size: 2.25rem;
+    min-inline-size: 0;
+    padding: .35rem .5rem;
+}
+
+.tenants-config-set__form textarea {
+    min-block-size: 6rem;
+}
+
+.tenants-config-set__preview {
+    border-inline-start: .25rem solid var(--accent-fill-rest, #0f6cbd);
+    max-inline-size: 56rem;
+    padding-inline-start: 1rem;
+}
+
+.tenants-config-set__preview dl {
+    display: grid;
+    gap: .6rem;
+    margin: 0;
+}
+
+.tenants-config-set__preview div {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
+}
+
+.tenants-config-set__preview dt {
+    font-weight: 700;
+}
+
+.tenants-config-set__preview dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.tenants-config-set__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.tenants-config-set__unavailable,
+.tenants-config-set__validation,
+.tenants-config-set__preview-blocked,
+.tenants-config-set__narrow {
+    border-inline-start: .25rem solid currentcolor;
+    padding-inline-start: .75rem;
+}
+
+.tenants-config-set__state {
+    align-items: center;
+    display: flex;
+    gap: .5rem;
+    font-weight: 700;
+}
+
+.tenants-config-set__state--confirmed,
+.tenants-config-set__state--alreadyapplied {
+    color: #107c10;
+}
+
+.tenants-config-set__state--rejected,
+.tenants-config-set__state--failed,
+.tenants-config-set__state--duplicateprevented {
+    color: #c50f1f;
+}
+
+.tenants-config-set__state--degraded,
+.tenants-config-set__state--unabletoverify {
+    color: #8a6a00;
+}
+
+.tenants-config-set__live {
+    block-size: 1px;
+    inline-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+}
+
+.tenants-config-set :focus-visible {
+    outline: 3px solid var(--focus-stroke-outer, #000);
+    outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+    .tenants-config-set__header {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tenants-config-set__header button,
+    .tenants-config-set__form {
+        display: none;
+    }
+
+    .tenants-config-set__narrow {
+        display: block;
+    }
+
+    .tenants-config-set__preview div {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (forced-colors: active) {
+    .tenants-config-set,
+    .tenants-config-set__form input,
+    .tenants-config-set__form textarea {
+        border-color: CanvasText;
+        color: CanvasText;
+    }
+
+    .tenants-config-set__state {
+        color: CanvasText;
+    }
+}

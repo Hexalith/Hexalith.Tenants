@@ -148,7 +148,11 @@
 
             <TenantConfigurationView Detail="@Detail"
                                      SurfaceKind="@_snapshot.Kind"
-                                     Freshness="@_snapshot.Freshness" />
+                                     Freshness="@_snapshot.Freshness"
+                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                     OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                     OnCommandActivityChanged="@SetCommandActivityAsync"
+                                     ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync" />
         </section>
     }
     else
@@ -212,6 +216,12 @@
                 : null);
 
     private Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenantCommandRequest request)
+        => Task.FromResult(
+            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+                ? _snapshot.Detail
+                : null);
+
+    private Task<TenantDetail?> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfigurationCommandRequest request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail

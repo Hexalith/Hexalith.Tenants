@@ -5,7 +5,7 @@ created: 2026-06-06T08:57:54+02:00
 
 # Story 3.3: Set Tenant Configuration Key Value with Consequence Preview
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Created by the BMAD create-story workflow for Story 3.3. -->
 
@@ -28,52 +28,52 @@ so that tenant configuration can be changed within my scope with proof and witho
 
 ## Tasks / Subtasks
 
-- [ ] Extend the existing configuration surface instead of replacing it (AC: 1, 2, 5, 6, 8)
-  - [ ] Start from `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor`; preserve grouping by namespace, filtering, table semantics, read-only empty/filtered-empty states, support-safe copy controls, and current sensitive-value redaction.
-  - [ ] Add a focused set-configuration flow under `Components/Tenants/Configuration/` or as a focused child of `TenantConfigurationView`; do not turn the existing read view into a monolithic command component.
-  - [ ] Compose the set flow from `TenantDetailPage`/`TenantConfigurationView` using existing detail refresh and projection evidence patterns; do not add backend endpoints, controllers, browser-side backend clients, or generic FrontComposer substitutes.
-  - [ ] Keep last-confirmed `TenantDetail.Configuration` visible while the form is open and while a command is in flight; submitted namespace/key/value are intent, not projection truth.
-  - [ ] Keep configuration commands unavailable on mobile/narrow layouts that cannot preserve preview, freshness, tenant identity, and last-confirmed configuration context.
+- [x] Extend the existing configuration surface instead of replacing it (AC: 1, 2, 5, 6, 8)
+  - [x] Start from `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor`; preserve grouping by namespace, filtering, table semantics, read-only empty/filtered-empty states, support-safe copy controls, and current sensitive-value redaction.
+  - [x] Add a focused set-configuration flow under `Components/Tenants/Configuration/` or as a focused child of `TenantConfigurationView`; do not turn the existing read view into a monolithic command component.
+  - [x] Compose the set flow from `TenantDetailPage`/`TenantConfigurationView` using existing detail refresh and projection evidence patterns; do not add backend endpoints, controllers, browser-side backend clients, or generic FrontComposer substitutes.
+  - [x] Keep last-confirmed `TenantDetail.Configuration` visible while the form is open and while a command is in flight; submitted namespace/key/value are intent, not projection truth.
+  - [x] Keep configuration commands unavailable on mobile/narrow layouts that cannot preserve preview, freshness, tenant identity, and last-confirmed configuration context.
 
-- [ ] Add set-configuration request, snapshot, and gateway support using existing command infrastructure (AC: 3, 4, 5)
-  - [ ] Add `SetTenantConfigurationCommandRequest` with literal `TenantId`, full configuration `Key`, and `Value` to `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` unless a clearer existing command-model split exists.
-  - [ ] Add a focused `TenantSetConfigurationCommandSnapshot` that represents `Previewed`, `RequestSent`, `Accepted`, `ProjectionPending`, `Confirmed`, `AlreadyApplied`, `Rejected`, `Failed`, `Degraded`, `UnableToVerify`, and audit states distinctly.
-  - [ ] Add `SetTenantConfigurationAsync` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`.
-  - [ ] Submit the existing contract record `SetTenantConfiguration` through the shared command endpoint with a client-generated `messageId`, tenant `"system"`, domain `"tenants"`, aggregate id equal to the literal tenant id, command name `nameof(SetTenantConfiguration)`, and JSON payload serialized from the existing command record.
-  - [ ] Preserve command-neutral `GetStatusAsync` shared rejection mapping; add configuration-specific submission-time safe mapping only where command context is known.
-  - [ ] Map `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection`, `TenantDisabledRejection`, and `TenantNotFoundRejection` to support-safe localized copy. Do not surface raw problem details, correlation ids, payloads, tokens, ETags, cursors, stack traces, decoded claims, or raw values.
+- [x] Add set-configuration request, snapshot, and gateway support using existing command infrastructure (AC: 3, 4, 5)
+  - [x] Add `SetTenantConfigurationCommandRequest` with literal `TenantId`, full configuration `Key`, and `Value` to `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` unless a clearer existing command-model split exists.
+  - [x] Add a focused `TenantSetConfigurationCommandSnapshot` that represents `Previewed`, `RequestSent`, `Accepted`, `ProjectionPending`, `Confirmed`, `AlreadyApplied`, `Rejected`, `Failed`, `Degraded`, `UnableToVerify`, and audit states distinctly.
+  - [x] Add `SetTenantConfigurationAsync` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`.
+  - [x] Submit the existing contract record `SetTenantConfiguration` through the shared command endpoint with a client-generated `messageId`, tenant `"system"`, domain `"tenants"`, aggregate id equal to the literal tenant id, command name `nameof(SetTenantConfiguration)`, and JSON payload serialized from the existing command record.
+  - [x] Preserve command-neutral `GetStatusAsync` shared rejection mapping; add configuration-specific submission-time safe mapping only where command context is known.
+  - [x] Map `ConfigurationLimitExceededRejection`, `InsufficientPermissionsRejection`, `TenantDisabledRejection`, and `TenantNotFoundRejection` to support-safe localized copy. Do not surface raw problem details, correlation ids, payloads, tokens, ETags, cursors, stack traces, decoded claims, or raw values.
 
-- [ ] Implement validation, namespace scope, and consequence preview (AC: 1, 2, 4, 6)
-  - [ ] Validate tenant id, namespace/prefix, key, and value before preview. Use domain limits: max key length 256 and max value length 1024 from `TenantAggregate.MaxKeyLength`/`MaxValueLength`; do not duplicate unrelated backend validation rules.
-  - [ ] Build the submitted full key from namespace/prefix plus key using the repository's existing dot-prefix convention. Preserve the literal key and tenant id; never parse or generate tenant ids as GUID/ULID.
-  - [ ] Require authorized namespace/prefix evidence from server/BFF-reflected facts or already-authorized projection scope. If prefix ownership cannot be proven, fail closed with `missing permission` or a specific localized scope reason; do not reveal out-of-scope key existence.
-  - [ ] Use the Product/UX-approved `FC-CNS` inline structured-text fallback. Include tenant identity, namespace/prefix, key, current known state, intended effect, freshness/projection evidence, authorization/scope evidence, known consequences, known unknowns, audit/evidence expectation, and recovery path.
-  - [ ] Treat the PRD's unresolved preview-scope question conservatively: require the preview for every configuration set command in this story unless a newer Product/UX record narrows the scope.
-  - [ ] Block submission when any preview input is unavailable and name the missing item with a visible localized reason.
+- [x] Implement validation, namespace scope, and consequence preview (AC: 1, 2, 4, 6)
+  - [x] Validate tenant id, namespace/prefix, key, and value before preview. Use domain limits: max key length 256 and max value length 1024 from `TenantAggregate.MaxKeyLength`/`MaxValueLength`; do not duplicate unrelated backend validation rules.
+  - [x] Build the submitted full key from namespace/prefix plus key using the repository's existing dot-prefix convention. Preserve the literal key and tenant id; never parse or generate tenant ids as GUID/ULID.
+  - [x] Require authorized namespace/prefix evidence from server/BFF-reflected facts or already-authorized projection scope. If prefix ownership cannot be proven, fail closed with `missing permission` or a specific localized scope reason; do not reveal out-of-scope key existence.
+  - [x] Use the Product/UX-approved `FC-CNS` inline structured-text fallback. Include tenant identity, namespace/prefix, key, current known state, intended effect, freshness/projection evidence, authorization/scope evidence, known consequences, known unknowns, audit/evidence expectation, and recovery path.
+  - [x] Treat the PRD's unresolved preview-scope question conservatively: require the preview for every configuration set command in this story unless a newer Product/UX record narrows the scope.
+  - [x] Block submission when any preview input is unavailable and name the missing item with a visible localized reason.
 
-- [ ] Add command execution and projection-confirmation behavior (AC: 3, 5, 6)
-  - [ ] Detect identical key/value against the last-confirmed projection before submission and show `already applied` without dispatching a command.
-  - [ ] Also treat a completed command with `EventCount == 0` as `already applied` only after the last-confirmed projection still proves the submitted key/value; do not show projection-confirmed Success for a NoOp.
-  - [ ] After `Accepted`, `EventsStored`, `EventsPublished`, or `Completed`, re-query tenant detail and confirm only when the authoritative projection for the matching literal tenant id contains the submitted full key with the submitted value.
-  - [ ] Treat SignalR as a freshness nudge that triggers status/projection re-query only; it must never set the configuration value, command state, or audit state by itself.
-  - [ ] If projection evidence is missing after terminal command status, show `projection pending` or `unable to verify`, not success.
-  - [ ] Enforce one-at-a-time command policy across tenant detail command surfaces. While configuration set is in flight, metadata/member/configuration actions are unavailable with visible reasons; preserve the current one-direction metadata lock and broaden only as needed for this story.
+- [x] Add command execution and projection-confirmation behavior (AC: 3, 5, 6)
+  - [x] Detect identical key/value against the last-confirmed projection before submission and show `already applied` without dispatching a command.
+  - [x] Also treat a completed command with `EventCount == 0` as `already applied` only after the last-confirmed projection still proves the submitted key/value; do not show projection-confirmed Success for a NoOp.
+  - [x] After `Accepted`, `EventsStored`, `EventsPublished`, or `Completed`, re-query tenant detail and confirm only when the authoritative projection for the matching literal tenant id contains the submitted full key with the submitted value.
+  - [x] Treat SignalR as a freshness nudge that triggers status/projection re-query only; it must never set the configuration value, command state, or audit state by itself.
+  - [x] If projection evidence is missing after terminal command status, show `projection pending` or `unable to verify`, not success.
+  - [x] Enforce one-at-a-time command policy across tenant detail command surfaces. While configuration set is in flight, metadata/member/configuration actions are unavailable with visible reasons; preserve the current one-direction metadata lock and broaden only as needed for this story.
 
-- [ ] Preserve support-safe display and localization (AC: 1, 4, 6, 8)
-  - [ ] Add EN/FR `Tenants.Configuration.Set.*` resources with parity, using whole strings and matching placeholders. Do not assemble translated sentence fragments at runtime.
-  - [ ] Keep raw values out of live regions, rejection messages, logs, copied text, test assertion names, and command lifecycle safe messages unless they have passed the existing `SupportSafeCopyClassifier` rules.
-  - [ ] For values classified as sensitive or unsafe, render a safe placeholder such as the existing unavailable value copy. The preview may name that a value will change without echoing the raw value.
-  - [ ] Use stable selectors such as `tenants-config-set-open`, `tenants-config-set-flow`, `tenants-config-set-namespace`, `tenants-config-set-key`, `tenants-config-set-value`, `tenants-config-set-preview`, `tenants-config-set-preview-item`, `tenants-config-set-submit`, `tenants-config-set-cancel`, `tenants-config-set-refresh`, `tenants-config-set-unavailable-reason`, `tenants-config-set-lifecycle`, `tenants-config-set-state`, `tenants-config-set-audit`, `tenants-config-set-recovery`, and `tenants-config-set-live-region`.
-  - [ ] Use state-driven live-region politeness: polite for previewed/submitted/accepted/projection-pending/confirmed/audit-pending/already-applied; assertive for rejected/failed/degraded/unable-to-verify/blocked. Do not derive politeness from badge color or visual intent.
+- [x] Preserve support-safe display and localization (AC: 1, 4, 6, 8)
+  - [x] Add EN/FR `Tenants.Configuration.Set.*` resources with parity, using whole strings and matching placeholders. Do not assemble translated sentence fragments at runtime.
+  - [x] Keep raw values out of live regions, rejection messages, logs, copied text, test assertion names, and command lifecycle safe messages unless they have passed the existing `SupportSafeCopyClassifier` rules.
+  - [x] For values classified as sensitive or unsafe, render a safe placeholder such as the existing unavailable value copy. The preview may name that a value will change without echoing the raw value.
+  - [x] Use stable selectors such as `tenants-config-set-open`, `tenants-config-set-flow`, `tenants-config-set-namespace`, `tenants-config-set-key`, `tenants-config-set-value`, `tenants-config-set-preview`, `tenants-config-set-preview-item`, `tenants-config-set-submit`, `tenants-config-set-cancel`, `tenants-config-set-refresh`, `tenants-config-set-unavailable-reason`, `tenants-config-set-lifecycle`, `tenants-config-set-state`, `tenants-config-set-audit`, `tenants-config-set-recovery`, and `tenants-config-set-live-region`.
+  - [x] Use state-driven live-region politeness: polite for previewed/submitted/accepted/projection-pending/confirmed/audit-pending/already-applied; assertive for rejected/failed/degraded/unable-to-verify/blocked. Do not derive politeness from badge color or visual intent.
 
-- [ ] Add focused tests and update evidence (AC: 1-8)
-  - [ ] Add gateway tests for `SetTenantConfigurationAsync` payload shape, literal tenant id preservation, command name, message id, accepted result, unavailable gateway behavior, `ConfigurationLimitExceeded`, shared safe rejection mapping, and support-unsafe failure redaction.
-  - [ ] Add snapshot/model tests for preview completeness, pre-submit identical key/value `AlreadyApplied`, completed `EventCount == 0` reconciliation, accepted/projection-pending/confirmed/rejected/failed/degraded/unable-to-verify states, audit handoff, SignalR nudge-only behavior, and no optimistic configuration overwrite.
-  - [ ] Add component tests for form rendering, namespace/key/value validation, prefix/scope fail-closed behavior, disabled/stale/unknown/degraded gating, incomplete preview blocking, keyboard cancel/Escape focus return, forced-colors/focus CSS hooks, live-region politeness, stable selectors, and no sensitive-value exposure.
-  - [ ] Extend `TenantDetailSurfaceTests` to prove existing configuration read/filter/group/redaction behavior remains intact and the set flow does not regress metadata/member/lifecycle composition.
-  - [ ] Add or update resource parity tests for all new `Tenants.Configuration.Set.*` keys.
-  - [ ] Update `_bmad-output/implementation-artifacts/tests/test-summary.md` and `tests/test-summary.md` if the repository continues the current story evidence practice.
-  - [ ] Run `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`; when `dotnet test` hits the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility, use the xUnit v3 executable fallback documented in prior stories.
+- [x] Add focused tests and update evidence (AC: 1-8)
+  - [x] Add gateway tests for `SetTenantConfigurationAsync` payload shape, literal tenant id preservation, command name, message id, accepted result, unavailable gateway behavior, `ConfigurationLimitExceeded`, shared safe rejection mapping, and support-unsafe failure redaction.
+  - [x] Add snapshot/model tests for preview completeness, pre-submit identical key/value `AlreadyApplied`, completed `EventCount == 0` reconciliation, accepted/projection-pending/confirmed/rejected/failed/degraded/unable-to-verify states, audit handoff, SignalR nudge-only behavior, and no optimistic configuration overwrite.
+  - [x] Add component tests for form rendering, namespace/key/value validation, prefix/scope fail-closed behavior, disabled/stale/unknown/degraded gating, incomplete preview blocking, keyboard cancel/Escape focus return, forced-colors/focus CSS hooks, live-region politeness, stable selectors, and no sensitive-value exposure.
+  - [x] Extend `TenantDetailSurfaceTests` to prove existing configuration read/filter/group/redaction behavior remains intact and the set flow does not regress metadata/member/lifecycle composition.
+  - [x] Add or update resource parity tests for all new `Tenants.Configuration.Set.*` keys.
+  - [x] Update `_bmad-output/implementation-artifacts/tests/test-summary.md` and `tests/test-summary.md` if the repository continues the current story evidence practice.
+  - [x] Run `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`; when `dotnet test` hits the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility, use the xUnit v3 executable fallback documented in prior stories.
 
 ## Dev Notes
 
@@ -182,6 +182,15 @@ GPT-5 Codex
 - Create-story activation resolved customization with no prepend/append steps and persistent facts from `_bmad-output/project-context.md`.
 - Input discovery loaded sprint status, project context, `epics.md`, `architecture.md`, targeted PRD/addendum/UX/readiness/fallback sections, Stories 3.2/3.1/2.5/2.4 previous-story intelligence, current configuration/detail/gateway/resource/test files, configuration domain contracts/aggregate behavior/tests, and recent git history.
 - Checklist validation was run against `.agents/skills/bmad-create-story/checklist.md`; the main corrections from validation are reflected in the explicit preview-for-every-set-command rule, projection-only confirmation rule, NoOp vs Success separation, and sensitive-value support-safety constraints.
+- Dev-story activation resolved customization with no prepend/append steps and persistent facts from `_bmad-output/project-context.md`.
+- Existing command request/snapshot/gateway support for set configuration was present in source; implementation focused on the Blazor command flow, tenant-detail composition, resources, and tests.
+- Validation: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- Validation: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
+- Validation: xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed: 411 total, 0 errors, 0 failed, 0 skipped.
+- Broader regression signal: Contracts.Tests 103/103, Client.Tests 47/47, and Testing.Tests 181/181 passed via xUnit v3 executable fallback.
+- Broader regression signal: `dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- Known pre-existing broader failure: Server.Tests executable still fails 6 documentation/AppHost evidence tests for missing `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml` and stale Story 7.6A deployment-readiness summary expectations; no failure touches Story 3.3 UI files.
+- Senior Developer Review (AI) loaded the story-automator-review workflow, checklist, story file, sprint status, project context, architecture evidence, git status/diff, story File List, implementation files, resources, and focused tests. Review found and auto-fixed three verified issues: degraded detail was reported as an authorization failure, the configuration flow treated its own in-flight command as generic command-surface unavailability when the parent lock updated, and completed previews left `aria-describedby` pointing at a non-rendered preview-blocked element while validation focus always returned to namespace. Validation passed: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`; xUnit v3 fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed 417/417.
 
 ### Completion Notes List
 
@@ -189,11 +198,51 @@ GPT-5 Codex
 - Story context scopes Story 3.3 to the UI/BFF configuration set command flow over existing backend contracts.
 - Story context marks Story 3.3 ready-for-dev because tenant-scoped configuration commands are fallback-eligible and the required `FC-CNS`/`FC-CMD`/`FC-CNC` gates are approved/confirmed by prior planning and Story 1.0 evidence.
 - Story context identifies the key implementation risks: namespace-scope leakage, sensitive value exposure, partial consequence preview, identical-value NoOp being mislabeled as Success, optimistic configuration mutation, command-state collapse, command-specific rejection copy leaking through shared status, and regressions to existing read-only configuration behavior.
+- Implemented a focused `SetTenantConfigurationFlow` under `Components/Tenants/Configuration/`, composed from `TenantConfigurationView` and `TenantDetailPage` using existing command gateway, activity lock, refresh, and projection evidence patterns.
+- Preserved the existing configuration read table, grouping/filtering, empty states, safe copy controls, and sensitive-value redaction while adding the mutation flow as a separate child surface.
+- Added conservative namespace-scope validation from already-authorized visible projection prefixes, dot-prefix full-key construction, key/value limit checks, complete inline consequence preview, mobile/narrow command blocking hooks, and support-safe current-value display.
+- Added command lifecycle behavior for pre-submit identical-value `AlreadyApplied`, zero-event NoOp reconciliation only after projection proof, accepted/projection-pending/confirmed/rejected/failed/degraded/unable-to-verify states, SignalR nudge-only reducer behavior, and audit handoff states.
+- Added EN/FR `Tenants.Configuration.Set.*` resources with parity and focused tests/evidence for gateway payloads, safe rejection mapping, snapshot transitions, component behavior, accessibility selectors, resource parity, and read-surface preservation.
+- Senior Developer Review (AI) fixed degraded/unavailable/unknown projection-state reason honesty, owned in-flight command reason handling under the page-level command lock, and validation/ARIA accessibility issues in the focused set-configuration flow.
+
+### Senior Developer Review (AI)
+
+Reviewer: GPT-5 Codex on 2026-06-06T12:36:59+02:00
+
+Outcome: Approved after auto-fixes. Story status moved to `done`; no critical issues remain.
+
+Findings fixed:
+
+- [HIGH] Degraded tenant detail surfaced the authorization unavailable copy. `SetTenantConfigurationFlow` grouped `Degraded`, `Unavailable`, and `Unknown` detail states with authorization failure, which made AC6 fail-closed reasoning inaccurate and could send an operator down the wrong recovery path. Fixed with a distinct localized projection-state unavailable reason in EN/FR resources.
+- [MEDIUM] The configuration flow treated its own in-flight submission as generic command-surface unavailability after the parent one-at-a-time lock updated. Fixed by recognizing owned `RequestSent`/`Accepted`/`ProjectionPending` activity so the visible reason remains the in-flight command reason while other command surfaces stay locked.
+- [MEDIUM] Accessibility wiring was stale after preview completion and validation focus was too coarse. Completed previews left `aria-describedby` pointing to a non-rendered `tenants-config-set-preview-blocked` element, and every validation failure queued namespace focus even for key/value errors. Fixed by only referencing rendered descriptive elements and queuing field-specific focus for namespace, key, or value validation.
+
+Verification:
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed: 417 total, 0 errors, 0 failed, 0 skipped.
+- Documentation/reference check: no external API or package research was required; Story 3.3 uses the repo-pinned local .NET 10, Blazor, bUnit, xUnit v3, Fluent UI, and EventStore contracts.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/3-3-set-tenant-configuration-key-value-with-consequence-preview.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/tests/test-summary.md`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor`
+- `src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`
+- `tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantSetConfigurationCommandSnapshotTests.cs`
+- `tests/test-summary.md`
 
 ### Change Log
 
 - 2026-06-06T08:57:54+02:00 - Created Story 3.3 context and marked it ready for development.
+- 2026-06-06T12:13:00+02:00 - Implemented set-configuration UI command flow with consequence preview, projection-confirmed lifecycle handling, support-safe resources, focused tests, and validation evidence.
+- 2026-06-06T12:36:59+02:00 - Senior Developer Review (AI) auto-fixed degraded projection-state reason honesty, owned in-flight command lock messaging, and validation/ARIA accessibility issues; validation passed 417/417 UI tests and Story 3.3 moved to done.

@@ -64,6 +64,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-unavailable-reason']").TextContent.ShouldContain("TenantLifecycleStateAlreadySet");
         cut.Find("[data-testid='tenants-detail-member-summary']").TextContent.ShouldContain("2 members");
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
+        cut.Find("[data-testid='tenants-config-set-flow']");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
         cut.Markup.ShouldContain("aria-label=\"Full tenant identifier tenant.alpha\"");
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
@@ -165,9 +166,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Markup.ShouldNotContain("secret-host");
         cut.Markup.ShouldNotContain("Password=hidden");
         cut.Markup.ShouldNotContain("raw-token");
-        cut.Markup.ShouldNotContain("Edit");
+        cut.Find("[data-testid='tenants-config-set-flow']");
         cut.Markup.ShouldNotContain("Remove");
-        cut.Markup.ShouldNotContain("Set configuration");
     }
 
     [Fact]
@@ -754,6 +754,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         frenchResources.ShouldContain("Tenants.Configuration.State.Unauthorized");
         frenchResources.ShouldContain("Tenants.Configuration.State.Unavailable");
         frenchResources.ShouldContain("Tenants.Configuration.Value.Unavailable");
+        invariantResources.ShouldContain("Tenants.Configuration.Set.Title");
+        invariantResources.ShouldContain("Tenants.Configuration.Set.State.ProjectionPending");
+        frenchResources.ShouldContain("Tenants.Configuration.Set.Title");
+        frenchResources.ShouldContain("Tenants.Configuration.Set.State.ProjectionPending");
         invariantResources.ShouldContain("Tenants.Members.Title");
         invariantResources.ShouldContain("Tenants.Members.UnavailableReason.MissingPermission");
         frenchResources.ShouldContain("Tenants.Members.Title");

@@ -160,6 +160,122 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+    public async Task Set_tenant_configuration_submits_literal_command_with_payload_and_captures_correlation_id()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-config"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationAsync(
+            new SetTenantConfigurationCommandRequest("Tenant.Mixed-01", "billing.mode", "enterprise"),
+            CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("tenants");
+        submitted.AggregateId.ShouldBe("Tenant.Mixed-01");
+        submitted.CommandType.ShouldBe(nameof(SetTenantConfiguration));
+        submitted.Payload.GetProperty("TenantId").GetString().ShouldBe("Tenant.Mixed-01");
+        submitted.Payload.GetProperty("Key").GetString().ShouldBe("billing.mode");
+        submitted.Payload.GetProperty("Value").GetString().ShouldBe("enterprise");
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBe("correlation-config");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task Set_tenant_configuration_validation_failure_does_not_submit_to_eventstore(string? key)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-config"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationAsync(
+            new SetTenantConfigurationCommandRequest("tenant.alpha", key!, "value"),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("configuration key");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("ConfigurationLimitExceededRejection", "ConfigurationLimitExceeded", "limits")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
+    [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
+    [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+    public async Task Set_tenant_configuration_maps_safe_rejection_text(
+        string reason,
+        string expectedCode,
+        string expectedText)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            reason,
+            detail: "raw payload bearer-token stack trace correlation-config Value=super-secret"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationAsync(
+            new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "super-secret"),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-config", Case.Insensitive);
+        safeMessage.ShouldNotContain("super-secret", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Status_lookup_maps_configuration_limit_rejection_to_command_neutral_safe_text()
+    {
+        StatusHandler handler = new("""
+            {
+              "correlationId": "correlation-config",
+              "status": "Rejected",
+              "statusCode": 5,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "tenant.alpha",
+              "eventCount": 0,
+              "rejectionEventType": "Hexalith.Tenants.Contracts.Events.Rejections.ConfigurationLimitExceededRejection",
+              "failureReason": "raw payload token stack trace correlation-config Value=super-secret",
+              "timeoutDuration": null
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-config")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-config", "correlation-config"),
+            CancellationToken.None);
+
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        result.RejectionCode.ShouldBe("ConfigurationLimitExceeded");
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain("configuration limits", Case.Insensitive);
+        safeMessage.ShouldNotContain("set configuration", Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-config", Case.Insensitive);
+        safeMessage.ShouldNotContain("super-secret", Case.Insensitive);
+    }
+
+    [Fact]
     public async Task Remove_user_from_tenant_submits_literal_command_and_captures_correlation_id()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-999"));

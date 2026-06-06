@@ -1,4 +1,6 @@
 @using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Components.Tenants.Configuration
+@using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.Tenants.UI.State.TenantList
 @inject IStringLocalizer<TenantsResources> Localizer
@@ -30,6 +32,15 @@
             @Localizer["Tenants.Configuration.CommandUnavailable"]
         </p>
     }
+
+    <SetTenantConfigurationFlow Detail="@Detail"
+                                SurfaceKind="@SurfaceKind"
+                                Freshness="@Freshness"
+                                IsAuthorized="@IsAuthorized"
+                                IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
+                                OnCommandActivityChanged="@OnCommandActivityChanged"
+                                ProjectionEvidenceProvider="@ProjectionEvidenceProvider" />
 
     <div class="tenant-config__controls" role="search" aria-label="@Localizer["Tenants.Configuration.Filter.Label"]">
         <label for="tenants-config-filter">@Localizer["Tenants.Configuration.Filter.Label"]</label>
@@ -151,6 +162,21 @@
 
     [Parameter]
     public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<SetTenantConfigurationCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     private IReadOnlyList<ConfigurationRow> Rows
         => Detail.Configuration

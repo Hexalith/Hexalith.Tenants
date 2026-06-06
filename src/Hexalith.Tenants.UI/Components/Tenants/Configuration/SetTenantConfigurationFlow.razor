@@ -1,0 +1,685 @@
+@using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Hexalith.Tenants.UI.State.TenantDetail
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+<section class="tenants-config-set"
+         data-testid="tenants-config-set-flow"
+         aria-labelledby="tenants-config-set-heading"
+         @onkeydown="HandleKeyDownAsync">
+    <header class="tenants-config-set__header">
+        <div>
+            <h3 id="tenants-config-set-heading">@Localizer["Tenants.Configuration.Set.Title"]</h3>
+            <p>@Localizer["Tenants.Configuration.Set.Description", Detail.TenantId]</p>
+        </div>
+        @if (CanOpen)
+        {
+            <button type="button"
+                    @ref="_openElement"
+                    data-testid="tenants-config-set-open"
+                    aria-controls="tenants-config-set-editor"
+                    @onclick="OpenEditorAsync">
+                @Localizer["Tenants.Configuration.Set.Open"]
+            </button>
+        }
+    </header>
+
+    <p class="tenants-config-set__narrow"
+       data-testid="tenants-config-set-narrow-unavailable">
+        @Localizer["Tenants.Configuration.Set.Unavailable.Narrow"]
+    </p>
+
+    @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+    {
+        <p class="tenants-config-set__unavailable"
+           id="tenants-config-set-unavailable"
+           data-testid="tenants-config-set-unavailable-reason"
+           role="alert">
+            @UnavailableReason
+        </p>
+    }
+
+    @if (_isOpen)
+    {
+        <form id="tenants-config-set-editor"
+              class="tenants-config-set__form"
+              @onsubmit="SubmitAsync"
+              @onsubmit:preventDefault="true">
+            <label for="tenants-config-set-namespace">
+                <span>@Localizer["Tenants.Configuration.Set.Namespace.Label"]</span>
+                <input id="tenants-config-set-namespace"
+                       @ref="_namespaceElement"
+                       name="configuration-namespace"
+                       value="@_namespace"
+                       data-testid="tenants-config-set-namespace"
+                       aria-describedby="@NamespaceDescribedBy"
+                       @oninput="OnNamespaceInput" />
+                <span id="tenants-config-set-namespace-help">@Localizer["Tenants.Configuration.Set.Namespace.Help"]</span>
+            </label>
+
+            <label for="tenants-config-set-key">
+                <span>@Localizer["Tenants.Configuration.Set.Key.Label"]</span>
+                <input id="tenants-config-set-key"
+                       @ref="_keyElement"
+                       name="configuration-key"
+                       value="@_key"
+                       data-testid="tenants-config-set-key"
+                       aria-describedby="@KeyDescribedBy"
+                       @oninput="OnKeyInput" />
+                <span id="tenants-config-set-key-help">@Localizer["Tenants.Configuration.Set.Key.Help"]</span>
+            </label>
+
+            <label for="tenants-config-set-value">
+                <span>@Localizer["Tenants.Configuration.Set.Value.Label"]</span>
+                <textarea id="tenants-config-set-value"
+                          @ref="_valueElement"
+                          name="configuration-value"
+                          value="@_value"
+                          data-testid="tenants-config-set-value"
+                          aria-describedby="@ValueDescribedBy"
+                          @oninput="OnValueInput"></textarea>
+                <span id="tenants-config-set-value-help">@Localizer["Tenants.Configuration.Set.Value.Help"]</span>
+            </label>
+
+            @if (!string.IsNullOrWhiteSpace(_validationMessage))
+            {
+                <p id="tenants-config-set-validation"
+                   class="tenants-config-set__validation"
+                   data-testid="tenants-config-set-validation"
+                   role="alert">
+                    @_validationMessage
+                </p>
+            }
+
+            @if (IsPreviewComplete)
+            {
+                <section class="tenants-config-set__preview"
+                         data-testid="tenants-config-set-preview"
+                         aria-labelledby="tenants-config-set-preview-heading">
+                    <h4 id="tenants-config-set-preview-heading">@Localizer["Tenants.Configuration.Set.Preview.Title"]</h4>
+                    <dl>
+                        @foreach ((string Label, string Value, string TestId) item in PreviewItems)
+                        {
+                            <div data-testid="tenants-config-set-preview-item">
+                                <dt>@item.Label</dt>
+                                <dd data-testid="@item.TestId">@item.Value</dd>
+                            </div>
+                        }
+                    </dl>
+                </section>
+            }
+            else
+            {
+                <p class="tenants-config-set__preview-blocked"
+                   id="tenants-config-set-preview-blocked"
+                   data-testid="tenants-config-set-preview-blocked"
+                   role="status">
+                    @PreviewUnavailableReason
+                </p>
+            }
+
+            <div class="tenants-config-set__actions">
+                <button type="submit"
+                        data-testid="tenants-config-set-submit"
+                        disabled="@IsSubmitDisabled">
+                    @Localizer["Tenants.Configuration.Set.Submit"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-config-set-refresh"
+                        disabled="@(!CanRefresh)"
+                        @onclick="RefreshStatusAsync">
+                    @Localizer["Tenants.Configuration.Set.Refresh"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-config-set-cancel"
+                        @onclick="CloseEditorAsync">
+                    @Localizer["Tenants.Configuration.Set.Cancel"]
+                </button>
+            </div>
+        </form>
+    }
+
+    <section class="tenants-config-set__lifecycle"
+             @ref="_lifecycleElement"
+             tabindex="-1"
+             data-testid="tenants-config-set-lifecycle"
+             aria-labelledby="tenants-config-set-state-label">
+        <h4 id="tenants-config-set-state-label">@Localizer["Tenants.Configuration.Set.Lifecycle.Title"]</h4>
+        <p class="@StateClass" data-testid="tenants-config-set-state">
+            <span aria-hidden="true">@StateSymbol</span>
+            <span>@StateText</span>
+        </p>
+        <p data-testid="tenants-config-set-audit">@AuditText</p>
+        <p data-testid="tenants-config-set-recovery">@RecoveryText</p>
+        @if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
+        {
+            <p data-testid="tenants-config-set-safe-message">@_snapshot.SafeMessage</p>
+        }
+        <p class="tenants-config-set__live"
+           data-testid="tenants-config-set-live-region"
+           aria-live="@LiveRegionMode"
+           aria-atomic="true">
+            @StateText
+        </p>
+    </section>
+</section>
+
+@code {
+    private const int MaxConfigurationKeyLength = 256;
+    private const int MaxConfigurationValueLength = 1024;
+
+    private TenantSetConfigurationCommandSnapshot _snapshot = TenantSetConfigurationCommandSnapshot.Idle();
+    private string? _namespace;
+    private string? _key;
+    private string? _value;
+    private string? _validationMessage;
+    private bool _isOpen;
+    private bool _isSubmitting;
+    private ElementReference _openElement;
+    private ElementReference _namespaceElement;
+    private ElementReference _keyElement;
+    private ElementReference _valueElement;
+    private ElementReference _lifecycleElement;
+    private bool _focusOpenPending;
+    private bool _focusNamespacePending;
+    private bool _focusKeyPending;
+    private bool _focusValuePending;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public TenantDetail Detail { get; set; } = default!;
+
+    [Parameter]
+    public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
+
+    [Parameter]
+    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsAuthorized { get; set; } = true;
+
+    [Parameter]
+    public bool IsCommandSurfaceAvailable { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnProjectionRefreshRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnCloseRequested { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCommandActivityChanged { get; set; }
+
+    [Parameter]
+    public Func<SetTenantConfigurationCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+
+    internal TenantSetConfigurationCommandSnapshot Snapshot => _snapshot;
+
+    private IReadOnlySet<string> AuthorizedNamespaces
+        => Detail.Configuration.Keys
+            .Select(NamespacePrefix)
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.Ordinal);
+
+    private string? UnavailableReason
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+            ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+                ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionState"].Value
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+                ? Localizer["Tenants.Configuration.Set.Unavailable.Freshness"].Value
+                : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
+                    ? Localizer["Tenants.Configuration.Set.Unavailable.TenantLifecycle"].Value
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
+                        ? Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value
+                        : _isSubmitting
+                            ? Localizer["Tenants.Configuration.Set.Unavailable.InFlight"].Value
+                            : string.IsNullOrWhiteSpace(Detail.TenantId)
+                                ? Localizer["Tenants.Configuration.Set.Unavailable.Identity"].Value
+                                : AuthorizedNamespaces.Count == 0
+                                    ? Localizer["Tenants.Configuration.Set.Unavailable.Scope"].Value
+                                    : null;
+
+    private bool CanOpen
+        => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool IsOwnedCommandInFlight
+        => _isSubmitting
+        || _snapshot.State is TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending;
+
+    private bool IsSubmitDisabled
+        => !IsPreviewComplete || !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool CanRefresh
+        => _snapshot.Intent is not null
+        && _snapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private bool IsPreviewComplete
+        => string.IsNullOrWhiteSpace(UnavailableReason)
+        && TryBuildRequest(out _, out _, showValidation: false);
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private IReadOnlyList<(string Label, string Value, string TestId)> PreviewItems
+    {
+        get
+        {
+            if (!TryBuildRequest(out SetTenantConfigurationCommandRequest? request, out string? normalizedNamespace, showValidation: false)
+                || request is null
+                || normalizedNamespace is null)
+            {
+                return [];
+            }
+
+            bool currentExists = Detail.Configuration.TryGetValue(request.Key, out string? currentValue);
+            string currentState = currentExists
+                ? SafeConfigurationDisplay(currentValue!)
+                : Localizer["Tenants.Configuration.Set.Preview.CurrentState.Absent"];
+            return
+            [
+                (Localizer["Tenants.Configuration.Set.Preview.Tenant"], Detail.TenantId, "tenants-config-set-tenant-id"),
+                (Localizer["Tenants.Configuration.Set.Preview.Namespace"], normalizedNamespace, "tenants-config-set-preview-namespace"),
+                (Localizer["Tenants.Configuration.Set.Preview.Key"], request.Key, "tenants-config-set-preview-key"),
+                (Localizer["Tenants.Configuration.Set.Preview.CurrentState"], currentState, "tenants-config-set-preview-current-state"),
+                (Localizer["Tenants.Configuration.Set.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Set.Preview.IntendedEffect.Value"], "tenants-config-set-preview-effect"),
+                (Localizer["Tenants.Configuration.Set.Preview.Freshness"], Localizer[$"Tenants.Configuration.Set.Freshness.{Freshness}"], "tenants-config-set-preview-freshness"),
+                (Localizer["Tenants.Configuration.Set.Preview.Authorization"], Localizer["Tenants.Configuration.Set.Preview.Authorization.Value"], "tenants-config-set-preview-authorization"),
+                (Localizer["Tenants.Configuration.Set.Preview.KnownConsequences"], Localizer["Tenants.Configuration.Set.Preview.KnownConsequences.Value"], "tenants-config-set-preview-consequences"),
+                (Localizer["Tenants.Configuration.Set.Preview.KnownUnknowns"], Localizer["Tenants.Configuration.Set.Preview.KnownUnknowns.Value"], "tenants-config-set-preview-unknowns"),
+                (Localizer["Tenants.Configuration.Set.Preview.AuditExpectation"], Localizer["Tenants.Configuration.Set.Preview.AuditExpectation.Value"], "tenants-config-set-preview-audit"),
+                (Localizer["Tenants.Configuration.Set.Preview.RecoveryPath"], Localizer["Tenants.Configuration.Set.Preview.RecoveryPath.Value"], "tenants-config-set-preview-recovery"),
+            ];
+        }
+    }
+
+    private string PreviewUnavailableReason
+    {
+        get
+        {
+            _ = TryBuildRequest(out _, out _, showValidation: false);
+            return !string.IsNullOrWhiteSpace(UnavailableReason)
+                ? UnavailableReason
+                : _validationMessage ?? Localizer["Tenants.Configuration.Set.Preview.Blocked.Required"];
+        }
+    }
+
+    private string StateClass
+        => $"tenants-config-set__state tenants-config-set__state--{_snapshot.State.ToString().ToLowerInvariant()}";
+
+    private string StateSymbol
+        => _snapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.AlreadyApplied => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed or TenantCommandLifecycleState.DuplicatePrevented => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            _ => ">",
+        };
+
+    private string StateText
+        => Localizer[$"Tenants.Configuration.Set.State.{_snapshot.State}"];
+
+    private string AuditText
+        => Localizer[$"Tenants.Configuration.Set.Audit.{_snapshot.AuditState}"];
+
+    private string RecoveryText
+        => Localizer[$"Tenants.Configuration.Set.Recovery.{_snapshot.State}"];
+
+    private string LiveRegionMode
+        => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string NamespaceDescribedBy
+        => DescribedBy("tenants-config-set-namespace-help");
+
+    private string KeyDescribedBy
+        => DescribedBy("tenants-config-set-key-help");
+
+    private string ValueDescribedBy
+        => DescribedBy("tenants-config-set-value-help");
+
+    protected override void OnParametersSet()
+    {
+        if (_snapshot.State is TenantCommandLifecycleState.Idle)
+        {
+            _snapshot = TenantSetConfigurationCommandSnapshot.Idle(Detail);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusOpenPending)
+        {
+            _focusOpenPending = false;
+            await _openElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusNamespacePending)
+        {
+            _focusNamespacePending = false;
+            await _namespaceElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusKeyPending)
+        {
+            _focusKeyPending = false;
+            await _keyElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusValuePending)
+        {
+            _focusValuePending = false;
+            await _valueElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void SetSnapshot(TenantSetConfigurationCommandSnapshot snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || _snapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    internal void ApplySignalRNudge()
+        => _snapshot = _snapshot.SignalRNudge();
+
+    internal void ApplyProjectionEvidence(TenantDetail? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
+
+    private async Task OpenEditorAsync()
+    {
+        _validationMessage = null;
+        _namespace = AuthorizedNamespaces.OrderBy(static item => item, StringComparer.Ordinal).FirstOrDefault();
+        _key = null;
+        _value = null;
+        _isOpen = true;
+        _focusNamespacePending = true;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task CloseEditorAsync()
+    {
+        _isOpen = false;
+        _validationMessage = null;
+        _focusOpenPending = true;
+        await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
+    }
+
+    private void OnNamespaceInput(ChangeEventArgs args)
+    {
+        _namespace = args.Value?.ToString();
+        ClearValidationAndPreview();
+    }
+
+    private void OnKeyInput(ChangeEventArgs args)
+    {
+        _key = args.Value?.ToString();
+        ClearValidationAndPreview();
+    }
+
+    private void OnValueInput(ChangeEventArgs args)
+    {
+        _value = args.Value?.ToString();
+        ClearValidationAndPreview();
+    }
+
+    private void ClearValidationAndPreview()
+    {
+        _validationMessage = null;
+        if (TryBuildRequest(out SetTenantConfigurationCommandRequest? request, out _, showValidation: false) && request is not null)
+        {
+            _snapshot = _snapshot.Previewed(request, Detail);
+            return;
+        }
+
+        if (_snapshot.State is TenantCommandLifecycleState.Previewed)
+        {
+            _snapshot = _snapshot with
+            {
+                State = TenantCommandLifecycleState.Idle,
+                Intent = null,
+                IsPreviewComplete = false,
+                SafeMessage = null,
+                RejectionCode = null,
+                AuditState = TenantCommandAuditState.NotStarted,
+                FocusTarget = TenantCommandFocusTarget.Submit,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+            };
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _validationMessage = null;
+
+        if (_isSubmitting)
+        {
+            SetSnapshot(_snapshot.DuplicatePrevented(Localizer["Tenants.Configuration.Set.DuplicatePrevented.Message"].Value));
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (!TryBuildRequest(out SetTenantConfigurationCommandRequest? request, out _, showValidation: true) || request is null)
+        {
+            return;
+        }
+
+        _snapshot = _snapshot.Previewed(request, Detail);
+        if (Detail.Configuration.TryGetValue(request.Key, out string? currentValue)
+            && string.Equals(currentValue, request.Value, StringComparison.Ordinal))
+        {
+            SetSnapshot(_snapshot.AlreadyApplied(
+                request,
+                Detail,
+                Localizer["Tenants.Configuration.Set.AlreadyApplied.BeforeSubmit"].Value));
+            return;
+        }
+
+        _snapshot = _snapshot.RequestSent();
+        _isSubmitting = true;
+        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
+                    Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
+
+            TenantCommandSubmissionResult result = await gateway
+                .SetTenantConfigurationAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                SetSnapshot(_snapshot.Accepted(result));
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                SetSnapshot(_snapshot with
+                {
+                    State = result.State,
+                    SafeMessage = result.SafeMessage,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditState.AuditUnavailable,
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_snapshot.Intent is null)
+        {
+            return;
+        }
+
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
+        {
+            if (gateway is null)
+            {
+                SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value)));
+                return;
+            }
+
+            TenantCommandStatusResult status = await gateway
+                .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                .ConfigureAwait(false);
+            SetSnapshot(_snapshot.ApplyStatus(status));
+        }
+
+        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        if (ProjectionEvidenceProvider is not null)
+        {
+            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
+        }
+    }
+
+    private bool TryBuildRequest(
+        out SetTenantConfigurationCommandRequest? request,
+        out string? normalizedNamespace,
+        bool showValidation)
+    {
+        request = null;
+        normalizedNamespace = null;
+
+        string? namespaceValue = NormalizeNamespace(_namespace);
+        if (string.IsNullOrWhiteSpace(namespaceValue))
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceRequired"], TenantCommandFocusTarget.Namespace);
+            return false;
+        }
+
+        if (!AuthorizedNamespaces.Contains(namespaceValue))
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.NamespaceScope"], TenantCommandFocusTarget.Namespace);
+            return false;
+        }
+
+        string keyValue = _key?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(keyValue))
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyRequired"], TenantCommandFocusTarget.Key);
+            return false;
+        }
+
+        string fullKey = $"{namespaceValue}.{keyValue}";
+        if (fullKey.Length > MaxConfigurationKeyLength)
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.KeyLength", MaxConfigurationKeyLength], TenantCommandFocusTarget.Key);
+            return false;
+        }
+
+        string? value = _value;
+        if (value is null || value.Length == 0)
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.ValueRequired"], TenantCommandFocusTarget.Value);
+            return false;
+        }
+
+        if (value.Length > MaxConfigurationValueLength)
+        {
+            SetValidation(showValidation, Localizer["Tenants.Configuration.Set.Validation.ValueLength", MaxConfigurationValueLength], TenantCommandFocusTarget.Value);
+            return false;
+        }
+
+        normalizedNamespace = namespaceValue;
+        request = new SetTenantConfigurationCommandRequest(Detail.TenantId, fullKey, value);
+        return true;
+    }
+
+    private void SetValidation(bool showValidation, string message, TenantCommandFocusTarget focusTarget)
+    {
+        if (showValidation)
+        {
+            _validationMessage = message;
+            QueueValidationFocus(focusTarget);
+        }
+    }
+
+    private string DescribedBy(string helpId)
+    {
+        List<string> ids = [helpId];
+        if (!IsPreviewComplete)
+        {
+            ids.Add("tenants-config-set-preview-blocked");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UnavailableReason))
+        {
+            ids.Add("tenants-config-set-unavailable");
+        }
+
+        if (!string.IsNullOrWhiteSpace(_validationMessage))
+        {
+            ids.Add("tenants-config-set-validation");
+        }
+
+        return string.Join(" ", ids.Distinct(StringComparer.Ordinal));
+    }
+
+    private void QueueValidationFocus(TenantCommandFocusTarget focusTarget)
+    {
+        _focusNamespacePending = focusTarget is TenantCommandFocusTarget.Namespace;
+        _focusKeyPending = focusTarget is TenantCommandFocusTarget.Key;
+        _focusValuePending = focusTarget is TenantCommandFocusTarget.Value;
+    }
+
+    private string SafeConfigurationDisplay(string value)
+        => SupportSafeCopyClassifier.IsAllowed(value, SupportSafeCopyValueKind.SafeConfigurationValue)
+            ? value
+            : Localizer["Tenants.Configuration.Value.Unavailable"];
+
+    private static string? NormalizeNamespace(string? value)
+        => value?.Trim().Trim('.');
+
+    private static string NamespacePrefix(string key)
+    {
+        int separator = key.IndexOf('.', StringComparison.Ordinal);
+        return separator > 0 ? key[..separator] : string.Empty;
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (string.Equals(args.Key, "Escape", StringComparison.Ordinal) && _isOpen)
+        {
+            await CloseEditorAsync().ConfigureAwait(false);
+        }
+    }
+}
