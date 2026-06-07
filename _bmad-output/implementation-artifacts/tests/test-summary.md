@@ -235,3 +235,28 @@
 - Tests cover happy path, stale/degraded/not-modified, unauthorized/forbidden/not-found/unavailable, invalid cursor/identifier, and support-safety boundaries.
 - Tests use stable semantic assertions and no hardcoded waits or sleeps.
 - Summary includes coverage metrics and validation evidence.
+
+## Story 3.5 QA E2E Generation Addendum (2026-06-07)
+
+Gap identified during `/bmad-qa-generate-e2e-tests 3.5`: AC7's fail-closed fallback
+(`UnavailableTenantQueryGateway`, bound when no tenant query route is configured) had only DI
+build validation and no behavioral coverage. Added a dedicated fixture to close it.
+
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/UnavailableTenantQueryGatewayTests.cs` (8 tests) -
+  Covers the AC7 fail-closed fallback across all six read surfaces: `ListTenantsAsync` -> `Error`;
+  `GetTenantAsync` -> `Unavailable`; `GetMyTenantsAsync` / `GetUserTenantsAsync` /
+  `GetGlobalAdministratorsAsync` / `GetTenantAuditAsync` -> `Unavailable` with the
+  `GatewayUnavailable` reason. Asserts AC5 never-fabricated freshness (every surface stays
+  `TenantFreshnessState.Unknown`, never `Current`), `ArgumentNullException` guards on the two
+  scope-bearing reads, preservation of `TargetUserId` and the audit request scope
+  (tenant/from/to/category) in the fail-closed snapshot, and AC8 support-safety: a previously-good
+  `previous` snapshot is never served as current and the caller-supplied ETag/cursor is never
+  echoed into any user-facing field.
+
+- Coverage delta: Story 3.5 AC7 fail-closed behavior moves from build-only to behavioral, and
+  AC5/AC8 gain explicit assertions on the unconfigured-gateway path. Story 3.5 acceptance criteria
+  remain fully addressed (9/9), with AC9 = warning-clean build + green suite below.
+- Validation (2026-06-07): `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`
+  passed with 0 warnings / 0 errors. xUnit v3 executable fallback
+  `dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll` passed:
+  652 total (644 prior + 8 new), 0 errors, 0 failed, 0 skipped.
