@@ -244,7 +244,7 @@ Consumed by `ui-01`…`ui-06` (all `planning-only`):
 
 ### 7.2 Command lifecycle / feedback — Command Lifecycle Panel + Feedback Patterns + Unavailable Action Reason (lifecycle gaps)
 
-Consumed by `ui-07`, `ui-08`, `ui-09`, `ui-13` (`planning-only`) and `ui-10`, `ui-14`, `ui-15` (`blocked`):
+Consumed by `ui-07`, `ui-08`, `ui-09`, `ui-13` (`planning-only`), `ui-10`/`ui-14` (implemented in earlier epics), and `ui-15` (implemented by Epic 4 Stories 4.3 and 4.4):
 
 | Backlog row | Readiness | `blockedBy` (verbatim) |
 | --- | --- | --- |
@@ -254,7 +254,7 @@ Consumed by `ui-07`, `ui-08`, `ui-09`, `ui-13` (`planning-only`) and `ui-10`, `u
 | `ui-10-tenant-configuration-edit` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-13-disable-or-enable-tenant` | `planning-only` | `[FC-TOK]` after the approved 2026-06-06 FR15 soft-delete correction; implementation stories still require status/severity evidence before marking ready |
 | `ui-14-user-management-remove-user` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-15-global-admin-command-management` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-15-global-admin-command-management` | `implemented` | `[]` |
 
 ### 7.3 Audit-evidence states — audit pending / audit available / delayed / unavailable / approved fallback
 

@@ -178,9 +178,9 @@ This planning story does not create those sub-stories.
 | `ui-12-tenant-detail-audit-tab` | `blocked` | `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-13-disable-or-enable-tenant` | `ready-with-approved-fallback` | `[]` |
 | `ui-14-user-management-remove-user` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-15-global-admin-command-management` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-15-global-admin-command-management` | `implemented` | `[]` |
 
-Rows `ui-01` through `ui-09` remain `planning-only`. Rows `ui-11`, `ui-12`, `ui-14`, and `ui-15` remain `blocked`. Rows `ui-10` and `ui-13` now have story-specific approved fallback evidence from Epic 3; future documentation should cite the delivered story files for their accessibility, localization, responsive, and reference evidence.
+Rows `ui-01` through `ui-09` remain `planning-only`. Rows `ui-11`, `ui-12`, and `ui-14` remain `blocked` in this evidence table. Rows `ui-10` and `ui-13` now have story-specific approved fallback evidence from Epic 3, and `ui-15` has Epic 4 Story 4.3/4.4 evidence for grant/remove command management; future documentation should cite the delivered story files for their accessibility, localization, responsive, and reference evidence.
 
 ## 9. Future Implementation Story Rules
 

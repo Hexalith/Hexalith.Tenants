@@ -170,7 +170,7 @@ Deferred Decision: "Confirm semantic role/status/timeline/consequence token usag
 | `ui-12-tenant-detail-audit-tab` | `blocked` | yes | yes | `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-13-disable-or-enable-tenant` | `ready-with-approved-fallback` | yes | yes | `[]` |
 | `ui-14-user-management-remove-user` | `blocked` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-15-global-admin-command-management` | `blocked` | yes | yes | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
+| `ui-15-global-admin-command-management` | `implemented` | yes | yes | `[]` |
 
 `ui-08` carries `FC-LYT` but not `FC-TOK` (its `blockedBy` has no `FC-TOK`), so it is governed by the layout rules of this spec but is not a `FC-TOK` token-consuming row. The `FC-TOK` row set in §6.2 (`ui-02`/`ui-03`/`ui-04`/`ui-06`/`ui-07`/`ui-09`/`ui-10`/`ui-11`/`ui-12`/`ui-13`/`ui-14`/`ui-15`) is the authoritative token-consuming set. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `#Deferred Decisions`; `#Readiness Order`]
 

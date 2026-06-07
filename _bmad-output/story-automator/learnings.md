@@ -47,3 +47,27 @@
 - Add whitespace-only validation cases whenever a command accepts caller-supplied literal identifiers.
 - For BFF capability flags, assert both the visible unavailable reason and that protected projection gateways are not queried.
 - Keep story evidence synchronized with the final test counts after review auto-fixes.
+
+## Run: 2026-06-07T14:43:52Z
+
+**Epic:** Hexalith.Tenants - Epic Breakdown
+**Stories:** 4.4
+
+### Patterns Observed
+- Story 4.4 completed as the final Epic 4 story and triggered the Epic 4 retrospective once sprint-status confirmed all four Epic 4 stories were done.
+- Source-of-truth verification was necessary twice: the dev output disappeared after cleanup, and review reached sprint-status `done` before the monitor returned a clean completed state.
+- The automate guardrail added command API coverage for fixed-scope `RemoveGlobalAdministrator` routing and safe rejection ProblemDetails.
+
+### Code Review Insights
+- Common issues: no blocking review issues remained after the verified review pass; source-of-truth sprint status was the decisive completion signal.
+- Average cycles to clean: 1 verified review path.
+
+### Timing Estimates
+- create-story: skipped because the Story 4.4 artifact already existed.
+- dev-story: long high-complexity run, then verified through sprint-status review handoff.
+- code-review: one review path, with direct sprint-status verification needed after session cleanup.
+
+### Recommendations for Future Runs
+- Parse or copy session output before killing completed tmux holders when the output file is still needed for normalized summaries.
+- Continue using `verify-code-review` and sprint-status checks when monitor output lags behind a completed child workflow.
+- Keep API command routing tests paired with UI command lifecycle tests for global-administrator fixed-scope operations.

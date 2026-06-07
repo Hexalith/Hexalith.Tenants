@@ -309,7 +309,7 @@ A user can tell apart `audit pending`, `audit delayed`, `audit unavailable`, and
 ### 7.9 Compensating Recovery *(Phase 2c)*
 **Description:** Correct the effect of a prior action forward, from audit evidence. Inherits §6. Realizes UJ-4.
 
-*Post-Epic 5 note: compensating recovery (FR-24, FR-25) and evidence-receipt assembly (FR-22) now have completed Epic 5 implementation evidence (`epics.md` Stories 5.3, 5.5, and 5.6 plus the matching story records). Tenant-domain correction preview, submission, projection confirmation, and proof linking are implemented through existing BFF gateways. Global-administrator correction remains fail-closed until Epic 4 command support is implemented.* `[NOTE FOR PM]`
+*Post-Epic 5 / Epic 4 note: compensating recovery (FR-24, FR-25) and evidence-receipt assembly (FR-22) now have completed Epic 5 implementation evidence (`epics.md` Stories 5.3, 5.5, and 5.6 plus the matching story records). Tenant-domain correction preview, submission, projection confirmation, and proof linking are implemented through existing BFF gateways. Epic 4 Stories 4.3 and 4.4 now provide global-administrator grant/remove command support; any enabled global-administrator correction path still needs story-specific verification that it selects the fixed `global-administrators` command scope and preserves last-admin safety.* `[NOTE FOR PM]`
 
 #### FR-24: Start a compensating command
 From audit evidence, an authorized user can start a correction ("restore intended access" / "start correction").
@@ -392,7 +392,7 @@ The PRD describes the whole Phase 2 vision; the **MVP is the read-only foundatio
 
 ### 14.2 Out of scope for MVP (later phases)
 - **Phase 2b — first command flows:** FR-10 (add user), FR-11 (change role), FR-13 (create tenant), FR-14 (edit metadata). *These are the most tractable command flows. Story 1.0 confirms the command-feedback contract (`FC-CMD`) and one-at-a-time command policy (`FC-CNC`); command stories still need the shared command lifecycle/truth/preview foundations and per-story evidence before they are ready.*
-- **Phase 2c — high-impact, audit & recovery (gated on FrontComposer components / fallback approvals):** FR-12 (remove user), FR-15 (disable/enable), FR-16–17 (configuration commands), FR-19 (global-admin commands), FR-20–23 (audit trail & evidence), FR-24–25 (compensating recovery). FR15 is a reversible lifecycle soft-delete / availability-control flow; FR19 global-admin commands carry platform-governance blast radius and remain separately gated.
+- **Phase 2c — high-impact, audit & recovery (gated on FrontComposer components / fallback approvals):** FR-12 (remove user), FR-15 (disable/enable), FR-16–17 (configuration commands), FR-19 (global-admin commands), FR-20–23 (audit trail & evidence), FR-24–25 (compensating recovery). FR15 is a reversible lifecycle soft-delete / availability-control flow; FR19 global-admin commands carry platform-governance blast radius and are implemented by Epic 4 Stories 4.3 and 4.4 with fixed-scope routing, projection confirmation, and last-admin safety.
 - **Audit nav area in MVP:** present in the shell but its list/evidence content is a Phase 2c deliverable (blocked on `FC-AUD`); MVP shows it as not-yet-available rather than a broken surface. `[ASSUMPTION]` — confirm whether to hide or stub the Audit area in 2a (§16).
 
 ### 14.3 Phasing summary

@@ -212,7 +212,7 @@ Each pattern names the consuming backlog rows and copies the relevant `blockedBy
 
 ### 6.2 Cross-cutting consuming rows (receipt + compensating recovery)
 
-The Audit Evidence Receipt and compensating-recovery patterns are **cross-cutting** and are also consumed by the command rows `ui-13-disable-or-enable-tenant`, `ui-14-user-management-remove-user`, and `ui-15-global-admin-command-management`. Epic 3 implementation evidence now supersedes the older blocked status for `ui-13`: FR15 lifecycle disable/enable uses the approved inline consequence-preview fallback and honest audit handoff states until Epic 5 evidence sources exist. `ui-14` remains owned by Story 9.4/Epic 2 implementation evidence, and `ui-15` remains blocked for global-administrator governance. Reference the current Phase 2 backlog before copying row arrays. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
+The Audit Evidence Receipt and compensating-recovery patterns are **cross-cutting** and are also consumed by the command rows `ui-13-disable-or-enable-tenant`, `ui-14-user-management-remove-user`, and `ui-15-global-admin-command-management`. Epic 3 implementation evidence now supersedes the older blocked status for `ui-13`: FR15 lifecycle disable/enable uses the approved inline consequence-preview fallback and honest audit handoff states until Epic 5 evidence sources exist. `ui-14` remains owned by Story 9.4/Epic 2 implementation evidence, and Epic 4 Stories 4.3 and 4.4 now supersede the older blocked status for `ui-15` global-administrator grant/remove command management. Reference the current Phase 2 backlog before copying row arrays. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
 
 ### 6.3 Pattern → dependency map
 

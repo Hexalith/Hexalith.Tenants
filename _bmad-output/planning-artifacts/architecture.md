@@ -81,8 +81,9 @@ construction patterns:
 Phasing: **2a/MVP** (read: FR-1..9, FR-18) → **2b** (first commands: FR-10/11/13/14)
 → **2c** (high-impact + audit + recovery: FR-12/15/16/17/19/20–25). Epic 5 now provides
 backing stories for FR-20..FR-25, including the flat audit DataGrid, support-safe receipts,
-audit availability, tenant-domain correction preview/confirmation, and proof linking. FR-19
-global-administrator command work remains separately gated by Epic 4 Stories 4.3 and 4.4.
+audit availability, tenant-domain correction preview/confirmation, and proof linking. Epic 4
+Stories 4.3 and 4.4 now provide FR-19 global-administrator grant/remove command support in the
+fixed `global-administrators` scope.
 
 **Non-Functional Requirements — the honesty contract is the architecture driver.**
 - **NFR-3 Reliability/consistency (defining):** eventually-consistent, event-sourced;
