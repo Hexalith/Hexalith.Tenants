@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-06T11:57:09+02:00
+# last_updated: 2026-06-06T12:30:00+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-06T11:57:09+02:00
+last_updated: 2026-06-06T12:30:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -85,6 +85,11 @@ development_status:
   3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
   3-3-set-tenant-configuration-key-value-with-consequence-preview: in-progress
   3-4-remove-tenant-configuration-key-with-consequence-preview: backlog
+  # Defect fix (Correct Course 2026-06-06): tenant read surfaces 500 because the BFF query
+  # gateway routed through the retired TenantsProjectionActor. Re-point the BFF at the REST
+  # endpoints (GET /api/tenants*) per architecture line 319-320 + emit D6 ETag/freshness.
+  # Proposal: sprint-change-proposal-2026-06-06-tenant-query-routing.md
+  3-5-tenant-query-gateway-rest-routing: ready-for-dev
   epic-3-retrospective: optional
 
   # --- Epic 4: Global Administrator Governance ---

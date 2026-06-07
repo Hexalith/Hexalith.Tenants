@@ -77,6 +77,18 @@ public sealed record TenantListSnapshot(
             false,
             message);
 
+    public static TenantListSnapshot Unauthorized()
+        => new(
+            TenantListSurfaceKind.Unauthorized,
+            [],
+            null,
+            false,
+            null,
+            TenantFreshnessState.Unknown,
+            false,
+            false,
+            null);
+
     public static TenantListSnapshot Stale(IReadOnlyList<TenantListRow> rows, string? eTag)
         => new(
             TenantListSurfaceKind.Stale,

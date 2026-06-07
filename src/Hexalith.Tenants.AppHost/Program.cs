@@ -114,7 +114,14 @@ if (keycloak is not null && realmUrl is not null) {
         .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
         .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
         .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
-        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "")
+        // Interactive browser sign-in (authorization-code flow) for the Tenants UI. Uses a
+        // confidential Keycloak client; the relayed access token carries the hexalith-eventstore
+        // audience so EventStore gateway calls authorize per-user (Story: per-user UI auth).
+        .WithEnvironment("Authentication__OpenIdConnect__Authority", realmUrl)
+        .WithEnvironment("Authentication__OpenIdConnect__ClientId", "hexalith-tenants-ui")
+        .WithEnvironment("Authentication__OpenIdConnect__ClientSecret", "tenants-ui-dev-secret")
+        .WithEnvironment("Authentication__OpenIdConnect__Audience", "hexalith-eventstore");
 }
 else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));
