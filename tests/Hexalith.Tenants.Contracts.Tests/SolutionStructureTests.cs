@@ -45,6 +45,12 @@ public class SolutionStructureTests {
         "Hexalith.FrontComposer/",
     ];
 
+    private static readonly string[] ForbiddenTenantQueryRoutingTerms =
+    [
+        "Projection" + "ActorType",
+        "Tenant" + "ProjectionRouting",
+    ];
+
     [Fact]
     public void Hexalith_Tenants_slnx_contains_required_source_and_test_projects() {
         string repoRoot = FindRepoRoot();
@@ -164,6 +170,28 @@ public class SolutionStructureTests {
         string solutionTargets = File.ReadAllText(Path.Combine(repoRoot, "Directory.Solution.targets"));
         solutionTargets.ShouldContain("BuildInParallel=\"False\"");
         solutionTargets.ShouldContain("BuildInParallel=false;RestoreBuildInParallel=false");
+    }
+
+    [Fact]
+    public void Tenant_ui_and_contracts_do_not_use_projection_actor_query_routing() {
+        string repoRoot = FindRepoRoot();
+        string[] scannedRoots =
+        [
+            "src/Hexalith.Tenants.Contracts",
+            "src/Hexalith.Tenants.UI",
+        ];
+
+        foreach (string relativeRoot in scannedRoots) {
+            foreach (string file in Directory.GetFiles(Path.Combine(repoRoot, relativeRoot), "*.cs", SearchOption.AllDirectories)) {
+                string relativePath = Path.GetRelativePath(repoRoot, file);
+                string text = File.ReadAllText(file);
+
+                foreach (string term in ForbiddenTenantQueryRoutingTerms) {
+                    text.Contains(term, StringComparison.Ordinal)
+                        .ShouldBeFalse($"{relativePath} must use the Tenants REST query API instead of the retired actor query path.");
+                }
+            }
+        }
     }
 
     private static string[] GetProjectReferences(string repoRoot, string projectPath)

@@ -141,6 +141,9 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     private protected static QueryResult CreateSuccessResult(JsonElement payload, string? projectionType)
         => new(true, JsonSerializer.SerializeToUtf8Bytes(payload), ProjectionType: projectionType);
 
+    private protected static QueryResult CreateSuccessResult(JsonElement payload, string? projectionType, string? eTag)
+        => TenantQueryResult.FromPayload(payload, projectionType, eTag);
+
     private protected static JsonElement SerializeToElement<T>(T value)
         => JsonSerializer.SerializeToElement(value, s_queryJsonOptions);
 
@@ -363,10 +366,15 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
 
     private protected async Task<TValue?> GetStateAsync<TValue>(string key, CancellationToken cancellationToken)
         where TValue : class {
-        ReadModelEntry<TValue>? entry = await _store
+        ReadModelEntry<TValue>? entry = await GetStateEntryAsync<TValue>(key, cancellationToken).ConfigureAwait(false);
+        return entry?.Value;
+    }
+
+    private protected async Task<ReadModelEntry<TValue>?> GetStateEntryAsync<TValue>(string key, CancellationToken cancellationToken)
+        where TValue : class {
+        return await _store
             .GetAsync<TValue>(StateStoreName, key, cancellationToken)
             .ConfigureAwait(false);
-        return entry?.Value;
     }
 
     private protected async Task<bool> IsAuthorizedForTenantAsync(string userId, TenantReadModel model, CancellationToken cancellationToken) {

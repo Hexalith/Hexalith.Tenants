@@ -2,7 +2,6 @@ using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
 using Hexalith.FrontComposer.Shell.Infrastructure.EventStore;
-using Hexalith.EventStore.Client.Registration;
 using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
@@ -46,19 +45,28 @@ if (authEnabled) {
 
 if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress)) {
     builder.Services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
-    IHttpClientBuilder queryGatewayClient = builder.Services.AddEventStoreGatewayClient(o => o.BaseAddress = eventStoreBaseAddress);
     IHttpClientBuilder commandGatewayClient = builder.Services.AddHttpClient<TenantCommandGateway>(client => client.BaseAddress = eventStoreBaseAddress);
     if (authEnabled) {
-        _ = queryGatewayClient.AddGatewayAuthorization();
         _ = commandGatewayClient.AddGatewayAuthorization();
     }
 
-    builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
     builder.Services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
 }
 else {
-    builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
     builder.Services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
+}
+
+if (Uri.TryCreate(builder.Configuration["Tenants:BaseAddress"], UriKind.Absolute, out Uri? tenantsBaseAddress)) {
+    IHttpClientBuilder queryClient = builder.Services.AddHttpClient<ITenantsQueryApiClient, TenantsQueryApiClient>(
+        client => client.BaseAddress = tenantsBaseAddress);
+    if (authEnabled) {
+        _ = queryClient.AddGatewayAuthorization();
+    }
+
+    builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
+}
+else {
+    builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
 }
 
 builder.Services.Replace(ServiceDescriptor.Scoped<IUserContextAccessor, ClaimsUserContextAccessor>());

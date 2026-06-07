@@ -7,7 +7,7 @@ source_proposal: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-
 
 # Story 3.5: Tenant Query Gateway REST Routing (Retire Projection-Actor Path)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Defect-fix story created by the BMAD correct-course workflow. Not in the canonical
      epics.md feature list; tracked under Epic 3 as a blocking read-path fix. -->
@@ -67,66 +67,66 @@ and violates D6).
 
 ## Tasks / Subtasks
 
-- [ ] Emit server-side ETag + freshness on the REST query controller (AC: 3, 4, 8)
-  - [ ] In `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`, after a successful
+- [x] Emit server-side ETag + freshness on the REST query controller (AC: 3, 4, 8)
+  - [x] In `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`, after a successful
         dispatch, set a strong `ETag` response header and return freshness metadata
         (`ServedAt`, `ProjectionVersion`) for each of the 5 endpoints.
-  - [ ] Honor the `If-None-Match` request header: when it matches the current read-model ETag,
+  - [x] Honor the `If-None-Match` request header: when it matches the current read-model ETag,
         short-circuit to `304 Not Modified` (with the `ETag` header, no body) before serializing
         the payload.
-  - [ ] Keep the existing RBAC gate, identifier validation, opaque-cursor validation, and
+  - [x] Keep the existing RBAC gate, identifier validation, opaque-cursor validation, and
         problem-details mapping unchanged. Never leak the ETag/cursor/correlation id in user copy.
 
-- [ ] Surface the read-model ETag from the query handlers (AC: 3)
-  - [ ] In `src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs`, stop discarding
+- [x] Surface the read-model ETag from the query handlers (AC: 3)
+  - [x] In `src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs`, stop discarding
         `ReadModelEntry.ETag` in `GetStateAsync`; expose the primary read-model key's ETag so the
         controller can build the response ETag (index key for `ListTenants`/`GetUserTenants`;
         per-tenant key for `GetTenant`/`GetTenantUsers`/`GetTenantAudit`).
-  - [ ] Do not change the in-process dispatch contract used by the SDK `/query` endpoint beyond
+  - [x] Do not change the in-process dispatch contract used by the SDK `/query` endpoint beyond
         what is needed to carry the ETag/version.
 
-- [ ] Add the server-side BFF query client (AC: 1, 2, 5, 8)
-  - [ ] Add a typed `HttpClient` query client (e.g. `ITenantsQueryApiClient` +
+- [x] Add the server-side BFF query client (AC: 1, 2, 5, 8)
+  - [x] Add a typed `HttpClient` query client (e.g. `ITenantsQueryApiClient` +
         implementation) under `src/Hexalith.Tenants.UI/Services/Gateways/` that calls the 5
         `GET /api/tenants*` endpoints, sends `If-None-Match`, reads the `ETag` + metadata, and
         returns payload + ETag + freshness (reuse `Hexalith.Tenants.Client`/`.Contracts` DTOs:
         `PaginatedResult<T>`, `TenantSummary`, `TenantDetail`, `TenantMember`,
         `UserTenantMembership`, `TenantAuditEntry`).
-  - [ ] Map non-success status codes (401/403/404/400/503) to the existing gateway exception /
+  - [x] Map non-success status codes (401/403/404/400/503) to the existing gateway exception /
         snapshot states so the six surface states and fail-closed gating are preserved.
 
-- [ ] Re-point the tenant query gateway and remove dead actor plumbing (AC: 1, 2, 6)
-  - [ ] In `TenantQueryGateway.cs`, replace the `IEventStoreGatewayClient` query dependency with
+- [x] Re-point the tenant query gateway and remove dead actor plumbing (AC: 1, 2, 6)
+  - [x] In `TenantQueryGateway.cs`, replace the `IEventStoreGatewayClient` query dependency with
         the new client; keep the snapshot/freshness/degraded mapping logic.
-  - [ ] Delete `CreateListQuery`/`CreateDetailQuery`/`CreateUserTenantsQuery` and the
+  - [x] Delete `CreateListQuery`/`CreateDetailQuery`/`CreateUserTenantsQuery` and the
         `SubmitQueryRequest` construction.
-  - [ ] Delete `src/Hexalith.Tenants.Contracts/TenantProjectionRouting.cs` and all references.
+  - [x] Delete `src/Hexalith.Tenants.Contracts/TenantProjectionRouting.cs` and all references.
 
-- [ ] Wire the query route through DI and the AppHost (AC: 1, 7)
-  - [ ] In `src/Hexalith.Tenants.UI/Program.cs`, register the typed query client against
+- [x] Wire the query route through DI and the AppHost (AC: 1, 7)
+  - [x] In `src/Hexalith.Tenants.UI/Program.cs`, register the typed query client against
         `Tenants:BaseAddress` (DAPR service invocation) with bearer relay; bind
         `ITenantQueryGateway` to the REST-backed `TenantQueryGateway`. Keep the
         `UnavailableTenantQueryGateway` fallback when the query route is not configured.
-  - [ ] In `src/Hexalith.Tenants.AppHost/Program.cs`, add
+  - [x] In `src/Hexalith.Tenants.AppHost/Program.cs`, add
         `WithEnvironment("Tenants__BaseAddress", <tenants https endpoint>)` to the `tenants-ui`
         resource (it already `.WithReference(tenants)`).
 
-- [ ] Tests and evidence (AC: 1-9)
-  - [ ] Update `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` for
+- [x] Tests and evidence (AC: 1-9)
+  - [x] Update `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` for
         the new client (list/detail/my-tenants/user-tenants/audit happy paths, 304/not-modified
         snapshot preservation, ETag handling, error-to-state mapping, unavailable fallback).
-  - [ ] Add `TenantsQueryController` tests: ETag emitted on 200, `If-None-Match` match → 304,
+  - [x] Add `TenantsQueryController` tests: ETag emitted on 200, `If-None-Match` match → 304,
         mismatch → 200 with new ETag, RBAC/identifier/cursor paths unchanged.
-  - [ ] Add handler tests proving the primary read-model ETag is surfaced per query type.
-  - [ ] Add a guard assertion that no `ProjectionActorType`/`TenantProjectionRouting` reference
+  - [x] Add handler tests proving the primary read-model ETag is surfaced per query type.
+  - [x] Add a guard assertion that no `ProjectionActorType`/`TenantProjectionRouting` reference
         remains in the UI/Contracts.
-  - [ ] Update `_bmad-output/implementation-artifacts/tests/test-summary.md` and
+  - [x] Update `_bmad-output/implementation-artifacts/tests/test-summary.md` and
         `tests/test-summary.md` per the current evidence practice.
 
-- [ ] Documentation alignment (AC: n/a — proposal items 11-12)
-  - [ ] Add the regression-guard note to `architecture.md` (generic gateway is not the Tenants UI
+- [x] Documentation alignment (AC: n/a — proposal items 11-12)
+  - [x] Add the regression-guard note to `architecture.md` (generic gateway is not the Tenants UI
         transport; BFF wraps `GET /api/tenants*`).
-  - [ ] Correct `_bmad-output/project-context.md` line 73 (retired `TenantsProjectionActor`).
+  - [x] Correct `_bmad-output/project-context.md` line 73 (retired `TenantsProjectionActor`).
 
 ## Dev Notes
 
@@ -138,3 +138,59 @@ and violates D6).
   already registered via `AddEventStoreReadModelStore()` in the Tenants host.
 - **Do not** re-introduce a projection actor or register Tenants capability with the EventStore
   gateway's `HandlerAwareQueryRouter` (drops ETags → violates D6).
+
+## Dev Agent Record
+
+### Implementation Plan
+
+- Replace the UI read path with a typed REST query client while preserving the existing gateway snapshot, freshness, and degraded-state model.
+- Carry primary read-model ETags from domain query handlers into `TenantsQueryController`, emit freshness headers, and honor strong `If-None-Match`.
+- Retire projection-actor routing references and add tests/evidence proving the REST route is the only Tenants UI query path.
+
+### Debug Log
+
+- Added `TenantQueryResult` metadata and handler ETag propagation, then wired `TenantsQueryController` to emit `ETag`, `X-Hexalith-Projection-Version`, and `X-Hexalith-Served-At`.
+- Preserved controller RBAC validation by explicitly running `ITenantValidator` and `IRbacValidator` before dispatching direct REST reads.
+- Reworked `TenantQueryGateway` to call `ITenantsQueryApiClient` over `GET /api/tenants*` paths, keeping previous snapshot preservation for 304 responses.
+- Updated integration-test query-handler adapters so `TenantsQueryControllerIntegrationTests` exercise in-process handlers without the retired projection actor path.
+- Validation passed for affected builds and focused/full executable suites listed in the evidence summary. The story-owned AC9 signal is warning-clean, but full Server.Tests remains blocked by existing documentation/AppHost checks for missing pubsub evidence and full IntegrationTests remains blocked by unrelated health-readiness contract drift.
+
+### Completion Notes
+
+- Tenant list, detail, my-tenants, user-tenants, global-administrators, and audit UI reads now use REST-backed Tenants domain-service endpoints instead of the EventStore generic query gateway.
+- REST query responses now expose strong ETags/freshness metadata derived from primary read-model state-store ETags and return 304 without a body on matching `If-None-Match`.
+- Dead tenant projection-routing contract was deleted, DI/AppHost now provide `Tenants:BaseAddress`, and source guards prevent reintroducing tenant projection-actor routing symbols in UI/Contracts.
+
+## File List
+
+- `_bmad-output/implementation-artifacts/3-5-tenant-query-gateway-rest-routing.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/tests/test-summary.md`
+- `_bmad-output/project-context.md`
+- `src/Hexalith.Tenants.AppHost/Program.cs`
+- `src/Hexalith.Tenants.Contracts/TenantProjectionRouting.cs` (deleted)
+- `src/Hexalith.Tenants.UI/Program.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantsQueryApiClient.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiClient.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiRequest.cs`
+- `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`
+- `src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs`
+- `src/Hexalith.Tenants/Queries/Handlers/GetTenantQueryHandler.cs`
+- `src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs`
+- `src/Hexalith.Tenants/Queries/Handlers/GetUserTenantsQueryHandler.cs`
+- `src/Hexalith.Tenants/Queries/Handlers/ListTenantsQueryHandler.cs`
+- `src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs`
+- `src/Hexalith.Tenants/Queries/TenantQueryResult.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/Fixtures/TenantsDaprTestFixture.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsQueryApiClientTests.cs`
+- `tests/test-summary.md`
+
+## Change Log
+
+- 2026-06-07T10:38:21+02:00 - Implemented REST-backed tenant query routing, ETag/freshness handling, DI/AppHost wiring, retired projection-actor routing, and added tests/evidence for Story 3.5.

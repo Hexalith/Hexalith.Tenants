@@ -32,8 +32,9 @@ public sealed class GetUserTenantsQueryHandler(
         string targetUserId = string.IsNullOrWhiteSpace(envelope.EntityId) ? envelope.UserId : envelope.EntityId;
 
         cancellationToken.ThrowIfCancellationRequested();
-        TenantIndexReadModel? indexModel = await GetStateAsync<TenantIndexReadModel>(
+        ReadModelEntry<TenantIndexReadModel>? indexEntry = await GetStateEntryAsync<TenantIndexReadModel>(
             TenantIndexProjectionKey, cancellationToken).ConfigureAwait(false);
+        TenantIndexReadModel? indexModel = indexEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
         // Run the admin check before any early return so cross-user lookups have comparable
@@ -53,7 +54,7 @@ public sealed class GetUserTenantsQueryHandler(
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
             cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
-            return CreateSuccessResult(SerializeToElement(empty), "tenant-index");
+            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexEntry?.ETag);
         }
 
         IEnumerable<KeyValuePair<string, TenantRole>> visibleUserTenants = GetVisibleUserTenants(
@@ -100,6 +101,6 @@ public sealed class GetUserTenantsQueryHandler(
             scope);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenant-index");
+        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexEntry?.ETag);
     }
 }

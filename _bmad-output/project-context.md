@@ -116,7 +116,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - **Never** add `sealed`/XML docs to command/event/rejection records (plain records) — but **do** use `sealed record` + `<summary>` for query response DTOs
 - **Never** throw for business failures in aggregates — return an `IRejectionEvent` (or `NoOp` for same-state)
-- **Never** register `AddEventStoreServer`/`AggregateActor` in the Tenants host — it's a domain service hosting only `TenantsProjectionActor`
+- **Never** register `AddEventStoreServer`/`AggregateActor` or a tenant projection actor in the Tenants host — it is a domain service with in-process tenant query handlers and REST read endpoints
 - **Never** reorder the MediatR pipeline (Validation → Authorization)
 - **Never** treat `TenantId`/`UserId` as ULIDs; **never** treat `SequenceNumber` as global ordering — dedup on `MessageId`
 - **Never** edit/delete events, projections, or the state store to fix data — submit compensating commands

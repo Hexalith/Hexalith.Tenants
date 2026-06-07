@@ -33,8 +33,9 @@ public sealed class GetTenantUsersQueryHandler(
             return InvalidCursorResult(GetTenantUsersQuery.QueryType, "get-tenant-users", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
-        TenantReadModel? model = await GetStateAsync<TenantReadModel>(
+        ReadModelEntry<TenantReadModel>? tenantEntry = await GetStateEntryAsync<TenantReadModel>(
             TenantProjectionKeyPrefix + envelope.AggregateId, cancellationToken).ConfigureAwait(false);
+        TenantReadModel? model = tenantEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
@@ -60,6 +61,6 @@ public sealed class GetTenantUsersQueryHandler(
 
         cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = SerializeToElement(result);
-        return CreateSuccessResult(payload, "tenants");
+        return CreateSuccessResult(payload, "tenants", tenantEntry?.ETag);
     }
 }

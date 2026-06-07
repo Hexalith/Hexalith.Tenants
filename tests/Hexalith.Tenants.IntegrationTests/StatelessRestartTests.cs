@@ -4,18 +4,11 @@ using System.Text.Json;
 
 using Dapr.Actors;
 using Dapr.Actors.Client;
-using Dapr.Client;
 
-using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Server.Actors;
-using Hexalith.EventStore.Server.Queries;
-using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Commands;
-using Hexalith.Tenants.Contracts.Enums;
-using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
-using Hexalith.Tenants.Server.Projections;
 
 using Shouldly;
 
@@ -33,8 +26,6 @@ namespace Hexalith.Tenants.IntegrationTests;
 [Trait("Category", "Integration")]
 public class StatelessRestartTests : IDisposable {
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
-    private const string StateStoreName = "statestore";
-    private const string TenantProjectionKeyPrefix = "projection:tenants:";
 
     private readonly IDisposable _daprTestLease;
     private readonly TenantsDaprTestFixture _fixture;
@@ -90,75 +81,6 @@ public class StatelessRestartTests : IDisposable {
             $"DisableTenant should be accepted after actor reactivation but got: {disableResult.ErrorMessage}"
             + (_fixture.LastProcessDiagnostic is not null ? $"\nServer diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
         disableResult.EventCount.ShouldBe(1, "DisableTenant should produce 1 TenantDisabled event");
-    }
-
-    /// <summary>
-    /// Story 7.5 AC2 (read-model lane): a tenant projection read model persisted to the shared DAPR
-    /// state store is reconstructed by a fresh Tenants projection actor instance and returned through
-    /// the production query path. This exercises production EventStore/DAPR state semantics (real
-    /// Redis-backed state store, production projection key scheme, production read-model serialization,
-    /// and the TenantsProjectionActor authorization/query path) rather than in-memory aggregate state,
-    /// direct DAPR readback, or an InMemoryTenantService replay.
-    /// </summary>
-    [DaprFact]
-    public async Task TenantProjection_QueryIsReconstructedFromStateStore_ByFreshProjectionActorInstance() {
-        _fixture.SkipIfUnavailable();
-
-        // Arrange — an authoring instance persists a tenant read model to the shared durable state store.
-        string tenantId = $"t-proj-{Guid.NewGuid():N}";
-        string projectionKey = TenantProjectionKeyPrefix + tenantId;
-        var readModel = new TenantReadModel {
-            TenantId = tenantId,
-            Name = "Projection Reload Corp",
-            Description = "Read-model reconstruction verification",
-            Status = TenantStatus.Active,
-            Members = { ["owner-user"] = TenantRole.TenantOwner },
-            Configuration = { ["feature.enabled"] = "true" },
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
-
-        using (DaprClient authoringClient = new DaprClientBuilder()
-            .UseHttpEndpoint(_fixture.DaprHttpEndpoint)
-            .Build()) {
-            await authoringClient.SaveStateAsync(StateStoreName, projectionKey, readModel);
-        }
-
-        string projectionActorId = QueryActorIdHelper.DeriveActorId(
-            TenantProjectionRouting.ActorTypeName,
-            "system",
-            tenantId,
-            []);
-        await DeactivateActorAsync(TenantProjectionRouting.ActorTypeName, projectionActorId);
-
-        var actorProxyFactory = new ActorProxyFactory(
-            new ActorProxyOptions { HttpEndpoint = _fixture.DaprHttpEndpoint });
-        IDaprProjectionActor projectionActor = actorProxyFactory.CreateActorProxy<IDaprProjectionActor>(
-            new ActorId(projectionActorId),
-            TenantProjectionRouting.ActorTypeName);
-        var query = new QueryEnvelope(
-            "system",
-            GetTenantQuery.Domain,
-            tenantId,
-            GetTenantQuery.QueryType,
-            [],
-            Guid.NewGuid().ToString(),
-            "owner-user",
-            tenantId);
-
-        // Act - a fresh projection actor instance serves the tenant detail query from durable state.
-        QueryResult result = await projectionActor.QueryAsync(query);
-
-        // Assert - the query path recovered and returned the previously persisted projection state.
-        result.Success.ShouldBeTrue(result.ErrorMessage);
-        JsonElement payload = result.GetPayload();
-        payload.GetProperty("tenantId").GetString().ShouldBe(tenantId);
-        payload.GetProperty("name").GetString().ShouldBe("Projection Reload Corp");
-        payload.GetProperty("status").GetString().ShouldBe(nameof(TenantStatus.Active));
-        payload.GetProperty("configuration").GetProperty("feature.enabled").GetString().ShouldBe("true");
-        payload.GetProperty("members").EnumerateArray()
-            .ShouldContain(member =>
-                member.GetProperty("userId").GetString() == "owner-user"
-                && member.GetProperty("role").GetString() == nameof(TenantRole.TenantOwner));
     }
 
     /// <summary>

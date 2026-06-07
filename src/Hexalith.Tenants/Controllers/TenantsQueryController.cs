@@ -1,6 +1,9 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
+using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Contracts.Authorization;
 using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Contracts.Queries;
@@ -29,7 +32,11 @@ namespace Hexalith.Tenants.Controllers;
 [Tags("Tenants")]
 public sealed partial class TenantsQueryController(
     IQueryCursorCodec cursorCodec,
+    ITenantValidator tenantValidator,
+    IRbacValidator rbacValidator,
     ILogger<TenantsQueryController> logger) : ControllerBase {
+    internal const string ProjectionVersionHeaderName = "X-Hexalith-Projection-Version";
+    internal const string ServedAtHeaderName = "X-Hexalith-Served-At";
     private const string SystemTenant = "system";
     private static readonly System.Text.RegularExpressions.Regex _identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -342,11 +349,24 @@ public sealed partial class TenantsQueryController(
                     || errorMessage.Contains("not yet implemented", StringComparison.OrdinalIgnoreCase)));
 
     private async Task<IActionResult> DispatchAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        IActionResult? authorizationFailure = await ValidateAuthorizationAsync(envelope, cancellationToken).ConfigureAwait(false);
+        if (authorizationFailure is not null) {
+            return authorizationFailure;
+        }
+
         QueryResult result = await DomainQueryDispatcher
             .ExecuteAsync(HttpContext.RequestServices, envelope, cancellationToken)
             .ConfigureAwait(false);
 
         if (result.Success) {
+            QueryResponseMetadata? metadata = result is TenantQueryResult tenantResult ? tenantResult.Metadata : null;
+            if (metadata is not null) {
+                ApplyFreshnessHeaders(metadata);
+                if (IsNotModified(metadata.ETag)) {
+                    return StatusCode(StatusCodes.Status304NotModified);
+                }
+            }
+
             return Ok(result.GetPayload());
         }
 
@@ -389,8 +409,88 @@ public sealed partial class TenantsQueryController(
             QueryProblemReasonCodes.InternalError);
     }
 
+    private async Task<IActionResult?> ValidateAuthorizationAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        TenantValidationResult tenantResult = await tenantValidator
+            .ValidateAsync(User, envelope.TenantId, cancellationToken, envelope.AggregateId)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("ITenantValidator.ValidateAsync returned null.");
+        if (!tenantResult.IsAuthorized) {
+            return QueryProblem(
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "You do not have permission to access this resource.",
+                envelope.CorrelationId,
+                tenantResult.ReasonCode.ToReasonCode());
+        }
+
+        RbacValidationResult rbacResult = await rbacValidator
+            .ValidateAsync(User, envelope.TenantId, envelope.Domain, envelope.QueryType, "query", cancellationToken, envelope.AggregateId)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("IRbacValidator.ValidateAsync returned null.");
+        if (!rbacResult.IsAuthorized) {
+            return QueryProblem(
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "You do not have permission to access this resource.",
+                envelope.CorrelationId,
+                rbacResult.ReasonCode.ToReasonCode());
+        }
+
+        return null;
+    }
+
     private string GetCorrelationId()
         => Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+
+    private void ApplyFreshnessHeaders(QueryResponseMetadata metadata) {
+        if (!string.IsNullOrWhiteSpace(metadata.ETag)) {
+            Response.Headers.ETag = QuoteStrongETag(metadata.ETag);
+        }
+
+        string? projectionVersion = string.IsNullOrWhiteSpace(metadata.ProjectionVersion)
+            ? metadata.ETag
+            : metadata.ProjectionVersion;
+        if (!string.IsNullOrWhiteSpace(projectionVersion)) {
+            Response.Headers[ProjectionVersionHeaderName] = projectionVersion;
+        }
+
+        if (metadata.ServedAt is not null) {
+            Response.Headers[ServedAtHeaderName] = metadata.ServedAt.Value.ToString("O", CultureInfo.InvariantCulture);
+        }
+    }
+
+    private bool IsNotModified(string? currentETag) {
+        if (string.IsNullOrWhiteSpace(currentETag)) {
+            return false;
+        }
+
+        string? ifNoneMatch = Request.Headers.IfNoneMatch.ToString();
+        if (string.IsNullOrWhiteSpace(ifNoneMatch)) {
+            return false;
+        }
+
+        foreach (string candidate in ifNoneMatch.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)) {
+            if (candidate == "*" || candidate.StartsWith("W/", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (EntityTagHeaderValue.TryParse(candidate, out EntityTagHeaderValue? parsed)
+                && parsed is not null
+                && !parsed.IsWeak
+                && string.Equals(parsed.Tag.Trim('"'), currentETag, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            if (string.Equals(candidate.Trim('"'), currentETag, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string QuoteStrongETag(string eTag)
+        => "\"" + eTag.Trim().Trim('"').Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
 
     private IActionResult QueryProblem(int statusCode, string title, string detail, string correlationId, string? reasonCode) {
         var problemDetails = new ProblemDetails {

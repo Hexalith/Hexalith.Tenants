@@ -215,3 +215,23 @@
 - E2E tests generated for the implemented Blazor UI surface using the existing xUnit v3/bUnit framework.
 - Tests use standard framework APIs, semantic/stable selectors, clear descriptions, no hardcoded waits or sleeps, and independent test-local gateway/query doubles.
 - Summary includes coverage metrics and validation evidence.
+
+## Story 3.5 Evidence Addendum
+
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` - Covers the REST-backed tenant query gateway for list, detail, my-tenants, user-tenants, global administrators, and audit paths, including endpoint/path construction, literal tenant/user id preservation, cursor/page-size pass-through, `If-None-Match` forwarding, 304 snapshot preservation, stale/degraded/not-modified handling, and safe error-to-state mapping.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsQueryApiClientTests.cs` - Covers the typed `HttpClient` query client for GET-only transport, strong ETag forwarding, projection-version/served-at metadata capture, 304 no-body handling, and ProblemDetails-to-gateway-exception mapping without requiring user-facing raw payload exposure.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` - Covers the REST query controller ETag/freshness contract, matching `If-None-Match` -> 304 with no body, mismatched `If-None-Match` -> 200 with the current ETag, RBAC authorization before dispatch, identifier/cursor guards, and typed projection route forwarding through in-process query handlers.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs` - Covers primary read-model ETag propagation for list, detail, users, user-tenants, and audit query handlers.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs` - Adds a guard that UI and Contracts source no longer reference tenant projection-actor routing symbols.
+- Story 3.5 story-owned acceptance coverage: AC1-8 are covered across REST controller tests, handler ETag tests, UI gateway/API-client tests, AppHost/UI DI build validation, source guard assertions, and documentation/evidence updates. AC9 story-owned build/test signal is warning-clean; full Tier 2 caveat is documented below.
+- Story 3.5 validation (2026-06-07T10:37:08+02:00): affected builds passed with 0 warnings and 0 errors for UI.Tests, AppHost, Contracts.Tests, IntegrationTests, Server.Tests, Testing.Tests, and Client.Tests using `MSBUILDDISABLENODEREUSE=1 dotnet build ... -c Release -m:1 --no-restore`. xUnit v3 executable fallback passed: UI.Tests 644/644, focused TenantsQueryGateway/TenantsQueryApiClient 69/69, focused handler ETag tests 5/5, full Contracts.Tests 106/106, full Client.Tests 47/47, full Testing.Tests 181/181, and full `TenantsQueryControllerIntegrationTests` 95/95.
+- Broader regression signal: full Server.Tests was attempted and remains blocked by existing documentation/AppHost evidence checks for missing `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml` plus stale deployment-readiness summary expectations. Full IntegrationTests was attempted and is down to existing unrelated health-readiness contract drift (`dapr-statestore` vs current `dapr-statestore-tenants` registration and development JSON exception-sanitization behavior); DAPR-dependent rows skip when local DAPR prerequisites are unavailable.
+
+## Story 3.5 Checklist Result
+
+- API tests generated for the five Tenants REST query endpoints and conditional-read behavior.
+- E2E-style gateway workflow tests generated through existing xUnit v3 service-level UI gateway coverage.
+- Tests use standard xUnit v3, Shouldly, NSubstitute/test-local handlers, WebApplicationFactory, and existing query doubles.
+- Tests cover happy path, stale/degraded/not-modified, unauthorized/forbidden/not-found/unavailable, invalid cursor/identifier, and support-safety boundaries.
+- Tests use stable semantic assertions and no hardcoded waits or sleeps.
+- Summary includes coverage metrics and validation evidence.

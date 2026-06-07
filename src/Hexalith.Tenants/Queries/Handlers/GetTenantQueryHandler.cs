@@ -27,8 +27,9 @@ public sealed class GetTenantQueryHandler(
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        TenantReadModel? model = await GetStateAsync<TenantReadModel>(
+        ReadModelEntry<TenantReadModel>? tenantEntry = await GetStateEntryAsync<TenantReadModel>(
             TenantProjectionKeyPrefix + envelope.AggregateId, cancellationToken).ConfigureAwait(false);
+        TenantReadModel? model = tenantEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
@@ -52,6 +53,6 @@ public sealed class GetTenantQueryHandler(
             model.CreatedAt);
 
         JsonElement payload = SerializeToElement(detail);
-        return CreateSuccessResult(payload, "tenants");
+        return CreateSuccessResult(payload, "tenants", tenantEntry?.ETag);
     }
 }

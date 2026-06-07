@@ -41,7 +41,7 @@ public sealed class TenantQueryGatewayTests
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
-        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.Request.Path.ShouldBe("/api/tenants/tenant.alpha");
         query.IfNoneMatch.ShouldBe("\"known\"");
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
@@ -160,8 +160,7 @@ public sealed class TenantQueryGatewayTests
 
         SubmittedQuery listQuery = client.SubmittedQueries[0];
         listQuery.Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
-        listQuery.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
-        listQuery.Request.Paging.ShouldBeNull();
+        listQuery.Request.Path.ShouldBe("/api/tenants?cursor=opaque-cursor&pageSize=10");
         JsonElement payload = listQuery.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
         payload.TryGetProperty("offset", out _).ShouldBeFalse();
@@ -207,7 +206,7 @@ public sealed class TenantQueryGatewayTests
         query.Request.EntityId.ShouldBe("global-administrators");
         query.Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetGlobalAdministratorsQuery.ProjectionType);
-        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.Request.Path.ShouldBe("/api/global-administrators?cursor=opaque-cursor&pageSize=10");
         query.IfNoneMatch.ShouldBe("\"known\"");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
@@ -329,8 +328,8 @@ public sealed class TenantQueryGatewayTests
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetTenantAuditQuery.ProjectionType);
-        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
-        query.Request.Paging.ShouldBeNull();
+        query.Request.Path.ShouldStartWith("/api/tenants/tenant.alpha/audit?");
+        query.Request.Path.ShouldContain("category=Access");
         query.IfNoneMatch.ShouldBe("\"known\"");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("from").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture));
@@ -680,8 +679,7 @@ public sealed class TenantQueryGatewayTests
         query.Request.AggregateId.ShouldBe("index");
         query.Request.EntityId.ShouldBe("user.self");
         query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
-        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
-        query.Request.Paging.ShouldBeNull();
+        query.Request.Path.ShouldBe("/api/users/user.self/tenants?cursor=signed-cursor&pageSize=12");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-cursor");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
@@ -734,8 +732,7 @@ public sealed class TenantQueryGatewayTests
         query.Request.AggregateId.ShouldBe("index");
         query.Request.EntityId.ShouldBe("target.user@example");
         query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
-        query.Request.ProjectionActorType.ShouldBe(TenantProjectionRouting.ActorTypeName);
-        query.Request.Paging.ShouldBeNull();
+        query.Request.Path.ShouldBe("/api/users/target.user%40example/tenants?cursor=signed-target-cursor&pageSize=12");
         query.IfNoneMatch.ShouldBe("\"known\"");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-target-cursor");
@@ -998,23 +995,14 @@ public sealed class TenantQueryGatewayTests
         return new TenantQueryGateway(client, userContext);
     }
 
-    private sealed class CapturingGatewayClient : IEventStoreGatewayClient
+    private sealed class CapturingGatewayClient : ITenantsQueryApiClient
     {
         private readonly Queue<object> _responses = new();
 
         public List<SubmittedQuery> SubmittedQueries { get; } = [];
 
-        public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<EventStoreQueryResult> SubmitQueryAsync(
-            SubmitQueryRequest request,
-            string? ifNoneMatch = null,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(
-            SubmitQueryRequest request,
+        public Task<EventStoreQueryResult<T>> SendAsync<T>(
+            TenantsQueryApiRequest request,
             string? ifNoneMatch = null,
             CancellationToken cancellationToken = default)
         {
@@ -1027,9 +1015,6 @@ public sealed class TenantQueryGatewayTests
 
             return Task.FromResult((EventStoreQueryResult<T>)next);
         }
-
-        public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
 
         public void EnqueueQueryResult<T>(
             T payload,
@@ -1098,7 +1083,7 @@ public sealed class TenantQueryGatewayTests
             => _responses.Enqueue(exception);
     }
 
-    private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);
+    private sealed record SubmittedQuery(TenantsQueryApiRequest Request, string? IfNoneMatch);
 
     private static TenantDetail Detail(string tenantId)
         => new(

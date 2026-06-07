@@ -45,8 +45,9 @@ public sealed class GetTenantAuditQueryHandler(
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        TenantAuditReadModel? model = await GetStateAsync<TenantAuditReadModel>(
+        ReadModelEntry<TenantAuditReadModel>? auditEntry = await GetStateEntryAsync<TenantAuditReadModel>(
             TenantAuditProjectionKeyPrefix + envelope.AggregateId, cancellationToken).ConfigureAwait(false);
+        TenantAuditReadModel? model = auditEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
         // NFR5 defense-in-depth: a projection bug must not leak rows from another tenant.
@@ -70,6 +71,6 @@ public sealed class GetTenantAuditQueryHandler(
             GetTenantAuditQuery.QueryType,
             scope);
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenants");
+        return CreateSuccessResult(SerializeToElement(result), "tenants", auditEntry?.ETag);
     }
 }

@@ -50,6 +50,7 @@ IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>(
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
 EndpointReference eventStoreHttps = eventStore.GetEndpoint("https");
+EndpointReference tenantsHttps = tenants.GetEndpoint("https");
 _ = adminUI
     .WithReference(adminServer)
     .WaitFor(adminServer)
@@ -61,6 +62,7 @@ IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenants
     .WithReference(eventStore)
     .WaitFor(tenants)
     .WaitFor(eventStore)
+    .WithEnvironment("Tenants__BaseAddress", tenantsHttps)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
     .WithExternalHttpEndpoints();
 

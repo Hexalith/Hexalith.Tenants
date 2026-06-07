@@ -33,14 +33,15 @@ public sealed class ListTenantsQueryHandler(
             return InvalidCursorResult(ListTenantsQuery.QueryType, "list-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
-        TenantIndexReadModel? indexModel = await GetStateAsync<TenantIndexReadModel>(
+        ReadModelEntry<TenantIndexReadModel>? indexEntry = await GetStateEntryAsync<TenantIndexReadModel>(
             TenantIndexProjectionKey, cancellationToken).ConfigureAwait(false);
+        TenantIndexReadModel? indexModel = indexEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
         if (indexModel is null) {
             cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<TenantSummary> empty = new([], null, false);
-            return CreateSuccessResult(SerializeToElement(empty), "tenant-index");
+            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexEntry?.ETag);
         }
 
         bool isGlobalAdmin = await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false);
@@ -67,6 +68,6 @@ public sealed class ListTenantsQueryHandler(
             scope);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenant-index");
+        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexEntry?.ETag);
     }
 }

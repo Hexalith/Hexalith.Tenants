@@ -197,7 +197,7 @@ public class TenantsQueryControllerIntegrationTests {
         query.AggregateId.ShouldBe("index");
         query.QueryType.ShouldBe(ListTenantsQuery.QueryType);
         query.EntityId.ShouldBe("test-user");
-        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.ProjectionType.ShouldBe(ListTenantsQuery.ProjectionType);
         ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
     }
 
@@ -243,6 +243,75 @@ public class TenantsQueryControllerIntegrationTests {
         result.GetProperty("items").GetArrayLength().ShouldBe(0);
         result.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
         result.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ListTenants_emits_strong_etag_and_freshness_headers_from_query_metadata() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(payload, "tenant-index", "index-etag-1"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe("\"index-etag-1\"");
+        response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe("index-etag-1");
+        response.Headers.GetValues("X-Hexalith-Served-At").ShouldHaveSingleItem().ShouldNotBeNullOrWhiteSpace();
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task ListTenants_matching_if_none_match_returns_304_with_etag_and_no_body() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(payload, "tenant-index", "index-etag-1"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.IfNoneMatch.ParseAdd("\"index-etag-1\"");
+
+        HttpResponseMessage response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotModified);
+        response.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe("\"index-etag-1\"");
+        response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe("index-etag-1");
+        string body = await response.Content.ReadAsStringAsync();
+        body.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ListTenants_mismatched_if_none_match_returns_200_with_current_etag() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new {
+            items = new[] { new { tenantId = "tenant-001", name = "Tenant One", status = "Active" } },
+            cursor = (string?)null,
+            hasMore = false,
+        });
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(payload, "tenant-index", "index-etag-2"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.IfNoneMatch.ParseAdd("\"index-etag-1\"");
+
+        HttpResponseMessage response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe("\"index-etag-2\"");
+        response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe("index-etag-2");
+        JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        result.GetProperty("items").GetArrayLength().ShouldBe(1);
     }
 
     [Fact]
@@ -598,7 +667,7 @@ public class TenantsQueryControllerIntegrationTests {
         query.QueryType.ShouldBe(GetTenantQuery.QueryType);
         query.EntityId.ShouldBe("tenant-1");
         query.UserId.ShouldBe("admin-user");
-        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.ProjectionType.ShouldBe(GetTenantQuery.ProjectionType);
         query.Payload.ShouldBeEmpty();
     }
 
@@ -768,7 +837,7 @@ public class TenantsQueryControllerIntegrationTests {
         query.QueryType.ShouldBe(GetTenantUsersQuery.QueryType);
         query.EntityId.ShouldBe("tenant-1");
         query.UserId.ShouldBe("test-user");
-        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.ProjectionType.ShouldBe(GetTenantUsersQuery.ProjectionType);
         ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
         ReadPayloadCursor(query).ShouldBeNull();
     }
@@ -935,7 +1004,7 @@ public class TenantsQueryControllerIntegrationTests {
         query.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
         query.EntityId.ShouldBe("user-2");
         query.UserId.ShouldBe("test-user");
-        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
         ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.StandardDefaultPageSize);
         ReadPayloadCursor(query).ShouldBeNull();
     }
@@ -1370,7 +1439,7 @@ public class TenantsQueryControllerIntegrationTests {
         query.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
         query.EntityId.ShouldBe("tenant-1");
         query.UserId.ShouldBe("test-user");
-        query.ProjectionType.ShouldBe(TenantProjectionRouting.ActorTypeName);
+        query.ProjectionType.ShouldBe(GetTenantAuditQuery.ProjectionType);
         ReadPayloadPageSize(query).ShouldBe(TenantQueryPaginationPolicy.AuditMaximumPageSize);
         ReadPayloadCursor(query).ShouldBeNull();
         ReadPayloadDateTimeOffset(query, "from").ShouldBe(from);
@@ -1469,6 +1538,51 @@ public class TenantsQueryControllerIntegrationTests {
                 return result;
             });
         return router;
+    }
+
+    private static void RegisterRouterBackedDomainQueryHandlers(IServiceCollection services, IQueryRouter router) {
+        _ = services.RemoveAll<IDomainQueryHandler>();
+        foreach ((string Domain, string QueryType) handler in KnownQueryHandlers()) {
+            _ = services.AddSingleton<IDomainQueryHandler>(new RouterBackedDomainQueryHandler(router, handler.Domain, handler.QueryType));
+        }
+
+        _ = services.RemoveAll<IQueryRouter>();
+        _ = services.AddSingleton(router);
+    }
+
+    private static IEnumerable<(string Domain, string QueryType)> KnownQueryHandlers() {
+        yield return (ListTenantsQuery.Domain, ListTenantsQuery.QueryType);
+        yield return (GetTenantQuery.Domain, GetTenantQuery.QueryType);
+        yield return (GetTenantUsersQuery.Domain, GetTenantUsersQuery.QueryType);
+        yield return (GetUserTenantsQuery.Domain, GetUserTenantsQuery.QueryType);
+        yield return (GetTenantAuditQuery.Domain, GetTenantAuditQuery.QueryType);
+        yield return (GetGlobalAdministratorsQuery.Domain, GetGlobalAdministratorsQuery.QueryType);
+    }
+
+    private static string? ResolveProjectionType(QueryEnvelope query) {
+        if (string.Equals(query.QueryType, ListTenantsQuery.QueryType, StringComparison.Ordinal)) {
+            return ListTenantsQuery.ProjectionType;
+        }
+
+        if (string.Equals(query.QueryType, GetTenantQuery.QueryType, StringComparison.Ordinal)) {
+            return GetTenantQuery.ProjectionType;
+        }
+
+        if (string.Equals(query.QueryType, GetTenantUsersQuery.QueryType, StringComparison.Ordinal)) {
+            return GetTenantUsersQuery.ProjectionType;
+        }
+
+        if (string.Equals(query.QueryType, GetUserTenantsQuery.QueryType, StringComparison.Ordinal)) {
+            return GetUserTenantsQuery.ProjectionType;
+        }
+
+        if (string.Equals(query.QueryType, GetTenantAuditQuery.QueryType, StringComparison.Ordinal)) {
+            return GetTenantAuditQuery.ProjectionType;
+        }
+
+        return string.Equals(query.QueryType, GetGlobalAdministratorsQuery.QueryType, StringComparison.Ordinal)
+            ? GetGlobalAdministratorsQuery.ProjectionType
+            : null;
     }
 
     private static int ReadPayloadPageSize(SubmitQuery query) {
@@ -1608,8 +1722,7 @@ public class TenantsQueryControllerIntegrationTests {
                         ConfigureSmokeJwtBearer);
                 }
 
-                _ = services.RemoveAll<IQueryRouter>();
-                _ = services.AddSingleton(router);
+                RegisterRouterBackedDomainQueryHandlers(services, router);
             });
     }
 
@@ -1618,8 +1731,7 @@ public class TenantsQueryControllerIntegrationTests {
             _ = services.AddAuthentication(TestAuthHandler.SchemeName)
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
 
-            _ = services.RemoveAll<IQueryRouter>();
-            _ = services.AddSingleton(router);
+            RegisterRouterBackedDomainQueryHandlers(services, router);
         });
     }
 
@@ -1638,9 +1750,39 @@ public class TenantsQueryControllerIntegrationTests {
             _ = services.AddAuthentication(TestAuthHandler.SchemeName)
                 .AddScheme<AuthenticationSchemeOptions, NoSubjectTestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
 
-            _ = services.RemoveAll<IQueryRouter>();
-            _ = services.AddSingleton(router);
+            RegisterRouterBackedDomainQueryHandlers(services, router);
         });
+    }
+
+    private sealed class RouterBackedDomainQueryHandler(
+        IQueryRouter router,
+        string domain,
+        string queryType) : IDomainQueryHandler {
+        public string Domain { get; } = domain;
+
+        public string QueryType { get; } = queryType;
+
+        public async Task<QueryResult> ExecuteAsync(QueryEnvelope query, CancellationToken cancellationToken) {
+            var submitQuery = new SubmitQuery(
+                query.TenantId,
+                query.Domain,
+                query.AggregateId,
+                query.QueryType,
+                query.Payload,
+                query.CorrelationId,
+                query.UserId,
+                query.EntityId,
+                ResolveProjectionType(query));
+
+            QueryRouterResult result = await router.RouteQueryAsync(submitQuery, cancellationToken);
+            if (result.Success) {
+                return result.Payload is { } payload
+                    ? QueryResult.FromPayload(payload, result.ProjectionType)
+                    : QueryResult.Failure("Query router returned no payload.");
+            }
+
+            return QueryResult.Failure(result.ErrorMessage ?? "Query failed.");
+        }
     }
 
     private sealed class TestAuthHandler(
