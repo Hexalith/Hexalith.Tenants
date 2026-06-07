@@ -7,6 +7,7 @@ public enum TenantListSurfaceKind
     Empty,
     FilteredEmpty,
     Error,
+    Unauthorized,
     Stale,
     Degraded,
 }
