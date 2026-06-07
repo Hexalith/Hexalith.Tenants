@@ -23,3 +23,27 @@
 - Preserve the xUnit v3 executable fallback command in story validation notes until the .NET 10 MTP/VSTest issue is resolved.
 - Treat localized support-safe copy as part of acceptance for every audit, command, and correction UI change.
 - Start a focused follow-up for Story 5.6 terminal-state focus movement before generalizing correction patterns.
+
+## Run: 2026-06-07T07:49:49Z
+
+**Epic:** Hexalith.Tenants - Epic Breakdown
+**Stories:** 4.3
+
+### Patterns Observed
+- Stop-hook recovery correctly resumed the active orchestration without user input and completed the remaining Story 4.3 review/finalization path.
+- QA guardrail generation found useful additional coverage for command API routing, read/command surface fail-closed behavior, cancel recovery, and no optimistic row insertion.
+- Senior review auto-fixes were small but important: whitespace-only user ids, read-surface query suppression, and platform-specific gateway unavailable copy.
+
+### Code Review Insights
+- Common issues: literal identifier validation, fail-closed read-surface behavior, and support-safe platform wording.
+- Average cycles to clean: 1 verified review cycle.
+
+### Timing Estimates
+- create-story: already complete when resumed.
+- dev-story: already complete when resumed.
+- code-review: one cycle, with focused UI and integration validation.
+
+### Recommendations for Future Runs
+- Add whitespace-only validation cases whenever a command accepts caller-supplied literal identifiers.
+- For BFF capability flags, assert both the visible unavailable reason and that protected projection gateways are not queried.
+- Keep story evidence synchronized with the final test counts after review auto-fixes.
