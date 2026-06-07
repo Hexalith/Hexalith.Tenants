@@ -147,6 +147,26 @@
 - [x] Tests are independent and order-free.
 - [x] Test summary created with coverage metrics.
 
+## Story 4.3 Evidence Addendum
+
+- [x] `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` - Adds API coverage for `SetGlobalAdministrator` through `/api/v1/commands`, fixed `system/global-administrators/global-administrators` routing, literal `{ UserId }` payload without tenant membership fields, global-admin caller capture, accepted response correlation, and `GlobalAdministratorAlreadyExistsRejection` ProblemDetails without success or AlreadyApplied copy.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` - Extends grant-flow workflow coverage for read-surface-unavailable and command-surface-unavailable fail-closed blocking, no command submission, no read projection query when read support is unavailable, missing-support audit copy, assertive live-region behavior, cancel recovery, literal user id clearing, and no optimistic administrator row insertion.
+- [x] Existing Story 4.3 tests cover gateway fixed-scope command submission, ULID message id creation, blank and whitespace-only user id rejection, safe rejection mapping, platform-specific gateway-unavailable copy, status lookup copy, projection-confirmed success, no projection-free success, terminal lifecycle states, one-at-a-time locking, SignalR nudge-only behavior, resource parity, forced-colors/focus hooks, and support-safe rendered text.
+- Story 4.3 acceptance criteria: 8/8 covered across command API integration tests, UI command gateway tests, global-administrator grant component tests, lifecycle reducer tests, resource/style assertions, and fixed global-administrator query-route tests from Story 4.2.
+- Story 4.3 critical error cases covered: blank and whitespace-only user id validation, read support unavailable, command support unavailable, stale/degraded freshness, unauthorized/indeterminate platform authority reflection, duplicate target user rejection, insufficient permissions, publish failure, timeout, status unavailable, completed command without projection evidence, SignalR nudge without confirmation, in-flight command locking, cancel without submit, and no raw payload/token/correlation leakage in rendered grant copy.
+- Story 4.3 QA generation validation (2026-06-07T09:44:12+02:00): `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors. `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors. xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 641 total, 0 errors, 0 failed, 0 skipped. Focused integration executable fallback for the two Story 4.3 command API methods passed: 2 total, 0 errors, 0 failed, 0 skipped.
+
+## Story 4.3 Checklist
+
+- [x] API tests generated where applicable.
+- [x] E2E-style workflow tests generated for the implemented UI surface using the existing xUnit v3/bUnit framework.
+- [x] Tests use standard xUnit v3, Shouldly, NSubstitute, bUnit, and existing integration-test APIs.
+- [x] Tests cover happy path and critical validation/rejection/unavailable/lifecycle cases.
+- [x] Tests use stable selectors and accessibility-oriented state assertions.
+- [x] No hardcoded waits or sleeps.
+- [x] Tests are independent and order-free.
+- [x] Test summary created with coverage metrics.
+
 ## Story 5.4 Evidence Addendum
 
 - [x] API tests: not applicable. Story 5.4 adds Tenants UI state, localized copy, shared Blazor controls, and command/receipt rendering paths; it adds no backend endpoint, query contract, direct browser API call, token storage, or command dispatch surface.

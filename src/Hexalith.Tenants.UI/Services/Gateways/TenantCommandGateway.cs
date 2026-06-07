@@ -295,7 +295,7 @@ internal sealed class TenantCommandGateway(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.UserId))
+        if (string.IsNullOrWhiteSpace(request.UserId))
         {
             return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
         }
@@ -617,7 +617,7 @@ internal sealed class TenantCommandGateway(
             (int)HttpStatusCode.BadRequest
                 => TenantCommandSubmissionResult.Failed("The global administrator grant request was not accepted. Check the visible user id and try again."),
             (int)HttpStatusCode.ServiceUnavailable
-                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+                => TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."),
             _ => TenantCommandSubmissionResult.Failed("Global administrator command submission failed before it could be verified."),
         };
     }

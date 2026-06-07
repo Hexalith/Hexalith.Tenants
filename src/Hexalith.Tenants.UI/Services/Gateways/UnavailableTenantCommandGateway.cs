@@ -42,7 +42,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministratorCommandRequest request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway configuration is missing."));
 
     public Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,

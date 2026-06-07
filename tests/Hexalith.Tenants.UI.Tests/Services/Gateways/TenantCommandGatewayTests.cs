@@ -47,6 +47,7 @@ public sealed class TenantCommandGatewayTests
 
     [Theory]
     [InlineData("")]
+    [InlineData("   ")]
     [InlineData(null)]
     public async Task Set_global_administrator_validation_failure_does_not_submit_to_eventstore(string? userId)
     {
@@ -63,6 +64,30 @@ public sealed class TenantCommandGatewayTests
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
         result.SafeMessage.ShouldNotBeNull().ShouldContain("User id");
         client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Set_global_administrator_service_unavailable_uses_platform_governance_copy()
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.ServiceUnavailable,
+            "gateway unavailable",
+            detail: "raw payload bearer-token stack trace correlation-global-admin"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
+            new SetGlobalAdministratorCommandRequest("target-user"),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain("Global administrator command gateway");
+        safeMessage.ShouldNotContain("Tenant command gateway");
+        safeMessage.ShouldNotContain("target-user", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
     }
 
     [Theory]

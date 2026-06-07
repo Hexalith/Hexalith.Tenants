@@ -393,6 +393,12 @@
             return;
         }
 
+        if (!BffComposition.IsReadSurfaceConnected)
+        {
+            _snapshot = GlobalAdministratorsSnapshot.Unavailable();
+            return;
+        }
+
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 

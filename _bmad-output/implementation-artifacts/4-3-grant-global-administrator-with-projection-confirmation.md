@@ -5,7 +5,7 @@ created: 2026-06-06T15:05:49+02:00
 
 # Story 4.3: Grant Global Administrator with Projection Confirmation
 
-Status: review
+Status: done
 
 <!-- Note: Created by the BMAD create-story workflow for Story 4.3. -->
 
@@ -182,6 +182,12 @@ GPT-5 Codex
 - Broader validation: Contracts.Tests passed 105/105, Client.Tests passed 47/47, and Testing.Tests passed 181/181 using xUnit v3 executables.
 - Broader validation: Server.Tests executable was attempted and failed 6 known pre-existing documentation/AppHost evidence checks for missing `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml` and stale Story 7.6A deployment-readiness evidence; no failure touches Story 4.3 UI/gateway files.
 - Broader validation: IntegrationTests executable was attempted and failed 54 tests with DAPR/InternalServerError behavior in this sandbox after 34 DAPR prerequisite skips; this matches the repo's existing environment-bound integration signal and does not touch Story 4.3 UI/gateway files.
+- Senior review loaded `.agents/skills/bmad-story-automator-review/SKILL.md`, `workflow.yaml`, `instructions.xml`, and `checklist.md`; compared Story 4.3 claims against git, the story baseline diff, and the implementation file list.
+- Senior review auto-fixed three verified issues: whitespace-only global administrator user ids now fail gateway validation, read-surface disconnection now fails closed before global-administrator projection queries, and global-administrator gateway-unavailable paths no longer use tenant-command wording.
+- Senior review validation: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- Senior review validation: `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- Senior review validation fallback: `./tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed 641/641 tests with 0 failed and 0 skipped.
+- Senior review validation fallback: focused `Hexalith.Tenants.IntegrationTests` Story 4.3 command API executable run passed 2/2 tests with 0 failed and 0 skipped.
 
 ### Completion Notes List
 
@@ -198,6 +204,28 @@ GPT-5 Codex
 - Implemented projection-confirmed lifecycle behavior: command status alone cannot confirm success; the page re-queries `GetGlobalAdministratorsAsync` and only confirms when the target user appears in the fixed projection.
 - Added EN/FR `Tenants.GlobalAdministrators.Grant.*` resources, forced-colors/focus-visible styling, and wrapping support for long literal user ids.
 - Added focused gateway, state, and component regression tests for fixed-scope routing, blank user validation, `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, support-safe redaction, status rejection copy, projection-confirmed success, no optimistic row insertion, command locking, and resource parity.
+- Senior review fixed gateway whitespace validation so blank literal user ids cannot reach the fixed global-administrator command endpoint.
+- Senior review fixed read-surface disconnected behavior so the page does not query or reveal global-administrator rows when BFF read support is unavailable.
+- Senior review fixed platform-governance unavailable copy for the global-administrator gateway path and added focused regression coverage.
+
+### Senior Developer Review (AI)
+
+Review date: 2026-06-07T09:44:12+02:00
+
+Outcome: Approved after automatic fixes. No critical issues remain.
+
+Findings and resolution:
+
+- HIGH fixed: `TenantCommandGateway.SetGlobalAdministratorAsync` treated whitespace-only user ids as valid because it used `IsNullOrEmpty`; this could submit an effectively blank global-administrator target despite the story's blank-user validation requirement. Fixed with `IsNullOrWhiteSpace` and added gateway coverage for whitespace.
+- HIGH fixed: `GlobalAdministratorsPage` still queried the global-administrator projection when `BffComposition.IsReadSurfaceConnected` was false; a stubbed or fallback gateway could reveal rows while read support was unavailable. Fixed by setting the snapshot to unavailable before querying and added component assertions that no query occurs and no row is rendered.
+- MEDIUM fixed: global-administrator service-unavailable paths used tenant-command gateway wording, which blurred the platform-governance command surface. Fixed the concrete gateway and unavailable gateway copy and added a regression test for platform-specific copy.
+
+Validation evidence:
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- `./tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed 641 total, 0 failed, 0 skipped.
+- Focused `Hexalith.Tenants.IntegrationTests` executable run for the two Story 4.3 command API tests passed 2 total, 0 failed, 0 skipped.
 
 ### File List
 
@@ -214,8 +242,10 @@ GPT-5 Codex
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs`
 - `src/Hexalith.Tenants.UI/State/TenantCommands/SetGlobalAdministratorCommandRequest.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs`
+- `tests/test-summary.md`
 
 ### Change Log
 
@@ -223,3 +253,4 @@ GPT-5 Codex
 - 2026-06-06T15:11:40+02:00 - Dev-story readiness check found FR19 still categorically blocked; halted source implementation and returned Story 4.3 to backlog.
 - 2026-06-06T15:12:00+02:00 - Ran focused UI build and xUnit v3 executable validation; all executable UI tests passed.
 - 2026-06-07T09:14:24+02:00 - Implemented grant global administrator command gateway, projection-confirmed UI flow, localization/styling, and focused regression tests; marked story ready for review.
+- 2026-06-07T09:44:12+02:00 - Senior review auto-fixed whitespace validation, read-surface fail-closed behavior, and platform-specific gateway unavailable copy; focused UI and integration validation passed; marked story done.

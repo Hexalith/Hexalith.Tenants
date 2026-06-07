@@ -301,14 +301,55 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
         });
     }
 
-    [Fact]
-    public void Command_or_read_surface_unavailable_blocks_grant_without_command_submission()
+    [Theory]
+    [InlineData(false, true, "read projection")]
+    [InlineData(true, false, "command surface")]
+    public void Command_or_read_surface_unavailable_blocks_grant_without_command_submission(
+        bool isReadSurfaceConnected,
+        bool isCommandSurfaceConnected,
+        string expectedReason)
     {
         var commandGateway = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
             TenantLifecycleAuthorizationReflectionState.Authorized,
-            isReadSurfaceConnected: true,
-            isCommandSurfaceConnected: false));
+            isReadSurfaceConnected,
+            isCommandSurfaceConnected));
+        var queryGateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            null,
+            false,
+            "\"etag\"",
+            TenantFreshnessState.Current));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        if (!isReadSurfaceConnected)
+        {
+            queryGateway.GlobalAdministratorCalls.ShouldBe(0);
+            cut.Markup.ShouldNotContain("admin-1");
+        }
+
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent.ShouldContain(expectedReason);
+        cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("could not be verified");
+        cut.Find("[data-testid='tenants-global-admin-grant-audit-state']").TextContent.ShouldContain("Audit support");
+        cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("correlation-", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Cancel_grant_clears_literal_user_id_and_does_not_submit_command()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
             [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
             null,
@@ -321,16 +362,14 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
         cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
-        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+        cut.Find("[data-testid='tenants-global-admin-grant-cancel']").Click();
 
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
-        cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
-        cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent.ShouldContain("command surface");
-        cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("could not be verified");
-        cut.Find("[data-testid='tenants-global-admin-grant-audit-state']").TextContent.ShouldContain("Audit support");
-        cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
-        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
-        cut.Markup.ShouldNotContain("correlation-", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").GetAttribute("value").ShouldBeNullOrEmpty();
+        cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("No global administrator grant command");
+        cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("polite");
+        cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+            .ShouldNotContain("target-user");
     }
 
     [Fact]
