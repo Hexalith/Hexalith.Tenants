@@ -479,6 +479,10 @@ internal sealed class TenantQueryGateway(
                 freshness,
                 isDegraded);
         }
+        catch (EventStoreGatewayException ex) when (IsUnauthorized(ex))
+        {
+            return TenantListSnapshot.Unauthorized();
+        }
         catch (EventStoreGatewayException ex) when (IsUnavailableOrInvalid(ex))
         {
             return TenantListSnapshot.Error("Tenant query gateway is unavailable.");
@@ -627,6 +631,9 @@ internal sealed class TenantQueryGateway(
                 ? TenantFreshnessState.Current
                 : TenantFreshnessState.Unknown;
     }
+
+    private static bool IsUnauthorized(EventStoreGatewayException exception)
+        => exception.StatusCode is (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden;
 
     private static bool IsUnavailableOrInvalid(EventStoreGatewayException exception)
         => exception.StatusCode is >= 400;

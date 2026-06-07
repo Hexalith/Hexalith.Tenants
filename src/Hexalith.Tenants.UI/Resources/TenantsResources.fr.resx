@@ -141,6 +141,12 @@
   <data name="Tenants.List.State.Error.Title" xml:space="preserve">
     <value>Locataires indisponibles</value>
   </data>
+  <data name="Tenants.List.State.Unauthorized.Message" xml:space="preserve">
+    <value>Connectez-vous pour afficher les locataires. Votre session n'est pas authentifiée : la passerelle de requête côté serveur a refusé la demande.</value>
+  </data>
+  <data name="Tenants.List.State.Unauthorized.Title" xml:space="preserve">
+    <value>Connexion requise</value>
+  </data>
   <data name="Tenants.List.State.FilteredEmpty.Message" xml:space="preserve">
     <value>Aucun locataire visible ne correspond à la recherche et aux filtres actuels.</value>
   </data>

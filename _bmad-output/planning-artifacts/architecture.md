@@ -321,6 +321,12 @@ existing projections only.
 - **Read access:** a typed query gateway in the BFF wrapping the 5 REST endpoints, using the
   `Hexalith.Tenants.Client`/`.Contracts` DTOs (`PaginatedResult<T>`, `TenantSummary`,
   `TenantDetail`, `TenantMember`, `UserTenantMembership`, `TenantAuditEntry`).
+  - **Transport (regression guard, added 2026-06-06):** the BFF calls these `GET /api/tenants*`
+    endpoints on the Tenants domain service directly (DAPR service invocation, server-side, bearer
+    relayed). It MUST NOT route tenant reads through the EventStore generic query gateway
+    (`POST /api/v1/queries` → `QueryRouter` / `HandlerAwareQueryRouter`): the projection actor is
+    retired, and the handler-aware path drops projection ETags — breaking the D6 freshness contract
+    below. See `sprint-change-proposal-2026-06-06-tenant-query-routing.md`.
 - **Freshness/caching (D6):** conditional requests executed server-side; the Truth State Badge
   derives `current/refreshing/aging/stale/unknown` from ETag / timestamp / projection-version;
   thresholds are configuration, **no magic numbers**; unmeasurable → `unknown` → fail-closed.

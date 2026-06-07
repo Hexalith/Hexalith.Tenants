@@ -639,6 +639,27 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows[0].OwnerCount.IsKnown.ShouldBeFalse();
     }
 
+    [Theory]
+    [InlineData(401, TenantListSurfaceKind.Unauthorized)]
+    [InlineData(403, TenantListSurfaceKind.Unauthorized)]
+    [InlineData(400, TenantListSurfaceKind.Error)]
+    [InlineData(503, TenantListSurfaceKind.Error)]
+    public async Task List_tenants_maps_gateway_status_to_safe_state(int statusCode, TenantListSurfaceKind expected)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(
+            statusCode,
+            "Problem title",
+            detail: "raw payload token secret stack trace correlation-123"));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantListSnapshot snapshot = await gateway
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expected);
+    }
+
     [Fact]
     public async Task Get_my_tenants_submits_self_user_query_with_cursor_payload()
     {

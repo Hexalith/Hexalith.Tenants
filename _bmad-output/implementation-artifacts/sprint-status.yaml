@@ -85,6 +85,11 @@ development_status:
   3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
   3-3-set-tenant-configuration-key-value-with-consequence-preview: done
   3-4-remove-tenant-configuration-key-with-consequence-preview: done
+  # Defect fix (Correct Course 2026-06-06): tenant read surfaces 500 because the BFF query
+  # gateway routed through the retired TenantsProjectionActor. Re-point the BFF at the REST
+  # endpoints (GET /api/tenants*) per architecture line 319-320 + emit D6 ETag/freshness.
+  # Proposal: sprint-change-proposal-2026-06-06-tenant-query-routing.md
+  3-5-tenant-query-gateway-rest-routing: ready-for-dev
   epic-3-retrospective: optional
 
   # --- Epic 4: Global Administrator Governance ---

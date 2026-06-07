@@ -141,6 +141,12 @@
   <data name="Tenants.List.State.Error.Title" xml:space="preserve">
     <value>Tenants unavailable</value>
   </data>
+  <data name="Tenants.List.State.Unauthorized.Message" xml:space="preserve">
+    <value>Sign in to view tenants. Your session is not authenticated, so the server-side query gateway rejected the request.</value>
+  </data>
+  <data name="Tenants.List.State.Unauthorized.Title" xml:space="preserve">
+    <value>Sign in required</value>
+  </data>
   <data name="Tenants.List.State.FilteredEmpty.Message" xml:space="preserve">
     <value>No visible tenants match the current search and filters.</value>
   </data>

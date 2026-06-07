@@ -69,7 +69,7 @@
         </a>
     </section>
 
-    <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not TenantListSurfaceKind.Error)"
+    <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
                       IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
                       OnProjectionRefreshRequested="RefreshAsync"
                       ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
@@ -93,6 +93,10 @@
     else if (_snapshot.Kind is TenantListSurfaceKind.Error)
     {
         <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Detail="@_snapshot.ErrorMessage" />
+    }
+    else if (_snapshot.Kind is TenantListSurfaceKind.Unauthorized)
+    {
+        <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
     }
     else
     {
