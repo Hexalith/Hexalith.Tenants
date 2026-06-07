@@ -2,10 +2,12 @@ using System.Globalization;
 
 using Bunit;
 
+using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -31,6 +33,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             freshness: TenantFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
@@ -43,7 +46,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
         cut.Find("[data-testid='tenants-global-admins-row']");
         cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("platform-admin.alpha");
         cut.Find("[data-testid='tenants-global-admins-authority-scope']").TextContent.ShouldContain("Platform authority");
-        cut.Find("[data-testid='tenants-global-admins-action-reasons']").TextContent.ShouldContain("read-only");
+        cut.Find("[data-testid='tenants-global-admins-action-reasons']").TextContent.ShouldContain("Grant is available");
         cut.Find("[data-testid='tenants-global-admins-live-region']").GetAttribute("aria-live").ShouldBeNull();
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
         cut.Markup.ShouldNotContain("/api/users", Case.Insensitive);
@@ -62,6 +65,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             TenantFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Indeterminate));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
@@ -87,6 +91,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             : GlobalAdministratorsSnapshot.Degraded([new GlobalAdministratorRow("admin-1", freshness)], GlobalAdministratorsReason.ProjectionDegraded, "\"etag\"");
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
@@ -119,6 +124,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
         };
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
@@ -148,6 +154,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
                 freshness: TenantFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
@@ -179,6 +186,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
                 freshness: TenantFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
@@ -194,6 +202,332 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
         cut.Markup.ShouldNotContain("offset", Case.Insensitive);
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
         cut.Markup.ShouldNotContain("/api/users", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Grant_flow_renders_fixed_scope_form_without_tenant_membership_inputs()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant']");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']");
+        cut.Find("[data-testid='tenants-global-admin-grant-scope']").TextContent.ShouldContain("system");
+        cut.Find("[data-testid='tenants-global-admin-grant-scope']").TextContent.ShouldContain("global-administrators");
+        cut.Markup.ShouldNotContain("TenantRole", Case.Insensitive);
+        cut.Markup.ShouldNotContain("tenant-member", Case.Insensitive);
+        cut.Markup.ShouldNotContain("member table", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Blank_keyboard_form_submission_keeps_command_local_and_focuses_user_id_recovery()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']").GetAttribute("type").ShouldBe("submit");
+        cut.Find("[data-testid='tenants-global-admin-grant-validation']").TextContent.ShouldContain("User id is required");
+        cut.Find("[data-testid='tenants-global-admin-grant-validation']").GetAttribute("role").ShouldBe("alert");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']")
+            .GetAttribute("aria-describedby")
+            .ShouldNotBeNull()
+            .ShouldContain("tenants-global-admin-grant-validation");
+        cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("polite");
+    }
+
+    [Fact]
+    public void Grant_submission_confirms_only_after_projection_requery_contains_target_user()
+    {
+        var queryGateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-1\"",
+                TenantFreshnessState.Current),
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current),
+                    new GlobalAdministratorRow("target-user", TenantFreshnessState.Current),
+                ],
+                null,
+                false,
+                "\"etag-2\"",
+                TenantFreshnessState.Current));
+        var commandGateway = new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            commandGateway.SetGlobalAdministratorCalls.ShouldBe(1);
+            commandGateway.Requests.ShouldHaveSingleItem().UserId.ShouldBe("target-user");
+            queryGateway.GlobalAdministratorCalls.ShouldBe(2);
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("Projection confirmed");
+            cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("polite");
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+                .ShouldContain("target-user");
+        });
+    }
+
+    [Fact]
+    public void Command_or_read_surface_unavailable_blocks_grant_without_command_submission()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized,
+            isReadSurfaceConnected: true,
+            isCommandSurfaceConnected: false));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            null,
+            false,
+            "\"etag\"",
+            TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+        cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-global-admin-grant-unavailable-reason']").TextContent.ShouldContain("command surface");
+        cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("could not be verified");
+        cut.Find("[data-testid='tenants-global-admin-grant-audit-state']").TextContent.ShouldContain("Audit support");
+        cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        cut.Markup.ShouldNotContain("correlation-", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Completed_grant_without_projection_evidence_is_unable_to_verify_and_not_optimistic()
+    {
+        var queryGateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-1\"",
+                TenantFreshnessState.Current),
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-2\"",
+                TenantFreshnessState.Current));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("could not be verified");
+            cut.Find("[data-testid='tenants-global-admin-grant-safe-message']").TextContent.ShouldContain("did not confirm");
+            cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+                .ShouldNotContain("target-user");
+        });
+    }
+
+    [Theory]
+    [InlineData(CommandStatus.PublishFailed, "degraded", "Audit evidence is delayed.")]
+    [InlineData(CommandStatus.TimedOut, "could not be verified", "Audit evidence is delayed.")]
+    public void Terminal_status_without_projection_confirmation_stays_distinct_and_assertive(
+        CommandStatus status,
+        string expectedStateText,
+        string expectedAuditText)
+    {
+        var queryGateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            null,
+            false,
+            "\"etag\"",
+            TenantFreshnessState.Current));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
+            new TenantCommandStatusResult(status, "Status remained support-safe.")));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            queryGateway.GlobalAdministratorCalls.ShouldBe(1);
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain(expectedStateText, Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-grant-audit-state']").TextContent.ShouldContain(expectedAuditText);
+            cut.Find("[data-testid='tenants-global-admin-grant-safe-message']").TextContent.ShouldContain("support-safe");
+            cut.Find("[data-testid='tenants-global-admin-grant-lifecycle']").GetAttribute("role").ShouldBe("alert");
+            cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+                .ShouldNotContain("target-user");
+        });
+    }
+
+    [Fact]
+    public void Already_global_administrator_rejection_stays_rejected_without_success_copy()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("existing-admin", TenantFreshnessState.Current)],
+            null,
+            false,
+            "\"etag\"",
+            TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Rejected(
+                "This user is already a global administrator. Refresh the platform authority projection before trying another action.",
+                "GlobalAdministratorAlreadyExists")));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("existing-admin");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("rejected", Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-grant-safe-message']").TextContent.ShouldContain("already a global administrator");
+            cut.Markup.ShouldNotContain("AlreadyApplied");
+            cut.Markup.ShouldNotContain("success", Case.Insensitive);
+        });
+    }
+
+    [Fact]
+    public void Insufficient_permissions_rejection_uses_safe_platform_governance_copy()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            null,
+            false,
+            "\"etag\"",
+            TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Rejected(
+                "The caller is not authorized for platform governance changes.",
+                "InsufficientPermissions")));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("rejected", Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-grant-safe-message']").TextContent.ShouldContain("platform governance");
+            cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+            cut.Markup.ShouldNotContain("tenant command succeeded", Case.Insensitive);
+            cut.Markup.ShouldNotContain("target-user is now", Case.Insensitive);
+            cut.Markup.ShouldNotContain("correlation-", Case.Insensitive);
+        });
+    }
+
+    [Fact]
+    public void Processing_grant_keeps_one_at_a_time_lock_and_remove_placeholder_unavailable()
+    {
+        var queryGateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-1\"",
+                TenantFreshnessState.Current),
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-2\"",
+                TenantFreshnessState.Current));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
+            TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
+            new TenantCommandStatusResult(CommandStatus.Processing)));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("accepted", Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("in flight");
+        });
+    }
+
+    [Fact]
+    public void Grant_resources_and_styles_cover_accessible_forced_colors_support_safe_states()
+    {
+        string projectRoot = ProjectRoot();
+        string resourceRoot = Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources");
+        string styles = File.ReadAllText(
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "GlobalAdministratorsPage.razor.css"));
+        HashSet<string> englishKeys = ResourceKeys(Path.Combine(resourceRoot, "TenantsResources.resx"), "Tenants.GlobalAdministrators.Grant.");
+        HashSet<string> frenchKeys = ResourceKeys(Path.Combine(resourceRoot, "TenantsResources.fr.resx"), "Tenants.GlobalAdministrators.Grant.");
+
+        englishKeys.ShouldBe(frenchKeys);
+        englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.State.Confirmed");
+        englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.State.Rejected");
+        englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.State.UnableToVerify");
+        englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed");
+        englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface");
+        styles.ShouldContain("@media (forced-colors: active)");
+        styles.ShouldContain(".global-admins__grant-lifecycle:focus-visible");
+        styles.ShouldContain(".global-admins__grant-state-symbol");
+        styles.ShouldContain("overflow-wrap: anywhere");
     }
 
     [Fact]
@@ -217,11 +551,23 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
-    private sealed class StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState reflection) : ITenantsBffComposition
-    {
-        public bool IsReadSurfaceConnected => true;
+    private static HashSet<string> ResourceKeys(string path, string prefix)
+        => System.Xml.Linq.XDocument
+            .Load(path)
+            .Descendants("data")
+            .Select(static element => element.Attribute("name")?.Value)
+            .Where(name => name is not null && name.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(name => name!)
+            .ToHashSet(StringComparer.Ordinal);
 
-        public bool IsCommandSurfaceConnected => true;
+    private sealed class StubTenantsBffComposition(
+        TenantLifecycleAuthorizationReflectionState reflection,
+        bool isReadSurfaceConnected = true,
+        bool isCommandSurfaceConnected = true) : ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => isReadSurfaceConnected;
+
+        public bool IsCommandSurfaceConnected => isCommandSurfaceConnected;
 
         public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection => reflection;
     }
@@ -278,6 +624,78 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             => Task.FromResult(TenantAuditSnapshot.Unavailable(request));
     }
 
+    private sealed class StubTenantCommandGateway(
+        TenantCommandSubmissionResult? submission = null,
+        params TenantCommandStatusResult[] statuses) : ITenantCommandGateway
+    {
+        private readonly Queue<TenantCommandStatusResult> _statuses = new(statuses);
+
+        public int SetGlobalAdministratorCalls { get; private set; }
+
+        public List<SetGlobalAdministratorCommandRequest> Requests { get; } = [];
+
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(
+            CreateTenantCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
+            AddUserToTenantCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
+            ChangeUserRoleCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
+            RemoveUserFromTenantCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
+            UpdateTenantCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
+            SetTenantConfigurationCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
+            RemoveTenantConfigurationCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
+            SetGlobalAdministratorCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            SetGlobalAdministratorCalls++;
+            Requests.Add(request);
+            return Task.FromResult(submission ?? TenantCommandSubmissionResult.Failed("No command response configured."));
+        }
+
+        public Task<TenantCommandSubmissionResult> EnableTenantAsync(
+            TenantLifecycleCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandSubmissionResult> DisableTenantAsync(
+            TenantLifecycleCommandRequest request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TenantCommandStatusResult> GetStatusAsync(
+            TenantCommandTrackingHandle handle,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(_statuses.Count == 0
+                ? TenantCommandStatusResult.Unknown("No command status configured.")
+                : _statuses.Dequeue());
+    }
+
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
@@ -302,6 +720,39 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             ["Tenants.GlobalAdministrators.Freshness.Current"] = "Current",
             ["Tenants.GlobalAdministrators.Freshness.Stale"] = "Stale",
             ["Tenants.GlobalAdministrators.Freshness.Unknown"] = "Unknown",
+            ["Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed"] = "Audit evidence is delayed.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.AuditPending"] = "Audit evidence is pending.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable"] = "Audit evidence is unavailable.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.MissingSupport"] = "Audit support is not available.",
+            ["Tenants.GlobalAdministrators.Grant.Audit.NotStarted"] = "No audit evidence is available before command submission.",
+            ["Tenants.GlobalAdministrators.Grant.Available"] = "Grant is available from the confirmed platform authority projection.",
+            ["Tenants.GlobalAdministrators.Grant.Cancel"] = "Cancel",
+            ["Tenants.GlobalAdministrators.Grant.Description"] = "Grant platform authority in tenant system, domain global-administrators, aggregate global-administrators. Completion requires projection confirmation.",
+            ["Tenants.GlobalAdministrators.Grant.Lifecycle.Title"] = "Grant lifecycle",
+            ["Tenants.GlobalAdministrators.Grant.Refresh"] = "Refresh status",
+            ["Tenants.GlobalAdministrators.Grant.State.Accepted"] = "Command accepted; projection confirmation is still required.",
+            ["Tenants.GlobalAdministrators.Grant.State.AlreadyApplied"] = "Already-applied is not used for global administrator grants.",
+            ["Tenants.GlobalAdministrators.Grant.State.Confirmed"] = "Projection confirmed the target user in the fixed global-administrators scope.",
+            ["Tenants.GlobalAdministrators.Grant.State.Degraded"] = "Grant verification is degraded.",
+            ["Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented"] = "A concurrent grant command was prevented.",
+            ["Tenants.GlobalAdministrators.Grant.State.Failed"] = "Grant command failed before it could be verified.",
+            ["Tenants.GlobalAdministrators.Grant.State.Idle"] = "No global administrator grant command has been submitted.",
+            ["Tenants.GlobalAdministrators.Grant.State.Previewed"] = "Grant intent is previewed but not submitted.",
+            ["Tenants.GlobalAdministrators.Grant.State.ProjectionPending"] = "Projection pending; the target user is not confirmed as a global administrator yet.",
+            ["Tenants.GlobalAdministrators.Grant.State.Rejected"] = "Grant command was rejected.",
+            ["Tenants.GlobalAdministrators.Grant.State.RequestSent"] = "Grant command request was sent.",
+            ["Tenants.GlobalAdministrators.Grant.State.UnableToVerify"] = "Grant command could not be verified from command status and projection evidence.",
+            ["Tenants.GlobalAdministrators.Grant.Submit"] = "Grant global administrator",
+            ["Tenants.GlobalAdministrators.Grant.Title"] = "Grant global administrator",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.Authorization"] = "Platform authority is not confirmed, so grant fails closed without revealing administrator data.",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface"] = "The command surface is unavailable for platform governance changes.",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"] = "Refresh projection freshness before granting platform authority.",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"] = "Another platform authority command is in flight.",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"] = "The global administrator read projection must be available before grant can be submitted.",
+            ["Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred"] = "Remove global administrator is handled by a separate guarded flow.",
+            ["Tenants.GlobalAdministrators.Grant.UserId.Help"] = "Enter the literal caller-supplied user id. It is not parsed as a tenant member, GUID, or ULID.",
+            ["Tenants.GlobalAdministrators.Grant.UserId.Label"] = "User id",
+            ["Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired"] = "User id is required before granting global administrator authority.",
             ["Tenants.GlobalAdministrators.Identity.Accessible"] = "Global administrator identifier {0}",
             ["Tenants.GlobalAdministrators.List.Title"] = "Current global administrators",
             ["Tenants.GlobalAdministrators.Next"] = "Next",

@@ -2,6 +2,7 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantsBffComposition BffComposition
 @inject ITenantQueryGateway QueryGateway
+@inject ITenantCommandGateway CommandGateway
 
 <PageTitle>@PageTitleText</PageTitle>
 
@@ -43,6 +44,113 @@
             <h2>@StatusHeading</h2>
             <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
         </div>
+    </section>
+
+    <section class="global-admins__grant"
+             aria-labelledby="global-admins-grant-heading"
+             data-testid="tenants-global-admin-grant">
+        <div class="global-admins__grant-heading">
+            <h2 id="global-admins-grant-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Title"]</h2>
+            <p>@Localizer["Tenants.GlobalAdministrators.Grant.Description"]</p>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
+        {
+            <p class="global-admins__grant-unavailable"
+               role="alert"
+               data-testid="tenants-global-admin-grant-unavailable-reason">
+                @GrantUnavailableReason
+            </p>
+        }
+
+        <form class="global-admins__grant-form"
+              data-testid="tenants-global-admin-grant-form"
+              @onsubmit="SubmitGrantAsync"
+              @onsubmit:preventDefault="true">
+            <label for="tenants-global-admin-grant-user-id">
+                <span>@Localizer["Tenants.GlobalAdministrators.Grant.UserId.Label"]</span>
+                <input id="tenants-global-admin-grant-user-id"
+                       @ref="_grantUserIdElement"
+                       name="global-administrator-user-id"
+                       value="@_grantUserId"
+                       data-testid="tenants-global-admin-grant-user-id"
+                       aria-describedby="@GrantUserIdDescribedBy"
+                       @oninput="OnGrantUserIdInput" />
+                <span id="tenants-global-admin-grant-user-id-help">
+                    @Localizer["Tenants.GlobalAdministrators.Grant.UserId.Help"]
+                </span>
+            </label>
+
+            <dl class="global-admins__grant-scope" data-testid="tenants-global-admin-grant-scope">
+                <div>
+                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
+                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Label"]</dt>
+                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Value"]</dd>
+                </div>
+                <div>
+                    <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Label"]</dt>
+                    <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Value"]</dd>
+                </div>
+            </dl>
+
+            @if (!string.IsNullOrWhiteSpace(_grantValidationMessage))
+            {
+                <p id="tenants-global-admin-grant-validation"
+                   class="global-admins__grant-validation"
+                   role="alert"
+                   data-testid="tenants-global-admin-grant-validation">
+                    @_grantValidationMessage
+                </p>
+            }
+
+            <div class="global-admins__grant-actions">
+                <button type="submit"
+                        @ref="_grantLauncherElement"
+                        data-testid="tenants-global-admin-grant-submit"
+                        disabled="@IsGrantSubmitDisabled">
+                    @Localizer["Tenants.GlobalAdministrators.Grant.Submit"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-global-admin-grant-cancel"
+                        disabled="@(!CanCancelGrant)"
+                        @onclick="CancelGrantAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
+                </button>
+                <button type="button"
+                        data-testid="tenants-global-admin-grant-refresh"
+                        disabled="@(!CanRefreshGrantStatus)"
+                        @onclick="RefreshGrantStatusAsync">
+                    @Localizer["Tenants.GlobalAdministrators.Grant.Refresh"]
+                </button>
+            </div>
+        </form>
+
+        <section class="global-admins__grant-lifecycle global-admins__grant-lifecycle--@GrantStateCss"
+                 @ref="_grantLifecycleElement"
+                 tabindex="-1"
+                 role="@GrantLifecycleRole"
+                 aria-labelledby="global-admins-grant-lifecycle-heading"
+                 data-testid="tenants-global-admin-grant-lifecycle">
+            <h3 id="global-admins-grant-lifecycle-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Lifecycle.Title"]</h3>
+            <p data-testid="tenants-global-admin-grant-state">
+                <span class="global-admins__grant-state-symbol" aria-hidden="true">@GrantStateSymbol</span>
+                <span>@GrantStateText</span>
+            </p>
+            @if (!string.IsNullOrWhiteSpace(_grantSnapshot.SafeMessage))
+            {
+                <p data-testid="tenants-global-admin-grant-safe-message">@_grantSnapshot.SafeMessage</p>
+            }
+            <p data-testid="tenants-global-admin-grant-audit-state">@GrantAuditText</p>
+            <p class="global-admins__grant-live"
+               data-testid="tenants-global-admin-grant-live-region"
+               aria-live="@GrantLiveRegionMode"
+               aria-atomic="true">
+                @GrantStateText
+            </p>
+        </section>
     </section>
 
     @if (ShouldRenderRows)
@@ -92,8 +200,8 @@
                                 </td>
                                 <td>
                                     <div class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
-                                        <span data-testid="tenants-global-admins-grant-reason">@UnavailableActionReason</span>
-                                        <span data-testid="tenants-global-admins-remove-reason">@UnavailableActionReason</span>
+                                        <span data-testid="tenants-global-admins-grant-reason">@(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])</span>
+                                        <span data-testid="tenants-global-admins-remove-reason">@RemoveUnavailableReason</span>
                                     </div>
                                 </td>
                             </tr>
@@ -116,8 +224,18 @@
 @code {
     private const int PageSize = 20;
     private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
+    private GlobalAdministratorGrantCommandSnapshot _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
+    private string? _grantUserId;
+    private string? _grantValidationMessage;
+    private bool _isGrantSubmitting;
+    private ElementReference _grantUserIdElement;
+    private ElementReference _grantLauncherElement;
+    private ElementReference _grantLifecycleElement;
+    private bool _focusGrantUserIdPending;
+    private bool _focusGrantLauncherPending;
+    private bool _focusGrantLifecyclePending;
 
     private bool IsAuthorized
         => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
@@ -192,6 +310,81 @@
             ? Localizer["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"]
             : Localizer["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"];
 
+    private bool IsGrantInFlight
+        => _isGrantSubmitting
+        || _grantSnapshot.State is TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending;
+
+    private string? GrantUnavailableReason
+        => !IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Authorization"].Value
+            : !BffComposition.IsReadSurfaceConnected
+                ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
+                : !BffComposition.IsCommandSurfaceConnected
+                    ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface"].Value
+                    : _snapshot.Freshness is not TenantFreshnessState.Current
+                        ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"].Value
+                        : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
+                            or GlobalAdministratorsSurfaceKind.Degraded
+                            or GlobalAdministratorsSurfaceKind.Unauthorized
+                            or GlobalAdministratorsSurfaceKind.Unavailable
+                            or GlobalAdministratorsSurfaceKind.Invalid
+                            ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
+                            : IsGrantInFlight
+                                ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
+                                : null;
+
+    private string RemoveUnavailableReason
+        => IsGrantInFlight
+            ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"]
+            : GrantUnavailableReason is { Length: > 0 } reason
+                ? reason
+            : Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred"];
+
+    private bool IsGrantSubmitDisabled => !string.IsNullOrWhiteSpace(GrantUnavailableReason);
+
+    private bool CanCancelGrant
+        => _grantSnapshot.State is not TenantCommandLifecycleState.Idle || !string.IsNullOrWhiteSpace(_grantUserId);
+
+    private bool CanRefreshGrantStatus
+        => _grantSnapshot.MessageId is not null
+        && _grantSnapshot.CorrelationId is not null
+        && _grantSnapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.Degraded
+            or TenantCommandLifecycleState.UnableToVerify;
+
+    private string GrantUserIdDescribedBy
+        => string.IsNullOrWhiteSpace(_grantValidationMessage)
+            ? "tenants-global-admin-grant-user-id-help"
+            : "tenants-global-admin-grant-user-id-help tenants-global-admin-grant-validation";
+
+    private string GrantStateCss
+        => _grantSnapshot.State.ToString().ToLowerInvariant();
+
+    private string GrantStateText
+        => Localizer[$"Tenants.GlobalAdministrators.Grant.State.{_grantSnapshot.State}"];
+
+    private string GrantAuditText
+        => Localizer[$"Tenants.GlobalAdministrators.Grant.Audit.{_grantSnapshot.AuditState}"];
+
+    private string GrantLiveRegionMode
+        => _grantSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string GrantLifecycleRole
+        => _grantSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "alert" : "status";
+
+    private string GrantStateSymbol
+        => _grantSnapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            TenantCommandLifecycleState.ProjectionPending => "...",
+            _ => ">",
+        };
+
     protected override async Task OnInitializedAsync()
     {
         if (!IsAuthorized)
@@ -201,6 +394,27 @@
         }
 
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusGrantUserIdPending)
+        {
+            _focusGrantUserIdPending = false;
+            await _grantUserIdElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusGrantLauncherPending)
+        {
+            _focusGrantLauncherPending = false;
+            await _grantLauncherElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusGrantLifecyclePending)
+        {
+            _focusGrantLifecyclePending = false;
+            await _grantLifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task LoadAsync(bool reuseETag)
@@ -234,6 +448,106 @@
         {
             _currentCursor = _cursorHistory.Pop();
             await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+
+    private void OnGrantUserIdInput(ChangeEventArgs args)
+        => _grantUserId = args.Value?.ToString();
+
+    private async Task SubmitGrantAsync()
+    {
+        _grantValidationMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
+        {
+            SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Blocked(GrantUnavailableReason, TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_grantUserId))
+        {
+            _grantValidationMessage = Localizer["Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired"];
+            _focusGrantUserIdPending = true;
+            return;
+        }
+
+        var request = new SetGlobalAdministratorCommandRequest(_grantUserId.Trim());
+        SetGrantSnapshot(_grantSnapshot.RequestSent(request));
+        _isGrantSubmitting = true;
+
+        try
+        {
+            TenantCommandSubmissionResult result = await CommandGateway
+                .SetGlobalAdministratorAsync(request, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            SetGrantSnapshot(_grantSnapshot.ApplySubmission(result));
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                await RefreshGrantStatusAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _isGrantSubmitting = false;
+        }
+    }
+
+    private async Task RefreshGrantStatusAsync()
+    {
+        if (_grantSnapshot.MessageId is null || _grantSnapshot.CorrelationId is null)
+        {
+            return;
+        }
+
+        TenantCommandStatusResult status = await CommandGateway
+            .GetStatusAsync(new TenantCommandTrackingHandle(_grantSnapshot.MessageId, _grantSnapshot.CorrelationId), CancellationToken.None)
+            .ConfigureAwait(false);
+        SetGrantSnapshot(_grantSnapshot.ApplyStatus(status));
+
+        if (_grantSnapshot.Intent is not null
+            && _grantSnapshot.State is TenantCommandLifecycleState.Accepted
+                or TenantCommandLifecycleState.ProjectionPending)
+        {
+            await RequeryGrantProjectionAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task RequeryGrantProjectionAsync()
+    {
+        GlobalAdministratorsSnapshot previous = _snapshot;
+        GlobalAdministratorsRequest request = new(Cursor: null, PageSize: PageSize, ETag: null);
+        _snapshot = await QueryGateway
+            .GetGlobalAdministratorsAsync(request, previous, CancellationToken.None)
+            .ConfigureAwait(false);
+        SetGrantSnapshot(_grantSnapshot.ConfirmProjection(_snapshot));
+    }
+
+    private async Task CancelGrantAsync()
+    {
+        _grantUserId = null;
+        _grantValidationMessage = null;
+        SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot.Idle());
+        _focusGrantLauncherPending = true;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private void SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot snapshot)
+    {
+        _grantSnapshot = snapshot;
+        if (_grantSnapshot.FocusTarget is TenantCommandFocusTarget.UserId)
+        {
+            _focusGrantUserIdPending = true;
+        }
+        else if (_grantSnapshot.FocusTarget is TenantCommandFocusTarget.Submit)
+        {
+            _focusGrantLauncherPending = true;
+        }
+        else if (_grantSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || _grantSnapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle
+            || _grantSnapshot.FocusTarget is TenantCommandFocusTarget.Refresh)
+        {
+            _focusGrantLifecyclePending = true;
         }
     }
 }

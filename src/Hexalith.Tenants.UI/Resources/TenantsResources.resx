@@ -2529,6 +2529,105 @@
   <data name="Tenants.GlobalAdministrators.State.Unavailable.Title" xml:space="preserve">
     <value>Global administrator data unavailable</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed" xml:space="preserve">
+    <value>Audit evidence is delayed; refresh status or inspect audit before citing proof.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence is pending; do not cite audit proof until it is visible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence is unavailable from this flow.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit support for this flow is not available.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.NotStarted" xml:space="preserve">
+    <value>No audit evidence is available before command submission.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Available" xml:space="preserve">
+    <value>Grant is available from the confirmed platform authority projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Description" xml:space="preserve">
+    <value>Grant platform authority in tenant system, domain global-administrators, aggregate global-administrators. Completion requires projection confirmation.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Lifecycle.Title" xml:space="preserve">
+    <value>Grant lifecycle</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Accepted" xml:space="preserve">
+    <value>Command accepted; projection confirmation is still required.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.AlreadyApplied" xml:space="preserve">
+    <value>Already-applied is not used for global administrator grants.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed the target user in the fixed global-administrators scope.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Degraded" xml:space="preserve">
+    <value>Grant verification is degraded; publication or audit evidence could not be verified.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented" xml:space="preserve">
+    <value>A concurrent grant command was prevented.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Failed" xml:space="preserve">
+    <value>Grant command failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Idle" xml:space="preserve">
+    <value>No global administrator grant command has been submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Previewed" xml:space="preserve">
+    <value>Grant intent is previewed but not submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; the target user is not confirmed as a global administrator yet.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Rejected" xml:space="preserve">
+    <value>Grant command was rejected.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.RequestSent" xml:space="preserve">
+    <value>Grant command request was sent.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.UnableToVerify" xml:space="preserve">
+    <value>Grant command could not be verified from command status and projection evidence.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Submit" xml:space="preserve">
+    <value>Grant global administrator</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Title" xml:space="preserve">
+    <value>Grant global administrator</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Authorization" xml:space="preserve">
+    <value>Platform authority is not confirmed, so grant fails closed without revealing administrator data.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface" xml:space="preserve">
+    <value>The command surface is unavailable for platform governance changes.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh projection freshness before granting platform authority.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
+    <value>Another platform authority command is in flight.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
+    <value>The global administrator read projection must be available before grant can be submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred" xml:space="preserve">
+    <value>Remove global administrator is handled by a separate guarded flow.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.UserId.Help" xml:space="preserve">
+    <value>Enter the literal caller-supplied user id. It is not parsed as a tenant member, GUID, or ULID.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.UserId.Label" xml:space="preserve">
+    <value>User id</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
+    <value>User id is required before granting global administrator authority.</value>
+  </data>
   <data name="Tenants.Audit.Back" xml:space="preserve">
     <value>Back to tenant details</value>
   </data>

@@ -19,6 +19,8 @@ internal sealed class TenantCommandGateway(
 {
     private const string SystemTenant = "system";
     private const string TenantsDomain = "tenants";
+    private const string GlobalAdministratorsDomain = "global-administrators";
+    private const string GlobalAdministratorsAggregateId = "global-administrators";
 
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -284,6 +286,41 @@ internal sealed class TenantCommandGateway(
         catch (EventStoreGatewayException ex)
         {
             return MapRemoveTenantConfigurationGatewayException(ex);
+        }
+    }
+
+    public async Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
+        SetGlobalAdministratorCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrEmpty(request.UserId))
+        {
+            return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new SetGlobalAdministrator(request.UserId);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            GlobalAdministratorsDomain,
+            GlobalAdministratorsAggregateId,
+            nameof(SetGlobalAdministrator),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapSetGlobalAdministratorGatewayException(ex);
         }
     }
 
@@ -565,6 +602,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapSetGlobalAdministratorGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeGlobalAdministratorRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to change platform governance.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The global administrator grant request was not accepted. Check the visible user id and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Global administrator command submission failed before it could be verified."),
+        };
+    }
+
     private static bool IsTenantAlreadyExists(EventStoreGatewayException exception)
         => Contains(exception.ReasonCode, "tenant-already-exists")
         || Contains(exception.Reason, "TenantAlreadyExists")
@@ -622,7 +679,7 @@ internal sealed class TenantCommandGateway(
 
         if (Contains(value, "InsufficientPermissions"))
         {
-            return ("InsufficientPermissions", "You are not authorized to submit this tenant command.");
+            return ("InsufficientPermissions", "You are not authorized to submit this command.");
         }
 
         if (Contains(value, "TenantDisabled"))
@@ -648,6 +705,11 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "TenantLifecycleStateAlreadySet"))
         {
             return ("TenantLifecycleStateAlreadySet", "The tenant lifecycle already matches the requested state. Refresh tenant detail before trying another lifecycle action.");
+        }
+
+        if (Contains(value, "GlobalAdministratorAlreadyExists"))
+        {
+            return ("GlobalAdministratorAlreadyExists", "This user is already a global administrator. Refresh the platform authority projection before trying another action.");
         }
 
         return null;
@@ -898,6 +960,31 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "InsufficientPermissions"))
         {
             return ("InsufficientPermissions", "You are not authorized to submit tenant lifecycle commands.");
+        }
+
+        return null;
+    }
+
+    private static (string Code, string Message)? SafeGlobalAdministratorRejection(EventStoreGatewayException exception)
+        => SafeGlobalAdministratorRejection(
+            string.Join(
+                "|",
+                exception.ReasonCode,
+                exception.Reason,
+                exception.Title,
+                exception.Type,
+                exception.Detail));
+
+    private static (string Code, string Message)? SafeGlobalAdministratorRejection(string? value)
+    {
+        if (Contains(value, "GlobalAdministratorAlreadyExists"))
+        {
+            return ("GlobalAdministratorAlreadyExists", "This user is already a global administrator. Refresh the platform authority projection before trying another action.");
+        }
+
+        if (Contains(value, "InsufficientPermissions"))
+        {
+            return ("InsufficientPermissions", "You are not authorized to change platform governance.");
         }
 
         return null;

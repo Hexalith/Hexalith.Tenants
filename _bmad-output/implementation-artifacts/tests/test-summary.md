@@ -121,6 +121,33 @@
 - Story 4.1 acceptance criteria: 7/7 covered by composition, bUnit component, CSS/static, localization, API boundary, and hosted UI route smoke tests. The hosted UI route test is DAPR/Aspire-gated and skips when local DAPR prerequisites are unavailable.
 - Story 4.1 validation (2026-06-06): `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors. `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors. `dotnet test` was attempted for both affected projects and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility. xUnit v3 executable fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 450 total, 0 errors, 0 failed, 0 skipped. Focused integration fallback for the new methods passed 3 API theory rows and discovered/skipped the hosted UI route test because DAPR prerequisites are unavailable locally.
 
+## Story 4.3 Evidence Addendum
+
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs` - Covers `SetGlobalAdministratorAsync` API/gateway submission through the existing command endpoint with fixed `system/global-administrators/global-administrators` routing, `SetGlobalAdministrator` command type, ULID message id idempotency key, literal user id payload, blank user id validation before submit, `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, support-safe gateway failure mapping, and command-status rejection copy.
+- [x] `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs` - Covers projection-confirmed lifecycle behavior, command status not becoming success without projection evidence, already-admin rejection remaining rejected rather than NoOp/already-applied, SignalR nudge-only behavior, terminal non-success states, audit state distinction, and assertive/polite live-region semantics.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` - Covers grant form rendering with stable selectors and fixed platform scope, keyboard/form submission validation, projection-confirmed success, no optimistic row insertion, unable-to-verify behavior, `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, command-surface fail-closed blocking, one-at-a-time locking, remove placeholder blocking, live-region behavior, support-safe copy, EN/FR grant resource parity, forced-colors/focus CSS hooks, visible state symbols, and long-id wrapping support.
+
+## Story 4.3 Coverage
+
+- API/gateway paths: 1/1 grant command path covered through the server-side command gateway; no new backend endpoint was introduced.
+- UI workflows: 8/8 critical grant workflows covered in bUnit E2E-style tests (render, blank submit, accepted plus projection-confirmed success, accepted without projection evidence, already-admin rejection, insufficient-permissions rejection, unavailable command surface, and in-flight lock).
+- Story 4.3 acceptance criteria: 8/8 covered across gateway/API-boundary tests, lifecycle state tests, component workflow tests, static source safety checks, CSS/accessibility checks, stable selectors, and localization parity.
+- Critical error cases: blank user id, stale/degraded freshness, unauthorized/indeterminate authority, command surface unavailable, in-flight duplicate prevention, `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, publish failure, timeout/unable-to-verify, projection pending without target evidence, SignalR nudge without confirmation, audit pending/delayed/unavailable/missing-support handoff, no tenant membership conflation, and no raw payload/token/correlation leakage.
+
+## Story 4.3 Validation
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build --no-restore` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
+- xUnit v3 affected-class fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none -class Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests` passed: 21 total, 0 errors, 0 failed, 0 skipped.
+- xUnit v3 full UI fallback `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 633 total, 0 errors, 0 failed, 0 skipped.
+
+## Story 4.3 Checklist Result
+
+- API tests generated where applicable through the existing EventStore command gateway boundary.
+- E2E tests generated for the Blazor UI grant workflow using the repo's existing xUnit v3/bUnit framework.
+- Tests use standard framework APIs, stable semantic selectors, clear descriptions, no hardcoded waits or sleeps, and independent test-local gateway/query doubles.
+- Summary includes coverage metrics and validation evidence.
+
 ## Story 5.1 Evidence Addendum
 
 - [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` - Covers tenant audit BFF/query submission shape, absolute date/category/cursor/page-size payload mapping, opaque cursor preservation, no offset/limit conversion, invalid-cursor page-one refresh, 401/403/404/500/503 status mapping, stale/degraded/not-modified/missing-payload states, support-safe narrative allowlist mapping, and user-facing row-field scrubbing before rendering.

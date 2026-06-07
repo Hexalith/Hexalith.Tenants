@@ -18,6 +18,120 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantCommandGatewayTests
 {
+    [Fact]
+    public async Task Set_global_administrator_submits_fixed_scope_command_with_literal_user_payload()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
+            new SetGlobalAdministratorCommandRequest("User/CaseSensitive.01"),
+            CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("global-administrators");
+        submitted.AggregateId.ShouldBe("global-administrators");
+        submitted.CommandType.ShouldBe(nameof(SetGlobalAdministrator));
+        submitted.Payload.GetProperty("UserId").GetString().ShouldBe("User/CaseSensitive.01");
+        submitted.Payload.TryGetProperty("TenantId", out _).ShouldBeFalse();
+        submitted.Payload.TryGetProperty("Role", out _).ShouldBeFalse();
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBe("correlation-global-admin");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task Set_global_administrator_validation_failure_does_not_submit_to_eventstore(string? userId)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
+            new SetGlobalAdministratorCommandRequest(userId!),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("User id");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("GlobalAdministratorAlreadyExistsRejection", "GlobalAdministratorAlreadyExists", "already a global administrator")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "platform governance")]
+    public async Task Set_global_administrator_maps_safe_rejection_text(
+        string reason,
+        string expectedCode,
+        string expectedText)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            reason,
+            detail: "raw payload bearer-token stack trace correlation-global-admin UserId=secret-user"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
+            new SetGlobalAdministratorCommandRequest("secret-user"),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
+        safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Status_lookup_maps_global_administrator_already_exists_to_rejected_safe_text()
+    {
+        StatusHandler handler = new("""
+            {
+              "correlationId": "correlation-global-admin",
+              "status": "Rejected",
+              "statusCode": 5,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "global-administrators",
+              "eventCount": 0,
+              "rejectionEventType": "Hexalith.Tenants.Contracts.Events.Rejections.GlobalAdministratorAlreadyExistsRejection",
+              "failureReason": "raw payload token stack trace correlation-global-admin UserId=secret-user",
+              "timeoutDuration": null
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global-admin")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-global-admin", "correlation-global-admin"),
+            CancellationToken.None);
+
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        result.RejectionCode.ShouldBe("GlobalAdministratorAlreadyExists");
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain("already a global administrator", Case.Insensitive);
+        safeMessage.ShouldNotContain("already applied", Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
+        safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
+    }
+
     [Theory]
     [InlineData(TenantLifecycleOperation.EnableTenant, nameof(EnableTenant), "correlation-enable")]
     [InlineData(TenantLifecycleOperation.DisableTenant, nameof(DisableTenant), "correlation-disable")]

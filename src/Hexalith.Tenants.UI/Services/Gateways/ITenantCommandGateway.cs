@@ -33,6 +33,11 @@ public interface ITenantCommandGateway
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant configuration removal gateway is unavailable."));
 
+    Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
+        SetGlobalAdministratorCommandRequest request,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."));
+
     Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)

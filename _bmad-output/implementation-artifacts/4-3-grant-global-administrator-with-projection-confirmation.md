@@ -5,7 +5,7 @@ created: 2026-06-06T15:05:49+02:00
 
 # Story 4.3: Grant Global Administrator with Projection Confirmation
 
-Status: backlog
+Status: review
 
 <!-- Note: Created by the BMAD create-story workflow for Story 4.3. -->
 
@@ -33,52 +33,52 @@ so that platform authority changes are explicit, scoped to `global-administrator
   - [x] Planning artifacts still say FR19 global-administrator governance changes remain categorically blocked without separate governance clearance. If that blocked record is still authoritative, stop implementation and return this story to blocked/backlog instead of silently building the flow.
   - [x] If implementation proceeds, treat this story as grant-only scope. Do not implement `RemoveGlobalAdministrator`, last-admin removal behavior, destructive consequence preview, audit recovery, or tenant-membership side effects in Story 4.3.
 
-- [ ] Add a focused global-administrator grant command request and gateway method (AC: 1, 2, 3, 4, 5, 7)
-  - [ ] Add a request model such as `SetGlobalAdministratorCommandRequest(string UserId)` under `src/Hexalith.Tenants.UI/State/TenantCommands/` or a focused `State/GlobalAdministrators/` command file.
-  - [ ] Add `SetGlobalAdministratorAsync` to `ITenantCommandGateway` and `TenantCommandGateway`.
-  - [ ] Submit `SetGlobalAdministrator` through `IEventStoreGatewayClient.SubmitCommandAsync` with `tenant = "system"`, `domain = "global-administrators"`, `aggregateId = "global-administrators"`, `commandType = nameof(SetGlobalAdministrator)`, and payload `{ UserId }` only.
-  - [ ] Generate `messageId` with the existing `IUlidFactory`; do not parse the target user id as ULID or GUID.
-  - [ ] Map `GlobalAdministratorAlreadyExistsRejection` to a safe rejected state, not `AlreadyApplied` or Success.
-  - [ ] Map `InsufficientPermissionsRejection` to safe platform-governance copy. Shared status copy must not incorrectly say a tenant command succeeded or failed.
-  - [ ] Keep gateway failure text bounded and support-safe: no raw command payloads, bearer tokens, decoded JWTs, stack traces, cursors, ETags, aggregate metadata, internal correlation ids, or message ids in rendered copy.
+- [x] Add a focused global-administrator grant command request and gateway method (AC: 1, 2, 3, 4, 5, 7)
+  - [x] Add a request model such as `SetGlobalAdministratorCommandRequest(string UserId)` under `src/Hexalith.Tenants.UI/State/TenantCommands/` or a focused `State/GlobalAdministrators/` command file.
+  - [x] Add `SetGlobalAdministratorAsync` to `ITenantCommandGateway` and `TenantCommandGateway`.
+  - [x] Submit `SetGlobalAdministrator` through `IEventStoreGatewayClient.SubmitCommandAsync` with `tenant = "system"`, `domain = "global-administrators"`, `aggregateId = "global-administrators"`, `commandType = nameof(SetGlobalAdministrator)`, and payload `{ UserId }` only.
+  - [x] Generate `messageId` with the existing `IUlidFactory`; do not parse the target user id as ULID or GUID.
+  - [x] Map `GlobalAdministratorAlreadyExistsRejection` to a safe rejected state, not `AlreadyApplied` or Success.
+  - [x] Map `InsufficientPermissionsRejection` to safe platform-governance copy. Shared status copy must not incorrectly say a tenant command succeeded or failed.
+  - [x] Keep gateway failure text bounded and support-safe: no raw command payloads, bearer tokens, decoded JWTs, stack traces, cursors, ETags, aggregate metadata, internal correlation ids, or message ids in rendered copy.
 
-- [ ] Extend the Global Administrators page with the grant flow (AC: 1, 2, 4, 5, 6, 8)
-  - [ ] Inject `ITenantCommandGateway` into `GlobalAdministratorsPage.razor` or extract a focused `Components/GlobalAdministrators/GlobalAdministratorGrantFlow.razor`.
-  - [ ] Add a form with `data-testid="tenants-global-admin-grant"` that accepts one literal caller-supplied user id.
-  - [ ] Use Tenants-owned EN/FR resource keys for labels, validation, unavailable reasons, lifecycle states, confirmation copy, audit state copy, and recovery copy. Use whole strings, not assembled fragments.
-  - [ ] Name the fixed platform authority scope in the form and confirmation copy: tenant `system`, domain `global-administrators`, aggregate id `global-administrators`.
-  - [ ] Do not render or submit tenant id, tenant role, tenant membership, user lookup, tenant detail, or member table data as a substitute for global-administrator authority.
-  - [ ] Fail closed when authorization reflection is not authorized, current read support is unavailable, freshness is stale/unknown/degraded, command surface support is unavailable, the form is invalid, or another command is in flight.
-  - [ ] Enforce one-at-a-time command locking on the page. While grant is pending, disable grant and any remove placeholder with visible unavailable reasons.
-  - [ ] Preserve last-confirmed administrator rows while the grant is pending; do not optimistically add the target row.
-  - [ ] On cancel, rejected, failed, degraded, unable-to-verify, or confirmed outcome, return focus to the launcher or lifecycle panel according to state.
+- [x] Extend the Global Administrators page with the grant flow (AC: 1, 2, 4, 5, 6, 8)
+  - [x] Inject `ITenantCommandGateway` into `GlobalAdministratorsPage.razor` or extract a focused `Components/GlobalAdministrators/GlobalAdministratorGrantFlow.razor`.
+  - [x] Add a form with `data-testid="tenants-global-admin-grant"` that accepts one literal caller-supplied user id.
+  - [x] Use Tenants-owned EN/FR resource keys for labels, validation, unavailable reasons, lifecycle states, confirmation copy, audit state copy, and recovery copy. Use whole strings, not assembled fragments.
+  - [x] Name the fixed platform authority scope in the form and confirmation copy: tenant `system`, domain `global-administrators`, aggregate id `global-administrators`.
+  - [x] Do not render or submit tenant id, tenant role, tenant membership, user lookup, tenant detail, or member table data as a substitute for global-administrator authority.
+  - [x] Fail closed when authorization reflection is not authorized, current read support is unavailable, freshness is stale/unknown/degraded, command surface support is unavailable, the form is invalid, or another command is in flight.
+  - [x] Enforce one-at-a-time command locking on the page. While grant is pending, disable grant and any remove placeholder with visible unavailable reasons.
+  - [x] Preserve last-confirmed administrator rows while the grant is pending; do not optimistically add the target row.
+  - [x] On cancel, rejected, failed, degraded, unable-to-verify, or confirmed outcome, return focus to the launcher or lifecycle panel according to state.
 
-- [ ] Implement projection-confirmed lifecycle behavior (AC: 2, 3, 5, 6, 7)
-  - [ ] Track command states distinctly: idle, previewed/confirmed intent, request sent, accepted, projection pending, confirmed, rejected, failed, degraded, unable to verify, audit pending/delayed/unavailable/missing support.
-  - [ ] After command acceptance or status completion, re-query `GetGlobalAdministratorsAsync` against the fixed global-administrator projection and confirm only when the target `UserId` appears in returned rows.
-  - [ ] Treat `GlobalAdministratorAlreadyExists` as a rejection. The UI may advise refresh, but it must not call it NoOp, AlreadyApplied, or confirmed.
-  - [ ] Treat `InsufficientPermissions` as a rejected state and keep hidden administrator data undisclosed.
-  - [ ] Treat status/polling failures as degraded or unable-to-verify. Never show Success from command status alone.
-  - [ ] If SignalR or notification hooks are used, they only trigger re-query/status refresh; they never advance lifecycle to confirmed.
-  - [ ] Keep audit copy honest: audit pending/delayed/unavailable/missing support are distinct and do not fabricate proof.
+- [x] Implement projection-confirmed lifecycle behavior (AC: 2, 3, 5, 6, 7)
+  - [x] Track command states distinctly: idle, previewed/confirmed intent, request sent, accepted, projection pending, confirmed, rejected, failed, degraded, unable to verify, audit pending/delayed/unavailable/missing support.
+  - [x] After command acceptance or status completion, re-query `GetGlobalAdministratorsAsync` against the fixed global-administrator projection and confirm only when the target `UserId` appears in returned rows.
+  - [x] Treat `GlobalAdministratorAlreadyExists` as a rejection. The UI may advise refresh, but it must not call it NoOp, AlreadyApplied, or confirmed.
+  - [x] Treat `InsufficientPermissions` as a rejected state and keep hidden administrator data undisclosed.
+  - [x] Treat status/polling failures as degraded or unable-to-verify. Never show Success from command status alone.
+  - [x] If SignalR or notification hooks are used, they only trigger re-query/status refresh; they never advance lifecycle to confirmed.
+  - [x] Keep audit copy honest: audit pending/delayed/unavailable/missing support are distinct and do not fabricate proof.
 
-- [ ] Update resources, styling, and support-safety evidence (AC: 1, 3, 4, 5, 6, 8)
-  - [ ] Add EN/FR `Tenants.GlobalAdministrators.Grant.*` keys with resource parity.
-  - [ ] Add visible text plus icon/shape/state semantics for every lifecycle and unavailable state; do not rely on color alone.
-  - [ ] Bind live-region politeness to state semantics, not color: assertive for rejected, failed, degraded, unable-to-verify, missing support, or authorization-blocked states; polite or non-live for routine pending/current states.
-  - [ ] Preserve forced-colors and focus-visible CSS in `GlobalAdministratorsPage.razor.css` or a grant-flow CSS file.
-  - [ ] Ensure long user ids wrap or truncate without layout overlap and keep the full literal value available to assistive tech where shown.
-  - [ ] Use stable selectors for form fields, submit, cancel, lifecycle, safe message, unavailable reason, live region, and projection-confirmed row evidence.
+- [x] Update resources, styling, and support-safety evidence (AC: 1, 3, 4, 5, 6, 8)
+  - [x] Add EN/FR `Tenants.GlobalAdministrators.Grant.*` keys with resource parity.
+  - [x] Add visible text plus icon/shape/state semantics for every lifecycle and unavailable state; do not rely on color alone.
+  - [x] Bind live-region politeness to state semantics, not color: assertive for rejected, failed, degraded, unable-to-verify, missing support, or authorization-blocked states; polite or non-live for routine pending/current states.
+  - [x] Preserve forced-colors and focus-visible CSS in `GlobalAdministratorsPage.razor.css` or a grant-flow CSS file.
+  - [x] Ensure long user ids wrap or truncate without layout overlap and keep the full literal value available to assistive tech where shown.
+  - [x] Use stable selectors for form fields, submit, cancel, lifecycle, safe message, unavailable reason, live region, and projection-confirmed row evidence.
 
-- [ ] Add focused backend/UI regression tests (AC: 1-8)
-  - [ ] Gateway tests prove `SetGlobalAdministratorAsync` submits `tenant = "system"`, `domain = "global-administrators"`, `aggregateId = "global-administrators"`, `commandType = "SetGlobalAdministrator"`, ULID `messageId`, and payload `UserId`.
-  - [ ] Gateway tests cover blank user id validation, `GlobalAdministratorAlreadyExistsRejection`, `InsufficientPermissionsRejection`, gateway unavailable/failure mapping, and support-unsafe exception detail redaction.
-  - [ ] Status tests cover global-admin rejection text in `GetStatusAsync` without tenant-command-specific false copy.
-  - [ ] Component tests cover authorized form rendering, unauthorized/indeterminate fail-closed behavior, stale/degraded/read-unavailable command blocking, one-at-a-time locking, no optimistic row insertion, projection-confirmed success, rejection, failed/degraded/unable-to-verify states, focus return, live-region politeness, stable selectors, and no tenant/member substitute markers.
-  - [ ] Resource tests cover EN/FR parity for every new `Tenants.GlobalAdministrators.Grant.*` key.
-  - [ ] Static/CSS or component tests cover forced-colors hooks, visible focus, responsive safety, and support-safe rendered text.
-  - [ ] Run focused validation first: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`.
-  - [ ] Run per-project tests or the xUnit v3 executable fallback if the known .NET 10 Microsoft.Testing.Platform/VSTest issue appears.
+- [x] Add focused backend/UI regression tests (AC: 1-8)
+  - [x] Gateway tests prove `SetGlobalAdministratorAsync` submits `tenant = "system"`, `domain = "global-administrators"`, `aggregateId = "global-administrators"`, `commandType = "SetGlobalAdministrator"`, ULID `messageId`, and payload `UserId`.
+  - [x] Gateway tests cover blank user id validation, `GlobalAdministratorAlreadyExistsRejection`, `InsufficientPermissionsRejection`, gateway unavailable/failure mapping, and support-unsafe exception detail redaction.
+  - [x] Status tests cover global-admin rejection text in `GetStatusAsync` without tenant-command-specific false copy.
+  - [x] Component tests cover authorized form rendering, unauthorized/indeterminate fail-closed behavior, stale/degraded/read-unavailable command blocking, one-at-a-time locking, no optimistic row insertion, projection-confirmed success, rejection, failed/degraded/unable-to-verify states, focus return, live-region politeness, stable selectors, and no tenant/member substitute markers.
+  - [x] Resource tests cover EN/FR parity for every new `Tenants.GlobalAdministrators.Grant.*` key.
+  - [x] Static/CSS or component tests cover forced-colors hooks, visible focus, responsive safety, and support-safe rendered text.
+  - [x] Run focused validation first: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`.
+  - [x] Run per-project tests or the xUnit v3 executable fallback if the known .NET 10 Microsoft.Testing.Platform/VSTest issue appears.
 
 ## Dev Notes
 
@@ -174,6 +174,14 @@ GPT-5 Codex
 - Validation: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
 - Validation: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build --no-restore` hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
 - Validation fallback: `./tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed 470/470 tests with 0 failed and 0 skipped.
+- Dev-story resumed on 2026-06-07 after explicit user instruction to implement all unchecked Story 4.3 tasks; implementation proceeded as grant-only scope and did not include Story 4.4 removal or last-admin behavior.
+- Added red/green coverage for fixed global-administrator command routing, global-admin rejection/status mapping, projection-confirmed lifecycle state, SignalR non-confirmation behavior, UI form rendering, no optimistic row insertion, command locking, live-region behavior, resource parity, and support-safe copy.
+- Validation: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore` passed with 0 warnings and 0 errors.
+- Validation: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build --no-restore` hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
+- Validation fallback: `./tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests` passed 627/627 tests with 0 failed and 0 skipped.
+- Broader validation: Contracts.Tests passed 105/105, Client.Tests passed 47/47, and Testing.Tests passed 181/181 using xUnit v3 executables.
+- Broader validation: Server.Tests executable was attempted and failed 6 known pre-existing documentation/AppHost evidence checks for missing `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml` and stale Story 7.6A deployment-readiness evidence; no failure touches Story 4.3 UI/gateway files.
+- Broader validation: IntegrationTests executable was attempted and failed 54 tests with DAPR/InternalServerError behavior in this sandbox after 34 DAPR prerequisite skips; this matches the repo's existing environment-bound integration signal and does not touch Story 4.3 UI/gateway files.
 
 ### Completion Notes List
 
@@ -184,14 +192,34 @@ GPT-5 Codex
 - Dev-story readiness conflict resolved by treating the existing FR19 blocked record as authoritative. No grant command gateway, UI flow, resources, styling, or regression tests were implemented.
 - Story returned to backlog pending a separate governance clearance for FR19 global-administrator grant/remove command management.
 - Focused UI test-project build passed, and xUnit v3 executable fallback passed all 470 UI tests after `dotnet test` hit the known .NET 10 runner incompatibility.
+- Story 4.3 grant-only implementation completed after explicit user direction to proceed on 2026-06-07.
+- Added `SetGlobalAdministratorCommandRequest` and `SetGlobalAdministratorAsync` through the existing EventStore command gateway with fixed `system/global-administrators/global-administrators` routing, ULID message id generation, and `{ UserId }` payload only.
+- Extended `GlobalAdministratorsPage` with a localized grant form, stable selectors, fail-closed unavailable reasons, one-at-a-time command locking, support-safe lifecycle/audit states, focus targets, and no tenant membership or tenant-role substitute inputs.
+- Implemented projection-confirmed lifecycle behavior: command status alone cannot confirm success; the page re-queries `GetGlobalAdministratorsAsync` and only confirms when the target user appears in the fixed projection.
+- Added EN/FR `Tenants.GlobalAdministrators.Grant.*` resources, forced-colors/focus-visible styling, and wrapping support for long literal user ids.
+- Added focused gateway, state, and component regression tests for fixed-scope routing, blank user validation, `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, support-safe redaction, status rejection copy, projection-confirmed success, no optimistic row insertion, command locking, and resource parity.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/4-3-grant-global-administrator-with-projection-confirmation.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
+- `src/Hexalith.Tenants.UI/Components/_Imports.razor`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx`
+- `src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs`
+- `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs`
+- `src/Hexalith.Tenants.UI/State/TenantCommands/SetGlobalAdministratorCommandRequest.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorGrantCommandSnapshotTests.cs`
 
 ### Change Log
 
 - 2026-06-06T15:05:49+02:00 - Created Story 4.3 context and marked it ready for development.
 - 2026-06-06T15:11:40+02:00 - Dev-story readiness check found FR19 still categorically blocked; halted source implementation and returned Story 4.3 to backlog.
 - 2026-06-06T15:12:00+02:00 - Ran focused UI build and xUnit v3 executable validation; all executable UI tests passed.
+- 2026-06-07T09:14:24+02:00 - Implemented grant global administrator command gateway, projection-confirmed UI flow, localization/styling, and focused regression tests; marked story ready for review.

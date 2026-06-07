@@ -2529,6 +2529,105 @@
   <data name="Tenants.GlobalAdministrators.State.Unavailable.Title" xml:space="preserve">
     <value>Donnees d'administrateurs globaux indisponibles</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed" xml:space="preserve">
+    <value>La preuve d'audit est retardee; actualisez le statut ou inspectez l'audit avant de citer une preuve.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditPending" xml:space="preserve">
+    <value>La preuve d'audit est en attente; ne citez pas de preuve d'audit tant qu'elle n'est pas visible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.AuditUnavailable" xml:space="preserve">
+    <value>La preuve d'audit est indisponible depuis ce flux.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.MissingSupport" xml:space="preserve">
+    <value>Le support d'audit pour ce flux n'est pas disponible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Audit.NotStarted" xml:space="preserve">
+    <value>Aucune preuve d'audit n'est disponible avant la soumission de commande.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Available" xml:space="preserve">
+    <value>L'accord est disponible depuis la projection d'autorite plateforme confirmee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Description" xml:space="preserve">
+    <value>Accordez l'autorite plateforme dans le locataire system, domaine global-administrators, agregat global-administrators. L'achevement exige la confirmation de projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de vie de l'accord</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Accepted" xml:space="preserve">
+    <value>Commande acceptee; la confirmation de projection reste requise.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.AlreadyApplied" xml:space="preserve">
+    <value>Deja applique n'est pas utilise pour les accords d'administrateur global.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Confirmed" xml:space="preserve">
+    <value>La projection a confirme l'utilisateur cible dans la portee fixe global-administrators.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Degraded" xml:space="preserve">
+    <value>La verification de l'accord est degradee; la publication ou l'audit n'a pas pu etre verifie.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented" xml:space="preserve">
+    <value>Une commande d'accord concurrente a ete empechee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Failed" xml:space="preserve">
+    <value>La commande d'accord a echoue avant de pouvoir etre verifiee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Idle" xml:space="preserve">
+    <value>Aucune commande d'accord d'administrateur global n'a ete soumise.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Previewed" xml:space="preserve">
+    <value>L'intention d'accord est previsualisee mais non soumise.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente; l'utilisateur cible n'est pas encore confirme administrateur global.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.Rejected" xml:space="preserve">
+    <value>La commande d'accord a ete rejetee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.RequestSent" xml:space="preserve">
+    <value>La demande de commande d'accord a ete envoyee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.State.UnableToVerify" xml:space="preserve">
+    <value>La commande d'accord n'a pas pu etre verifiee par le statut et la preuve de projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Submit" xml:space="preserve">
+    <value>Accorder administrateur global</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Title" xml:space="preserve">
+    <value>Accorder administrateur global</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Authorization" xml:space="preserve">
+    <value>L'autorite plateforme n'est pas confirmee; l'accord echoue ferme sans reveler de donnees d'administrateur.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La surface de commande est indisponible pour les changements de gouvernance plateforme.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez la fraicheur de projection avant d'accorder l'autorite plateforme.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.InFlight" xml:space="preserve">
+    <value>Une autre commande d'autorite plateforme est en cours.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface" xml:space="preserve">
+    <value>La projection de lecture des administrateurs globaux doit etre disponible avant la soumission.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred" xml:space="preserve">
+    <value>Le retrait d'administrateur global est gere par un flux garde separe.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.UserId.Help" xml:space="preserve">
+    <value>Saisissez l'identifiant utilisateur literal fourni par l'appelant. Il n'est pas analyse comme membre locataire, GUID ou ULID.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.UserId.Label" xml:space="preserve">
+    <value>Identifiant utilisateur</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
+    <value>L'identifiant utilisateur est requis avant d'accorder l'autorite d'administrateur global.</value>
+  </data>
   <data name="Tenants.Audit.Back" xml:space="preserve">
     <value>Retour aux details du locataire</value>
   </data>
