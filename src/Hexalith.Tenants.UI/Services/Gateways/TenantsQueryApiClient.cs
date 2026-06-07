@@ -29,8 +29,7 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
             httpRequest.Headers.IfNoneMatch.ParseAdd(normalizedIfNoneMatch);
         }
 
-        using HttpResponseMessage response = await httpClient
-            .SendAsync(httpRequest, cancellationToken)
+        using HttpResponseMessage response = await SendCoreAsync(httpRequest, cancellationToken)
             .ConfigureAwait(false);
 
         string? eTag = GetETag(response);
@@ -77,6 +76,41 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
         {
             Metadata = metadata,
         };
+    }
+
+    // Translate transport-level failures into a 503 EventStoreGatewayException so the gateway's
+    // existing ServiceUnavailable -> degraded/unavailable surface mapping renders a fail-closed
+    // state, instead of letting a raw HttpRequestException or timeout escape into the Blazor
+    // circuit. Genuine caller cancellation is propagated unchanged.
+    private async Task<HttpResponseMessage> SendCoreAsync(HttpRequestMessage httpRequest, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await httpClient
+                .SendAsync(httpRequest, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new EventStoreGatewayException(
+                (int)HttpStatusCode.ServiceUnavailable,
+                "Service Unavailable",
+                detail: "The tenant query service is unavailable.",
+                innerException: ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            // The caller's token did not fire, so this is an HttpClient timeout, not a cancellation.
+            throw new EventStoreGatewayException(
+                (int)HttpStatusCode.ServiceUnavailable,
+                "Service Unavailable",
+                detail: "The tenant query service did not respond in time.",
+                innerException: ex);
+        }
     }
 
     private static QueryResponseMetadata CreateMetadata(HttpResponseMessage response, string? eTag, bool isNotModified)

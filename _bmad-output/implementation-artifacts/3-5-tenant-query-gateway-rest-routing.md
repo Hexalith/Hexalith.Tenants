@@ -7,7 +7,7 @@ source_proposal: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-
 
 # Story 3.5: Tenant Query Gateway REST Routing (Retire Projection-Actor Path)
 
-Status: review
+Status: done
 
 <!-- Note: Defect-fix story created by the BMAD correct-course workflow. Not in the canonical
      epics.md feature list; tracked under Epic 3 as a blocking read-path fix. -->
@@ -194,3 +194,18 @@ and violates D6).
 ## Change Log
 
 - 2026-06-07T10:38:21+02:00 - Implemented REST-backed tenant query routing, ETag/freshness handling, DI/AppHost wiring, retired projection-actor routing, and added tests/evidence for Story 3.5.
+
+### Review Findings
+
+_Adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor), 2026-06-07. Scope: commits 600080c + ed82ef3. 2 decision-needed, 2 patch, 6 deferred, 4 dismissed as noise._
+
+- [x] [Review][Decision→Defer] Freshness ladder collapses to `Current` on every successful read — **RESOLVED 2026-06-07: accept + document.** A direct read-model read carrying a valid state-store ETag is treated as `current`; deriving `aging`/`stale` from a real projection-age/version signal is out of scope for this routing defect-fix and is tracked as deferred work. (`TenantQueryResult.FromPayload` stamps `ServedAt = UtcNow` + `ProjectionVersion = ETag`; `CreateMetadata` never sets `IsStale`/`IsDegraded`, so `ResolveFreshness` returns `Current` whenever an ETag exists.) [src/Hexalith.Tenants/Queries/TenantQueryResult.cs:30]
+- [x] [Review][Decision] AC9 "Tier 1 + Tier 2 tests pass" — **RESOLVED 2026-06-07: accept focused-suite evidence.** UI.Tests (644/644) + the focused handler/gateway/controller suites ran green. The blocked full `Server.Tests` + `IntegrationTests` are pre-existing/unrelated infra (missing `pubsub.yaml` evidence gate, health-readiness contract drift), tracked as deferred work — not a Story 3.5 regression.
+- [x] [Review][Patch] (HIGH) **APPLIED 2026-06-07.** Transport failures/timeouts bypass the fail-closed gateway and surface into the Blazor circuit — `SendAsync` does not translate `HttpRequestException`/`TaskCanceledException` into `EventStoreGatewayException`, and `TenantQueryGateway` catches only `EventStoreGatewayException`; a tenants-service outage/timeout (routine at startup/restart/deploy) escapes uncaught instead of rendering the `Unavailable` surface. Fix: in `SendAsync`, map transport/timeout failures to `EventStoreGatewayException(503, …)` and rethrow genuine caller cancellation. [src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiClient.cs:32]
+- [x] [Review][Patch] (Low) **APPLIED 2026-06-07.** Projection-routing guard test does not scan the domain-service host — `SolutionStructureTests` scans only `src/Hexalith.Tenants.Contracts` + `src/Hexalith.Tenants.UI`, so an actor-routing regression in `src/Hexalith.Tenants` (controller/handlers) would pass undetected. Extend the scan to `src/Hexalith.Tenants`. [tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs:180]
+- [x] [Review][Defer] Full Server.Tests + IntegrationTests blocked by pre-existing infra (pubsub.yaml evidence gate, health-readiness contract drift) — deferred, pre-existing (pairs with the AC9 decision).
+- [x] [Review][Defer] EventStore.Admin.Server still routes tenant queries through the retired `TenantProjectionRouting`/actor [Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs:209] — deferred, out of scope (submodule must not be modified).
+- [x] [Review][Defer] Null/empty read-model ETag silently disables 304 (always 200) [src/Hexalith.Tenants/Queries/TenantQueryResult.cs:30] — deferred, fail-open and safe; document.
+- [x] [Review][Defer] ETag quote/compare + weak-ETag handling robust only for the current strong-ETag topology (`QuoteStrongETag` escapes `"`/`\` but `IsNotModified` compares unescaped; `GetETag`/`NormalizeIfNoneMatch` throw on weak/`*`, the latter as an `ArgumentException` that would escape the gateway catch) [src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:462] — deferred, dormant/low likelihood.
+- [x] [Review][Defer] StatelessRestartTests state-store-reconstruction coverage deleted, not replaced [tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs] — deferred, add a REST/handler equivalent for "persist → fresh instance serves it".
+- [x] [Review][Defer] No explicit test asserts the live error path drops `correlationId` from user copy (behavior is correct; only the Unavailable fallback is asserted) [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsQueryApiClientTests.cs] — deferred, coverage hardening.

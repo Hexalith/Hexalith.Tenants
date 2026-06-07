@@ -173,12 +173,13 @@ public class SolutionStructureTests {
     }
 
     [Fact]
-    public void Tenant_ui_and_contracts_do_not_use_projection_actor_query_routing() {
+    public void Tenant_ui_contracts_and_host_do_not_use_projection_actor_query_routing() {
         string repoRoot = FindRepoRoot();
         string[] scannedRoots =
         [
             "src/Hexalith.Tenants.Contracts",
             "src/Hexalith.Tenants.UI",
+            "src/Hexalith.Tenants",
         ];
 
         foreach (string relativeRoot in scannedRoots) {
