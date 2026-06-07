@@ -651,6 +651,53 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
+    public async Task Commands_endpoint_accepts_RemoveGlobalAdministrator_and_routes_fixed_platform_scope_payload() {
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(true, null, "global-admin-remove-correlation"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow, "global-administrators", 1, null, null, null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "platform-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateRemoveGlobalAdministratorRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        CommandApiResponse? body = await response.Content.ReadFromJsonAsync<CommandApiResponse>();
+        _ = body.ShouldNotBeNull();
+        body.CorrelationId.ShouldBe(request.MessageId);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.Tenant.ShouldBe("system");
+        capturedCommand.Domain.ShouldBe("global-administrators");
+        capturedCommand.AggregateId.ShouldBe("global-administrators");
+        capturedCommand.CommandType.ShouldBe(nameof(RemoveGlobalAdministrator));
+        capturedCommand.UserId.ShouldBe("platform-admin");
+        capturedCommand.IsGlobalAdmin.ShouldBeTrue();
+        RemoveGlobalAdministrator? payload = JsonSerializer.Deserialize<RemoveGlobalAdministrator>(capturedCommand.Payload);
+        _ = payload.ShouldNotBeNull();
+        payload.UserId.ShouldBe("target-user.literal-01");
+        string rawPayload = Encoding.UTF8.GetString(capturedCommand.Payload);
+        rawPayload.ShouldNotContain("TenantId", Case.Insensitive);
+        rawPayload.ShouldNotContain("Role", Case.Insensitive);
+    }
+
+    [Fact]
     public async Task Commands_endpoint_accepts_AddUserToTenant_and_routes_story_payload() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
         SubmitPipelineCommand? capturedCommand = null;
@@ -1184,6 +1231,70 @@ public class CommandApiRuntimeIntegrationTests {
         problemJson.ShouldNotContain("AlreadyApplied", Case.Insensitive);
         problemJson.ShouldNotContain("success", Case.Insensitive);
         problemJson.ShouldNotContain("target-user.literal-01", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(typeof(LastGlobalAdministratorRejection), HttpStatusCode.UnprocessableEntity, "last-global-administrator-rejection", "Last Global Administrator Rejection")]
+    [InlineData(typeof(GlobalAdministratorNotFoundRejection), HttpStatusCode.NotFound, "global-administrator-not-found-rejection", "Global Administrator Not Found Rejection")]
+    public async Task Commands_endpoint_returns_safe_problem_details_for_RemoveGlobalAdministrator_rejections(
+        Type rejectionType,
+        HttpStatusCode expectedStatusCode,
+        string expectedReasonCode,
+        string expectedTitle) {
+        ArgumentNullException.ThrowIfNull(rejectionType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedReasonCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedTitle);
+
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandProcessingResult(
+                false,
+                $"Domain rejection: {rejectionType.Name} raw payload target-user.literal-01 bearer token stack trace",
+                "global-admin-remove-rejection"));
+
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        _ = statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected,
+                DateTimeOffset.UtcNow,
+                "global-administrators",
+                1,
+                rejectionType.FullName,
+                null,
+                null));
+
+        await using var factory = new CommandApiWebApplicationFactory(
+            router,
+            statusStore,
+            Substitute.For<ICommandArchiveStore>(),
+            useTestAuthentication: false);
+        string token = CreateJwt(
+            "platform-admin",
+            claims:
+            [
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true"),
+            ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest request = CreateRemoveGlobalAdministratorRequest();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+        string problemJson = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(expectedStatusCode);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        ProblemDetails? details = JsonSerializer.Deserialize<ProblemDetails>(problemJson, ProblemDetailsJsonOptions);
+        _ = details.ShouldNotBeNull();
+        details.Title.ShouldBe(expectedTitle);
+        details.Status.ShouldBe((int)expectedStatusCode);
+        details.Type.ShouldBe($"{DomainRejectionProblemTypeBase}/{expectedReasonCode}");
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.ReasonCode).ShouldBe(expectedReasonCode);
+        GetProblemExtension(details, GatewayProblemDetailsExtensions.RejectionType).ShouldBe(rejectionType.FullName);
+        problemJson.ShouldNotContain("Success", Case.Insensitive);
+        problemJson.ShouldNotContain("remove member", Case.Insensitive);
+        problemJson.ShouldNotContain("target-user.literal-01", Case.Insensitive);
+        problemJson.ShouldNotContain("bearer", Case.Insensitive);
+        problemJson.ShouldNotContain("stack trace", Case.Insensitive);
     }
 
     [Fact]
@@ -2186,6 +2297,19 @@ public class CommandApiRuntimeIntegrationTests {
             "global-administrators",
             "global-administrators",
             nameof(SetGlobalAdministrator),
+            commandPayload);
+    }
+
+    private static Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest CreateRemoveGlobalAdministratorRequest(
+        JsonElement? payload = null) {
+        JsonElement commandPayload = payload
+            ?? JsonSerializer.SerializeToElement(new RemoveGlobalAdministrator("target-user.literal-01"));
+        return new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(),
+            "system",
+            "global-administrators",
+            "global-administrators",
+            nameof(RemoveGlobalAdministrator),
             commandPayload);
     }
 

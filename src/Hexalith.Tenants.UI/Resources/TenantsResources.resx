@@ -2634,6 +2634,153 @@
   <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
     <value>User id is required before granting global administrator authority.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditDelayed" xml:space="preserve">
+    <value>Audit evidence is delayed; refresh status or inspect audit before citing proof.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditPending" xml:space="preserve">
+    <value>Audit evidence is pending; do not cite audit proof until it is visible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditUnavailable" xml:space="preserve">
+    <value>Audit evidence is unavailable from this flow.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.MissingSupport" xml:space="preserve">
+    <value>Audit support for this flow is not available.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.NotStarted" xml:space="preserve">
+    <value>No audit evidence is available before command submission.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Description" xml:space="preserve">
+    <value>Remove platform authority only when the fixed global-administrators projection proves it will not remove the last global administrator.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Launch" xml:space="preserve">
+    <value>Remove global administrator</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Lifecycle.Title" xml:space="preserve">
+    <value>Remove lifecycle</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked" xml:space="preserve">
+    <value>Access being revoked</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked.Value" xml:space="preserve">
+    <value>Platform global-administrator authority is revoked from the target user only after projection confirmation.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Audit" xml:space="preserve">
+    <value>Audit expectation</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Audit.Value" xml:space="preserve">
+    <value>Audit evidence is expected after command acceptance and projection-confirmed removal; this panel does not fabricate proof.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Count" xml:space="preserve">
+    <value>Current administrator count</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Freshness" xml:space="preserve">
+    <value>Projection freshness</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences" xml:space="preserve">
+    <value>Known consequences</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value" xml:space="preserve">
+    <value>The target loses platform authority in the system global-administrators scope; tenant membership is not changed.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Known unknowns</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>Session revocation, token invalidation, downstream enforcement timing, and audit proof timing are not proven by command status alone.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact" xml:space="preserve">
+    <value>Last administrator impact</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value" xml:space="preserve">
+    <value>The target is not the last visible global administrator in the current projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery" xml:space="preserve">
+    <value>Recovery path</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value" xml:space="preserve">
+    <value>Refresh projection truth, inspect audit evidence, or grant global administrator authority again through the fixed platform-governance flow.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Scope" xml:space="preserve">
+    <value>Platform authority scope</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Scope.Value" xml:space="preserve">
+    <value>tenant system, domain global-administrators, aggregate global-administrators</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Target" xml:space="preserve">
+    <value>Target user id</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Title" xml:space="preserve">
+    <value>Remove consequence preview</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Refresh" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Accepted" xml:space="preserve">
+    <value>Command accepted; projection confirmation is still required.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.AlreadyApplied" xml:space="preserve">
+    <value>Already-applied is not used for global administrator removal.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Confirmed" xml:space="preserve">
+    <value>Projection confirmed removal from the fixed global-administrators scope.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Degraded" xml:space="preserve">
+    <value>Remove verification is degraded; publication or audit evidence could not be verified.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.DuplicatePrevented" xml:space="preserve">
+    <value>A concurrent remove command was prevented.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Failed" xml:space="preserve">
+    <value>Remove command failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Idle" xml:space="preserve">
+    <value>No global administrator remove command has been submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Previewed" xml:space="preserve">
+    <value>Remove preview is ready for deliberate confirmation.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.ProjectionPending" xml:space="preserve">
+    <value>Projection pending; the target user is still visible until a re-query proves absence.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Rejected" xml:space="preserve">
+    <value>Remove command was rejected.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.RequestSent" xml:space="preserve">
+    <value>Remove command request was sent.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.UnableToVerify" xml:space="preserve">
+    <value>Remove command could not be verified from command status and projection evidence.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submit" xml:space="preserve">
+    <value>Confirm removal</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Title" xml:space="preserve">
+    <value>Remove global administrator</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Authorization" xml:space="preserve">
+    <value>Platform authority is not confirmed, so remove fails closed without revealing administrator data.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface" xml:space="preserve">
+    <value>The command surface is unavailable for platform governance changes.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Freshness" xml:space="preserve">
+    <value>Refresh projection freshness before removing platform authority.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.InFlight" xml:space="preserve">
+    <value>Another platform authority command is in flight.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin" xml:space="preserve">
+    <value>The last global administrator cannot be removed.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface" xml:space="preserve">
+    <value>The global administrator read projection must be available before removal can be submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing" xml:space="preserve">
+    <value>The target administrator is not visible in the current projection.</value>
+  </data>
   <data name="Tenants.Audit.Back" xml:space="preserve">
     <value>Back to tenant details</value>
   </data>

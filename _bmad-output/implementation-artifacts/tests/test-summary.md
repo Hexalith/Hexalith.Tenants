@@ -260,3 +260,33 @@ build validation and no behavioral coverage. Added a dedicated fixture to close 
   passed with 0 warnings / 0 errors. xUnit v3 executable fallback
   `dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll` passed:
   652 total (644 prior + 8 new), 0 errors, 0 failed, 0 skipped.
+
+## Story 4.4 QA E2E Generation Addendum (2026-06-07)
+
+- [x] `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` - Added API coverage for `RemoveGlobalAdministrator` through `/api/v1/commands`, fixed `system/global-administrators/global-administrators` routing, literal `{ UserId }` payload without tenant membership fields, global-admin caller capture, accepted response correlation, and no tenant-role or tenant-id payload leakage.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs` - Added rejection coverage for `LastGlobalAdministratorRejection` and `GlobalAdministratorNotFoundRejection` from the remove command endpoint, including deterministic ProblemDetails status/type/reason-code/rejection-type mapping and support-safe output without success, tenant-member removal, target user, bearer token, or stack-trace leakage.
+- [x] Existing Story 4.4 bUnit/state/gateway coverage remains in `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`, `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorRemoveCommandSnapshotTests.cs`, and `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs` for last-admin pre-submit unavailability, consequence preview, one-at-a-time locking, projection-confirmed removal, SignalR nudge-only behavior, safe rejection mapping, audit states, live-region politeness, stable selectors, forced-colors/focus hooks, and no tenant membership substitute command.
+
+## Story 4.4 Coverage
+
+- API endpoints: 1/1 applicable command endpoint path covered for remove (`POST /api/v1/commands`).
+- UI workflows: 6/6 critical remove workflow paths covered through existing bUnit/state tests: last-admin unavailable, preview open/cancel, accepted -> projection-confirmed absence, accepted -> unable-to-verify when target remains visible, `LastGlobalAdministrator`, and `GlobalAdministratorNotFound`.
+- Story 4.4 acceptance criteria: 8/8 covered across command API integration tests, UI command gateway tests, global-administrator remove component tests, lifecycle reducer tests, resource/style assertions, and fixed global-administrator query-route tests from Story 4.2.
+- Critical error cases: last-admin hard stop before submit, race-returned `LastGlobalAdministrator`, missing target `GlobalAdministratorNotFound`, insufficient permissions, gateway unavailable/failure, stale/degraded/read-unavailable fail-closed state, command-surface unavailable, in-flight command locking, projection completion without absence evidence, SignalR nudge without confirmation, audit pending/delayed/unavailable/missing-support, and support-safe error rendering.
+
+## Story 4.4 Validation
+
+- `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 --no-restore` was attempted and remains blocked by the existing submodule compile issue in `Hexalith.EventStore.Server`: unresolved `Hexalith.Commons.UniqueIds` in `EventPersister.cs` and `ProjectionRebuildCheckpointStore.cs`.
+- `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -m:1 --no-restore /p:BuildProjectReferences=false` passed with 0 warnings and 0 errors, validating the changed integration test project against already-built references.
+- Focused xUnit v3 executable fallback passed for the new Story 4.4 command API tests: `./tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests -noLogo -noColor -parallel none -method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_accepts_RemoveGlobalAdministrator_and_routes_fixed_platform_scope_payload -method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_returns_safe_problem_details_for_RemoveGlobalAdministrator_rejections` passed 3/3 with 0 failed and 0 skipped.
+
+## Story 4.4 Checklist Result
+
+- [x] API tests generated where applicable.
+- [x] E2E-style workflow tests already exist for the implemented UI surface using the existing xUnit v3/bUnit framework.
+- [x] Tests use standard xUnit v3, Shouldly, NSubstitute, WebApplicationFactory, bUnit, and existing project test doubles.
+- [x] Tests cover happy path plus critical last-admin, not-found, unavailable, projection-confirmation, and support-safety cases.
+- [x] Tests use stable selectors and accessibility-oriented assertions where UI is involved.
+- [x] No hardcoded waits or sleeps were added.
+- [x] Tests are independent and order-free.
+- [x] Test summary updated with coverage metrics and validation evidence.

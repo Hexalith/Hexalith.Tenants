@@ -1,0 +1,1 @@
+{"stories":[{"storyId":"4.4","title":"Remove Global Administrator with Last-Admin Hard Stop","complexity":{"score":13,"level":"High","reasons":["Complex database operations","Authorization/permissions","Transaction management","Complex forms","Accessibility requirements","Internationalization","Integration testing required","Configuration/feature flags","High AC count (29)"]}}]}

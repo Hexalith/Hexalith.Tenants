@@ -324,6 +324,41 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
+        RemoveGlobalAdministratorCommandRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.UserId))
+        {
+            return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
+        }
+
+        string messageId = ulidFactory.NewUlid();
+        var command = new RemoveGlobalAdministrator(request.UserId);
+        var submit = new SubmitCommandRequest(
+            messageId,
+            SystemTenant,
+            GlobalAdministratorsDomain,
+            GlobalAdministratorsAggregateId,
+            nameof(RemoveGlobalAdministrator),
+            JsonSerializer.SerializeToElement(command));
+
+        try
+        {
+            SubmitCommandResponse response = await gatewayClient
+                .SubmitCommandAsync(submit, cancellationToken)
+                .ConfigureAwait(false);
+
+            return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapRemoveGlobalAdministratorGatewayException(ex);
+        }
+    }
+
     public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
@@ -622,6 +657,26 @@ internal sealed class TenantCommandGateway(
         };
     }
 
+    private static TenantCommandSubmissionResult MapRemoveGlobalAdministratorGatewayException(EventStoreGatewayException exception)
+    {
+        (string Code, string Message)? rejection = SafeGlobalAdministratorRejection(exception);
+        if (rejection is not null)
+        {
+            return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
+        }
+
+        return exception.StatusCode switch
+        {
+            (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
+                => TenantCommandSubmissionResult.Rejected("You are not authorized to change platform governance.", "InsufficientPermissions"),
+            (int)HttpStatusCode.BadRequest
+                => TenantCommandSubmissionResult.Failed("The global administrator removal request was not accepted. Check the visible user id and try again."),
+            (int)HttpStatusCode.ServiceUnavailable
+                => TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."),
+            _ => TenantCommandSubmissionResult.Failed("Global administrator command submission failed before it could be verified."),
+        };
+    }
+
     private static bool IsTenantAlreadyExists(EventStoreGatewayException exception)
         => Contains(exception.ReasonCode, "tenant-already-exists")
         || Contains(exception.Reason, "TenantAlreadyExists")
@@ -710,6 +765,16 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "GlobalAdministratorAlreadyExists"))
         {
             return ("GlobalAdministratorAlreadyExists", "This user is already a global administrator. Refresh the platform authority projection before trying another action.");
+        }
+
+        if (Contains(value, "LastGlobalAdministrator"))
+        {
+            return ("LastGlobalAdministrator", "The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before trying again.");
+        }
+
+        if (Contains(value, "GlobalAdministratorNotFound"))
+        {
+            return ("GlobalAdministratorNotFound", "The target user is not a global administrator in the last-confirmed projection. Refresh platform authority before trying another action.");
         }
 
         return null;
@@ -980,6 +1045,16 @@ internal sealed class TenantCommandGateway(
         if (Contains(value, "GlobalAdministratorAlreadyExists"))
         {
             return ("GlobalAdministratorAlreadyExists", "This user is already a global administrator. Refresh the platform authority projection before trying another action.");
+        }
+
+        if (Contains(value, "LastGlobalAdministrator"))
+        {
+            return ("LastGlobalAdministrator", "The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before trying again.");
+        }
+
+        if (Contains(value, "GlobalAdministratorNotFound"))
+        {
+            return ("GlobalAdministratorNotFound", "The target user is not a global administrator in the last-confirmed projection. Refresh platform authority before trying another action.");
         }
 
         if (Contains(value, "InsufficientPermissions"))

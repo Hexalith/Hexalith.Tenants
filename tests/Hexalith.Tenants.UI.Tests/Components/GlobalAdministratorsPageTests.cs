@@ -229,6 +229,178 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
     }
 
     [Fact]
+    public void Last_global_administrator_remove_is_unavailable_without_confirmation_affordance()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("only-admin", TenantFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admins-remove-reason']").TextContent.ShouldContain("last global administrator", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("override", Case.Insensitive);
+        cut.Markup.ShouldNotContain("elevated friction", Case.Insensitive);
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Remove_preview_renders_fixed_scope_consequences_before_submission()
+    {
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").TextContent.ShouldContain("target-admin");
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").TextContent.ShouldContain("system");
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").TextContent.ShouldContain("global-administrators");
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").TextContent.ShouldContain("2");
+        cut.Find("[data-testid='tenants-global-admin-remove-known-consequences']").TextContent.ShouldContain("platform authority", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-remove-known-unknowns']").TextContent.ShouldContain("token invalidation", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-remove-audit-expectation']").TextContent.ShouldContain("audit", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-remove-recovery']").TextContent.ShouldContain("grant", Case.Insensitive);
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Markup.ShouldNotContain("tenant-member", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Remove_preview_escape_cancels_without_submission_and_exposes_focus_sentinels()
+    {
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").GetAttribute("role").ShouldBe("dialog");
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").GetAttribute("aria-modal").ShouldBe("true");
+        cut.Find("[data-testid='tenants-global-admin-remove-focus-start']").GetAttribute("tabindex").ShouldBe("0");
+        cut.Find("[data-testid='tenants-global-admin-remove-focus-end']").GetAttribute("tabindex").ShouldBe("0");
+
+        cut.Find("[data-testid='tenants-global-admin-remove-preview']").KeyDown("Escape");
+
+        commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-global-admin-remove-preview']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("No global administrator remove command");
+    }
+
+    [Fact]
+    public void Remove_submission_confirms_only_after_projection_requery_excludes_target_user()
+    {
+        var queryGateway = new StubTenantQueryGateway(
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+                ],
+                null,
+                false,
+                "\"etag-1\"",
+                TenantFreshnessState.Current),
+            GlobalAdministratorsSnapshot.Ready(
+                [new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current)],
+                null,
+                false,
+                "\"etag-2\"",
+                TenantFreshnessState.Current));
+        var commandGateway = new StubTenantCommandGateway(statuses: [new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)])
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Accepted("message-remove", "correlation-remove"),
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            commandGateway.RemoveGlobalAdministratorCalls.ShouldBe(1);
+            commandGateway.RemoveRequests.ShouldHaveSingleItem().UserId.ShouldBe("target-admin");
+            queryGateway.GlobalAdministratorCalls.ShouldBe(2);
+            cut.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("Projection confirmed removal");
+            cut.Find("[data-testid='tenants-global-admin-remove-live-region']").GetAttribute("aria-live").ShouldBe("polite");
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+                .ShouldNotContain("target-admin");
+        });
+    }
+
+    [Theory]
+    [InlineData("LastGlobalAdministrator", "last global administrator")]
+    [InlineData("GlobalAdministratorNotFound", "not a global administrator")]
+    public void Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy(
+        string rejectionCode,
+        string expectedText)
+    {
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+            [
+                new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+            ],
+            null,
+            false,
+            "\"etag\"",
+            TenantFreshnessState.Current)));
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
+        {
+            RemoveSubmission = TenantCommandSubmissionResult.Rejected(expectedText, rejectionCode),
+        });
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+
+        cut.Find("[data-testid='tenants-global-admin-remove']").Click();
+        cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("rejected", Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-remove-safe-message']").TextContent.ShouldContain(expectedText, Case.Insensitive);
+            cut.Find("[data-testid='tenants-global-admin-remove-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+                .ShouldContain("target-admin");
+            cut.Markup.ShouldNotContain("success", Case.Insensitive);
+            cut.Markup.ShouldNotContain("remove member", Case.Insensitive);
+        });
+    }
+
+    [Fact]
     public void Blank_keyboard_form_submission_keeps_command_local_and_focuses_user_id_recovery()
     {
         var commandGateway = new StubTenantCommandGateway();
@@ -556,6 +728,8 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "GlobalAdministratorsPage.razor.css"));
         HashSet<string> englishKeys = ResourceKeys(Path.Combine(resourceRoot, "TenantsResources.resx"), "Tenants.GlobalAdministrators.Grant.");
         HashSet<string> frenchKeys = ResourceKeys(Path.Combine(resourceRoot, "TenantsResources.fr.resx"), "Tenants.GlobalAdministrators.Grant.");
+        HashSet<string> englishRemoveKeys = ResourceKeys(Path.Combine(resourceRoot, "TenantsResources.resx"), "Tenants.GlobalAdministrators.Remove.");
+        HashSet<string> frenchRemoveKeys = ResourceKeys(Path.Combine(resourceRoot, "TenantsResources.fr.resx"), "Tenants.GlobalAdministrators.Remove.");
 
         englishKeys.ShouldBe(frenchKeys);
         englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.State.Confirmed");
@@ -563,9 +737,16 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
         englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.State.UnableToVerify");
         englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.Audit.AuditDelayed");
         englishKeys.ShouldContain("Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface");
+        englishRemoveKeys.ShouldBe(frenchRemoveKeys);
+        englishRemoveKeys.ShouldContain("Tenants.GlobalAdministrators.Remove.State.Confirmed");
+        englishRemoveKeys.ShouldContain("Tenants.GlobalAdministrators.Remove.State.Rejected");
+        englishRemoveKeys.ShouldContain("Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin");
+        englishRemoveKeys.ShouldContain("Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(".global-admins__grant-lifecycle:focus-visible");
         styles.ShouldContain(".global-admins__grant-state-symbol");
+        styles.ShouldContain(".global-admins__remove-lifecycle:focus-visible");
+        styles.ShouldContain(".global-admins__remove-state-symbol");
         styles.ShouldContain("overflow-wrap: anywhere");
     }
 
@@ -669,9 +850,15 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
     {
         private readonly Queue<TenantCommandStatusResult> _statuses = new(statuses);
 
+        public TenantCommandSubmissionResult? RemoveSubmission { get; init; }
+
         public int SetGlobalAdministratorCalls { get; private set; }
 
+        public int RemoveGlobalAdministratorCalls { get; private set; }
+
         public List<SetGlobalAdministratorCommandRequest> Requests { get; } = [];
+
+        public List<RemoveGlobalAdministratorCommandRequest> RemoveRequests { get; } = [];
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(
             CreateTenantCommandRequest request,
@@ -715,6 +902,15 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             SetGlobalAdministratorCalls++;
             Requests.Add(request);
             return Task.FromResult(submission ?? TenantCommandSubmissionResult.Failed("No command response configured."));
+        }
+
+        public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
+            RemoveGlobalAdministratorCommandRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            RemoveGlobalAdministratorCalls++;
+            RemoveRequests.Add(request);
+            return Task.FromResult(RemoveSubmission ?? TenantCommandSubmissionResult.Failed("No remove command response configured."));
         }
 
         public Task<TenantCommandSubmissionResult> EnableTenantAsync(
@@ -792,6 +988,55 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
             ["Tenants.GlobalAdministrators.Grant.UserId.Help"] = "Enter the literal caller-supplied user id. It is not parsed as a tenant member, GUID, or ULID.",
             ["Tenants.GlobalAdministrators.Grant.UserId.Label"] = "User id",
             ["Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired"] = "User id is required before granting global administrator authority.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.AuditDelayed"] = "Audit evidence is delayed.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.AuditPending"] = "Audit evidence is pending.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.AuditUnavailable"] = "Audit evidence is unavailable.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.MissingSupport"] = "Audit support is not available.",
+            ["Tenants.GlobalAdministrators.Remove.Audit.NotStarted"] = "No audit evidence is available before command submission.",
+            ["Tenants.GlobalAdministrators.Remove.Cancel"] = "Cancel",
+            ["Tenants.GlobalAdministrators.Remove.Description"] = "Remove platform authority only when the fixed projection proves it will not remove the last global administrator.",
+            ["Tenants.GlobalAdministrators.Remove.Launch"] = "Remove global administrator",
+            ["Tenants.GlobalAdministrators.Remove.Lifecycle.Title"] = "Remove lifecycle",
+            ["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked"] = "Access being revoked",
+            ["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked.Value"] = "Platform global-administrator authority is revoked from the target user only after projection confirmation.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Audit"] = "Audit expectation",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Audit.Value"] = "Audit evidence is expected after command acceptance and projection-confirmed removal.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Count"] = "Current administrator count",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Freshness"] = "Projection freshness",
+            ["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences"] = "Known consequences",
+            ["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value"] = "The target loses platform authority; tenant membership is not changed.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns"] = "Known unknowns",
+            ["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value"] = "Session revocation, token invalidation, downstream enforcement timing, and audit proof timing are not proven by command status alone.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact"] = "Last administrator impact",
+            ["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value"] = "The target is not the last visible global administrator in the current projection.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery"] = "Recovery path",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value"] = "Refresh projection truth, inspect audit evidence, or grant global administrator authority again.",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Scope"] = "Platform authority scope",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"] = "tenant system, domain global-administrators, aggregate global-administrators",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Target"] = "Target user id",
+            ["Tenants.GlobalAdministrators.Remove.Preview.Title"] = "Remove consequence preview",
+            ["Tenants.GlobalAdministrators.Remove.Refresh"] = "Refresh status",
+            ["Tenants.GlobalAdministrators.Remove.State.Accepted"] = "Command accepted; projection confirmation is still required.",
+            ["Tenants.GlobalAdministrators.Remove.State.AlreadyApplied"] = "Already-applied is not used for global administrator removal.",
+            ["Tenants.GlobalAdministrators.Remove.State.Confirmed"] = "Projection confirmed removal from the fixed global-administrators scope.",
+            ["Tenants.GlobalAdministrators.Remove.State.Degraded"] = "Remove verification is degraded.",
+            ["Tenants.GlobalAdministrators.Remove.State.DuplicatePrevented"] = "A concurrent remove command was prevented.",
+            ["Tenants.GlobalAdministrators.Remove.State.Failed"] = "Remove command failed before it could be verified.",
+            ["Tenants.GlobalAdministrators.Remove.State.Idle"] = "No global administrator remove command has been submitted.",
+            ["Tenants.GlobalAdministrators.Remove.State.Previewed"] = "Remove preview is ready for deliberate confirmation.",
+            ["Tenants.GlobalAdministrators.Remove.State.ProjectionPending"] = "Projection pending; the target user is still visible until a re-query proves absence.",
+            ["Tenants.GlobalAdministrators.Remove.State.Rejected"] = "Remove command was rejected.",
+            ["Tenants.GlobalAdministrators.Remove.State.RequestSent"] = "Remove command request was sent.",
+            ["Tenants.GlobalAdministrators.Remove.State.UnableToVerify"] = "Remove command could not be verified from command status and projection evidence.",
+            ["Tenants.GlobalAdministrators.Remove.Submit"] = "Confirm removal",
+            ["Tenants.GlobalAdministrators.Remove.Title"] = "Remove global administrator",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.Authorization"] = "Platform authority is not confirmed, so remove fails closed without revealing administrator data.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"] = "The command surface is unavailable for platform governance changes.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"] = "Refresh projection freshness before removing platform authority.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"] = "Another platform authority command is in flight.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"] = "The last global administrator cannot be removed.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"] = "The global administrator read projection must be available before removal can be submitted.",
+            ["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"] = "The target administrator is not visible in the current projection.",
             ["Tenants.GlobalAdministrators.Identity.Accessible"] = "Global administrator identifier {0}",
             ["Tenants.GlobalAdministrators.List.Title"] = "Current global administrators",
             ["Tenants.GlobalAdministrators.Next"] = "Next",

@@ -2634,6 +2634,153 @@
   <data name="Tenants.GlobalAdministrators.Grant.Validation.UserIdRequired" xml:space="preserve">
     <value>L'identifiant utilisateur est requis avant d'accorder l'autorite d'administrateur global.</value>
   </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditDelayed" xml:space="preserve">
+    <value>La preuve d'audit est retardee; actualisez le statut ou consultez l'audit avant de citer une preuve.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditPending" xml:space="preserve">
+    <value>La preuve d'audit est en attente; ne citez pas de preuve tant qu'elle n'est pas visible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.AuditUnavailable" xml:space="preserve">
+    <value>La preuve d'audit est indisponible depuis ce flux.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.MissingSupport" xml:space="preserve">
+    <value>Le support d'audit de ce flux est indisponible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Audit.NotStarted" xml:space="preserve">
+    <value>Aucune preuve d'audit n'est disponible avant la soumission de commande.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Description" xml:space="preserve">
+    <value>Retirer l'autorite plateforme uniquement lorsque la projection global-administrators fixe prouve que le dernier administrateur global ne sera pas retire.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Launch" xml:space="preserve">
+    <value>Retirer administrateur global</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Lifecycle.Title" xml:space="preserve">
+    <value>Cycle de retrait</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked" xml:space="preserve">
+    <value>Acces retire</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked.Value" xml:space="preserve">
+    <value>L'autorite d'administrateur global plateforme est retiree de l'utilisateur cible uniquement apres confirmation par projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Audit" xml:space="preserve">
+    <value>Attente d'audit</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Audit.Value" xml:space="preserve">
+    <value>Une preuve d'audit est attendue apres acceptation de commande et retrait confirme par projection; ce panneau ne fabrique pas de preuve.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Count" xml:space="preserve">
+    <value>Nombre actuel d'administrateurs</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Freshness" xml:space="preserve">
+    <value>Fraicheur de projection</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences" xml:space="preserve">
+    <value>Consequences connues</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value" xml:space="preserve">
+    <value>La cible perd l'autorite plateforme dans le perimetre system global-administrators; l'appartenance a un locataire n'est pas modifiee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns" xml:space="preserve">
+    <value>Inconnues connues</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value" xml:space="preserve">
+    <value>La revocation de session, l'invalidation de jeton, le delai d'application aval et le delai de preuve d'audit ne sont pas prouves par le seul statut de commande.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact" xml:space="preserve">
+    <value>Impact dernier administrateur</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value" xml:space="preserve">
+    <value>La cible n'est pas le dernier administrateur global visible dans la projection actuelle.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery" xml:space="preserve">
+    <value>Chemin de recuperation</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value" xml:space="preserve">
+    <value>Actualisez la verite de projection, consultez la preuve d'audit ou accordez a nouveau l'autorite d'administrateur global via le flux fixe de gouvernance plateforme.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Scope" xml:space="preserve">
+    <value>Perimetre d'autorite plateforme</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Scope.Value" xml:space="preserve">
+    <value>tenant system, domaine global-administrators, agregat global-administrators</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Target" xml:space="preserve">
+    <value>Identifiant utilisateur cible</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Preview.Title" xml:space="preserve">
+    <value>Apercu des consequences du retrait</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Refresh" xml:space="preserve">
+    <value>Actualiser le statut</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Accepted" xml:space="preserve">
+    <value>Commande acceptee; la confirmation par projection reste requise.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.AlreadyApplied" xml:space="preserve">
+    <value>L'etat deja applique n'est pas utilise pour le retrait d'administrateur global.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Confirmed" xml:space="preserve">
+    <value>La projection a confirme le retrait du perimetre global-administrators fixe.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Degraded" xml:space="preserve">
+    <value>La verification du retrait est degradee; la publication ou la preuve d'audit n'a pas pu etre verifiee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.DuplicatePrevented" xml:space="preserve">
+    <value>Une commande de retrait concurrente a ete empechee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Failed" xml:space="preserve">
+    <value>La commande de retrait a echoue avant de pouvoir etre verifiee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Idle" xml:space="preserve">
+    <value>Aucune commande de retrait d'administrateur global n'a ete soumise.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Previewed" xml:space="preserve">
+    <value>L'apercu de retrait est pret pour une confirmation deliberee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.ProjectionPending" xml:space="preserve">
+    <value>Projection en attente; l'utilisateur cible reste visible jusqu'a ce qu'une nouvelle requete prouve son absence.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.Rejected" xml:space="preserve">
+    <value>La commande de retrait a ete rejetee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.RequestSent" xml:space="preserve">
+    <value>La demande de commande de retrait a ete envoyee.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.State.UnableToVerify" xml:space="preserve">
+    <value>La commande de retrait n'a pas pu etre verifiee avec le statut de commande et la preuve de projection.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submit" xml:space="preserve">
+    <value>Confirmer le retrait</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Title" xml:space="preserve">
+    <value>Retirer administrateur global</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Authorization" xml:space="preserve">
+    <value>L'autorite plateforme n'est pas confirmee; le retrait echoue ferme sans reveler de donnees d'administrateur.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface" xml:space="preserve">
+    <value>La surface de commande est indisponible pour les changements de gouvernance plateforme.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Freshness" xml:space="preserve">
+    <value>Actualisez la fraicheur de projection avant de retirer l'autorite plateforme.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.InFlight" xml:space="preserve">
+    <value>Une autre commande d'autorite plateforme est en cours.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin" xml:space="preserve">
+    <value>Le dernier administrateur global ne peut pas etre retire.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface" xml:space="preserve">
+    <value>La projection de lecture des administrateurs globaux doit etre disponible avant la soumission du retrait.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing" xml:space="preserve">
+    <value>L'administrateur cible n'est pas visible dans la projection actuelle.</value>
+  </data>
   <data name="Tenants.Audit.Back" xml:space="preserve">
     <value>Retour aux details du locataire</value>
   </data>

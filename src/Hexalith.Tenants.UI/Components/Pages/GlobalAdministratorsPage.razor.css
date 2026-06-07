@@ -12,6 +12,10 @@
 .global-admins__grant-heading,
 .global-admins__grant-form,
 .global-admins__grant-lifecycle,
+.global-admins__remove,
+.global-admins__remove-heading,
+.global-admins__remove-preview,
+.global-admins__remove-lifecycle,
 .global-admins__table-shell {
     display: grid;
     gap: 0.5rem;
@@ -32,6 +36,7 @@
 .global-admins__scope,
 .global-admins__state,
 .global-admins__grant,
+.global-admins__remove,
 .global-admins__table-shell {
     border: 1px solid CanvasText;
     border-radius: 8px;
@@ -40,26 +45,30 @@
 }
 
 .global-admins__scope dl,
-.global-admins__grant-scope {
+.global-admins__grant-scope,
+.global-admins__remove-preview-grid {
     display: grid;
     gap: 0.5rem;
     margin: 0;
 }
 
 .global-admins__scope div,
-.global-admins__grant-scope div {
+.global-admins__grant-scope div,
+.global-admins__remove-preview-grid div {
     display: grid;
     gap: 0.25rem;
     grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
 }
 
 .global-admins__scope dt,
-.global-admins__grant-scope dt {
+.global-admins__grant-scope dt,
+.global-admins__remove-preview-grid dt {
     font-weight: 600;
 }
 
 .global-admins__scope dd,
-.global-admins__grant-scope dd {
+.global-admins__grant-scope dd,
+.global-admins__remove-preview-grid dd {
     margin: 0;
 }
 
@@ -74,6 +83,8 @@
 .global-admins__grant input:focus-visible,
 .global-admins__grant-lifecycle:focus-visible,
 .global-admins__grant button:focus-visible,
+.global-admins__remove-lifecycle:focus-visible,
+.global-admins__remove button:focus-visible,
 .global-admins__table-shell button:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
@@ -91,7 +102,8 @@
 
 .global-admins__table-header,
 .global-admins__pager,
-.global-admins__grant-actions {
+.global-admins__grant-actions,
+.global-admins__remove-actions {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
@@ -100,7 +112,8 @@
 }
 
 .global-admins__table-shell button,
-.global-admins__grant button {
+.global-admins__grant button,
+.global-admins__remove button {
     border: 1px solid CanvasText;
     border-radius: 6px;
     min-height: 2.25rem;
@@ -128,17 +141,23 @@
     padding-inline-start: 0.5rem;
 }
 
-.global-admins__grant-lifecycle {
+.global-admins__grant-lifecycle,
+.global-admins__remove-preview,
+.global-admins__remove-lifecycle {
     border: 1px solid CanvasText;
     border-radius: 6px;
     padding: 0.75rem;
 }
 
-.global-admins__grant-lifecycle p {
+.global-admins__grant-lifecycle p,
+.global-admins__remove-preview p,
+.global-admins__remove-preview-grid dd,
+.global-admins__remove-lifecycle p {
     overflow-wrap: anywhere;
 }
 
-.global-admins__grant-state-symbol {
+.global-admins__grant-state-symbol,
+.global-admins__remove-state-symbol {
     border: 2px solid currentColor;
     display: inline-grid;
     font-weight: 700;
@@ -194,6 +213,7 @@
 
     .global-admins__scope div,
     .global-admins__grant-scope div,
+    .global-admins__remove-preview-grid div,
     .global-admins__state {
         grid-template-columns: 1fr;
     }
@@ -209,10 +229,15 @@
     .global-admins__grant,
     .global-admins__grant input,
     .global-admins__grant-lifecycle,
+    .global-admins__remove,
+    .global-admins__remove-preview,
+    .global-admins__remove-lifecycle,
     .global-admins__table-shell,
     .global-admins__state-icon,
     .global-admins__grant-state-symbol,
+    .global-admins__remove-state-symbol,
     .global-admins__grant button,
+    .global-admins__remove button,
     .global-admins__table-shell button,
     .global-admins th,
     .global-admins td {
@@ -223,6 +248,8 @@
     .global-admins__grant input:focus-visible,
     .global-admins__grant-lifecycle:focus-visible,
     .global-admins__grant button:focus-visible,
+    .global-admins__remove-lifecycle:focus-visible,
+    .global-admins__remove button:focus-visible,
     .global-admins__table-shell button:focus-visible {
         outline-color: Highlight;
     }

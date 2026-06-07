@@ -45,6 +45,86 @@ public sealed class TenantCommandGatewayTests
         result.CorrelationId.ShouldBe("correlation-global-admin");
     }
 
+    [Fact]
+    public async Task Remove_global_administrator_submits_fixed_scope_command_with_literal_user_payload()
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin-remove"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.RemoveGlobalAdministratorAsync(
+            new RemoveGlobalAdministratorCommandRequest("User/CaseSensitive.01"),
+            CancellationToken.None);
+
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("global-administrators");
+        submitted.AggregateId.ShouldBe("global-administrators");
+        submitted.CommandType.ShouldBe(nameof(RemoveGlobalAdministrator));
+        submitted.Payload.GetProperty("UserId").GetString().ShouldBe("User/CaseSensitive.01");
+        submitted.Payload.TryGetProperty("TenantId", out _).ShouldBeFalse();
+        submitted.Payload.TryGetProperty("Role", out _).ShouldBeFalse();
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBe("correlation-global-admin-remove");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public async Task Remove_global_administrator_validation_failure_does_not_submit_to_eventstore(string? userId)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin-remove"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.RemoveGlobalAdministratorAsync(
+            new RemoveGlobalAdministratorCommandRequest(userId!),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessage.ShouldNotBeNull().ShouldContain("User id");
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("LastGlobalAdministratorRejection", "LastGlobalAdministrator", "last global administrator")]
+    [InlineData("GlobalAdministratorNotFoundRejection", "GlobalAdministratorNotFound", "not a global administrator")]
+    [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "platform governance")]
+    public async Task Remove_global_administrator_maps_safe_rejection_text(
+        string reason,
+        string expectedCode,
+        string expectedText)
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            reason,
+            detail: "raw payload bearer-token stack trace correlation-global-admin UserId=secret-user"));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.RemoveGlobalAdministratorAsync(
+            new RemoveGlobalAdministratorCommandRequest("secret-user"),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
+        safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -154,6 +234,48 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
         safeMessage.ShouldNotContain("token", Case.Insensitive);
         safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
+        safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData("Hexalith.Tenants.Contracts.Events.Rejections.LastGlobalAdministratorRejection", "LastGlobalAdministrator", "last global administrator")]
+    [InlineData("Hexalith.Tenants.Contracts.Events.Rejections.GlobalAdministratorNotFoundRejection", "GlobalAdministratorNotFound", "not a global administrator")]
+    public async Task Status_lookup_maps_global_administrator_remove_rejections_to_safe_text(
+        string rejectionEventType,
+        string expectedCode,
+        string expectedText)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-global-admin-remove",
+              "status": "Rejected",
+              "statusCode": 5,
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "global-administrators",
+              "eventCount": 0,
+              "rejectionEventType": "{{rejectionEventType}}",
+              "failureReason": "raw payload token stack trace correlation-global-admin-remove UserId=secret-user",
+              "timeoutDuration": null
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global-admin-remove")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-global-admin-remove", "correlation-global-admin-remove"),
+            CancellationToken.None);
+
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        result.RejectionCode.ShouldBe(expectedCode);
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain(expectedText, Case.Insensitive);
+        safeMessage.ShouldNotContain("success", Case.Insensitive);
+        safeMessage.ShouldNotContain("remove member", Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation-global-admin-remove", Case.Insensitive);
         safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
     }
 

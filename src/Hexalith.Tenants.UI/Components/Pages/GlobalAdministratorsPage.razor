@@ -153,6 +153,125 @@
         </section>
     </section>
 
+    <section class="global-admins__remove"
+             aria-labelledby="global-admins-remove-heading"
+             data-testid="tenants-global-admin-remove-flow">
+        <div class="global-admins__remove-heading">
+            <h2 id="global-admins-remove-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Title"]</h2>
+            <p>@Localizer["Tenants.GlobalAdministrators.Remove.Description"]</p>
+        </div>
+
+        @if (_removeSnapshot.State is TenantCommandLifecycleState.Previewed
+            or TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending)
+        {
+            <section class="global-admins__remove-preview"
+                     role="dialog"
+                     aria-modal="true"
+                     aria-labelledby="global-admins-remove-preview-heading"
+                     data-testid="tenants-global-admin-remove-preview"
+                     @onkeydown="HandleRemovePreviewKeyDownAsync">
+                <span class="global-admins__remove-focus-sentinel"
+                      tabindex="0"
+                      data-testid="tenants-global-admin-remove-focus-start"
+                      @onfocus="FocusRemoveCancelAsync"></span>
+                <h3 id="global-admins-remove-preview-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Title"]</h3>
+                <dl class="global-admins__remove-preview-grid">
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Scope"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Scope.Value"]</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Target"]</dt>
+                        <dd data-testid="tenants-global-admin-remove-target">@_removeSnapshot.Intent?.UserId</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Count"]</dt>
+                        <dd>@(_removeSnapshot.PreviewRows?.Count ?? 0)</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Freshness"]</dt>
+                        <dd>@_snapshot.Freshness</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.LastAdminImpact.Value"]</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.AccessRevoked.Value"]</dd>
+                    </div>
+                    <div data-testid="tenants-global-admin-remove-known-consequences">
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownConsequences.Value"]</dd>
+                    </div>
+                    <div data-testid="tenants-global-admin-remove-known-unknowns">
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.KnownUnknowns.Value"]</dd>
+                    </div>
+                    <div data-testid="tenants-global-admin-remove-audit-expectation">
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Audit"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Audit.Value"]</dd>
+                    </div>
+                    <div data-testid="tenants-global-admin-remove-recovery">
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Recovery"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Remove.Preview.Recovery.Value"]</dd>
+                    </div>
+                </dl>
+                <div class="global-admins__remove-actions">
+                    <button type="button"
+                            @ref="_removeSubmitElement"
+                            data-testid="tenants-global-admin-remove-submit"
+                            disabled="@IsRemoveSubmitDisabled"
+                            @onclick="SubmitRemoveAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Remove.Submit"]
+                    </button>
+                    <button type="button"
+                            @ref="_removeCancelElement"
+                            data-testid="tenants-global-admin-remove-cancel"
+                            @onclick="CancelRemoveAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
+                    </button>
+                    <button type="button"
+                            data-testid="tenants-global-admin-remove-refresh"
+                            disabled="@(!CanRefreshRemoveStatus)"
+                            @onclick="RefreshRemoveStatusAsync">
+                        @Localizer["Tenants.GlobalAdministrators.Remove.Refresh"]
+                    </button>
+                </div>
+                <span class="global-admins__remove-focus-sentinel"
+                      tabindex="0"
+                      data-testid="tenants-global-admin-remove-focus-end"
+                      @onfocus="FocusRemoveSubmitAsync"></span>
+            </section>
+        }
+
+        <section class="global-admins__remove-lifecycle global-admins__remove-lifecycle--@RemoveStateCss"
+                 @ref="_removeLifecycleElement"
+                 tabindex="-1"
+                 role="@RemoveLifecycleRole"
+                 aria-labelledby="global-admins-remove-lifecycle-heading"
+                 data-testid="tenants-global-admin-remove-lifecycle">
+            <h3 id="global-admins-remove-lifecycle-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Lifecycle.Title"]</h3>
+            <p data-testid="tenants-global-admin-remove-state">
+                <span class="global-admins__remove-state-symbol" aria-hidden="true">@RemoveStateSymbol</span>
+                <span>@RemoveStateText</span>
+            </p>
+            @if (!string.IsNullOrWhiteSpace(_removeSnapshot.SafeMessage))
+            {
+                <p data-testid="tenants-global-admin-remove-safe-message">@_removeSnapshot.SafeMessage</p>
+            }
+            <p data-testid="tenants-global-admin-remove-audit-state">@RemoveAuditText</p>
+            <p class="global-admins__remove-live"
+               data-testid="tenants-global-admin-remove-live-region"
+               aria-live="@RemoveLiveRegionMode"
+               aria-atomic="true">
+                @RemoveStateText
+            </p>
+        </section>
+    </section>
+
     @if (ShouldRenderRows)
     {
         <section class="global-admins__table-shell"
@@ -201,7 +320,18 @@
                                 <td>
                                     <div class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
                                         <span data-testid="tenants-global-admins-grant-reason">@(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])</span>
-                                        <span data-testid="tenants-global-admins-remove-reason">@RemoveUnavailableReason</span>
+                                        @if (RemoveUnavailableReason(row) is { Length: > 0 } removeUnavailableReason)
+                                        {
+                                            <span data-testid="tenants-global-admins-remove-reason">@removeUnavailableReason</span>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    data-testid="tenants-global-admin-remove"
+                                                    @onclick="() => PreviewRemove(row.UserId)">
+                                                @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -225,17 +355,24 @@
     private const int PageSize = 20;
     private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
     private GlobalAdministratorGrantCommandSnapshot _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
+    private GlobalAdministratorRemoveCommandSnapshot _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
     private string? _grantUserId;
     private string? _grantValidationMessage;
     private bool _isGrantSubmitting;
+    private bool _isRemoveSubmitting;
     private ElementReference _grantUserIdElement;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
+    private ElementReference _removeSubmitElement;
+    private ElementReference _removeCancelElement;
+    private ElementReference _removeLifecycleElement;
     private bool _focusGrantUserIdPending;
     private bool _focusGrantLauncherPending;
     private bool _focusGrantLifecyclePending;
+    private bool _focusRemoveSubmitPending;
+    private bool _focusRemoveLifecyclePending;
 
     private bool IsAuthorized
         => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
@@ -316,6 +453,12 @@
             or TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending;
 
+    private bool IsRemoveInFlight
+        => _isRemoveSubmitting
+        || _removeSnapshot.State is TenantCommandLifecycleState.RequestSent
+            or TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending;
+
     private string? GrantUnavailableReason
         => !IsAuthorized
             ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Authorization"].Value
@@ -333,16 +476,42 @@
                             ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
                             : IsGrantInFlight
                                 ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
-                                : null;
+                                : IsRemoveInFlight
+                                    ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
+                                    : null;
 
-    private string RemoveUnavailableReason
-        => IsGrantInFlight
-            ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"]
-            : GrantUnavailableReason is { Length: > 0 } reason
-                ? reason
-            : Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.RemoveDeferred"];
+    private string? RemoveUnavailableReason(GlobalAdministratorRow? row)
+        => !IsAuthorized
+            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Authorization"].Value
+            : !BffComposition.IsReadSurfaceConnected
+                ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
+                : !BffComposition.IsCommandSurfaceConnected
+                    ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"].Value
+                    : _snapshot.Freshness is not TenantFreshnessState.Current
+                        ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"].Value
+                        : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
+                            or GlobalAdministratorsSurfaceKind.Degraded
+                            or GlobalAdministratorsSurfaceKind.Unauthorized
+                            or GlobalAdministratorsSurfaceKind.Unavailable
+                            or GlobalAdministratorsSurfaceKind.Invalid
+                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
+                            : IsGrantInFlight
+                                ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.InFlight"].Value
+                                : IsRemoveInFlight
+                                    ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.InFlight"].Value
+                                    : _snapshot.Rows.Count <= 1
+                                        ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.LastAdmin"].Value
+                                        : row is not null && !_snapshot.Rows.Any(candidate => string.Equals(candidate.UserId, row.UserId, StringComparison.Ordinal))
+                                            ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.TargetMissing"].Value
+                                            : null;
 
     private bool IsGrantSubmitDisabled => !string.IsNullOrWhiteSpace(GrantUnavailableReason);
+
+    private bool IsRemoveSubmitDisabled
+        => _removeSnapshot.State is not TenantCommandLifecycleState.Previewed
+        || IsGrantInFlight
+        || IsRemoveInFlight
+        || _removeSnapshot.Intent is null;
 
     private bool CanCancelGrant
         => _grantSnapshot.State is not TenantCommandLifecycleState.Idle || !string.IsNullOrWhiteSpace(_grantUserId);
@@ -377,6 +546,39 @@
 
     private string GrantStateSymbol
         => _grantSnapshot.State switch
+        {
+            TenantCommandLifecycleState.Confirmed => "OK",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
+            TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
+            TenantCommandLifecycleState.ProjectionPending => "...",
+            _ => ">",
+        };
+
+    private bool CanRefreshRemoveStatus
+        => _removeSnapshot.MessageId is not null
+        && _removeSnapshot.CorrelationId is not null
+        && _removeSnapshot.State is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.Degraded
+            or TenantCommandLifecycleState.UnableToVerify;
+
+    private string RemoveStateCss
+        => _removeSnapshot.State.ToString().ToLowerInvariant();
+
+    private string RemoveStateText
+        => Localizer[$"Tenants.GlobalAdministrators.Remove.State.{_removeSnapshot.State}"];
+
+    private string RemoveAuditText
+        => Localizer[$"Tenants.GlobalAdministrators.Remove.Audit.{_removeSnapshot.AuditState}"];
+
+    private string RemoveLiveRegionMode
+        => _removeSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string RemoveLifecycleRole
+        => _removeSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "alert" : "status";
+
+    private string RemoveStateSymbol
+        => _removeSnapshot.State switch
         {
             TenantCommandLifecycleState.Confirmed => "OK",
             TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
@@ -420,6 +622,18 @@
         {
             _focusGrantLifecyclePending = false;
             await _grantLifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusRemoveSubmitPending)
+        {
+            _focusRemoveSubmitPending = false;
+            await _removeSubmitElement.FocusAsync().ConfigureAwait(false);
+        }
+
+        if (_focusRemoveLifecyclePending)
+        {
+            _focusRemoveLifecyclePending = false;
+            await _removeLifecycleElement.FocusAsync().ConfigureAwait(false);
         }
     }
 
@@ -554,6 +768,113 @@
             || _grantSnapshot.FocusTarget is TenantCommandFocusTarget.Refresh)
         {
             _focusGrantLifecyclePending = true;
+        }
+    }
+
+    private void PreviewRemove(string userId)
+    {
+        GlobalAdministratorRow? row = _snapshot.Rows.FirstOrDefault(candidate => string.Equals(candidate.UserId, userId, StringComparison.Ordinal));
+        if (RemoveUnavailableReason(row) is { Length: > 0 } unavailableReason)
+        {
+            SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Blocked(unavailableReason, TenantCommandFocusTarget.Lifecycle));
+            return;
+        }
+
+        var request = new RemoveGlobalAdministratorCommandRequest(userId);
+        SetRemoveSnapshot(_removeSnapshot.Preview(request, _snapshot.Rows));
+    }
+
+    private async Task SubmitRemoveAsync()
+    {
+        if (_removeSnapshot.Intent is null || IsRemoveSubmitDisabled)
+        {
+            return;
+        }
+
+        SetRemoveSnapshot(_removeSnapshot.RequestSent());
+        _isRemoveSubmitting = true;
+
+        try
+        {
+            TenantCommandSubmissionResult result = await CommandGateway
+                .RemoveGlobalAdministratorAsync(_removeSnapshot.Intent, CancellationToken.None)
+                .ConfigureAwait(false);
+
+            SetRemoveSnapshot(_removeSnapshot.ApplySubmission(result));
+            if (result.State is TenantCommandLifecycleState.Accepted)
+            {
+                await RefreshRemoveStatusAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _isRemoveSubmitting = false;
+        }
+    }
+
+    private async Task RefreshRemoveStatusAsync()
+    {
+        if (_removeSnapshot.MessageId is null || _removeSnapshot.CorrelationId is null)
+        {
+            return;
+        }
+
+        TenantCommandStatusResult status = await CommandGateway
+            .GetStatusAsync(new TenantCommandTrackingHandle(_removeSnapshot.MessageId, _removeSnapshot.CorrelationId), CancellationToken.None)
+            .ConfigureAwait(false);
+        SetRemoveSnapshot(_removeSnapshot.ApplyStatus(status));
+
+        if (_removeSnapshot.Intent is not null
+            && _removeSnapshot.State is TenantCommandLifecycleState.Accepted
+                or TenantCommandLifecycleState.ProjectionPending)
+        {
+            await RequeryRemoveProjectionAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task RequeryRemoveProjectionAsync()
+    {
+        GlobalAdministratorsSnapshot previous = _snapshot;
+        GlobalAdministratorsRequest request = new(Cursor: null, PageSize: PageSize, ETag: null);
+        _snapshot = await QueryGateway
+            .GetGlobalAdministratorsAsync(request, previous, CancellationToken.None)
+            .ConfigureAwait(false);
+        SetRemoveSnapshot(_removeSnapshot.ConfirmProjection(_snapshot));
+    }
+
+    private async Task CancelRemoveAsync()
+    {
+        SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot.Idle());
+        _focusRemoveLifecyclePending = true;
+        await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    private async Task HandleRemovePreviewKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (string.Equals(args.Key, "Escape", StringComparison.Ordinal))
+        {
+            await CancelRemoveAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task FocusRemoveSubmitAsync(FocusEventArgs args)
+        => await _removeSubmitElement.FocusAsync().ConfigureAwait(false);
+
+    private async Task FocusRemoveCancelAsync(FocusEventArgs args)
+        => await _removeCancelElement.FocusAsync().ConfigureAwait(false);
+
+    private void SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot snapshot)
+    {
+        _removeSnapshot = snapshot;
+        if (_removeSnapshot.FocusTarget is TenantCommandFocusTarget.Submit)
+        {
+            _focusRemoveSubmitPending = true;
+        }
+        else if (_removeSnapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || _removeSnapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle
+            || _removeSnapshot.FocusTarget is TenantCommandFocusTarget.Refresh)
+        {
+            _focusRemoveLifecyclePending = true;
         }
     }
 }
