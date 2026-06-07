@@ -43,7 +43,6 @@
   <Folder Name="/Submodules/Hexalith.Builds/" />
   <Folder Name="/Submodules/Hexalith.Commons/">
     <File Path="Directory.Build.props" />
-    <Project Path="Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/Hexalith.Commons.UniqueIds.csproj" />
   </Folder>
   <Folder Name="/Submodules/Hexalith.EventStore/">
     <Project Path="Hexalith.EventStore/src/Hexalith.EventStore.Admin.Abstractions/Hexalith.EventStore.Admin.Abstractions.csproj" />
