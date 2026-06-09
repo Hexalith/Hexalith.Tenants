@@ -26,6 +26,16 @@ builder.Services.AddHexalithFrontComposerQuickstart(
     o => o.ScanAssemblies(typeof(TenantsFrontComposerDomain).Assembly));
 builder.Services.AddHexalithDomain<TenantsFrontComposerDomain>();
 
+// Gate the Global Administrators left-menu entry (rendered by the shell via AuthorizeView) on the
+// same server-side global-administrator principal shape the BFF composition reflects. Registered
+// unconditionally so the policy resolves whether or not interactive OIDC sign-in is wired.
+builder.Services.AddAuthorizationCore(options =>
+    options.AddPolicy(
+        TenantsFrontComposerRegistration.GlobalAdministratorPolicy,
+        policy => policy
+            .RequireRole("GlobalAdministrator")
+            .RequireClaim("eventstore:tenant", "system")));
+
 // Interactive per-user sign-in: when an OIDC provider is configured (AppHost supplies Keycloak
 // authority/client), wire authorization-code login and relay the signed-in user's access token to
 // the EventStore gateway so queries/commands authorize as that user.

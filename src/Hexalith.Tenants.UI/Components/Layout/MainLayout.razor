@@ -2,22 +2,19 @@
 @using Hexalith.FrontComposer.Shell.Components.Layout
 @using Microsoft.AspNetCore.Components.Authorization
 
+@* The left navigation is now framework-owned: the shell auto-renders FrontComposerNavigation from the
+   domain's registered nav entries (TenantsFrontComposerRegistration), so no bespoke nav slot is set. *@
 <FrontComposerShell>
-    <Navigation>
-        <OperationsShellNavigation />
-    </Navigation>
-    <ChildContent>
-        <div class="tenants-auth-bar" data-testid="tenants-auth-bar">
-            <AuthorizeView>
-                <Authorized>
-                    <span class="tenants-auth-bar__user" data-testid="tenants-auth-user">@(context.User.Identity?.Name ?? "Signed in")</span>
-                    <a class="tenants-auth-bar__action" href="/authentication/sign-out?returnUrl=/" data-enhance-nav="false">Sign out</a>
-                </Authorized>
-                <NotAuthorized>
-                    <a class="tenants-auth-bar__action" href="/authentication/challenge?returnUrl=/" data-enhance-nav="false" data-testid="tenants-sign-in">Sign in</a>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
-        @Body
-    </ChildContent>
+    <div class="tenants-auth-bar" data-testid="tenants-auth-bar">
+        <AuthorizeView>
+            <Authorized>
+                <span class="tenants-auth-bar__user" data-testid="tenants-auth-user">@(context.User.Identity?.Name ?? "Signed in")</span>
+                <a class="tenants-auth-bar__action" href="/authentication/sign-out?returnUrl=/" data-enhance-nav="false">Sign out</a>
+            </Authorized>
+            <NotAuthorized>
+                <a class="tenants-auth-bar__action" href="/authentication/challenge?returnUrl=/" data-enhance-nav="false" data-testid="tenants-sign-in">Sign in</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+    @Body
 </FrontComposerShell>

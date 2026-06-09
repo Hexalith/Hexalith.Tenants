@@ -19,19 +19,27 @@ namespace Hexalith.Tenants.UI.Tests;
 public sealed class TenantsUiCompositionTests
 {
     [Fact]
-    public void FrontComposer_registration_exposes_minimal_tenants_manifest_without_fake_projections()
+    public void FrontComposer_registration_exposes_tenants_nav_entries_and_minimal_manifest()
     {
         CapturingRegistry registry = new();
 
         TenantsFrontComposerRegistration.RegisterDomain(registry);
 
-        registry.NavGroups.ShouldBe(
-        [
-            ("Tenants", "tenants"),
-            ("Global Administrators", "global-administrators"),
-            ("Audit", "audit"),
-        ]);
-        registry.NavGroups.ShouldNotContain(static nav => string.Equals(nav.Name, "Users", StringComparison.Ordinal));
+        // Domain menu is contributed as declarative data; the shell renders it in the global left nav.
+        registry.NavEntries.Select(static entry => entry.Title)
+            .ShouldBe(["Tenants", "My tenants", "User lookup", "Global Administrators"]);
+        registry.NavEntries.Select(static entry => entry.Href)
+            .ShouldBe(["/tenants", "/tenants/my", "/tenants/users", "/global-administrators"]);
+        registry.NavEntries.ShouldAllBe(static entry => entry.BoundedContext == "tenants");
+
+        FrontComposerNavEntry globalAdmins = registry.NavEntries.Single(static entry => entry.Href == "/global-administrators");
+        globalAdmins.RequiredPolicy.ShouldBe(TenantsFrontComposerRegistration.GlobalAdministratorPolicy);
+        registry.NavEntries.Where(static entry => entry.Href != "/global-administrators")
+            .ShouldAllBe(static entry => entry.RequiredPolicy == null);
+
+        // The legacy AddNavGroup stub is no longer used.
+        registry.NavGroups.ShouldBeEmpty();
+
         DomainManifest manifest = registry.Manifests.ShouldHaveSingleItem();
         manifest.BoundedContext.ShouldBe("tenants");
         manifest.Projections.ShouldBeEmpty();
@@ -176,9 +184,11 @@ public sealed class TenantsUiCompositionTests
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Layout", "MainLayout.razor"));
 
         layout.ShouldContain("<FrontComposerShell>");
-        layout.ShouldContain("<Navigation>");
-        layout.ShouldContain("<OperationsShellNavigation />");
         layout.ShouldContain("@Body");
+        layout.ShouldContain("tenants-auth-bar");
+        // The left navigation is framework-owned now — no bespoke navigation slot/component.
+        layout.ShouldNotContain("<Navigation>");
+        layout.ShouldNotContain("OperationsShellNavigation");
     }
 
     [Fact]
@@ -197,13 +207,6 @@ public sealed class TenantsUiCompositionTests
         globalAdminStyles.ShouldContain("@media (forced-colors: active)");
         globalAdminStyles.ShouldContain(":focus-visible");
         globalAdminStyles.ShouldContain("outline");
-
-        string navigationStyles = File.ReadAllText(
-            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Layout", "OperationsShellNavigation.razor.css"));
-
-        navigationStyles.ShouldContain("@media (forced-colors: active)");
-        navigationStyles.ShouldContain(":focus-visible");
-        navigationStyles.ShouldContain("outline");
     }
 
     private static string ProjectRoot()
@@ -240,14 +243,22 @@ public sealed class TenantsUiCompositionTests
             },
         };
 
-    private sealed class CapturingRegistry : IFrontComposerRegistry
+    private sealed class CapturingRegistry : IFrontComposerRegistry, IFrontComposerNavEntryRegistry
     {
         public List<(string Name, string BoundedContext)> NavGroups { get; } = [];
+
+        public List<FrontComposerNavEntry> NavEntries { get; } = [];
 
         public List<DomainManifest> Manifests { get; } = [];
 
         public void AddNavGroup(string name, string boundedContext)
             => NavGroups.Add((name, boundedContext));
+
+        public void AddNavEntry(FrontComposerNavEntry entry)
+            => NavEntries.Add(entry);
+
+        public IReadOnlyList<FrontComposerNavEntry> GetNavEntries()
+            => NavEntries;
 
         public IReadOnlyList<DomainManifest> GetManifests()
             => Manifests;

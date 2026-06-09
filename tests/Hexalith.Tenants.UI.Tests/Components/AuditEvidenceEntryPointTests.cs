@@ -232,19 +232,6 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     }
 
     [Fact]
-    public void Primary_audit_navigation_remains_unavailable_with_visible_scope_reason()
-    {
-        RegisterFluentServices();
-
-        IRenderedComponent<OperationsShellNavigation> cut = Render<OperationsShellNavigation>();
-
-        AngleSharp.Dom.IElement audit = cut.Find("[data-testid='tenants-nav-audit']");
-        audit.GetAttribute("aria-disabled").ShouldBe("true");
-        audit.TextContent.ShouldContain("Choose a tenant before opening audit evidence.");
-        cut.FindAll("[data-testid='tenants-nav-users']").ShouldBeEmpty();
-    }
-
-    [Fact]
     public void Audit_entry_point_resource_keys_have_english_and_french_parity()
     {
         string projectRoot = ProjectRoot();
