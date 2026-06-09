@@ -1,3 +1,4 @@
+using Hexalith.EventStore.Client.Registration;
 using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
@@ -45,8 +46,15 @@ if (authEnabled) {
 
 if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress)) {
     builder.Services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
+
+    // TenantCommandGateway submits commands through IEventStoreGatewayClient (the EventStore.Client
+    // typed HTTP client). AddHexalithEventStore wires the Shell's own command/query clients but not
+    // this gateway abstraction, so register it explicitly and relay the signed-in user's token the
+    // same way the status client does when auth is enabled.
+    IHttpClientBuilder eventStoreGatewayClient = builder.Services.AddEventStoreGatewayClient(o => o.BaseAddress = eventStoreBaseAddress);
     IHttpClientBuilder commandGatewayClient = builder.Services.AddHttpClient<TenantCommandGateway>(client => client.BaseAddress = eventStoreBaseAddress);
     if (authEnabled) {
+        _ = eventStoreGatewayClient.AddGatewayAuthorization();
         _ = commandGatewayClient.AddGatewayAuthorization();
     }
 
