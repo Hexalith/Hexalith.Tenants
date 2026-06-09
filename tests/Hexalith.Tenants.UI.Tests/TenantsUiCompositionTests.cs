@@ -185,7 +185,9 @@ public sealed class TenantsUiCompositionTests
 
         layout.ShouldContain("<FrontComposerShell>");
         layout.ShouldContain("@Body");
-        layout.ShouldContain("tenants-auth-bar");
+        // Sign in / out is now the framework header's FcAccountMenu (avatar) — the bespoke
+        // content-area auth bar has been removed.
+        layout.ShouldNotContain("tenants-auth-bar");
         // The left navigation is framework-owned now — no bespoke navigation slot/component.
         layout.ShouldNotContain("<Navigation>");
         layout.ShouldNotContain("OperationsShellNavigation");
