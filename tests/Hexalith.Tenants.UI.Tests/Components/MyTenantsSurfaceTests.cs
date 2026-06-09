@@ -35,7 +35,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
         cut.WaitForElement("[data-testid='tenants-my-list']");
 
-        cut.Find("[data-testid='tenants-my-refresh']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-my-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-my-back']").GetAttribute("href").ShouldBe("/tenants");
         cut.FindAll("[data-testid='tenants-my-row']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldContain("tenant.alpha");
@@ -60,6 +60,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
+        // The workspace now renders Fluent UI v5 components that import JS modules on first render.
+        JSInterop.Mode = JSRuntimeMode.Loose;
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-my-link']");

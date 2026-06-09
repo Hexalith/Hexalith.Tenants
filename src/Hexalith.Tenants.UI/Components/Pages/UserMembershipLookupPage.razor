@@ -17,26 +17,25 @@
           aria-label="@Localizer["Tenants.UserLookup.FormLabel"]"
           @onsubmit="SubmitAsync"
           @onsubmit:preventDefault="true">
-        <label>
-            <span>@Localizer["Tenants.UserLookup.InputLabel"]</span>
-            <input @ref="_inputElement"
-                   type="text"
-                   required
-                   value="@_inputUserId"
-                   data-testid="tenants-user-lookup-input"
-                   aria-describedby="tenants-user-lookup-help"
-                   @oninput="OnInputChanged" />
-        </label>
+        <div class="user-lookup-page__field">
+            <FluentTextInput @ref="_inputElement"
+                             Required="true"
+                             Label="@Localizer["Tenants.UserLookup.InputLabel"]"
+                             Value="@_inputUserId"
+                             data-testid="tenants-user-lookup-input"
+                             aria-describedby="tenants-user-lookup-help"
+                             ValueChanged="OnInputChanged" />
+        </div>
         <p id="tenants-user-lookup-help">@Localizer["Tenants.UserLookup.InputHelp"]</p>
-        <button type="submit" data-testid="tenants-user-lookup-submit">
+        <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" data-testid="tenants-user-lookup-submit">
             @Localizer["Tenants.UserLookup.Submit"]
-        </button>
-        <button type="button" data-testid="tenants-user-lookup-clear" @onclick="ClearAsync">
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-clear" OnClick="ClearAsync">
             @Localizer["Tenants.UserLookup.Clear"]
-        </button>
-        <button type="button" data-testid="tenants-user-lookup-refresh" disabled="@(!CanRefresh)" @onclick="RefreshAsync">
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-refresh" Disabled="@(!CanRefresh)" OnClick="RefreshAsync">
             @Localizer["Tenants.UserLookup.Refresh"]
-        </button>
+        </FluentButton>
         <a href="/tenants" data-testid="tenants-user-lookup-back">@Localizer["Tenants.UserLookup.Back"]</a>
     </form>
 
@@ -110,15 +109,18 @@
             <section class="user-lookup-page__results"
                      aria-labelledby="tenants-user-lookup-status-heading"
                      data-testid="tenants-user-lookup-results">
-                <label class="user-lookup-page__sort">
-                    <span>@Localizer["Tenants.UserLookup.SortLabel"]</span>
-                    <select value="@_sortColumn" data-testid="tenants-user-lookup-sort" @onchange="OnSortChanged">
-                        <option value="tenant">@Localizer["Tenants.UserLookup.Sort.Tenant"]</option>
-                        <option value="name">@Localizer["Tenants.UserLookup.Sort.Name"]</option>
-                        <option value="role">@Localizer["Tenants.UserLookup.Sort.Role"]</option>
-                        <option value="status">@Localizer["Tenants.UserLookup.Sort.Status"]</option>
-                    </select>
-                </label>
+                <div class="user-lookup-page__sort">
+                    <FluentSelect TOption="string" TValue="string"
+                                  Label="@Localizer["Tenants.UserLookup.SortLabel"]"
+                                  Value="@_sortColumn"
+                                  ValueChanged="OnSortChanged"
+                                  data-testid="tenants-user-lookup-sort">
+                        <FluentOption TValue="string" Value="@("tenant")">@Localizer["Tenants.UserLookup.Sort.Tenant"]</FluentOption>
+                        <FluentOption TValue="string" Value="@("name")">@Localizer["Tenants.UserLookup.Sort.Name"]</FluentOption>
+                        <FluentOption TValue="string" Value="@("role")">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
+                        <FluentOption TValue="string" Value="@("status")">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
+                    </FluentSelect>
+                </div>
 
                 <MyTenantsDataGrid Rows="@VisibleRows"
                                    ResourcePrefix="Tenants.UserLookup"
@@ -128,12 +130,12 @@
                                    ReturnUrl="@UserLookupReturnUrl" />
 
                 <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
-                    <button type="button" data-testid="tenants-user-lookup-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.UserLookup.Previous"]
-                    </button>
-                    <button type="button" data-testid="tenants-user-lookup-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
                         @Localizer["Tenants.UserLookup.Next"]
-                    </button>
+                    </FluentButton>
                 </nav>
             </section>
         }
@@ -148,7 +150,7 @@
     private string _inputUserId = string.Empty;
     private string? _targetUserId;
     private string _sortColumn = "tenant";
-    private ElementReference _inputElement;
+    private FluentTextInput _inputElement = default!;
     private ElementReference _statusElement;
     private bool _focusStatusPending;
     private bool _focusInputPending;
@@ -241,12 +243,12 @@
         if (_focusInputPending)
         {
             _focusInputPending = false;
-            await _inputElement.FocusAsync().ConfigureAwait(false);
+            await _inputElement.Element.FocusAsync().ConfigureAwait(false);
         }
     }
 
-    private void OnInputChanged(ChangeEventArgs args)
-        => _inputUserId = args.Value?.ToString() ?? string.Empty;
+    private void OnInputChanged(string? value)
+        => _inputUserId = value ?? string.Empty;
 
     private async Task SubmitAsync()
     {
@@ -297,9 +299,9 @@
         }
     }
 
-    private void OnSortChanged(ChangeEventArgs args)
+    private void OnSortChanged(string? value)
     {
-        _sortColumn = args.Value?.ToString() ?? "tenant";
+        _sortColumn = value ?? "tenant";
         _announcement = Localizer["Tenants.UserLookup.Announcement.Sorted"];
     }
 

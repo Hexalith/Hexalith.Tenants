@@ -28,12 +28,12 @@
                 }
                 else
                 {
-                    <button type="button"
-                            class="tenants-audit-availability__action"
-                            data-recovery-verb="@VerbCss(verb)"
-                            @onclick="() => InvokeRecoveryAsync(verb)">
+                    <FluentButton Appearance="ButtonAppearance.Primary"
+                                  Class="tenants-audit-availability__action"
+                                  data-recovery-verb="@VerbCss(verb)"
+                                  OnClick="() => InvokeRecoveryAsync(verb)">
                         @Localizer[$"Tenants.Audit.Availability.Action.{verb}"]
-                    </button>
+                    </FluentButton>
                 }
             }
         </div>

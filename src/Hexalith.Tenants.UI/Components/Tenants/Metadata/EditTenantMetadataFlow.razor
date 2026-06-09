@@ -18,13 +18,14 @@
         </div>
         @if (CanOpen)
         {
-            <button type="button"
-                    @ref="_openElement"
-                    data-testid="tenants-edit-metadata-open"
-                    aria-controls="tenants-edit-metadata-editor"
-                    @onclick="OpenEditorAsync">
-                @Localizer["Tenants.EditMetadata.Open"]
-            </button>
+            <span class="tenants-edit-metadata__open-focus" tabindex="-1" @ref="_openElement">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-edit-metadata-open"
+                              aria-controls="tenants-edit-metadata-editor"
+                              OnClick="OpenEditorAsync">
+                    @Localizer["Tenants.EditMetadata.Open"]
+                </FluentButton>
+            </span>
         }
     </header>
 
@@ -56,29 +57,29 @@
               class="tenants-edit-metadata__form"
               @onsubmit="SubmitAsync"
               @onsubmit:preventDefault="true">
-            <label for="tenants-edit-metadata-name">
-                <span>@Localizer["Tenants.EditMetadata.Name.Label"]</span>
-                <input id="tenants-edit-metadata-name"
-                       @ref="_nameElement"
-                       name="tenant-name"
-                       value="@_name"
-                       data-testid="tenants-edit-metadata-name"
-                       aria-describedby="@NameDescribedBy"
-                       @oninput="OnNameInput" />
+            <div class="tenants-edit-metadata__field">
+                <FluentTextInput Id="tenants-edit-metadata-name"
+                                 @ref="_nameElement"
+                                 name="tenant-name"
+                                 Label="@Localizer["Tenants.EditMetadata.Name.Label"]"
+                                 Value="@_name"
+                                 ValueChanged="OnNameInput"
+                                 data-testid="tenants-edit-metadata-name"
+                                 aria-describedby="@NameDescribedBy" />
                 <span id="tenants-edit-metadata-name-help">@Localizer["Tenants.EditMetadata.Name.Help"]</span>
-            </label>
+            </div>
 
-            <label for="tenants-edit-metadata-description">
-                <span>@Localizer["Tenants.EditMetadata.Description.Label"]</span>
-                <textarea id="tenants-edit-metadata-description"
-                          @ref="_descriptionElement"
-                          name="tenant-description"
-                          value="@_description"
-                          data-testid="tenants-edit-metadata-description"
-                          aria-describedby="@DescriptionDescribedBy"
-                          @oninput="OnDescriptionInput"></textarea>
+            <div class="tenants-edit-metadata__field">
+                <FluentTextArea Id="tenants-edit-metadata-description"
+                                @ref="_descriptionElement"
+                                name="tenant-description"
+                                Label="@Localizer["Tenants.EditMetadata.Description.Label"]"
+                                Value="@_description"
+                                ValueChanged="OnDescriptionInput"
+                                data-testid="tenants-edit-metadata-description"
+                                aria-describedby="@DescriptionDescribedBy" />
                 <span id="tenants-edit-metadata-description-help">@Localizer["Tenants.EditMetadata.Description.Help"]</span>
-            </label>
+            </div>
 
             @if (!string.IsNullOrWhiteSpace(_validationMessage))
             {
@@ -91,22 +92,23 @@
             }
 
             <div class="tenants-edit-metadata__actions">
-                <button type="submit"
-                        data-testid="tenants-edit-metadata-submit"
-                        disabled="@IsSubmitDisabled">
+                <FluentButton Type="ButtonType.Submit"
+                              Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-edit-metadata-submit"
+                              Disabled="@IsSubmitDisabled">
                     @Localizer["Tenants.EditMetadata.Submit"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-edit-metadata-refresh"
-                        disabled="@(!CanRefresh)"
-                        @onclick="RefreshStatusAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-edit-metadata-refresh"
+                              Disabled="@(!CanRefresh)"
+                              OnClick="RefreshStatusAsync">
                     @Localizer["Tenants.EditMetadata.Refresh"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-edit-metadata-cancel"
-                        @onclick="CloseEditorAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-edit-metadata-cancel"
+                              OnClick="CloseEditorAsync">
                     @Localizer["Tenants.EditMetadata.Cancel"]
-                </button>
+                </FluentButton>
             </div>
         </form>
     }
@@ -162,8 +164,8 @@
     private bool _isOpen;
     private bool _isSubmitting;
     private ElementReference _openElement;
-    private ElementReference _nameElement;
-    private ElementReference _descriptionElement;
+    private FluentTextInput _nameElement = default!;
+    private FluentTextArea _descriptionElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusOpenPending;
     private bool _focusNamePending;
@@ -332,7 +334,7 @@
         if (_focusNamePending)
         {
             _focusNamePending = false;
-            await _nameElement.FocusAsync().ConfigureAwait(false);
+            await _nameElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
@@ -376,11 +378,11 @@
         await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
     }
 
-    private void OnNameInput(ChangeEventArgs args)
-        => _name = args.Value?.ToString();
+    private void OnNameInput(string? value)
+        => _name = value;
 
-    private void OnDescriptionInput(ChangeEventArgs args)
-        => _description = args.Value?.ToString();
+    private void OnDescriptionInput(string? value)
+        => _description = value;
 
     private async Task SubmitAsync()
     {

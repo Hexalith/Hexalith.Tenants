@@ -14,7 +14,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class SupportSafeCopyButtonTests : BunitContext
+public sealed class SupportSafeCopyButtonTests : FluentBunitContext
 {
     [Fact]
     public void Copy_button_writes_literal_value_without_identifier_normalization()
@@ -29,7 +29,7 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy tenant identifier Tenant.Mixed-01")
             .Add(button => button.TestId, "tenants-list-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
         writeHandler.Invocations.Single().Arguments[0].ShouldBe("Tenant.Mixed-01");
@@ -53,7 +53,7 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, $"Copy tenant identifier {value}")
             .Add(button => button.TestId, "tenants-detail-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
         writeHandler.Invocations.Single().Arguments[0].ShouldBe(value);
@@ -75,7 +75,7 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy visible configuration value")
             .Add(button => button.TestId, "tenants-config-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         writeHandler.Invocations.ShouldBeEmpty();
         cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
@@ -97,7 +97,7 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy tenant identifier tenant.alpha")
             .Add(button => button.TestId, "tenants-detail-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldContain("Clipboard permission"));
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldNotContain("Copied");
@@ -119,12 +119,12 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy tenant identifier tenant.alpha")
             .Add(button => button.TestId, "tenants-detail-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldContain(expectedFeedback));
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldNotContain("Copied");
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").GetAttribute("aria-live").ShouldBe("assertive");
-        cut.Find("button").GetAttribute("aria-label").ShouldBe("Copy tenant identifier tenant.alpha");
+        cut.Find("[data-testid='tenants-copy-reference']").GetAttribute("aria-label").ShouldBe("Copy tenant identifier tenant.alpha");
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy tenant identifier tenant.alpha")
             .Add(button => button.TestId, "tenants-detail-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldContain("Copy failed"));
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldNotContain("tenant.alpha");
@@ -161,7 +161,7 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy tenant identifier tenant.alpha")
             .Add(button => button.TestId, "tenants-detail-copy-reference"));
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldContain("Clipboard disconnected"));
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldNotContain("tenant.alpha");
@@ -181,18 +181,19 @@ public sealed class SupportSafeCopyButtonTests : BunitContext
             .Add(button => button.AccessibleName, "Copy tenant identifier tenant.alpha")
             .Add(button => button.TestId, "tenants-detail-copy-reference"));
 
-        // The only interactive element is a real, type-safe button that keeps DOM focus on click,
-        // and the feedback is a non-interactive live region, so copying never moves focus elsewhere.
-        cut.FindAll("button").Count.ShouldBe(1);
-        cut.Find("button").GetAttribute("type").ShouldBe("button");
+        // The only interactive element is a single Fluent button (rendered as <fluent-button>) that
+        // keeps DOM focus on click, and the feedback is a non-interactive live region, so copying
+        // never moves focus elsewhere. Asserting the node name also guards against a raw-HTML regression.
+        cut.FindAll("[data-testid='tenants-copy-reference']").Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-copy-reference']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").NodeName.ShouldBe("SPAN");
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").GetAttribute("role").ShouldBe("status");
         cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").HasAttribute("tabindex").ShouldBeFalse();
 
-        cut.Find("button").Click();
+        cut.Find("[data-testid='tenants-copy-reference']").Click();
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldContain("Copied"));
-        cut.FindAll("button").Count.ShouldBe(1);
+        cut.FindAll("[data-testid='tenants-copy-reference']").Count.ShouldBe(1);
     }
 
     [Theory]

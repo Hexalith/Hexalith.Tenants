@@ -14,7 +14,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class AuditAvailabilityStateTests : BunitContext
+public sealed class AuditAvailabilityStateTests : FluentBunitContext
 {
     [Theory]
     [InlineData(TenantCommandAuditState.AuditPending, "Audit pending", "polite")]
@@ -84,8 +84,7 @@ public sealed class AuditAvailabilityStateTests : BunitContext
         {
             AngleSharp.Dom.IElement action = cut.Find($"[data-recovery-verb='{verb}']");
 
-            action.TagName.ShouldBe("BUTTON");
-            action.GetAttribute("type").ShouldBe("button");
+            action.NodeName.ShouldBe("FLUENT-BUTTON");
             action.TextContent.ShouldNotBeNullOrWhiteSpace();
             action.HasAttribute("disabled").ShouldBeFalse();
             action.HasAttribute("tabindex").ShouldBeFalse();

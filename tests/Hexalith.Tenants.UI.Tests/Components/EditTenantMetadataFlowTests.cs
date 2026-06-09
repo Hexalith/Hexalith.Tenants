@@ -19,7 +19,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class EditTenantMetadataFlowTests : BunitContext
+public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 {
     [Fact]
     public void Edit_metadata_flow_renders_confirmed_metadata_stable_selectors_and_accessible_fields()
@@ -116,7 +116,7 @@ public sealed class EditTenantMetadataFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-name']").Input("");
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("");
         cut.Find("form").Submit();
 
         gateway.UpdateTenantCallCount.ShouldBe(0);
@@ -148,8 +148,8 @@ public sealed class EditTenantMetadataFlowTests : BunitContext
                 : Detail(request.TenantId, request.Name, request.Description))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-name']").Input("Updated");
-        cut.Find("[data-testid='tenants-edit-metadata-description']").Input("");
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("[data-testid='tenants-edit-metadata-description']").Change("");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
@@ -191,7 +191,7 @@ public sealed class EditTenantMetadataFlowTests : BunitContext
                 Detail(request.TenantId, request.Name, request.Description))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-description']").Input("");
+        cut.Find("[data-testid='tenants-edit-metadata-description']").Change("");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -248,7 +248,7 @@ public sealed class EditTenantMetadataFlowTests : BunitContext
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(Detail("tenant.alpha", "Updated", null))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-name']").Input("Updated");
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(expectedState));
@@ -276,7 +276,7 @@ public sealed class EditTenantMetadataFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-name']").Input("Updated");
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
@@ -350,7 +350,7 @@ public sealed class EditTenantMetadataFlowTests : BunitContext
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active)));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-name']").Input("Updated");
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => activity.ShouldContain(true));
 

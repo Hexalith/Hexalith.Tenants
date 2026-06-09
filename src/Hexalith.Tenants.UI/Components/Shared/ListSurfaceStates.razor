@@ -9,15 +9,15 @@
     <p>@Message</p>
     @if (Kind is TenantListSurfaceKind.FilteredEmpty)
     {
-        <button type="button" data-testid="tenants-list-state-reset" @onclick="OnReset">
+        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-state-reset" OnClick="OnReset">
             @Localizer["Tenants.List.Reset"]
-        </button>
+        </FluentButton>
     }
     @if (Kind is TenantListSurfaceKind.Stale)
     {
-        <button type="button" data-testid="tenants-list-state-refresh" @onclick="OnRefresh">
+        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-state-refresh" OnClick="OnRefresh">
             @Localizer["Tenants.List.Refresh"]
-        </button>
+        </FluentButton>
     }
 </section>
 

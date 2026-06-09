@@ -125,27 +125,29 @@
                                     {
                                         @if (slot.Action is MemberAction.ChangeRole && slot.Reasons.Count == 0)
                                         {
-                                            <button type="button"
-                                                    class="tenant-members__action-button"
-                                                    data-testid="tenants-change-role-open"
-                                                    aria-controls="tenants-change-role-flow-region"
-                                                    aria-describedby="@row.ReasonElementId"
-                                                    @ref="_changeRoleLaunchElements[row.Member.UserId]"
-                                                    @onclick="() => OpenChangeRole(row.Member.UserId)">
-                                                @ActionLabel(slot.Action)
-                                            </button>
+                                            <span class="tenant-members__action-focus" tabindex="-1" @ref="_changeRoleLaunchElements[row.Member.UserId]">
+                                                <FluentButton Appearance="ButtonAppearance.Outline"
+                                                              Class="tenant-members__action-button"
+                                                              data-testid="tenants-change-role-open"
+                                                              aria-controls="tenants-change-role-flow-region"
+                                                              aria-describedby="@row.ReasonElementId"
+                                                              OnClick="() => OpenChangeRole(row.Member.UserId)">
+                                                    @ActionLabel(slot.Action)
+                                                </FluentButton>
+                                            </span>
                                         }
                                         else if (slot.Action is MemberAction.RemoveMember && slot.Reasons.Count == 0)
                                         {
-                                            <button type="button"
-                                                    class="tenant-members__action-button tenant-members__action-button--destructive"
-                                                    data-testid="tenants-remove-member-open"
-                                                    aria-controls="tenants-remove-member-flow-region"
-                                                    aria-describedby="@row.ReasonElementId"
-                                                    @ref="_removeMemberLaunchElements[row.Member.UserId]"
-                                                    @onclick="() => OpenRemoveMember(row.Member.UserId)">
-                                                @ActionLabel(slot.Action)
-                                            </button>
+                                            <span class="tenant-members__action-focus" tabindex="-1" @ref="_removeMemberLaunchElements[row.Member.UserId]">
+                                                <FluentButton Appearance="ButtonAppearance.Outline"
+                                                              Class="tenant-members__action-button tenant-members__action-button--destructive"
+                                                              data-testid="tenants-remove-member-open"
+                                                              aria-controls="tenants-remove-member-flow-region"
+                                                              aria-describedby="@row.ReasonElementId"
+                                                              OnClick="() => OpenRemoveMember(row.Member.UserId)">
+                                                    @ActionLabel(slot.Action)
+                                                </FluentButton>
+                                            </span>
                                         }
                                         else
                                         {
@@ -229,9 +231,9 @@
     private string? _activeChangeRoleUserId;
     private string? _activeRemoveMemberUserId;
 
-    // One launch button is rendered per actionable member row, so a single ElementReference would
+    // One launch button is rendered per actionable member row, so a single shared reference would
     // be overwritten by the last row in the loop and return focus to the wrong member on close.
-    // Key the captured references by the literal user id so focus returns to the launching control.
+    // Key the captured focus-wrapper references by the literal user id so focus returns to the launching control.
     private readonly Dictionary<string, ElementReference> _changeRoleLaunchElements = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ElementReference> _removeMemberLaunchElements = new(StringComparer.Ordinal);
     private string? _focusChangeRoleLaunchUserId;

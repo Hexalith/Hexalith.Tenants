@@ -19,36 +19,37 @@
     }
 
     <form class="tenants-create-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-        <label for="tenants-create-tenant-id">
-            <span>@Localizer["Tenants.Create.TenantId.Label"]</span>
-            <input id="tenants-create-tenant-id"
-                   @ref="_tenantIdElement"
-                   name="tenant-id"
-                   value="@_tenantId"
-                   data-testid="tenants-create-tenant-id"
-                   aria-describedby="@TenantIdDescribedBy"
-                   @oninput="OnTenantIdInput" />
+        <div class="tenants-create-flow__field">
+            <FluentTextInput Id="tenants-create-tenant-id"
+                             @ref="_tenantIdElement"
+                             Name="tenant-id"
+                             Label="@Localizer["Tenants.Create.TenantId.Label"]"
+                             Value="@_tenantId"
+                             ValueChanged="OnTenantIdInput"
+                             data-testid="tenants-create-tenant-id"
+                             aria-describedby="@TenantIdDescribedBy" />
             <span id="tenants-create-tenant-id-help">@Localizer["Tenants.Create.TenantId.Help"]</span>
-        </label>
+        </div>
 
-        <label for="tenants-create-name">
-            <span>@Localizer["Tenants.Create.Name.Label"]</span>
-            <input id="tenants-create-name"
-                   @ref="_nameElement"
-                   name="tenant-name"
-                   value="@_name"
-                   data-testid="tenants-create-name"
-                   aria-describedby="@ValidationDescribedBy"
-                   @oninput="OnNameInput" />
-        </label>
+        <div class="tenants-create-flow__field">
+            <FluentTextInput Id="tenants-create-name"
+                             @ref="_nameElement"
+                             Name="tenant-name"
+                             Label="@Localizer["Tenants.Create.Name.Label"]"
+                             Value="@_name"
+                             ValueChanged="OnNameInput"
+                             data-testid="tenants-create-name"
+                             aria-describedby="@ValidationDescribedBy" />
+        </div>
 
-        <label for="tenants-create-description">
-            <span>@Localizer["Tenants.Create.Description.Label"]</span>
-            <textarea id="tenants-create-description"
-                      name="tenant-description"
-                      data-testid="tenants-create-description"
-                      @oninput="OnDescriptionInput">@_description</textarea>
-        </label>
+        <div class="tenants-create-flow__field">
+            <FluentTextArea Id="tenants-create-description"
+                            Name="tenant-description"
+                            Label="@Localizer["Tenants.Create.Description.Label"]"
+                            Value="@_description"
+                            ValueChanged="OnDescriptionInput"
+                            data-testid="tenants-create-description" />
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
         {
@@ -61,17 +62,18 @@
         }
 
         <div class="tenants-create-flow__actions">
-            <button type="submit"
-                    data-testid="tenants-create-submit"
-                    disabled="@IsSubmitDisabled">
+            <FluentButton Type="ButtonType.Submit"
+                          Appearance="ButtonAppearance.Primary"
+                          data-testid="tenants-create-submit"
+                          Disabled="@IsSubmitDisabled">
                 @Localizer["Tenants.Create.Submit"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-create-refresh"
-                    disabled="@(!CanRefresh)"
-                    @onclick="RefreshStatusAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-create-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.Create.Refresh"]
-            </button>
+            </FluentButton>
         </div>
     </form>
 
@@ -124,8 +126,8 @@
     private string? _description;
     private string? _validationMessage;
     private bool _isSubmitting;
-    private ElementReference _tenantIdElement;
-    private ElementReference _nameElement;
+    private FluentTextInput _tenantIdElement = default!;
+    private FluentTextInput _nameElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusTenantIdPending;
     private bool _focusNamePending;
@@ -208,13 +210,13 @@
         if (_focusTenantIdPending)
         {
             _focusTenantIdPending = false;
-            await _tenantIdElement.FocusAsync().ConfigureAwait(false);
+            await _tenantIdElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusNamePending)
         {
             _focusNamePending = false;
-            await _nameElement.FocusAsync().ConfigureAwait(false);
+            await _nameElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
@@ -243,14 +245,14 @@
     internal void ApplyProjectionEvidence(TenantSummary? summary)
         => _snapshot = _snapshot.ConfirmProjection(summary, null);
 
-    private void OnTenantIdInput(ChangeEventArgs args)
-        => _tenantId = args.Value?.ToString();
+    private void OnTenantIdInput(string? value)
+        => _tenantId = value;
 
-    private void OnNameInput(ChangeEventArgs args)
-        => _name = args.Value?.ToString();
+    private void OnNameInput(string? value)
+        => _name = value;
 
-    private void OnDescriptionInput(ChangeEventArgs args)
-        => _description = args.Value?.ToString();
+    private void OnDescriptionInput(string? value)
+        => _description = value;
 
     private async Task SubmitAsync()
     {

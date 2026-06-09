@@ -34,34 +34,37 @@
     </header>
 
     <section class="tenant-audit__controls" aria-label="@Localizer["Tenants.Audit.ControlsLabel"]">
-        <label>
-            <span>@Localizer["Tenants.Audit.Filter.From"]</span>
-            <input type="datetime-local"
-                   value="@_fromText"
-                   data-testid="tenants-audit-filter-from"
-                   @onchange="OnFromChanged" />
-        </label>
-        <label>
-            <span>@Localizer["Tenants.Audit.Filter.To"]</span>
-            <input type="datetime-local"
-                   value="@_toText"
-                   data-testid="tenants-audit-filter-to"
-                   @onchange="OnToChanged" />
-        </label>
-        <label>
-            <span>@Localizer["Tenants.Audit.Filter.Category"]</span>
-            <select value="@_categoryText" data-testid="tenants-audit-filter-category" @onchange="OnCategoryChanged">
-                <option value="">@Localizer["Tenants.Audit.Filter.Category.All"]</option>
-                <option value="@AuditEventCategory.Access">@Localizer["Tenants.Audit.Category.Access"]</option>
-                <option value="@AuditEventCategory.Administrative">@Localizer["Tenants.Audit.Category.Administrative"]</option>
-            </select>
-        </label>
-        <button type="button" data-testid="tenants-audit-refresh" @onclick="RefreshAsync">
+        @* Fluent v5's TextInputType enum has no datetime-local member, so the native datetime-local
+           picker is requested with a splatted type attribute on the FluentTextInput. The bound value
+           stays a string and is interpreted as UTC by ParseDate, preserving the existing range logic. *@
+        <FluentTextInput Value="@_fromText"
+                         ValueChanged="OnFromChanged"
+                         Label="@Localizer["Tenants.Audit.Filter.From"]"
+                         type="datetime-local"
+                         data-testid="tenants-audit-filter-from"
+                         aria-label="@Localizer["Tenants.Audit.Filter.From"]" />
+        <FluentTextInput Value="@_toText"
+                         ValueChanged="OnToChanged"
+                         Label="@Localizer["Tenants.Audit.Filter.To"]"
+                         type="datetime-local"
+                         data-testid="tenants-audit-filter-to"
+                         aria-label="@Localizer["Tenants.Audit.Filter.To"]" />
+        <FluentSelect TOption="string" TValue="string"
+                      Value="@_categoryText"
+                      ValueChanged="OnCategoryChanged"
+                      Label="@Localizer["Tenants.Audit.Filter.Category"]"
+                      data-testid="tenants-audit-filter-category"
+                      aria-label="@Localizer["Tenants.Audit.Filter.Category"]">
+            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Audit.Filter.Category.All"]</FluentOption>
+            <FluentOption TValue="string" Value="@AuditEventCategory.Access.ToString()">@Localizer["Tenants.Audit.Category.Access"]</FluentOption>
+            <FluentOption TValue="string" Value="@AuditEventCategory.Administrative.ToString()">@Localizer["Tenants.Audit.Category.Administrative"]</FluentOption>
+        </FluentSelect>
+        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-refresh" OnClick="RefreshAsync">
             @Localizer["Tenants.Audit.Refresh"]
-        </button>
-        <button type="button" data-testid="tenants-audit-reset" @onclick="ResetFiltersAsync">
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-reset" OnClick="ResetFiltersAsync">
             @Localizer["Tenants.Audit.Reset"]
-        </button>
+        </FluentButton>
     </section>
 
     <section class="tenant-audit__state tenant-audit__state--@ResourceState.ToLowerInvariant()"
@@ -101,12 +104,12 @@
                                       OnClose="CloseCorrectionAsync" />
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
-                <button type="button" data-testid="tenants-audit-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.Audit.Previous"]
-                </button>
-                <button type="button" data-testid="tenants-audit-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
                     @Localizer["Tenants.Audit.Next"]
-                </button>
+                </FluentButton>
             </nav>
         </section>
     }
@@ -315,23 +318,23 @@
         }
     }
 
-    private async Task OnFromChanged(ChangeEventArgs args)
+    private async Task OnFromChanged(string? value)
     {
-        _fromText = args.Value?.ToString();
+        _fromText = value;
         ClearPaging();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
-    private async Task OnToChanged(ChangeEventArgs args)
+    private async Task OnToChanged(string? value)
     {
-        _toText = args.Value?.ToString();
+        _toText = value;
         ClearPaging();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
-    private async Task OnCategoryChanged(ChangeEventArgs args)
+    private async Task OnCategoryChanged(string? value)
     {
-        _categoryText = args.Value?.ToString();
+        _categoryText = value;
         ClearPaging();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }

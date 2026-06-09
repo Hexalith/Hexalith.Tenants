@@ -81,14 +81,14 @@
                 <div class="audit-evidence-receipt__correction">
                     @if (CorrectionIntent!.IsAvailable)
                     {
-                        <button type="button"
-                                class="audit-evidence-receipt__action audit-evidence-receipt__correction-start"
-                                data-testid="tenants-correction-start"
-                                data-correction-focus-reference="@CorrectionIntent.OriginalAuditReference"
-                                aria-label="@CorrectionAccessibleName"
-                                @onclick="StartCorrectionAsync">
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      Class="audit-evidence-receipt__action audit-evidence-receipt__correction-start"
+                                      data-testid="tenants-correction-start"
+                                      data-correction-focus-reference="@CorrectionIntent.OriginalAuditReference"
+                                      aria-label="@CorrectionAccessibleName"
+                                      OnClick="StartCorrectionAsync">
                             @CorrectionActionLabel
-                        </button>
+                        </FluentButton>
                     }
                     else
                     {
@@ -102,11 +102,11 @@
             <div class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
                 @foreach (string action in ActionResourceKeys)
                 {
-                    <button type="button"
-                            class="audit-evidence-receipt__action"
-                            @onclick="() => InvokeActionAsync(action)">
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Class="audit-evidence-receipt__action"
+                                  OnClick="() => InvokeActionAsync(action)">
                         @Localizer[action]
-                    </button>
+                    </FluentButton>
                 }
             </div>
         }

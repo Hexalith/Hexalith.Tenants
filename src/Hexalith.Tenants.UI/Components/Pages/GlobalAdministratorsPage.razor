@@ -67,19 +67,19 @@
               data-testid="tenants-global-admin-grant-form"
               @onsubmit="SubmitGrantAsync"
               @onsubmit:preventDefault="true">
-            <label for="tenants-global-admin-grant-user-id">
-                <span>@Localizer["Tenants.GlobalAdministrators.Grant.UserId.Label"]</span>
-                <input id="tenants-global-admin-grant-user-id"
-                       @ref="_grantUserIdElement"
-                       name="global-administrator-user-id"
-                       value="@_grantUserId"
-                       data-testid="tenants-global-admin-grant-user-id"
-                       aria-describedby="@GrantUserIdDescribedBy"
-                       @oninput="OnGrantUserIdInput" />
+            <div class="global-admins__grant-field">
+                <FluentTextInput Id="tenants-global-admin-grant-user-id"
+                                 @ref="_grantUserIdElement"
+                                 name="global-administrator-user-id"
+                                 Label="@Localizer["Tenants.GlobalAdministrators.Grant.UserId.Label"]"
+                                 Value="@_grantUserId"
+                                 ValueChanged="OnGrantUserIdInput"
+                                 data-testid="tenants-global-admin-grant-user-id"
+                                 aria-describedby="@GrantUserIdDescribedBy" />
                 <span id="tenants-global-admin-grant-user-id-help">
                     @Localizer["Tenants.GlobalAdministrators.Grant.UserId.Help"]
                 </span>
-            </label>
+            </div>
 
             <dl class="global-admins__grant-scope" data-testid="tenants-global-admin-grant-scope">
                 <div>
@@ -107,24 +107,26 @@
             }
 
             <div class="global-admins__grant-actions">
-                <button type="submit"
-                        @ref="_grantLauncherElement"
-                        data-testid="tenants-global-admin-grant-submit"
-                        disabled="@IsGrantSubmitDisabled">
-                    @Localizer["Tenants.GlobalAdministrators.Grant.Submit"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-global-admin-grant-cancel"
-                        disabled="@(!CanCancelGrant)"
-                        @onclick="CancelGrantAsync">
+                <span class="global-admins__grant-submit-focus" tabindex="-1" @ref="_grantLauncherElement">
+                    <FluentButton Type="ButtonType.Submit"
+                                  Appearance="ButtonAppearance.Primary"
+                                  data-testid="tenants-global-admin-grant-submit"
+                                  Disabled="@IsGrantSubmitDisabled">
+                        @Localizer["Tenants.GlobalAdministrators.Grant.Submit"]
+                    </FluentButton>
+                </span>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-global-admin-grant-cancel"
+                              Disabled="@(!CanCancelGrant)"
+                              OnClick="CancelGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-global-admin-grant-refresh"
-                        disabled="@(!CanRefreshGrantStatus)"
-                        @onclick="RefreshGrantStatusAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-global-admin-grant-refresh"
+                              Disabled="@(!CanRefreshGrantStatus)"
+                              OnClick="RefreshGrantStatusAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Refresh"]
-                </button>
+                </FluentButton>
             </div>
         </form>
 
@@ -220,25 +222,27 @@
                     </div>
                 </dl>
                 <div class="global-admins__remove-actions">
-                    <button type="button"
-                            @ref="_removeSubmitElement"
-                            data-testid="tenants-global-admin-remove-submit"
-                            disabled="@IsRemoveSubmitDisabled"
-                            @onclick="SubmitRemoveAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Remove.Submit"]
-                    </button>
-                    <button type="button"
-                            @ref="_removeCancelElement"
-                            data-testid="tenants-global-admin-remove-cancel"
-                            @onclick="CancelRemoveAsync">
-                        @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
-                    </button>
-                    <button type="button"
-                            data-testid="tenants-global-admin-remove-refresh"
-                            disabled="@(!CanRefreshRemoveStatus)"
-                            @onclick="RefreshRemoveStatusAsync">
+                    <span class="global-admins__remove-submit-focus" tabindex="-1" @ref="_removeSubmitElement">
+                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                      data-testid="tenants-global-admin-remove-submit"
+                                      Disabled="@IsRemoveSubmitDisabled"
+                                      OnClick="SubmitRemoveAsync">
+                            @Localizer["Tenants.GlobalAdministrators.Remove.Submit"]
+                        </FluentButton>
+                    </span>
+                    <span class="global-admins__remove-cancel-focus" tabindex="-1" @ref="_removeCancelElement">
+                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                      data-testid="tenants-global-admin-remove-cancel"
+                                      OnClick="CancelRemoveAsync">
+                            @Localizer["Tenants.GlobalAdministrators.Remove.Cancel"]
+                        </FluentButton>
+                    </span>
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  data-testid="tenants-global-admin-remove-refresh"
+                                  Disabled="@(!CanRefreshRemoveStatus)"
+                                  OnClick="RefreshRemoveStatusAsync">
                         @Localizer["Tenants.GlobalAdministrators.Remove.Refresh"]
-                    </button>
+                    </FluentButton>
                 </div>
                 <span class="global-admins__remove-focus-sentinel"
                       tabindex="0"
@@ -279,9 +283,9 @@
                  data-testid="tenants-global-admins-list">
             <div class="global-admins__table-header">
                 <h2 id="global-admins-list-heading">@Localizer["Tenants.GlobalAdministrators.List.Title"]</h2>
-                <button type="button" data-testid="tenants-global-admins-refresh" @onclick="RefreshAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-refresh" OnClick="RefreshAsync">
                     @Localizer["Tenants.GlobalAdministrators.Refresh"]
-                </button>
+                </FluentButton>
             </div>
             <div class="global-admins__table-scroll">
                 <table>
@@ -326,11 +330,11 @@
                                         }
                                         else
                                         {
-                                            <button type="button"
-                                                    data-testid="tenants-global-admin-remove"
-                                                    @onclick="() => PreviewRemove(row.UserId)">
+                                            <FluentButton Appearance="ButtonAppearance.Outline"
+                                                          data-testid="tenants-global-admin-remove"
+                                                          OnClick="() => PreviewRemove(row.UserId)">
                                                 @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
-                                            </button>
+                                            </FluentButton>
                                         }
                                     </div>
                                 </td>
@@ -340,12 +344,12 @@
                 </table>
             </div>
             <nav class="global-admins__pager" aria-label="@Localizer["Tenants.GlobalAdministrators.PaginationLabel"]">
-                <button type="button" data-testid="tenants-global-admins-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Previous"]
-                </button>
-                <button type="button" data-testid="tenants-global-admins-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
                     @Localizer["Tenants.GlobalAdministrators.Next"]
-                </button>
+                </FluentButton>
             </nav>
         </section>
     }
@@ -362,7 +366,7 @@
     private string? _grantValidationMessage;
     private bool _isGrantSubmitting;
     private bool _isRemoveSubmitting;
-    private ElementReference _grantUserIdElement;
+    private FluentTextInput _grantUserIdElement = default!;
     private ElementReference _grantLauncherElement;
     private ElementReference _grantLifecycleElement;
     private ElementReference _removeSubmitElement;
@@ -609,7 +613,7 @@
         if (_focusGrantUserIdPending)
         {
             _focusGrantUserIdPending = false;
-            await _grantUserIdElement.FocusAsync().ConfigureAwait(false);
+            await _grantUserIdElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusGrantLauncherPending)
@@ -671,8 +675,8 @@
         }
     }
 
-    private void OnGrantUserIdInput(ChangeEventArgs args)
-        => _grantUserId = args.Value?.ToString();
+    private void OnGrantUserIdInput(string? value)
+        => _grantUserId = value;
 
     private async Task SubmitGrantAsync()
     {

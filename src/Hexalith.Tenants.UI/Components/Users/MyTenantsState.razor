@@ -9,9 +9,9 @@
     <p>@Localizer[$"{ResourcePrefix}.State.{ResourceName}.Message"]</p>
     @if (Kind is UserTenantMembershipSurfaceKind.Stale or UserTenantMembershipSurfaceKind.Degraded)
     {
-        <button type="button" data-testid="@($"{SelectorPrefix}-state-refresh")" @onclick="OnRefresh">
+        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="@($"{SelectorPrefix}-state-refresh")" OnClick="OnRefresh">
             @Localizer[$"{ResourcePrefix}.Refresh"]
-        </button>
+        </FluentButton>
     }
 </section>
 

@@ -20,7 +20,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class GlobalAdministratorsPageTests : BunitContext
+public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 {
     [Fact]
     public void Authorized_operator_sees_global_administrators_from_fixed_scope()
@@ -458,7 +458,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         cut.WaitForAssertion(() =>
@@ -498,7 +498,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
@@ -533,7 +533,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-cancel']").Click();
 
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
@@ -569,7 +569,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         cut.WaitForAssertion(() =>
@@ -605,7 +605,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         cut.WaitForAssertion(() =>
@@ -639,7 +639,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("existing-admin");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("existing-admin");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         cut.WaitForAssertion(() =>
@@ -669,7 +669,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         cut.WaitForAssertion(() =>
@@ -708,7 +708,7 @@ public sealed class GlobalAdministratorsPageTests : BunitContext
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Input("target-user");
+        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-user");
         cut.Find("[data-testid='tenants-global-admin-grant-form']").Submit();
 
         cut.WaitForAssertion(() =>

@@ -7,16 +7,16 @@
 <span class="support-safe-copy"
       data-testid="@TestId"
       data-copy-kind="@ValueKind">
-    <button type="button"
-            class="@ButtonCss"
-            data-testid="tenants-copy-reference"
-            data-surface-testid="@TestId"
-            data-copy-kind="@ValueKind"
-            aria-label="@AccessibleName"
-            @onclick="CopyAsync">
+    <FluentButton Appearance="ButtonAppearance.Subtle"
+                  Class="@ButtonCss"
+                  data-testid="tenants-copy-reference"
+                  data-surface-testid="@TestId"
+                  data-copy-kind="@ValueKind"
+                  aria-label="@AccessibleName"
+                  OnClick="CopyAsync">
         <span aria-hidden="true">C</span>
         <span class="support-safe-copy__text">@Localizer["Tenants.Copy.Action"]</span>
-    </button>
+    </FluentButton>
     <span class="@FeedbackCss"
           role="status"
           aria-live="@_livePoliteness"

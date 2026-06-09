@@ -17,7 +17,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class CreateTenantFlowTests : BunitContext
+public sealed class CreateTenantFlowTests : FluentBunitContext
 {
     [Fact]
     public void Create_flow_renders_stable_selectors_and_fail_closed_reason()
@@ -52,8 +52,8 @@ public sealed class CreateTenantFlowTests : BunitContext
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantSummary?>(null)));
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Input("Tenant.Mixed-01");
-        cut.Find("[data-testid='tenants-create-name']").Input("Mixed Tenant");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("Tenant.Mixed-01");
+        cut.Find("[data-testid='tenants-create-name']").Change("Mixed Tenant");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => gateway.LastRequest.ShouldNotBeNull().TenantId.ShouldBe("Tenant.Mixed-01"));
@@ -76,8 +76,8 @@ public sealed class CreateTenantFlowTests : BunitContext
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantSummary?>(new TenantSummary(tenantId, "Mixed Tenant", TenantStatus.Active))));
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Input("Tenant.Mixed-01");
-        cut.Find("[data-testid='tenants-create-name']").Input("Mixed Tenant");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("Tenant.Mixed-01");
+        cut.Find("[data-testid='tenants-create-name']").Change("Mixed Tenant");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -100,8 +100,8 @@ public sealed class CreateTenantFlowTests : BunitContext
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Input("tenant.alpha");
-        cut.Find("[data-testid='tenants-create-name']").Input("Alpha");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
@@ -144,8 +144,8 @@ public sealed class CreateTenantFlowTests : BunitContext
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantSummary?>(new TenantSummary(tenantId, "Alpha", TenantStatus.Active))));
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Input("tenant.alpha");
-        cut.Find("[data-testid='tenants-create-name']").Input("Alpha");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
@@ -167,8 +167,8 @@ public sealed class CreateTenantFlowTests : BunitContext
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Input("tenant.alpha");
-        cut.Find("[data-testid='tenants-create-name']").Input("Alpha");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Degraded));
@@ -190,8 +190,8 @@ public sealed class CreateTenantFlowTests : BunitContext
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Input("tenant.alpha");
-        cut.Find("[data-testid='tenants-create-name']").Input("Alpha");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));

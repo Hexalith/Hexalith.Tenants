@@ -66,12 +66,12 @@
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Receipt"]"
                         ColumnId="audit-receipt"
                         Width="150px">
-            <button type="button"
-                    class="audit-data-grid__receipt-open"
-                    data-testid="tenants-audit-receipt-open"
-                    @onclick="() => OpenReceiptAsync(context)">
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          Class="audit-data-grid__receipt-open"
+                          data-testid="tenants-audit-receipt-open"
+                          OnClick="() => OpenReceiptAsync(context)">
                 @Localizer["Tenants.Audit.Receipt.Open"]
-            </button>
+            </FluentButton>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Correction"]"
                         ColumnId="audit-correction"
@@ -81,30 +81,32 @@
             }
             @if (correctionIntent?.IsAvailable is true)
             {
-                <button type="button"
-                        class="audit-data-grid__correction-start"
-                        data-testid="tenants-correction-start"
-                        data-correction-focus-reference="@context.EventReference"
-                        aria-label="@CorrectionAccessibleName(correctionIntent)"
-                        @onclick="() => StartCorrectionAsync(correctionIntent)">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Class="audit-data-grid__correction-start"
+                              data-testid="tenants-correction-start"
+                              data-correction-focus-reference="@context.EventReference"
+                              aria-label="@CorrectionAccessibleName(correctionIntent)"
+                              OnClick="() => StartCorrectionAsync(correctionIntent)">
                     @CorrectionActionLabel(correctionIntent)
-                </button>
+                </FluentButton>
             }
             else if (ShouldRenderUnavailableReason(correctionIntent))
             {
                 @if (RequiresRoleSelection(correctionIntent!))
                 {
-                    <select class="audit-data-grid__correction-role"
-                            data-testid="tenants-correction-role"
-                            data-correction-focus-reference="@context.EventReference"
-                            aria-label="@Localizer["Tenants.Correction.RoleChoice.Label"]"
-                            @onchange="args => SelectCorrectionRoleAsync(context, args)">
-                        <option value="">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</option>
+                    <FluentSelect TOption="string" TValue="string"
+                                  Class="audit-data-grid__correction-role"
+                                  Value="@string.Empty"
+                                  ValueChanged="value => SelectCorrectionRoleAsync(context, value)"
+                                  data-testid="tenants-correction-role"
+                                  data-correction-focus-reference="@context.EventReference"
+                                  aria-label="@Localizer["Tenants.Correction.RoleChoice.Label"]">
+                        <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
                         @foreach (TenantRole role in AssignableRoles)
                         {
-                            <option value="@role">@Localizer[$"Tenants.Correction.Role.{role}"]</option>
+                            <FluentOption TValue="string" Value="@role.ToString()">@Localizer[$"Tenants.Correction.Role.{role}"]</FluentOption>
                         }
-                    </select>
+                    </FluentSelect>
                 }
                 <span class="audit-data-grid__correction-reason"
                       data-testid="tenants-correction-unavailable-reason">
@@ -190,9 +192,8 @@
     private async Task StartCorrectionAsync(TenantCorrectionStartIntent intent)
         => await OnStartCorrection.InvokeAsync(intent).ConfigureAwait(false);
 
-    private async Task SelectCorrectionRoleAsync(TenantAuditRow row, ChangeEventArgs args)
+    private async Task SelectCorrectionRoleAsync(TenantAuditRow row, string? value)
     {
-        string? value = args.Value?.ToString();
         if (Enum.TryParse(value, ignoreCase: false, out TenantRole role)
             && AssignableRoles.Contains(role))
         {

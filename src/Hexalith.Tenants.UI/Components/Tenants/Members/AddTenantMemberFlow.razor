@@ -25,34 +25,34 @@
     }
 
     <form class="tenants-add-member-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-        <label for="tenants-add-member-user-id">
-            <span>@Localizer["Tenants.AddMember.UserId.Label"]</span>
-            <input id="tenants-add-member-user-id"
-                   @ref="_userIdElement"
-                   name="member-user-id"
-                   value="@_userId"
-                   data-testid="tenants-add-member-user-id"
-                   aria-describedby="@UserIdDescribedBy"
-                   @oninput="OnUserIdInput" />
+        <div class="tenants-add-member-flow__field">
+            <FluentTextInput Id="tenants-add-member-user-id"
+                             @ref="_userIdElement"
+                             name="member-user-id"
+                             Label="@Localizer["Tenants.AddMember.UserId.Label"]"
+                             Value="@_userId"
+                             ValueChanged="OnUserIdInput"
+                             data-testid="tenants-add-member-user-id"
+                             aria-describedby="@UserIdDescribedBy" />
             <span id="tenants-add-member-user-id-help">@Localizer["Tenants.AddMember.UserId.Help"]</span>
-        </label>
+        </div>
 
-        <label for="tenants-add-member-role">
-            <span>@Localizer["Tenants.AddMember.Role.Label"]</span>
-            <select id="tenants-add-member-role"
-                    @ref="_roleElement"
-                    name="member-role"
-                    value="@_roleValue"
-                    data-testid="tenants-add-member-role"
-                    aria-describedby="@RoleDescribedBy"
-                    @onchange="OnRoleChanged">
-                <option value="" disabled>@Localizer["Tenants.AddMember.Role.Placeholder"]</option>
+        <div class="tenants-add-member-flow__field" @ref="_roleElement" tabindex="-1">
+            <FluentSelect TOption="string" TValue="string"
+                          Id="tenants-add-member-role"
+                          name="member-role"
+                          Label="@Localizer["Tenants.AddMember.Role.Label"]"
+                          Value="@_roleValue"
+                          ValueChanged="OnRoleChanged"
+                          data-testid="tenants-add-member-role"
+                          aria-describedby="@RoleDescribedBy">
+                <FluentOption TValue="string" Value="@string.Empty" Disabled="true">@Localizer["Tenants.AddMember.Role.Placeholder"]</FluentOption>
                 @foreach (TenantRole role in AssignableRoles)
                 {
-                    <option value="@role">@RoleLabel(role)</option>
+                    <FluentOption TValue="string" Value="@role.ToString()">@RoleLabel(role)</FluentOption>
                 }
-            </select>
-        </label>
+            </FluentSelect>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
         {
@@ -65,17 +65,18 @@
         }
 
         <div class="tenants-add-member-flow__actions">
-            <button type="submit"
-                    data-testid="tenants-add-member-submit"
-                    disabled="@IsSubmitDisabled">
+            <FluentButton Type="ButtonType.Submit"
+                          Appearance="ButtonAppearance.Primary"
+                          data-testid="tenants-add-member-submit"
+                          Disabled="@IsSubmitDisabled">
                 @Localizer["Tenants.AddMember.Submit"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-add-member-refresh"
-                    disabled="@(!CanRefresh)"
-                    @onclick="RefreshStatusAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-add-member-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.AddMember.Refresh"]
-            </button>
+            </FluentButton>
         </div>
     </form>
 
@@ -135,7 +136,7 @@
     private string _roleValue = string.Empty;
     private string? _validationMessage;
     private bool _isSubmitting;
-    private ElementReference _userIdElement;
+    private FluentTextInput _userIdElement = default!;
     private ElementReference _roleElement;
     private ElementReference _lifecycleElement;
     private bool _focusUserIdPending;
@@ -236,7 +237,7 @@
         if (_focusUserIdPending)
         {
             _focusUserIdPending = false;
-            await _userIdElement.FocusAsync().ConfigureAwait(false);
+            await _userIdElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusRolePending)
@@ -270,11 +271,11 @@
     private string RoleLabel(TenantRole role)
         => Localizer[$"Tenants.AddMember.Role.{role}"];
 
-    private void OnUserIdInput(ChangeEventArgs args)
-        => _userId = args.Value?.ToString();
+    private void OnUserIdInput(string? value)
+        => _userId = value;
 
-    private void OnRoleChanged(ChangeEventArgs args)
-        => _roleValue = args.Value?.ToString() ?? string.Empty;
+    private void OnRoleChanged(string? value)
+        => _roleValue = value ?? string.Empty;
 
     private async Task SubmitAsync()
     {

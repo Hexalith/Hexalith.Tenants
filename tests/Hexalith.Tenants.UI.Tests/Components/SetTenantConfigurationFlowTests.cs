@@ -19,7 +19,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class SetTenantConfigurationFlowTests : BunitContext
+public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 {
     [Fact]
     public void Set_configuration_flow_renders_complete_preview_with_stable_selectors_and_redacts_sensitive_current_value()
@@ -35,9 +35,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("endpoint");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("new-safe-value");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("endpoint");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("new-safe-value");
 
         cut.Find("[data-testid='tenants-config-set-flow']");
         cut.Find("[data-testid='tenants-config-set-preview']");
@@ -70,9 +70,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("security");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enabled");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("security");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enabled");
         cut.Find("form").Submit();
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
@@ -91,14 +91,14 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Previewed);
         cut.Find("[data-testid='tenants-config-set-preview']");
 
-        cut.Find("[data-testid='tenants-config-set-key']").Input("");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("");
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
         cut.FindAll("[data-testid='tenants-config-set-preview']").ShouldBeEmpty();
@@ -124,9 +124,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input(namespaceValue);
-        cut.Find("[data-testid='tenants-config-set-key']").Input(key);
-        cut.Find("[data-testid='tenants-config-set-value']").Input(value);
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change(namespaceValue);
+        cut.Find("[data-testid='tenants-config-set-key']").Change(key);
+        cut.Find("[data-testid='tenants-config-set-value']").Change(value);
         cut.Find("form").Submit();
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
@@ -148,16 +148,16 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input(new string('k', 260));
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enabled");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change(new string('k', 260));
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enabled");
         cut.Find("form").Submit();
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
         cut.Find("[data-testid='tenants-config-set-validation']").TextContent.ShouldContain("256");
 
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input(new string('v', 1025));
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change(new string('v', 1025));
         cut.Find("form").Submit();
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
@@ -176,9 +176,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("trial");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("trial");
         cut.Find("form").Submit();
 
         gateway.SetConfigurationCallCount.ShouldBe(0);
@@ -205,9 +205,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -238,9 +238,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
                 : Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
@@ -276,9 +276,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied));
@@ -312,9 +312,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(expectedState));
@@ -438,9 +438,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active)));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => activity.ShouldContain(true));
 
@@ -466,9 +466,9 @@ public sealed class SetTenantConfigurationFlowTests : BunitContext
             .Add(p => p.IsCommandSurfaceAvailable, true));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
-        cut.Find("[data-testid='tenants-config-set-namespace']").Input("billing");
-        cut.Find("[data-testid='tenants-config-set-key']").Input("mode");
-        cut.Find("[data-testid='tenants-config-set-value']").Input("enterprise");
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent));

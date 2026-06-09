@@ -66,16 +66,16 @@
     </p>
 
     <form class="tenants-remove-member-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-        <label for="tenants-remove-member-confirmation">
-            <span>@Localizer["Tenants.RemoveMember.Confirmation.Label"]</span>
-            <input id="tenants-remove-member-confirmation"
-                   @ref="_confirmationElement"
-                   value="@_confirmationText"
-                   data-testid="tenants-remove-member-confirmation"
-                   aria-describedby="@ConfirmationDescribedBy"
-                   @oninput="OnConfirmationInput" />
+        <div class="tenants-remove-member-flow__field">
+            <FluentTextInput Id="tenants-remove-member-confirmation"
+                             @ref="_confirmationElement"
+                             Label="@Localizer["Tenants.RemoveMember.Confirmation.Label"]"
+                             Value="@_confirmationText"
+                             ValueChanged="OnConfirmationInput"
+                             data-testid="tenants-remove-member-confirmation"
+                             aria-describedby="@ConfirmationDescribedBy" />
             <span id="tenants-remove-member-confirmation-help">@Localizer["Tenants.RemoveMember.Confirmation.Help", Member.UserId]</span>
-        </label>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
         {
@@ -88,23 +88,24 @@
         }
 
         <div class="tenants-remove-member-flow__actions">
-            <button type="submit"
-                    class="tenants-remove-member-flow__confirm"
-                    data-testid="tenants-remove-member-confirm"
-                    disabled="@IsSubmitDisabled">
+            <FluentButton Type="ButtonType.Submit"
+                          Appearance="ButtonAppearance.Primary"
+                          Class="tenants-remove-member-flow__confirm"
+                          data-testid="tenants-remove-member-confirm"
+                          Disabled="@IsSubmitDisabled">
                 @Localizer["Tenants.RemoveMember.Confirm"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-remove-member-refresh"
-                    disabled="@(!CanRefresh)"
-                    @onclick="RefreshStatusAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-remove-member-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.RemoveMember.Refresh"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-remove-member-cancel"
-                    @onclick="CloseAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-remove-member-cancel"
+                          OnClick="CloseAsync">
                 @Localizer["Tenants.RemoveMember.Cancel"]
-            </button>
+            </FluentButton>
         </div>
     </form>
 
@@ -157,7 +158,7 @@
     private string? _confirmationText;
     private string? _validationMessage;
     private bool _isSubmitting;
-    private ElementReference _confirmationElement;
+    private FluentTextInput _confirmationElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusConfirmationPending;
     private bool _focusLifecyclePending;
@@ -350,7 +351,7 @@
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
-            await _confirmationElement.FocusAsync().ConfigureAwait(false);
+            await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
@@ -379,8 +380,8 @@
     private string RoleLabel(TenantRole role)
         => Localizer[$"Tenants.RemoveMember.Role.{role}"];
 
-    private void OnConfirmationInput(ChangeEventArgs args)
-        => _confirmationText = args.Value?.ToString();
+    private void OnConfirmationInput(string? value)
+        => _confirmationText = value;
 
     private async Task SubmitAsync()
     {

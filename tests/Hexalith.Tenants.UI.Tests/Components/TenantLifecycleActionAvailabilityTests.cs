@@ -18,7 +18,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class TenantLifecycleActionAvailabilityTests : BunitContext
+public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 {
     [Fact]
     public void Lifecycle_availability_renders_stable_selectors_visible_reasons_and_disabled_actions()
@@ -206,14 +206,14 @@ public sealed class TenantLifecycleActionAvailabilityTests : BunitContext
         cut.Find("[data-testid='tenants-lifecycle-focus-start']");
         cut.Find("[data-testid='tenants-lifecycle-focus-end']");
         cut.FindAll("[data-testid='tenants-lifecycle-preview-item']").Count.ShouldBe(10);
-        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Input("wrong");
-        cut.Find("[data-testid='tenants-lifecycle-confirm']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("wrong");
+        cut.Find("form").Submit();
 
         cut.Find("[data-testid='tenants-lifecycle-validation']").TextContent.ShouldContain("tenant.alpha");
         gateway.DisableSubmissions.ShouldBe(0);
 
-        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Input("tenant.alpha");
-        cut.Find("[data-testid='tenants-lifecycle-confirm']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
 
         cut.WaitForAssertion(() =>
             cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -312,7 +312,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : BunitContext
             .Add(component => component.OnCommandActivityChanged, active => activity.Add(active))
             .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(request.TenantId, projectionStatus))));
 
-        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Input("tenant.alpha");
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() =>
@@ -351,7 +351,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : BunitContext
             .Add(component => component.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(request.TenantId, TenantStatus.Disabled))));
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
-        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Input("tenant.alpha");
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() =>

@@ -35,20 +35,20 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
 
-        cut.Find("[data-testid='tenants-list-refresh']").GetAttribute("type").ShouldBe("button");
-        cut.Find("[data-testid='tenants-list-search']").GetAttribute("type").ShouldBe("search");
-        cut.Find("[data-testid='tenants-list-reset']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-list-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-list-search']").NodeName.ShouldBe("FLUENT-TEXT-INPUT");
+        cut.Find("[data-testid='tenants-list-reset']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("/tenants/tenant.alpha");
         cut.Find("[data-testid='tenants-list-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-list-copy-reference']").TextContent.ShouldContain("Copy");
-        cut.Find("[data-testid='tenants-copy-reference']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-copy-reference']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldContain("No pending changes");
     }
 
     [Fact]
-    public void Search_filter_and_sort_preserve_safety_markers()
+    public async Task Search_filter_and_sort_preserve_safety_markers()
     {
         TenantListSnapshot snapshot = ReadySnapshot(
             [
@@ -68,16 +68,16 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Markup.ShouldContain("Pending state unknown");
 
         cut.Find("[data-testid='tenants-list-reset']").Click();
-        cut.Find("[data-testid='tenants-list-status-filter']").Change(TenantStatus.Active.ToString());
+        await ChangeSelectAsync(cut, "tenants-list-status-filter", TenantStatus.Active.ToString());
 
         cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldNotContain("tenant.beta");
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Current");
         cut.Markup.ShouldContain("No pending changes");
 
-        cut.Find("[data-testid='tenants-list-status-filter']").Change(string.Empty);
-        cut.Find("[data-testid='tenants-list-sort']").Change(TenantListSortColumns.Name);
-        cut.Find("[data-testid='tenants-list-sort-direction']").Change(bool.TrueString);
+        await ChangeSelectAsync(cut, "tenants-list-status-filter", string.Empty);
+        await ChangeSelectAsync(cut, "tenants-list-sort", TenantListSortColumns.Name);
+        await ChangeSelectAsync(cut, "tenants-list-sort-direction", bool.TrueString);
 
         cut.Markup.IndexOf("tenant.beta", StringComparison.Ordinal).ShouldBeLessThan(
             cut.Markup.IndexOf("tenant.alpha", StringComparison.Ordinal));
@@ -190,6 +190,20 @@ public sealed class TenantListSurfaceTests : BunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+    }
+
+    // Drives a Fluent UI v5 FluentSelect the way a user selecting an option does: invoking the
+    // component's ValueChanged callback. bUnit's .Change() targets the HTML 'onchange' event, but
+    // FluentSelect emits its own 'ondropdownchange' event whose args type is internal, so the
+    // component instance's callback is the stable, version-independent way to change a select's value.
+    private static async Task ChangeSelectAsync(IRenderedComponent<TenantsWorkspace> cut, string testId, string value)
+    {
+        FluentSelect<string, string> select = cut.FindComponents<FluentSelect<string, string>>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, testId, StringComparison.Ordinal));
+        await cut.InvokeAsync(() => select.ValueChanged.InvokeAsync(value));
     }
 
     private void RegisterServices(TenantListSnapshot snapshot)

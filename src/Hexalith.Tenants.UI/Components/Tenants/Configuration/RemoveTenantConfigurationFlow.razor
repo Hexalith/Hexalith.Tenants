@@ -69,16 +69,16 @@
             </p>
         }
 
-        <label class="tenants-config-remove__confirmation" for="tenants-config-remove-confirmation">
-            <span>@Localizer["Tenants.Configuration.Remove.Confirmation.Label"]</span>
-            <input id="tenants-config-remove-confirmation"
-                   @ref="_confirmationElement"
-                   value="@_confirmationText"
-                   data-testid="tenants-config-remove-confirmation"
-                   aria-describedby="@ConfirmationDescribedBy"
-                   @oninput="OnConfirmationInput" />
+        <div class="tenants-config-remove__confirmation">
+            <FluentTextInput Id="tenants-config-remove-confirmation"
+                             @ref="_confirmationElement"
+                             Label="@Localizer["Tenants.Configuration.Remove.Confirmation.Label"]"
+                             Value="@_confirmationText"
+                             ValueChanged="OnConfirmationInput"
+                             data-testid="tenants-config-remove-confirmation"
+                             aria-describedby="@ConfirmationDescribedBy" />
             <span id="tenants-config-remove-confirmation-help">@Localizer["Tenants.Configuration.Remove.Confirmation.Help", TargetKey]</span>
-        </label>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
         {
@@ -91,24 +91,27 @@
         }
 
         <div class="tenants-config-remove__actions">
-            <button type="submit"
-                    @ref="_submitElement"
-                    data-testid="tenants-config-remove-submit"
-                    disabled="@IsSubmitDisabled">
-                @Localizer["Tenants.Configuration.Remove.Submit"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-config-remove-refresh"
-                    disabled="@(!CanRefresh)"
-                    @onclick="RefreshStatusAsync">
+            <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_submitElement">
+                <FluentButton Type="ButtonType.Submit"
+                              Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-config-remove-submit"
+                              Disabled="@IsSubmitDisabled">
+                    @Localizer["Tenants.Configuration.Remove.Submit"]
+                </FluentButton>
+            </span>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-config-remove-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.Configuration.Remove.Refresh"]
-            </button>
-            <button type="button"
-                    @ref="_cancelElement"
-                    data-testid="tenants-config-remove-cancel"
-                    @onclick="CloseAsync">
-                @Localizer["Tenants.Configuration.Remove.Cancel"]
-            </button>
+            </FluentButton>
+            <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_cancelElement">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-config-remove-cancel"
+                              OnClick="CloseAsync">
+                    @Localizer["Tenants.Configuration.Remove.Cancel"]
+                </FluentButton>
+            </span>
         </div>
     </form>
 
@@ -170,7 +173,7 @@
     private bool _focusSubmitPending;
     private bool _focusCancelPending;
     private bool _focusLifecyclePending;
-    private ElementReference _confirmationElement;
+    private FluentTextInput _confirmationElement = default!;
     private ElementReference _submitElement;
     private ElementReference _cancelElement;
     private ElementReference _lifecycleElement;
@@ -362,7 +365,7 @@
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
-            await _confirmationElement.FocusAsync().ConfigureAwait(false);
+            await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusSubmitPending)
@@ -414,8 +417,8 @@
     internal void ApplyProjectionEvidence(TenantDetail? detail)
         => _snapshot = _snapshot.ConfirmProjection(detail);
 
-    private void OnConfirmationInput(ChangeEventArgs args)
-        => _confirmationText = args.Value?.ToString();
+    private void OnConfirmationInput(string? value)
+        => _confirmationText = value;
 
     private async Task SubmitAsync()
     {
@@ -583,7 +586,7 @@
     }
 
     private async Task FocusConfirmationAsync(FocusEventArgs args)
-        => await _confirmationElement.FocusAsync().ConfigureAwait(false);
+        => await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
 
     private async Task FocusCancelAsync(FocusEventArgs args)
         => await _cancelElement.FocusAsync().ConfigureAwait(false);

@@ -50,16 +50,16 @@
     }
 
     <form class="tenant-lifecycle-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-        <label for="tenants-lifecycle-confirmation">
-            <span>@Localizer["Tenants.Lifecycle.Confirmation.Label"]</span>
-            <input id="tenants-lifecycle-confirmation"
-                   @ref="_confirmationElement"
-                   value="@_confirmationText"
-                   data-testid="tenants-lifecycle-confirmation"
-                   aria-describedby="@ConfirmationDescribedBy"
-                   @oninput="OnConfirmationInput" />
+        <div class="tenant-lifecycle-flow__field">
+            <FluentTextInput Id="tenants-lifecycle-confirmation"
+                             @ref="_confirmationElement"
+                             Label="@Localizer["Tenants.Lifecycle.Confirmation.Label"]"
+                             Value="@_confirmationText"
+                             ValueChanged="OnConfirmationInput"
+                             data-testid="tenants-lifecycle-confirmation"
+                             aria-describedby="@ConfirmationDescribedBy" />
             <span id="tenants-lifecycle-confirmation-help">@Localizer["Tenants.Lifecycle.Confirmation.Help", Detail.TenantId]</span>
-        </label>
+        </div>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
         {
@@ -71,24 +71,25 @@
         }
 
         <div class="tenant-lifecycle-flow__actions">
-            <button type="submit"
-                    @ref="_confirmElement"
-                    data-testid="tenants-lifecycle-confirm"
-                    disabled="@IsSubmitDisabled">
+            <FluentButton Type="ButtonType.Submit"
+                          Appearance="ButtonAppearance.Primary"
+                          data-testid="tenants-lifecycle-confirm"
+                          Disabled="@IsSubmitDisabled">
                 @Localizer["Tenants.Lifecycle.Confirm", OperationLabel]
-            </button>
-            <button type="button"
-                    data-testid="tenants-lifecycle-refresh"
-                    disabled="@(!CanRefresh)"
-                    @onclick="RefreshStatusAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-lifecycle-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.Lifecycle.Refresh"]
-            </button>
-            <button type="button"
-                    @ref="_cancelElement"
-                    data-testid="tenants-lifecycle-cancel"
-                    @onclick="CloseAsync">
-                @Localizer["Tenants.Lifecycle.Cancel"]
-            </button>
+            </FluentButton>
+            <span class="tenant-lifecycle-flow__button-focus" tabindex="-1" @ref="_cancelElement">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-lifecycle-cancel"
+                              OnClick="CloseAsync">
+                    @Localizer["Tenants.Lifecycle.Cancel"]
+                </FluentButton>
+            </span>
         </div>
     </form>
 
@@ -149,8 +150,7 @@
     private bool _hasRaisedCommandActivity;
     private bool _focusConfirmationPending;
     private bool _focusLifecyclePending;
-    private ElementReference _confirmationElement;
-    private ElementReference _confirmElement;
+    private FluentTextInput _confirmationElement = default!;
     private ElementReference _cancelElement;
     private ElementReference _lifecycleElement;
 
@@ -314,7 +314,7 @@
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
-            await _confirmationElement.FocusAsync().ConfigureAwait(false);
+            await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
@@ -357,8 +357,8 @@
     private string StatusLabel(TenantStatus status)
         => Localizer[$"Tenants.Lifecycle.Status.{status}"];
 
-    private void OnConfirmationInput(ChangeEventArgs args)
-        => _confirmationText = args.Value?.ToString();
+    private void OnConfirmationInput(string? value)
+        => _confirmationText = value;
 
     private async Task SubmitAsync()
     {
@@ -468,7 +468,7 @@
     }
 
     private async Task FocusConfirmationAsync(FocusEventArgs args)
-        => await _confirmationElement.FocusAsync().ConfigureAwait(false);
+        => await _confirmationElement.Element.FocusAsync().ConfigureAwait(false);
 
     private async Task FocusCancelAsync(FocusEventArgs args)
         => await _cancelElement.FocusAsync().ConfigureAwait(false);

@@ -19,7 +19,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class AddTenantMemberFlowTests : BunitContext
+public sealed class AddTenantMemberFlowTests : FluentBunitContext
 {
     [Fact]
     public void Add_member_flow_renders_stable_selectors_and_assignable_roles_only()
@@ -65,8 +65,8 @@ public sealed class AddTenantMemberFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(originalDetail)));
 
-        cut.Find("[data-testid='tenants-add-member-user-id']").Input("User/CaseSensitive.01");
-        cut.Find("[data-testid='tenants-add-member-role']").Change(nameof(TenantRole.TenantContributor));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("User/CaseSensitive.01");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => gateway.LastAddMemberRequest.ShouldNotBeNull().UserId.ShouldBe("User/CaseSensitive.01"));
@@ -99,8 +99,8 @@ public sealed class AddTenantMemberFlowTests : BunitContext
                     new TenantMember(request.UserId, request.Role),
                 ]))));
 
-        cut.Find("[data-testid='tenants-add-member-user-id']").Input("literal-user");
-        cut.Find("[data-testid='tenants-add-member-role']").Change(nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -125,8 +125,8 @@ public sealed class AddTenantMemberFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-add-member-user-id']").Input("owner-user");
-        cut.Find("[data-testid='tenants-add-member-role']").Change(nameof(TenantRole.TenantOwner));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("owner-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantOwner));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
@@ -152,7 +152,7 @@ public sealed class AddTenantMemberFlowTests : BunitContext
         cut.Find("[data-testid='tenants-add-member-validation']").TextContent.ShouldContain("User id is required");
         gateway.AddMemberCallCount.ShouldBe(0);
 
-        cut.Find("[data-testid='tenants-add-member-user-id']").Input("literal-user");
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
         cut.Find("form").Submit();
 
         cut.Find("[data-testid='tenants-add-member-validation']").TextContent.ShouldContain("Select TenantOwner");
@@ -179,8 +179,8 @@ public sealed class AddTenantMemberFlowTests : BunitContext
 
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-add-member-unavailable-reason']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
-        cut.Find("[data-testid='tenants-add-member-user-id']").Input("literal-user");
-        cut.Find("[data-testid='tenants-add-member-role']").Change(nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
         cut.Find("form").Submit();
 
         gateway.AddMemberCallCount.ShouldBe(0);
@@ -203,8 +203,8 @@ public sealed class AddTenantMemberFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-add-member-user-id']").Input("literal-user");
-        cut.Find("[data-testid='tenants-add-member-role']").Change(nameof(TenantRole.TenantReader));
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => gateway.AddMemberCallCount.ShouldBe(1));
 

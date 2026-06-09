@@ -49,31 +49,33 @@
             <div class="tenant-lifecycle__action" role="listitem">
                 @if (availability.Operation is TenantLifecycleOperation.EnableTenant)
                 {
-                    <button id="@actionId"
-                            @ref="_enableElement"
-                            type="button"
-                            class="tenant-lifecycle__button"
-                            data-testid="@actionId"
-                            disabled="@IsActionDisabled(availability)"
-                            aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
-                            aria-describedby="@reasonId"
-                            @onclick="() => OpenFlowAsync(availability)">
-                        @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
-                    </button>
+                    <span class="tenant-lifecycle__button-focus" tabindex="-1" @ref="_enableElement">
+                        <FluentButton Id="@actionId"
+                                      Appearance="ButtonAppearance.Primary"
+                                      Class="tenant-lifecycle__button"
+                                      data-testid="@actionId"
+                                      Disabled="@IsActionDisabled(availability)"
+                                      aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
+                                      aria-describedby="@reasonId"
+                                      OnClick="() => OpenFlowAsync(availability)">
+                            @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
+                        </FluentButton>
+                    </span>
                 }
                 else
                 {
-                    <button id="@actionId"
-                            @ref="_disableElement"
-                            type="button"
-                            class="tenant-lifecycle__button"
-                            data-testid="@actionId"
-                            disabled="@IsActionDisabled(availability)"
-                            aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
-                            aria-describedby="@reasonId"
-                            @onclick="() => OpenFlowAsync(availability)">
-                        @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
-                    </button>
+                    <span class="tenant-lifecycle__button-focus" tabindex="-1" @ref="_disableElement">
+                        <FluentButton Id="@actionId"
+                                      Appearance="ButtonAppearance.Primary"
+                                      Class="tenant-lifecycle__button"
+                                      data-testid="@actionId"
+                                      Disabled="@IsActionDisabled(availability)"
+                                      aria-disabled="@IsActionDisabled(availability).ToString().ToLowerInvariant()"
+                                      aria-describedby="@reasonId"
+                                      OnClick="() => OpenFlowAsync(availability)">
+                            @Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"]
+                        </FluentButton>
+                    </span>
                 }
                 <p id="@reasonId"
                    class="tenant-lifecycle__reason"

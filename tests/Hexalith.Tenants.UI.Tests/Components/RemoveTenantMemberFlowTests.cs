@@ -19,7 +19,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class RemoveTenantMemberFlowTests : BunitContext
+public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 {
     [Fact]
     public void Remove_flow_renders_complete_preview_with_stable_selectors_and_no_audit_receipt_claim()
@@ -65,7 +65,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
         cut.Find("[data-testid='tenants-remove-member-owner-risk']").TextContent.ShouldContain("Last-owner");
         cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldBeNull();
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("owner-user");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("owner-user");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
@@ -116,7 +116,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
                     request.TenantId,
                     [new TenantMember("owner-user", TenantRole.TenantOwner)]))));
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("User/CaseSensitive.01");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("User/CaseSensitive.01");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
@@ -152,7 +152,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
                 request.TenantId,
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]))));
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("reader-user");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied));
@@ -178,7 +178,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
                 request.TenantId,
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]))));
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("reader-user");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
 
         // A submission-time rejection carries no tracking handle, but the refresh recovery action
@@ -206,7 +206,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("Reader-User");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("Reader-User");
         cut.Find("form").Submit();
 
         gateway.RemoveMemberCallCount.ShouldBe(0);
@@ -250,7 +250,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("reader-user");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
 
@@ -285,7 +285,7 @@ public sealed class RemoveTenantMemberFlowTests : BunitContext
         cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
         cut.FindAll("[data-testid='tenants-remove-member-preview-item']").ShouldBeEmpty();
 
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Input("reader-user");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
 
         gateway.RemoveMemberCallCount.ShouldBe(0);

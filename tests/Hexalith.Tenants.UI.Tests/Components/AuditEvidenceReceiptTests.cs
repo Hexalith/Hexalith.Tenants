@@ -16,7 +16,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class AuditEvidenceReceiptTests : BunitContext
+public sealed class AuditEvidenceReceiptTests : FluentBunitContext
 {
     [Fact]
     public void Receipt_component_renders_support_safe_fields_selectors_and_copy_button()
@@ -40,7 +40,7 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
         cut.FindAll("dt").Count.ShouldBeGreaterThanOrEqualTo(7);
         cut.FindAll("dd").Count.ShouldBeGreaterThanOrEqualTo(7);
         cut.Find("[data-testid='tenants-audit-receipt']").GetAttribute("aria-live").ShouldBe("polite");
-        cut.Find("button").GetAttribute("type").ShouldBe("button");
+        cut.Find(".audit-evidence-receipt__action").NodeName.ShouldBe("FLUENT-BUTTON");
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class AuditEvidenceReceiptTests : BunitContext
         var action = cut.Find("[data-testid='tenants-correction-start']");
         action.TextContent.ShouldContain("restore intended access");
         action.GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("restore intended access");
-        action.GetAttribute("type").ShouldBe("button");
+        action.NodeName.ShouldBe("FLUENT-BUTTON");
 
         action.Click();
 

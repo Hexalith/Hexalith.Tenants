@@ -57,20 +57,20 @@
     }
 
     <div class="tenant-config__controls" role="search" aria-label="@Localizer["Tenants.Configuration.Filter.Label"]">
-        <label for="tenants-config-filter">@Localizer["Tenants.Configuration.Filter.Label"]</label>
-        <input id="tenants-config-filter"
-               class="tenant-config__filter"
-               data-testid="tenants-config-filter"
-               value="@_filter"
-               placeholder="@Localizer["Tenants.Configuration.Filter.Placeholder"]"
-               aria-describedby="tenants-config-filter-help"
-               @onchange="OnFilterChanged" />
-        <button type="button"
-                class="tenant-config__clear"
-                data-testid="tenants-config-clear-filter"
-                @onclick="ClearFilter">
+        <FluentTextInput Id="tenants-config-filter"
+                         Class="tenant-config__filter"
+                         Label="@Localizer["Tenants.Configuration.Filter.Label"]"
+                         data-testid="tenants-config-filter"
+                         Value="@_filter"
+                         ValueChanged="OnFilterChanged"
+                         Placeholder="@Localizer["Tenants.Configuration.Filter.Placeholder"]"
+                         aria-describedby="tenants-config-filter-help" />
+        <FluentButton Appearance="ButtonAppearance.Outline"
+                      Class="tenant-config__clear"
+                      data-testid="tenants-config-clear-filter"
+                      OnClick="ClearFilter">
             @Localizer["Tenants.Configuration.ClearFilter"]
-        </button>
+        </FluentButton>
         <p id="tenants-config-filter-help">@Localizer["Tenants.Configuration.Filter.Help"]</p>
     </div>
 
@@ -158,15 +158,16 @@
                                 <td data-testid="tenants-config-value-state">@row.SafetyLabel</td>
                                 <td><TruthStateBadge Freshness="@Freshness" TestId="tenants-config-row-freshness" ResourcePrefix="Tenants.Configuration" /></td>
                                 <td>
-                                    <button type="button"
-                                            class="tenant-config__remove"
-                                            data-testid="tenants-config-remove-open"
-                                            aria-describedby="@RemoveActionDescriptionId(row.Key)"
-                                            disabled="@(!string.IsNullOrWhiteSpace(RemoveUnavailableReason))"
-                                            @ref="_removeLaunchElements[row.Key]"
-                                            @onclick="() => OpenRemoveFlow(row.Key)">
-                                        @Localizer["Tenants.Configuration.Remove.Open"]
-                                    </button>
+                                    <span class="tenant-config__remove-focus" tabindex="-1" @ref="_removeLaunchElements[row.Key]">
+                                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                                      Class="tenant-config__remove"
+                                                      data-testid="tenants-config-remove-open"
+                                                      aria-describedby="@RemoveActionDescriptionId(row.Key)"
+                                                      Disabled="@(!string.IsNullOrWhiteSpace(RemoveUnavailableReason))"
+                                                      OnClick="() => OpenRemoveFlow(row.Key)">
+                                            @Localizer["Tenants.Configuration.Remove.Open"]
+                                        </FluentButton>
+                                    </span>
                                     @if (!string.IsNullOrWhiteSpace(RemoveUnavailableReason))
                                     {
                                         <p id="@RemoveActionDescriptionId(row.Key)"
@@ -267,8 +268,8 @@
             _ => string.Empty,
         };
 
-    private void OnFilterChanged(ChangeEventArgs args)
-        => _filter = args.Value?.ToString() ?? string.Empty;
+    private void OnFilterChanged(string? value)
+        => _filter = value ?? string.Empty;
 
     private void ClearFilter()
         => _filter = string.Empty;

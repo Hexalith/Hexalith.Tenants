@@ -20,6 +20,12 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed class TenantsWorkspaceTests : BunitContext
 {
+    public TenantsWorkspaceTests()
+        // The workspace now renders Fluent UI v5 components (FluentSelect/FluentTextInput/FluentButton)
+        // which import their JS modules in OnAfterRenderAsync. Loose JSInterop lets bUnit no-op those
+        // imports instead of throwing under the default Strict mode.
+        => JSInterop.Mode = JSRuntimeMode.Loose;
+
     [Fact]
     public void Workspace_renders_gateway_error_without_mock_tenant_data()
     {
@@ -57,9 +63,11 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-refresh']");
 
-        cut.Find("[data-testid='tenants-list-refresh']").GetAttribute("type").ShouldBe("button");
-        cut.Find("[data-testid='tenants-list-reset']").GetAttribute("type").ShouldBe("button");
-        cut.Find("[data-testid='tenants-list-search']").GetAttribute("type").ShouldBe("search");
+        // Controls are Fluent UI v5 components (no raw HTML controls), so they render as the
+        // corresponding custom elements. Asserting the tag also guards against regressing to raw HTML.
+        cut.Find("[data-testid='tenants-list-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-list-reset']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-list-search']").NodeName.ShouldBe("FLUENT-TEXT-INPUT");
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>

@@ -17,13 +17,14 @@
         </div>
         @if (CanOpen)
         {
-            <button type="button"
-                    @ref="_openElement"
-                    data-testid="tenants-config-set-open"
-                    aria-controls="tenants-config-set-editor"
-                    @onclick="OpenEditorAsync">
-                @Localizer["Tenants.Configuration.Set.Open"]
-            </button>
+            <span class="tenants-config-set__open-focus" tabindex="-1" @ref="_openElement">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-config-set-open"
+                              aria-controls="tenants-config-set-editor"
+                              OnClick="OpenEditorAsync">
+                    @Localizer["Tenants.Configuration.Set.Open"]
+                </FluentButton>
+            </span>
         }
     </header>
 
@@ -48,41 +49,41 @@
               class="tenants-config-set__form"
               @onsubmit="SubmitAsync"
               @onsubmit:preventDefault="true">
-            <label for="tenants-config-set-namespace">
-                <span>@Localizer["Tenants.Configuration.Set.Namespace.Label"]</span>
-                <input id="tenants-config-set-namespace"
-                       @ref="_namespaceElement"
-                       name="configuration-namespace"
-                       value="@_namespace"
-                       data-testid="tenants-config-set-namespace"
-                       aria-describedby="@NamespaceDescribedBy"
-                       @oninput="OnNamespaceInput" />
+            <div class="tenants-config-set__field">
+                <FluentTextInput Id="tenants-config-set-namespace"
+                                 @ref="_namespaceElement"
+                                 name="configuration-namespace"
+                                 Label="@Localizer["Tenants.Configuration.Set.Namespace.Label"]"
+                                 Value="@_namespace"
+                                 ValueChanged="OnNamespaceInput"
+                                 data-testid="tenants-config-set-namespace"
+                                 aria-describedby="@NamespaceDescribedBy" />
                 <span id="tenants-config-set-namespace-help">@Localizer["Tenants.Configuration.Set.Namespace.Help"]</span>
-            </label>
+            </div>
 
-            <label for="tenants-config-set-key">
-                <span>@Localizer["Tenants.Configuration.Set.Key.Label"]</span>
-                <input id="tenants-config-set-key"
-                       @ref="_keyElement"
-                       name="configuration-key"
-                       value="@_key"
-                       data-testid="tenants-config-set-key"
-                       aria-describedby="@KeyDescribedBy"
-                       @oninput="OnKeyInput" />
+            <div class="tenants-config-set__field">
+                <FluentTextInput Id="tenants-config-set-key"
+                                 @ref="_keyElement"
+                                 name="configuration-key"
+                                 Label="@Localizer["Tenants.Configuration.Set.Key.Label"]"
+                                 Value="@_key"
+                                 ValueChanged="OnKeyInput"
+                                 data-testid="tenants-config-set-key"
+                                 aria-describedby="@KeyDescribedBy" />
                 <span id="tenants-config-set-key-help">@Localizer["Tenants.Configuration.Set.Key.Help"]</span>
-            </label>
+            </div>
 
-            <label for="tenants-config-set-value">
-                <span>@Localizer["Tenants.Configuration.Set.Value.Label"]</span>
-                <textarea id="tenants-config-set-value"
-                          @ref="_valueElement"
-                          name="configuration-value"
-                          value="@_value"
-                          data-testid="tenants-config-set-value"
-                          aria-describedby="@ValueDescribedBy"
-                          @oninput="OnValueInput"></textarea>
+            <div class="tenants-config-set__field">
+                <FluentTextArea Id="tenants-config-set-value"
+                                @ref="_valueElement"
+                                name="configuration-value"
+                                Label="@Localizer["Tenants.Configuration.Set.Value.Label"]"
+                                Value="@_value"
+                                ValueChanged="OnValueInput"
+                                data-testid="tenants-config-set-value"
+                                aria-describedby="@ValueDescribedBy" />
                 <span id="tenants-config-set-value-help">@Localizer["Tenants.Configuration.Set.Value.Help"]</span>
-            </label>
+            </div>
 
             @if (!string.IsNullOrWhiteSpace(_validationMessage))
             {
@@ -122,22 +123,23 @@
             }
 
             <div class="tenants-config-set__actions">
-                <button type="submit"
-                        data-testid="tenants-config-set-submit"
-                        disabled="@IsSubmitDisabled">
+                <FluentButton Type="ButtonType.Submit"
+                              Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-config-set-submit"
+                              Disabled="@IsSubmitDisabled">
                     @Localizer["Tenants.Configuration.Set.Submit"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-config-set-refresh"
-                        disabled="@(!CanRefresh)"
-                        @onclick="RefreshStatusAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-config-set-refresh"
+                              Disabled="@(!CanRefresh)"
+                              OnClick="RefreshStatusAsync">
                     @Localizer["Tenants.Configuration.Set.Refresh"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-config-set-cancel"
-                        @onclick="CloseEditorAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-config-set-cancel"
+                              OnClick="CloseEditorAsync">
                     @Localizer["Tenants.Configuration.Set.Cancel"]
-                </button>
+                </FluentButton>
             </div>
         </form>
     }
@@ -197,9 +199,9 @@
     private bool _isOpen;
     private bool _isSubmitting;
     private ElementReference _openElement;
-    private ElementReference _namespaceElement;
-    private ElementReference _keyElement;
-    private ElementReference _valueElement;
+    private FluentTextInput _namespaceElement = default!;
+    private FluentTextInput _keyElement = default!;
+    private FluentTextArea _valueElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusOpenPending;
     private bool _focusNamespacePending;
@@ -389,19 +391,19 @@
         if (_focusNamespacePending)
         {
             _focusNamespacePending = false;
-            await _namespaceElement.FocusAsync().ConfigureAwait(false);
+            await _namespaceElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusKeyPending)
         {
             _focusKeyPending = false;
-            await _keyElement.FocusAsync().ConfigureAwait(false);
+            await _keyElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusValuePending)
         {
             _focusValuePending = false;
-            await _valueElement.FocusAsync().ConfigureAwait(false);
+            await _valueElement.Element.FocusAsync().ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
@@ -446,21 +448,21 @@
         await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
     }
 
-    private void OnNamespaceInput(ChangeEventArgs args)
+    private void OnNamespaceInput(string? value)
     {
-        _namespace = args.Value?.ToString();
+        _namespace = value;
         ClearValidationAndPreview();
     }
 
-    private void OnKeyInput(ChangeEventArgs args)
+    private void OnKeyInput(string? value)
     {
-        _key = args.Value?.ToString();
+        _key = value;
         ClearValidationAndPreview();
     }
 
-    private void OnValueInput(ChangeEventArgs args)
+    private void OnValueInput(string? value)
     {
-        _value = args.Value?.ToString();
+        _value = value;
         ClearValidationAndPreview();
     }
 

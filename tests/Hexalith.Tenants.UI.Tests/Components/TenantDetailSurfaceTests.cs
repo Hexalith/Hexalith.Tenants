@@ -169,7 +169,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-set-flow']");
         cut.FindAll("[data-testid='tenants-config-remove-open']").Count.ShouldBe(4);
         cut.FindAll("[data-testid='tenants-config-remove-open']")
-            .ShouldAllBe(static action => action.GetAttribute("type") == "button");
+            .ShouldAllBe(static action => action.NodeName == "FLUENT-BUTTON");
         cut.Markup.ShouldNotContain("tenants-config-remove-flow");
     }
 
@@ -304,7 +304,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find(".tenant-config__scope").TextContent.ShouldContain("Prefix ownership cannot be verified");
         cut.Find("[data-testid='tenants-config-announcer']").TextContent.ShouldContain("1 visible configuration entries");
         cut.Find("[data-testid='tenants-config-filter']").GetAttribute("aria-describedby").ShouldBe("tenants-config-filter-help");
-        cut.Find("[data-testid='tenants-config-clear-filter']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-config-clear-filter']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-config-row']").GetAttribute("tabindex").ShouldBe("0");
     }
 

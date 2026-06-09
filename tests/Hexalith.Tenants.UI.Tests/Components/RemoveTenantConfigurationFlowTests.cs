@@ -19,7 +19,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class RemoveTenantConfigurationFlowTests : BunitContext
+public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
     [Fact]
     public void Remove_configuration_flow_renders_complete_preview_with_stable_selectors_and_redacts_sensitive_value()
@@ -43,7 +43,7 @@ public sealed class RemoveTenantConfigurationFlowTests : BunitContext
         cut.Find("[data-testid='tenants-config-remove-preview-namespace']").TextContent.ShouldBe("billing");
         cut.Find("[data-testid='tenants-config-remove-preview-key']").TextContent.ShouldContain("billing.endpoint");
         cut.Find("[data-testid='tenants-config-remove-preview-current-state']").TextContent.ShouldContain("Unavailable");
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Input("billing.endpoint");
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.endpoint");
         cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldBeNull();
         cut.Find("[data-testid='tenants-config-remove-live-region']").GetAttribute("aria-live").ShouldBe("polite");
         cut.Find("[data-testid='tenants-config-remove-preview']").TextContent.ShouldNotContain("raw-token", Case.Insensitive);
@@ -90,14 +90,14 @@ public sealed class RemoveTenantConfigurationFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Input("Billing.Mode");
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("Billing.Mode");
         cut.Find("form").Submit();
 
         gateway.RemoveConfigurationCallCount.ShouldBe(0);
         cut.Find("[data-testid='tenants-config-remove-validation']").TextContent.ShouldContain("billing.mode");
         cut.Find("[data-testid='tenants-config-remove-live-region']").GetAttribute("aria-live").ShouldBe("polite");
 
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Input("billing.mode");
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldBeNull();
     }
 
@@ -119,7 +119,7 @@ public sealed class RemoveTenantConfigurationFlowTests : BunitContext
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { ["billing.other"] = "kept" }))));
 
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Input("billing.mode");
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -150,7 +150,7 @@ public sealed class RemoveTenantConfigurationFlowTests : BunitContext
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = "trial" }))));
 
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Input("billing.mode");
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
@@ -182,7 +182,7 @@ public sealed class RemoveTenantConfigurationFlowTests : BunitContext
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string>()))));
 
-        cut.Find("[data-testid='tenants-config-remove-confirmation']").Input("billing.mode");
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));

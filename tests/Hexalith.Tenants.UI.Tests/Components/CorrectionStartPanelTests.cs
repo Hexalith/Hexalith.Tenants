@@ -22,7 +22,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class CorrectionStartPanelTests : BunitContext
+public sealed class CorrectionStartPanelTests : FluentBunitContext
 {
     [Fact]
     public void Panel_renders_original_evidence_current_snapshot_command_and_preview_handoff_without_submission()
@@ -41,7 +41,7 @@ public sealed class CorrectionStartPanelTests : BunitContext
         cut.Find("[data-testid='tenants-correction-command']").TextContent.ShouldContain("Add user to tenant");
         cut.Find("[data-testid='tenants-correction-domain']").TextContent.ShouldContain("Tenants");
         cut.Find("[data-testid='tenants-correction-preview-data']").TextContent.ShouldContain("Tenant reader");
-        cut.Find("[data-testid='tenants-correction-preview-handoff']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-correction-preview-handoff']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Markup.ShouldNotContain("POST /api/v1/commands", Case.Insensitive);
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
     }

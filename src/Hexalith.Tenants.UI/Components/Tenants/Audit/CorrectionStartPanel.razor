@@ -24,12 +24,12 @@
                         @StateText
                     </p>
                 </div>
-                <button type="button"
-                        class="correction-start-panel__close"
-                        data-testid="tenants-correction-close"
-                        @onclick="CloseAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              Class="correction-start-panel__close"
+                              data-testid="tenants-correction-close"
+                              OnClick="CloseAsync">
                     @Localizer["Tenants.Correction.Close"]
-                </button>
+                </FluentButton>
             </header>
 
             @if (!string.IsNullOrWhiteSpace(UnavailableReason))
@@ -66,20 +66,20 @@
                 <div>
                     <dt>@Localizer["Tenants.Correction.Preview.IntendedRole"]</dt>
                     <dd>
-                        <label class="correction-start-panel__role-label">
-                            <span>@Localizer["Tenants.Correction.RoleChoice.Label"]</span>
-                            <select value="@_roleValue"
-                                    data-testid="tenants-correction-role"
-                                    aria-describedby="tenants-correction-unavailable"
-                                    disabled="@RoleSelectionDisabled"
-                                    @onchange="OnRoleChanged">
-                                <option value="">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</option>
-                                @foreach (TenantRole role in AssignableRoles)
-                                {
-                                    <option value="@role">@RoleLabel(role)</option>
-                                }
-                            </select>
-                        </label>
+                        <FluentSelect TOption="string" TValue="string"
+                                      Class="correction-start-panel__role-label"
+                                      Label="@Localizer["Tenants.Correction.RoleChoice.Label"]"
+                                      Value="@_roleValue"
+                                      ValueChanged="OnRoleChanged"
+                                      data-testid="tenants-correction-role"
+                                      aria-describedby="tenants-correction-unavailable"
+                                      Disabled="@RoleSelectionDisabled">
+                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
+                            @foreach (TenantRole role in AssignableRoles)
+                            {
+                                <FluentOption TValue="string" Value="@role.ToString()">@RoleLabel(role)</FluentOption>
+                            }
+                        </FluentSelect>
                     </dd>
                 </div>
             </dl>
@@ -143,34 +143,34 @@
             </section>
 
             <div class="correction-start-panel__actions">
-                <button type="button"
-                        class="correction-start-panel__confirm"
-                        data-testid="tenants-correction-confirm"
-                        disabled="@IsConfirmDisabled"
-                        @onclick="SubmitAsync">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Class="correction-start-panel__confirm"
+                              data-testid="tenants-correction-confirm"
+                              Disabled="@IsConfirmDisabled"
+                              OnClick="SubmitAsync">
                     @Localizer["Tenants.Correction.Confirm.Submit"]
-                </button>
+                </FluentButton>
                 @if (_snapshot.CanSubmit)
                 {
-                    <button type="button"
-                            class="correction-start-panel__preview-action"
-                            data-testid="tenants-correction-preview-handoff"
-                            disabled="@IsConfirmDisabled"
-                            @onclick="SubmitAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  Class="correction-start-panel__preview-action"
+                                  data-testid="tenants-correction-preview-handoff"
+                                  Disabled="@IsConfirmDisabled"
+                                  OnClick="SubmitAsync">
                         @Localizer["Tenants.Correction.Action.PreviewHandoff"]
-                    </button>
+                    </FluentButton>
                 }
-                <button type="button"
-                        data-testid="tenants-correction-refresh"
-                        disabled="@(!CanRefresh)"
-                        @onclick="RefreshStatusAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-correction-refresh"
+                              Disabled="@(!CanRefresh)"
+                              OnClick="RefreshStatusAsync">
                     @Localizer["Tenants.Correction.Confirm.Refresh"]
-                </button>
-                <button type="button"
-                        data-testid="tenants-correction-cancel"
-                        @onclick="CloseAsync">
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-correction-cancel"
+                              OnClick="CloseAsync">
                     @Localizer["Tenants.Correction.Confirm.Cancel"]
-                </button>
+                </FluentButton>
             </div>
         </div>
     </section>
@@ -486,9 +486,9 @@
     private async Task CloseAsync()
         => await OnClose.InvokeAsync().ConfigureAwait(false);
 
-    private void OnRoleChanged(ChangeEventArgs args)
+    private void OnRoleChanged(string? value)
     {
-        _roleValue = args.Value?.ToString() ?? string.Empty;
+        _roleValue = value ?? string.Empty;
         SetSnapshotFromIntent();
     }
 

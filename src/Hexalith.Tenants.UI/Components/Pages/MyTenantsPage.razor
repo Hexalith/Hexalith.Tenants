@@ -13,9 +13,9 @@
     </header>
 
     <section class="my-tenants-page__controls" aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
-        <button type="button" data-testid="tenants-my-refresh" @onclick="RefreshAsync">
+        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-my-refresh" OnClick="RefreshAsync">
             @Localizer["Tenants.MyTenants.Refresh"]
-        </button>
+        </FluentButton>
         <a href="/tenants" data-testid="tenants-my-back">@Localizer["Tenants.MyTenants.Back"]</a>
     </section>
 
@@ -53,12 +53,12 @@
         <MyTenantsDataGrid Rows="@_snapshot.Rows" />
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]">
-            <button type="button" data-testid="tenants-my-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                 @Localizer["Tenants.MyTenants.Previous"]
-            </button>
-            <button type="button" data-testid="tenants-my-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
                 @Localizer["Tenants.MyTenants.Next"]
-            </button>
+            </FluentButton>
         </nav>
     }
 </main>

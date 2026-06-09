@@ -41,22 +41,22 @@
     }
 
     <form class="tenants-change-role-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-        <label for="tenants-change-role-new-role">
-            <span>@Localizer["Tenants.ChangeRole.NewRole.Label"]</span>
-            <select id="tenants-change-role-new-role"
-                    @ref="_roleElement"
-                    name="new-role"
-                    value="@_roleValue"
-                    data-testid="tenants-change-role-new-role"
-                    aria-describedby="@RoleDescribedBy"
-                    @onchange="OnRoleChanged">
+        <div class="tenants-change-role-flow__field" @ref="_roleElement" tabindex="-1">
+            <FluentSelect TOption="string" TValue="string"
+                          Id="tenants-change-role-new-role"
+                          name="new-role"
+                          Label="@Localizer["Tenants.ChangeRole.NewRole.Label"]"
+                          Value="@_roleValue"
+                          ValueChanged="OnRoleChanged"
+                          data-testid="tenants-change-role-new-role"
+                          aria-describedby="@RoleDescribedBy">
                 @foreach (TenantRole role in AssignableRoles)
                 {
-                    <option value="@role">@RoleLabel(role)</option>
+                    <FluentOption TValue="string" Value="@role.ToString()">@RoleLabel(role)</FluentOption>
                 }
-            </select>
+            </FluentSelect>
             <span id="tenants-change-role-new-role-help">@Localizer["Tenants.ChangeRole.NewRole.Help"]</span>
-        </label>
+        </div>
 
         @if (OwnerRiskVisible)
         {
@@ -80,22 +80,23 @@
         }
 
         <div class="tenants-change-role-flow__actions">
-            <button type="submit"
-                    data-testid="tenants-change-role-submit"
-                    disabled="@IsSubmitDisabled">
+            <FluentButton Type="ButtonType.Submit"
+                          Appearance="ButtonAppearance.Primary"
+                          data-testid="tenants-change-role-submit"
+                          Disabled="@IsSubmitDisabled">
                 @Localizer["Tenants.ChangeRole.Submit"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-change-role-refresh"
-                    disabled="@(!CanRefresh)"
-                    @onclick="RefreshStatusAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-change-role-refresh"
+                          Disabled="@(!CanRefresh)"
+                          OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.ChangeRole.Refresh"]
-            </button>
-            <button type="button"
-                    data-testid="tenants-change-role-cancel"
-                    @onclick="CloseAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          data-testid="tenants-change-role-cancel"
+                          OnClick="CloseAsync">
                 @Localizer["Tenants.ChangeRole.Cancel"]
-            </button>
+            </FluentButton>
         </div>
     </form>
 
@@ -328,8 +329,8 @@
     private string RoleLabel(TenantRole role)
         => Localizer[$"Tenants.ChangeRole.Role.{role}"];
 
-    private void OnRoleChanged(ChangeEventArgs args)
-        => _roleValue = args.Value?.ToString() ?? string.Empty;
+    private void OnRoleChanged(string? value)
+        => _roleValue = value ?? string.Empty;
 
     private async Task SubmitAsync()
     {

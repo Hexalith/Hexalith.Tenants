@@ -19,44 +19,49 @@
     </header>
 
     <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
-        <label>
-            <span>@Localizer["Tenants.List.SearchLabel"]</span>
-            <input type="search"
-                   value="@_search"
-                   placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
-                   data-testid="tenants-list-search"
-                   @onchange="OnSearchChanged" />
-        </label>
-        <label>
-            <span>@Localizer["Tenants.List.StatusFilterLabel"]</span>
-            <select value="@_statusFilter" data-testid="tenants-list-status-filter" @onchange="OnStatusFilterChanged">
-                <option value="">@Localizer["Tenants.List.StatusFilter.All"]</option>
-                <option value="@TenantStatus.Active">@Localizer["Tenants.List.StatusFilter.Active"]</option>
-                <option value="@TenantStatus.Disabled">@Localizer["Tenants.List.StatusFilter.Disabled"]</option>
-                <option value="@TenantStatus.Unknown">@Localizer["Tenants.List.StatusFilter.Unknown"]</option>
-            </select>
-        </label>
-        <label>
-            <span>@Localizer["Tenants.List.SortLabel"]</span>
-            <select value="@_sortColumn" data-testid="tenants-list-sort" @onchange="OnSortChanged">
-                <option value="@TenantListSortColumns.TenantId">@Localizer["Tenants.List.Sort.TenantId"]</option>
-                <option value="@TenantListSortColumns.Name">@Localizer["Tenants.List.Sort.Name"]</option>
-                <option value="@TenantListSortColumns.Status">@Localizer["Tenants.List.Sort.Status"]</option>
-            </select>
-        </label>
-        <label>
-            <span>@Localizer["Tenants.List.SortDirectionLabel"]</span>
-            <select value="@_sortDescending.ToString()" data-testid="tenants-list-sort-direction" @onchange="OnSortDirectionChanged">
-                <option value="False">@Localizer["Tenants.List.SortDirection.Ascending"]</option>
-                <option value="True">@Localizer["Tenants.List.SortDirection.Descending"]</option>
-            </select>
-        </label>
-        <button type="button" data-testid="tenants-list-refresh" @onclick="RefreshAsync">
+        <FluentTextInput TextInputType="TextInputType.Search"
+                         Value="@_search"
+                         ValueChanged="OnSearchChanged"
+                         Label="@Localizer["Tenants.List.SearchLabel"]"
+                         Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                         data-testid="tenants-list-search"
+                         aria-label="@Localizer["Tenants.List.SearchLabel"]" />
+        <FluentSelect TOption="string" TValue="string"
+                      Value="@_statusFilter"
+                      ValueChanged="OnStatusFilterChanged"
+                      Label="@Localizer["Tenants.List.StatusFilterLabel"]"
+                      data-testid="tenants-list-status-filter"
+                      aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
+            <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
+            <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
+            <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
+        </FluentSelect>
+        <FluentSelect TOption="string" TValue="string"
+                      Value="@_sortColumn"
+                      ValueChanged="OnSortChanged"
+                      Label="@Localizer["Tenants.List.SortLabel"]"
+                      data-testid="tenants-list-sort"
+                      aria-label="@Localizer["Tenants.List.SortLabel"]">
+            <FluentOption TValue="string" Value="@TenantListSortColumns.TenantId">@Localizer["Tenants.List.Sort.TenantId"]</FluentOption>
+            <FluentOption TValue="string" Value="@TenantListSortColumns.Name">@Localizer["Tenants.List.Sort.Name"]</FluentOption>
+            <FluentOption TValue="string" Value="@TenantListSortColumns.Status">@Localizer["Tenants.List.Sort.Status"]</FluentOption>
+        </FluentSelect>
+        <FluentSelect TOption="string" TValue="string"
+                      Value="@_sortDescending.ToString()"
+                      ValueChanged="OnSortDirectionChanged"
+                      Label="@Localizer["Tenants.List.SortDirectionLabel"]"
+                      data-testid="tenants-list-sort-direction"
+                      aria-label="@Localizer["Tenants.List.SortDirectionLabel"]">
+            <FluentOption TValue="string" Value="@false.ToString()">@Localizer["Tenants.List.SortDirection.Ascending"]</FluentOption>
+            <FluentOption TValue="string" Value="@true.ToString()">@Localizer["Tenants.List.SortDirection.Descending"]</FluentOption>
+        </FluentSelect>
+        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
             @Localizer["Tenants.List.Refresh"]
-        </button>
-        <button type="button" data-testid="tenants-list-reset" @onclick="ResetFiltersAsync">
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
             @Localizer["Tenants.List.Reset"]
-        </button>
+        </FluentButton>
         <a class="tenants-workspace__context-link"
            href="/tenants/my"
            data-testid="tenants-my-link">
@@ -112,12 +117,12 @@
         <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
 
         <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
-            <button type="button" data-testid="tenants-list-previous" disabled="@(_cursorHistory.Count == 0)" @onclick="PreviousPageAsync">
+            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                 @Localizer["Tenants.List.Previous"]
-            </button>
-            <button type="button" data-testid="tenants-list-next" disabled="@(!_snapshot.HasMore)" @onclick="NextPageAsync">
+            </FluentButton>
+            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
                 @Localizer["Tenants.List.Next"]
-            </button>
+            </FluentButton>
         </nav>
     }
 </main>
@@ -254,30 +259,30 @@
         }
     }
 
-    private async Task OnSearchChanged(ChangeEventArgs args)
+    private async Task OnSearchChanged(string? value)
     {
-        _search = args.Value?.ToString();
+        _search = value;
         ApplyVisibleRows();
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private async Task OnStatusFilterChanged(ChangeEventArgs args)
+    private async Task OnStatusFilterChanged(string? value)
     {
-        _statusFilter = args.Value?.ToString();
+        _statusFilter = value;
         ApplyVisibleRows();
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private async Task OnSortChanged(ChangeEventArgs args)
+    private async Task OnSortChanged(string? value)
     {
-        _sortColumn = args.Value?.ToString() ?? TenantListSortColumns.TenantId;
+        _sortColumn = value ?? TenantListSortColumns.TenantId;
         ApplyVisibleRows();
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    private async Task OnSortDirectionChanged(ChangeEventArgs args)
+    private async Task OnSortDirectionChanged(string? value)
     {
-        _sortDescending = bool.TryParse(args.Value?.ToString(), out bool parsed) && parsed;
+        _sortDescending = bool.TryParse(value, out bool parsed) && parsed;
         ApplyVisibleRows();
         await Task.CompletedTask.ConfigureAwait(false);
     }

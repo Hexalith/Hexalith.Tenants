@@ -44,12 +44,12 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-filter-category']").GetAttribute("value").ShouldBeNull();
         cut.Find("[data-testid='tenants-audit-filter-from']").GetAttribute("type").ShouldBe("datetime-local");
         cut.Find("[data-testid='tenants-audit-filter-to']").GetAttribute("type").ShouldBe("datetime-local");
-        cut.Find("[data-testid='tenants-audit-refresh']").GetAttribute("type").ShouldBe("button");
-        cut.Find("[data-testid='tenants-audit-next']").GetAttribute("type").ShouldBe("button");
-        cut.Find("[data-testid='tenants-audit-previous']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-audit-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-audit-next']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-audit-previous']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference").ShouldBe("event-safe-reference");
         cut.Find("[data-testid='tenants-audit-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("ApprovedReference");
-        cut.Find("[data-testid='tenants-audit-receipt-open']").GetAttribute("type").ShouldBe("button");
+        cut.Find("[data-testid='tenants-audit-receipt-open']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Markup.ShouldContain("target-user");
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
@@ -194,10 +194,10 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-filter-from']").ParentElement!.TextContent.ShouldContain("From");
         cut.Find("[data-testid='tenants-audit-filter-to']").ParentElement!.TextContent.ShouldContain("To");
         cut.Find("[data-testid='tenants-audit-filter-category']").ParentElement!.TextContent.ShouldContain("Category");
-        cut.Find("[data-testid='tenants-audit-refresh']").TagName.ShouldBe("BUTTON");
-        cut.Find("[data-testid='tenants-audit-reset']").TagName.ShouldBe("BUTTON");
-        cut.Find("[data-testid='tenants-audit-next']").TagName.ShouldBe("BUTTON");
-        cut.Find("[data-testid='tenants-audit-previous']").TagName.ShouldBe("BUTTON");
+        cut.Find("[data-testid='tenants-audit-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-audit-reset']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-audit-next']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-audit-previous']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-audit-previous']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-audit-next']").HasAttribute("disabled").ShouldBeFalse();
     }
@@ -217,7 +217,7 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
         gateway.Requests[1].Cursor.ShouldBe("opaque-next");
 
-        cut.Find("[data-testid='tenants-audit-filter-category']").Change(AuditEventCategory.Administrative.ToString());
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", AuditEventCategory.Administrative.ToString());
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
 
         gateway.Requests[2].Cursor.ShouldBeNull();

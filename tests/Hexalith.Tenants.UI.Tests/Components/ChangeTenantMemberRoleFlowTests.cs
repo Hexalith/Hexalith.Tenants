@@ -21,7 +21,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
+public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 {
     [Fact]
     public void Change_role_flow_renders_stable_selectors_current_role_and_assignable_roles_only()
@@ -60,7 +60,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantReader));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantReader));
         cut.Find("form").Submit();
 
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
@@ -93,7 +93,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
                     new TenantMember(request.UserId, request.NewRole),
                 ]))));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => gateway.LastChangeRoleRequest.ShouldNotBeNull().UserId.ShouldBe("User/CaseSensitive.01"));
@@ -122,7 +122,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             .Add(p => p.Freshness, TenantFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(originalDetail)));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
@@ -152,7 +152,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
 
         cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-change-role-unavailable-reason']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         gateway.ChangeRoleCallCount.ShouldBe(0);
@@ -177,7 +177,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantReader));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantReader));
 
         cut.Find("[data-testid='tenants-change-role-risk']").TextContent.ShouldContain("reduce the visible owner count to zero");
         cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("disabled").ShouldBeNull();
@@ -202,7 +202,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(1));
 
@@ -232,7 +232,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
@@ -262,7 +262,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
         cut.Find("[data-testid='tenants-change-role-lifecycle']").GetAttribute("tabindex").ShouldBe("-1");
         cut.Find("[data-testid='tenants-change-role-lifecycle']").GetAttribute("aria-labelledby").ShouldBe("tenants-change-role-state-label");
 
-        roleSelect.Change(nameof(TenantRole.TenantReader));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantReader));
 
         cut.Find("[data-testid='tenants-change-role-risk']").TextContent.ShouldContain("reduce the visible owner count to zero");
         cut.Find("[data-testid='tenants-change-role-new-role']").GetAttribute("aria-describedby")
@@ -281,7 +281,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, TenantFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.Unknown));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.Unknown));
         cut.Find("form").Submit();
 
         gateway.ChangeRoleCallCount.ShouldBe(0);
@@ -319,7 +319,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
                         new TenantMember(request.UserId, request.NewRole),
                     ]))));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
@@ -362,7 +362,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : BunitContext
                     new TenantMember(request.UserId, request.NewRole),
                 ]))));
 
-        cut.Find("[data-testid='tenants-change-role-new-role']").Change(nameof(TenantRole.TenantContributor));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(expectedState));

@@ -75,7 +75,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         });
 
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
-        cut.Find("[data-testid='tenants-user-lookup-input']").Input("USER.Target-01");
+        cut.Find("[data-testid='tenants-user-lookup-input']").Change("USER.Target-01");
         cut.Find("form").Submit();
         cut.WaitForElement("[data-testid='tenants-user-empty']");
 
@@ -93,7 +93,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         ITenantQueryGateway gateway = RegisterServices(UserTenantMembershipSnapshot.Unavailable());
 
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
-        cut.Find("[data-testid='tenants-user-lookup-input']").Input(" ");
+        cut.Find("[data-testid='tenants-user-lookup-input']").Change(" ");
         cut.Find("form").Submit();
         cut.WaitForElement("[data-testid='tenants-user-invalid']");
 
@@ -194,7 +194,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
         cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
 
-        cut.Find("[data-testid='tenants-user-lookup-sort']").Change("name");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-user-lookup-sort", "name");
         cut.Markup.ShouldContain("Visible memberships sorted.");
 
         cut.Find("[data-testid='tenants-user-lookup-next']").Click();
