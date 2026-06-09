@@ -213,14 +213,26 @@ public class EventContractReferenceDocumentationTests {
     private static string ReadReference()
         => File.ReadAllText(RepositoryPath("docs", "event-contract-reference.md"));
 
-    private static string RepositoryPath(params string[] segments)
-        => Path.GetFullPath(Path.Combine(
-            new[] {
-                AppContext.BaseDirectory,
-                "..",
-                "..",
-                "..",
-                "..",
-                "..",
-            }.Concat(segments).ToArray()));
+    private static string RepositoryPath(params string[] segments) {
+        string repoRoot = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        string direct = Path.GetFullPath(Path.Combine(
+            new[] { repoRoot }.Concat(segments).ToArray()));
+        if (File.Exists(direct) || Directory.Exists(direct)) {
+            return direct;
+        }
+
+        // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
+        // that may be left uninitialized when this repository is itself a submodule of a parent
+        // that checks the dependency out as a root-level sibling. Fall back to that sibling.
+        if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
+            string sibling = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, ".." }.Concat(segments).ToArray()));
+            if (File.Exists(sibling) || Directory.Exists(sibling)) {
+                return sibling;
+            }
+        }
+
+        return direct;
+    }
 }
