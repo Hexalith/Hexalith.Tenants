@@ -28,7 +28,7 @@
                              ValueChanged="OnTenantIdInput"
                              data-testid="tenants-create-tenant-id"
                              aria-describedby="@TenantIdDescribedBy" />
-            <span id="tenants-create-tenant-id-help">@Localizer["Tenants.Create.TenantId.Help"]</span>
+            <span id="tenants-create-tenant-id-help" class="tenants-create-flow__hint">@Localizer["Tenants.Create.TenantId.Help"]</span>
         </div>
 
         <div class="tenants-create-flow__field">
@@ -42,7 +42,7 @@
                              aria-describedby="@ValidationDescribedBy" />
         </div>
 
-        <div class="tenants-create-flow__field">
+        <div class="tenants-create-flow__field tenants-create-flow__field--wide">
             <FluentTextArea Id="tenants-create-description"
                             Name="tenant-description"
                             Label="@Localizer["Tenants.Create.Description.Label"]"

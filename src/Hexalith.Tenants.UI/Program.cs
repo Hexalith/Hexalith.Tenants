@@ -5,7 +5,6 @@ using Hexalith.FrontComposer.Shell.Extensions;
 using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
-using Hexalith.Tenants.UI.Services.Auth;
 using Hexalith.Tenants.UI.Services.Gateways;
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -44,13 +43,18 @@ bool authEnabled =
     && !string.IsNullOrWhiteSpace(builder.Configuration["Authentication:OpenIdConnect:ClientSecret"]);
 
 if (authEnabled) {
-    _ = builder.Services.AddHexalithFrontComposerAuthentication(o => o.UseKeycloak(
+    // Server-side FrontComposer security is framework-owned plumbing: the authentication bridge, the
+    // interactive Server AuthenticationStateProvider (replacing the quickstart's fail-closed anonymous
+    // one so the header account menu / AuthorizeView see the signed-in user), and the per-user access
+    // token relay. Tenants supplies only the domain-specific provider configuration (Keycloak + the
+    // tenant/user claim mapping); the generic wiring lives in Hexalith.FrontComposer.Shell so every
+    // domain module reuses it instead of duplicating it.
+    _ = builder.Services.AddHexalithFrontComposerServerSecurity(o => o.UseKeycloak(
         oidcAuthority!,
         builder.Configuration["Authentication:OpenIdConnect:ClientId"]!,
         builder.Configuration["Authentication:OpenIdConnect:ClientSecret"]!,
         tenantClaimType: "eventstore:tenant",
         userClaimType: "sub"));
-    _ = builder.Services.AddTenantsTokenRelay();
 }
 
 if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress)) {
@@ -63,8 +67,8 @@ if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absol
     IHttpClientBuilder eventStoreGatewayClient = builder.Services.AddEventStoreGatewayClient(o => o.BaseAddress = eventStoreBaseAddress);
     IHttpClientBuilder commandGatewayClient = builder.Services.AddHttpClient<TenantCommandGateway>(client => client.BaseAddress = eventStoreBaseAddress);
     if (authEnabled) {
-        _ = eventStoreGatewayClient.AddGatewayAuthorization();
-        _ = commandGatewayClient.AddGatewayAuthorization();
+        _ = eventStoreGatewayClient.AddFrontComposerGatewayAuthorization();
+        _ = commandGatewayClient.AddFrontComposerGatewayAuthorization();
     }
 
     builder.Services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
@@ -77,7 +81,7 @@ if (Uri.TryCreate(builder.Configuration["Tenants:BaseAddress"], UriKind.Absolute
     IHttpClientBuilder queryClient = builder.Services.AddHttpClient<ITenantsQueryApiClient, TenantsQueryApiClient>(
         client => client.BaseAddress = tenantsBaseAddress);
     if (authEnabled) {
-        _ = queryClient.AddGatewayAuthorization();
+        _ = queryClient.AddFrontComposerGatewayAuthorization();
     }
 
     builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
@@ -86,7 +90,9 @@ else {
     builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
 }
 
-builder.Services.Replace(ServiceDescriptor.Scoped<IUserContextAccessor, ClaimsUserContextAccessor>());
+// IUserContextAccessor is provided by the FrontComposer authentication bridge
+// (ClaimsPrincipalUserContextAccessor), configured above with the eventstore:tenant / sub claim
+// mapping. No tenant-specific accessor override is needed.
 builder.Services.TryAddScoped<ITenantsBffComposition, TenantsBffComposition>();
 builder.Services.Configure<FcShellOptions>(builder.Configuration.GetSection("Hexalith:Shell"));
 

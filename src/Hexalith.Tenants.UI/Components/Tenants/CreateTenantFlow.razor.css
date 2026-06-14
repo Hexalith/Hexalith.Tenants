@@ -20,13 +20,42 @@
 
 .tenants-create-flow__form {
     display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem 1.25rem;
+    grid-template-columns: 1fr;
+}
+
+/* Each field owns a vertical stack so the input and its hint never flow inline
+   next to a sibling field (previously the hint's first word detached and read
+   like a stray column header). */
+.tenants-create-flow__field {
+    display: grid;
+    gap: 0.25rem;
+    align-content: start;
 }
 
 .tenants-create-flow__form label {
     display: grid;
     gap: 0.25rem;
+}
+
+.tenants-create-flow__hint {
+    color: GrayText;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+}
+
+/* Pair the short fields side by side on wider viewports; keep the description,
+   validation message and action buttons on their own full-width rows. */
+@media (min-width: 40rem) {
+    .tenants-create-flow__form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .tenants-create-flow__field--wide,
+    .tenants-create-flow__validation,
+    .tenants-create-flow__actions {
+        grid-column: 1 / -1;
+    }
 }
 
 .tenants-create-flow__form input,

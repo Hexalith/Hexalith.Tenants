@@ -36,11 +36,32 @@
 }
 
 .tenants-workspace__controls {
+    display: grid;
+    gap: 1rem;
+    max-width: 80rem;
+}
+
+/* Filter inputs auto-fit into as many columns as fit; actions live on their own
+   row so the primary/secondary buttons no longer drift far from the inputs. */
+.tenants-workspace__filters {
     align-items: end;
     display: grid;
     gap: 0.75rem;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    max-width: 80rem;
+}
+
+.tenants-workspace__actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* Pushes the navigation anchor buttons to the trailing edge, separating them
+   from the refresh/reset filter actions on wide viewports. */
+.tenants-workspace__actions-spacer {
+    flex: 1 1 0;
+    min-inline-size: 1rem;
 }
 
 .tenants-workspace__controls label {
@@ -53,11 +74,6 @@
 .tenants-workspace__controls button,
 .tenants-workspace__pager button {
     min-height: 2.25rem;
-}
-
-.tenants-workspace__context-link {
-    align-self: center;
-    color: LinkText;
 }
 
 .tenants-workspace__pager {
@@ -82,7 +98,6 @@
 
     .tenants-workspace__status:focus-visible,
     .tenants-workspace__focus-link:focus-visible,
-    .tenants-workspace__context-link:focus-visible,
     .tenants-workspace__controls input:focus-visible,
     .tenants-workspace__controls select:focus-visible,
     .tenants-workspace__controls button:focus-visible,
