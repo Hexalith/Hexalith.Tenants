@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
-public enum GlobalAdministratorsSurfaceKind
-{
+public enum GlobalAdministratorsSurfaceKind {
     Loading,
     Ready,
     Empty,

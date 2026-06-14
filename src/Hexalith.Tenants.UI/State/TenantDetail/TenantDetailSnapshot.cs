@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 using TenantDetailContract = Hexalith.Tenants.Contracts.Queries.TenantDetail;
 
@@ -9,8 +9,7 @@ public sealed record TenantDetailSnapshot(
     TenantDetailContract? Detail,
     string? ETag,
     TenantFreshnessState Freshness,
-    string? ErrorMessage)
-{
+    string? ErrorMessage) {
     public static TenantDetailSnapshot Loading()
         => State(TenantDetailSurfaceKind.Loading, null, null, TenantFreshnessState.Unknown, null);
 

@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.UI.Services.SupportSafety;
 
-public enum SupportSafeCopyValueKind
-{
+public enum SupportSafeCopyValueKind {
     TenantId,
     UserId,
     ConfigurationKey,
@@ -9,15 +8,13 @@ public enum SupportSafeCopyValueKind
     ApprovedReference,
 }
 
-public enum SupportSafeCopyEligibility
-{
+public enum SupportSafeCopyEligibility {
     Allowed,
     Empty,
     Unsafe,
 }
 
-public static class SupportSafeCopyClassifier
-{
+public static class SupportSafeCopyClassifier {
     private static readonly string[] IdentifierUnsafeFragments =
     [
         "bearer ",
@@ -57,10 +54,8 @@ public static class SupportSafeCopyClassifier
         "@",
     ];
 
-    public static SupportSafeCopyEligibility Classify(string? value, SupportSafeCopyValueKind kind)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
+    public static SupportSafeCopyEligibility Classify(string? value, SupportSafeCopyValueKind kind) {
+        if (string.IsNullOrWhiteSpace(value)) {
             return SupportSafeCopyEligibility.Empty;
         }
 

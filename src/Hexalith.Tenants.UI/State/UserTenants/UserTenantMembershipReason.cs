@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
-public enum UserTenantMembershipReason
-{
+public enum UserTenantMembershipReason {
     None,
     MissingTargetUser,
     InvalidTargetUser,

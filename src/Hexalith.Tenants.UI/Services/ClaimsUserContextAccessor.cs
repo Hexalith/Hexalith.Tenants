@@ -4,14 +4,12 @@ using Hexalith.FrontComposer.Contracts.Rendering;
 
 namespace Hexalith.Tenants.UI.Services;
 
-internal sealed class ClaimsUserContextAccessor(IHttpContextAccessor httpContextAccessor) : IUserContextAccessor
-{
+internal sealed class ClaimsUserContextAccessor(IHttpContextAccessor httpContextAccessor) : IUserContextAccessor {
     public string? TenantId => FindFirstNonEmpty("tenant_id", "tenantId", "tid", "tenant");
 
     public string? UserId => FindFirstNonEmpty(ClaimTypes.NameIdentifier, "sub", "user_id", "userId");
 
-    private string? FindFirstNonEmpty(params string[] claimTypes)
-    {
+    private string? FindFirstNonEmpty(params string[] claimTypes) {
         ClaimsPrincipal? user = httpContextAccessor.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true) {
             return null;

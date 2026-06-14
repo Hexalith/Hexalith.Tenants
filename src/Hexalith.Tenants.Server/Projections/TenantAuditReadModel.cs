@@ -34,12 +34,10 @@ public sealed class TenantAuditReadModel {
         Entries.Add(entry);
     }
 
-    public void SortEntries() {
-        Entries = (Entries ?? [])
+    public void SortEntries() => Entries = (Entries ?? [])
             .OrderBy(e => e.Timestamp)
             .ThenBy(e => e.EventId, StringComparer.Ordinal)
             .ToList();
-    }
 
     private static TenantAuditEntry? CreateEntry(ProjectionEventDto evt) {
         string eventType = GetEventType(evt.EventTypeName);

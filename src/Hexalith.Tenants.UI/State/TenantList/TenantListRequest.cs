@@ -11,8 +11,7 @@ public sealed record TenantListRequest(
     bool SortDescending = false,
     string? ETag = null);
 
-public static class TenantListSortColumns
-{
+public static class TenantListSortColumns {
     public const string TenantId = "tenantId";
     public const string Name = "name";
     public const string Status = "status";

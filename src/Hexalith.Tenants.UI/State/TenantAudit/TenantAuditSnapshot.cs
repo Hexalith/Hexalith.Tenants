@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -14,8 +14,7 @@ public sealed record TenantAuditSnapshot(
     string? TenantId = null,
     DateTimeOffset? From = null,
     DateTimeOffset? To = null,
-    string? Category = null)
-{
+    string? Category = null) {
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,
@@ -34,8 +33,7 @@ public sealed record TenantAuditSnapshot(
         bool hasMore,
         string? eTag,
         TenantFreshnessState freshness,
-        TenantAuditRequest request)
-    {
+        TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -54,8 +52,7 @@ public sealed record TenantAuditSnapshot(
         bool isAuthorizationScoped,
         TenantFreshnessState freshness,
         string? eTag,
-        TenantAuditRequest request)
-    {
+        TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -75,8 +72,7 @@ public sealed record TenantAuditSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantAuditRequest request)
-    {
+        TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -97,8 +93,7 @@ public sealed record TenantAuditSnapshot(
         TenantAuditRequest request,
         string? eTag = null,
         string? nextCursor = null,
-        bool hasMore = false)
-    {
+        bool hasMore = false) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -113,8 +108,7 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
-    public static TenantAuditSnapshot Unauthorized(TenantAuditRequest request)
-    {
+    public static TenantAuditSnapshot Unauthorized(TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -129,8 +123,7 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
-    public static TenantAuditSnapshot InvalidCursor(TenantAuditRequest request)
-    {
+    public static TenantAuditSnapshot InvalidCursor(TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -151,8 +144,7 @@ public sealed record TenantAuditSnapshot(
         bool hasMore,
         string? eTag,
         TenantFreshnessState freshness,
-        TenantAuditRequest request)
-    {
+        TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -167,8 +159,7 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
-    public static TenantAuditSnapshot Unavailable(TenantAuditRequest request)
-    {
+    public static TenantAuditSnapshot Unavailable(TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -183,8 +174,7 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
-    public static TenantAuditSnapshot Error(TenantAuditRequest request)
-    {
+    public static TenantAuditSnapshot Error(TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
@@ -199,8 +189,7 @@ public sealed record TenantAuditSnapshot(
             request);
     }
 
-    public bool MatchesScope(TenantAuditRequest request)
-    {
+    public bool MatchesScope(TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return string.Equals(TenantId, request.TenantId, StringComparison.Ordinal)

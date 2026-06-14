@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -15,8 +14,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 internal sealed class TenantCommandGateway(
     IEventStoreGatewayClient gatewayClient,
     IUlidFactory ulidFactory,
-    HttpClient statusClient) : ITenantCommandGateway
-{
+    HttpClient statusClient) : ITenantCommandGateway {
     private const string SystemTenant = "system";
     private const string TenantsDomain = "tenants";
     private const string GlobalAdministratorsDomain = "global-administrators";
@@ -40,12 +38,10 @@ internal sealed class TenantCommandGateway(
 
     public async Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenantCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrEmpty(request.Name))
-        {
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrEmpty(request.Name)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
         }
 
@@ -59,30 +55,26 @@ internal sealed class TenantCommandGateway(
             nameof(CreateTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
         AddUserToTenantCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         if (string.IsNullOrEmpty(request.TenantId)
             || string.IsNullOrEmpty(request.UserId)
-            || !IsAssignableTenantRole(request.Role))
-        {
+            || !IsAssignableTenantRole(request.Role)) {
             return TenantCommandSubmissionResult.Failed("Tenant id, user id, and role are required before the command can be submitted.");
         }
 
@@ -96,30 +88,26 @@ internal sealed class TenantCommandGateway(
             nameof(AddUserToTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapAddUserToTenantGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
         ChangeUserRoleCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         if (string.IsNullOrEmpty(request.TenantId)
             || string.IsNullOrEmpty(request.UserId)
-            || !IsAssignableTenantRole(request.NewRole))
-        {
+            || !IsAssignableTenantRole(request.NewRole)) {
             return TenantCommandSubmissionResult.Failed("Tenant id, user id, and new role are required before the command can be submitted.");
         }
 
@@ -133,28 +121,24 @@ internal sealed class TenantCommandGateway(
             nameof(ChangeUserRole),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapChangeUserRoleGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
         RemoveUserFromTenantCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrEmpty(request.UserId))
-        {
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrEmpty(request.UserId)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and user id are required before the command can be submitted.");
         }
 
@@ -168,28 +152,24 @@ internal sealed class TenantCommandGateway(
             nameof(RemoveUserFromTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapRemoveUserFromTenantGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> UpdateTenantAsync(
         UpdateTenantCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Name))
-        {
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Name)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and name are required before the command can be submitted.");
         }
 
@@ -203,30 +183,26 @@ internal sealed class TenantCommandGateway(
             nameof(UpdateTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapUpdateTenantGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfigurationCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         if (string.IsNullOrEmpty(request.TenantId)
             || string.IsNullOrWhiteSpace(request.Key)
-            || request.Value is null)
-        {
+            || request.Value is null) {
             return TenantCommandSubmissionResult.Failed("Tenant id, configuration key, and value are required before the command can be submitted.");
         }
 
@@ -240,28 +216,24 @@ internal sealed class TenantCommandGateway(
             nameof(SetTenantConfiguration),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapSetTenantConfigurationGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfigurationCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Key))
-        {
+        if (string.IsNullOrEmpty(request.TenantId) || string.IsNullOrWhiteSpace(request.Key)) {
             return TenantCommandSubmissionResult.Failed("Tenant id and configuration key are required before the command can be submitted.");
         }
 
@@ -275,28 +247,24 @@ internal sealed class TenantCommandGateway(
             nameof(RemoveTenantConfiguration),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapRemoveTenantConfigurationGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministratorCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.UserId))
-        {
+        if (string.IsNullOrWhiteSpace(request.UserId)) {
             return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
         }
 
@@ -310,28 +278,24 @@ internal sealed class TenantCommandGateway(
             nameof(SetGlobalAdministrator),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapSetGlobalAdministratorGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministratorCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.UserId))
-        {
+        if (string.IsNullOrWhiteSpace(request.UserId)) {
             return TenantCommandSubmissionResult.Failed("User id is required before the global administrator command can be submitted.");
         }
 
@@ -345,28 +309,24 @@ internal sealed class TenantCommandGateway(
             nameof(RemoveGlobalAdministrator),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapRemoveGlobalAdministratorGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant)
-        {
+        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.EnableTenant) {
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
@@ -380,28 +340,24 @@ internal sealed class TenantCommandGateway(
             nameof(EnableTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapLifecycleGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant)
-        {
+        if (string.IsNullOrEmpty(request.TenantId) || request.Operation is not TenantLifecycleOperation.DisableTenant) {
             return TenantCommandSubmissionResult.Failed("Tenant id and lifecycle operation are required before the command can be submitted.");
         }
 
@@ -415,39 +371,33 @@ internal sealed class TenantCommandGateway(
             nameof(DisableTenant),
             JsonSerializer.SerializeToElement(command));
 
-        try
-        {
+        try {
             SubmitCommandResponse response = await gatewayClient
                 .SubmitCommandAsync(submit, cancellationToken)
                 .ConfigureAwait(false);
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
-        catch (EventStoreGatewayException ex)
-        {
+        catch (EventStoreGatewayException ex) {
             return MapLifecycleGatewayException(ex);
         }
     }
 
     public async Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(handle);
 
-        try
-        {
+        try {
             using HttpResponseMessage response = await statusClient
                 .GetAsync($"api/v1/commands/status/{Uri.EscapeDataString(handle.CorrelationId)}", cancellationToken)
                 .ConfigureAwait(false);
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
+            if (response.StatusCode == HttpStatusCode.NotFound) {
                 return TenantCommandStatusResult.Unknown("Command status is not available yet.");
             }
 
-            if (!response.IsSuccessStatusCode)
-            {
+            if (!response.IsSuccessStatusCode) {
                 return TenantCommandStatusResult.Unknown("Command status could not be verified.");
             }
 
@@ -455,8 +405,7 @@ internal sealed class TenantCommandGateway(
                 .ReadFromJsonAsync<TenantCommandStatusResponse>(WebJsonOptions, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (status is null || !Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus))
-            {
+            if (status is null || !Enum.TryParse(status.Status, ignoreCase: false, out CommandStatus parsedStatus)) {
                 return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
             }
 
@@ -466,27 +415,22 @@ internal sealed class TenantCommandGateway(
                 SafeRejectionCode(status.RejectionEventType),
                 status.EventCount);
         }
-        catch (JsonException)
-        {
+        catch (JsonException) {
             return TenantCommandStatusResult.Unknown("Command status response was unavailable.");
         }
-        catch (HttpRequestException)
-        {
+        catch (HttpRequestException) {
             return TenantCommandStatusResult.Unknown("Command status could not be verified.");
         }
     }
 
-    private static TenantCommandSubmissionResult MapGatewayException(EventStoreGatewayException exception)
-    {
-        if (IsTenantAlreadyExists(exception))
-        {
+    private static TenantCommandSubmissionResult MapGatewayException(EventStoreGatewayException exception) {
+        if (IsTenantAlreadyExists(exception)) {
             return TenantCommandSubmissionResult.Rejected(
                 "A tenant with this id already exists. Refresh the list or open the existing tenant if it is visible.",
                 "TenantAlreadyExists");
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to create tenants.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -497,16 +441,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapAddUserToTenantGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapAddUserToTenantGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeAddMemberRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to add members to this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -517,16 +458,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapChangeUserRoleGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapChangeUserRoleGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeChangeRoleRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to change member roles in this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -537,16 +475,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapRemoveUserFromTenantGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapRemoveUserFromTenantGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeRemoveMemberRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to remove members from this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -557,16 +492,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapUpdateTenantGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapUpdateTenantGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeUpdateTenantRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to edit this tenant's metadata.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -577,16 +509,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapSetTenantConfigurationGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapSetTenantConfigurationGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeSetConfigurationRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to set configuration for this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -597,16 +526,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapRemoveTenantConfigurationGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapRemoveTenantConfigurationGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeRemoveConfigurationRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to remove configuration for this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -617,16 +543,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapLifecycleGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapLifecycleGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeLifecycleRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to submit tenant lifecycle commands.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -637,16 +560,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapSetGlobalAdministratorGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapSetGlobalAdministratorGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeGlobalAdministratorRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to change platform governance.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -657,16 +577,13 @@ internal sealed class TenantCommandGateway(
         };
     }
 
-    private static TenantCommandSubmissionResult MapRemoveGlobalAdministratorGatewayException(EventStoreGatewayException exception)
-    {
+    private static TenantCommandSubmissionResult MapRemoveGlobalAdministratorGatewayException(EventStoreGatewayException exception) {
         (string Code, string Message)? rejection = SafeGlobalAdministratorRejection(exception);
-        if (rejection is not null)
-        {
+        if (rejection is not null) {
             return TenantCommandSubmissionResult.Rejected(rejection.Value.Message, rejection.Value.Code);
         }
 
-        return exception.StatusCode switch
-        {
+        return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to change platform governance.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
@@ -685,8 +602,7 @@ internal sealed class TenantCommandGateway(
         || Contains(exception.Detail, "TenantAlreadyExists");
 
     private static string? SafeMessageForStatus(CommandStatus status, string? rejectionEventType, string? failureReason)
-        => status switch
-        {
+        => status switch {
             CommandStatus.Rejected when SafeSharedStatusRejection(rejectionEventType) is { } rejection
                 => rejection.Message,
             // GetStatusAsync is shared by every Tenants command (create-tenant, add-member,
@@ -710,70 +626,56 @@ internal sealed class TenantCommandGateway(
     // across commands (InsufficientPermissions, TenantDisabled, TenantNotFound, RoleEscalation)
     // must stay command-neutral so one command's copy never leaks into another command's lifecycle
     // panel. This keeps the Story 2.2 shared-status discipline symmetric for member commands.
-    private static (string Code, string Message)? SafeSharedStatusRejection(string? value)
-    {
-        if (Contains(value, "TenantAlreadyExists"))
-        {
+    private static (string Code, string Message)? SafeSharedStatusRejection(string? value) {
+        if (Contains(value, "TenantAlreadyExists")) {
             return ("TenantAlreadyExists", "A tenant with this id already exists. Refresh the list or open the existing tenant if it is visible.");
         }
 
-        if (Contains(value, "UserAlreadyInTenant"))
-        {
+        if (Contains(value, "UserAlreadyInTenant")) {
             return ("UserAlreadyInTenant", "This user is already a member of the tenant. Refresh the member table before trying another action.");
         }
 
-        if (Contains(value, "UserNotInTenant"))
-        {
+        if (Contains(value, "UserNotInTenant")) {
             return ("UserNotInTenant", "The target user is not a visible member of this tenant. Refresh the member table before trying again.");
         }
 
-        if (Contains(value, "RoleEscalation"))
-        {
+        if (Contains(value, "RoleEscalation")) {
             return ("RoleEscalation", "The requested tenant role cannot be assigned by this command.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to submit this command.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so the command cannot be completed.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
-        if (Contains(value, "ConfigurationLimitExceeded"))
-        {
+        if (Contains(value, "ConfigurationLimitExceeded")) {
             return ("ConfigurationLimitExceeded", "The configuration change exceeded tenant configuration limits.");
         }
 
-        if (Contains(value, "ConfigurationKeyNotFound"))
-        {
+        if (Contains(value, "ConfigurationKeyNotFound")) {
             return ("ConfigurationKeyNotFound", "The configuration key was not found in the current tenant projection. Refresh tenant detail before treating removal as complete.");
         }
 
-        if (Contains(value, "TenantLifecycleStateAlreadySet"))
-        {
+        if (Contains(value, "TenantLifecycleStateAlreadySet")) {
             return ("TenantLifecycleStateAlreadySet", "The tenant lifecycle already matches the requested state. Refresh tenant detail before trying another lifecycle action.");
         }
 
-        if (Contains(value, "GlobalAdministratorAlreadyExists"))
-        {
+        if (Contains(value, "GlobalAdministratorAlreadyExists")) {
             return ("GlobalAdministratorAlreadyExists", "This user is already a global administrator. Refresh the platform authority projection before trying another action.");
         }
 
-        if (Contains(value, "LastGlobalAdministrator"))
-        {
+        if (Contains(value, "LastGlobalAdministrator")) {
             return ("LastGlobalAdministrator", "The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before trying again.");
         }
 
-        if (Contains(value, "GlobalAdministratorNotFound"))
-        {
+        if (Contains(value, "GlobalAdministratorNotFound")) {
             return ("GlobalAdministratorNotFound", "The target user is not a global administrator in the last-confirmed projection. Refresh platform authority before trying another action.");
         }
 
@@ -790,30 +692,24 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeAddMemberRejection(string? value)
-    {
-        if (Contains(value, "UserAlreadyInTenant"))
-        {
+    private static (string Code, string Message)? SafeAddMemberRejection(string? value) {
+        if (Contains(value, "UserAlreadyInTenant")) {
             return ("UserAlreadyInTenant", "This user is already a member of the tenant. Refresh the member table before trying another action.");
         }
 
-        if (Contains(value, "RoleEscalation"))
-        {
+        if (Contains(value, "RoleEscalation")) {
             return ("RoleEscalation", "The requested tenant role cannot be assigned by this command.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to add members to this tenant.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so members cannot be added.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
@@ -830,30 +726,24 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeChangeRoleRejection(string? value)
-    {
-        if (Contains(value, "RoleEscalation"))
-        {
+    private static (string Code, string Message)? SafeChangeRoleRejection(string? value) {
+        if (Contains(value, "RoleEscalation")) {
             return ("RoleEscalation", "The requested tenant role cannot be assigned by this command.");
         }
 
-        if (Contains(value, "UserNotInTenant"))
-        {
+        if (Contains(value, "UserNotInTenant")) {
             return ("UserNotInTenant", "The target user is not a visible member of this tenant. Refresh the member table before trying again.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to change member roles in this tenant.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so member roles cannot be changed.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
@@ -870,25 +760,20 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeRemoveMemberRejection(string? value)
-    {
-        if (Contains(value, "UserNotInTenant"))
-        {
+    private static (string Code, string Message)? SafeRemoveMemberRejection(string? value) {
+        if (Contains(value, "UserNotInTenant")) {
             return ("UserNotInTenant", "The target user is not a visible member of this tenant. Refresh the member table before treating removal as already applied.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to remove members from this tenant.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so members cannot be removed.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
@@ -905,25 +790,20 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeRemoveConfigurationRejection(string? value)
-    {
-        if (Contains(value, "ConfigurationKeyNotFound"))
-        {
+    private static (string Code, string Message)? SafeRemoveConfigurationRejection(string? value) {
+        if (Contains(value, "ConfigurationKeyNotFound")) {
             return ("ConfigurationKeyNotFound", "The configuration key was not found in the current tenant projection. Refresh tenant detail before treating removal as complete.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to remove configuration for this tenant.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so configuration cannot be removed.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
@@ -940,20 +820,16 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeUpdateTenantRejection(string? value)
-    {
-        if (Contains(value, "InsufficientPermissions"))
-        {
+    private static (string Code, string Message)? SafeUpdateTenantRejection(string? value) {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to edit this tenant's metadata.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so metadata cannot be edited.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
@@ -970,25 +846,20 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeSetConfigurationRejection(string? value)
-    {
-        if (Contains(value, "ConfigurationLimitExceeded"))
-        {
+    private static (string Code, string Message)? SafeSetConfigurationRejection(string? value) {
+        if (Contains(value, "ConfigurationLimitExceeded")) {
             return ("ConfigurationLimitExceeded", "The configuration value exceeds the tenant configuration limits.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to set configuration for this tenant.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so configuration cannot be changed.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
@@ -1005,25 +876,20 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeLifecycleRejection(string? value)
-    {
-        if (Contains(value, "TenantLifecycleStateAlreadySet"))
-        {
+    private static (string Code, string Message)? SafeLifecycleRejection(string? value) {
+        if (Contains(value, "TenantLifecycleStateAlreadySet")) {
             return ("TenantLifecycleStateAlreadySet", "The tenant lifecycle already matches the requested state. Refresh tenant detail before trying another lifecycle action.");
         }
 
-        if (Contains(value, "TenantDisabled"))
-        {
+        if (Contains(value, "TenantDisabled")) {
             return ("TenantDisabled", "This tenant is disabled, so the requested tenant command cannot be completed.");
         }
 
-        if (Contains(value, "TenantNotFound"))
-        {
+        if (Contains(value, "TenantNotFound")) {
             return ("TenantNotFound", "The tenant was not found. Refresh the tenant detail before trying again.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to submit tenant lifecycle commands.");
         }
 
@@ -1040,25 +906,20 @@ internal sealed class TenantCommandGateway(
                 exception.Type,
                 exception.Detail));
 
-    private static (string Code, string Message)? SafeGlobalAdministratorRejection(string? value)
-    {
-        if (Contains(value, "GlobalAdministratorAlreadyExists"))
-        {
+    private static (string Code, string Message)? SafeGlobalAdministratorRejection(string? value) {
+        if (Contains(value, "GlobalAdministratorAlreadyExists")) {
             return ("GlobalAdministratorAlreadyExists", "This user is already a global administrator. Refresh the platform authority projection before trying another action.");
         }
 
-        if (Contains(value, "LastGlobalAdministrator"))
-        {
+        if (Contains(value, "LastGlobalAdministrator")) {
             return ("LastGlobalAdministrator", "The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before trying again.");
         }
 
-        if (Contains(value, "GlobalAdministratorNotFound"))
-        {
+        if (Contains(value, "GlobalAdministratorNotFound")) {
             return ("GlobalAdministratorNotFound", "The target user is not a global administrator in the last-confirmed projection. Refresh platform authority before trying another action.");
         }
 
-        if (Contains(value, "InsufficientPermissions"))
-        {
+        if (Contains(value, "InsufficientPermissions")) {
             return ("InsufficientPermissions", "You are not authorized to change platform governance.");
         }
 
@@ -1068,10 +929,8 @@ internal sealed class TenantCommandGateway(
     private static bool IsAssignableTenantRole(TenantRole role)
         => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
 
-    private static string? BoundSafeFailureReason(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
+    private static string? BoundSafeFailureReason(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
             return null;
         }
 

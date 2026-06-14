@@ -6,8 +6,7 @@ using Hexalith.Tenants.UI.State.UserTenants;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway
-{
+internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
     public Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
         TenantDetailSnapshot? previous,
@@ -29,8 +28,7 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway
     public Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
         UserTenantMembershipRequest request,
         UserTenantMembershipSnapshot? previous,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         return Task.FromResult(UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId));
@@ -45,8 +43,7 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway
     public Task<TenantAuditSnapshot> GetTenantAuditAsync(
         TenantAuditRequest request,
         TenantAuditSnapshot? previous,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         return Task.FromResult(TenantAuditSnapshot.Unavailable(request));

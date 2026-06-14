@@ -6,7 +6,6 @@ using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Hexalith.Tenants.Projections;
@@ -123,12 +122,12 @@ public sealed class TenantProjectionHandler {
         // Build into a new model so the caller's persisted instance is never mutated. Required for any
         // state-store implementation that returns a cached/shared reference from a read.
         TenantAuditReadModel merged = new() {
-            Entries = [.. (persisted.Entries ?? [])],
+            Entries = [.. persisted.Entries ?? []],
         };
 
         // Null/whitespace EventIds cannot participate in dedup. Persisted entries are preserved verbatim
         // above so audit history is never silently dropped; only the dedup set excludes them.
-        HashSet<string> seenEventIds = merged
+        var seenEventIds = merged
             .Entries
             .Select(e => e.EventId)
             .Where(id => !string.IsNullOrWhiteSpace(id))

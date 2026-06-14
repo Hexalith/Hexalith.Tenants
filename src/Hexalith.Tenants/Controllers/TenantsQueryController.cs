@@ -8,7 +8,6 @@ using Hexalith.EventStore.Contracts.Authorization;
 using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
-using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;

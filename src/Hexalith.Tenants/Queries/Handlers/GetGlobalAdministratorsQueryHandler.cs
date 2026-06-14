@@ -6,8 +6,6 @@ using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
 
-using Microsoft.Extensions.Logging;
-
 namespace Hexalith.Tenants.Queries.Handlers;
 
 /// <summary>

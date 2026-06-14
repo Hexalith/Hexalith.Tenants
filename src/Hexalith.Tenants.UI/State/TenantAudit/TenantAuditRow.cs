@@ -1,6 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -15,8 +15,7 @@ public sealed record TenantAuditRow(
     string Scope,
     string Outcome,
     string ReferenceContext,
-    TenantFreshnessState Freshness)
-{
+    TenantFreshnessState Freshness) {
     private static readonly string[] ApprovedNarrativeKeys =
     [
         "userId",
@@ -29,8 +28,7 @@ public sealed record TenantAuditRow(
         "occurredAt",
     ];
 
-    public static TenantAuditRow FromEntry(TenantAuditEntry entry, TenantFreshnessState freshness)
-    {
+    public static TenantAuditRow FromEntry(TenantAuditEntry entry, TenantFreshnessState freshness) {
         ArgumentNullException.ThrowIfNull(entry);
 
         return new(
@@ -47,10 +45,8 @@ public sealed record TenantAuditRow(
             freshness);
     }
 
-    private static string BuildReferenceContext(IReadOnlyDictionary<string, string>? narrative)
-    {
-        if (narrative is null || narrative.Count == 0)
-        {
+    private static string BuildReferenceContext(IReadOnlyDictionary<string, string>? narrative) {
+        if (narrative is null || narrative.Count == 0) {
             return string.Empty;
         }
 
@@ -65,10 +61,8 @@ public sealed record TenantAuditRow(
     private static string SafeValue(string? value)
         => IsSafeValue(value) ? value! : string.Empty;
 
-    private static bool IsSafeValue(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
+    private static bool IsSafeValue(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
             return false;
         }
 

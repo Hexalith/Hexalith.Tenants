@@ -1,4 +1,3 @@
-namespace Hexalith.Tenants.UI.Services.Auth;
 
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
@@ -7,16 +6,15 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
-using Microsoft.Extensions.DependencyInjection;
 
+namespace Hexalith.Tenants.UI.Services.Auth;
 /// <summary>
 /// Process-wide store of per-user EventStore access tokens captured at OIDC sign-in. Keyed by the
 /// authenticated user's stable identifier (the <c>sub</c>/NameIdentifier claim). It lets the Blazor
 /// Server circuit — which has no <see cref="HttpContext"/> — relay the signed-in user's bearer token
 /// to the EventStore gateway. Tokens are overwritten on each sign-in and removed on sign-out.
 /// </summary>
-public sealed class TenantsUserTokenStore
-{
+public sealed class TenantsUserTokenStore {
     private readonly ConcurrentDictionary<string, string> _tokens = new(StringComparer.Ordinal);
 
     public void Set(string userId, string accessToken) => _tokens[userId] = accessToken;
@@ -33,12 +31,10 @@ public sealed class TenantsUserTokenStore
 /// activity is executing. Registered as a singleton; the value is published per inbound activity by
 /// <see cref="TenantsCircuitServicesHandler"/>.
 /// </summary>
-public sealed class CircuitServicesAccessor
-{
+public sealed class CircuitServicesAccessor {
     private static readonly AsyncLocal<IServiceProvider?> Current = new();
 
-    public IServiceProvider? Services
-    {
+    public IServiceProvider? Services {
         get => Current.Value;
         set => Current.Value = value;
     }
@@ -51,19 +47,15 @@ public sealed class CircuitServicesAccessor
 /// </summary>
 public sealed class TenantsCircuitServicesHandler(
     IServiceProvider circuitServices,
-    CircuitServicesAccessor accessor) : CircuitHandler
-{
+    CircuitServicesAccessor accessor) : CircuitHandler {
     public override Func<CircuitInboundActivityContext, Task> CreateInboundActivityHandler(
         Func<CircuitInboundActivityContext, Task> next)
-        => async context =>
-        {
+        => async context => {
             accessor.Services = circuitServices;
-            try
-            {
+            try {
                 await next(context).ConfigureAwait(false);
             }
-            finally
-            {
+            finally {
                 accessor.Services = null;
             }
         };
@@ -79,17 +71,13 @@ public sealed class TenantsCircuitServicesHandler(
 public sealed class GatewayAuthorizationHandler(
     IHttpContextAccessor httpContextAccessor,
     CircuitServicesAccessor circuitServicesAccessor,
-    TenantsUserTokenStore tokenStore) : DelegatingHandler
-{
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
+    TenantsUserTokenStore tokenStore) : DelegatingHandler {
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Headers.Authorization is null)
-        {
+        if (request.Headers.Authorization is null) {
             string? userId = await ResolveUserIdAsync().ConfigureAwait(false);
-            if (userId is not null && tokenStore.TryGet(userId, out string token))
-            {
+            if (userId is not null && tokenStore.TryGet(userId, out string token)) {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
         }
@@ -97,14 +85,11 @@ public sealed class GatewayAuthorizationHandler(
         return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string?> ResolveUserIdAsync()
-    {
+    private async Task<string?> ResolveUserIdAsync() {
         ClaimsPrincipal? user = httpContextAccessor.HttpContext?.User;
-        if (user?.Identity?.IsAuthenticated != true)
-        {
-            AuthenticationStateProvider? provider = circuitServicesAccessor.Services?.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
-            if (provider is not null)
-            {
+        if (user?.Identity?.IsAuthenticated != true) {
+            var provider = circuitServicesAccessor.Services?.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+            if (provider is not null) {
                 AuthenticationState state = await provider.GetAuthenticationStateAsync().ConfigureAwait(false);
                 user = state.User;
             }
@@ -119,8 +104,7 @@ public sealed class GatewayAuthorizationHandler(
 /// <summary>
 /// Registration helpers for per-user EventStore token relay from the Tenants UI (Blazor Server).
 /// </summary>
-public static class TenantsTokenRelayExtensions
-{
+public static class TenantsTokenRelayExtensions {
     /// <summary>The FrontComposer OIDC challenge scheme name (see <c>FrontComposerOpenIdConnectOptions.ChallengeScheme</c>).</summary>
     public const string OidcScheme = "Hexalith.FrontComposer.Oidc";
 
@@ -128,36 +112,31 @@ public static class TenantsTokenRelayExtensions
     /// Registers the circuit-safe token relay services and captures the user's EventStore access
     /// token on each OIDC sign-in. Call after <c>AddHexalithFrontComposerAuthentication</c>.
     /// </summary>
-    public static IServiceCollection AddTenantsTokenRelay(this IServiceCollection services)
-    {
+    public static IServiceCollection AddTenantsTokenRelay(this IServiceCollection services) {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<TenantsUserTokenStore>();
-        services.AddSingleton<CircuitServicesAccessor>();
-        services.AddScoped<CircuitHandler, TenantsCircuitServicesHandler>();
-        services.AddTransient<GatewayAuthorizationHandler>();
+        _ = services.AddSingleton<TenantsUserTokenStore>();
+        _ = services.AddSingleton<CircuitServicesAccessor>();
+        _ = services.AddScoped<CircuitHandler, TenantsCircuitServicesHandler>();
+        _ = services.AddTransient<GatewayAuthorizationHandler>();
 
         // Local-dev OIDC against http Keycloak: allow metadata over http, keep tokens for relay, and
         // capture the access token into the per-user store when the authorization code is validated.
-        services.AddOptions<OpenIdConnectOptions>(OidcScheme)
-            .Configure<TenantsUserTokenStore>((options, tokenStore) =>
-            {
+        _ = services.AddOptions<OpenIdConnectOptions>(OidcScheme)
+            .Configure<TenantsUserTokenStore>((options, tokenStore) => {
                 options.RequireHttpsMetadata = false;
                 options.SaveTokens = true;
 
                 Func<TokenValidatedContext, Task>? previous = options.Events.OnTokenValidated;
-                options.Events.OnTokenValidated = async context =>
-                {
-                    if (previous is not null)
-                    {
+                options.Events.OnTokenValidated = async context => {
+                    if (previous is not null) {
                         await previous(context).ConfigureAwait(false);
                     }
 
                     string? token = context.TokenEndpointResponse?.AccessToken;
                     string? userId = context.Principal?.FindFirstValue("sub")
                         ?? context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                    if (!string.IsNullOrEmpty(token) && userId is not null)
-                    {
+                    if (!string.IsNullOrEmpty(token) && userId is not null) {
                         tokenStore.Set(userId, token);
                     }
                 };
@@ -167,8 +146,7 @@ public static class TenantsTokenRelayExtensions
     }
 
     /// <summary>Adds the bearer-token relay handler to an EventStore gateway HTTP client.</summary>
-    public static IHttpClientBuilder AddGatewayAuthorization(this IHttpClientBuilder builder)
-    {
+    public static IHttpClientBuilder AddGatewayAuthorization(this IHttpClientBuilder builder) {
         ArgumentNullException.ThrowIfNull(builder);
         return builder.AddHttpMessageHandler<GatewayAuthorizationHandler>();
     }

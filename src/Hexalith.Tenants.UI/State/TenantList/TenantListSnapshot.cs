@@ -1,3 +1,5 @@
+using Hexalith.Tenants.UI.State.TruthState;
+
 namespace Hexalith.Tenants.UI.State.TenantList;
 
 public sealed record TenantListSnapshot(
@@ -9,8 +11,7 @@ public sealed record TenantListSnapshot(
     TenantFreshnessState Freshness,
     bool IsDegraded,
     bool IsAuthorizationScopedEmpty,
-    string? ErrorMessage)
-{
+    string? ErrorMessage) {
     public static TenantListSnapshot Loading()
         => new(
             TenantListSurfaceKind.Loading,

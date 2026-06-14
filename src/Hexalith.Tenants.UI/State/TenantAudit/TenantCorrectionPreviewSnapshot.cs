@@ -1,7 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.Tenants.UI.State.TenantList;
 
 using TenantDetailProjection = Hexalith.Tenants.Contracts.Queries.TenantDetail;
 
@@ -38,8 +37,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness,
     string? SafeMessage = null,
     string? RejectionCode = null,
-    string? SafeMessageKey = null)
-{
+    string? SafeMessageKey = null) {
     public bool CanSubmit
         => Intent.IsAvailable
             && LifecycleState is TenantCommandLifecycleState.Previewed
@@ -48,10 +46,8 @@ public sealed record TenantCorrectionPreviewSnapshot(
     public bool HasCommandTracking
         => MessageId is not null && CorrelationId is not null;
 
-    public bool TryGetTrackingHandle(out TenantCommandTrackingHandle handle)
-    {
-        if (MessageId is not null && CorrelationId is not null)
-        {
+    public bool TryGetTrackingHandle(out TenantCommandTrackingHandle handle) {
+        if (MessageId is not null && CorrelationId is not null) {
             handle = new(MessageId, CorrelationId);
             return true;
         }
@@ -62,8 +58,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
 
     public static TenantCorrectionPreviewSnapshot FromIntent(
         TenantCorrectionStartIntent intent,
-        TenantDetailProjection? currentProjection = null)
-    {
+        TenantDetailProjection? currentProjection = null) {
         ArgumentNullException.ThrowIfNull(intent);
 
         TenantRole intendedRole = intent.IntendedRole ?? TenantRole.Unknown;
@@ -98,15 +93,12 @@ public sealed record TenantCorrectionPreviewSnapshot(
         return currentProjection is null ? snapshot : snapshot.EvaluateCurrentProjection(currentProjection);
     }
 
-    public TenantCorrectionPreviewSnapshot EvaluateCurrentProjection(TenantDetailProjection projection)
-    {
+    public TenantCorrectionPreviewSnapshot EvaluateCurrentProjection(TenantDetailProjection projection) {
         ArgumentNullException.ThrowIfNull(projection);
 
         if (!string.Equals(projection.TenantId, TenantId, StringComparison.Ordinal)
-            || projection.Status is TenantStatus.Disabled or TenantStatus.Unknown)
-        {
-            return this with
-            {
+            || projection.Status is TenantStatus.Disabled or TenantStatus.Unknown) {
+            return this with {
                 LastConfirmedProjectionEvidence = projection,
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 AuditState = TenantCommandAuditState.MissingSupport,
@@ -120,17 +112,14 @@ public sealed record TenantCorrectionPreviewSnapshot(
         TenantMember? member = projection.Members.FirstOrDefault(member =>
             string.Equals(member.UserId, TargetUserId, StringComparison.Ordinal));
         TenantRole currentRole = member?.Role ?? TenantRole.Unknown;
-        TenantCorrectionPreviewSnapshot withEvidence = this with
-        {
+        TenantCorrectionPreviewSnapshot withEvidence = this with {
             LastConfirmedProjectionEvidence = projection,
             CurrentRole = currentRole,
         };
 
-        if (Intent.IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant && member is not null)
-        {
+        if (Intent.IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant && member is not null) {
             return member.Role == IntendedRole
-                ? withEvidence with
-                {
+                ? withEvidence with {
                     LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -138,8 +127,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
                     SafeMessage = null,
                     SafeMessageKey = "Tenants.Correction.Unavailable.AlreadyApplied",
                 }
-                : withEvidence with
-                {
+                : withEvidence with {
                     LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Role,
@@ -149,12 +137,9 @@ public sealed record TenantCorrectionPreviewSnapshot(
                 };
         }
 
-        if (Intent.IntendedCommandType is TenantCorrectionCommandType.ChangeUserRole)
-        {
-            if (member is null)
-            {
-                return withEvidence with
-                {
+        if (Intent.IntendedCommandType is TenantCorrectionCommandType.ChangeUserRole) {
+            if (member is null) {
+                return withEvidence with {
                     LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -164,10 +149,8 @@ public sealed record TenantCorrectionPreviewSnapshot(
                 };
             }
 
-            if (member.Role == IntendedRole)
-            {
-                return withEvidence with
-                {
+            if (member.Role == IntendedRole) {
+                return withEvidence with {
                     LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Lifecycle,
@@ -182,8 +165,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
     }
 
     public TenantCorrectionPreviewSnapshot RequestSent()
-        => this with
-        {
+        => this with {
             LifecycleState = TenantCommandLifecycleState.RequestSent,
             SafeMessage = null,
             SafeMessageKey = null,
@@ -193,12 +175,10 @@ public sealed record TenantCorrectionPreviewSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
 
-    public TenantCorrectionPreviewSnapshot Accepted(TenantCommandSubmissionResult result)
-    {
+    public TenantCorrectionPreviewSnapshot Accepted(TenantCommandSubmissionResult result) {
         ArgumentNullException.ThrowIfNull(result);
 
-        return this with
-        {
+        return this with {
             LifecycleState = TenantCommandLifecycleState.Accepted,
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
@@ -211,12 +191,10 @@ public sealed record TenantCorrectionPreviewSnapshot(
         };
     }
 
-    public TenantCorrectionPreviewSnapshot ApplySubmissionFailure(TenantCommandSubmissionResult result)
-    {
+    public TenantCorrectionPreviewSnapshot ApplySubmissionFailure(TenantCommandSubmissionResult result) {
         ArgumentNullException.ThrowIfNull(result);
 
-        return this with
-        {
+        return this with {
             LifecycleState = result.State,
             SafeMessage = result.SafeMessage,
             RejectionCode = result.RejectionCode,
@@ -226,14 +204,11 @@ public sealed record TenantCorrectionPreviewSnapshot(
         };
     }
 
-    public TenantCorrectionPreviewSnapshot ApplyStatus(TenantCommandStatusResult status)
-    {
+    public TenantCorrectionPreviewSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 
-        if (status.Status is null)
-        {
-            return this with
-            {
+        if (status.Status is null) {
+            return this with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 AuditState = TenantCommandAuditState.AuditUnavailable,
@@ -242,14 +217,12 @@ public sealed record TenantCorrectionPreviewSnapshot(
             };
         }
 
-        return status.Status.Value switch
-        {
+        return status.Status.Value switch {
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Received
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.Processing
                     => this with { LifecycleState = TenantCommandLifecycleState.Accepted, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed when status.EventCount == 0
-                    => this with
-                    {
+                    => this with {
                         LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
                         SafeMessage = null,
                         SafeMessageKey = "Tenants.Correction.State.AlreadyApplied",
@@ -262,8 +235,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
                     => this with { LifecycleState = TenantCommandLifecycleState.ProjectionPending, AuditState = TenantCommandAuditState.AuditPending, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Rejected
-                    => this with
-                    {
+                    => this with {
                         LifecycleState = TenantCommandLifecycleState.Rejected,
                         SafeMessage = status.SafeMessage,
                         RejectionCode = status.RejectionCode,
@@ -272,8 +244,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.PublishFailed
-                    => this with
-                    {
+                    => this with {
                         LifecycleState = TenantCommandLifecycleState.Degraded,
                         SafeMessage = status.SafeMessage,
                         AuditState = TenantCommandAuditState.AuditUnavailable,
@@ -281,16 +252,14 @@ public sealed record TenantCorrectionPreviewSnapshot(
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.TimedOut
-                    => this with
-                    {
+                    => this with {
                         LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                         SafeMessage = status.SafeMessage,
                         AuditState = TenantCommandAuditState.AuditUnavailable,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     },
-            _ => this with
-            {
+            _ => this with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Correction.State.UnableToVerify",
@@ -301,11 +270,9 @@ public sealed record TenantCorrectionPreviewSnapshot(
         };
     }
 
-    public TenantCorrectionPreviewSnapshot ConfirmProjection(TenantDetailProjection? projection)
-    {
+    public TenantCorrectionPreviewSnapshot ConfirmProjection(TenantDetailProjection? projection) {
         if (projection is null
-            || LifecycleState is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending)
-        {
+            || LifecycleState is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
@@ -314,17 +281,14 @@ public sealed record TenantCorrectionPreviewSnapshot(
         bool projectionProvesCorrection = string.Equals(projection.TenantId, TenantId, StringComparison.Ordinal)
             && member?.Role == IntendedRole;
 
-        if (!projectionProvesCorrection)
-        {
-            return this with
-            {
+        if (!projectionProvesCorrection) {
+            return this with {
                 LastConfirmedProjectionEvidence = projection,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
             };
         }
 
-        return this with
-        {
+        return this with {
             LifecycleState = TenantCommandLifecycleState.Confirmed,
             LastConfirmedProjectionEvidence = projection,
             CurrentRole = member!.Role,
@@ -336,20 +300,16 @@ public sealed record TenantCorrectionPreviewSnapshot(
         };
     }
 
-    public TenantCorrectionPreviewSnapshot WithCorrectiveProof(TenantAuditRow? row)
-    {
-        if (LifecycleState is not TenantCommandLifecycleState.Confirmed)
-        {
+    public TenantCorrectionPreviewSnapshot WithCorrectiveProof(TenantAuditRow? row) {
+        if (LifecycleState is not TenantCommandLifecycleState.Confirmed) {
             return this;
         }
 
-        if (row is null)
-        {
+        if (row is null) {
             return this with { AuditState = TenantCommandAuditState.AuditDelayed };
         }
 
-        return this with
-        {
+        return this with {
             AuditState = TenantCommandAuditState.NotStarted,
             ProofLink = new(
                 OriginalAuditReference,
@@ -370,16 +330,14 @@ public sealed record TenantCorrectionPreviewSnapshot(
         => Enum.TryParse(RequiredInput(intent, key), out TenantRole role) ? role : TenantRole.Unknown;
 
     private static IReadOnlyList<string> KnownConsequencesFor(TenantCorrectionStartIntent intent)
-        => intent.IntendedCommandType switch
-        {
+        => intent.IntendedCommandType switch {
             TenantCorrectionCommandType.AddUserToTenant => ["A new membership event may be appended if current projection truth allows it."],
             TenantCorrectionCommandType.ChangeUserRole => ["A new role-change event may be appended if current projection truth allows it."],
             _ => ["No tenant-domain corrective command will be submitted without reusable support."],
         };
 
     private static IReadOnlyList<string> KnownUnknownsFor(TenantCorrectionStartIntent intent)
-        => intent.IntendedCommandType switch
-        {
+        => intent.IntendedCommandType switch {
             TenantCorrectionCommandType.AddUserToTenant => ["Historical role evidence can be stale; the selected intended role is authoritative for the new command."],
             TenantCorrectionCommandType.ChangeUserRole => ["SignalR notifications can nudge a refresh but do not prove correction success."],
             _ => ["Global administrator command support is unavailable in this UI surface."],

@@ -4,12 +4,11 @@ using System.Text;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.SupportSafety;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
-public enum TenantAuditReceiptState
-{
+public enum TenantAuditReceiptState {
     Ready,
     Partial,
     Pending,
@@ -32,8 +31,7 @@ public sealed record TenantAuditReceipt(
     string AuditReference,
     string? CommandReference,
     TenantAuditReceiptState State,
-    string CopyableReferenceText)
-{
+    string CopyableReferenceText) {
     public string TimestampLabel
         => Timestamp?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture) ?? string.Empty;
 
@@ -42,8 +40,7 @@ public sealed record TenantAuditReceipt(
         TenantFreshnessState freshness,
         string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
-        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
-    {
+        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted) {
         ArgumentNullException.ThrowIfNull(entry);
 
         return FromRow(TenantAuditRow.FromEntry(entry, freshness), supportSafeCommandReference, surfaceKind, auditState);
@@ -53,8 +50,7 @@ public sealed record TenantAuditReceipt(
         TenantAuditRow row,
         string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
-        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted)
-    {
+        TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted) {
         ArgumentNullException.ThrowIfNull(row);
 
         string outcome = $"{row.EventType} ({row.Category})";
@@ -78,8 +74,7 @@ public sealed record TenantAuditReceipt(
     public static TenantAuditReceipt Unavailable(
         string? requestedReference,
         string tenantId,
-        string? supportSafeCommandReference = null)
-    {
+        string? supportSafeCommandReference = null) {
         string auditReference = SafeApprovedReference(requestedReference) ?? string.Empty;
         string scope = SafeIdentifier(tenantId, SupportSafeCopyValueKind.TenantId);
         string? commandReference = SafeApprovedReference(supportSafeCommandReference);
@@ -101,10 +96,8 @@ public sealed record TenantAuditReceipt(
         TenantAuditRow row,
         string outcome,
         TenantAuditSurfaceKind surfaceKind,
-        TenantCommandAuditState auditState)
-    {
-        TenantAuditReceiptState surfaceState = surfaceKind switch
-        {
+        TenantCommandAuditState auditState) {
+        TenantAuditReceiptState surfaceState = surfaceKind switch {
             TenantAuditSurfaceKind.Stale => TenantAuditReceiptState.Stale,
             TenantAuditSurfaceKind.Degraded => TenantAuditReceiptState.Degraded,
             TenantAuditSurfaceKind.Unauthorized => TenantAuditReceiptState.Unauthorized,
@@ -114,13 +107,11 @@ public sealed record TenantAuditReceipt(
             _ => TenantAuditReceiptState.Ready,
         };
 
-        if (surfaceState is not TenantAuditReceiptState.Ready)
-        {
+        if (surfaceState is not TenantAuditReceiptState.Ready) {
             return surfaceState;
         }
 
-        TenantAuditReceiptState auditReceiptState = TenantAuditAvailability.FromCommandAuditState(auditState).State switch
-        {
+        TenantAuditReceiptState auditReceiptState = TenantAuditAvailability.FromCommandAuditState(auditState).State switch {
             TenantAuditAvailabilityState.Pending => TenantAuditReceiptState.Pending,
             TenantAuditAvailabilityState.Delayed => TenantAuditReceiptState.Delayed,
             TenantAuditAvailabilityState.Unavailable => TenantAuditReceiptState.Unavailable,
@@ -128,13 +119,11 @@ public sealed record TenantAuditReceipt(
             _ => TenantAuditReceiptState.Ready,
         };
 
-        if (auditReceiptState is not TenantAuditReceiptState.Ready)
-        {
+        if (auditReceiptState is not TenantAuditReceiptState.Ready) {
             return auditReceiptState;
         }
 
-        if (row.Freshness is TenantFreshnessState.Stale)
-        {
+        if (row.Freshness is TenantFreshnessState.Stale) {
             return TenantAuditReceiptState.Stale;
         }
 
@@ -154,11 +143,9 @@ public sealed record TenantAuditReceipt(
         TenantAuditRow row,
         string outcome,
         string? commandReference,
-        TenantAuditReceiptState state)
-    {
+        TenantAuditReceiptState state) {
         string? auditReference = SafeApprovedReference(row.EventReference);
-        if (state is TenantAuditReceiptState.Partial || string.IsNullOrWhiteSpace(auditReference))
-        {
+        if (state is TenantAuditReceiptState.Partial || string.IsNullOrWhiteSpace(auditReference)) {
             return string.Empty;
         }
 
@@ -177,10 +164,8 @@ public sealed record TenantAuditReceipt(
             : string.Empty;
     }
 
-    private static void AppendLine(StringBuilder builder, string label, string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
+    private static void AppendLine(StringBuilder builder, string label, string? value) {
+        if (!string.IsNullOrWhiteSpace(value)) {
             _ = builder.Append(label).Append(": ").AppendLine(value);
         }
     }
@@ -188,11 +173,9 @@ public sealed record TenantAuditReceipt(
     private static string SafeTarget(TenantAuditRow row)
         => SafeIdentifier(row.Target, TargetValueKind(row));
 
-    private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row)
-    {
+    private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row) {
         string userMarker = $"userId: {row.Target}";
-        if (row.ReferenceContext.Contains(userMarker, StringComparison.Ordinal))
-        {
+        if (row.ReferenceContext.Contains(userMarker, StringComparison.Ordinal)) {
             return SupportSafeCopyValueKind.UserId;
         }
 

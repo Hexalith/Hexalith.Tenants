@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
-public enum GlobalAdministratorsReason
-{
+public enum GlobalAdministratorsReason {
     None,
     MissingAuthenticatedUser,
     Unauthorized,

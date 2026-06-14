@@ -1,31 +1,27 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.TenantDetail;
 
-public enum TenantLifecycleOperation
-{
+public enum TenantLifecycleOperation {
     EnableTenant,
     DisableTenant,
 }
 
-public enum TenantLifecycleAuthorizationReflectionState
-{
+public enum TenantLifecycleAuthorizationReflectionState {
     Indeterminate,
     Authorized,
     MissingPermission,
 }
 
-public enum TenantLifecycleGovernanceReadiness
-{
+public enum TenantLifecycleGovernanceReadiness {
     Unresolved,
     Ready,
     Blocked,
 }
 
-public enum TenantLifecycleUnavailableReasonCategory
-{
+public enum TenantLifecycleUnavailableReasonCategory {
     None,
     MissingPermission,
     StaleData,
@@ -41,57 +37,45 @@ public sealed record TenantLifecycleAvailabilityInput(
     bool IsCommandSurfaceConnected,
     TenantLifecycleGovernanceReadiness GovernanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved,
     TenantLifecycleAuthorizationReflectionState AuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
-    bool IsNarrowSafetyContext = false)
-{
-    public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation)
-    {
-        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is TenantFreshnessState.Stale or TenantFreshnessState.Unknown)
-        {
+    bool IsNarrowSafetyContext = false) {
+    public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation) {
+        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is TenantFreshnessState.Stale or TenantFreshnessState.Unknown) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
         }
 
-        if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
-        {
+        if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingPermission, "Tenants.Lifecycle.Unavailable.MissingPermission", TenantCommandFocusTarget.Lifecycle);
         }
 
-        if (SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded)
-        {
+        if (SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
         }
 
-        if (CurrentStatus is TenantStatus.Unknown)
-        {
+        if (CurrentStatus is TenantStatus.Unknown) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport, "Tenants.Lifecycle.Unavailable.UnknownStatus", TenantCommandFocusTarget.Lifecycle);
         }
 
-        if (operation is TenantLifecycleOperation.EnableTenant && CurrentStatus is TenantStatus.Active)
-        {
+        if (operation is TenantLifecycleOperation.EnableTenant && CurrentStatus is TenantStatus.Active) {
             return ExpectedSameStateRejection(operation, "Tenants.Lifecycle.Unavailable.AlreadyActive");
         }
 
-        if (operation is TenantLifecycleOperation.DisableTenant && CurrentStatus is TenantStatus.Disabled)
-        {
+        if (operation is TenantLifecycleOperation.DisableTenant && CurrentStatus is TenantStatus.Disabled) {
             return ExpectedSameStateRejection(operation, "Tenants.Lifecycle.Unavailable.AlreadyDisabled");
         }
 
-        if (IsNarrowSafetyContext)
-        {
+        if (IsNarrowSafetyContext) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.HighImpactFlowNotReady, "Tenants.Lifecycle.Unavailable.Mobile", TenantCommandFocusTarget.Lifecycle);
         }
 
-        if (AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
-        {
+        if (AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingPermission, "Tenants.Lifecycle.Unavailable.MissingPermission", TenantCommandFocusTarget.Lifecycle);
         }
 
-        if (!IsCommandSurfaceConnected)
-        {
+        if (!IsCommandSurfaceConnected) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport, "Tenants.Lifecycle.Unavailable.CommandSurface", TenantCommandFocusTarget.Lifecycle);
         }
 
-        if (GovernanceReadiness is not TenantLifecycleGovernanceReadiness.Ready)
-        {
+        if (GovernanceReadiness is not TenantLifecycleGovernanceReadiness.Ready) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.HighImpactFlowNotReady, "Tenants.Lifecycle.Unavailable.Governance", TenantCommandFocusTarget.Lifecycle);
         }
 

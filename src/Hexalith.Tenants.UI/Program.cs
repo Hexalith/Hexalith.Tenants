@@ -2,7 +2,6 @@ using Hexalith.EventStore.Client.Registration;
 using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
-using Hexalith.FrontComposer.Shell.Infrastructure.EventStore;
 using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
@@ -45,17 +44,17 @@ bool authEnabled =
     && !string.IsNullOrWhiteSpace(builder.Configuration["Authentication:OpenIdConnect:ClientSecret"]);
 
 if (authEnabled) {
-    builder.Services.AddHexalithFrontComposerAuthentication(o => o.UseKeycloak(
+    _ = builder.Services.AddHexalithFrontComposerAuthentication(o => o.UseKeycloak(
         oidcAuthority!,
         builder.Configuration["Authentication:OpenIdConnect:ClientId"]!,
         builder.Configuration["Authentication:OpenIdConnect:ClientSecret"]!,
         tenantClaimType: "eventstore:tenant",
         userClaimType: "sub"));
-    builder.Services.AddTenantsTokenRelay();
+    _ = builder.Services.AddTenantsTokenRelay();
 }
 
 if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absolute, out Uri? eventStoreBaseAddress)) {
-    builder.Services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
+    _ = builder.Services.AddHexalithEventStore(o => o.BaseAddress = eventStoreBaseAddress);
 
     // TenantCommandGateway submits commands through IEventStoreGatewayClient (the EventStore.Client
     // typed HTTP client). AddHexalithEventStore wires the Shell's own command/query clients but not
@@ -98,8 +97,8 @@ app.UseStaticFiles();
 app.UseRequestLocalization();
 
 if (authEnabled) {
-    app.UseAuthentication();
-    app.UseAuthorization();
+    _ = app.UseAuthentication();
+    _ = app.UseAuthorization();
 }
 
 app.UseAntiforgery();

@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
-public enum UserTenantMembershipSurfaceKind
-{
+public enum UserTenantMembershipSurfaceKind {
     Loading,
     Ready,
     Empty,

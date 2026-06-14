@@ -6,8 +6,7 @@ using Hexalith.Tenants.UI.State.UserTenants;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-public interface ITenantQueryGateway
-{
+public interface ITenantQueryGateway {
     Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
         TenantDetailSnapshot? previous,

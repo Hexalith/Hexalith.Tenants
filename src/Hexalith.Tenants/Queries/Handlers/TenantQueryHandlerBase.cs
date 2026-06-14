@@ -6,14 +6,11 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
-using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
-
-using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -193,7 +190,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             return [];
         }
 
-        HashSet<string> requesterOwnedTenantIds = requesterTenants
+        var requesterOwnedTenantIds = requesterTenants
             .Where(kvp => kvp.Value == TenantRole.TenantOwner)
             .Select(kvp => kvp.Key)
             .ToHashSet(StringComparer.Ordinal);
@@ -371,11 +368,9 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     }
 
     private protected async Task<ReadModelEntry<TValue>?> GetStateEntryAsync<TValue>(string key, CancellationToken cancellationToken)
-        where TValue : class {
-        return await _store
+        where TValue : class => await _store
             .GetAsync<TValue>(StateStoreName, key, cancellationToken)
             .ConfigureAwait(false);
-    }
 
     private protected async Task<bool> IsAuthorizedForTenantAsync(string userId, TenantReadModel model, CancellationToken cancellationToken) {
         if (model.Members.TryGetValue(userId, out TenantRole role) && IsConcreteTenantRole(role)) {

@@ -1,6 +1,5 @@
 using Hexalith.EventStore.Authentication;
 
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Configuration;

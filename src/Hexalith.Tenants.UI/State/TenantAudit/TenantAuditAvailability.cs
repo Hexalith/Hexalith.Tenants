@@ -2,16 +2,14 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
-public enum TenantAuditAvailabilityState
-{
+public enum TenantAuditAvailabilityState {
     Pending,
     Delayed,
     Unavailable,
     MissingSupport,
 }
 
-public enum TenantAuditRecoveryVerb
-{
+public enum TenantAuditRecoveryVerb {
     Wait,
     Refresh,
     InspectAudit,
@@ -22,8 +20,7 @@ public enum TenantAuditRecoveryVerb
 public sealed record TenantAuditAvailability(
     TenantAuditAvailabilityState? State,
     IReadOnlyList<TenantAuditRecoveryVerb> RecoveryVerbs,
-    TenantCommandLiveRegionPoliteness LiveRegionPoliteness)
-{
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness) {
     public bool ShouldRender
         => State is not null;
 
@@ -31,8 +28,7 @@ public sealed record TenantAuditAvailability(
         => false;
 
     public static TenantAuditAvailability FromCommandAuditState(TenantCommandAuditState state)
-        => state switch
-        {
+        => state switch {
             TenantCommandAuditState.AuditPending => new(
                 TenantAuditAvailabilityState.Pending,
                 [

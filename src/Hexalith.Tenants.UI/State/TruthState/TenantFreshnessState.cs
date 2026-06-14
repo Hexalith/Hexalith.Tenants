@@ -1,7 +1,6 @@
-namespace Hexalith.Tenants.UI.State.TenantList;
+namespace Hexalith.Tenants.UI.State.TruthState;
 
-public enum TenantFreshnessState
-{
+public enum TenantFreshnessState {
     Current,
     Refreshing,
     Aging,

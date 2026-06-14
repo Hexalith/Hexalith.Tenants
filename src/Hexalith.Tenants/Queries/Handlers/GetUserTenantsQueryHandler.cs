@@ -1,15 +1,10 @@
-using System.Text.Json;
-
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
-
-using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 

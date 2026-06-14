@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
@@ -10,8 +10,7 @@ public sealed record GlobalAdministratorsSnapshot(
     string? ETag,
     TenantFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
-    GlobalAdministratorsReason Reason)
-{
+    GlobalAdministratorsReason Reason) {
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,

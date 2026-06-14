@@ -1,7 +1,6 @@
 namespace Hexalith.Tenants.UI.State.TenantList;
 
-public enum TenantListSurfaceKind
-{
+public enum TenantListSurfaceKind {
     Loading,
     Ready,
     Empty,

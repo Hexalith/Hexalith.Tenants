@@ -2,8 +2,7 @@ using Hexalith.FrontComposer.Contracts.Registration;
 
 namespace Hexalith.Tenants.UI.Composition;
 
-public static class TenantsFrontComposerRegistration
-{
+public static class TenantsFrontComposerRegistration {
     /// <summary>
     /// Authorization policy gating the Global Administrators menu entry. Mirrors the server-side
     /// global-administrator principal shape (system tenant + GlobalAdministrator role) that the BFF
@@ -18,8 +17,7 @@ public static class TenantsFrontComposerRegistration
         [],
         []);
 
-    public static void RegisterDomain(IFrontComposerRegistry registry)
-    {
+    public static void RegisterDomain(IFrontComposerRegistry registry) {
         ArgumentNullException.ThrowIfNull(registry);
 
         // The manifest provides the "Tenants" category title for the shell's left navigation.

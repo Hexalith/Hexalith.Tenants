@@ -13,8 +13,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
     string? RejectionCode = null,
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
-    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite)
-{
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
     public static GlobalAdministratorGrantCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -27,8 +26,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
     public GlobalAdministratorGrantCommandSnapshot RequestSent(SetGlobalAdministratorCommandRequest intent)
-        => this with
-        {
+        => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
             LastConfirmedProjection = null,
@@ -39,12 +37,10 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
 
-    public GlobalAdministratorGrantCommandSnapshot Accepted(TenantCommandSubmissionResult result)
-    {
+    public GlobalAdministratorGrantCommandSnapshot Accepted(TenantCommandSubmissionResult result) {
         ArgumentNullException.ThrowIfNull(result);
 
-        return this with
-        {
+        return this with {
             State = TenantCommandLifecycleState.Accepted,
             MessageId = result.MessageId,
             CorrelationId = result.CorrelationId,
@@ -56,14 +52,12 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
         };
     }
 
-    public GlobalAdministratorGrantCommandSnapshot ApplySubmission(TenantCommandSubmissionResult result)
-    {
+    public GlobalAdministratorGrantCommandSnapshot ApplySubmission(TenantCommandSubmissionResult result) {
         ArgumentNullException.ThrowIfNull(result);
 
         return result.State is TenantCommandLifecycleState.Accepted
             ? Accepted(result)
-            : this with
-            {
+            : this with {
                 State = result.State,
                 SafeMessage = result.SafeMessage,
                 RejectionCode = result.RejectionCode,
@@ -73,14 +67,11 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             };
     }
 
-    public GlobalAdministratorGrantCommandSnapshot ApplyStatus(TenantCommandStatusResult status)
-    {
+    public GlobalAdministratorGrantCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 
-        if (status.Status is null)
-        {
-            return this with
-            {
+        if (status.Status is null) {
+            return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
                 AuditState = TenantCommandAuditState.AuditUnavailable,
@@ -89,15 +80,13 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             };
         }
 
-        return status.Status.Value switch
-        {
+        return status.Status.Value switch {
             CommandStatus.Received or CommandStatus.Processing
                 => this with { State = TenantCommandLifecycleState.Accepted, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
             CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed
                 => this with { State = TenantCommandLifecycleState.ProjectionPending, AuditState = TenantCommandAuditState.AuditPending, LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
             CommandStatus.Rejected
-                => this with
-                {
+                => this with {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
                     RejectionCode = status.RejectionCode,
@@ -106,8 +95,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 },
             CommandStatus.PublishFailed
-                => this with
-                {
+                => this with {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
                     AuditState = TenantCommandAuditState.AuditDelayed,
@@ -115,8 +103,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 },
             CommandStatus.TimedOut
-                => this with
-                {
+                => this with {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
                     AuditState = TenantCommandAuditState.AuditDelayed,
@@ -131,8 +118,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
         => State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.ProjectionPending
-            ? this with
-            {
+            ? this with {
                 State = TenantCommandLifecycleState.ProjectionPending,
                 AuditState = TenantCommandAuditState.AuditPending,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -140,23 +126,19 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             }
             : this;
 
-    public GlobalAdministratorGrantCommandSnapshot ConfirmProjection(GlobalAdministratorsSnapshot snapshot)
-    {
+    public GlobalAdministratorGrantCommandSnapshot ConfirmProjection(GlobalAdministratorsSnapshot snapshot) {
         ArgumentNullException.ThrowIfNull(snapshot);
 
         if (Intent is null || State is TenantCommandLifecycleState.Rejected
             or TenantCommandLifecycleState.Failed
             or TenantCommandLifecycleState.Degraded
-            or TenantCommandLifecycleState.UnableToVerify)
-        {
+            or TenantCommandLifecycleState.UnableToVerify) {
             return this;
         }
 
         GlobalAdministratorRow? row = snapshot.Rows.FirstOrDefault(row => string.Equals(row.UserId, Intent.UserId, StringComparison.Ordinal));
-        if (row is not null)
-        {
-            return this with
-            {
+        if (row is not null) {
+            return this with {
                 State = TenantCommandLifecycleState.Confirmed,
                 LastConfirmedProjection = row,
                 SafeMessage = null,
@@ -167,8 +149,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
         }
 
         return State is TenantCommandLifecycleState.ProjectionPending
-            ? this with
-            {
+            ? this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = "Projection re-query did not confirm the target global administrator.",
                 AuditState = TenantCommandAuditState.AuditUnavailable,

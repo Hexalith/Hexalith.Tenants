@@ -2,8 +2,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-public interface ITenantCommandGateway
-{
+public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenantCommandRequest request,
         CancellationToken cancellationToken = default);

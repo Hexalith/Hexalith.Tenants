@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Text;
 
-using Hexalith.Tenants.Contracts.Enums;
-
 namespace Hexalith.Tenants.UI.State.TenantList;
 
 public sealed record TenantListNavigationContext(
@@ -12,10 +10,8 @@ public sealed record TenantListNavigationContext(
     bool SortDescending,
     string? Cursor,
     string? SelectedTenantId,
-    string? Anchor)
-{
-    public string ToReturnUrl()
-    {
+    string? Anchor) {
+    public string ToReturnUrl() {
         StringBuilder builder = new("/tenants");
         AppendQuery(builder, "search", Search);
         AppendQuery(builder, "status", Status);
@@ -27,12 +23,10 @@ public sealed record TenantListNavigationContext(
         return builder.ToString();
     }
 
-    public string ToDetailUrl(TenantListRow row)
-    {
+    public string ToDetailUrl(TenantListRow row) {
         ArgumentNullException.ThrowIfNull(row);
 
-        TenantListNavigationContext selected = this with
-        {
+        TenantListNavigationContext selected = this with {
             SelectedTenantId = row.TenantId,
             Anchor = $"tenant-row-{row.TenantId}",
         };
@@ -41,12 +35,10 @@ public sealed record TenantListNavigationContext(
         return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}?returnUrl={returnUrl}");
     }
 
-    public string ToAuditUrl(TenantListRow row)
-    {
+    public string ToAuditUrl(TenantListRow row) {
         ArgumentNullException.ThrowIfNull(row);
 
-        TenantListNavigationContext selected = this with
-        {
+        TenantListNavigationContext selected = this with {
             SelectedTenantId = row.TenantId,
             Anchor = $"tenant-row-{row.TenantId}",
         };
@@ -55,16 +47,14 @@ public sealed record TenantListNavigationContext(
         return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor)}");
     }
 
-    private static void AppendQuery(StringBuilder builder, string key, string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
+    private static void AppendQuery(StringBuilder builder, string key, string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
             return;
         }
 
-        builder.Append(builder.Length > "/tenants".Length ? '&' : '?');
-        builder.Append(Uri.EscapeDataString(key));
-        builder.Append('=');
-        builder.Append(Uri.EscapeDataString(value));
+        _ = builder.Append(builder.Length > "/tenants".Length ? '&' : '?');
+        _ = builder.Append(Uri.EscapeDataString(key));
+        _ = builder.Append('=');
+        _ = builder.Append(Uri.EscapeDataString(value));
     }
 }

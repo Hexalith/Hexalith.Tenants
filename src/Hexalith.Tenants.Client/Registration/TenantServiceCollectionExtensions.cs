@@ -6,7 +6,6 @@ using Hexalith.Tenants.Client.Projections;
 using Hexalith.Tenants.Contracts.Events;
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hexalith.Tenants.Client.Registration;
 

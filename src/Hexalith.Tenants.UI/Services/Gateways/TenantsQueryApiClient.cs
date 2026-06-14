@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -9,8 +8,7 @@ using Hexalith.EventStore.Contracts.Queries;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
-internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQueryApiClient
-{
+internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQueryApiClient {
     private const string ProjectionVersionHeaderName = "X-Hexalith-Projection-Version";
     private const string ServedAtHeaderName = "X-Hexalith-Served-At";
     private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web);
@@ -18,14 +16,12 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
     public async Task<EventStoreQueryResult<T>> SendAsync<T>(
         TenantsQueryApiRequest request,
         string? ifNoneMatch = null,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Get, request.Path);
         string? normalizedIfNoneMatch = NormalizeIfNoneMatch(ifNoneMatch);
-        if (normalizedIfNoneMatch is not null)
-        {
+        if (normalizedIfNoneMatch is not null) {
             httpRequest.Headers.IfNoneMatch.ParseAdd(normalizedIfNoneMatch);
         }
 
@@ -35,28 +31,23 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
         string? eTag = GetETag(response);
         QueryResponseMetadata metadata = CreateMetadata(response, eTag, response.StatusCode == HttpStatusCode.NotModified);
 
-        if (response.StatusCode == HttpStatusCode.NotModified)
-        {
-            return new EventStoreQueryResult<T>(null, default, IsNotModified: true, eTag)
-            {
+        if (response.StatusCode == HttpStatusCode.NotModified) {
+            return new EventStoreQueryResult<T>(null, default, IsNotModified: true, eTag) {
                 Metadata = metadata,
             };
         }
 
-        if (!response.IsSuccessStatusCode)
-        {
+        if (!response.IsSuccessStatusCode) {
             await ThrowGatewayExceptionAsync(response, cancellationToken).ConfigureAwait(false);
         }
 
         T? payload;
-        try
-        {
+        try {
             payload = await response.Content
                 .ReadFromJsonAsync<T>(s_jsonOptions, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (JsonException ex)
-        {
+        catch (JsonException ex) {
             throw new EventStoreGatewayException(
                 (int)response.StatusCode,
                 response.ReasonPhrase ?? "OK",
@@ -64,16 +55,14 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
                 innerException: ex);
         }
 
-        if (payload is null)
-        {
+        if (payload is null) {
             throw new EventStoreGatewayException(
                 (int)response.StatusCode,
                 response.ReasonPhrase ?? "OK",
                 detail: "Tenant query response did not contain a payload.");
         }
 
-        return new EventStoreQueryResult<T>(null, payload, IsNotModified: false, eTag)
-        {
+        return new EventStoreQueryResult<T>(null, payload, IsNotModified: false, eTag) {
             Metadata = metadata,
         };
     }
@@ -82,28 +71,23 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
     // existing ServiceUnavailable -> degraded/unavailable surface mapping renders a fail-closed
     // state, instead of letting a raw HttpRequestException or timeout escape into the Blazor
     // circuit. Genuine caller cancellation is propagated unchanged.
-    private async Task<HttpResponseMessage> SendCoreAsync(HttpRequestMessage httpRequest, CancellationToken cancellationToken)
-    {
-        try
-        {
+    private async Task<HttpResponseMessage> SendCoreAsync(HttpRequestMessage httpRequest, CancellationToken cancellationToken) {
+        try {
             return await httpClient
                 .SendAsync(httpRequest, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
         }
-        catch (HttpRequestException ex)
-        {
+        catch (HttpRequestException ex) {
             throw new EventStoreGatewayException(
                 (int)HttpStatusCode.ServiceUnavailable,
                 "Service Unavailable",
                 detail: "The tenant query service is unavailable.",
                 innerException: ex);
         }
-        catch (TaskCanceledException ex)
-        {
+        catch (TaskCanceledException ex) {
             // The caller's token did not fire, so this is an HttpClient timeout, not a cancellation.
             throw new EventStoreGatewayException(
                 (int)HttpStatusCode.ServiceUnavailable,
@@ -113,8 +97,7 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
         }
     }
 
-    private static QueryResponseMetadata CreateMetadata(HttpResponseMessage response, string? eTag, bool isNotModified)
-    {
+    private static QueryResponseMetadata CreateMetadata(HttpResponseMessage response, string? eTag, bool isNotModified) {
         string? projectionVersion = response.Headers.TryGetValues(ProjectionVersionHeaderName, out IEnumerable<string>? versions)
             ? versions.FirstOrDefault()
             : null;
@@ -124,8 +107,7 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
                 servedAtValues.FirstOrDefault(),
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.RoundtripKind,
-                out DateTimeOffset parsedServedAt))
-        {
+                out DateTimeOffset parsedServedAt)) {
             servedAt = parsedServedAt;
         }
 
@@ -136,16 +118,13 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
             ServedAt: servedAt);
     }
 
-    private static string? GetETag(HttpResponseMessage response)
-    {
+    private static string? GetETag(HttpResponseMessage response) {
         EntityTagHeaderValue? eTag = response.Headers.ETag;
-        if (eTag is null)
-        {
+        if (eTag is null) {
             return null;
         }
 
-        if (eTag.IsWeak)
-        {
+        if (eTag.IsWeak) {
             throw new EventStoreGatewayException(
                 (int)response.StatusCode,
                 response.ReasonPhrase ?? "OK",
@@ -155,59 +134,49 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
         return eTag.Tag;
     }
 
-    private static string? NormalizeIfNoneMatch(string? ifNoneMatch)
-    {
-        if (string.IsNullOrWhiteSpace(ifNoneMatch))
-        {
+    private static string? NormalizeIfNoneMatch(string? ifNoneMatch) {
+        if (string.IsNullOrWhiteSpace(ifNoneMatch)) {
             return null;
         }
 
         string value = ifNoneMatch.Trim();
-        if (value == "*" || value.StartsWith("W/", StringComparison.OrdinalIgnoreCase))
-        {
+        if (value == "*" || value.StartsWith("W/", StringComparison.OrdinalIgnoreCase)) {
             throw new ArgumentException("If-None-Match must be a strong ETag token.", nameof(ifNoneMatch));
         }
 
-        if (value.StartsWith('"'))
-        {
+        if (value.StartsWith('"')) {
             if (!EntityTagHeaderValue.TryParse(value, out EntityTagHeaderValue? parsed)
                 || parsed is null
                 || parsed.IsWeak
-                || parsed.Tag == "*")
-            {
+                || parsed.Tag == "*") {
                 throw new ArgumentException("If-None-Match must be a strong ETag token.", nameof(ifNoneMatch));
             }
 
             return parsed.Tag;
         }
 
-        if (value.Any(static c => char.IsWhiteSpace(c) || char.IsControl(c) || c is '"' or ','))
-        {
+        if (value.Any(static c => char.IsWhiteSpace(c) || char.IsControl(c) || c is '"' or ',')) {
             throw new ArgumentException("If-None-Match must be a strong ETag token.", nameof(ifNoneMatch));
         }
 
         return $"\"{value}\"";
     }
 
-    private static async Task ThrowGatewayExceptionAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
+    private static async Task ThrowGatewayExceptionAsync(HttpResponseMessage response, CancellationToken cancellationToken) {
         JsonElement? problem = null;
-        try
-        {
+        try {
             problem = await response.Content
                 .ReadFromJsonAsync<JsonElement>(s_jsonOptions, cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (JsonException)
-        {
+        catch (JsonException) {
         }
 
         string title = response.ReasonPhrase ?? "Tenant query failed";
         string? detail = null;
         string? correlationId = null;
         string? reasonCode = null;
-        if (problem is { ValueKind: JsonValueKind.Object } value)
-        {
+        if (problem is { ValueKind: JsonValueKind.Object } value) {
             title = TryGetString(value, "title") ?? title;
             detail = TryGetString(value, "detail");
             correlationId = TryGetString(value, GatewayProblemDetailsExtensions.CorrelationId);

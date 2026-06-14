@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
@@ -11,8 +11,7 @@ public sealed record UserTenantMembershipSnapshot(
     TenantFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
     UserTenantMembershipReason Reason,
-    string? TargetUserId = null)
-{
+    string? TargetUserId = null) {
     public static UserTenantMembershipSnapshot Loading()
         => new(
             UserTenantMembershipSurfaceKind.Loading,

@@ -1,6 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
-using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.TruthState;
 
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
@@ -9,10 +9,8 @@ public sealed record UserTenantMembershipRow(
     string Name,
     TenantStatus Status,
     TenantRole Role,
-    TenantFreshnessState Freshness)
-{
-    public static UserTenantMembershipRow FromMembership(UserTenantMembership membership)
-    {
+    TenantFreshnessState Freshness) {
+    public static UserTenantMembershipRow FromMembership(UserTenantMembership membership) {
         ArgumentNullException.ThrowIfNull(membership);
 
         return new(

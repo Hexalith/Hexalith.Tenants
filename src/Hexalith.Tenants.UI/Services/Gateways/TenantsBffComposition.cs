@@ -7,8 +7,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class TenantsBffComposition(
     ITenantCommandGateway commandGateway,
-    IHttpContextAccessor? httpContextAccessor = null) : ITenantsBffComposition
-{
+    IHttpContextAccessor? httpContextAccessor = null) : ITenantsBffComposition {
     public bool IsReadSurfaceConnected => true;
 
     public bool IsCommandSurfaceConnected => commandGateway is not UnavailableTenantCommandGateway;
@@ -30,15 +29,12 @@ internal sealed class TenantsBffComposition(
             && string.Equals(claim.Value, "system", StringComparison.Ordinal))
         && principal.Claims.Any(IsGlobalAdministratorClaim);
 
-    private static bool IsGlobalAdministratorClaim(Claim claim)
-    {
-        if (claim.Type is "global_admin" or "is_global_admin")
-        {
+    private static bool IsGlobalAdministratorClaim(Claim claim) {
+        if (claim.Type is "global_admin" or "is_global_admin") {
             return bool.TryParse(claim.Value, out bool isGlobalAdmin) && isGlobalAdmin;
         }
 
-        if (claim.Type is ClaimTypes.Role or "role")
-        {
+        if (claim.Type is ClaimTypes.Role or "role") {
             return IsGlobalAdministratorValue(claim.Value);
         }
 
@@ -46,25 +42,19 @@ internal sealed class TenantsBffComposition(
             && ClaimValueContainsGlobalAdministrator(claim.Value);
     }
 
-    private static bool ClaimValueContainsGlobalAdministrator(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
+    private static bool ClaimValueContainsGlobalAdministrator(string value) {
+        if (string.IsNullOrWhiteSpace(value)) {
             return false;
         }
 
-        if (value.StartsWith('['))
-        {
-            try
-            {
+        if (value.StartsWith('[')) {
+            try {
                 string[]? roles = JsonSerializer.Deserialize<string[]>(value);
-                if (roles is not null)
-                {
+                if (roles is not null) {
                     return roles.Any(IsGlobalAdministratorValue);
                 }
             }
-            catch (JsonException)
-            {
+            catch (JsonException) {
                 // Fall through to delimiter-based parsing below.
             }
         }

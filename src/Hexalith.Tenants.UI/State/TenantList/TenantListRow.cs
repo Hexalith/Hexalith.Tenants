@@ -1,5 +1,7 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.UI.State.TruthState;
+
 namespace Hexalith.Tenants.UI.State.TenantList;
 
 public sealed record TenantListRow(
@@ -9,10 +11,8 @@ public sealed record TenantListRow(
     TenantCountValue MemberCount,
     TenantCountValue OwnerCount,
     TenantPendingState PendingState,
-    TenantFreshnessState Freshness)
-{
-    public static TenantListRow FromSummary(TenantSummary summary)
-    {
+    TenantFreshnessState Freshness) {
+    public static TenantListRow FromSummary(TenantSummary summary) {
         ArgumentNullException.ThrowIfNull(summary);
 
         return new(

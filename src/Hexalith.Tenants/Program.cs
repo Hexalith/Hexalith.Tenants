@@ -1,27 +1,22 @@
 using Dapr.Actors.Client;
-using Dapr.Client;
 
 using FluentValidation;
 
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
-using Hexalith.EventStore.Client.Discovery;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
-using Hexalith.EventStore.Contracts.Authorization;
-using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Projections;
+using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.ErrorHandling;
 using Hexalith.EventStore.Middleware;
 using Hexalith.EventStore.Pipeline;
 using Hexalith.EventStore.Server.Commands;
-using Hexalith.EventStore.Indexes;
 using Hexalith.EventStore.Server.Pipeline;
 using Hexalith.EventStore.Server.Queries;
-using Hexalith.EventStore.Validation;
-using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.ServiceDefaults;
+using Hexalith.EventStore.Validation;
 using Hexalith.Tenants.Authorization;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
