@@ -30,7 +30,13 @@ app.MapEventStoreDomainEvents();
 app.MapAccessCheckEndpoints();
 app.MapTenantConfigurationEndpoints();
 
-// 7. Liveness/health endpoints for Aspire topology verification (Sample does not use
+// 7. The shared EventStore app may probe every configured app-id for admin metadata.
+//    This sample is a pub/sub consumer, so it explicitly reports no domain catalog.
+app.MapPost(
+    "/admin/operational-index-metadata",
+    (AdminOperationalIndexMetadata.Request _) => Results.Ok(new AdminOperationalIndexMetadata.Response([])));
+
+// 8. Liveness/health endpoints for Aspire topology verification (Sample does not use
 //    ServiceDefaults). /alive matches the ASP.NET Core liveness convention used by the
 //    AspireTopologyFixture process-liveness probe; /health is kept for backwards-compatibility.
 app.MapGet("/alive", () => Results.Ok("alive"));

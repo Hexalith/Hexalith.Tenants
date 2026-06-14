@@ -25,6 +25,15 @@ public class SampleRegistrationTests {
         meaningfulLines.ShouldContain(line => line.Contains("MapEventStoreDomainEvents", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Program_exposes_empty_operational_index_metadata_for_optional_eventstore_probe() {
+        string program = File.ReadAllText(SampleProgramPath());
+
+        program.ShouldContain("MapPost(");
+        program.ShouldContain("\"/admin/operational-index-metadata\"");
+        program.ShouldContain("AdminOperationalIndexMetadata.Response([])");
+    }
+
     private static bool IsTenantRegistrationLine(string line) =>
         !string.IsNullOrWhiteSpace(line)
         && !line.StartsWith("//", StringComparison.Ordinal)

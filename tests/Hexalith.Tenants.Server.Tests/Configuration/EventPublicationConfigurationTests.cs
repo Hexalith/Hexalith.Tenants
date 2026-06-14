@@ -42,6 +42,7 @@ public class EventPublicationConfigurationTests {
         // platform Aspire boilerplate (Hexalith.EventStore.Aspire): AddHexalithEventStore wires the shared
         // state store + pub/sub + sidecars, and AddEventStoreDomainModule attaches each domain service (A4).
         string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
+        string normalizedProgram = program.Replace("\r\n", "\n", StringComparison.Ordinal);
 
         string[] requiredResourceNames = ["eventstore", "eventstore-admin", "eventstore-admin-ui", "tenants", "sample"];
         foreach (string resourceName in requiredResourceNames) {
@@ -53,6 +54,14 @@ public class EventPublicationConfigurationTests {
         program.ShouldContain("AddHexalithEventStore(");
         program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"tenants\"");
         program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"sample\"");
+        program.ShouldContain("IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>(\"sample\")");
+        normalizedProgram.ShouldContain(string.Join(
+            "\n",
+            "    _ = sample",
+            "        .WithReference(keycloak)",
+            "        .WaitFor(keycloak);"));
+        program.ShouldContain("EventStore__DomainServices__Registrations__system|tenants|v1__AppId");
+        program.ShouldContain("EventStore__DomainServices__Registrations__system|global-administrators|v1__AppId");
         program.ShouldNotContain("AddHexalithTenants");
         program.ShouldNotContain("Hexalith.Tenants.Aspire");
 

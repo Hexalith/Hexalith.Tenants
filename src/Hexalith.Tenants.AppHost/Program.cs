@@ -26,7 +26,18 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
 // Add EventStore (command gateway), Admin Server, and Admin UI projects.
 // Project paths are resolved cross-repo via the IProjectMetadata classes in this AppHost.
 IResourceBuilder<ProjectResource> eventStore = builder.AddProject<HexalithEventStore>("eventstore");
-_ = eventStore.WithEnvironment("EventStore__Publisher__TopicOverrides__global-administrators", "tenants.events");
+_ = eventStore
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__AppId", "tenants")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__MethodName", "process")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__TenantId", "system")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__Domain", "tenants")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__Version", "v1")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__AppId", "tenants")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__MethodName", "process")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__TenantId", "system")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__Domain", "global-administrators")
+    .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__Version", "v1")
+    .WithEnvironment("EventStore__Publisher__TopicOverrides__global-administrators", "tenants.events");
 IResourceBuilder<ProjectResource> adminServer = builder.AddProject<HexalithEventStoreAdminServerHost>("eventstore-admin");
 IResourceBuilder<ProjectResource> adminUI = builder.AddProject<HexalithEventStoreAdminUI>("eventstore-admin-ui");
 
@@ -68,7 +79,7 @@ IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenants
 
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
 // It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
-_ = builder.AddProject<HexalithTenantsSample>("sample")
+IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>("sample")
     .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath);
 
 // Wire Keycloak auth to EventStore, Tenants, Admin.Server, and Admin.UI if enabled.
@@ -124,6 +135,10 @@ if (keycloak is not null && realmUrl is not null) {
         .WithEnvironment("Authentication__OpenIdConnect__ClientId", "hexalith-tenants-ui")
         .WithEnvironment("Authentication__OpenIdConnect__ClientSecret", "tenants-ui-dev-secret")
         .WithEnvironment("Authentication__OpenIdConnect__Audience", "hexalith-eventstore");
+
+    _ = sample
+        .WithReference(keycloak)
+        .WaitFor(keycloak);
 }
 else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));

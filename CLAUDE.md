@@ -12,6 +12,19 @@ Do not add boilerplate code that is common to domain modules here. Reuse existin
 
 Before adding generic hosting, event-store plumbing, serialization, dependency injection setup, UI composition scaffolding, test harness helpers, or cross-domain conventions to this repository, first check whether a technical module already provides the capability. If the shared capability is missing, implement it in the relevant technical module instead of duplicating it in Hexalith.Tenants.
 
+## Repository responsibility
+
+This repository should contain primarily domain code for managing work items. Do not add technical
+layers here unless they are absolutely required for work items and are not common to other domain
+modules.
+
+Factor technical concerns into the relevant shared Hexalith modules. For example, persistence belongs
+in `Hexalith.EventStore`, and unique identifier generation belongs in `Hexalith.Commons`.
+
+The .NET Aspire Host is an acceptable technical component in this repository because each Hexalith
+module needs a repository-specific host with servers and dependencies tailored to that module. Aspire
+is required to run both manual and automated tests.
+
 ## Commit Messages
 
 All commit messages **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is required for semantic-release to determine version bumps and generate changelogs.
@@ -44,18 +57,7 @@ feat!: rename TenantAggregate state shape
 
 ## Submodule Policy
 
-Only initialize submodules declared at the root of this repository:
-
-- `Hexalith.EventStore`
-- `Hexalith.Commons`
-- `Hexalith.AI.Tools`
-- `Hexalith.Builds`
-- `Hexalith.FrontComposer`
-
-Use:
-```
-git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
-```
+Only initialize submodules declared at the root of this repository.
 
 Never initialize nested submodules. Do not run `git submodule update --init --recursive`, `git submodule foreach --recursive`, or any equivalent command that initializes submodules inside the root-level submodules. If a nested submodule appears uninitialized, leave it alone unless a human explicitly requests otherwise.
 
