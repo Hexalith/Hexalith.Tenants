@@ -92,7 +92,7 @@ development_status:
   3-5-tenant-query-gateway-rest-routing: done
   epic-3-retrospective: optional
 
-  # --- Epic 4: Global Administrator Governance ---
+  # --- Epic 4: Global Administrator Govegive the rnance ---
   epic-4: done
   4-1-global-administrators-navigation-and-read-contract-readiness: done
   4-2-review-global-administrators-from-fixed-aggregate: done

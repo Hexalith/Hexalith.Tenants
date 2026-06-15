@@ -2379,6 +2379,9 @@
   <data name="Tenants.EditMetadata.Recovery.UnableToVerify" xml:space="preserve">
     <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
   </data>
+  <data name="Tenants.Navigation.AllTenants" xml:space="preserve">
+    <value>Tous les locataires</value>
+  </data>
   <data name="Tenants.Navigation.AriaLabel" xml:space="preserve">
     <value>Navigation primaire du shell d'operations</value>
   </data>
