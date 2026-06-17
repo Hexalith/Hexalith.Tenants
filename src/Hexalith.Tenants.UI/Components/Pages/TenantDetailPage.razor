@@ -112,55 +112,75 @@
                 </div>
             </dl>
 
-            <EditTenantMetadataFlow Detail="@Detail"
-                                    SurfaceKind="@_snapshot.Kind"
-                                    Freshness="@_snapshot.Freshness"
-                                    IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                    OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                    OnCommandActivityChanged="@SetCommandActivityAsync"
-                                    ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
+            <FluentAccordion Class="tenant-detail__sections"
+                             ExpandMode="AccordionExpandMode.Multi"
+                             Block="true">
+                <FluentAccordionItem Header="@Localizer["Tenants.EditMetadata.Title"]"
+                                     Expanded="true">
+                    <EditTenantMetadataFlow Detail="@Detail"
+                                            SurfaceKind="@_snapshot.Kind"
+                                            Freshness="@_snapshot.Freshness"
+                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                            OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                            OnCommandActivityChanged="@SetCommandActivityAsync"
+                                            ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync" />
+                </FluentAccordionItem>
 
-            <TenantLifecycleActionAvailability TenantId="@Detail.TenantId"
-                                                Detail="@Detail"
-                                                CurrentStatus="@Detail.Status"
-                                                SurfaceKind="@_snapshot.Kind"
-                                                Freshness="@_snapshot.Freshness"
-                                                IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
-                                                AuthorizationReflection="@BffComposition.LifecycleAuthorizationReflection"
-                                                GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
-                                                IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                                OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                                OnCommandActivityChanged="@SetCommandActivityAsync"
-                                                ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync" />
+                <FluentAccordionItem Header="@Localizer["Tenants.Lifecycle.Title"]"
+                                     Expanded="true">
+                    <TenantLifecycleActionAvailability TenantId="@Detail.TenantId"
+                                                        Detail="@Detail"
+                                                        CurrentStatus="@Detail.Status"
+                                                        SurfaceKind="@_snapshot.Kind"
+                                                        Freshness="@_snapshot.Freshness"
+                                                        IsCommandSurfaceConnected="@BffComposition.IsCommandSurfaceConnected"
+                                                        AuthorizationReflection="@BffComposition.LifecycleAuthorizationReflection"
+                                                        GovernanceReadiness="TenantLifecycleGovernanceReadiness.Ready"
+                                                        IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                                        OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                                        OnCommandActivityChanged="@SetCommandActivityAsync"
+                                                        ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync" />
+                </FluentAccordionItem>
 
-            <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
-                <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
-                <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
-            </section>
+                <FluentAccordionItem Header="@Localizer["Tenants.Detail.Members.Title"]"
+                                     Expanded="true">
+                    <div class="tenant-detail__accordion-body">
+                        <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
+                            <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
+                            <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
+                        </section>
 
-            <MemberAccessReview Detail="@Detail"
-                                SurfaceKind="@_snapshot.Kind"
-                                Freshness="@_snapshot.Freshness"
-                                IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                OnCommandActivityChanged="@SetCommandActivityAsync"
-                                OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
-                                ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
-                                RemoveMemberProjectionEvidenceProvider="@GetRemoveMemberProjectionEvidenceAsync" />
+                        <MemberAccessReview Detail="@Detail"
+                                            SurfaceKind="@_snapshot.Kind"
+                                            Freshness="@_snapshot.Freshness"
+                                            IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                            OnCommandActivityChanged="@SetCommandActivityAsync"
+                                            OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                            ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
+                                            ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
+                                            RemoveMemberProjectionEvidenceProvider="@GetRemoveMemberProjectionEvidenceAsync" />
+                    </div>
+                </FluentAccordionItem>
 
-            <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
-                <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
-                <p>@ConfigurationSummary(Detail)</p>
-            </section>
+                <FluentAccordionItem Header="@Localizer["Tenants.Detail.Configuration.Title"]"
+                                     Expanded="true">
+                    <div class="tenant-detail__accordion-body">
+                        <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
+                            <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
+                            <p>@ConfigurationSummary(Detail)</p>
+                        </section>
 
-            <TenantConfigurationView Detail="@Detail"
-                                     SurfaceKind="@_snapshot.Kind"
-                                     Freshness="@_snapshot.Freshness"
-                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                     OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
-                                     OnCommandActivityChanged="@SetCommandActivityAsync"
-                                     ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
-                                     RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync" />
+                        <TenantConfigurationView Detail="@Detail"
+                                                 SurfaceKind="@_snapshot.Kind"
+                                                 Freshness="@_snapshot.Freshness"
+                                                 IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                                 OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
+                                                 OnCommandActivityChanged="@SetCommandActivityAsync"
+                                                 ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
+                                                 RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync" />
+                    </div>
+                </FluentAccordionItem>
+            </FluentAccordion>
         </section>
     }
     else

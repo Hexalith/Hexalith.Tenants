@@ -42,24 +42,14 @@
     width: 100%;
 }
 
-.tenant-members__table {
-    border-collapse: collapse;
+.tenant-members__data-grid {
     min-width: 72rem;
     width: 100%;
 }
 
-.tenant-members__table caption {
+.tenant-members__table-caption {
     font-weight: 600;
-    padding-block-end: 0.5rem;
-    text-align: start;
-}
-
-.tenant-members__table th,
-.tenant-members__table td {
-    border-block-start: 1px solid CanvasText;
-    padding: 0.5rem;
-    text-align: start;
-    vertical-align: top;
+    margin-block-end: 0.5rem;
 }
 
 .tenant-members__user {
@@ -142,7 +132,7 @@
     min-width: 0;
 }
 
-.tenant-members__table [tabindex]:focus-visible,
+.tenant-members__table-wrap [tabindex]:focus-visible,
 .tenant-members__reasons:focus-visible,
 .tenant-members__action-button:focus-visible {
     outline: 2px solid Highlight;
@@ -162,7 +152,7 @@
         justify-items: start;
     }
 
-    .tenant-members__table {
+    .tenant-members__data-grid {
         min-width: 58rem;
     }
 
@@ -176,15 +166,13 @@
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-    .tenant-members__table {
+    .tenant-members__data-grid {
         min-width: 64rem;
     }
 }
 
 @media (forced-colors: active) {
     .tenant-members,
-    .tenant-members__table th,
-    .tenant-members__table td,
     .tenant-members__badge,
     .tenant-members__reason,
     .tenant-members__action-state,
@@ -193,7 +181,7 @@
         color: CanvasText;
     }
 
-    .tenant-members__table [tabindex]:focus-visible,
+    .tenant-members__table-wrap [tabindex]:focus-visible,
     .tenant-members__reasons:focus-visible,
     .tenant-members__action-button:focus-visible {
         outline-color: Highlight;

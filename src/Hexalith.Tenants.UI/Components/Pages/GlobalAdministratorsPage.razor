@@ -13,42 +13,53 @@
         <p>@Localizer["Tenants.GlobalAdministrators.Description"]</p>
     </header>
 
-    <section class="global-admins__scope"
-             aria-labelledby="global-admins-scope-heading"
-             data-testid="tenants-global-admins-scope">
-        <h2 id="global-admins-scope-heading">@Localizer["Tenants.GlobalAdministrators.Scope.Title"]</h2>
-        <p>@Localizer["Tenants.GlobalAdministrators.Scope.Message"]</p>
-        <dl>
-            <div>
-                <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
-                <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
-            </div>
-            <div>
-                <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Label"]</dt>
-                <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Value"]</dd>
-            </div>
-            <div>
-                <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Label"]</dt>
-                <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Value"]</dd>
-            </div>
-        </dl>
-    </section>
+    <FluentAccordion Class="global-admins__sections"
+                     ExpandMode="AccordionExpandMode.Multi"
+                     Block="true">
+        <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.Scope.Title"]"
+                             Expanded="true">
+            <section class="global-admins__scope"
+                     aria-labelledby="global-admins-scope-heading"
+                     data-testid="tenants-global-admins-scope">
+                <h2 id="global-admins-scope-heading">@Localizer["Tenants.GlobalAdministrators.Scope.Title"]</h2>
+                <p>@Localizer["Tenants.GlobalAdministrators.Scope.Message"]</p>
+                <dl>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Label"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Tenant.Value"]</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Label"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Domain.Value"]</dd>
+                    </div>
+                    <div>
+                        <dt>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Label"]</dt>
+                        <dd>@Localizer["Tenants.GlobalAdministrators.Aggregate.Id.Value"]</dd>
+                    </div>
+                </dl>
+            </section>
+        </FluentAccordionItem>
 
-    <section class="global-admins__state global-admins__state--@StateCss"
-             role="@StatusRole"
-             aria-live="@StatusLive"
-             tabindex="0"
-             data-testid="@StateTestId">
-        <span class="global-admins__state-icon" aria-hidden="true">@StateIcon</span>
-        <div class="global-admins__state-copy">
-            <h2>@StatusHeading</h2>
-            <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
-        </div>
-    </section>
+        <FluentAccordionItem Header="@StatusHeading"
+                             Expanded="true">
+            <section class="global-admins__state global-admins__state--@StateCss"
+                     role="@StatusRole"
+                     aria-live="@StatusLive"
+                     tabindex="0"
+                     data-testid="@StateTestId">
+                <span class="global-admins__state-icon" aria-hidden="true">@StateIcon</span>
+                <div class="global-admins__state-copy">
+                    <h2>@StatusHeading</h2>
+                    <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
+                </div>
+            </section>
+        </FluentAccordionItem>
 
-    <section class="global-admins__grant"
-             aria-labelledby="global-admins-grant-heading"
-             data-testid="tenants-global-admin-grant">
+        <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.Grant.Title"]"
+                             Expanded="true">
+            <section class="global-admins__grant"
+                     aria-labelledby="global-admins-grant-heading"
+                     data-testid="tenants-global-admin-grant">
         <div class="global-admins__grant-heading">
             <h2 id="global-admins-grant-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Title"]</h2>
             <p>@Localizer["Tenants.GlobalAdministrators.Grant.Description"]</p>
@@ -153,11 +164,14 @@
                 @GrantStateText
             </p>
         </section>
-    </section>
+            </section>
+        </FluentAccordionItem>
 
-    <section class="global-admins__remove"
-             aria-labelledby="global-admins-remove-heading"
-             data-testid="tenants-global-admin-remove-flow">
+        <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.Remove.Title"]"
+                             Expanded="true">
+            <section class="global-admins__remove"
+                     aria-labelledby="global-admins-remove-heading"
+                     data-testid="tenants-global-admin-remove-flow">
         <div class="global-admins__remove-heading">
             <h2 id="global-admins-remove-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Title"]</h2>
             <p>@Localizer["Tenants.GlobalAdministrators.Remove.Description"]</p>
@@ -274,13 +288,16 @@
                 @RemoveStateText
             </p>
         </section>
-    </section>
+            </section>
+        </FluentAccordionItem>
 
-    @if (ShouldRenderRows)
-    {
-        <section class="global-admins__table-shell"
-                 aria-labelledby="global-admins-list-heading"
-                 data-testid="tenants-global-admins-list">
+        @if (ShouldRenderRows)
+        {
+            <FluentAccordionItem Header="@Localizer["Tenants.GlobalAdministrators.List.Title"]"
+                                 Expanded="true">
+                <section class="global-admins__table-shell"
+                         aria-labelledby="global-admins-list-heading"
+                         data-testid="tenants-global-admins-list">
             <div class="global-admins__table-header">
                 <h2 id="global-admins-list-heading">@Localizer["Tenants.GlobalAdministrators.List.Title"]</h2>
                 <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-refresh" OnClick="RefreshAsync">
@@ -288,60 +305,63 @@
                 </FluentButton>
             </div>
             <div class="global-admins__table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Identity"]</th>
-                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Scope"]</th>
-                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Freshness"]</th>
-                            <th scope="col">@Localizer["Tenants.GlobalAdministrators.Column.Actions"]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (GlobalAdministratorRow row in _snapshot.Rows)
-                        {
-                            <tr data-testid="tenants-global-admins-row">
-                                <td>
-                                    <div class="global-admins__identity">
-                                        <span class="global-admins__identity-value"
-                                              title="@row.UserId"
-                                              aria-label="@Localizer["Tenants.GlobalAdministrators.Identity.Accessible", row.UserId]"
-                                              data-testid="tenants-global-admins-user-id">@row.UserId</span>
-                                        <SupportSafeCopyButton Value="@row.UserId"
-                                                               ValueKind="SupportSafeCopyValueKind.UserId"
-                                                               AccessibleName="@Localizer["Tenants.GlobalAdministrators.Copy.UserId", row.UserId]"
-                                                               TestId="tenants-global-admins-copy-user-id" />
-                                    </div>
-                                </td>
-                                <td data-testid="tenants-global-admins-authority-scope">
-                                    @Localizer["Tenants.GlobalAdministrators.Row.Scope"]
-                                </td>
-                                <td data-testid="tenants-global-admins-freshness">
-                                    <TruthStateBadge Freshness="@row.Freshness"
-                                                     TestId="tenants-global-admins-truth-state"
-                                                     ResourcePrefix="Tenants.GlobalAdministrators" />
-                                </td>
-                                <td>
-                                    <div class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
-                                        <span data-testid="tenants-global-admins-grant-reason">@(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])</span>
-                                        @if (RemoveUnavailableReason(row) is { Length: > 0 } removeUnavailableReason)
-                                        {
-                                            <span data-testid="tenants-global-admins-remove-reason">@removeUnavailableReason</span>
-                                        }
-                                        else
-                                        {
-                                            <FluentButton Appearance="ButtonAppearance.Outline"
-                                                          data-testid="tenants-global-admin-remove"
-                                                          OnClick="() => PreviewRemove(row.UserId)">
-                                                @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
-                                            </FluentButton>
-                                        }
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                <FluentDataGrid Items="@_snapshot.Rows.AsQueryable()"
+                                Class="global-admins__data-grid"
+                                ResizableColumns="true"
+                                ReorderableColumns="false"
+                                GenerateHeader="DataGridGeneratedHeaderType.Sticky"
+                                ItemKey="@(row => row.UserId)">
+                    <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Identity"]"
+                                    ColumnId="global-admin-identity"
+                                    Width="260px"
+                                    Pin="DataGridColumnPin.Start">
+                        <div class="global-admins__identity" data-testid="tenants-global-admins-row">
+                            <span class="global-admins__identity-value"
+                                  title="@context.UserId"
+                                  aria-label="@Localizer["Tenants.GlobalAdministrators.Identity.Accessible", context.UserId]"
+                                  data-testid="tenants-global-admins-user-id">@context.UserId</span>
+                            <SupportSafeCopyButton Value="@context.UserId"
+                                                   ValueKind="SupportSafeCopyValueKind.UserId"
+                                                   AccessibleName="@Localizer["Tenants.GlobalAdministrators.Copy.UserId", context.UserId]"
+                                                   TestId="tenants-global-admins-copy-user-id" />
+                        </div>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Scope"]"
+                                    ColumnId="global-admin-scope"
+                                    Width="220px">
+                        <span data-testid="tenants-global-admins-authority-scope">
+                            @Localizer["Tenants.GlobalAdministrators.Row.Scope"]
+                        </span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Freshness"]"
+                                    ColumnId="global-admin-freshness"
+                                    Width="180px">
+                        <span data-testid="tenants-global-admins-freshness">
+                            <TruthStateBadge Freshness="@context.Freshness"
+                                             TestId="tenants-global-admins-truth-state"
+                                             ResourcePrefix="Tenants.GlobalAdministrators" />
+                        </span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Actions"]"
+                                    ColumnId="global-admin-actions"
+                                    Width="300px">
+                        <div class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
+                            <span data-testid="tenants-global-admins-grant-reason">@(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])</span>
+                            @if (RemoveUnavailableReason(context) is { Length: > 0 } removeUnavailableReason)
+                            {
+                                <span data-testid="tenants-global-admins-remove-reason">@removeUnavailableReason</span>
+                            }
+                            else
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Outline"
+                                              data-testid="tenants-global-admin-remove"
+                                              OnClick="() => PreviewRemove(context.UserId)">
+                                    @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
+                                </FluentButton>
+                            }
+                        </div>
+                    </TemplateColumn>
+                </FluentDataGrid>
             </div>
             <nav class="global-admins__pager" aria-label="@Localizer["Tenants.GlobalAdministrators.PaginationLabel"]">
                 <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-global-admins-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
@@ -351,8 +371,10 @@
                     @Localizer["Tenants.GlobalAdministrators.Next"]
                 </FluentButton>
             </nav>
-        </section>
-    }
+                </section>
+            </FluentAccordionItem>
+        }
+    </FluentAccordion>
 </main>
 
 @code {

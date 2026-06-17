@@ -29,6 +29,13 @@ public sealed class DomainUiFluentConformanceTests
         "<(button|input|select|textarea)(\\s|/|>)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    // Data surfaces should render through FluentDataGrid or FrontComposer grid primitives. Scanning
+    // source keeps the guard focused on handwritten markup; FluentDataGrid can still render native
+    // table semantics internally.
+    private static readonly Regex RawTableMarkup = new(
+        "<(table|thead|tbody|tr|td|th)(\\s|/|>)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     [Fact]
     [Trait("Category", "Governance")]
     public void Domain_ui_components_use_fluent_v5_only_with_no_raw_interactive_html_controls()
@@ -55,6 +62,34 @@ public sealed class DomainUiFluentConformanceTests
         offenders.ShouldBeEmpty(
             "Domain UI .razor components must use Fluent v5 components only (no raw <button>/<input>/<select>/"
             + $"<textarea>). Raw interactive controls found in: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_ui_components_use_fluent_grid_primitives_with_no_raw_table_markup()
+    {
+        string componentsRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components");
+        string[] razorFiles = Directory.GetFiles(componentsRoot, "*.razor", SearchOption.AllDirectories);
+
+        // Guard against a broken path silently passing the scan.
+        razorFiles.ShouldNotBeEmpty();
+
+        List<string> offenders = [];
+        foreach (string file in razorFiles)
+        {
+            MatchCollection matches = RawTableMarkup.Matches(File.ReadAllText(file));
+            if (matches.Count > 0)
+            {
+                string tags = string.Join(
+                    ", ",
+                    matches.Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal));
+                offenders.Add($"{Path.GetFileName(file)} ({tags})");
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "Domain UI .razor components must use FluentDataGrid or FrontComposer grid primitives for data surfaces "
+            + $"(no raw table markup). Raw table markup found in: {string.Join("; ", offenders)}");
     }
 
     private static string ProjectRoot()

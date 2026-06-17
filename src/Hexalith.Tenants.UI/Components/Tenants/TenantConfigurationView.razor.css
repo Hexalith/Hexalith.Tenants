@@ -75,33 +75,21 @@
     width: 100%;
 }
 
-.tenant-config__table {
-    border-collapse: collapse;
+.tenant-config__table-caption {
+    font-weight: 600;
+    margin-block-end: 0.5rem;
+}
+
+.tenant-config__groups,
+.tenant-config__group {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.tenant-config__data-grid {
     min-width: 58rem;
     width: 100%;
-}
-
-.tenant-config__table caption {
-    font-weight: 600;
-    padding-block-end: 0.5rem;
-    text-align: start;
-}
-
-.tenant-config__table th,
-.tenant-config__table td {
-    border-block-start: 1px solid CanvasText;
-    padding: 0.5rem;
-    text-align: start;
-    vertical-align: top;
-}
-
-.tenant-config__group-row th {
-    background: Canvas;
-    font-weight: 700;
-}
-
-.tenant-config__key-header {
-    font-weight: 400;
 }
 
 .tenant-config__literal-row {
@@ -125,7 +113,7 @@
 .tenant-config__filter:focus-visible,
 .tenant-config__clear:focus-visible,
 .tenant-config__remove:focus-visible,
-.tenant-config__table [tabindex]:focus-visible {
+.tenant-config__table-wrap [tabindex]:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -144,13 +132,13 @@
         justify-items: start;
     }
 
-    .tenant-config__table {
+    .tenant-config__data-grid {
         min-width: 48rem;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-    .tenant-config__table {
+    .tenant-config__data-grid {
         min-width: 54rem;
     }
 }
@@ -159,9 +147,7 @@
     .tenant-config,
     .tenant-config__filter,
     .tenant-config__clear,
-    .tenant-config__remove,
-    .tenant-config__table th,
-    .tenant-config__table td {
+    .tenant-config__remove {
         border-color: CanvasText;
         color: CanvasText;
     }
@@ -169,7 +155,7 @@
     .tenant-config__filter:focus-visible,
     .tenant-config__clear:focus-visible,
     .tenant-config__remove:focus-visible,
-    .tenant-config__table [tabindex]:focus-visible {
+    .tenant-config__table-wrap [tabindex]:focus-visible {
         outline-color: Highlight;
     }
 }

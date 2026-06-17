@@ -6,6 +6,7 @@
 }
 
 .global-admins__header,
+.global-admins__sections,
 .global-admins__scope,
 .global-admins__state-copy,
 .global-admins__grant,
@@ -172,18 +173,9 @@
     overflow-x: auto;
 }
 
-.global-admins table {
-    border-collapse: collapse;
+.global-admins__data-grid {
     min-width: 52rem;
     width: 100%;
-}
-
-.global-admins th,
-.global-admins td {
-    border-block-start: 1px solid CanvasText;
-    padding: 0.75rem;
-    text-align: left;
-    vertical-align: top;
 }
 
 .global-admins__identity,
@@ -238,9 +230,7 @@
     .global-admins__remove-state-symbol,
     .global-admins__grant button,
     .global-admins__remove button,
-    .global-admins__table-shell button,
-    .global-admins th,
-    .global-admins td {
+    .global-admins__table-shell button {
         border-color: CanvasText;
     }
 

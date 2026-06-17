@@ -101,51 +101,55 @@
     }
     else
     {
-        <div class="tenant-config__table-wrap">
-            <table class="tenant-config__table" data-testid="tenants-config-table">
-                <caption>@Localizer["Tenants.Configuration.Table.Caption"]</caption>
-                <thead>
-                    <tr>
-                        <th scope="col">@Localizer["Tenants.Configuration.Header.Namespace"]</th>
-                        <th scope="col">@Localizer["Tenants.Configuration.Header.Key"]</th>
-                        <th scope="col">@Localizer["Tenants.Configuration.Header.Value"]</th>
-                        <th scope="col">@Localizer["Tenants.Configuration.Header.Safety"]</th>
-                        <th scope="col">@Localizer["Tenants.Configuration.Header.Freshness"]</th>
-                        <th scope="col">@Localizer["Tenants.Configuration.Header.Actions"]</th>
-                    </tr>
-                </thead>
+        <div class="tenant-config__table-wrap" data-testid="tenants-config-table">
+            <p class="tenant-config__table-caption">@Localizer["Tenants.Configuration.Table.Caption"]</p>
+            <FluentAccordion Class="tenant-config__groups"
+                             ExpandMode="AccordionExpandMode.Multi"
+                             Block="true">
                 @foreach (IGrouping<string, ConfigurationRow> group in FilteredRows.GroupBy(static row => row.NamespaceLabel))
                 {
-                    <tbody data-testid="tenants-config-group">
-                        <tr class="tenant-config__group-row">
-                            <th scope="rowgroup" colspan="6">@Localizer["Tenants.Configuration.GroupLabel", group.Key]</th>
-                        </tr>
-                        @foreach (ConfigurationRow row in group)
-                        {
-                            <tr tabindex="0" data-testid="tenants-config-row">
-                                <td>@row.NamespaceLabel</td>
-                                <th scope="row" class="tenant-config__key-header">
-                                    <div class="tenant-config__literal-row">
+                    <FluentAccordionItem Header="@Localizer["Tenants.Configuration.GroupLabel", group.Key]"
+                                         Expanded="true">
+                        <div class="tenant-config__group" data-testid="tenants-config-group">
+                            <FluentDataGrid Items="@group.AsQueryable()"
+                                            Class="tenant-config__data-grid"
+                                            ResizableColumns="true"
+                                            ReorderableColumns="false"
+                                            GenerateHeader="DataGridGeneratedHeaderType.Sticky"
+                                            ItemKey="@(row => row.Key)">
+                                <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Namespace"]"
+                                                ColumnId="configuration-namespace"
+                                                Width="180px">
+                                    <span>@context.NamespaceLabel</span>
+                                </TemplateColumn>
+                                <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Key"]"
+                                                ColumnId="configuration-key"
+                                                Width="260px">
+                                    <div class="tenant-config__literal-row"
+                                         tabindex="0"
+                                         data-testid="tenants-config-row">
                                         <code data-testid="tenants-config-key"
-                                              aria-label="@Localizer["Tenants.Configuration.KeyAccessible", row.Key]">@row.Key</code>
-                                        @if (row.IsSafe)
+                                              aria-label="@Localizer["Tenants.Configuration.KeyAccessible", context.Key]">@context.Key</code>
+                                        @if (context.IsSafe)
                                         {
-                                            <SupportSafeCopyButton Value="@row.Key"
+                                            <SupportSafeCopyButton Value="@context.Key"
                                                                    ValueKind="SupportSafeCopyValueKind.ConfigurationKey"
-                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationKey", row.Key]"
+                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationKey", context.Key]"
                                                                    TestId="tenants-config-copy-reference" />
                                         }
                                     </div>
-                                </th>
-                                <td>
-                                    @if (row.IsSafe)
+                                </TemplateColumn>
+                                <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Value"]"
+                                                ColumnId="configuration-value"
+                                                Width="260px">
+                                    @if (context.IsSafe)
                                     {
                                         <div class="tenant-config__literal-row">
                                             <code class="tenant-config__value"
-                                                  aria-label="@Localizer["Tenants.Configuration.ValueAccessible", row.DisplayValue]">@row.DisplayValue</code>
-                                            <SupportSafeCopyButton Value="@row.DisplayValue"
+                                                  aria-label="@Localizer["Tenants.Configuration.ValueAccessible", context.DisplayValue]">@context.DisplayValue</code>
+                                            <SupportSafeCopyButton Value="@context.DisplayValue"
                                                                    ValueKind="SupportSafeCopyValueKind.SafeConfigurationValue"
-                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationValue", row.Key]"
+                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationValue", context.Key]"
                                                                    TestId="tenants-config-copy-reference" />
                                         </div>
                                     }
@@ -154,34 +158,44 @@
                                         <span class="tenant-config__value tenant-config__value--unavailable"
                                               aria-label="@Localizer["Tenants.Configuration.Value.Unavailable"]">@Localizer["Tenants.Configuration.Value.Unavailable"]</span>
                                     }
-                                </td>
-                                <td data-testid="tenants-config-value-state">@row.SafetyLabel</td>
-                                <td><TruthStateBadge Freshness="@Freshness" TestId="tenants-config-row-freshness" ResourcePrefix="Tenants.Configuration" /></td>
-                                <td>
-                                    <span class="tenant-config__remove-focus" tabindex="-1" @ref="_removeLaunchElements[row.Key]">
+                                </TemplateColumn>
+                                <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Safety"]"
+                                                ColumnId="configuration-safety"
+                                                Width="160px">
+                                    <span data-testid="tenants-config-value-state">@context.SafetyLabel</span>
+                                </TemplateColumn>
+                                <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Freshness"]"
+                                                ColumnId="configuration-freshness"
+                                                Width="170px">
+                                    <TruthStateBadge Freshness="@Freshness" TestId="tenants-config-row-freshness" ResourcePrefix="Tenants.Configuration" />
+                                </TemplateColumn>
+                                <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Actions"]"
+                                                ColumnId="configuration-actions"
+                                                Width="260px">
+                                    <span class="tenant-config__remove-focus" tabindex="-1" @ref="_removeLaunchElements[context.Key]">
                                         <FluentButton Appearance="ButtonAppearance.Outline"
                                                       Class="tenant-config__remove"
                                                       data-testid="tenants-config-remove-open"
-                                                      aria-describedby="@RemoveActionDescriptionId(row.Key)"
+                                                      aria-describedby="@RemoveActionDescriptionId(context.Key)"
                                                       Disabled="@(!string.IsNullOrWhiteSpace(RemoveUnavailableReason))"
-                                                      OnClick="() => OpenRemoveFlow(row.Key)">
+                                                      OnClick="() => OpenRemoveFlow(context.Key)">
                                             @Localizer["Tenants.Configuration.Remove.Open"]
                                         </FluentButton>
                                     </span>
                                     @if (!string.IsNullOrWhiteSpace(RemoveUnavailableReason))
                                     {
-                                        <p id="@RemoveActionDescriptionId(row.Key)"
+                                        <p id="@RemoveActionDescriptionId(context.Key)"
                                            class="tenant-config__remove-reason"
                                            data-testid="tenants-config-remove-unavailable-reason">
                                             @RemoveUnavailableReason
                                         </p>
                                     }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
+                                </TemplateColumn>
+                            </FluentDataGrid>
+                        </div>
+                    </FluentAccordionItem>
                 }
-            </table>
+            </FluentAccordion>
         </div>
     }
 </section>

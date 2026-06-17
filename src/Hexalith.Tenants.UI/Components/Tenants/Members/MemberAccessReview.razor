@@ -59,127 +59,133 @@
     }
     else
     {
-        <div class="tenant-members__table-wrap">
-            <table class="tenant-members__table" data-testid="tenants-member-table">
-                <caption>@Localizer["Tenants.Members.Table.Caption"]</caption>
-                <thead>
-                    <tr>
-                        <th scope="col">@Localizer["Tenants.Members.Column.UserId"]</th>
-                        <th scope="col">@Localizer["Tenants.Members.Column.Role"]</th>
-                        <th scope="col">@Localizer["Tenants.Members.Column.OwnerContext"]</th>
-                        <th scope="col">@Localizer["Tenants.Members.Column.Status"]</th>
-                        <th scope="col">@Localizer["Tenants.Members.Column.Freshness"]</th>
-                        <th scope="col">@Localizer["Tenants.Members.Column.Audit"]</th>
-                        <th scope="col">@Localizer["Tenants.Members.Column.Actions"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (MemberRow row in Rows)
-                    {
-                        <tr tabindex="0" data-testid="tenants-member-row">
-                            <th scope="row"
-                                class="tenant-members__user"
-                                data-testid="tenants-member-user-id">
-                                <div class="tenant-members__user-row">
-                                    <code aria-label="@Localizer["Tenants.Members.UserIdAccessible", row.Member.UserId]">@row.Member.UserId</code>
-                                    <SupportSafeCopyButton Value="@row.Member.UserId"
-                                                           ValueKind="SupportSafeCopyValueKind.UserId"
-                                                           AccessibleName="@Localizer["Tenants.Copy.Label.UserId", row.Member.UserId]"
-                                                           TestId="tenants-member-copy-reference" />
-                                </div>
-                            </th>
-                            <td>
-                                <span class="tenant-members__badge tenant-members__badge--role"
-                                      aria-label="@Localizer["Tenants.Members.RoleAccessible", RoleLabel(row.Member.Role)]">
-                                    <span aria-hidden="true">@RoleIcon(row.Member.Role)</span>
-                                    <span>@RoleLabel(row.Member.Role)</span>
+        <div class="tenant-members__table-wrap" data-testid="tenants-member-table">
+            <p class="tenant-members__table-caption">@Localizer["Tenants.Members.Table.Caption"]</p>
+            <FluentDataGrid Items="@Rows.AsQueryable()"
+                            Class="tenant-members__data-grid"
+                            ResizableColumns="true"
+                            ReorderableColumns="false"
+                            GenerateHeader="DataGridGeneratedHeaderType.Sticky"
+                            ItemKey="@(row => row.Member.UserId)">
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.UserId"]"
+                                ColumnId="member-user-id"
+                                Width="260px"
+                                Pin="DataGridColumnPin.Start">
+                    <div class="tenant-members__user"
+                         tabindex="0"
+                         data-testid="tenants-member-row">
+                        <div class="tenant-members__user-row" data-testid="tenants-member-user-id">
+                            <code aria-label="@Localizer["Tenants.Members.UserIdAccessible", context.Member.UserId]">@context.Member.UserId</code>
+                            <SupportSafeCopyButton Value="@context.Member.UserId"
+                                                   ValueKind="SupportSafeCopyValueKind.UserId"
+                                                   AccessibleName="@Localizer["Tenants.Copy.Label.UserId", context.Member.UserId]"
+                                                   TestId="tenants-member-copy-reference" />
+                        </div>
+                    </div>
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.Role"]"
+                                ColumnId="member-role"
+                                Width="180px">
+                    <span class="tenant-members__badge tenant-members__badge--role"
+                          aria-label="@Localizer["Tenants.Members.RoleAccessible", RoleLabel(context.Member.Role)]">
+                        <span aria-hidden="true">@RoleIcon(context.Member.Role)</span>
+                        <span>@RoleLabel(context.Member.Role)</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.OwnerContext"]"
+                                ColumnId="member-owner-context"
+                                Width="180px">
+                    <span data-testid="tenants-member-owner-context">@OwnerContext</span>
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.Status"]"
+                                ColumnId="member-status"
+                                Width="160px">
+                    <span class="tenant-members__badge tenant-members__badge--status tenant-members__badge--@StatusCss"
+                          aria-label="@Localizer["Tenants.Members.StatusAccessible", StatusLabel]">
+                        <span aria-hidden="true">@StatusIcon</span>
+                        <span>@StatusLabel</span>
+                    </span>
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.Freshness"]"
+                                ColumnId="member-freshness"
+                                Width="170px">
+                    <TruthStateBadge Freshness="@Freshness"
+                                     TestId="tenants-member-row-freshness"
+                                     ResourcePrefix="Tenants.Members" />
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.Audit"]"
+                                ColumnId="member-audit"
+                                Width="180px">
+                    <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
+                                             TargetUserId="@context.Member.UserId"
+                                             SourceKind="member-row"
+                                             SourceTestId="tenants-member-audit-entrypoint"
+                                             Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
+                                             AccessibleName="@Localizer["Tenants.Members.AuditAccessibleLabel", context.Member.UserId, Detail.TenantId]"
+                                             ReturnUrl="@MemberReturnUrl"
+                                             ReturnFocus="@($"tenants-member-{context.Member.UserId}")"
+                                             IsAvailable="@CanOpenMemberAudit" />
+                </TemplateColumn>
+                <TemplateColumn Title="@Localizer["Tenants.Members.Column.Actions"]"
+                                ColumnId="member-actions"
+                                Width="360px">
+                    <div class="tenant-members__actions">
+                        @foreach (ActionSlot slot in context.ActionSlots)
+                        {
+                            @if (slot.Action is MemberAction.ChangeRole && slot.Reasons.Count == 0)
+                            {
+                                <span class="tenant-members__action-focus" tabindex="-1" @ref="_changeRoleLaunchElements[context.Member.UserId]">
+                                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                                  Class="tenant-members__action-button"
+                                                  data-testid="tenants-change-role-open"
+                                                  aria-controls="tenants-change-role-flow-region"
+                                                  aria-describedby="@context.ReasonElementId"
+                                                  OnClick="() => OpenChangeRole(context.Member.UserId)">
+                                        @ActionLabel(slot.Action)
+                                    </FluentButton>
                                 </span>
-                            </td>
-                            <td data-testid="tenants-member-owner-context">@OwnerContext</td>
-                            <td>
-                                <span class="tenant-members__badge tenant-members__badge--status tenant-members__badge--@StatusCss"
-                                      aria-label="@Localizer["Tenants.Members.StatusAccessible", StatusLabel]">
-                                    <span aria-hidden="true">@StatusIcon</span>
-                                    <span>@StatusLabel</span>
+                            }
+                            else if (slot.Action is MemberAction.RemoveMember && slot.Reasons.Count == 0)
+                            {
+                                <span class="tenant-members__action-focus" tabindex="-1" @ref="_removeMemberLaunchElements[context.Member.UserId]">
+                                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                                  Class="tenant-members__action-button tenant-members__action-button--destructive"
+                                                  data-testid="tenants-remove-member-open"
+                                                  aria-controls="tenants-remove-member-flow-region"
+                                                  aria-describedby="@context.ReasonElementId"
+                                                  OnClick="() => OpenRemoveMember(context.Member.UserId)">
+                                        @ActionLabel(slot.Action)
+                                    </FluentButton>
                                 </span>
-                            </td>
-                            <td>
-                                <TruthStateBadge Freshness="@Freshness"
-                                                 TestId="tenants-member-row-freshness"
-                                                 ResourcePrefix="Tenants.Members" />
-                            </td>
-                            <td>
-                                <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
-                                                         TargetUserId="@row.Member.UserId"
-                                                         SourceKind="member-row"
-                                                         SourceTestId="tenants-member-audit-entrypoint"
-                                                         Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                                         AccessibleName="@Localizer["Tenants.Members.AuditAccessibleLabel", row.Member.UserId, Detail.TenantId]"
-                                                         ReturnUrl="@MemberReturnUrl"
-                                                         ReturnFocus="@($"tenants-member-{row.Member.UserId}")"
-                                                         IsAvailable="@CanOpenMemberAudit" />
-                            </td>
-                            <td>
-                                <div class="tenant-members__actions">
-                                    @foreach (ActionSlot slot in row.ActionSlots)
-                                    {
-                                        @if (slot.Action is MemberAction.ChangeRole && slot.Reasons.Count == 0)
-                                        {
-                                            <span class="tenant-members__action-focus" tabindex="-1" @ref="_changeRoleLaunchElements[row.Member.UserId]">
-                                                <FluentButton Appearance="ButtonAppearance.Outline"
-                                                              Class="tenant-members__action-button"
-                                                              data-testid="tenants-change-role-open"
-                                                              aria-controls="tenants-change-role-flow-region"
-                                                              aria-describedby="@row.ReasonElementId"
-                                                              OnClick="() => OpenChangeRole(row.Member.UserId)">
-                                                    @ActionLabel(slot.Action)
-                                                </FluentButton>
-                                            </span>
-                                        }
-                                        else if (slot.Action is MemberAction.RemoveMember && slot.Reasons.Count == 0)
-                                        {
-                                            <span class="tenant-members__action-focus" tabindex="-1" @ref="_removeMemberLaunchElements[row.Member.UserId]">
-                                                <FluentButton Appearance="ButtonAppearance.Outline"
-                                                              Class="tenant-members__action-button tenant-members__action-button--destructive"
-                                                              data-testid="tenants-remove-member-open"
-                                                              aria-controls="tenants-remove-member-flow-region"
-                                                              aria-describedby="@row.ReasonElementId"
-                                                              OnClick="() => OpenRemoveMember(row.Member.UserId)">
-                                                    @ActionLabel(slot.Action)
-                                                </FluentButton>
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <div class="tenant-members__action-slot"
-                                                 data-testid="tenants-member-action-slot"
-                                                 aria-describedby="@row.ReasonElementId"
-                                                 aria-label="@Localizer["Tenants.Members.ActionSlotAccessible", ActionLabel(slot.Action), row.Member.UserId, ReasonSummary(slot.Reasons)]">
-                                                <span class="tenant-members__action-name">@ActionLabel(slot.Action)</span>
-                                                <span class="tenant-members__action-state">@Localizer["Tenants.Members.Action.Unavailable"]</span>
-                                            </div>
-                                        }
-                                    }
-                                    <ul id="@row.ReasonElementId"
-                                        class="tenant-members__reasons"
-                                        data-testid="tenants-member-reason-list"
-                                        tabindex="0"
-                                        aria-label="@Localizer["Tenants.Members.ReasonListLabel", row.Member.UserId]">
-                                        @foreach (UnavailableReason reason in row.Reasons)
-                                        {
-                                            <li class="tenant-members__reason"
-                                                data-testid="tenants-member-unavailable-reason">
-                                                <span aria-hidden="true">@ReasonIcon(reason)</span>
-                                                <span>@ReasonLabel(reason)</span>
-                                            </li>
-                                        }
-                                    </ul>
+                            }
+                            else
+                            {
+                                <div class="tenant-members__action-slot"
+                                     data-testid="tenants-member-action-slot"
+                                     aria-describedby="@context.ReasonElementId"
+                                     aria-label="@Localizer["Tenants.Members.ActionSlotAccessible", ActionLabel(slot.Action), context.Member.UserId, ReasonSummary(slot.Reasons)]">
+                                    <span class="tenant-members__action-name">@ActionLabel(slot.Action)</span>
+                                    <span class="tenant-members__action-state">@Localizer["Tenants.Members.Action.Unavailable"]</span>
                                 </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                            }
+                        }
+                        <ul id="@context.ReasonElementId"
+                            class="tenant-members__reasons"
+                            data-testid="tenants-member-reason-list"
+                            tabindex="0"
+                            aria-label="@Localizer["Tenants.Members.ReasonListLabel", context.Member.UserId]">
+                            @foreach (UnavailableReason reason in context.Reasons)
+                            {
+                                <li class="tenant-members__reason"
+                                    data-testid="tenants-member-unavailable-reason">
+                                    <span aria-hidden="true">@ReasonIcon(reason)</span>
+                                    <span>@ReasonLabel(reason)</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </TemplateColumn>
+            </FluentDataGrid>
         </div>
 
         @if (ActiveChangeRoleMember is not null)

@@ -53,6 +53,13 @@
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
+.tenant-detail__sections,
+.tenant-detail__accordion-body {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
 .tenant-detail__facts div {
     border-block-start: 1px solid CanvasText;
     display: grid;

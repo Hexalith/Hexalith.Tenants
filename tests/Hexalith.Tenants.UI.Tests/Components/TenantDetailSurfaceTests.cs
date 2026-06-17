@@ -393,8 +393,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.FindAll("[data-testid='tenants-member-copy-reference']").Count.ShouldBe(4);
         cut.FindAll("[data-testid='tenants-member-copy-reference']").ShouldAllBe(static copy => copy.GetAttribute("data-copy-kind") == "UserId");
         cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(4);
-        cut.FindAll("th[scope='row'][data-testid='tenants-member-user-id']").Count.ShouldBe(4);
-        cut.FindAll("th[scope='col']").Count.ShouldBeGreaterThanOrEqualTo(6);
+        cut.FindAll("[data-testid='tenants-member-user-id']").Count.ShouldBe(4);
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("User");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Role");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Change role");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Remove member");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Tenant contributor");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("Tenant reader");
