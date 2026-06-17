@@ -1,0 +1,45 @@
+- generic [active] [ref=e1]:
+  - heading "An unhandled exception occurred while processing the request." [level=1] [ref=e2]
+  - generic [ref=e3]: "OpenIdConnectProtocolException: Message contains error: 'invalid_request', error_description: 'Invalid parameter: redirect_uri', error_uri: 'error_uri is null'."
+  - paragraph [ref=e4]: Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.GetPushedAuthorizationRequestUri(HttpResponseMessage parResponseMessage)
+  - list [ref=e5]:
+    - listitem [ref=e6] [cursor=pointer]: Stack
+    - listitem [ref=e7] [cursor=pointer]: Query
+    - listitem [ref=e8] [cursor=pointer]: Cookies
+    - listitem [ref=e9] [cursor=pointer]: Headers
+    - listitem [ref=e10] [cursor=pointer]: Routing
+  - list [ref=e12]:
+    - listitem [ref=e13]:
+      - 'heading "OpenIdConnectProtocolException: Message contains error: ''invalid_request'', error_description: ''Invalid parameter: redirect_uri'', error_uri: ''error_uri is null''." [level=2] [ref=e14]'
+      - list [ref=e15]:
+        - listitem [ref=e16]:
+          - heading "Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.GetPushedAuthorizationRequestUri(HttpResponseMessage parResponseMessage)" [level=3] [ref=e17]
+        - listitem [ref=e18]:
+          - heading "Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.PushAuthorizationRequest(OpenIdConnectMessage authorizeRequest, AuthenticationProperties properties, string parEndpoint)" [level=3] [ref=e19]
+        - listitem [ref=e20]:
+          - heading "Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.HandleChallengeAsyncInternal(AuthenticationProperties properties)" [level=3] [ref=e21]
+        - listitem [ref=e22]:
+          - heading "Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.HandleChallengeAsync(AuthenticationProperties properties)" [level=3] [ref=e23]
+        - listitem [ref=e24]:
+          - heading "Microsoft.AspNetCore.Authentication.AuthenticationHandler<TOptions>.ChallengeAsync(AuthenticationProperties properties)" [level=3] [ref=e25]
+        - listitem [ref=e26]:
+          - heading "Microsoft.AspNetCore.Authentication.AuthenticationService.ChallengeAsync(HttpContext context, string scheme, AuthenticationProperties properties)" [level=3] [ref=e27]
+        - listitem [ref=e28]:
+          - heading "Microsoft.AspNetCore.Authentication.AuthenticationServiceImpl.ChallengeAsync(HttpContext context, string scheme, AuthenticationProperties properties)" [level=3] [ref=e29]
+        - listitem [ref=e30]:
+          - heading "Hexalith.FrontComposer.Shell.Extensions.FrontComposerAuthenticationServiceExtensions+<>c__DisplayClass1_0+<<MapHexalithFrontComposerAuthenticationEndpoints>g__challenge|0>d.MoveNext() in FrontComposerAuthenticationServiceExtensions.cs" [level=3] [ref=e31]:
+            - text: Hexalith.FrontComposer.Shell.Extensions.FrontComposerAuthenticationServiceExtensions+<>c__DisplayClass1_0+<<MapHexalithFrontComposerAuthenticationEndpoints>g__challenge|0>d.MoveNext() in
+            - code [ref=e32]: FrontComposerAuthenticationServiceExtensions.cs
+          - button "+" [ref=e33] [cursor=pointer]
+          - list [ref=e35]:
+            - listitem [ref=e36]: await context.ChallengeAsync(
+        - listitem [ref=e37]:
+          - heading "Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)" [level=3] [ref=e38]
+        - listitem [ref=e39]:
+          - heading "Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)" [level=3] [ref=e40]
+        - listitem [ref=e41]:
+          - heading "Microsoft.AspNetCore.Localization.RequestLocalizationMiddleware.Invoke(HttpContext context)" [level=3] [ref=e42]
+        - listitem [ref=e43]:
+          - heading "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)" [level=3] [ref=e44]
+    - listitem [ref=e45]:
+      - button "Show raw exception details" [ref=e47] [cursor=pointer]

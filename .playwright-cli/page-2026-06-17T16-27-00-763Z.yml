@@ -1,0 +1,41 @@
+- generic [active] [ref=e1]:
+  - heading "An unhandled exception occurred while processing the request." [level=1] [ref=e2]
+  - generic [ref=e3]:
+    - text: "SecurityTokenSignatureKeyNotFoundException: IDX10503: Signature validation failed. The token's kid is: 'jqWzzIjNFpCZJdBhgK51xQ2fHKpQguK6yMGEvI4tYn0', but did not match any keys in TokenValidationParameters or Configuration. Keys tried: 'Microsoft.IdentityModel.Tokens.X509SecurityKey, KeyId: 'ah7nG8XkWNzhU0GBvjwr2qVUdwf3WGQ2RSZb1PIXZJo', InternalId: 'aIfhzXWUsBXXmB5dSXurRacerws'. , KeyId: ah7nG8XkWNzhU0GBvjwr2qVUdwf3WGQ2RSZb1PIXZJo\\nMicrosoft.IdentityModel.Tokens.RsaSecurityKey, KeyId: 'ah7nG8XkWNzhU0GBvjwr2qVUdwf3WGQ2RSZb1PIXZJo', InternalId: '5BfiMEtuOGoEF598zmCBrz1Y9qi596M6XkS6Ynq8064'. , KeyId: ah7nG8XkWNzhU0GBvjwr2qVUdwf3WGQ2RSZb1PIXZJo\\n'."
+    - text: "Number of keys in TokenValidationParameters: '0'."
+    - text: "Number of keys in Configuration: '2'."
+    - text: "Exceptions caught:"
+    - text: "'[PII of type 'System.String' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'."
+    - text: "token: '[PII of type 'Microsoft.IdentityModel.JsonWebTokens.JsonWebToken' is hidden. For more details, see https://aka.ms/IdentityModel/PII.]'. See https://aka.ms/IDX10503 for details."
+  - paragraph [ref=e4]: Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.ValidateTokenUsingHandlerAsync(string idToken, AuthenticationProperties properties, TokenValidationParameters validationParameters)
+  - generic [ref=e5]: "AuthenticationFailureException: An error was encountered while handling the remote login."
+  - paragraph [ref=e6]: Microsoft.AspNetCore.Authentication.RemoteAuthenticationHandler<TOptions>.HandleRequestAsync()
+  - list [ref=e7]:
+    - listitem [ref=e8] [cursor=pointer]: Stack
+    - listitem [ref=e9] [cursor=pointer]: Query
+    - listitem [ref=e10] [cursor=pointer]: Cookies
+    - listitem [ref=e11] [cursor=pointer]: Headers
+    - listitem [ref=e12] [cursor=pointer]: Routing
+  - list [ref=e14]:
+    - listitem [ref=e15]:
+      - heading [level=2] [ref=e16]
+      - list [ref=e17]:
+        - listitem [ref=e18]:
+          - heading "Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.ValidateTokenUsingHandlerAsync(string idToken, AuthenticationProperties properties, TokenValidationParameters validationParameters)" [level=3] [ref=e19]
+        - listitem [ref=e20]:
+          - heading "Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectHandler.HandleRemoteAuthenticateAsync()" [level=3] [ref=e21]
+    - listitem [ref=e22]:
+      - button "Show raw exception details" [ref=e24] [cursor=pointer]
+    - listitem [ref=e25]:
+      - 'heading "AuthenticationFailureException: An error was encountered while handling the remote login." [level=2] [ref=e26]'
+      - list [ref=e27]:
+        - listitem [ref=e28]:
+          - heading "Microsoft.AspNetCore.Authentication.RemoteAuthenticationHandler<TOptions>.HandleRequestAsync()" [level=3] [ref=e29]
+        - listitem [ref=e30]:
+          - heading "Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)" [level=3] [ref=e31]
+        - listitem [ref=e32]:
+          - heading "Microsoft.AspNetCore.Localization.RequestLocalizationMiddleware.Invoke(HttpContext context)" [level=3] [ref=e33]
+        - listitem [ref=e34]:
+          - heading "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)" [level=3] [ref=e35]
+    - listitem [ref=e36]:
+      - button "Show raw exception details" [ref=e38] [cursor=pointer]

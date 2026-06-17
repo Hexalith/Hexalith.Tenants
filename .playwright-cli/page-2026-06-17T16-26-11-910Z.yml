@@ -1,0 +1,107 @@
+- generic [ref=e2]:
+  - link "Skip to content" [ref=e3] [cursor=pointer]:
+    - /url: "#fc-main-content"
+  - link "Skip to navigation" [ref=e4] [cursor=pointer]:
+    - /url: "#fc-nav"
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic "Toggle navigation" [ref=e10] [cursor=pointer]:
+          - img [ref=e12]
+        - generic [ref=e14]:
+          - generic: Hexalith FrontComposer
+      - generic [ref=e15]:
+        - generic "Change theme" [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]:
+            - generic:
+              - generic [ref=e19]: "Change theme: Light"
+              - generic [ref=e20]: Light
+          - img [ref=e22]
+        - generic "Open command palette" [ref=e24] [cursor=pointer]:
+          - img [ref=e26]
+        - generic "Open settings" [ref=e28] [cursor=pointer]:
+          - img [ref=e30]
+        - generic [ref=e32]:
+          - generic "Account menu" [ref=e33] [cursor=pointer]:
+            - img [ref=e34]
+          - generic "Account menu"
+    - navigation "Primary navigation" [ref=e38]:
+      - button "Tenants" [expanded] [ref=e39] [cursor=pointer]:
+        - img [ref=e40]
+        - text: Tenants
+        - img [ref=e43]
+      - generic [ref=e45]:
+        - link "All tenants" [ref=e46] [cursor=pointer]:
+          - /url: /tenants
+        - link "My tenants" [ref=e47] [cursor=pointer]:
+          - /url: /tenants/my
+        - link "User lookup" [ref=e48] [cursor=pointer]:
+          - /url: /tenants/users
+    - generic [ref=e49]:
+      - status [ref=e50]
+      - main [ref=e52]:
+        - generic [ref=e53]:
+          - paragraph [ref=e54]: Tenant workspace
+          - heading "Tenants" [level=1] [ref=e55]
+        - region "Tenant list controls" [ref=e56]:
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]: Search tenants
+              - generic "Search tenants" [ref=e60]:
+                - searchbox [ref=e62]
+            - generic [ref=e63]:
+              - generic [ref=e64]: Status
+              - generic "Status" [ref=e65] [cursor=pointer]:
+                - generic [ref=e66]:
+                  - combobox [ref=e67]
+                  - img [ref=e69]
+          - generic [ref=e71]:
+            - generic [ref=e73] [cursor=pointer]:
+              - generic: Refresh
+            - generic [ref=e75] [cursor=pointer]:
+              - generic: Reset filters
+            - generic [ref=e77] [cursor=pointer]:
+              - generic:
+                - text: My tenants
+                - link [ref=e78]:
+                  - /url: /tenants/my
+            - generic [ref=e80] [cursor=pointer]:
+              - generic:
+                - text: User lookup
+                - link [ref=e81]:
+                  - /url: /tenants/users
+        - region "Create tenant" [ref=e82]:
+          - generic [ref=e83]:
+            - heading "Create tenant" [level=2] [ref=e84]
+            - paragraph [ref=e85]: Submit a tenant creation command and wait for projection confirmation before treating it as visible.
+          - alert [ref=e86]: You are not authorized to create tenants.
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - generic [ref=e89]:
+                - generic [ref=e90]: Tenant id
+                - generic "Tenant id" [ref=e91]:
+                  - textbox [ref=e93]
+              - generic [ref=e94]: Use the exact caller-supplied tenant id.
+            - generic [ref=e96]:
+              - generic [ref=e97]: Name
+              - generic "Name" [ref=e98]:
+                - textbox [ref=e100]
+            - generic [ref=e102]:
+              - generic [ref=e103]: Description
+              - generic "Description" [ref=e104]:
+                - textbox [ref=e106]
+            - generic [ref=e107]:
+              - generic [ref=e109]:
+                - generic: Create tenant
+              - generic [ref=e111]:
+                - generic: Refresh status
+          - region "Command lifecycle" [ref=e112]:
+            - heading "Command lifecycle" [level=3] [ref=e113]
+            - paragraph [ref=e114]:
+              - generic [ref=e115]: •
+              - generic [ref=e116]: No command submitted.
+            - paragraph [ref=e117]: No command submitted.
+        - status [ref=e118]:
+          - heading "Sign in required" [level=2] [ref=e119]
+          - paragraph [ref=e120]: Sign in to view tenants. Your session is not authenticated, so the server-side query gateway rejected the request.
+    - generic [ref=e121]: Hexalith FrontComposer © 2026

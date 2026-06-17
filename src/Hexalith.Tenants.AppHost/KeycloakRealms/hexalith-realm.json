@@ -79,6 +79,36 @@
             "userinfo.token.claim": "true",
             "aggregate.attrs": "true"
           }
+        },
+        {
+          "name": "global-admin-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "global_admin",
+            "claim.name": "global_admin",
+            "jsonType.label": "boolean",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "current-tenant-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "current-tenant",
+            "claim.name": "eventstore:current-tenant",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
         }
       ]
     },
@@ -94,9 +124,11 @@
       "serviceAccountsEnabled": false,
       "fullScopeAllowed": true,
       "redirectUris": [
+        "http://localhost:62448/signin-oidc",
         "https://localhost:62445/signin-oidc"
       ],
       "webOrigins": [
+        "http://localhost:62448",
         "https://localhost:62445"
       ],
       "attributes": {
@@ -161,6 +193,36 @@
             "userinfo.token.claim": "true",
             "aggregate.attrs": "true"
           }
+        },
+        {
+          "name": "global-admin-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "global_admin",
+            "claim.name": "global_admin",
+            "jsonType.label": "boolean",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "current-tenant-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "current-tenant",
+            "claim.name": "eventstore:current-tenant",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
         }
       ]
     }
@@ -184,7 +246,9 @@
       "attributes": {
         "tenants": ["system", "tenant-a", "tenant-b"],
         "domains": ["global-administrators", "tenants", "orders", "inventory", "counter"],
-        "permissions": ["command:submit", "command:replay", "command:query"]
+        "permissions": ["command:submit", "command:replay", "command:query"],
+        "global_admin": ["true"],
+        "current-tenant": ["system"]
       }
     },
     {
@@ -205,7 +269,8 @@
       "attributes": {
         "tenants": ["tenant-a"],
         "domains": ["tenants", "orders"],
-        "permissions": ["command:submit", "command:query"]
+        "permissions": ["command:submit", "command:query"],
+        "current-tenant": ["tenant-a"]
       }
     },
     {
@@ -226,7 +291,8 @@
       "attributes": {
         "tenants": ["tenant-b"],
         "domains": ["tenants", "inventory"],
-        "permissions": ["command:submit"]
+        "permissions": ["command:submit"],
+        "current-tenant": ["tenant-b"]
       }
     },
     {
@@ -247,7 +313,8 @@
       "attributes": {
         "tenants": ["tenant-a"],
         "domains": ["tenants", "orders"],
-        "permissions": ["command:query"]
+        "permissions": ["command:query"],
+        "current-tenant": ["tenant-a"]
       }
     },
     {

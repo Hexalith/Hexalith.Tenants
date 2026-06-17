@@ -56,7 +56,8 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
 // Add the Tenants domain service via the platform domain-module extension (A4): its sidecar shares the
 // EventStore state store + pub/sub. Replaces the per-domain Aspire wiring library.
 IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants")
-    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath);
+    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath)
+    .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "admin-user");
 
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
