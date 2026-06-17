@@ -39,9 +39,12 @@
                         ColumnId="audit-category"
                         Class="tenants-audit-critical tenants-audit-critical--category"
                         Width="160px">
-            <span class="audit-data-grid__category audit-data-grid__category--@CategoryCss(context.Category)">
+            <FluentBadge Appearance="BadgeAppearance.Tint"
+                         Color="@CategoryBadgeColor(context.Category)"
+                         IconStart="@CategoryIcon(context.Category)"
+                         Class="@($"audit-data-grid__category audit-data-grid__category--{CategoryCss(context.Category)}")">
                 @Localizer[$"Tenants.Audit.Category.{context.Category}"]
-            </span>
+            </FluentBadge>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Freshness"]"
                         ColumnId="audit-freshness"
@@ -160,6 +163,22 @@
 
     private static string CategoryCss(AuditEventCategory category)
         => category.ToString().ToLowerInvariant();
+
+    private static BadgeColor CategoryBadgeColor(AuditEventCategory category)
+        => category switch
+        {
+            AuditEventCategory.Access => BadgeColor.Informative,
+            AuditEventCategory.Administrative => BadgeColor.Brand,
+            _ => BadgeColor.Subtle,
+        };
+
+    private static Icon CategoryIcon(AuditEventCategory category)
+        => category switch
+        {
+            AuditEventCategory.Access => FcFluentIcons.Key16(),
+            AuditEventCategory.Administrative => FcFluentIcons.Settings20(),
+            _ => FcFluentIcons.QuestionCircle16(),
+        };
 
     private async Task OpenReceiptAsync(TenantAuditRow row)
         => await OnOpenReceipt.InvokeAsync(row).ConfigureAwait(false);

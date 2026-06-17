@@ -48,7 +48,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Find("[data-testid='tenants-lifecycle-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         cut.Markup.ShouldNotContain("<form", Case.Insensitive);
         cut.Markup.ShouldNotContain("type=\"submit\"", Case.Insensitive);
-        cut.Markup.ShouldNotContain("Success", Case.Insensitive);
+        // Assert against visible text: Fluent v5 badge tokens (color="success", --colorStatusSuccessForeground)
+        // live in attributes/styles and would false-trigger a raw-markup "Success" guard.
+        cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
         cut.Markup.ShouldNotContain("accepted", Case.Insensitive);
         cut.Markup.ShouldNotContain("confirmed", Case.Insensitive);
     }
@@ -365,7 +367,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("token", Case.Insensitive);
         cut.Markup.ShouldNotContain("correlation", Case.Insensitive);
-        cut.Markup.ShouldNotContain("Success", Case.Insensitive);
+        // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
+        cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
 
     private void RegisterServices(ITenantCommandGateway? gateway = null)

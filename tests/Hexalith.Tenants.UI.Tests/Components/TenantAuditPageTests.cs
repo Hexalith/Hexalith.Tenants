@@ -92,7 +92,8 @@ public sealed class TenantAuditPageTests : BunitContext
         gateway.Requests.Count.ShouldBe(1);
         cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent.ShouldContain("not loaded");
         cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldContain("event-not-loaded");
-        cut.Markup.ShouldNotContain("Success", Case.Insensitive);
+        // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
+        cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
 
     [Fact]
@@ -136,7 +137,8 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
         gateway.Requests.Count.ShouldBe(1);
         cut.Markup.ShouldNotContain("POST /api/v1/commands", Case.Insensitive);
-        cut.Markup.ShouldNotContain("undo", Case.Insensitive);
+        // Visible text only — "undo" also appears inside the Fluent token --colorNeutralForegroundOnBrand.
+        cut.VisibleText().ShouldNotContain("undo", Case.Insensitive);
         cut.Markup.ShouldNotContain("rollback", Case.Insensitive);
         cut.Markup.ShouldNotContain("hidden edit", Case.Insensitive);
     }

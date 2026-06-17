@@ -38,25 +38,8 @@
             <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
             <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
         </FluentSelect>
-        <FluentSelect TOption="string" TValue="string"
-                      Value="@_sortColumn"
-                      ValueChanged="OnSortChanged"
-                      Label="@Localizer["Tenants.List.SortLabel"]"
-                      data-testid="tenants-list-sort"
-                      aria-label="@Localizer["Tenants.List.SortLabel"]">
-            <FluentOption TValue="string" Value="@TenantListSortColumns.TenantId">@Localizer["Tenants.List.Sort.TenantId"]</FluentOption>
-            <FluentOption TValue="string" Value="@TenantListSortColumns.Name">@Localizer["Tenants.List.Sort.Name"]</FluentOption>
-            <FluentOption TValue="string" Value="@TenantListSortColumns.Status">@Localizer["Tenants.List.Sort.Status"]</FluentOption>
-        </FluentSelect>
-        <FluentSelect TOption="string" TValue="string"
-                      Value="@_sortDescending.ToString()"
-                      ValueChanged="OnSortDirectionChanged"
-                      Label="@Localizer["Tenants.List.SortDirectionLabel"]"
-                      data-testid="tenants-list-sort-direction"
-                      aria-label="@Localizer["Tenants.List.SortDirectionLabel"]">
-            <FluentOption TValue="string" Value="@false.ToString()">@Localizer["Tenants.List.SortDirection.Ascending"]</FluentOption>
-            <FluentOption TValue="string" Value="@true.ToString()">@Localizer["Tenants.List.SortDirection.Descending"]</FluentOption>
-        </FluentSelect>
+        @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
+           (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
         </div>
 
         <div class="tenants-workspace__actions">
@@ -275,20 +258,6 @@
     private async Task OnStatusFilterChanged(string? value)
     {
         _statusFilter = value;
-        ApplyVisibleRows();
-        await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private async Task OnSortChanged(string? value)
-    {
-        _sortColumn = value ?? TenantListSortColumns.TenantId;
-        ApplyVisibleRows();
-        await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private async Task OnSortDirectionChanged(string? value)
-    {
-        _sortDescending = bool.TryParse(value, out bool parsed) && parsed;
         ApplyVisibleRows();
         await Task.CompletedTask.ConfigureAwait(false);
     }

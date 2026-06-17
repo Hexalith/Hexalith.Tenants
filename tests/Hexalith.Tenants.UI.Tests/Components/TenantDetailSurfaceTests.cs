@@ -534,7 +534,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain(expectedReason);
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
-        cut.Markup.ShouldNotContain("Success");
+        // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
+        cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
 
     [Theory]

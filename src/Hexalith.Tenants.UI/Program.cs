@@ -53,7 +53,10 @@ if (authEnabled) {
         oidcAuthority!,
         builder.Configuration["Authentication:OpenIdConnect:ClientId"]!,
         builder.Configuration["Authentication:OpenIdConnect:ClientSecret"]!,
-        tenantClaimType: "eventstore:tenant",
+        // IUserContextAccessor maps to the single-valued *current tenant* claim, NOT the multi-valued
+        // eventstore:tenant authorization scope (the fail-closed extractor rejects multi-valued tenant
+        // claims). EventStore command/query authorization continues to use eventstore:tenant server-side.
+        tenantClaimType: "eventstore:current-tenant",
         userClaimType: "sub"));
 }
 

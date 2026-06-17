@@ -27,7 +27,7 @@ public sealed class TenantsUiCompositionTests
 
         // Domain menu is contributed as declarative data; the shell renders it in the global left nav.
         registry.NavEntries.Select(static entry => entry.Title)
-            .ShouldBe(["Tenants", "My tenants", "User lookup", "Global Administrators"]);
+            .ShouldBe(["All tenants", "My tenants", "User lookup", "Global Administrators"]);
         registry.NavEntries.Select(static entry => entry.Href)
             .ShouldBe(["/tenants", "/tenants/my", "/tenants/users", "/global-administrators"]);
         registry.NavEntries.ShouldAllBe(static entry => entry.BoundedContext == "tenants");

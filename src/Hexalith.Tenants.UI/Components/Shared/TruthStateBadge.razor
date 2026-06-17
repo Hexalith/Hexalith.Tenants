@@ -1,13 +1,15 @@
 @using Hexalith.Tenants.UI.State.TenantList
 @inject IStringLocalizer<TenantsResources> Localizer
 
-<span class="truth-state-badge truth-state-badge--@CssClass"
-      role="status"
-      aria-label="@Label"
-      data-testid="@TestId">
-    <span class="truth-state-badge__icon" aria-hidden="true">@Icon</span>
-    <span>@Label</span>
-</span>
+<FluentBadge Appearance="BadgeAppearance.Tint"
+             Color="@FreshnessBadgeColor"
+             IconStart="@StateIcon"
+             Class="@($"truth-state-badge truth-state-badge--{CssClass}")"
+             role="status"
+             aria-label="@Label"
+             data-testid="@TestId">
+    @Label
+</FluentBadge>
 
 @code {
     [Parameter]
@@ -23,12 +25,21 @@
 
     private string CssClass => Freshness.ToString().ToLowerInvariant();
 
-    private string Icon => Freshness switch
+    private BadgeColor FreshnessBadgeColor => Freshness switch
     {
-        TenantFreshnessState.Current => "OK",
-        TenantFreshnessState.Refreshing => "...",
-        TenantFreshnessState.Aging => "!",
-        TenantFreshnessState.Stale => "!",
-        _ => "?",
+        TenantFreshnessState.Current => BadgeColor.Success,
+        TenantFreshnessState.Refreshing => BadgeColor.Informative,
+        TenantFreshnessState.Aging => BadgeColor.Warning,
+        TenantFreshnessState.Stale => BadgeColor.Severe,
+        _ => BadgeColor.Subtle,
+    };
+
+    private Icon StateIcon => Freshness switch
+    {
+        TenantFreshnessState.Current => FcFluentIcons.Checkmark16(),
+        TenantFreshnessState.Refreshing => FcFluentIcons.ArrowSync16(),
+        TenantFreshnessState.Aging => FcFluentIcons.Warning16(),
+        TenantFreshnessState.Stale => FcFluentIcons.Warning16(),
+        _ => FcFluentIcons.QuestionCircle16(),
     };
 }

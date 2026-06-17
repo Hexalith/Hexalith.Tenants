@@ -12,6 +12,8 @@
                         ColumnId="tenant-id"
                         Class="tenants-critical tenants-critical--identity"
                         Width="220px"
+                        Sortable="true"
+                        SortBy="@_sortByTenant"
                         Pin="DataGridColumnPin.Start">
             <div class="tenant-data-grid__identity"
                  id="@($"tenant-row-{context.TenantId}")"
@@ -35,10 +37,15 @@
                         ColumnId="tenant-status"
                         Class="tenants-critical tenants-critical--status"
                         Width="130px"
+                        Sortable="true"
+                        SortBy="@_sortByStatus"
                         Pin="DataGridColumnPin.Start">
-            <span class="tenant-data-grid__status tenant-data-grid__status--@StatusCss(context.Status)">
+            <FluentBadge Appearance="BadgeAppearance.Tint"
+                         Color="@StatusBadgeColor(context.Status)"
+                         IconStart="@StatusIcon(context.Status)"
+                         Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")">
                 @StatusLabel(context.Status)
-            </span>
+            </FluentBadge>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Members"]" ColumnId="tenant-members" Width="115px">
             @CountLabel(context.MemberCount)
@@ -71,6 +78,15 @@
 </div>
 
 @code {
+    // The grid owns column-header sorting (replacing the former sort comboboxes). The Tenant column
+    // sorts by display name (with tenant id as a stable tiebreak); Status sorts by status. The default
+    // unsorted order remains the server/tenant-id order supplied by the host page.
+    private static readonly GridSort<TenantListRow> _sortByTenant =
+        GridSort<TenantListRow>.ByAscending(row => row.Name).ThenAscending(row => row.TenantId);
+
+    private static readonly GridSort<TenantListRow> _sortByStatus =
+        GridSort<TenantListRow>.ByAscending(row => row.Status);
+
     [Parameter]
     public IReadOnlyList<TenantListRow> Rows { get; set; } = [];
 
@@ -114,4 +130,20 @@
 
     private static string StatusCss(TenantStatus status)
         => status.ToString().ToLowerInvariant();
+
+    private static BadgeColor StatusBadgeColor(TenantStatus status)
+        => status switch
+        {
+            TenantStatus.Active => BadgeColor.Success,
+            TenantStatus.Disabled => BadgeColor.Danger,
+            _ => BadgeColor.Subtle,
+        };
+
+    private static Icon StatusIcon(TenantStatus status)
+        => status switch
+        {
+            TenantStatus.Active => FcFluentIcons.Checkmark16(),
+            TenantStatus.Disabled => FcFluentIcons.SubtractCircle16(),
+            _ => FcFluentIcons.QuestionCircle16(),
+        };
 }

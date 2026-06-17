@@ -8,13 +8,13 @@
       data-testid="@TestId"
       data-copy-kind="@ValueKind">
     <FluentButton Appearance="ButtonAppearance.Subtle"
+                  IconStart="@FcFluentIcons.Copy16()"
                   Class="@ButtonCss"
                   data-testid="tenants-copy-reference"
                   data-surface-testid="@TestId"
                   data-copy-kind="@ValueKind"
                   aria-label="@AccessibleName"
                   OnClick="CopyAsync">
-        <span aria-hidden="true">C</span>
         <span class="support-safe-copy__text">@Localizer["Tenants.Copy.Action"]</span>
     </FluentButton>
     <span class="@FeedbackCss"

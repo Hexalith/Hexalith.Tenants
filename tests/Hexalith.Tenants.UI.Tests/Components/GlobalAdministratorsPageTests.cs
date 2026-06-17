@@ -396,7 +396,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             cut.Find("[data-testid='tenants-global-admin-remove-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
             cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
                 .ShouldContain("target-admin");
-            cut.Markup.ShouldNotContain("success", Case.Insensitive);
+            // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
+            cut.VisibleText().ShouldNotContain("success", Case.Insensitive);
             cut.Markup.ShouldNotContain("remove member", Case.Insensitive);
         });
     }
@@ -648,7 +649,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             cut.Find("[data-testid='tenants-global-admin-grant-state']").TextContent.ShouldContain("rejected", Case.Insensitive);
             cut.Find("[data-testid='tenants-global-admin-grant-safe-message']").TextContent.ShouldContain("already a global administrator");
             cut.Markup.ShouldNotContain("AlreadyApplied");
-            cut.Markup.ShouldNotContain("success", Case.Insensitive);
+            // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
+            cut.VisibleText().ShouldNotContain("success", Case.Insensitive);
         });
     }
 

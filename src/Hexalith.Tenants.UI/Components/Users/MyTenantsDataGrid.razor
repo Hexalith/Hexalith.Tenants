@@ -30,23 +30,27 @@
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--role")"
                         Width="165px"
                         Pin="DataGridColumnPin.Start">
-            <span class="my-tenants-grid__badge my-tenants-grid__badge--role-@RoleCss(context.Role)"
-                  aria-label="@Localizer[$"{ResourcePrefix}.RoleAccessible", RoleLabel(context.Role)]"
-                  data-testid="@($"{SelectorPrefix}-role")">
-                <span aria-hidden="true">@RoleIcon(context.Role)</span>
-                <span>@RoleLabel(context.Role)</span>
-            </span>
+            <FluentBadge Appearance="BadgeAppearance.Tint"
+                         Color="@RoleBadgeColor(context.Role)"
+                         IconStart="@RoleIcon(context.Role)"
+                         Class="@($"my-tenants-grid__badge my-tenants-grid__badge--role-{RoleCss(context.Role)}")"
+                         aria-label="@Localizer[$"{ResourcePrefix}.RoleAccessible", RoleLabel(context.Role)]"
+                         data-testid="@($"{SelectorPrefix}-role")">
+                @RoleLabel(context.Role)
+            </FluentBadge>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Status"]"
                         ColumnId="tenant-status"
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--status")"
                         Width="150px">
-            <span class="my-tenants-grid__badge my-tenants-grid__badge--status-@StatusCss(context.Status)"
-                  aria-label="@Localizer[$"{ResourcePrefix}.StatusAccessible", StatusLabel(context.Status)]"
-                  data-testid="@($"{SelectorPrefix}-status")">
-                <span aria-hidden="true">@StatusIcon(context.Status)</span>
-                <span>@StatusLabel(context.Status)</span>
-            </span>
+            <FluentBadge Appearance="BadgeAppearance.Tint"
+                         Color="@StatusBadgeColor(context.Status)"
+                         IconStart="@StatusIcon(context.Status)"
+                         Class="@($"my-tenants-grid__badge my-tenants-grid__badge--status-{StatusCss(context.Status)}")"
+                         aria-label="@Localizer[$"{ResourcePrefix}.StatusAccessible", StatusLabel(context.Status)]"
+                         data-testid="@($"{SelectorPrefix}-status")">
+                @StatusLabel(context.Status)
+            </FluentBadge>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Lifecycle"]"
                         ColumnId="tenant-lifecycle"
@@ -114,20 +118,37 @@
     private static string StatusCss(TenantStatus status)
         => status.ToString().ToLowerInvariant();
 
-    private static string RoleIcon(TenantRole role)
+    private static BadgeColor RoleBadgeColor(TenantRole role)
         => role switch
         {
-            TenantRole.TenantOwner => "O",
-            TenantRole.TenantContributor => "C",
-            TenantRole.TenantReader => "R",
-            _ => "?",
+            TenantRole.TenantOwner => BadgeColor.Brand,
+            TenantRole.TenantContributor => BadgeColor.Informative,
+            TenantRole.TenantReader => BadgeColor.Subtle,
+            _ => BadgeColor.Subtle,
         };
 
-    private static string StatusIcon(TenantStatus status)
+    private static Icon RoleIcon(TenantRole role)
+        => role switch
+        {
+            TenantRole.TenantOwner => FcFluentIcons.Star16(),
+            TenantRole.TenantContributor => FcFluentIcons.Edit16(),
+            TenantRole.TenantReader => FcFluentIcons.Eye16(),
+            _ => FcFluentIcons.QuestionCircle16(),
+        };
+
+    private static BadgeColor StatusBadgeColor(TenantStatus status)
         => status switch
         {
-            TenantStatus.Active => "OK",
-            TenantStatus.Disabled => "!",
-            _ => "?",
+            TenantStatus.Active => BadgeColor.Success,
+            TenantStatus.Disabled => BadgeColor.Danger,
+            _ => BadgeColor.Subtle,
+        };
+
+    private static Icon StatusIcon(TenantStatus status)
+        => status switch
+        {
+            TenantStatus.Active => FcFluentIcons.Checkmark16(),
+            TenantStatus.Disabled => FcFluentIcons.SubtractCircle16(),
+            _ => FcFluentIcons.QuestionCircle16(),
         };
 }

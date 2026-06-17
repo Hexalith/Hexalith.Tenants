@@ -77,11 +77,16 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Markup.ShouldContain("No pending changes");
 
         await ChangeSelectAsync(cut, "tenants-list-status-filter", string.Empty);
-        await ChangeSelectAsync(cut, "tenants-list-sort", TenantListSortColumns.Name);
-        await ChangeSelectAsync(cut, "tenants-list-sort-direction", bool.TrueString);
 
-        cut.Markup.IndexOf("tenant.beta", StringComparison.Ordinal).ShouldBeLessThan(
-            cut.Markup.IndexOf("tenant.alpha", StringComparison.Ordinal));
+        // Sorting moved from the (removed) sort/direction comboboxes to the FluentDataGrid sortable
+        // column headers. The Tenant column sorts by display name; sorting it descending must place
+        // "Beta" before "Alpha" while preserving the truth-state and pending safety markers.
+        FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+        await cut.InvokeAsync(() => grid.SortByColumnAsync("Tenant", DataGridSortDirection.Descending));
+
+        cut.WaitForAssertion(() =>
+            cut.Markup.IndexOf("tenant.beta", StringComparison.Ordinal).ShouldBeLessThan(
+                cut.Markup.IndexOf("tenant.alpha", StringComparison.Ordinal)));
         cut.Markup.ShouldContain("data-testid=\"tenants-list-truth-state\"");
         cut.Markup.ShouldContain("Pending state unknown");
     }
