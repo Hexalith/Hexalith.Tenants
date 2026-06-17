@@ -1,7 +1,16 @@
 .my-tenants-page {
     display: grid;
-    gap: 1.5rem;
+    gap: 1.25rem;
     padding: 1.5rem;
+    /* Align the breadcrumb, header, toolbar, grid and pager to one comfortable
+       reading column instead of stretching content edge-to-edge on wide monitors. */
+    max-width: 80rem;
+}
+
+/* Flex wrapper keeps the FluentAnchorButton content-sized and left-aligned
+   (a direct grid child would otherwise stretch to the full column width). */
+.my-tenants-page__breadcrumb {
+    display: flex;
 }
 
 .my-tenants-page__header {
@@ -21,26 +30,42 @@
     margin: 0;
 }
 
-.my-tenants-page__controls,
+.my-tenants-page__description {
+    max-width: 48rem;
+}
+
+.my-tenants-page__toolbar {
+    align-items: center;
+    column-gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    row-gap: 0.75rem;
+}
+
+/* Summary text takes the leading space; the Refresh action stays on the trailing edge. */
+.my-tenants-page__summary {
+    color: GrayText;
+    flex: 1 1 12rem;
+    font-size: 0.875rem;
+    min-height: 1.25rem;
+}
+
 .my-tenants-page__pager {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
+    justify-content: flex-end;
 }
 
-.my-tenants-page__controls button,
+.my-tenants-page__toolbar button,
 .my-tenants-page__pager button {
     min-height: 2.25rem;
 }
 
-.my-tenants-page__controls a {
-    color: LinkText;
-}
-
 @media (forced-colors: active) {
-    .my-tenants-page__controls button:focus-visible,
-    .my-tenants-page__controls a:focus-visible,
+    .my-tenants-page__toolbar button:focus-visible,
     .my-tenants-page__pager button:focus-visible {
         outline-color: Highlight;
     }

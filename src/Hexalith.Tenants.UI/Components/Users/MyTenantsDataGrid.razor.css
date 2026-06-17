@@ -1,10 +1,10 @@
 .my-tenants-grid {
     overflow-x: auto;
     width: 100%;
-}
-
-.my-tenants-grid fluent-data-grid {
-    min-width: 56rem;
+    /* Cap to the sum of the column widths (260+165+150+170+175 = 920px) so the grid
+       stays a tidy, scannable block instead of stretching its fixed-width columns
+       edge-to-edge with large gaps on wide monitors. */
+    max-width: 57.5rem;
 }
 
 .my-tenants-grid__identity {
@@ -49,27 +49,11 @@
     color: #414042;
 }
 
+/* Pinned columns require an explicit per-column Width; this floor keeps the critical
+   identity/role/status/freshness columns legible if a Width is ever cleared. */
 .tenants-my-critical,
 .tenants-user-critical {
     min-width: 7rem;
-}
-
-@media (max-width: 767px) {
-    .my-tenants-grid fluent-data-grid {
-        min-width: 50rem;
-    }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-    .my-tenants-grid fluent-data-grid {
-        min-width: 54rem;
-    }
-}
-
-@media (min-width: 1440px) {
-    .my-tenants-grid fluent-data-grid {
-        min-width: 64rem;
-    }
 }
 
 @media (forced-colors: active) {

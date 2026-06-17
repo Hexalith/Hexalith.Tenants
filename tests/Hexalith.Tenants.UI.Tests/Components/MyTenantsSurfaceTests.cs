@@ -45,7 +45,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-my-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
-        cut.Markup.ShouldContain("Lifecycle from status: Active");
+        cut.Find("[data-testid='tenants-my-summary']").TextContent.ShouldContain("2");
+        cut.Markup.ShouldNotContain("Lifecycle", Case.Insensitive);
         cut.Markup.ShouldNotContain("remove", Case.Insensitive);
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);
         cut.Markup.ShouldNotContain("command", Case.Insensitive);
@@ -319,7 +320,6 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.MyTenants.Back"] = "Back to tenants",
             ["Tenants.MyTenants.Column.Freshness"] = "Freshness",
-            ["Tenants.MyTenants.Column.Lifecycle"] = "Lifecycle",
             ["Tenants.MyTenants.Column.Role"] = "Role",
             ["Tenants.MyTenants.Column.Status"] = "Status",
             ["Tenants.MyTenants.Column.Tenant"] = "Tenant",
@@ -328,7 +328,6 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.MyTenants.Freshness.Current"] = "Current",
             ["Tenants.MyTenants.Freshness.Stale"] = "Stale",
             ["Tenants.MyTenants.Freshness.Unknown"] = "Unknown",
-            ["Tenants.MyTenants.Lifecycle.FromStatus"] = "Lifecycle from status: {0}",
             ["Tenants.MyTenants.Link"] = "My tenants",
             ["Tenants.UserLookup.Link"] = "User lookup",
             ["Tenants.MyTenants.Next"] = "Next",
@@ -358,6 +357,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             ["Tenants.MyTenants.Status.Disabled"] = "Disabled",
             ["Tenants.MyTenants.Status.Unknown"] = "Unknown status",
             ["Tenants.MyTenants.StatusAccessible"] = "Status: {0}",
+            ["Tenants.MyTenants.Summary"] = "Tenants shown: {0}",
             ["Tenants.MyTenants.Title"] = "My Tenants",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",

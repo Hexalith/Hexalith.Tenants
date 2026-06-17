@@ -6,17 +6,25 @@
 <PageTitle>@Localizer["Tenants.MyTenants.Title"]</PageTitle>
 
 <main class="my-tenants-page" data-testid="tenants-my-page">
+    <div class="my-tenants-page__breadcrumb">
+        <FluentAnchorButton Href="/tenants"
+                            Appearance="ButtonAppearance.Subtle"
+                            data-testid="tenants-my-back">
+            @Localizer["Tenants.MyTenants.Back"]
+        </FluentAnchorButton>
+    </div>
+
     <header class="my-tenants-page__header">
         <p class="my-tenants-page__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
         <h1>@Localizer["Tenants.MyTenants.Title"]</h1>
-        <p>@Localizer["Tenants.MyTenants.Description"]</p>
+        <p class="my-tenants-page__description">@Localizer["Tenants.MyTenants.Description"]</p>
     </header>
 
-    <section class="my-tenants-page__controls" aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
+    <section class="my-tenants-page__toolbar" aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
+        <p class="my-tenants-page__summary" aria-live="polite" data-testid="tenants-my-summary">@SummaryText</p>
         <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-my-refresh" OnClick="RefreshAsync">
             @Localizer["Tenants.MyTenants.Refresh"]
         </FluentButton>
-        <a href="/tenants" data-testid="tenants-my-back">@Localizer["Tenants.MyTenants.Back"]</a>
     </section>
 
     @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
@@ -52,7 +60,7 @@
 
         <MyTenantsDataGrid Rows="@_snapshot.Rows" />
 
-        <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]">
+        <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
             <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                 @Localizer["Tenants.MyTenants.Previous"]
             </FluentButton>
@@ -67,6 +75,13 @@
     private UserTenantMembershipSnapshot _snapshot = UserTenantMembershipSnapshot.Loading();
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
+
+    // Result-count context for the toolbar; only meaningful when membership rows are visible.
+    private string? SummaryText => _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready
+        or UserTenantMembershipSurfaceKind.Stale
+        or UserTenantMembershipSurfaceKind.Degraded
+            ? Localizer["Tenants.MyTenants.Summary", _snapshot.Rows.Count].Value
+            : null;
 
     protected override async Task OnInitializedAsync()
         => await LoadAsync(reuseETag: false).ConfigureAwait(false);

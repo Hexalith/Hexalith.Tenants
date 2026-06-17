@@ -11,7 +11,7 @@
         <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Tenant"]"
                         ColumnId="tenant-id"
                         Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--identity")"
-                        Width="240px"
+                        Width="260px"
                         Pin="DataGridColumnPin.Start">
             <div class="my-tenants-grid__identity"
                  data-testid="@($"{SelectorPrefix}-row")">
@@ -51,12 +51,6 @@
                          data-testid="@($"{SelectorPrefix}-status")">
                 @StatusLabel(context.Status)
             </FluentBadge>
-        </TemplateColumn>
-        <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Lifecycle"]"
-                        ColumnId="tenant-lifecycle"
-                        Class="@($"{SelectorPrefix}-critical {SelectorPrefix}-critical--lifecycle")"
-                        Width="160px">
-            @Localizer[$"{ResourcePrefix}.Lifecycle.FromStatus", StatusLabel(context.Status)]
         </TemplateColumn>
         <TemplateColumn Title="@Localizer[$"{ResourcePrefix}.Column.Freshness"]"
                         ColumnId="tenant-freshness"

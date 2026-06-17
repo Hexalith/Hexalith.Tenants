@@ -198,9 +198,6 @@
   <data name="Tenants.MyTenants.Column.Freshness" xml:space="preserve">
     <value>Fraîcheur</value>
   </data>
-  <data name="Tenants.MyTenants.Column.Lifecycle" xml:space="preserve">
-    <value>Cycle de vie</value>
-  </data>
   <data name="Tenants.MyTenants.Column.Role" xml:space="preserve">
     <value>Rôle</value>
   </data>
@@ -230,9 +227,6 @@
   </data>
   <data name="Tenants.MyTenants.Freshness.Unknown" xml:space="preserve">
     <value>Inconnu</value>
-  </data>
-  <data name="Tenants.MyTenants.Lifecycle.FromStatus" xml:space="preserve">
-    <value>Cycle de vie depuis le statut : {0}</value>
   </data>
   <data name="Tenants.MyTenants.Link" xml:space="preserve">
     <value>Mes locataires</value>
@@ -318,6 +312,9 @@
   <data name="Tenants.MyTenants.StatusAccessible" xml:space="preserve">
     <value>Statut : {0}</value>
   </data>
+  <data name="Tenants.MyTenants.Summary" xml:space="preserve">
+    <value>Locataires affichés : {0}</value>
+  </data>
   <data name="Tenants.MyTenants.Title" xml:space="preserve">
     <value>Mes locataires</value>
   </data>
@@ -360,9 +357,6 @@
   <data name="Tenants.UserLookup.Column.Freshness" xml:space="preserve">
     <value>Fraîcheur</value>
   </data>
-  <data name="Tenants.UserLookup.Column.Lifecycle" xml:space="preserve">
-    <value>Cycle de vie</value>
-  </data>
   <data name="Tenants.UserLookup.Column.Role" xml:space="preserve">
     <value>Rôle</value>
   </data>
@@ -404,9 +398,6 @@
   </data>
   <data name="Tenants.UserLookup.InputLabel" xml:space="preserve">
     <value>Identifiant utilisateur</value>
-  </data>
-  <data name="Tenants.UserLookup.Lifecycle.FromStatus" xml:space="preserve">
-    <value>Cycle de vie depuis le statut : {0}</value>
   </data>
   <data name="Tenants.UserLookup.Link" xml:space="preserve">
     <value>Recherche utilisateur</value>

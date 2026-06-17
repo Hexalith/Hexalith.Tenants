@@ -54,7 +54,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-user-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-user-truth-state']").TextContent.ShouldContain("Current");
-        cut.Markup.ShouldContain("Lifecycle from status: Active");
+        cut.Markup.ShouldNotContain("Lifecycle", Case.Insensitive);
         cut.Markup.ShouldNotContain("tenants-my-list", Case.Insensitive);
         cut.Markup.ShouldNotContain("remove", Case.Insensitive);
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);
@@ -319,7 +319,6 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             ["Tenants.UserLookup.Back"] = "Back to tenants",
             ["Tenants.UserLookup.Clear"] = "Clear",
             ["Tenants.UserLookup.Column.Freshness"] = "Freshness",
-            ["Tenants.UserLookup.Column.Lifecycle"] = "Lifecycle",
             ["Tenants.UserLookup.Column.Role"] = "Role",
             ["Tenants.UserLookup.Column.Status"] = "Status",
             ["Tenants.UserLookup.Column.Tenant"] = "Tenant",
@@ -332,7 +331,6 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             ["Tenants.UserLookup.Initial.Title"] = "User membership lookup ready",
             ["Tenants.UserLookup.InputHelp"] = "Use the exact caller-supplied user identifier.",
             ["Tenants.UserLookup.InputLabel"] = "User identifier",
-            ["Tenants.UserLookup.Lifecycle.FromStatus"] = "Lifecycle from status: {0}",
             ["Tenants.UserLookup.Next"] = "Next",
             ["Tenants.UserLookup.PaginationLabel"] = "User membership result pages",
             ["Tenants.UserLookup.Previous"] = "Previous",
