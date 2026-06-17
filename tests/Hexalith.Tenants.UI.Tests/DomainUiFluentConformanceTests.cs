@@ -12,6 +12,13 @@ namespace Hexalith.Tenants.UI.Tests;
 /// the accessibility affordances (NFR6) that the Fluent components provide. This test fails the build if a
 /// raw interactive HTML control is reintroduced into any <c>Hexalith.Tenants.UI</c> component, so the
 /// completed Fluent conversion cannot silently regress.
+/// <para>
+/// This is the Tenants.UI slice of the project-wide UI component policy documented in FrontComposer
+/// <c>architecture.md</c> §4.1 ("every UI page/component uses FrontComposer or Fluent v5 only"). Sibling
+/// guards enforce the same rule on the other surfaces: <c>FluentConformanceTests</c> (FrontComposer Shell +
+/// Counter.Web) and <c>AdminUiFluentConformanceTests</c> (EventStore Admin.UI). Tenants.UI declares no
+/// carve-outs; the documented carve-outs on other surfaces are listed in architecture.md §4.1.
+/// </para>
 /// </summary>
 public sealed class DomainUiFluentConformanceTests
 {
