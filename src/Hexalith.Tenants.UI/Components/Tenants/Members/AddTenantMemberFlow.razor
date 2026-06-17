@@ -42,11 +42,11 @@
                           Id="tenants-add-member-role"
                           name="member-role"
                           Label="@Localizer["Tenants.AddMember.Role.Label"]"
+                          Placeholder="@Localizer["Tenants.AddMember.Role.Placeholder"]"
                           Value="@_roleValue"
                           ValueChanged="OnRoleChanged"
                           data-testid="tenants-add-member-role"
                           aria-describedby="@RoleDescribedBy">
-                <FluentOption TValue="string" Value="@string.Empty" Disabled="true">@Localizer["Tenants.AddMember.Role.Placeholder"]</FluentOption>
                 @foreach (TenantRole role in AssignableRoles)
                 {
                     <FluentOption TValue="string" Value="@role.ToString()">@RoleLabel(role)</FluentOption>
