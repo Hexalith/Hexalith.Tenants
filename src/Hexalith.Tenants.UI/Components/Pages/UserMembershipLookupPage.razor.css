@@ -5,6 +5,7 @@
 }
 
 .user-lookup-page__header,
+.user-lookup-page__sections,
 .user-lookup-page__status,
 .user-lookup-page__results {
     display: grid;

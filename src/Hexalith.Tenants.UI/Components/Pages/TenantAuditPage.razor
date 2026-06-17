@@ -33,51 +33,61 @@
         <a href="@BackHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
     </header>
 
-    <section class="tenant-audit__controls" aria-label="@Localizer["Tenants.Audit.ControlsLabel"]">
-        @* Fluent v5's TextInputType enum has no datetime-local member, so the native datetime-local
-           picker is requested with a splatted type attribute on the FluentTextInput. The bound value
-           stays a string and is interpreted as UTC by ParseDate, preserving the existing range logic. *@
-        <FluentTextInput Value="@_fromText"
-                         ValueChanged="OnFromChanged"
-                         Label="@Localizer["Tenants.Audit.Filter.From"]"
-                         type="datetime-local"
-                         data-testid="tenants-audit-filter-from"
-                         aria-label="@Localizer["Tenants.Audit.Filter.From"]" />
-        <FluentTextInput Value="@_toText"
-                         ValueChanged="OnToChanged"
-                         Label="@Localizer["Tenants.Audit.Filter.To"]"
-                         type="datetime-local"
-                         data-testid="tenants-audit-filter-to"
-                         aria-label="@Localizer["Tenants.Audit.Filter.To"]" />
-        <FluentSelect TOption="string" TValue="string"
-                      Value="@_categoryText"
-                      ValueChanged="OnCategoryChanged"
-                      Label="@Localizer["Tenants.Audit.Filter.Category"]"
-                      data-testid="tenants-audit-filter-category"
-                      aria-label="@Localizer["Tenants.Audit.Filter.Category"]">
-            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Audit.Filter.Category.All"]</FluentOption>
-            <FluentOption TValue="string" Value="@AuditEventCategory.Access.ToString()">@Localizer["Tenants.Audit.Category.Access"]</FluentOption>
-            <FluentOption TValue="string" Value="@AuditEventCategory.Administrative.ToString()">@Localizer["Tenants.Audit.Category.Administrative"]</FluentOption>
-        </FluentSelect>
-        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-refresh" OnClick="RefreshAsync">
-            @Localizer["Tenants.Audit.Refresh"]
-        </FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-reset" OnClick="ResetFiltersAsync">
-            @Localizer["Tenants.Audit.Reset"]
-        </FluentButton>
-    </section>
+    <FluentAccordion Class="tenant-audit__support"
+                     ExpandMode="AccordionExpandMode.Multi"
+                     Block="true">
+        <FluentAccordionItem Header="@Localizer["Tenants.Audit.ControlsLabel"]"
+                             Expanded="true">
+            <section class="tenant-audit__controls" aria-label="@Localizer["Tenants.Audit.ControlsLabel"]">
+                @* Fluent v5's TextInputType enum has no datetime-local member, so the native datetime-local
+                   picker is requested with a splatted type attribute on the FluentTextInput. The bound value
+                   stays a string and is interpreted as UTC by ParseDate, preserving the existing range logic. *@
+                <FluentTextInput Value="@_fromText"
+                                 ValueChanged="OnFromChanged"
+                                 Label="@Localizer["Tenants.Audit.Filter.From"]"
+                                 type="datetime-local"
+                                 data-testid="tenants-audit-filter-from"
+                                 aria-label="@Localizer["Tenants.Audit.Filter.From"]" />
+                <FluentTextInput Value="@_toText"
+                                 ValueChanged="OnToChanged"
+                                 Label="@Localizer["Tenants.Audit.Filter.To"]"
+                                 type="datetime-local"
+                                 data-testid="tenants-audit-filter-to"
+                                 aria-label="@Localizer["Tenants.Audit.Filter.To"]" />
+                <FluentSelect TOption="string" TValue="string"
+                              Value="@_categoryText"
+                              ValueChanged="OnCategoryChanged"
+                              Label="@Localizer["Tenants.Audit.Filter.Category"]"
+                              data-testid="tenants-audit-filter-category"
+                              aria-label="@Localizer["Tenants.Audit.Filter.Category"]">
+                    <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Audit.Filter.Category.All"]</FluentOption>
+                    <FluentOption TValue="string" Value="@AuditEventCategory.Access.ToString()">@Localizer["Tenants.Audit.Category.Access"]</FluentOption>
+                    <FluentOption TValue="string" Value="@AuditEventCategory.Administrative.ToString()">@Localizer["Tenants.Audit.Category.Administrative"]</FluentOption>
+                </FluentSelect>
+                <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-refresh" OnClick="RefreshAsync">
+                    @Localizer["Tenants.Audit.Refresh"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-reset" OnClick="ResetFiltersAsync">
+                    @Localizer["Tenants.Audit.Reset"]
+                </FluentButton>
+            </section>
+        </FluentAccordionItem>
 
-    <section class="tenant-audit__state tenant-audit__state--@ResourceState.ToLowerInvariant()"
-             role="@StatusRole"
-             aria-live="@StatusLive"
-             tabindex="0"
-             data-testid="@StateTestId">
-        <span class="tenant-audit__state-icon" aria-hidden="true">@StateIcon</span>
-        <div class="tenant-audit__state-copy">
-            <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
-            <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
-        </div>
-    </section>
+        <FluentAccordionItem Header="@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]"
+                             Expanded="true">
+            <section class="tenant-audit__state tenant-audit__state--@ResourceState.ToLowerInvariant()"
+                     role="@StatusRole"
+                     aria-live="@StatusLive"
+                     tabindex="0"
+                     data-testid="@StateTestId">
+                <span class="tenant-audit__state-icon" aria-hidden="true">@StateIcon</span>
+                <div class="tenant-audit__state-copy">
+                    <h2>@Localizer[$"Tenants.Audit.State.{ResourceState}.Title"]</h2>
+                    <p data-testid="tenants-audit-live-region">@Localizer[$"Tenants.Audit.State.{ResourceState}.Message"]</p>
+                </div>
+            </section>
+        </FluentAccordionItem>
+    </FluentAccordion>
 
     @if (ShouldRenderRows)
     {

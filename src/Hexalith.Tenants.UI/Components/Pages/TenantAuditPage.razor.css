@@ -5,6 +5,7 @@
 }
 
 .tenant-audit__header,
+.tenant-audit__support,
 .tenant-audit__controls,
 .tenant-audit__grid-shell {
     display: grid;

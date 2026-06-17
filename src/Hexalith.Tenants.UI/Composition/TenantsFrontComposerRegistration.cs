@@ -6,7 +6,7 @@ namespace Hexalith.Tenants.UI.Composition;
 public static class TenantsFrontComposerRegistration {
     /// <summary>
     /// Authorization policy gating the Global Administrators menu entry. Mirrors the server-side
-    /// global-administrator principal shape (system tenant + GlobalAdministrator role) that the BFF
+    /// global-administrator principal shape (system tenant + global administrator claim) that the BFF
     /// composition reflects, so the entry only surfaces for platform operators. Evaluated by the
     /// FrontComposer shell via <c>AuthorizeView</c>.
     /// </summary>

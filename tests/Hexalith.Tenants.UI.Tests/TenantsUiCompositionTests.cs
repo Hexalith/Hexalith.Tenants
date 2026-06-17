@@ -78,6 +78,42 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Bff_composition_reflects_global_admin_boolean_claim_from_keycloak_mapper()
+    {
+        ITenantsBffComposition composition = new TenantsBffComposition(
+            new StubTenantCommandGateway(),
+            ContextAccessor(
+                new Claim("eventstore:tenant", "system"),
+                new Claim("global_admin", "true")));
+
+        composition.LifecycleAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+        composition.GlobalAdministratorsAuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+    }
+
+    [Fact]
+    public void Global_administrator_claim_helper_matches_navigation_and_bff_authorization_shapes()
+    {
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"))).ShouldBeTrue();
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("eventstore:tenant", "system"),
+            new Claim("roles", "[\"tenant-reader\",\"global-admin\"]"))).ShouldBeTrue();
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("eventstore:tenant", "system"),
+            new Claim(ClaimTypes.Role, "GlobalAdministrator"))).ShouldBeTrue();
+
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "false"))).ShouldBeFalse();
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(
+            new Claim("global_admin", "true"))).ShouldBeFalse();
+        TenantsGlobalAdministratorClaims.IsGlobalAdministrator(Principal(false,
+            new Claim("eventstore:tenant", "system"),
+            new Claim("global_admin", "true"))).ShouldBeFalse();
+    }
+
+    [Fact]
     public void Bff_composition_fails_closed_for_global_admin_shape_without_system_tenant_claim()
     {
         ITenantsBffComposition composition = new TenantsBffComposition(
@@ -241,9 +277,15 @@ public sealed class TenantsUiCompositionTests
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test")),
+                User = Principal(claims),
             },
         };
+
+    private static ClaimsPrincipal Principal(params Claim[] claims)
+        => Principal(authenticated: true, claims);
+
+    private static ClaimsPrincipal Principal(bool authenticated, params Claim[] claims)
+        => new(new ClaimsIdentity(claims, authenticated ? "test" : null));
 
     private sealed class CapturingRegistry : IFrontComposerRegistry, IFrontComposerNavEntryRegistry
     {

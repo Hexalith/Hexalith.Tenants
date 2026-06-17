@@ -92,6 +92,37 @@ public sealed class DomainUiFluentConformanceTests
             + $"(no raw table markup). Raw table markup found in: {string.Join("; ", offenders)}");
     }
 
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Multi_region_domain_pages_group_sibling_sections_with_fluent_accordions()
+    {
+        string componentsRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components");
+        string[] accordionRequiredFiles =
+        [
+            Path.Combine(componentsRoot, "Pages", "GlobalAdministratorsPage.razor"),
+            Path.Combine(componentsRoot, "Pages", "TenantAuditPage.razor"),
+            Path.Combine(componentsRoot, "Pages", "TenantDetailPage.razor"),
+            Path.Combine(componentsRoot, "Pages", "UserMembershipLookupPage.razor"),
+            Path.Combine(componentsRoot, "Tenants", "TenantConfigurationView.razor"),
+        ];
+
+        List<string> offenders = [];
+        foreach (string file in accordionRequiredFiles)
+        {
+            string content = File.ReadAllText(file);
+            if (!content.Contains("<FluentAccordion", StringComparison.Ordinal)
+                || !content.Contains("ExpandMode=\"AccordionExpandMode.Multi\"", StringComparison.Ordinal)
+                || !content.Contains("Expanded=\"true\"", StringComparison.Ordinal))
+            {
+                offenders.Add(Path.GetRelativePath(componentsRoot, file));
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "Multi-region domain pages must group sibling titled page regions with FluentAccordion, "
+            + $"expanded by default. Missing accordion grouping in: {string.Join("; ", offenders)}");
+    }
+
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 }

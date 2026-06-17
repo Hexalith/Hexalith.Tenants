@@ -13,133 +13,146 @@
         <p>@Localizer["Tenants.UserLookup.Description"]</p>
     </header>
 
-    <form class="user-lookup-page__form"
-          aria-label="@Localizer["Tenants.UserLookup.FormLabel"]"
-          @onsubmit="SubmitAsync"
-          @onsubmit:preventDefault="true">
-        <div class="user-lookup-page__field">
-            <FluentTextInput @ref="_inputElement"
-                             Required="true"
-                             Label="@Localizer["Tenants.UserLookup.InputLabel"]"
-                             Value="@_inputUserId"
-                             data-testid="tenants-user-lookup-input"
-                             aria-describedby="tenants-user-lookup-help"
-                             ValueChanged="OnInputChanged" />
-        </div>
-        <p id="tenants-user-lookup-help">@Localizer["Tenants.UserLookup.InputHelp"]</p>
-        <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" data-testid="tenants-user-lookup-submit">
-            @Localizer["Tenants.UserLookup.Submit"]
-        </FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-clear" OnClick="ClearAsync">
-            @Localizer["Tenants.UserLookup.Clear"]
-        </FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-refresh" Disabled="@(!CanRefresh)" OnClick="RefreshAsync">
-            @Localizer["Tenants.UserLookup.Refresh"]
-        </FluentButton>
-        <a href="/tenants" data-testid="tenants-user-lookup-back">@Localizer["Tenants.UserLookup.Back"]</a>
-    </form>
-
-    <section class="user-lookup-page__status"
-             aria-live="@StatusLive"
-             role="@StatusRole">
-        <h2 id="tenants-user-lookup-status-heading"
-            tabindex="-1"
-            @ref="_statusElement"
-            data-testid="tenants-user-lookup-status">
-            @StatusHeading
-        </h2>
-        <p>@StatusMessage</p>
-        @if (!string.IsNullOrEmpty(_targetUserId))
-        {
-            <p data-testid="tenants-user-lookup-target">
-                @Localizer["Tenants.UserLookup.TargetContext", _targetUserId]
-            </p>
-        }
-    </section>
-
-    @if (_snapshot is not null)
-    {
-        @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Loading"
-                            ResourcePrefix="Tenants.UserLookup"
-                            SelectorPrefix="tenants-user" />
-        }
-        else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Empty)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Empty"
-                            ResourcePrefix="Tenants.UserLookup"
-                            SelectorPrefix="tenants-user" />
-        }
-        else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Invalid)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Invalid"
-                            ResourcePrefix="Tenants.UserLookup"
-                            SelectorPrefix="tenants-user" />
-        }
-        else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unauthorized)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unauthorized"
-                            ResourcePrefix="Tenants.UserLookup"
-                            SelectorPrefix="tenants-user" />
-        }
-        else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unavailable)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unavailable"
-                            ResourcePrefix="Tenants.UserLookup"
-                            SelectorPrefix="tenants-user" />
-        }
-        else
-        {
-            @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Stale)
-            {
-                <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Stale"
-                                ResourcePrefix="Tenants.UserLookup"
-                                SelectorPrefix="tenants-user"
-                                OnRefresh="RefreshAsync" />
-            }
-            else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Degraded)
-            {
-                <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Degraded"
-                                ResourcePrefix="Tenants.UserLookup"
-                                SelectorPrefix="tenants-user"
-                                OnRefresh="RefreshAsync" />
-            }
-
-            <section class="user-lookup-page__results"
-                     aria-labelledby="tenants-user-lookup-status-heading"
-                     data-testid="tenants-user-lookup-results">
-                <div class="user-lookup-page__sort">
-                    <FluentSelect TOption="string" TValue="string"
-                                  Label="@Localizer["Tenants.UserLookup.SortLabel"]"
-                                  Value="@_sortColumn"
-                                  ValueChanged="OnSortChanged"
-                                  data-testid="tenants-user-lookup-sort">
-                        <FluentOption TValue="string" Value="@("tenant")">@Localizer["Tenants.UserLookup.Sort.Tenant"]</FluentOption>
-                        <FluentOption TValue="string" Value="@("name")">@Localizer["Tenants.UserLookup.Sort.Name"]</FluentOption>
-                        <FluentOption TValue="string" Value="@("role")">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
-                        <FluentOption TValue="string" Value="@("status")">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
-                    </FluentSelect>
+    <FluentAccordion Class="user-lookup-page__sections"
+                     ExpandMode="AccordionExpandMode.Multi"
+                     Block="true">
+        <FluentAccordionItem Header="@Localizer["Tenants.UserLookup.FormLabel"]"
+                             Expanded="true">
+            <form class="user-lookup-page__form"
+                  aria-label="@Localizer["Tenants.UserLookup.FormLabel"]"
+                  @onsubmit="SubmitAsync"
+                  @onsubmit:preventDefault="true">
+                <div class="user-lookup-page__field">
+                    <FluentTextInput @ref="_inputElement"
+                                     Required="true"
+                                     Label="@Localizer["Tenants.UserLookup.InputLabel"]"
+                                     Value="@_inputUserId"
+                                     data-testid="tenants-user-lookup-input"
+                                     aria-describedby="tenants-user-lookup-help"
+                                     ValueChanged="OnInputChanged" />
                 </div>
+                <p id="tenants-user-lookup-help">@Localizer["Tenants.UserLookup.InputHelp"]</p>
+                <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" data-testid="tenants-user-lookup-submit">
+                    @Localizer["Tenants.UserLookup.Submit"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-clear" OnClick="ClearAsync">
+                    @Localizer["Tenants.UserLookup.Clear"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-refresh" Disabled="@(!CanRefresh)" OnClick="RefreshAsync">
+                    @Localizer["Tenants.UserLookup.Refresh"]
+                </FluentButton>
+                <a href="/tenants" data-testid="tenants-user-lookup-back">@Localizer["Tenants.UserLookup.Back"]</a>
+            </form>
+        </FluentAccordionItem>
 
-                <MyTenantsDataGrid Rows="@VisibleRows"
-                                   ResourcePrefix="Tenants.UserLookup"
-                                   SelectorPrefix="tenants-user"
-                                   TargetUserId="@_targetUserId"
-                                   SourceKind="user-lookup"
-                                   ReturnUrl="@UserLookupReturnUrl" />
-
-                <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                        @Localizer["Tenants.UserLookup.Previous"]
-                    </FluentButton>
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                        @Localizer["Tenants.UserLookup.Next"]
-                    </FluentButton>
-                </nav>
+        <FluentAccordionItem Header="@StatusHeading"
+                             Expanded="true">
+            <section class="user-lookup-page__status"
+                     aria-live="@StatusLive"
+                     role="@StatusRole">
+                <h2 id="tenants-user-lookup-status-heading"
+                    tabindex="-1"
+                    @ref="_statusElement"
+                    data-testid="tenants-user-lookup-status">
+                    @StatusHeading
+                </h2>
+                <p>@StatusMessage</p>
+                @if (!string.IsNullOrEmpty(_targetUserId))
+                {
+                    <p data-testid="tenants-user-lookup-target">
+                        @Localizer["Tenants.UserLookup.TargetContext", _targetUserId]
+                    </p>
+                }
             </section>
+        </FluentAccordionItem>
+
+        @if (_snapshot is not null)
+        {
+            <FluentAccordionItem Header="@ResultsHeading"
+                                 Expanded="true">
+                @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
+                {
+                    <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Loading"
+                                    ResourcePrefix="Tenants.UserLookup"
+                                    SelectorPrefix="tenants-user" />
+                }
+                else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Empty)
+                {
+                    <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Empty"
+                                    ResourcePrefix="Tenants.UserLookup"
+                                    SelectorPrefix="tenants-user" />
+                }
+                else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Invalid)
+                {
+                    <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Invalid"
+                                    ResourcePrefix="Tenants.UserLookup"
+                                    SelectorPrefix="tenants-user" />
+                }
+                else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unauthorized)
+                {
+                    <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unauthorized"
+                                    ResourcePrefix="Tenants.UserLookup"
+                                    SelectorPrefix="tenants-user" />
+                }
+                else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unavailable)
+                {
+                    <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unavailable"
+                                    ResourcePrefix="Tenants.UserLookup"
+                                    SelectorPrefix="tenants-user" />
+                }
+                else
+                {
+                    @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Stale)
+                    {
+                        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Stale"
+                                        ResourcePrefix="Tenants.UserLookup"
+                                        SelectorPrefix="tenants-user"
+                                        OnRefresh="RefreshAsync" />
+                    }
+                    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Degraded)
+                    {
+                        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Degraded"
+                                        ResourcePrefix="Tenants.UserLookup"
+                                        SelectorPrefix="tenants-user"
+                                        OnRefresh="RefreshAsync" />
+                    }
+
+                    <section class="user-lookup-page__results"
+                             aria-labelledby="tenants-user-lookup-status-heading"
+                             data-testid="tenants-user-lookup-results">
+                        <div class="user-lookup-page__sort">
+                            <FluentSelect TOption="string" TValue="string"
+                                          Label="@Localizer["Tenants.UserLookup.SortLabel"]"
+                                          Value="@_sortColumn"
+                                          ValueChanged="OnSortChanged"
+                                          data-testid="tenants-user-lookup-sort">
+                                <FluentOption TValue="string" Value="@("tenant")">@Localizer["Tenants.UserLookup.Sort.Tenant"]</FluentOption>
+                                <FluentOption TValue="string" Value="@("name")">@Localizer["Tenants.UserLookup.Sort.Name"]</FluentOption>
+                                <FluentOption TValue="string" Value="@("role")">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
+                                <FluentOption TValue="string" Value="@("status")">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
+                            </FluentSelect>
+                        </div>
+
+                        <MyTenantsDataGrid Rows="@VisibleRows"
+                                           ResourcePrefix="Tenants.UserLookup"
+                                           SelectorPrefix="tenants-user"
+                                           TargetUserId="@_targetUserId"
+                                           SourceKind="user-lookup"
+                                           ReturnUrl="@UserLookupReturnUrl" />
+
+                        <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
+                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                                @Localizer["Tenants.UserLookup.Previous"]
+                            </FluentButton>
+                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                                @Localizer["Tenants.UserLookup.Next"]
+                            </FluentButton>
+                        </nav>
+                    </section>
+                }
+            </FluentAccordionItem>
         }
-    }
+    </FluentAccordion>
 </main>
 
 @code {
@@ -209,6 +222,19 @@
 
     private string StatusLive
         => StatusRole == "alert" ? "assertive" : "polite";
+
+    private string ResultsHeading
+        => _snapshot?.Kind switch
+        {
+            UserTenantMembershipSurfaceKind.Loading => Localizer["Tenants.UserLookup.State.Loading.Title"],
+            UserTenantMembershipSurfaceKind.Empty => Localizer["Tenants.UserLookup.State.Empty.Title"],
+            UserTenantMembershipSurfaceKind.Invalid => Localizer["Tenants.UserLookup.State.Invalid.Title"],
+            UserTenantMembershipSurfaceKind.Stale => Localizer["Tenants.UserLookup.State.Stale.Title"],
+            UserTenantMembershipSurfaceKind.Degraded => Localizer["Tenants.UserLookup.State.Degraded.Title"],
+            UserTenantMembershipSurfaceKind.Unauthorized => Localizer["Tenants.UserLookup.State.Unauthorized.Title"],
+            UserTenantMembershipSurfaceKind.Unavailable => Localizer["Tenants.UserLookup.State.Unavailable.Title"],
+            _ => Localizer["Tenants.UserLookup.State.Ready.Title"],
+        };
 
     private string UserLookupReturnUrl
     {

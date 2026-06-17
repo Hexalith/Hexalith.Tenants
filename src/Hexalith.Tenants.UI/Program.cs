@@ -30,9 +30,8 @@ builder.Services.AddHexalithDomain<TenantsFrontComposerDomain>();
 builder.Services.AddAuthorizationCore(options =>
     options.AddPolicy(
         TenantsFrontComposerRegistration.GlobalAdministratorPolicy,
-        policy => policy
-            .RequireRole("GlobalAdministrator")
-            .RequireClaim("eventstore:tenant", "system")));
+        policy => policy.RequireAssertion(context =>
+            TenantsGlobalAdministratorClaims.IsGlobalAdministrator(context.User))));
 
 // Interactive per-user sign-in: when an OIDC provider is configured (AppHost supplies Keycloak
 // authority/client), wire authorization-code login and relay the signed-in user's access token to
