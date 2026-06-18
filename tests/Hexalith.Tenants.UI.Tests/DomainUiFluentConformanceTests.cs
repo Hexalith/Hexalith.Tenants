@@ -52,6 +52,18 @@ public sealed class DomainUiFluentConformanceTests
         "(^|[\\s,{>+~])(?:button|input|select|textarea)(?=[:.#\\s,{>+~\\[]|$)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
 
+    private static readonly Regex PageRootMainWrapper = new(
+        "<main(\\s|>)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex PageRootLayoutSelector = new(
+        "^\\s*\\.(tenants-workspace|tenant-detail|my-tenants-page|user-lookup-page|global-admins|tenant-audit)\\s*\\{(?<body>.*?)\\}",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline);
+
+    private static readonly Regex PageRootLayoutDeclaration = new(
+        "\\b(display\\s*:\\s*grid|grid-template(?:-columns|-rows)?\\s*:|padding\\s*:|max-width\\s*:)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
     [Fact]
     [Trait("Category", "Governance")]
     public void Domain_ui_components_use_fluent_v5_only_with_no_raw_interactive_html_controls()
@@ -162,6 +174,90 @@ public sealed class DomainUiFluentConformanceTests
         offenders.ShouldBeEmpty(
             "Multi-region domain pages must group sibling titled page regions with FluentAccordion, "
             + $"expanded by default. Missing accordion grouping in: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_page_components_declare_frontcomposer_page_layout_modes()
+    {
+        string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
+        (string FileName, string ExpectedMode, string Rationale)[] expectedDeclarations =
+        [
+            ("TenantsWorkspace.razor", "FcPageLayoutMode.FullWidth", "tenant list is a dense DataGrid-first operational surface"),
+            ("MyTenantsPage.razor", "FcPageLayoutMode.FullWidth", "membership list is a dense DataGrid-first operational surface"),
+            ("GlobalAdministratorsPage.razor", "FcPageLayoutMode.FullWidth", "administrator governance keeps the DataGrid directly visible"),
+            ("TenantAuditPage.razor", "FcPageLayoutMode.FullWidth", "audit review keeps the audit DataGrid directly visible"),
+            ("TenantDetailPage.razor", "FcPageLayoutMode.Constrained", "tenant detail is a readable detail and command composition page"),
+            ("UserMembershipLookupPage.razor", "FcPageLayoutMode.Constrained", "lookup form and status copy need readable measure"),
+        ];
+
+        List<string> offenders = [];
+        foreach ((string fileName, string expectedMode, string rationale) in expectedDeclarations)
+        {
+            string content = File.ReadAllText(Path.Combine(pagesRoot, fileName));
+            if (!content.Contains("<FcPageLayout", StringComparison.Ordinal)
+                || !content.Contains($"Mode=\"{expectedMode}\"", StringComparison.Ordinal))
+            {
+                offenders.Add($"{fileName} must declare {expectedMode} ({rationale})");
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "Tenants pages must declare FC-LYT measure through FcPageLayout instead of local page-layout wrappers. "
+            + string.Join("; ", offenders));
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_pages_do_not_reintroduce_page_root_layout_wrappers()
+    {
+        string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
+        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly);
+
+        razorFiles.ShouldNotBeEmpty();
+
+        List<string> offenders = [];
+        foreach (string file in razorFiles)
+        {
+            string content = File.ReadAllText(file);
+            if (PageRootMainWrapper.IsMatch(content))
+            {
+                offenders.Add(Path.GetFileName(file));
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "FrontComposerShell owns the shell/content container and FcPageLayout owns page measure. "
+            + $"Do not add Tenants-owned page-root <main> layout wrappers: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_page_css_does_not_own_page_root_layout()
+    {
+        string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
+        string[] cssFiles = Directory.GetFiles(pagesRoot, "*.razor.css", SearchOption.TopDirectoryOnly);
+
+        cssFiles.ShouldNotBeEmpty();
+
+        List<string> offenders = [];
+        foreach (string file in cssFiles)
+        {
+            string content = CssComment.Replace(File.ReadAllText(file), string.Empty);
+            MatchCollection matches = PageRootLayoutSelector.Matches(content);
+            foreach (Match match in matches)
+            {
+                string body = match.Groups["body"].Value;
+                if (PageRootLayoutDeclaration.IsMatch(body))
+                {
+                    offenders.Add($"{Path.GetFileName(file)} ({match.Groups[1].Value})");
+                }
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "Page-root layout belongs to FrontComposer/Fluent primitives. Page CSS may keep component-specific "
+            + $"exceptions, but must not set root display/grid/padding/max-width: {string.Join("; ", offenders)}");
     }
 
     [Fact]

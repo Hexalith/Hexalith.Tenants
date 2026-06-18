@@ -5,14 +5,15 @@
 
 <PageTitle>@Localizer["Tenants.MyTenants.Title"]</PageTitle>
 
-<main class="my-tenants-page" data-testid="tenants-my-page">
-    <div class="my-tenants-page__breadcrumb">
+<FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" Class="my-tenants-page" data-testid="tenants-my-page">
+    <FluentStack Orientation="Orientation.Horizontal" Class="my-tenants-page__breadcrumb">
         <FluentAnchorButton Href="/tenants"
                             Appearance="ButtonAppearance.Subtle"
                             data-testid="tenants-my-back">
             @Localizer["Tenants.MyTenants.Back"]
         </FluentAnchorButton>
-    </div>
+    </FluentStack>
 
     <header class="my-tenants-page__header">
         <p class="my-tenants-page__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
@@ -20,12 +21,19 @@
         <p class="my-tenants-page__description">@Localizer["Tenants.MyTenants.Description"]</p>
     </header>
 
-    <section class="my-tenants-page__toolbar" aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
+    <FluentStack Orientation="Orientation.Horizontal"
+                 HorizontalAlignment="HorizontalAlignment.SpaceBetween"
+                 VerticalAlignment="VerticalAlignment.Center"
+                 HorizontalGap="16px"
+                 VerticalGap="12px"
+                 Wrap="true"
+                 Class="my-tenants-page__toolbar"
+                 aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
         <p class="my-tenants-page__summary" aria-live="polite" data-testid="tenants-my-summary">@SummaryText</p>
         <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-my-refresh" OnClick="RefreshAsync">
             @Localizer["Tenants.MyTenants.Refresh"]
         </FluentButton>
-    </section>
+    </FluentStack>
 
     @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
     {
@@ -61,15 +69,18 @@
         <MyTenantsDataGrid Rows="@_snapshot.Rows" />
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
-            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                @Localizer["Tenants.MyTenants.Previous"]
-            </FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                @Localizer["Tenants.MyTenants.Next"]
-            </FluentButton>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                    @Localizer["Tenants.MyTenants.Previous"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                    @Localizer["Tenants.MyTenants.Next"]
+                </FluentButton>
+            </FluentStack>
         </nav>
     }
-</main>
+    </FluentStack>
+</FcPageLayout>
 
 @code {
     private UserTenantMembershipSnapshot _snapshot = UserTenantMembershipSnapshot.Loading();

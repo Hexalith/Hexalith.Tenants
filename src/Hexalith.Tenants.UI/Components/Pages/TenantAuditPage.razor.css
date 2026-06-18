@@ -1,12 +1,5 @@
-.tenant-audit {
-    display: grid;
-    gap: 1rem;
-    padding: 1rem;
-}
-
 .tenant-audit__header,
 .tenant-audit__support,
-.tenant-audit__controls,
 .tenant-audit__grid-shell {
     display: grid;
     gap: 0.75rem;
@@ -39,16 +32,6 @@
     .tenant-audit__context {
         border-inline-start-color: CanvasText;
     }
-}
-
-.tenant-audit__controls {
-    align-items: end;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-}
-
-.tenant-audit__controls label {
-    display: grid;
-    gap: 0.25rem;
 }
 
 .tenant-audit__state {
@@ -84,22 +67,6 @@
 .tenant-audit__state-copy p {
     margin-block: 0 0.25rem;
     overflow-wrap: anywhere;
-}
-
-.tenant-audit__pager {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-@media (max-width: 767px) {
-    .tenant-audit {
-        padding: 0.75rem;
-    }
-
-    .tenant-audit__controls {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (forced-colors: active) {

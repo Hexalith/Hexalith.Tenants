@@ -6,7 +6,12 @@
 
 <PageTitle>@PageTitleText</PageTitle>
 
-<main class="global-admins" data-testid="tenants-global-admins-area" aria-labelledby="global-admins-heading">
+<FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    <FluentStack Orientation="Orientation.Vertical"
+                 VerticalGap="20px"
+                 Class="global-admins"
+                 data-testid="tenants-global-admins-area"
+                 aria-labelledby="global-admins-heading">
     <header class="global-admins__header">
         <p class="global-admins__eyebrow">@Localizer["Tenants.GlobalAdministrators.Eyebrow"]</p>
         <h1 id="global-admins-heading">@PageTitleText</h1>
@@ -376,7 +381,8 @@
             </FluentAccordionItem>
         }
     </FluentAccordion>
-</main>
+    </FluentStack>
+</FcPageLayout>
 
 @code {
     private const int PageSize = 20;

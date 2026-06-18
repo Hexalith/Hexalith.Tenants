@@ -6,7 +6,8 @@
 
 <PageTitle>@Localizer["Tenants.UserLookup.Title"]</PageTitle>
 
-<main class="user-lookup-page" data-testid="tenants-user-lookup">
+<FcPageLayout Mode="FcPageLayoutMode.Constrained">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="user-lookup-page" data-testid="tenants-user-lookup">
     <header class="user-lookup-page__header">
         <p class="user-lookup-page__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
         <h1>@Localizer["Tenants.UserLookup.Title"]</h1>
@@ -23,26 +24,37 @@
                       class="user-lookup-page__form"
                       aria-label="@Localizer["Tenants.UserLookup.FormLabel"]"
                       OnSubmit="SubmitAsync">
-                <div class="user-lookup-page__field">
-                    <FluentTextInput @ref="_inputElement"
-                                     Required="true"
-                                     Label="@Localizer["Tenants.UserLookup.InputLabel"]"
-                                     Value="@_inputUserId"
-                                     data-testid="tenants-user-lookup-input"
-                                     aria-describedby="tenants-user-lookup-help"
-                                     ValueChanged="OnInputChanged" />
-                </div>
-                <p id="tenants-user-lookup-help">@Localizer["Tenants.UserLookup.InputHelp"]</p>
-                <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" data-testid="tenants-user-lookup-submit">
-                    @Localizer["Tenants.UserLookup.Submit"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-clear" OnClick="ClearAsync">
-                    @Localizer["Tenants.UserLookup.Clear"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-refresh" Disabled="@(!CanRefresh)" OnClick="RefreshAsync">
-                    @Localizer["Tenants.UserLookup.Refresh"]
-                </FluentButton>
-                <a href="/tenants" data-testid="tenants-user-lookup-back">@Localizer["Tenants.UserLookup.Back"]</a>
+                <FluentGrid Spacing="3" Class="user-lookup-page__form-layout">
+                    <FluentGridItem Xs="12" Md="6" Lg="5">
+                        <FluentTextInput @ref="_inputElement"
+                                         Required="true"
+                                         Label="@Localizer["Tenants.UserLookup.InputLabel"]"
+                                         Value="@_inputUserId"
+                                         data-testid="tenants-user-lookup-input"
+                                         aria-describedby="tenants-user-lookup-help"
+                                         ValueChanged="OnInputChanged" />
+                        <p id="tenants-user-lookup-help">@Localizer["Tenants.UserLookup.InputHelp"]</p>
+                    </FluentGridItem>
+                    <FluentGridItem Xs="12" Md="6" Lg="7">
+                        <FluentStack Orientation="Orientation.Horizontal"
+                                     HorizontalGap="12px"
+                                     VerticalGap="12px"
+                                     Wrap="true"
+                                     VerticalAlignment="VerticalAlignment.Bottom"
+                                     Class="user-lookup-page__form-actions">
+                            <FluentButton Type="ButtonType.Submit" Appearance="ButtonAppearance.Primary" data-testid="tenants-user-lookup-submit">
+                                @Localizer["Tenants.UserLookup.Submit"]
+                            </FluentButton>
+                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-clear" OnClick="ClearAsync">
+                                @Localizer["Tenants.UserLookup.Clear"]
+                            </FluentButton>
+                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-refresh" Disabled="@(!CanRefresh)" OnClick="RefreshAsync">
+                                @Localizer["Tenants.UserLookup.Refresh"]
+                            </FluentButton>
+                            <a href="/tenants" data-testid="tenants-user-lookup-back">@Localizer["Tenants.UserLookup.Back"]</a>
+                        </FluentStack>
+                    </FluentGridItem>
+                </FluentGrid>
             </EditForm>
         </FluentAccordionItem>
 
@@ -142,19 +154,22 @@
                                            ReturnUrl="@UserLookupReturnUrl" />
 
                         <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
-                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                                @Localizer["Tenants.UserLookup.Previous"]
-                            </FluentButton>
-                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                                @Localizer["Tenants.UserLookup.Next"]
-                            </FluentButton>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
+                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                                    @Localizer["Tenants.UserLookup.Previous"]
+                                </FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                                    @Localizer["Tenants.UserLookup.Next"]
+                                </FluentButton>
+                            </FluentStack>
                         </nav>
                     </section>
                 }
             </FluentAccordionItem>
         }
     </FluentAccordion>
-</main>
+    </FluentStack>
+</FcPageLayout>
 
 @code {
     private const int PageSize = 20;

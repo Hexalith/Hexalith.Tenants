@@ -1,18 +1,10 @@
-.tenant-detail {
-    display: grid;
-    gap: 1rem;
-    padding: 1.5rem;
-}
-
 .tenant-detail__back {
     color: LinkText;
     width: fit-content;
 }
 
 .tenant-detail__summary {
-    display: grid;
-    gap: 1rem;
-    max-width: 82rem;
+    min-width: 0;
 }
 
 .tenant-detail__identity,
@@ -53,13 +45,6 @@
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
-.tenant-detail__sections,
-.tenant-detail__accordion-body {
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
-}
-
 .tenant-detail__facts div {
     border-block-start: 1px solid CanvasText;
     display: grid;
@@ -84,10 +69,6 @@
 }
 
 @media (max-width: 767px) {
-    .tenant-detail {
-        padding: 1rem;
-    }
-
     .tenant-detail__facts {
         grid-template-columns: minmax(0, 1fr);
     }

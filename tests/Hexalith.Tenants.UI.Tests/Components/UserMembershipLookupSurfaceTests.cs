@@ -228,9 +228,16 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void User_lookup_styles_preserve_responsive_and_forced_colors_controls()
+    public void User_lookup_layout_preserves_responsive_fluent_grid_and_forced_colors_controls()
     {
         string projectRoot = ProjectRoot();
+        string page = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Pages",
+            "UserMembershipLookupPage.razor"));
         string styles = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
@@ -239,10 +246,12 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             "Pages",
             "UserMembershipLookupPage.razor.css"));
 
-        styles.ShouldContain("@media (max-width: 767px)");
+        page.ShouldContain("<FluentGrid");
+        page.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"5\">");
+        page.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"7\">");
+        styles.ShouldNotContain("grid-template-columns");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(":focus-visible");
-        styles.ShouldContain("grid-template-columns");
     }
 
     private ITenantQueryGateway RegisterServices(UserTenantMembershipSnapshot snapshot)

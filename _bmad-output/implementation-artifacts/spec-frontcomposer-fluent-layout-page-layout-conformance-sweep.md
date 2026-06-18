@@ -2,7 +2,8 @@
 title: 'FrontComposer Fluent layout page-layout conformance sweep'
 type: 'refactor'
 created: '2026-06-18'
-status: 'ready-for-dev'
+status: 'review'
+baseline_commit: '974eac7fe6b7b6bc2545c2c51adb170ed587482a'
 approval: 'Administrator approved sprint-change-proposal-2026-06-18-fluent-layout-page-layout.md on 2026-06-18'
 context:
   - '{project-root}/Hexalith.AI.Tools/hexalith-llm-instructions.md'
@@ -55,13 +56,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Verify exact local APIs for `FcPageLayout`, `FcPageLayoutMode`, `FluentStack`, `FluentGrid`, and `FluentGridItem` against the pinned package/source before editing.
-- [ ] Add page-layout declarations to Tenants pages, using `FullWidth` for DataGrid-dense pages and `Constrained` for form/prose/detail measure where appropriate.
-- [ ] Replace page-owned layout grids with Fluent layout primitives where those grids only arrange sibling page regions.
-- [ ] Reduce page `.razor.css` root layout rules to documented exceptions only.
-- [ ] Extend `DomainUiFluentConformanceTests` with page-layout governance and allowlist rationale.
-- [ ] Add component tests proving at least one full-width page and one constrained/readable page declare the expected layout.
-- [ ] Update sprint status from `ready-for-dev` to the appropriate execution state when implementation starts and to `done` only after verification passes.
+- [x] Verify exact local APIs for `FcPageLayout`, `FcPageLayoutMode`, `FluentStack`, `FluentGrid`, and `FluentGridItem` against the pinned package/source before editing.
+- [x] Add page-layout declarations to Tenants pages, using `FullWidth` for DataGrid-dense pages and `Constrained` for form/prose/detail measure where appropriate.
+- [x] Replace page-owned layout grids with Fluent layout primitives where those grids only arrange sibling page regions.
+- [x] Reduce page `.razor.css` root layout rules to documented exceptions only.
+- [x] Extend `DomainUiFluentConformanceTests` with page-layout governance and allowlist rationale.
+- [x] Add component tests proving at least one full-width page and one constrained/readable page declare the expected layout.
+- [x] Update sprint status from `ready-for-dev` to the appropriate execution state when implementation starts and to `done` only after verification passes.
 
 **Acceptance Criteria:**
 - Given Tenants page source, when governance tests scan page components, then page-level layout is declared through `FrontComposerShell`/`FcPageLayout` and Fluent layout primitives rather than Tenants-owned page layout scaffolding.
@@ -95,3 +96,57 @@ context:
 **Governance**
 
 - Review `DomainUiFluentConformanceTests` last so the guard matches the intended migration boundary.
+
+## Dev Agent Record
+
+### Implementation Plan
+
+- Verified `FcPageLayout`, `FcPageLayoutMode`, and shell layout behavior from local FrontComposer source.
+- Verified `FluentStack`, `FluentGrid`, and `FluentGridItem` parameters from the pinned local NuGet XML for `Microsoft.FluentUI.AspNetCore.Components` `5.0.0-rc.3-26138.1`; the Fluent MCP server documents `5.0.0.26139`, so it was treated as secondary only.
+- Added failing page-layout governance before implementation, then migrated the six Tenants pages to explicit `FcPageLayout` declarations and Fluent layout primitives.
+- Trimmed page-root CSS layout ownership while preserving forced-colors, focus, state, grid overflow, and readable-region styling.
+
+### Debug Log
+
+- Red phase confirmed: `DomainUiFluentConformanceTests` failed on missing `FcPageLayout`, page-root `<main>` wrappers, and page-root layout CSS.
+- Green phase: `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore` passed `681/681`.
+- Tier 1 regression: Contracts `106/106`, Client `47/47`, Testing `181/181`, Sample `32/32` passed. Initial parallel attempts hit MSBuild file locks; sequential reruns passed.
+- Tier 2 `Server.Tests` was attempted and still has six known pre-existing documentation/AppHost failures around missing `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml` and stale deployment-readiness evidence.
+- Tier 3 `IntegrationTests` was attempted with `Category!=Performance`; DAPR/Aspire-dependent rows skipped and two known pre-existing health-readiness drift tests failed.
+- `git diff --check` passed with a CRLF normalization warning for `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+
+### Completion Notes
+
+- Tenants pages now declare FC-LYT layout through `FcPageLayout`: full-width for tenant list, my tenants, global administrators, and audit; constrained for tenant detail and user lookup.
+- Page composition moved from Tenants-owned root `<main>`/CSS layout scaffolding to Fluent `FluentStack` and `FluentGrid` primitives where the story required page-level layout ownership to move out of local CSS.
+- Governance now blocks missing page layout declarations, raw page-root layout wrappers, and page-root CSS layout ownership.
+- Component coverage now renders a full-width page and a constrained page inside `FrontComposerShell` and asserts shell layout state.
+
+## File List
+
+- `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `src/Hexalith.Tenants.UI/Components/_Imports.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Pages/MyTenantsPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/MyTenantsPage.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor.css`
+- `src/Hexalith.Tenants.UI/Components/Pages/UserMembershipLookupPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/UserMembershipLookupPage.razor.css`
+- `tests/Hexalith.Tenants.UI.Tests/Components/PageLayoutDeclarationTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs`
+
+## Change Log
+
+- 2026-06-18: Implemented FrontComposer/Fluent page-layout conformance sweep and moved story to review.
+
+## Status
+
+review

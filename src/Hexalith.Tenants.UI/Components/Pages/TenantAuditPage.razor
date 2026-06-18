@@ -11,7 +11,12 @@
 
 <PageTitle>@Localizer["Tenants.Audit.Title", TenantId]</PageTitle>
 
-<main class="tenant-audit" data-testid="tenants-audit-surface" aria-labelledby="tenant-audit-heading">
+<FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    <FluentStack Orientation="Orientation.Vertical"
+                 VerticalGap="16px"
+                 Class="tenant-audit"
+                 data-testid="tenants-audit-surface"
+                 aria-labelledby="tenant-audit-heading">
     <header class="tenant-audit__header">
         <p class="tenant-audit__eyebrow">@Localizer["Tenants.Audit.Eyebrow"]</p>
         <h1 id="tenant-audit-heading">@Localizer["Tenants.Audit.Title", TenantId]</h1>
@@ -39,37 +44,49 @@
         <FluentAccordionItem Header="@Localizer["Tenants.Audit.ControlsLabel"]"
                              Expanded="true">
             <section class="tenant-audit__controls" aria-label="@Localizer["Tenants.Audit.ControlsLabel"]">
-                @* Fluent v5's TextInputType enum has no datetime-local member, so the native datetime-local
-                   picker is requested with a splatted type attribute on the FluentTextInput. The bound value
-                   stays a string and is interpreted as UTC by ParseDate, preserving the existing range logic. *@
-                <FluentTextInput Value="@_fromText"
-                                 ValueChanged="OnFromChanged"
-                                 Label="@Localizer["Tenants.Audit.Filter.From"]"
-                                 type="datetime-local"
-                                 data-testid="tenants-audit-filter-from"
-                                 aria-label="@Localizer["Tenants.Audit.Filter.From"]" />
-                <FluentTextInput Value="@_toText"
-                                 ValueChanged="OnToChanged"
-                                 Label="@Localizer["Tenants.Audit.Filter.To"]"
-                                 type="datetime-local"
-                                 data-testid="tenants-audit-filter-to"
-                                 aria-label="@Localizer["Tenants.Audit.Filter.To"]" />
-                <FluentSelect TOption="string" TValue="string"
-                              Value="@_categoryText"
-                              ValueChanged="OnCategoryChanged"
-                              Label="@Localizer["Tenants.Audit.Filter.Category"]"
-                              data-testid="tenants-audit-filter-category"
-                              aria-label="@Localizer["Tenants.Audit.Filter.Category"]">
-                    <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Audit.Filter.Category.All"]</FluentOption>
-                    <FluentOption TValue="string" Value="@AuditEventCategory.Access.ToString()">@Localizer["Tenants.Audit.Category.Access"]</FluentOption>
-                    <FluentOption TValue="string" Value="@AuditEventCategory.Administrative.ToString()">@Localizer["Tenants.Audit.Category.Administrative"]</FluentOption>
-                </FluentSelect>
-                <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-refresh" OnClick="RefreshAsync">
-                    @Localizer["Tenants.Audit.Refresh"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-reset" OnClick="ResetFiltersAsync">
-                    @Localizer["Tenants.Audit.Reset"]
-                </FluentButton>
+                <FluentGrid Spacing="3" Class="tenant-audit__controls-layout">
+                    <FluentGridItem Xs="12" Md="6" Lg="3">
+                        @* Fluent v5's TextInputType enum has no datetime-local member, so the native datetime-local
+                           picker is requested with a splatted type attribute on the FluentTextInput. The bound value
+                           stays a string and is interpreted as UTC by ParseDate, preserving the existing range logic. *@
+                        <FluentTextInput Value="@_fromText"
+                                         ValueChanged="OnFromChanged"
+                                         Label="@Localizer["Tenants.Audit.Filter.From"]"
+                                         type="datetime-local"
+                                         data-testid="tenants-audit-filter-from"
+                                         aria-label="@Localizer["Tenants.Audit.Filter.From"]" />
+                    </FluentGridItem>
+                    <FluentGridItem Xs="12" Md="6" Lg="3">
+                        <FluentTextInput Value="@_toText"
+                                         ValueChanged="OnToChanged"
+                                         Label="@Localizer["Tenants.Audit.Filter.To"]"
+                                         type="datetime-local"
+                                         data-testid="tenants-audit-filter-to"
+                                         aria-label="@Localizer["Tenants.Audit.Filter.To"]" />
+                    </FluentGridItem>
+                    <FluentGridItem Xs="12" Md="6" Lg="3">
+                        <FluentSelect TOption="string" TValue="string"
+                                      Value="@_categoryText"
+                                      ValueChanged="OnCategoryChanged"
+                                      Label="@Localizer["Tenants.Audit.Filter.Category"]"
+                                      data-testid="tenants-audit-filter-category"
+                                      aria-label="@Localizer["Tenants.Audit.Filter.Category"]">
+                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Audit.Filter.Category.All"]</FluentOption>
+                            <FluentOption TValue="string" Value="@AuditEventCategory.Access.ToString()">@Localizer["Tenants.Audit.Category.Access"]</FluentOption>
+                            <FluentOption TValue="string" Value="@AuditEventCategory.Administrative.ToString()">@Localizer["Tenants.Audit.Category.Administrative"]</FluentOption>
+                        </FluentSelect>
+                    </FluentGridItem>
+                    <FluentGridItem Xs="12" Md="6" Lg="3">
+                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" VerticalGap="12px" Wrap="true">
+                            <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-audit-refresh" OnClick="RefreshAsync">
+                                @Localizer["Tenants.Audit.Refresh"]
+                            </FluentButton>
+                            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-reset" OnClick="ResetFiltersAsync">
+                                @Localizer["Tenants.Audit.Reset"]
+                            </FluentButton>
+                        </FluentStack>
+                    </FluentGridItem>
+                </FluentGrid>
             </section>
         </FluentAccordionItem>
 
@@ -114,16 +131,19 @@
                                       OnClose="CloseCorrectionAsync" />
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                    @Localizer["Tenants.Audit.Previous"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                    @Localizer["Tenants.Audit.Next"]
-                </FluentButton>
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                        @Localizer["Tenants.Audit.Previous"]
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-audit-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                        @Localizer["Tenants.Audit.Next"]
+                    </FluentButton>
+                </FluentStack>
             </nav>
         </section>
     }
-</main>
+    </FluentStack>
+</FcPageLayout>
 
 @code {
     private const string FocusModulePath = "./js/tenantsFocus.js";

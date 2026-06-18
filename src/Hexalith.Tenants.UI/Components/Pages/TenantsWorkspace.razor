@@ -6,7 +6,8 @@
 
 <PageTitle>@Localizer["Tenants.List.Title"]</PageTitle>
 
-<main class="tenants-workspace" data-testid="tenants-workspace">
+<FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="tenants-workspace" data-testid="tenants-workspace">
     <header class="tenants-workspace__header">
         <p class="tenants-workspace__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
         <h1 id="tenants-list-heading" tabindex="-1" @ref="_headingElement">@Localizer["Tenants.List.Title"]</h1>
@@ -19,30 +20,34 @@
     </header>
 
     <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
-        <div class="tenants-workspace__filters">
-        <FluentTextInput TextInputType="TextInputType.Search"
-                         Value="@_search"
-                         ValueChanged="OnSearchChanged"
-                         Label="@Localizer["Tenants.List.SearchLabel"]"
-                         Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
-                         data-testid="tenants-list-search"
-                         aria-label="@Localizer["Tenants.List.SearchLabel"]" />
-        <FluentSelect TOption="string" TValue="string"
-                      Value="@_statusFilter"
-                      ValueChanged="OnStatusFilterChanged"
-                      Label="@Localizer["Tenants.List.StatusFilterLabel"]"
-                      data-testid="tenants-list-status-filter"
-                      aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
-            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
-            <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
-            <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
-            <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
-        </FluentSelect>
+        <FluentGrid Class="tenants-workspace__filters" Spacing="3">
+            <FluentGridItem Xs="12" Md="6" Lg="4">
+                <FluentTextInput TextInputType="TextInputType.Search"
+                                 Value="@_search"
+                                 ValueChanged="OnSearchChanged"
+                                 Label="@Localizer["Tenants.List.SearchLabel"]"
+                                 Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                                 data-testid="tenants-list-search"
+                                 aria-label="@Localizer["Tenants.List.SearchLabel"]" />
+            </FluentGridItem>
+            <FluentGridItem Xs="12" Md="6" Lg="4">
+                <FluentSelect TOption="string" TValue="string"
+                              Value="@_statusFilter"
+                              ValueChanged="OnStatusFilterChanged"
+                              Label="@Localizer["Tenants.List.StatusFilterLabel"]"
+                              data-testid="tenants-list-status-filter"
+                              aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+                    <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
+                    <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
+                    <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
+                    <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
+                </FluentSelect>
+            </FluentGridItem>
         @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
            (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
-        </div>
+        </FluentGrid>
 
-        <div class="tenants-workspace__actions">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" VerticalGap="12px" Wrap="true" Class="tenants-workspace__actions">
             <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
                 @Localizer["Tenants.List.Refresh"]
             </FluentButton>
@@ -60,7 +65,7 @@
                                 data-testid="tenants-user-lookup-link">
                 @Localizer["Tenants.UserLookup.Link"]
             </FluentAnchorButton>
-        </div>
+        </FluentStack>
     </section>
 
     <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
@@ -106,15 +111,18 @@
         <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
 
         <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
-            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                @Localizer["Tenants.List.Previous"]
-            </FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                @Localizer["Tenants.List.Next"]
-            </FluentButton>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                    @Localizer["Tenants.List.Previous"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                    @Localizer["Tenants.List.Next"]
+                </FluentButton>
+            </FluentStack>
         </nav>
     }
-</main>
+    </FluentStack>
+</FcPageLayout>
 
 @code {
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();

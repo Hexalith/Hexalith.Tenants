@@ -11,7 +11,8 @@
 
 <PageTitle>@Localizer["Tenants.Detail.Title"]</PageTitle>
 
-<main class="tenant-detail" data-testid="tenants-detail">
+<FcPageLayout Mode="FcPageLayoutMode.Constrained">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail" data-testid="tenants-detail">
     <a class="tenant-detail__back"
        href="@BackHref"
        data-testid="tenants-detail-back">
@@ -63,7 +64,10 @@
             </section>
         }
 
-        <section class="tenant-detail__summary" aria-label="@Localizer["Tenants.Detail.OverviewLabel"]">
+        <FluentStack Orientation="Orientation.Vertical"
+                     VerticalGap="16px"
+                     Class="tenant-detail__summary"
+                     aria-label="@Localizer["Tenants.Detail.OverviewLabel"]">
             <header class="tenant-detail__identity" data-testid="tenants-detail-identity">
                 <p class="tenant-detail__eyebrow">@Localizer["Tenants.Detail.IdentityLabel"]</p>
                 <h1>@Detail.Name</h1>
@@ -146,7 +150,7 @@
 
                 <FluentAccordionItem Header="@Localizer["Tenants.Detail.Members.Title"]"
                                      Expanded="true">
-                    <div class="tenant-detail__accordion-body">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail__accordion-body">
                         <section class="tenant-detail__section" data-testid="tenants-detail-member-summary">
                             <h2>@Localizer["Tenants.Detail.Members.Title"]</h2>
                             <p>@Localizer["Tenants.Detail.Members.Summary", Detail.Members.Count, OwnerCount(Detail)]</p>
@@ -161,12 +165,12 @@
                                             ProjectionEvidenceProvider="@GetAddMemberProjectionEvidenceAsync"
                                             ChangeRoleProjectionEvidenceProvider="@GetChangeRoleProjectionEvidenceAsync"
                                             RemoveMemberProjectionEvidenceProvider="@GetRemoveMemberProjectionEvidenceAsync" />
-                    </div>
+                    </FluentStack>
                 </FluentAccordionItem>
 
                 <FluentAccordionItem Header="@Localizer["Tenants.Detail.Configuration.Title"]"
                                      Expanded="true">
-                    <div class="tenant-detail__accordion-body">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail__accordion-body">
                         <section class="tenant-detail__section" data-testid="tenants-detail-configuration-summary">
                             <h2>@Localizer["Tenants.Detail.Configuration.Title"]</h2>
                             <p>@ConfigurationSummary(Detail)</p>
@@ -180,10 +184,10 @@
                                                  OnCommandActivityChanged="@SetCommandActivityAsync"
                                                  ProjectionEvidenceProvider="@GetSetConfigurationProjectionEvidenceAsync"
                                                  RemoveProjectionEvidenceProvider="@GetRemoveConfigurationProjectionEvidenceAsync" />
-                    </div>
+                    </FluentStack>
                 </FluentAccordionItem>
             </FluentAccordion>
-        </section>
+        </FluentStack>
     }
     else
     {
@@ -192,7 +196,8 @@
             <p>@Localizer["Tenants.Detail.State.Degraded.Message"]</p>
         </section>
     }
-</main>
+    </FluentStack>
+</FcPageLayout>
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();

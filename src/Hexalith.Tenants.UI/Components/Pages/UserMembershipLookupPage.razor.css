@@ -1,14 +1,7 @@
-.user-lookup-page {
-    display: grid;
-    gap: 1.5rem;
-    padding: 1.5rem;
-}
-
 .user-lookup-page__header,
 .user-lookup-page__sections,
 .user-lookup-page__status,
 .user-lookup-page__results {
-    display: grid;
     gap: 0.5rem;
 }
 
@@ -24,25 +17,12 @@
     margin: 0;
 }
 
-.user-lookup-page__form {
-    align-items: end;
-    display: grid;
-    gap: 0.75rem;
-    grid-template-columns: minmax(14rem, 1fr) repeat(4, max-content);
-    max-width: 80rem;
-}
-
-.user-lookup-page__form label,
 .user-lookup-page__sort {
     display: grid;
     gap: 0.25rem;
 }
 
-.user-lookup-page__form p {
-    grid-column: 1 / -1;
-}
-
-.user-lookup-page__form a {
+.user-lookup-page__form-actions a {
     align-self: center;
     color: LinkText;
 }
@@ -62,30 +42,12 @@
     max-width: 18rem;
 }
 
-.user-lookup-page__pager {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-}
-
-@media (max-width: 767px) {
-    .user-lookup-page__form {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-    .user-lookup-page__form {
-        grid-template-columns: minmax(14rem, 1fr) repeat(2, max-content);
-    }
-}
-
 @media (forced-colors: active) {
     .user-lookup-page__status {
         border-color: CanvasText;
     }
 
-    .user-lookup-page__form a:focus-visible,
+    .user-lookup-page__form-actions a:focus-visible,
     .user-lookup-page__status h2:focus-visible {
         outline-color: Highlight;
     }
