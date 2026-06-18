@@ -17,16 +17,9 @@
     gap: 0.5rem;
 }
 
-.global-admins__eyebrow,
-.global-admins h1,
 .global-admins h2,
 .global-admins p {
     margin: 0;
-}
-
-.global-admins__eyebrow {
-    font-size: 0.875rem;
-    font-weight: 600;
 }
 
 .global-admins__scope,

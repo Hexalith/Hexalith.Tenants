@@ -3,8 +3,6 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 
-<PageTitle>@Localizer["Tenants.MyTenants.Title"]</PageTitle>
-
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" Class="my-tenants-page" data-testid="tenants-my-page">
     <FluentStack Orientation="Orientation.Horizontal" Class="my-tenants-page__breadcrumb">
@@ -15,11 +13,11 @@
         </FluentAnchorButton>
     </FluentStack>
 
-    <header class="my-tenants-page__header">
-        <p class="my-tenants-page__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
-        <h1>@Localizer["Tenants.MyTenants.Title"]</h1>
-        <p class="my-tenants-page__description">@Localizer["Tenants.MyTenants.Description"]</p>
-    </header>
+    <FcPageHeader PageTitle="@Localizer["Tenants.MyTenants.Title"]"
+                  Heading="@Localizer["Tenants.MyTenants.Title"]"
+                  Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
+                  Description="@Localizer["Tenants.MyTenants.Description"]"
+                  TestId="tenants-my-page-header" />
 
     <FluentStack Orientation="Orientation.Horizontal"
                  HorizontalAlignment="HorizontalAlignment.SpaceBetween"
@@ -69,7 +67,7 @@
         <MyTenantsDataGrid Rows="@_snapshot.Rows" />
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
                 <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.MyTenants.Previous"]
                 </FluentButton>

@@ -9,8 +9,6 @@
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
 
-<PageTitle>@Localizer["Tenants.Detail.Title"]</PageTitle>
-
 <FcPageLayout Mode="FcPageLayoutMode.Constrained">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail" data-testid="tenants-detail">
     <a class="tenant-detail__back"
@@ -22,29 +20,37 @@
     @if (_snapshot.Kind is TenantDetailSurfaceKind.Loading)
     {
         <section class="tenant-detail__state" role="status" data-testid="tenants-detail-loading">
-            <h1>@Localizer["Tenants.Detail.State.Loading.Title"]</h1>
-            <p>@Localizer["Tenants.Detail.State.Loading.Message"]</p>
+            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
+                          Heading="@Localizer["Tenants.Detail.State.Loading.Title"]"
+                          Description="@Localizer["Tenants.Detail.State.Loading.Message"]"
+                          TestId="tenants-detail-state-header" />
         </section>
     }
     else if (_snapshot.Kind is TenantDetailSurfaceKind.Unauthorized)
     {
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-unauthorized">
-            <h1>@Localizer["Tenants.Detail.State.Unauthorized.Title"]</h1>
-            <p>@Localizer["Tenants.Detail.State.Unauthorized.Message"]</p>
+            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
+                          Heading="@Localizer["Tenants.Detail.State.Unauthorized.Title"]"
+                          Description="@Localizer["Tenants.Detail.State.Unauthorized.Message"]"
+                          TestId="tenants-detail-state-header" />
         </section>
     }
     else if (_snapshot.Kind is TenantDetailSurfaceKind.NotFound)
     {
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
-            <h1>@Localizer["Tenants.Detail.State.NotFound.Title"]</h1>
-            <p>@Localizer["Tenants.Detail.State.NotFound.Message"]</p>
+            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
+                          Heading="@Localizer["Tenants.Detail.State.NotFound.Title"]"
+                          Description="@Localizer["Tenants.Detail.State.NotFound.Message"]"
+                          TestId="tenants-detail-state-header" />
         </section>
     }
     else if (_snapshot.Kind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
     {
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
-            <h1>@Localizer["Tenants.Detail.State.Unavailable.Title"]</h1>
-            <p>@Localizer["Tenants.Detail.State.Unavailable.Message"]</p>
+            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
+                          Heading="@Localizer["Tenants.Detail.State.Unavailable.Title"]"
+                          Description="@Localizer["Tenants.Detail.State.Unavailable.Message"]"
+                          TestId="tenants-detail-state-header" />
         </section>
     }
     else if (_snapshot.Detail is not null)
@@ -68,9 +74,14 @@
                      VerticalGap="16px"
                      Class="tenant-detail__summary"
                      aria-label="@Localizer["Tenants.Detail.OverviewLabel"]">
-            <header class="tenant-detail__identity" data-testid="tenants-detail-identity">
-                <p class="tenant-detail__eyebrow">@Localizer["Tenants.Detail.IdentityLabel"]</p>
-                <h1>@Detail.Name</h1>
+            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
+                          Heading="@Detail.Name"
+                          Eyebrow="@Localizer["Tenants.Detail.IdentityLabel"]"
+                          Description="@(string.IsNullOrWhiteSpace(Detail.Description) ? null : Detail.Description)"
+                          HeadingId="tenants-detail-identity"
+                          Class="tenant-detail__identity"
+                          TestId="tenants-detail-identity">
+                <Metadata>
                 <div class="tenant-detail__literal-row">
                     <p class="tenant-detail__literal" aria-label="@Localizer["Tenants.Detail.FullTenantIdLabel", Detail.TenantId]">@Detail.TenantId</p>
                     <SupportSafeCopyButton Value="@Detail.TenantId"
@@ -78,10 +89,6 @@
                                            AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", Detail.TenantId]"
                                            TestId="tenants-detail-copy-reference" />
                 </div>
-                @if (!string.IsNullOrWhiteSpace(Detail.Description))
-                {
-                    <p>@Detail.Description</p>
-                }
                 <AuditEvidenceEntryPoint TenantId="@Detail.TenantId"
                                          SourceKind="tenant-detail"
                                          SourceTestId="tenants-detail-audit-entrypoint"
@@ -89,7 +96,8 @@
                                          AccessibleName="@Localizer["Tenants.Detail.AuditAccessibleLabel", Detail.TenantId]"
                                          ReturnUrl="@DetailReturnUrl"
                                          ReturnFocus="tenants-detail-identity" />
-            </header>
+                </Metadata>
+            </FcPageHeader>
 
             <dl class="tenant-detail__facts">
                 <div>
@@ -192,8 +200,10 @@
     else
     {
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-degraded">
-            <h1>@Localizer["Tenants.Detail.State.Degraded.Title"]</h1>
-            <p>@Localizer["Tenants.Detail.State.Degraded.Message"]</p>
+            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
+                          Heading="@Localizer["Tenants.Detail.State.Degraded.Title"]"
+                          Description="@Localizer["Tenants.Detail.State.Degraded.Message"]"
+                          TestId="tenants-detail-state-header" />
         </section>
     }
     </FluentStack>

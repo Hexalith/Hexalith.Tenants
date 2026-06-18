@@ -56,12 +56,23 @@ public sealed class DomainUiFluentConformanceTests
         "<main(\\s|>)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    private static readonly Regex PageRootLayoutSelector = new(
-        "^\\s*\\.(tenants-workspace|tenant-detail|my-tenants-page|user-lookup-page|global-admins|tenant-audit)\\s*\\{(?<body>.*?)\\}",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline);
+    private static readonly Regex DirectPageTitle = new(
+        "<PageTitle(\\s|>)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex DirectRouteHeading = new(
+        "<h1(\\s|>)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // The page-root layout classes are derived per-file from each page's outer Class="..." attribute
+    // (see Domain_page_css_does_not_own_page_root_layout) so a newly added page is covered automatically
+    // instead of relying on a hardcoded class allowlist that silently drifts.
+    private static readonly Regex PageRootClassAttribute = new(
+        "Class=\"([a-zA-Z][\\w-]*)\"",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex PageRootLayoutDeclaration = new(
-        "\\b(display\\s*:\\s*grid|grid-template(?:-columns|-rows)?\\s*:|padding\\s*:|max-width\\s*:)",
+        "\\b(display\\s*:\\s*grid|grid-template(?:-columns|-rows)?\\s*:|padding(?:-inline|-block)?(?:-start|-end)?\\s*:|max-width\\s*:|max-inline-size\\s*:|inline-size\\s*:|block-size\\s*:)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     [Fact]
@@ -202,8 +213,61 @@ public sealed class DomainUiFluentConformanceTests
             }
         }
 
+        // Catch a newly added route page that declares no FcPageLayout measure at all (the explicit
+        // expectations above only cover the known pages).
+        foreach (string razorFile in Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly))
+        {
+            string content = File.ReadAllText(razorFile);
+            if (content.Contains("@page", StringComparison.Ordinal)
+                && !content.Contains("<FcPageLayout", StringComparison.Ordinal))
+            {
+                offenders.Add($"{Path.GetFileName(razorFile)} is a route page but declares no FcPageLayout measure");
+            }
+        }
+
         offenders.ShouldBeEmpty(
             "Tenants pages must declare FC-LYT measure through FcPageLayout instead of local page-layout wrappers. "
+            + string.Join("; ", offenders));
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_route_pages_declare_frontcomposer_page_headers()
+    {
+        string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
+        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly);
+
+        razorFiles.ShouldNotBeEmpty();
+
+        List<string> offenders = [];
+        foreach (string file in razorFiles)
+        {
+            string content = File.ReadAllText(file);
+            if (!content.Contains("@page", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string fileName = Path.GetFileName(file);
+            if (!content.Contains("<FcPageHeader", StringComparison.Ordinal))
+            {
+                offenders.Add($"{fileName} must declare route title/header through FcPageHeader");
+            }
+
+            if (DirectPageTitle.IsMatch(content))
+            {
+                offenders.Add($"{fileName} declares PageTitle directly");
+            }
+
+            if (DirectRouteHeading.IsMatch(content))
+            {
+                offenders.Add($"{fileName} declares raw route-level h1 heading markup");
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "Route-level browser titles and visible page headers belong to FrontComposer FcPageHeader. "
+            + "Tenants pages supply localized strings/fragments only: "
             + string.Join("; ", offenders));
     }
 
@@ -237,18 +301,35 @@ public sealed class DomainUiFluentConformanceTests
     {
         string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
         string[] cssFiles = Directory.GetFiles(pagesRoot, "*.razor.css", SearchOption.TopDirectoryOnly);
+        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly);
 
         cssFiles.ShouldNotBeEmpty();
+
+        // Derive the monitored page-root class names from each page's outer Class="..." so a newly
+        // added page (with a new root class) is covered without editing this guard.
+        HashSet<string> rootClasses = [];
+        foreach (string razorFile in razorFiles)
+        {
+            Match classMatch = PageRootClassAttribute.Match(File.ReadAllText(razorFile));
+            if (classMatch.Success)
+            {
+                rootClasses.Add(classMatch.Groups[1].Value);
+            }
+        }
+
+        rootClasses.ShouldNotBeEmpty("Expected to derive at least one page-root layout class from the page components.");
+
+        Regex pageRootSelector = new(
+            "^\\s*\\.(" + string.Join("|", rootClasses.Select(Regex.Escape)) + ")\\s*\\{(?<body>.*?)\\}",
+            RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline);
 
         List<string> offenders = [];
         foreach (string file in cssFiles)
         {
             string content = CssComment.Replace(File.ReadAllText(file), string.Empty);
-            MatchCollection matches = PageRootLayoutSelector.Matches(content);
-            foreach (Match match in matches)
+            foreach (Match match in pageRootSelector.Matches(content))
             {
-                string body = match.Groups["body"].Value;
-                if (PageRootLayoutDeclaration.IsMatch(body))
+                if (PageRootLayoutDeclaration.IsMatch(match.Groups["body"].Value))
                 {
                     offenders.Add($"{Path.GetFileName(file)} ({match.Groups[1].Value})");
                 }
@@ -257,7 +338,7 @@ public sealed class DomainUiFluentConformanceTests
 
         offenders.ShouldBeEmpty(
             "Page-root layout belongs to FrontComposer/Fluent primitives. Page CSS may keep component-specific "
-            + $"exceptions, but must not set root display/grid/padding/max-width: {string.Join("; ", offenders)}");
+            + $"exceptions, but must not set root display/grid/padding/max-width (incl. logical properties): {string.Join("; ", offenders)}");
     }
 
     [Fact]

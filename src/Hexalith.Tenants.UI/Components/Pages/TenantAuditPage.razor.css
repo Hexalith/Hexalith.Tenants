@@ -1,15 +1,7 @@
-.tenant-audit__header,
 .tenant-audit__support,
 .tenant-audit__grid-shell {
     display: grid;
     gap: 0.75rem;
-}
-
-.tenant-audit__eyebrow {
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin: 0;
-    text-transform: uppercase;
 }
 
 .tenant-audit__context,
@@ -44,7 +36,7 @@
 }
 
 .tenant-audit__state:focus-visible,
-.tenant-audit__header a:focus-visible {
+.tenant-audit__back:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }

@@ -9,18 +9,19 @@
 @inject ITenantQueryGateway QueryGateway
 @inject IJSRuntime JS
 
-<PageTitle>@Localizer["Tenants.Audit.Title", TenantId]</PageTitle>
-
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical"
                  VerticalGap="16px"
                  Class="tenant-audit"
                  data-testid="tenants-audit-surface"
                  aria-labelledby="tenant-audit-heading">
-    <header class="tenant-audit__header">
-        <p class="tenant-audit__eyebrow">@Localizer["Tenants.Audit.Eyebrow"]</p>
-        <h1 id="tenant-audit-heading">@Localizer["Tenants.Audit.Title", TenantId]</h1>
-        <p>@Localizer["Tenants.Audit.Description"]</p>
+    <FcPageHeader PageTitle="@Localizer["Tenants.Audit.Title", TenantId]"
+                  Heading="@Localizer["Tenants.Audit.Title", TenantId]"
+                  HeadingId="tenant-audit-heading"
+                  Eyebrow="@Localizer["Tenants.Audit.Eyebrow"]"
+                  Description="@Localizer["Tenants.Audit.Description"]"
+                  TestId="tenants-audit-page-header">
+        <Metadata>
         @if (HasContext)
         {
             <p class="tenant-audit__context"
@@ -35,8 +36,11 @@
                 @Localizer["Tenants.Audit.ReturnContext", ReturnFocus]
             </p>
         }
-        <a href="@BackHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
-    </header>
+        </Metadata>
+        <Actions>
+            <a class="tenant-audit__back" href="@BackHref" data-testid="tenants-audit-back">@Localizer["Tenants.Audit.Back"]</a>
+        </Actions>
+    </FcPageHeader>
 
     <FluentAccordion Class="tenant-audit__support"
                      ExpandMode="AccordionExpandMode.Multi"

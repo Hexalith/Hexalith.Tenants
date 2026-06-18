@@ -4,20 +4,24 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 
-<PageTitle>@Localizer["Tenants.List.Title"]</PageTitle>
-
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="tenants-workspace" data-testid="tenants-workspace">
-    <header class="tenants-workspace__header">
-        <p class="tenants-workspace__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
-        <h1 id="tenants-list-heading" tabindex="-1" @ref="_headingElement">@Localizer["Tenants.List.Title"]</h1>
-        @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
-        {
-            <p class="tenants-workspace__return-context" data-testid="tenants-list-return-context">
-                @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
-            </p>
-        }
-    </header>
+    <FcPageHeader @ref="_pageHeader"
+                  PageTitle="@Localizer["Tenants.List.Title"]"
+                  Heading="@Localizer["Tenants.List.Title"]"
+                  HeadingId="tenants-list-heading"
+                  HeadingTabIndex="-1"
+                  Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
+                  TestId="tenants-list-page-header">
+        <Metadata>
+            @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
+            {
+                <p class="tenants-workspace__return-context" data-testid="tenants-list-return-context">
+                    @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
+                </p>
+            }
+        </Metadata>
+    </FcPageHeader>
 
     <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
         <FluentGrid Class="tenants-workspace__filters" Spacing="3">
@@ -111,7 +115,7 @@
         <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
 
         <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
                 <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.List.Previous"]
                 </FluentButton>
@@ -135,7 +139,7 @@
     private bool _sortDescending;
     private string? _selectedTenantId;
     private string? _returnAnchor;
-    private ElementReference _headingElement;
+    private FcPageHeader _pageHeader = default!;
     private bool _focusHeadingPending;
 
     [Parameter]
@@ -186,7 +190,7 @@
         if (_focusHeadingPending)
         {
             _focusHeadingPending = false;
-            await _headingElement.FocusAsync().ConfigureAwait(false);
+            await _pageHeader.FocusHeadingAsync().ConfigureAwait(false);
         }
     }
 

@@ -4,15 +4,13 @@
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
 
-<PageTitle>@Localizer["Tenants.UserLookup.Title"]</PageTitle>
-
 <FcPageLayout Mode="FcPageLayoutMode.Constrained">
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="user-lookup-page" data-testid="tenants-user-lookup">
-    <header class="user-lookup-page__header">
-        <p class="user-lookup-page__eyebrow">@Localizer["Tenants.Workspace.Eyebrow"]</p>
-        <h1>@Localizer["Tenants.UserLookup.Title"]</h1>
-        <p>@Localizer["Tenants.UserLookup.Description"]</p>
-    </header>
+    <FcPageHeader PageTitle="@Localizer["Tenants.UserLookup.Title"]"
+                  Heading="@Localizer["Tenants.UserLookup.Title"]"
+                  Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
+                  Description="@Localizer["Tenants.UserLookup.Description"]"
+                  TestId="tenants-user-lookup-page-header" />
 
     <FluentAccordion Class="user-lookup-page__sections"
                      ExpandMode="AccordionExpandMode.Multi"

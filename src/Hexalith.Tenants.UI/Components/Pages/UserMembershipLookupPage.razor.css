@@ -1,17 +1,9 @@
-.user-lookup-page__header,
 .user-lookup-page__sections,
 .user-lookup-page__status,
 .user-lookup-page__results {
     gap: 0.5rem;
 }
 
-.user-lookup-page__eyebrow {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin: 0;
-}
-
-.user-lookup-page h1,
 .user-lookup-page h2,
 .user-lookup-page p {
     margin: 0;

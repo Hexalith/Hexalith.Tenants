@@ -4,19 +4,18 @@
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantCommandGateway CommandGateway
 
-<PageTitle>@PageTitleText</PageTitle>
-
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
     <FluentStack Orientation="Orientation.Vertical"
                  VerticalGap="20px"
                  Class="global-admins"
                  data-testid="tenants-global-admins-area"
                  aria-labelledby="global-admins-heading">
-    <header class="global-admins__header">
-        <p class="global-admins__eyebrow">@Localizer["Tenants.GlobalAdministrators.Eyebrow"]</p>
-        <h1 id="global-admins-heading">@PageTitleText</h1>
-        <p>@Localizer["Tenants.GlobalAdministrators.Description"]</p>
-    </header>
+    <FcPageHeader PageTitle="@PageTitleText"
+                  Heading="@PageTitleText"
+                  HeadingId="global-admins-heading"
+                  Eyebrow="@Localizer["Tenants.GlobalAdministrators.Eyebrow"]"
+                  Description="@Localizer["Tenants.GlobalAdministrators.Description"]"
+                  TestId="tenants-global-admins-page-header" />
 
     <FluentAccordion Class="global-admins__sections"
                      ExpandMode="AccordionExpandMode.Multi"

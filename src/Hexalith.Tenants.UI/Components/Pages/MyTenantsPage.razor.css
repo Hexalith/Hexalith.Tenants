@@ -1,17 +1,6 @@
-.my-tenants-page__eyebrow {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin: 0;
-}
-
-.my-tenants-page h1,
 .my-tenants-page h2,
 .my-tenants-page p {
     margin: 0;
-}
-
-.my-tenants-page__description {
-    max-width: 48rem;
 }
 
 /* Summary text takes the leading space; the Refresh action stays on the trailing edge. */
