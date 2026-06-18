@@ -48,7 +48,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
 
         AngleSharp.Dom.IElement link = cut.Find("[data-testid='tenants-audit-entrypoint']");
 
-        link.TagName.ShouldBe("A");
+        link.TagName.ShouldBe("FLUENT-ANCHOR-BUTTON");
         RequiredAttribute(link, "data-testid").ShouldContain("tenants-audit-entrypoint");
         string href = RequiredAttribute(EntryPointFromMarker(cut, "tenants-member-audit-entrypoint"), "href");
         href.ShouldContain("/tenants/tenant.alpha/audit?");
@@ -98,8 +98,8 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
 
         AngleSharp.Dom.IElement entryPoint = cut.Find("[data-testid='tenants-audit-entrypoint']");
 
-        entryPoint.TagName.ShouldBe("SPAN");
-        entryPoint.GetAttribute("aria-disabled").ShouldBe("true");
+        entryPoint.TagName.ShouldBe("FLUENT-BUTTON");
+        entryPoint.HasAttribute("disabled").ShouldBeTrue();
         entryPoint.TextContent.ShouldContain("Tenant scope is required before audit evidence can be opened.");
         cut.FindAll("a").ShouldBeEmpty();
     }
@@ -277,7 +277,10 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     }
 
     private void RegisterLocalizer()
-        => Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+    {
+        Services.AddFluentUIComponents();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+    }
 
     private static TenantDetail Detail(string tenantId)
         => new(

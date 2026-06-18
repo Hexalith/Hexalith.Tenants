@@ -8,17 +8,10 @@
 }
 
 .support-safe-copy__button {
-    align-items: center;
-    border: 1px solid CanvasText;
-    border-radius: 6px;
-    display: inline-flex;
-    gap: 0.25rem;
     inline-size: 2.35rem;
-    justify-content: center;
     min-block-size: 2rem;
     min-inline-size: 2.35rem;
     overflow: hidden;
-    padding: 0.2rem;
 }
 
 .support-safe-copy__text {
@@ -37,28 +30,6 @@
     overflow-wrap: anywhere;
 }
 
-.support-safe-copy__button--copied,
-.support-safe-copy__feedback--copied {
-    color: #0f6c2f;
-}
-
-.support-safe-copy__button--empty,
-.support-safe-copy__button--unsafe,
-.support-safe-copy__button--unavailable,
-.support-safe-copy__button--insecure,
-.support-safe-copy__button--permission,
-.support-safe-copy__button--disconnected,
-.support-safe-copy__button--failed,
-.support-safe-copy__feedback--empty,
-.support-safe-copy__feedback--unsafe,
-.support-safe-copy__feedback--unavailable,
-.support-safe-copy__feedback--insecure,
-.support-safe-copy__feedback--permission,
-.support-safe-copy__feedback--disconnected,
-.support-safe-copy__feedback--failed {
-    color: #6f1d1b;
-}
-
 .support-safe-copy__button:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
@@ -66,21 +37,7 @@
 
 @media (forced-colors: active) {
     .support-safe-copy__button {
-        border-color: ButtonText;
-        color: ButtonText;
         forced-color-adjust: auto;
-    }
-
-    .support-safe-copy__button--copied,
-    .support-safe-copy__button--empty,
-    .support-safe-copy__button--unsafe,
-    .support-safe-copy__button--unavailable,
-    .support-safe-copy__button--insecure,
-    .support-safe-copy__button--permission,
-    .support-safe-copy__button--disconnected,
-    .support-safe-copy__button--failed,
-    .support-safe-copy__feedback {
-        color: CanvasText;
     }
 
     .support-safe-copy__button:focus-visible {

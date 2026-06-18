@@ -18,7 +18,10 @@
         </p>
     }
 
-    <form class="tenants-create-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <EditForm Model="@_formModel"
+              FormName="tenants-create-flow"
+              class="tenants-create-flow__form"
+              OnSubmit="SubmitAsync">
         <div class="tenants-create-flow__field">
             <FluentTextInput Id="tenants-create-tenant-id"
                              @ref="_tenantIdElement"
@@ -75,7 +78,7 @@
                 @Localizer["Tenants.Create.Refresh"]
             </FluentButton>
         </div>
-    </form>
+    </EditForm>
 
     <section class="tenants-create-flow__lifecycle"
              @ref="_lifecycleElement"
@@ -120,6 +123,7 @@
 </section>
 
 @code {
+    private readonly object _formModel = new();
     private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
     private string? _tenantId;
     private string? _name;

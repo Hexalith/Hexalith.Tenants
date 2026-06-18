@@ -24,7 +24,10 @@
         </p>
     }
 
-    <form class="tenants-add-member-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <EditForm Model="@_formModel"
+              FormName="tenants-add-member-flow"
+              class="tenants-add-member-flow__form"
+              OnSubmit="SubmitAsync">
         <div class="tenants-add-member-flow__field">
             <FluentTextInput Id="tenants-add-member-user-id"
                              @ref="_userIdElement"
@@ -78,7 +81,7 @@
                 @Localizer["Tenants.AddMember.Refresh"]
             </FluentButton>
         </div>
-    </form>
+    </EditForm>
 
     <section class="tenants-add-member-flow__lifecycle"
              @ref="_lifecycleElement"
@@ -131,6 +134,7 @@
         TenantRole.TenantReader,
     ];
 
+    private readonly object _formModel = new();
     private TenantAddMemberCommandSnapshot _snapshot = TenantAddMemberCommandSnapshot.Idle();
     private string? _userId;
     private string _roleValue = string.Empty;

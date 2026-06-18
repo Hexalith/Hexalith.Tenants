@@ -1,5 +1,5 @@
 .tenants-remove-member-flow {
-    border: 1px solid var(--neutral-stroke-rest, #8a8886);
+    border: 1px solid var(--neutral-stroke-rest, CanvasText);
     display: grid;
     gap: 1rem;
     margin-block: 1rem;
@@ -13,7 +13,7 @@
 }
 
 .tenants-remove-member-flow__preview {
-    border-inline-start: .25rem solid var(--accent-fill-rest, #0f6cbd);
+    border-inline-start: .25rem solid var(--accent-fill-rest, LinkText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
@@ -50,18 +50,10 @@
     gap: .35rem;
 }
 
-.tenants-remove-member-flow__form input {
-    max-inline-size: 28rem;
-}
-
 .tenants-remove-member-flow__actions {
     display: flex;
     flex-wrap: wrap;
     gap: .5rem;
-}
-
-.tenants-remove-member-flow__confirm {
-    border: 2px solid var(--error-fill-rest, #c50f1f);
 }
 
 .tenants-remove-member-flow__unavailable,
@@ -79,22 +71,6 @@
     font-weight: 700;
 }
 
-.tenants-remove-member-flow__state--confirmed,
-.tenants-remove-member-flow__state--alreadyapplied {
-    color: #107c10;
-}
-
-.tenants-remove-member-flow__state--rejected,
-.tenants-remove-member-flow__state--failed,
-.tenants-remove-member-flow__state--duplicateprevented {
-    color: #c50f1f;
-}
-
-.tenants-remove-member-flow__state--degraded,
-.tenants-remove-member-flow__state--unabletoverify {
-    color: #8a6a00;
-}
-
 .tenants-remove-member-flow__live {
     block-size: 1px;
     inline-size: 1px;
@@ -104,7 +80,7 @@
 }
 
 .tenants-remove-member-flow :focus-visible {
-    outline: 3px solid var(--focus-stroke-outer, #000);
+    outline: 3px solid var(--focus-stroke-outer, Highlight);
     outline-offset: 2px;
 }
 
@@ -115,12 +91,7 @@
 }
 
 @media (forced-colors: active) {
-    .tenants-remove-member-flow,
-    .tenants-remove-member-flow__confirm {
+    .tenants-remove-member-flow {
         border-color: CanvasText;
-    }
-
-    .tenants-remove-member-flow__state {
-        color: CanvasText;
     }
 }

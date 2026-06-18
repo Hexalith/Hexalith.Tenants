@@ -65,7 +65,10 @@
         <span>@GlobalAdministratorRiskText</span>
     </p>
 
-    <form class="tenants-remove-member-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <EditForm Model="@_formModel"
+              FormName="tenants-remove-member-flow"
+              class="tenants-remove-member-flow__form"
+              OnSubmit="SubmitAsync">
         <div class="tenants-remove-member-flow__field">
             <FluentTextInput Id="tenants-remove-member-confirmation"
                              @ref="_confirmationElement"
@@ -107,7 +110,7 @@
                 @Localizer["Tenants.RemoveMember.Cancel"]
             </FluentButton>
         </div>
-    </form>
+    </EditForm>
 
     <section class="tenants-remove-member-flow__lifecycle"
              @ref="_lifecycleElement"
@@ -154,6 +157,7 @@
 </section>
 
 @code {
+    private readonly object _formModel = new();
     private TenantRemoveMemberCommandSnapshot _snapshot = TenantRemoveMemberCommandSnapshot.Idle();
     private string? _confirmationText;
     private string? _validationMessage;

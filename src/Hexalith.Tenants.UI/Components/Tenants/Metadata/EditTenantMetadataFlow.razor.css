@@ -1,7 +1,7 @@
 .tenants-edit-metadata {
     display: grid;
     gap: 1rem;
-    border-block: 1px solid var(--neutral-stroke-rest, #d1d1d1);
+    border-block: 1px solid var(--neutral-stroke-rest, CanvasText);
     padding-block: 1rem;
 }
 
@@ -26,19 +26,9 @@
     gap: .25rem;
 }
 
-.tenants-edit-metadata__form input,
-.tenants-edit-metadata__form textarea {
-    max-width: 42rem;
-    width: 100%;
-}
-
-.tenants-edit-metadata__form textarea {
-    min-height: 6rem;
-}
-
 .tenants-edit-metadata__unavailable,
 .tenants-edit-metadata__validation {
-    border-inline-start: .25rem solid var(--error, #b10e1e);
+    border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
     margin: 0;
     padding-inline-start: .75rem;
 }
@@ -55,11 +45,8 @@
     margin: 0;
 }
 
-.tenants-edit-metadata button:focus-visible,
-.tenants-edit-metadata input:focus-visible,
-.tenants-edit-metadata textarea:focus-visible,
 .tenants-edit-metadata__lifecycle:focus-visible {
-    outline: .125rem solid var(--focus-stroke-outer, #000);
+    outline: .125rem solid var(--focus-stroke-outer, Highlight);
     outline-offset: .125rem;
 }
 
@@ -78,9 +65,6 @@
         padding-inline-start: .75rem;
     }
 
-    .tenants-edit-metadata button:focus-visible,
-    .tenants-edit-metadata input:focus-visible,
-    .tenants-edit-metadata textarea:focus-visible,
     .tenants-edit-metadata__lifecycle:focus-visible {
         outline-color: Highlight;
     }

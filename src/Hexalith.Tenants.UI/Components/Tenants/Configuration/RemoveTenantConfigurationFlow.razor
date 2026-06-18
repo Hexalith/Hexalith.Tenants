@@ -39,9 +39,10 @@
         </p>
     }
 
-    <form class="tenants-config-remove__form"
-          @onsubmit="SubmitAsync"
-          @onsubmit:preventDefault="true">
+    <EditForm Model="@_formModel"
+              FormName="tenants-config-remove-flow"
+              class="tenants-config-remove__form"
+              OnSubmit="SubmitAsync">
         @if (IsPreviewComplete)
         {
             <section class="tenants-config-remove__preview"
@@ -113,7 +114,7 @@
                 </FluentButton>
             </span>
         </div>
-    </form>
+    </EditForm>
 
     <section class="tenants-config-remove__lifecycle"
              @ref="_lifecycleElement"
@@ -164,6 +165,7 @@
 </section>
 
 @code {
+    private readonly object _formModel = new();
     private TenantRemoveConfigurationCommandSnapshot _snapshot = TenantRemoveConfigurationCommandSnapshot.Idle();
     private string? _confirmationText;
     private string? _validationMessage;

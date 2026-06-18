@@ -45,10 +45,11 @@
 
     @if (_isOpen)
     {
-        <form id="tenants-config-set-editor"
-              class="tenants-config-set__form"
-              @onsubmit="SubmitAsync"
-              @onsubmit:preventDefault="true">
+        <EditForm Model="@_formModel"
+                  FormName="tenants-config-set-editor"
+                  id="tenants-config-set-editor"
+                  class="tenants-config-set__form"
+                  OnSubmit="SubmitAsync">
             <div class="tenants-config-set__field">
                 <FluentTextInput Id="tenants-config-set-namespace"
                                  @ref="_namespaceElement"
@@ -141,7 +142,7 @@
                     @Localizer["Tenants.Configuration.Set.Cancel"]
                 </FluentButton>
             </div>
-        </form>
+        </EditForm>
     }
 
     <section class="tenants-config-set__lifecycle"
@@ -191,6 +192,7 @@
     private const int MaxConfigurationKeyLength = 256;
     private const int MaxConfigurationValueLength = 1024;
 
+    private readonly object _formModel = new();
     private TenantSetConfigurationCommandSnapshot _snapshot = TenantSetConfigurationCommandSnapshot.Idle();
     private string? _namespace;
     private string? _key;

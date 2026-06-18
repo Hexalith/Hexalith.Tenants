@@ -24,7 +24,7 @@
     grid-template-columns: 1fr;
 }
 
-/* Each field owns a vertical stack so the input and its hint never flow inline
+/* Each field owns a vertical stack so the field and its hint never flow inline
    next to a sibling field (previously the hint's first word detached and read
    like a stray column header). */
 .tenants-create-flow__field {
@@ -56,16 +56,6 @@
     .tenants-create-flow__actions {
         grid-column: 1 / -1;
     }
-}
-
-.tenants-create-flow__form input,
-.tenants-create-flow__form textarea,
-.tenants-create-flow__actions button {
-    min-height: 2.25rem;
-}
-
-.tenants-create-flow__form textarea {
-    min-height: 5rem;
 }
 
 .tenants-create-flow__validation,
@@ -115,9 +105,7 @@
         border-color: CanvasText;
     }
 
-    .tenants-create-flow input:focus-visible,
-    .tenants-create-flow textarea:focus-visible,
-    .tenants-create-flow button:focus-visible {
+    .tenants-create-flow :focus-visible {
         outline: 2px solid Highlight;
         outline-offset: 3px;
     }

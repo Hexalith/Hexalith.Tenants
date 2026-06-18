@@ -58,15 +58,3 @@
     gap: 0.75rem;
     justify-content: flex-end;
 }
-
-.my-tenants-page__toolbar button,
-.my-tenants-page__pager button {
-    min-height: 2.25rem;
-}
-
-@media (forced-colors: active) {
-    .my-tenants-page__toolbar button:focus-visible,
-    .my-tenants-page__pager button:focus-visible {
-        outline-color: Highlight;
-    }
-}

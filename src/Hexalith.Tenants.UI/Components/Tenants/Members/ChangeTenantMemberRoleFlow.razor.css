@@ -51,11 +51,6 @@
     min-width: 0;
 }
 
-.tenants-change-role-flow__form select {
-    inline-size: 100%;
-    min-inline-size: 0;
-}
-
 .tenants-change-role-flow__actions {
     align-items: end;
     display: flex;
@@ -101,8 +96,7 @@
 }
 
 .tenants-change-role-flow__lifecycle:focus-visible,
-.tenants-change-role-flow button:focus-visible,
-.tenants-change-role-flow select:focus-visible {
+.tenants-change-role-flow :focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -130,8 +124,7 @@
     }
 
     .tenants-change-role-flow__lifecycle:focus-visible,
-    .tenants-change-role-flow button:focus-visible,
-    .tenants-change-role-flow select:focus-visible {
+    .tenants-change-role-flow :focus-visible {
         outline-color: Highlight;
     }
 }

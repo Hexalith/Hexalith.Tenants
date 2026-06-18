@@ -46,11 +46,6 @@
     grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
 
-.tenant-lifecycle-flow input,
-.tenant-lifecycle-flow button {
-    min-height: 2.25rem;
-}
-
 .tenant-lifecycle-flow__focus-sentinel {
     block-size: 1px;
     inline-size: 1px;
@@ -64,8 +59,7 @@
     overflow-wrap: anywhere;
 }
 
-.tenant-lifecycle-flow input:focus-visible,
-.tenant-lifecycle-flow button:focus-visible,
+.tenant-lifecycle-flow :focus-visible,
 .tenant-lifecycle-flow__lifecycle:focus-visible,
 .tenant-lifecycle-flow__focus-sentinel:focus-visible {
     outline: 2px solid Highlight;
@@ -87,8 +81,7 @@
         color: CanvasText;
     }
 
-    .tenant-lifecycle-flow input:focus-visible,
-    .tenant-lifecycle-flow button:focus-visible,
+    .tenant-lifecycle-flow :focus-visible,
     .tenant-lifecycle-flow__lifecycle:focus-visible,
     .tenant-lifecycle-flow__focus-sentinel:focus-visible {
         outline-color: Highlight;

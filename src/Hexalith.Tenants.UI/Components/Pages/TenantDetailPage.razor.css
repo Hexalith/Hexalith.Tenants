@@ -73,22 +73,7 @@
 }
 
 .tenant-detail__status {
-    align-items: center;
-    border: 1px solid CanvasText;
-    border-radius: 6px;
-    display: inline-flex;
-    gap: 0.35rem;
-    min-height: 1.75rem;
-    padding: 0.15rem 0.45rem;
-}
-
-.tenant-detail__status--active {
-    color: #0f6c2f;
-}
-
-.tenant-detail__status--disabled,
-.tenant-detail__status--unknown {
-    color: #414042;
+    white-space: nowrap;
 }
 
 .tenant-detail__back:focus-visible,
@@ -112,8 +97,7 @@
     .tenant-detail__identity,
     .tenant-detail__state,
     .tenant-detail__section,
-    .tenant-detail__facts div,
-    .tenant-detail__status {
+    .tenant-detail__facts div {
         border-color: CanvasText;
         color: CanvasText;
     }

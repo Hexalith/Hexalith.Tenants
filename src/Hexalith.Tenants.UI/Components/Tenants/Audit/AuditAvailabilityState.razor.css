@@ -36,8 +36,7 @@
     gap: 0.5rem;
 }
 
-.tenants-audit-availability__action,
-.tenants-audit-availability__action-shell :is(a, button, [role="link"]) {
+.tenants-audit-availability__action {
     min-height: 2.5rem;
 }
 

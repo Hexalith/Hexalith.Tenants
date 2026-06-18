@@ -53,10 +53,11 @@
 
     @if (_isOpen)
     {
-        <form id="tenants-edit-metadata-editor"
-              class="tenants-edit-metadata__form"
-              @onsubmit="SubmitAsync"
-              @onsubmit:preventDefault="true">
+        <EditForm Model="@_formModel"
+                  FormName="tenants-edit-metadata-editor"
+                  id="tenants-edit-metadata-editor"
+                  class="tenants-edit-metadata__form"
+                  OnSubmit="SubmitAsync">
             <div class="tenants-edit-metadata__field">
                 <FluentTextInput Id="tenants-edit-metadata-name"
                                  @ref="_nameElement"
@@ -110,7 +111,7 @@
                     @Localizer["Tenants.EditMetadata.Cancel"]
                 </FluentButton>
             </div>
-        </form>
+        </EditForm>
     }
 
     <section class="tenants-edit-metadata__lifecycle"
@@ -157,6 +158,7 @@
 </section>
 
 @code {
+    private readonly object _formModel = new();
     private TenantUpdateMetadataCommandSnapshot _snapshot = TenantUpdateMetadataCommandSnapshot.Idle();
     private string? _name;
     private string? _description;

@@ -18,10 +18,11 @@
                      Block="true">
         <FluentAccordionItem Header="@Localizer["Tenants.UserLookup.FormLabel"]"
                              Expanded="true">
-            <form class="user-lookup-page__form"
-                  aria-label="@Localizer["Tenants.UserLookup.FormLabel"]"
-                  @onsubmit="SubmitAsync"
-                  @onsubmit:preventDefault="true">
+            <EditForm Model="@_formModel"
+                      FormName="tenants-user-lookup"
+                      class="user-lookup-page__form"
+                      aria-label="@Localizer["Tenants.UserLookup.FormLabel"]"
+                      OnSubmit="SubmitAsync">
                 <div class="user-lookup-page__field">
                     <FluentTextInput @ref="_inputElement"
                                      Required="true"
@@ -42,7 +43,7 @@
                     @Localizer["Tenants.UserLookup.Refresh"]
                 </FluentButton>
                 <a href="/tenants" data-testid="tenants-user-lookup-back">@Localizer["Tenants.UserLookup.Back"]</a>
-            </form>
+            </EditForm>
         </FluentAccordionItem>
 
         <FluentAccordionItem Header="@StatusHeading"
@@ -157,6 +158,7 @@
 
 @code {
     private const int PageSize = 20;
+    private readonly object _formModel = new();
     private UserTenantMembershipSnapshot? _snapshot;
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;

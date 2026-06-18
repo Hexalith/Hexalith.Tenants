@@ -418,7 +418,8 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         styles.ShouldContain("@media (max-width: 767px)");
         styles.ShouldContain(":focus-visible");
         styles.ShouldContain("tenants-config-set__narrow");
-        styles.ShouldContain("tenants-config-set__state--alreadyapplied");
+        styles.ShouldContain("tenants-config-set__state");
+        styles.ShouldNotContain("tenants-config-set__state--alreadyapplied");
     }
 
     [Fact]

@@ -12,8 +12,7 @@
     overflow-wrap: anywhere;
 }
 
-.audit-data-grid__state,
-.audit-data-grid__category {
+.audit-data-grid__state {
     border: 1px solid CanvasText;
     border-radius: 6px;
     display: inline-block;
@@ -21,12 +20,8 @@
     padding: 0.15rem 0.4rem;
 }
 
-.audit-data-grid__category--access {
-    color: #005a9e;
-}
-
-.audit-data-grid__category--administrative {
-    color: #5c2d91;
+.audit-data-grid__category {
+    white-space: nowrap;
 }
 
 .audit-data-grid__reference {
@@ -83,7 +78,6 @@
 
 @media (forced-colors: active) {
     .audit-data-grid__state,
-    .audit-data-grid__category,
     .audit-data-grid__correction-reason {
         border-color: CanvasText;
         color: CanvasText;

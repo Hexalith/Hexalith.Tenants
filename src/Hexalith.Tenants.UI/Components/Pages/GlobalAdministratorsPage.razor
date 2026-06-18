@@ -74,10 +74,11 @@
             </p>
         }
 
-        <form class="global-admins__grant-form"
-              data-testid="tenants-global-admin-grant-form"
-              @onsubmit="SubmitGrantAsync"
-              @onsubmit:preventDefault="true">
+        <EditForm Model="@_grantFormModel"
+                  FormName="tenants-global-admin-grant"
+                  class="global-admins__grant-form"
+                  data-testid="tenants-global-admin-grant-form"
+                  OnSubmit="SubmitGrantAsync">
             <div class="global-admins__grant-field">
                 <FluentTextInput Id="tenants-global-admin-grant-user-id"
                                  @ref="_grantUserIdElement"
@@ -139,7 +140,7 @@
                     @Localizer["Tenants.GlobalAdministrators.Grant.Refresh"]
                 </FluentButton>
             </div>
-        </form>
+        </EditForm>
 
         <section class="global-admins__grant-lifecycle global-admins__grant-lifecycle--@GrantStateCss"
                  @ref="_grantLifecycleElement"
@@ -379,6 +380,7 @@
 
 @code {
     private const int PageSize = 20;
+    private readonly object _grantFormModel = new();
     private GlobalAdministratorsSnapshot _snapshot = GlobalAdministratorsSnapshot.Loading();
     private GlobalAdministratorGrantCommandSnapshot _grantSnapshot = GlobalAdministratorGrantCommandSnapshot.Idle();
     private GlobalAdministratorRemoveCommandSnapshot _removeSnapshot = GlobalAdministratorRemoveCommandSnapshot.Idle();

@@ -30,12 +30,6 @@
     min-width: 0;
 }
 
-.tenants-add-member-flow__form input,
-.tenants-add-member-flow__form select {
-    inline-size: 100%;
-    min-inline-size: 0;
-}
-
 .tenants-add-member-flow__actions {
     align-items: end;
     display: flex;
@@ -75,9 +69,7 @@
 }
 
 .tenants-add-member-flow__lifecycle:focus-visible,
-.tenants-add-member-flow button:focus-visible,
-.tenants-add-member-flow input:focus-visible,
-.tenants-add-member-flow select:focus-visible {
+.tenants-add-member-flow :focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -104,9 +96,7 @@
     }
 
     .tenants-add-member-flow__lifecycle:focus-visible,
-    .tenants-add-member-flow button:focus-visible,
-    .tenants-add-member-flow input:focus-visible,
-    .tenants-add-member-flow select:focus-visible {
+    .tenants-add-member-flow :focus-visible {
         outline-color: Highlight;
     }
 }

@@ -91,11 +91,13 @@
                 <div>
                     <dt>@Localizer["Tenants.Detail.StatusLabel"]</dt>
                     <dd>
-                        <span class="tenant-detail__status tenant-detail__status--@StatusCss(Detail.Status)"
-                              aria-label="@Localizer["Tenants.Detail.StatusAccessibleLabel", StatusLabel(Detail.Status)]">
-                            <span aria-hidden="true">@StatusIcon(Detail.Status)</span>
-                            <span>@StatusLabel(Detail.Status)</span>
-                        </span>
+                        <FluentBadge Appearance="BadgeAppearance.Tint"
+                                     Color="@StatusBadgeColor(Detail.Status)"
+                                     IconStart="@StatusIcon(Detail.Status)"
+                                     Class="tenant-detail__status"
+                                     aria-label="@Localizer["Tenants.Detail.StatusAccessibleLabel", StatusLabel(Detail.Status)]">
+                            @StatusLabel(Detail.Status)
+                        </FluentBadge>
                     </dd>
                 </div>
                 <div>
@@ -297,15 +299,20 @@
     private string StatusLabel(TenantStatus status)
         => Localizer[$"Tenants.Detail.Status.{status}"];
 
-    private static string StatusCss(TenantStatus status)
-        => status.ToString().ToLowerInvariant();
-
-    private static string StatusIcon(TenantStatus status)
+    private static BadgeColor StatusBadgeColor(TenantStatus status)
         => status switch
         {
-            TenantStatus.Active => "OK",
-            TenantStatus.Disabled => "!",
-            _ => "?",
+            TenantStatus.Active => BadgeColor.Success,
+            TenantStatus.Disabled => BadgeColor.Danger,
+            _ => BadgeColor.Subtle,
+        };
+
+    private static Icon StatusIcon(TenantStatus status)
+        => status switch
+        {
+            TenantStatus.Active => FcFluentIcons.Checkmark16(),
+            TenantStatus.Disabled => FcFluentIcons.SubtractCircle16(),
+            _ => FcFluentIcons.QuestionCircle16(),
         };
 
     private static bool IsSafeReturnUrl(string? returnUrl)

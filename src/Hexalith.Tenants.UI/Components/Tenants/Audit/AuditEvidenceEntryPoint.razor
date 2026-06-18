@@ -4,30 +4,30 @@
 
 @if (CanOpen)
 {
-    <a class="tenants-audit-entrypoint"
-       href="@Href"
-       data-testid="tenants-audit-entrypoint"
-       data-audit-source="@SourceKind"
-       aria-label="@AccessibleName">
+    <FluentAnchorButton Class="tenants-audit-entrypoint"
+                        Href="@Href"
+                        Appearance="ButtonAppearance.Outline"
+                        data-testid="tenants-audit-entrypoint"
+                        data-audit-source="@SourceKind"
+                        aria-label="@AccessibleName">
         <span data-testid="@SourceTestId">@Label</span>
         @if (!string.IsNullOrWhiteSpace(AvailabilityText))
         {
             <span class="tenants-audit-entrypoint__state">@AvailabilityText</span>
         }
-    </a>
+    </FluentAnchorButton>
 }
 else
 {
-    <span class="tenants-audit-entrypoint tenants-audit-entrypoint--unavailable"
-          role="link"
-          tabindex="0"
-          aria-disabled="true"
-          data-testid="tenants-audit-entrypoint"
-          data-audit-source="@SourceKind"
-          aria-label="@AccessibleName">
+    <FluentButton Class="tenants-audit-entrypoint tenants-audit-entrypoint--unavailable"
+                  Appearance="ButtonAppearance.Outline"
+                  Disabled="true"
+                  data-testid="tenants-audit-entrypoint"
+                  data-audit-source="@SourceKind"
+                  aria-label="@AccessibleName">
         <span data-testid="@SourceTestId">@Label</span>
         <span class="tenants-audit-entrypoint__reason">@UnavailableText</span>
-    </span>
+    </FluentButton>
 }
 
 @code {

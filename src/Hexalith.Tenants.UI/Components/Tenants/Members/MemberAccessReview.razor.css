@@ -104,10 +104,6 @@
     justify-self: start;
 }
 
-.tenant-members__action-button--destructive {
-    border: 2px solid #c50f1f;
-}
-
 .tenant-members__action-name {
     font-weight: 600;
     overflow-wrap: anywhere;
@@ -175,8 +171,7 @@
     .tenant-members,
     .tenant-members__badge,
     .tenant-members__reason,
-    .tenant-members__action-state,
-    .tenant-members__action-button--destructive {
+    .tenant-members__action-state {
         border-color: CanvasText;
         color: CanvasText;
     }

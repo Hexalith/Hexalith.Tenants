@@ -40,7 +40,10 @@
         </p>
     }
 
-    <form class="tenants-change-role-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <EditForm Model="@_formModel"
+              FormName="tenants-change-role-flow"
+              class="tenants-change-role-flow__form"
+              OnSubmit="SubmitAsync">
         <div class="tenants-change-role-flow__field" @ref="_roleElement" tabindex="-1">
             <FluentSelect TOption="string" TValue="string"
                           Id="tenants-change-role-new-role"
@@ -98,7 +101,7 @@
                 @Localizer["Tenants.ChangeRole.Cancel"]
             </FluentButton>
         </div>
-    </form>
+    </EditForm>
 
     <section class="tenants-change-role-flow__lifecycle"
              @ref="_lifecycleElement"
@@ -151,6 +154,7 @@
         TenantRole.TenantReader,
     ];
 
+    private readonly object _formModel = new();
     private TenantChangeRoleCommandSnapshot _snapshot = TenantChangeRoleCommandSnapshot.Idle();
     private string _roleValue = string.Empty;
     private string? _validationMessage;

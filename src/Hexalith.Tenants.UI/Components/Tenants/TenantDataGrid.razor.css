@@ -37,20 +37,7 @@
 }
 
 .tenant-data-grid__status {
-    border: 1px solid CanvasText;
-    border-radius: 6px;
-    display: inline-block;
-    font-weight: 600;
-    padding: 0.15rem 0.4rem;
-}
-
-.tenant-data-grid__status--active {
-    color: #0f6c2f;
-}
-
-.tenant-data-grid__status--disabled,
-.tenant-data-grid__status--unknown {
-    color: #414042;
+    white-space: nowrap;
 }
 
 .tenants-critical {
@@ -76,11 +63,6 @@
 }
 
 @media (forced-colors: active) {
-    .tenant-data-grid__status {
-        border-color: CanvasText;
-        color: CanvasText;
-    }
-
     .tenant-data-grid__detail-link:focus-visible {
         outline-color: Highlight;
     }

@@ -11,17 +11,8 @@
     margin: 0;
 }
 
-.my-tenants-state button {
-    min-height: 2.25rem;
-    width: fit-content;
-}
-
 @media (forced-colors: active) {
     .my-tenants-state {
         border-color: CanvasText;
-    }
-
-    .my-tenants-state button:focus-visible {
-        outline-color: Highlight;
     }
 }

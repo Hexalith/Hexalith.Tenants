@@ -27,26 +27,7 @@
 }
 
 .my-tenants-grid__badge {
-    align-items: center;
-    border: 1px solid CanvasText;
-    border-radius: 6px;
-    display: inline-flex;
-    font-weight: 600;
-    gap: 0.35rem;
-    padding: 0.15rem 0.4rem;
-}
-
-.my-tenants-grid__badge--status-active,
-.my-tenants-grid__badge--role-tenantowner {
-    color: #0f6c2f;
-}
-
-.my-tenants-grid__badge--status-disabled,
-.my-tenants-grid__badge--status-unknown,
-.my-tenants-grid__badge--role-tenantcontributor,
-.my-tenants-grid__badge--role-tenantreader,
-.my-tenants-grid__badge--role-unknown {
-    color: #414042;
+    white-space: nowrap;
 }
 
 /* Pinned columns require an explicit per-column Width; this floor keeps the critical
@@ -54,11 +35,4 @@
 .tenants-my-critical,
 .tenants-user-critical {
     min-width: 7rem;
-}
-
-@media (forced-colors: active) {
-    .my-tenants-grid__badge {
-        border-color: CanvasText;
-        color: CanvasText;
-    }
 }

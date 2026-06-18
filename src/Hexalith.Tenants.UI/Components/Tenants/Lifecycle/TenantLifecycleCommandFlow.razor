@@ -49,7 +49,10 @@
         </section>
     }
 
-    <form class="tenant-lifecycle-flow__form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <EditForm Model="@_formModel"
+              FormName="tenant-lifecycle-command-flow"
+              class="tenant-lifecycle-flow__form"
+              OnSubmit="SubmitAsync">
         <div class="tenant-lifecycle-flow__field">
             <FluentTextInput Id="tenants-lifecycle-confirmation"
                              @ref="_confirmationElement"
@@ -91,7 +94,7 @@
                 </FluentButton>
             </span>
         </div>
-    </form>
+    </EditForm>
 
     <section class="tenant-lifecycle-flow__lifecycle"
              @ref="_lifecycleElement"
@@ -143,6 +146,7 @@
 </section>
 
 @code {
+    private readonly object _formModel = new();
     private TenantLifecycleCommandSnapshot _snapshot = TenantLifecycleCommandSnapshot.Idle();
     private string? _confirmationText;
     private string? _validationMessage;

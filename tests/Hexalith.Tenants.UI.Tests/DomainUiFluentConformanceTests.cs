@@ -29,12 +29,28 @@ public sealed class DomainUiFluentConformanceTests
         "<(button|input|select|textarea)(\\s|/|>)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    private static readonly Regex RawFormMarkup = new(
+        "</?form(\\s|/|>)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     // Data surfaces should render through FluentDataGrid or FrontComposer grid primitives. Scanning
     // source keeps the guard focused on handwritten markup; FluentDataGrid can still render native
     // table semantics internally.
     private static readonly Regex RawTableMarkup = new(
         "<(table|thead|tbody|tr|td|th)(\\s|/|>)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex HardCodedCssColor = new(
+        "#[0-9a-fA-F]{3,8}\\b",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex CssComment = new(
+        "/\\*.*?\\*/",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+    private static readonly Regex NativeControlCssSelector = new(
+        "(^|[\\s,{>+~])(?:button|input|select|textarea)(?=[:.#\\s,{>+~\\[]|$)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
 
     [Fact]
     [Trait("Category", "Governance")]
@@ -62,6 +78,31 @@ public sealed class DomainUiFluentConformanceTests
         offenders.ShouldBeEmpty(
             "Domain UI .razor components must use Fluent v5 components only (no raw <button>/<input>/<select>/"
             + $"<textarea>). Raw interactive controls found in: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_ui_components_use_blazor_or_fluent_forms_with_no_raw_form_markup()
+    {
+        string componentsRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components");
+        string[] razorFiles = Directory.GetFiles(componentsRoot, "*.razor", SearchOption.AllDirectories);
+
+        // Guard against a broken path silently passing the scan.
+        razorFiles.ShouldNotBeEmpty();
+
+        List<string> offenders = [];
+        foreach (string file in razorFiles)
+        {
+            MatchCollection matches = RawFormMarkup.Matches(File.ReadAllText(file));
+            if (matches.Count > 0)
+            {
+                offenders.Add(Path.GetRelativePath(componentsRoot, file));
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "Domain UI .razor components must use Blazor EditForm, Fluent, or FrontComposer form primitives "
+            + $"instead of source-level raw <form> markup. Raw forms found in: {string.Join("; ", offenders)}");
     }
 
     [Fact]
@@ -121,6 +162,42 @@ public sealed class DomainUiFluentConformanceTests
         offenders.ShouldBeEmpty(
             "Multi-region domain pages must group sibling titled page regions with FluentAccordion, "
             + $"expanded by default. Missing accordion grouping in: {string.Join("; ", offenders)}");
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Domain_ui_component_css_does_not_own_semantic_colors_or_native_control_selectors()
+    {
+        string componentsRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components");
+        string[] cssFiles = Directory.GetFiles(componentsRoot, "*.razor.css", SearchOption.AllDirectories);
+
+        // Guard against a broken path silently passing the scan.
+        cssFiles.ShouldNotBeEmpty();
+
+        List<string> colorOffenders = [];
+        List<string> selectorOffenders = [];
+        foreach (string file in cssFiles)
+        {
+            string content = File.ReadAllText(file);
+            string contentWithoutComments = CssComment.Replace(content, string.Empty);
+
+            if (HardCodedCssColor.IsMatch(contentWithoutComments))
+            {
+                colorOffenders.Add(Path.GetRelativePath(componentsRoot, file));
+            }
+
+            if (NativeControlCssSelector.IsMatch(contentWithoutComments))
+            {
+                selectorOffenders.Add(Path.GetRelativePath(componentsRoot, file));
+            }
+        }
+
+        colorOffenders.ShouldBeEmpty(
+            "Domain UI component CSS must not hard-code semantic status/control colors. Use Fluent component "
+            + $"roles, Fluent tokens, or system colors instead. Hard-coded colors found in: {string.Join("; ", colorOffenders)}");
+        selectorOffenders.ShouldBeEmpty(
+            "Domain UI component CSS must not style native button/input/select/textarea descendants. Use Fluent "
+            + $"component parameters or wrapper layout classes instead. Native control selectors found in: {string.Join("; ", selectorOffenders)}");
     }
 
     private static string ProjectRoot()

@@ -42,13 +42,6 @@
     grid-column: 1 / -1;
 }
 
-.user-lookup-page__form input,
-.user-lookup-page__form button,
-.user-lookup-page__sort select,
-.user-lookup-page__pager button {
-    min-height: 2.25rem;
-}
-
 .user-lookup-page__form a {
     align-self: center;
     color: LinkText;
@@ -92,11 +85,8 @@
         border-color: CanvasText;
     }
 
-    .user-lookup-page__form input:focus-visible,
-    .user-lookup-page__form button:focus-visible,
     .user-lookup-page__form a:focus-visible,
-    .user-lookup-page__sort select:focus-visible,
-    .user-lookup-page__pager button:focus-visible {
+    .user-lookup-page__status h2:focus-visible {
         outline-color: Highlight;
     }
 }

@@ -34,12 +34,8 @@
     max-inline-size: 36rem;
 }
 
-.tenants-config-remove__confirmation input {
-    inline-size: 100%;
-}
-
 .tenants-config-remove__preview {
-    border-inline-start: .25rem solid #c50f1f;
+    border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
@@ -86,21 +82,6 @@
     font-weight: 700;
 }
 
-.tenants-config-remove__state--confirmed {
-    color: #107c10;
-}
-
-.tenants-config-remove__state--rejected,
-.tenants-config-remove__state--failed,
-.tenants-config-remove__state--duplicateprevented {
-    color: #c50f1f;
-}
-
-.tenants-config-remove__state--degraded,
-.tenants-config-remove__state--unabletoverify {
-    color: #8a6a00;
-}
-
 .tenants-config-remove__live {
     block-size: 1px;
     inline-size: 1px;
@@ -110,7 +91,7 @@
 }
 
 .tenants-config-remove :focus-visible {
-    outline: 3px solid var(--focus-stroke-outer, #000);
+    outline: 3px solid var(--focus-stroke-outer, Highlight);
     outline-offset: 2px;
 }
 
@@ -142,7 +123,4 @@
         border-color: CanvasText;
     }
 
-    .tenants-config-remove__state {
-        color: CanvasText;
-    }
 }

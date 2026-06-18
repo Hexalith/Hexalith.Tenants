@@ -234,7 +234,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
 
         styles.ShouldContain("overflow-x: auto");
         styles.ShouldContain("min-width:");
-        styles.ShouldContain("@media (forced-colors: active)");
+        styles.ShouldContain("white-space: nowrap");
         styles.ShouldContain("tenants-my-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
     }
