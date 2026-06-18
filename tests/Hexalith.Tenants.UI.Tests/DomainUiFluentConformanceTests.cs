@@ -215,7 +215,7 @@ public sealed class DomainUiFluentConformanceTests
 
         // Catch a newly added route page that declares no FcPageLayout measure at all (the explicit
         // expectations above only cover the known pages).
-        foreach (string razorFile in Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly))
+        foreach (string razorFile in Directory.GetFiles(pagesRoot, "*.razor", SearchOption.AllDirectories))
         {
             string content = File.ReadAllText(razorFile);
             if (content.Contains("@page", StringComparison.Ordinal)
@@ -235,7 +235,7 @@ public sealed class DomainUiFluentConformanceTests
     public void Domain_route_pages_declare_frontcomposer_page_headers()
     {
         string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
-        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly);
+        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.AllDirectories);
 
         razorFiles.ShouldNotBeEmpty();
 
@@ -276,7 +276,7 @@ public sealed class DomainUiFluentConformanceTests
     public void Domain_pages_do_not_reintroduce_page_root_layout_wrappers()
     {
         string pagesRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages");
-        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.TopDirectoryOnly);
+        string[] razorFiles = Directory.GetFiles(pagesRoot, "*.razor", SearchOption.AllDirectories);
 
         razorFiles.ShouldNotBeEmpty();
 
@@ -319,9 +319,13 @@ public sealed class DomainUiFluentConformanceTests
 
         rootClasses.ShouldNotBeEmpty("Expected to derive at least one page-root layout class from the page components.");
 
+        // Match the page-root class as a complete selector — standalone (".root {") or as a member of a
+        // grouped selector list (".root, .root__x { ... }") — so root-layout ownership cannot hide behind
+        // grouping. The (?=[,{]) lookahead keeps BEM children (".root__x") and descendant ancestors
+        // (".root h2") out of the match.
         Regex pageRootSelector = new(
-            "^\\s*\\.(" + string.Join("|", rootClasses.Select(Regex.Escape)) + ")\\s*\\{(?<body>.*?)\\}",
-            RegexOptions.CultureInvariant | RegexOptions.Multiline | RegexOptions.Singleline);
+            "\\.(" + string.Join("|", rootClasses.Select(Regex.Escape)) + ")\\s*(?=[,{])[^{}]*\\{(?<body>.*?)\\}",
+            RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
         List<string> offenders = [];
         foreach (string file in cssFiles)

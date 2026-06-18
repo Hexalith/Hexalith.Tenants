@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-18T12:44:07+02:00
+last_updated: 2026-06-18T13:43:25+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -115,7 +115,7 @@ development_status:
   cc-2026-06-18-frontcomposer-fluent-control-and-css-conformance-sweep: done
   # Reopened after Correct Course approval on 2026-06-18: page title and visible page
   # header must move into a FrontComposer-owned component before final review.
-  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: review
+  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: in-progress
   # Correct Course 2026-06-18 (Fluent-only components/layout/styles), approved by Administrator.
   # Proposal: sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md
   # "Now" work: push layout-only <div>/<span> -> FluentStack/FluentGrid, text-styling

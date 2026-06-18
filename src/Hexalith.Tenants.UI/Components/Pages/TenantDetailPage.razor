@@ -75,7 +75,7 @@
                      Class="tenant-detail__summary"
                      aria-label="@Localizer["Tenants.Detail.OverviewLabel"]">
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
-                          Heading="@Detail.Name"
+                          Heading="@(string.IsNullOrWhiteSpace(Detail.Name) ? Localizer["Tenants.Detail.UnnamedTenant"] : Detail.Name)"
                           Eyebrow="@Localizer["Tenants.Detail.IdentityLabel"]"
                           Description="@(string.IsNullOrWhiteSpace(Detail.Description) ? null : Detail.Description)"
                           HeadingId="tenants-detail-identity"

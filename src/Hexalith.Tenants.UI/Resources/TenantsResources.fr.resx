@@ -534,6 +534,9 @@
   <data name="Tenants.Detail.IdentityLabel" xml:space="preserve">
     <value>Identité du locataire</value>
   </data>
+  <data name="Tenants.Detail.UnnamedTenant" xml:space="preserve">
+    <value>Locataire sans nom</value>
+  </data>
   <data name="Tenants.Detail.LifecycleLabel" xml:space="preserve">
     <value>Cycle de vie</value>
   </data>
