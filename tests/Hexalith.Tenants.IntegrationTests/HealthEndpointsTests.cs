@@ -26,7 +26,7 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// </para>
 /// <para>
 /// Required readiness dependency list for Tenants: the DAPR sidecar/state store
-/// (<c>dapr-statestore</c>, tag <c>ready</c>) that backs runtime actor and projection state.
+/// (<c>dapr-statestore-tenants</c>, tag <c>ready</c>) that backs runtime actor and projection state.
 /// EventStore service-invocation readiness is intentionally NOT probed by <c>/ready</c> — it is a
 /// downstream service whose availability is proven by the DAPR end-to-end command/query tests and
 /// the deployment smoke lane (Story 7.6C), so readiness stays a bounded local-dependency check that
@@ -34,6 +34,8 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// </para>
 /// </remarks>
 public class HealthEndpointsTests {
+    private const string TenantsStateStoreHealthCheckName = "dapr-statestore-tenants";
+
     [Fact]
     public void Readiness_registers_dapr_statestore_dependency_check_as_unhealthy_on_failure() {
         using var factory = new WebApplicationFactory<TenantBootstrapOptions>();
@@ -42,7 +44,7 @@ public class HealthEndpointsTests {
             .GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value;
 
         HealthCheckRegistration registration = options.Registrations
-            .Where(r => r.Name == "dapr-statestore")
+            .Where(r => r.Name == TenantsStateStoreHealthCheckName)
             .ShouldHaveSingleItem();
         registration.Tags.ShouldContain("ready");
         // Readiness failure must classify as Unhealthy (→ HTTP 503), never Degraded (→ HTTP 200).
@@ -177,7 +179,7 @@ public class HealthEndpointsTests {
                     }
 
                     options.Registrations.Add(new HealthCheckRegistration(
-                        "dapr-statestore",
+                        TenantsStateStoreHealthCheckName,
                         _ => new StubReadinessCheck(readinessStatus, description, exception, data),
                         HealthStatus.Unhealthy,
                         ["ready"]));

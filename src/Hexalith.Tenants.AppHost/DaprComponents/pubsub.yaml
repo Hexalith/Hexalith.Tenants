@@ -1,0 +1,27 @@
+# DAPR Pub/Sub Component -- Local Development
+# ================================================================
+# Redis-backed pub/sub for tenant event distribution.
+# Dead-letter enabled for undeliverable messages.
+#
+# Component Scoping:
+#   EventStore publishes tenant events; sample consumes them in local demos.
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    # DAPR local init provisions Redis at localhost:6379 with no password.
+    - name: redisHost
+      value: "localhost:6379"
+    - name: redisPassword
+      value: ""
+    - name: enableDeadLetter
+      value: "true"
+    - name: deadLetterTopic
+      value: "deadletter.tenants.events"
+scopes:
+  - eventstore
+  - sample

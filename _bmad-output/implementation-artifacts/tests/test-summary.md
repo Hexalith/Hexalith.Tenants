@@ -47,6 +47,16 @@
 
 ## Validation
 
+## Story 7.6 Deployment Readiness Evidence Boundary
+
+- Story 7.6A - Authentication readiness smoke lane. Story 7.6A-D smoke-test lanes remain the source evidence for deterministic-local deployment readiness review.
+- Story 7.6B - DAPR component and service-invocation smoke lane. Server focused via direct xUnit preserves the static AppHost, DAPR component, and access-control contracts.
+- Story 7.6C - Health/readiness and query-path smoke lane. Integration focused via direct xUnit is the intended live-environment evidence path when DAPR prerequisites are available.
+- Story 7.6D - Pub/sub recovery and idempotency smoke lane. Full direct xUnit regression suite evidence records pass/fail/skip counts for the configured Tenants test projects.
+- Story 7.6E Dev Story - Deployment Readiness Checklist and Evidence Template. Live Evidence Boundary: No live production or production-like deployment evidence was collected for Story 7.6E, and production readiness must not be inferred from skipped or deterministic-local tests. Passed: deterministic documentation/configuration checks may support release review only with explicit failed and skipped counts.
+
+Support-safe evidence rules for Story 7.6 lanes: do not record compact JWTs, bearer tokens, signing keys, decoded payloads, raw command/event payloads, private hosts, concrete connection strings, real tenant/user identifiers, or PII.
+
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore -warnaserror -m:1 -nr:false` passed with 0 warnings and 0 errors.
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-build -m:1 -nr:false` was attempted and hit the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility.
 - `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noLogo -noColor -parallel none` passed: 205 total, 0 errors, 0 failed, 0 skipped.

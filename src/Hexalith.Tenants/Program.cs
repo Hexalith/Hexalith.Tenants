@@ -1,7 +1,10 @@
+using System.Text.Json;
+
 using Dapr.Actors.Client;
 
 using FluentValidation;
 
+using Hexalith.Commons.ServiceDefaults;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Projections;
@@ -153,7 +156,7 @@ WebApplication app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
-app.MapDefaultEndpoints();
+app.MapHexalithDefaultEndpoints(ConfigureTenantsHealthEndpoints);
 app.UseCloudEvents();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -175,3 +178,40 @@ app.MapEventStoreDomainService();
 app.MapSubscribeHandler();
 
 await app.RunAsync().ConfigureAwait(false);
+
+static void ConfigureTenantsHealthEndpoints(HexalithServiceDefaultsOptions options) {
+    options.HealthEndpointPath = "/health";
+    options.LivenessEndpointPath = "/alive";
+    options.ReadinessEndpointPath = "/ready";
+    options.DevelopmentHealthResponseWriter = WriteSupportSafeDevelopmentHealthResponseAsync;
+}
+
+static async Task WriteSupportSafeDevelopmentHealthResponseAsync(
+    HttpContext httpContext,
+    HealthReport healthReport) {
+    ArgumentNullException.ThrowIfNull(httpContext);
+    ArgumentNullException.ThrowIfNull(healthReport);
+
+    httpContext.Response.ContentType = "application/json; charset=utf-8";
+
+    using MemoryStream stream = new();
+    using (Utf8JsonWriter writer = new(stream, new JsonWriterOptions { Indented = true })) {
+        writer.WriteStartObject();
+        writer.WriteString("status", healthReport.Status.ToString());
+        writer.WriteStartObject("results");
+
+        foreach (KeyValuePair<string, HealthReportEntry> entry in healthReport.Entries) {
+            writer.WriteStartObject(entry.Key);
+            writer.WriteString("status", entry.Value.Status.ToString());
+            writer.WriteString("description", entry.Value.Description);
+            writer.WriteString("duration", entry.Value.Duration.ToString());
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndObject();
+        writer.WriteEndObject();
+    }
+
+    stream.Position = 0;
+    await stream.CopyToAsync(httpContext.Response.Body, httpContext.RequestAborted).ConfigureAwait(false);
+}
