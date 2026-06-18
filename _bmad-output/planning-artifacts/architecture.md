@@ -251,7 +251,13 @@ Nullable + ImplicitUsings + `TreatWarningsAsErrors` + `ConfigureAwait(false)` pe
 **UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.0-rc.3-26138.1`, RC — no GA yet), inherited
 through the FrontComposer shell; semantic theme roles, no bespoke palette; Fluent type ramp /
 shapes / elevation. Tenants tracks FrontComposer's transitive Fluent pin; tokens/ARIA verified
-against the pinned package at build.
+against the pinned package at build. UI uses FrontComposer or Fluent v5 components, never raw
+`<button>/<input>/<select>/<textarea>`, and expresses page/section layout and spacing through
+Fluent layout primitives (`FluentStack`/`FluentGrid`) and Fluent design tokens rather than
+component-local layout/typography CSS. Raw semantic landmarks (`<header>/<section>/<nav>`),
+description/bullet lists, and `<a>` nav links remain the documented fallback where Fluent v5 has
+no equivalent (governance allowlist in `DomainUiFluentConformanceTests`). See
+`sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md`.
 
 **Shell / Composition:** Hexalith.FrontComposer.Shell — shell layout (FC-LYT), navigation from
 registered domain manifests, projection DataGrid (FC-TBL), command dispatch, theming. Consumed

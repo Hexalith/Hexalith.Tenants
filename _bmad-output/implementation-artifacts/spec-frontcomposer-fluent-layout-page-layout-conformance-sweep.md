@@ -2,7 +2,7 @@
 title: 'FrontComposer Fluent layout page-layout conformance sweep'
 type: 'refactor'
 created: '2026-06-18'
-status: 'in-progress'
+status: 'review'
 baseline_commit: '974eac7fe6b7b6bc2545c2c51adb170ed587482a'
 approval: 'Administrator approved sprint-change-proposal-2026-06-18-fluent-layout-page-layout.md on 2026-06-18'
 scope_extension_approval: 'Administrator approved sprint-change-proposal-2026-06-18-page-header-frontcomposer.md on 2026-06-18'
@@ -193,7 +193,8 @@ Scope reviewed: layout phase only — diff `974eac7..HEAD` (`92bf113`). The page
 - 2026-06-18: Reopened story to in-progress after Administrator approved the FrontComposer page-header component scope extension.
 - 2026-06-18: Code review of the layout phase (diff 974eac7..HEAD). Applied 3 patches (shell `role="main"` landmark via FrontComposer + home-page duplicate cleanup; pager/header CSS-regression fixes; governance-guard hardening); 1 finding not applied (DAPR/health already governed by existing Server.Tests); D2 resolved to no code change. `Hexalith.Tenants.UI.Tests` 681/681. Page-header migration phase still pending.
 - 2026-06-18: Implemented the FrontComposer `FcPageHeader`, migrated Tenants route pages to it, and added route-header governance. Tenants UI passed 682/682 and focused FrontComposer page-header tests passed 4/4; full FrontComposer shell regression still has unrelated pre-existing failures.
+- 2026-06-18: Re-verified both phases and moved story to review. `Hexalith.Tenants.UI.Tests` 682/682 (Release), focused `FcPageHeaderTests` 4/4 (Release), `git diff --check` clean. Open finalization item for review/commit: the parent repo gitlink for `Hexalith.FrontComposer` is stale (`+80afcd9`, the commit that adds `FcPageHeader`) and must be committed so the recorded state builds; submodule working tree is otherwise clean.
 
 ## Status
 
-in-progress
+review
