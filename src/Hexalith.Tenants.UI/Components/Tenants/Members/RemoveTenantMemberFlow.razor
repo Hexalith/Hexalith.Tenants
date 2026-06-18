@@ -90,7 +90,7 @@
             </p>
         }
 
-        <div class="tenants-remove-member-flow__actions">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-remove-member-flow__actions">
             <FluentButton Type="ButtonType.Submit"
                           Appearance="ButtonAppearance.Primary"
                           Class="tenants-remove-member-flow__confirm"
@@ -109,7 +109,7 @@
                           OnClick="CloseAsync">
                 @Localizer["Tenants.RemoveMember.Cancel"]
             </FluentButton>
-        </div>
+        </FluentStack>
     </EditForm>
 
     <section class="tenants-remove-member-flow__lifecycle"

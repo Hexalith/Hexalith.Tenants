@@ -4,10 +4,10 @@
 @inject IServiceProvider Services
 
 <section class="tenants-create-flow" data-testid="tenants-create-flow" aria-labelledby="tenants-create-heading">
-    <div class="tenants-create-flow__heading">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem" Class="tenants-create-flow__heading">
         <h2 id="tenants-create-heading">@Localizer["Tenants.Create.Title"]</h2>
         <p>@Localizer["Tenants.Create.Description"]</p>
-    </div>
+    </FluentStack>
 
     @if (!string.IsNullOrWhiteSpace(UnavailableReason))
     {
@@ -22,7 +22,7 @@
               FormName="tenants-create-flow"
               class="tenants-create-flow__form"
               OnSubmit="SubmitAsync">
-        <div class="tenants-create-flow__field">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem" Class="tenants-create-flow__field">
             <FluentTextInput Id="tenants-create-tenant-id"
                              @ref="_tenantIdElement"
                              Name="tenant-id"
@@ -32,9 +32,9 @@
                              data-testid="tenants-create-tenant-id"
                              aria-describedby="@TenantIdDescribedBy" />
             <span id="tenants-create-tenant-id-help" class="tenants-create-flow__hint">@Localizer["Tenants.Create.TenantId.Help"]</span>
-        </div>
+        </FluentStack>
 
-        <div class="tenants-create-flow__field">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem" Class="tenants-create-flow__field">
             <FluentTextInput Id="tenants-create-name"
                              @ref="_nameElement"
                              Name="tenant-name"
@@ -43,16 +43,16 @@
                              ValueChanged="OnNameInput"
                              data-testid="tenants-create-name"
                              aria-describedby="@ValidationDescribedBy" />
-        </div>
+        </FluentStack>
 
-        <div class="tenants-create-flow__field tenants-create-flow__field--wide">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem" Class="tenants-create-flow__field tenants-create-flow__field--wide">
             <FluentTextArea Id="tenants-create-description"
                             Name="tenant-description"
                             Label="@Localizer["Tenants.Create.Description.Label"]"
                             Value="@_description"
                             ValueChanged="OnDescriptionInput"
                             data-testid="tenants-create-description" />
-        </div>
+        </FluentStack>
 
         @if (!string.IsNullOrWhiteSpace(_validationMessage))
         {
@@ -64,7 +64,7 @@
             </p>
         }
 
-        <div class="tenants-create-flow__actions">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.75rem" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom" Class="tenants-create-flow__actions">
             <FluentButton Type="ButtonType.Submit"
                           Appearance="ButtonAppearance.Primary"
                           data-testid="tenants-create-submit"
@@ -77,7 +77,7 @@
                           OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.Create.Refresh"]
             </FluentButton>
-        </div>
+        </FluentStack>
     </EditForm>
 
     <section class="tenants-create-flow__lifecycle"

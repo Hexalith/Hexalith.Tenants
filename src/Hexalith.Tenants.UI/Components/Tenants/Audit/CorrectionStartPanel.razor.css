@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered correction-panel card; vertical region gap plus container padding
+   define the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .correction-start-panel {
     border: 1px solid CanvasText;
     display: grid;
@@ -5,6 +7,8 @@
     padding: 0.75rem;
 }
 
+/* fc-css-exception: content-sized header grid on a semantic <header> landmark; FluentGrid cannot
+   express content-sized columns like minmax(0, 1fr) auto for the title plus close button. */
 .correction-start-panel__header {
     align-items: start;
     display: grid;
@@ -12,6 +16,8 @@
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* fc-css-exception: zero-margin reset on semantic <h3>/<h4>/<p> heading and reason elements; no
+   Fluent typography primitive wraps these semantic elements. */
 .correction-start-panel__header h3,
 .correction-start-panel__preview h4,
 .correction-start-panel__reason {
@@ -19,6 +25,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: content-sized label/value grid on semantic <dl> elements; FluentGrid cannot
+   express the auto-fit minmax(14rem, 1fr) column behaviour these definition fields need. */
 .correction-start-panel__fields,
 .correction-start-panel__preview dl {
     display: grid;
@@ -27,10 +35,13 @@
     margin: 0;
 }
 
+/* fc-css-exception: emphasis weight on a semantic <dt>; FluentLabel cannot wrap a semantic element. */
 .correction-start-panel dt {
     font-weight: 700;
 }
 
+/* fc-css-exception: zero-margin reset on a semantic <dd>; no Fluent typography primitive wraps this
+   semantic element. */
 .correction-start-panel dd {
     margin: 0;
     overflow-wrap: anywhere;
@@ -52,6 +63,8 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized header and field columns
+       to one; no Fluent layout primitive expresses this content-sized column behaviour. */
     .correction-start-panel__header,
     .correction-start-panel__fields,
     .correction-start-panel__preview dl {

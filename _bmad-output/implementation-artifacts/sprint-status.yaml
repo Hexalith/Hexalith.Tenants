@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-18T13:43:25+02:00
+last_updated: 2026-06-18T23:12:18+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -115,16 +115,20 @@ development_status:
   cc-2026-06-18-frontcomposer-fluent-control-and-css-conformance-sweep: done
   # Reopened after Correct Course approval on 2026-06-18: page title and visible page
   # header must move into a FrontComposer-owned component before final review.
-  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: in-progress
+  # Independent third code review 2026-06-18 (bmad-code-review): all 7 ACs re-confirmed;
+  # D1 (inert pubsub.yaml dead-letter keys) fixed truthfully, P1 (blank-Name fallback
+  # regression test) added; 3 items deferred (a11y landmark, FcPageHeader contract,
+  # out-of-scope DAPR/health bundling) -> deferred-work.md. UI 684/684, doc test 7/7.
+  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: done
   # Correct Course 2026-06-18 (Fluent-only components/layout/styles), approved by Administrator.
   # Proposal: sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md
   # "Now" work: push layout-only <div>/<span> -> FluentStack/FluentGrid, text-styling
   # <span>/<p> -> FluentLabel/typography, reduce component .razor.css to Fluent design tokens
   # + documented exceptions; keep a11y landmarks/lists/nav <a> as a governance allowlist.
-  cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep: ready-for-dev
+  cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep: done
   # Audit FrontComposer Shell + Counter samples + EventStore Admin.UI carve-outs
   # (FcHomeCard, Counter.Specimens, Admin.UI ActivityChart bar, Streams copy cell) against
   # the "only when no Fluent equivalent exists" rule. Crosses submodule boundaries → read-only
   # audit + owner handoffs (Tenants repo must not edit submodule files).
   # Spec: spec-frontcomposer-shell-and-adminui-fluent-conformance-audit.md
-  cc-frontcomposer-shell-and-adminui-fluent-conformance-audit: ready-for-dev
+  cc-frontcomposer-shell-and-adminui-fluent-conformance-audit: done

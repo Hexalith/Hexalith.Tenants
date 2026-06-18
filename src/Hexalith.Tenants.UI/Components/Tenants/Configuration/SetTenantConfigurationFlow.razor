@@ -123,7 +123,7 @@
                 </p>
             }
 
-            <div class="tenants-config-set__actions">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-set__actions">
                 <FluentButton Type="ButtonType.Submit"
                               Appearance="ButtonAppearance.Primary"
                               data-testid="tenants-config-set-submit"
@@ -141,7 +141,7 @@
                               OnClick="CloseEditorAsync">
                     @Localizer["Tenants.Configuration.Set.Cancel"]
                 </FluentButton>
-            </div>
+            </FluentStack>
         </EditForm>
     }
 

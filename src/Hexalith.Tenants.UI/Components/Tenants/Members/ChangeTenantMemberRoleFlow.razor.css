@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered command-flow card; border + container padding define the card chrome,
+   and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-change-role-flow {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -6,6 +8,8 @@
     padding: 0.85rem;
 }
 
+/* fc-css-exception: zero-margin reset on semantic heading/text/list elements; no Fluent typography
+   primitive wraps these semantic <h3>/<h4>/<p>/<dl> elements. */
 .tenants-change-role-flow h3,
 .tenants-change-role-flow h4,
 .tenants-change-role-flow p,
@@ -13,7 +17,8 @@
     margin: 0;
 }
 
-.tenants-change-role-flow__heading,
+/* fc-css-exception: vertical region gap on the EditForm and the semantic <section> lifecycle
+   landmark; keeping the form/landmark precludes a FluentStack wrapper. */
 .tenants-change-role-flow__form,
 .tenants-change-role-flow__lifecycle {
     display: grid;
@@ -21,18 +26,24 @@
     min-width: 0;
 }
 
+/* fc-css-exception: content-sized auto-fit label/value grid on a semantic <dl>; FluentGrid cannot
+   express the content-sized repeat column track this layout requires. */
 .tenants-change-role-flow__context {
     display: grid;
     gap: 0.5rem;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
+/* fc-css-exception: vertical label/value pairing inside the semantic <dl> context; keeping the
+   dt/dd content grid precludes a FluentStack wrapper. */
 .tenants-change-role-flow__context div {
     display: grid;
     gap: 0.2rem;
     min-width: 0;
 }
 
+/* fc-css-exception: emphasis weight on semantic <dt> label; FluentLabel cannot wrap a semantic
+   description-list term element. */
 .tenants-change-role-flow__context dt {
     font-weight: 600;
 }
@@ -41,21 +52,18 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: content-sized three-column form grid; FluentGrid cannot express the minmax
+   content-sized column track sizing this layout requires. */
 .tenants-change-role-flow__form {
     grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1fr) auto;
 }
 
+/* fc-css-exception: vertical stack for the Fluent-generated <label>; cannot restructure the markup
+   emitted by FluentSelect. */
 .tenants-change-role-flow__form label {
     display: grid;
     gap: 0.3rem;
     min-width: 0;
-}
-
-.tenants-change-role-flow__actions {
-    align-items: end;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
 .tenants-change-role-flow__unavailable,
@@ -66,6 +74,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: status/risk pill centering with border and padding chrome; no Fluent badge
+   primitive adopted, to preserve the exact high-contrast pill treatment. */
 .tenants-change-role-flow__risk,
 .tenants-change-role-flow__state {
     align-items: center;
@@ -102,10 +112,14 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint tightening the card container padding; no Fluent
+       primitive expresses this card chrome adjustment. */
     .tenants-change-role-flow {
         padding: 0.75rem;
     }
 
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized form grid to a single
+       column; no Fluent layout primitive expresses this column behaviour. */
     .tenants-change-role-flow__form {
         grid-template-columns: minmax(0, 1fr);
     }

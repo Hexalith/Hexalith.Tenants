@@ -113,15 +113,15 @@ These are **already documented** (FrontComposer `architecture.md` §4.1 carve-ou
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] **Baseline & criteria.** Confirm the pinned Fluent v5 version on all three surfaces (`mcp__fluent-ui-blazor__check_project_version`; expect `5.0.0-rc.3-26138.1`). Restate the two-part decision test (no-equivalent AND fully-accessible) in the findings record.
-- [ ] **C1 audit — FcHomeCard.** Re-read source; confirm `<button role="link">` + nested `<h2>`/`<ul>` + keyboard activation; query the pinned package for a card-as-link equivalent; confirm source ↔ allowlist ↔ §4.1 agree; assign Verdict + evidence.
-- [ ] **C2 audit — Counter samples.** Confirm `Counter.Web` is Fluent-clean (no new raw controls); confirm `Counter.Specimens` is genuinely non-shipped (not routed/linked from a shipped surface); verify the fixture rationale; assign Verdict.
-- [ ] **C3 audit — ActivityChart.** Re-read source; confirm data-driven bar + aria + sr-only fallback; query the pinned package for a chart/meter/data-bar primitive; confirm allowlist + §4.1; assign Verdict.
-- [ ] **C4 audit — Streams copy cell.** Re-read source; confirm in-`FluentDataGrid` copy affordance + aria/data-testid/stopPropagation/clipboard fallback; query the pinned package for an in-cell action primitive; assign Verdict.
-- [ ] **Undocumented-drift sweep.** Scan all three surfaces for raw controls not in an allowlist and for non-semantic clickables/landmarks (incl. Admin.UI `Index.razor` clickable `<div>`); record each with a Verdict.
-- [ ] **Governance-parity recommendation.** Compare the three guards vs Tenants.UI's structural-HTML budget / inline-layout-style / component-CSS guards; record whether Shell + Admin.UI should adopt them (advisory only — no edits from this repo).
-- [ ] **Findings record + handoffs.** Write the per-carve-out decision record (KEEP / REMEDIATE / DOC-DRIFT) with citations; file owner handoffs for every REMEDIATE / DOC-DRIFT / NEW-GUARD item, naming the exact submodule file(s). Make **no** edits under `Hexalith.FrontComposer/` or `Hexalith.EventStore/`.
-- [ ] **Close.** Update sprint status to `done` only after the record + handoffs exist and are self-consistent.
+- [x] **Baseline & criteria.** Confirm the pinned Fluent v5 version on all three surfaces (`mcp__fluent-ui-blazor__check_project_version`; expect `5.0.0-rc.3-26138.1`). Restate the two-part decision test (no-equivalent AND fully-accessible) in the findings record. → Pin confirmed in both `Directory.Packages.props`; MCP build `5.0.0.26139` is one build newer (INCOMPATIBLE) — caveat recorded; criteria restated in findings §1.
+- [x] **C1 audit — FcHomeCard.** Re-read source; confirm `<button role="link">` + nested `<h2>`/`<ul>` + keyboard activation; query the pinned package for a card-as-link equivalent; confirm source ↔ allowlist ↔ §4.1 agree; assign Verdict + evidence. → **REMEDIATE** after review verified pinned `FluentCard.OnClick`/`Role`/keyboard support (H-FC-1).
+- [x] **C2 audit — Counter samples.** Confirm `Counter.Web` is Fluent-clean (no new raw controls); confirm `Counter.Specimens` is genuinely non-shipped (not routed/linked from a shipped surface); verify the fixture rationale; assign Verdict. → **KEEP** (routes Dev/Test+flag-gated; Counter.Web clean).
+- [x] **C3 audit — ActivityChart.** Re-read source; confirm data-driven bar + aria + sr-only fallback; query the pinned package for a chart/meter/data-bar primitive; confirm allowlist + §4.1; assign Verdict. → **REMEDIATE** for accessibility proof gap (`role="img"` wrapping focusable buttons; H-ES-3).
+- [x] **C4 audit — Streams copy cell.** Re-read source; confirm in-`FluentDataGrid` copy affordance + aria/data-testid/stopPropagation/clipboard fallback; query the pinned package for an in-cell action primitive; assign Verdict. → **KEEP** (no in-cell primitive; FluentButton breaks cell).
+- [x] **Undocumented-drift sweep.** Scan all three surfaces for raw controls not in an allowlist and for non-semantic clickables/landmarks (incl. Admin.UI `Index.razor` clickable `<div>`); record each with a Verdict. → 0 undocumented raw controls; Shell+Counter.Web clean; Admin.UI **NS-1/NS-2** (REMEDIATE) + **DV-1** (REMEDIATE + DOC-DRIFT, StorageTreemap).
+- [x] **Governance-parity recommendation.** Compare the three guards vs Tenants.UI's structural-HTML budget / inline-layout-style / component-CSS guards; record whether Shell + Admin.UI should adopt them (advisory only — no edits from this repo). → Tenants 12 guards vs Shell/Admin.UI 1; recommendation in findings §4.
+- [x] **Findings record + handoffs.** Write the per-carve-out decision record (KEEP / REMEDIATE / DOC-DRIFT) with citations; file owner handoffs for every REMEDIATE / DOC-DRIFT / NEW-GUARD item, naming the exact submodule file(s). Make **no** edits under `Hexalith.FrontComposer/` or `Hexalith.EventStore/`. → `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`; handoffs H-FC-1..2 / H-ES-1..5; nested submodule worktrees verified unmodified; accepted review range includes the superproject FrontComposer gitlink move.
+- [x] **Close.** Update sprint status to `done` only after the record + handoffs exist and are self-consistent. → Set to `review` per the `bmad-dev-story` Step 9 gate (audit deliverable routed for peer review before `done`); see Completion Notes.
 
 **Acceptance Criteria:**
 - Given each named carve-out (C1 FcHomeCard, C2 Counter.Specimens, C3 ActivityChart, C4 Streams), when the audit applies the two-part decision test against the pinned Fluent v5 package, then each has a recorded Verdict (KEEP re-justified / REMEDIATE / DOC-DRIFT) citing the no-equivalent result and the a11y result with `file:line` evidence.
@@ -168,14 +168,108 @@ This story produces no Tenants source change, so there is no `dotnet test`/`git 
 
 ### Agent Model Used
 
+claude-opus-4-8[1m] (Amelia — `bmad-dev-story`), 2026-06-18.
+
 ### Audit Findings (C1-C4 verdicts, adjacencies, parity recommendation)
+
+**Full evidence-backed record:** `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md` (in-repo).
+
+**Baseline.** Pin `Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` confirmed in both
+submodules (`Hexalith.FrontComposer/Directory.Packages.props:46`, `Hexalith.EventStore/Directory.Packages.props:45`).
+**Caveat:** the `mcp__fluent-ui-blazor` server documents build `5.0.0.26139` and reports
+**INCOMPATIBLE** (one prerelease build newer) — equivalence verdicts judged conservatively against
+the pin. Post-review verification used the exact local NuGet package for C1 and found
+`FluentCard.OnClick`/`Role`/keyboard support already present in `5.0.0-rc.3-26138.1`.
+
+**Carve-out verdicts:**
+- **C1 `FcHomeCard` → REMEDIATE.** `<button role="link">`+`<h2>`+`<ul>`+Enter/Space keyboard
+  (`FcHomeCard.razor:26-31`, `.razor.cs:51-60`), design-token CSS (`FcHomeDirectory.razor.css:43-52`).
+  The current raw button is accessible, but no-equivalent fails because pinned `FluentCard` already
+  supports arbitrary child content, `Role`, `OnClick`, `tabindex`, and Enter/Space activation. Source
+  ↔ allowlist (`FluentConformanceTests.cs:36`) ↔ `architecture.md:102` agree with the old justification,
+  so H-FC-1 remediates the component or updates the stale justification with new evidence.
+- **C2 `Counter.Specimens` → KEEP.** Raw controls *are* the fixtures; routes runtime-gated to
+  Dev/Test + config flag (`FrontComposerSpecimenRoutes.cs:25-31`, `Routes.razor:23-26`) — never shipped.
+  `Counter.Web` Fluent-clean. Guard excludes the Specimens tree (scan root `Counter.Web`) ↔
+  `architecture.md:103` agree.
+- **C3 `ActivityChart` → REMEDIATE.** No chart/data-bar primitive in the pin (MCP `chart` → none),
+  but the current accessible proof is incomplete because focusable bar `<button>` elements sit under
+  a parent `role="img"` (`ActivityChart.razor:28,34-39`). H-ES-3 asks the EventStore owner to
+  restructure the semantics or provide tested a11y evidence.
+- **C4 `Streams` copy cell → KEEP.** No in-cell action primitive; `FluentButton` (incl.
+  `Appearance="Transparent"`) breaks `.grid-cell-truncate` ellipsis + row alignment. Fully a11y
+  (`Streams.razor:70-76`, status region `:40-43`, fallback `:362-378`). Allowlist `:37` ↔
+  `architecture.md:105` agree.
+
+**Drift sweep:** 0 undocumented raw controls (guards accurate). Shell + Counter.Web clean of
+non-semantic clickables. Admin.UI: **NS-1** (REMEDIATE — `Index.razor:26,40` clickable `<div>`),
+**NS-2** (REMEDIATE class — clickable link-styled `<span @onclick>` across `Commands`/`Events`/
+`TypeCatalog`/`TypeDetailPanel`/`RelatedTypeList`/`DaprHealthHistory`), **DV-1** (REMEDIATE + DOC-DRIFT —
+`StorageTreemap.razor` clickable `<g>`+sr-only `<table>`, undocumented data-viz analogue of
+ActivityChart, but the clickable SVG group needs semantics before documentation alone is enough).
+`<div @onclick:stopPropagation>` wrappers are benign (no own click target).
+
+**Parity:** Tenants.UI `DomainUiFluentConformanceTests` = 12 guards, 0 carve-outs; Shell + Admin.UI =
+1 guard (raw-controls) each. Recommend (advisory) Admin.UI adopt a non-semantic-clickable check +
+inline-layout-style + div/span-budget + component-CSS-ownership guards (Admin.UI inline-`style=` is at
+scale: DaprPubSub 57, DaprResiliency 45, …). Shell already clean → lower priority.
 
 ### Owner Handoffs
 
+- **FrontComposer** (run via `Hexalith.FrontComposer:bmad-*`): **H-FC-1** (REMEDIATE) rework or
+  re-justify C1 vs pinned `FluentCard.OnClick`/`Role`/keyboard support; **H-FC-2** (advisory) parity
+  guards (low urgency, Shell clean).
+- **EventStore** (run via `Hexalith.EventStore:bmad-*`): **H-ES-1** (REMEDIATE) `Index.razor:26,40`
+  semantics; **H-ES-2** (REMEDIATE) NS-2 clickable-span class → `FluentLink`/`FluentButton`; **H-ES-3**
+  (REMEDIATE) `ActivityChart` `role="img"`/button a11y proof; **H-ES-4** (REMEDIATE + DOC-DRIFT)
+  `StorageTreemap` clickable SVG semantics + §4.1 documentation; **H-ES-5** (advisory) adopt parity
+  guards + non-semantic-clickable check.
+- **No** file under `Hexalith.FrontComposer/` or `Hexalith.EventStore/` was modified; handoffs are the
+  deliverable.
+
 ### Completion Notes List
+
+- Audit deliverable: evidence-backed decision record + handoffs. Code review accepted the broader
+  bundled diff, so the reviewed range includes adjacent Tenants UI/DAPR/story-record changes and the
+  superproject `Hexalith.FrontComposer` gitlink move; no nested FrontComposer/EventStore worktree files
+  were edited from this repo.
+- All 4 carve-outs now have explicit verdicts against the pinned package with `file:line` evidence:
+  C2/C4 **KEEP**, C1/C3 **REMEDIATE**. The three documentation records (source ↔ guard allowlist ↔
+  `architecture.md` §4.1) were checked for each; C1's justification is now stale because pinned
+  `FluentCard` is a plausible equivalent, and C3's accessibility proof is incomplete.
+- Undocumented-drift sweep found the spec-named `Index.razor` adjacency **plus** a wider Admin.UI
+  non-semantic-clickable class (NS-2) and a second undocumented data-viz surface (DV-1, StorageTreemap)
+  — each recorded with a verdict + owner handoff.
+- **Verification:** `git -C Hexalith.FrontComposer status --porcelain` and `git -C Hexalith.EventStore
+  status --porcelain` both **empty**; no nested submodule initialized. Superproject gitlink movement is
+  acknowledged as part of the accepted bundled diff.
+- **Status note:** initial dev workflow routed the completed audit to `review`; independent
+  `bmad-code-review` resolved the decision and patch findings on 2026-06-18, leaving only deferred
+  items, so the review workflow advanced the story to `done`.
 
 ### File List
 
+- `_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md` (new — findings record + handoffs)
+- `_bmad-output/implementation-artifacts/spec-frontcomposer-shell-and-adminui-fluent-conformance-audit.md` (modified — Tasks checkboxes, Dev Agent Record, Status)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — story status ready-for-dev → in-progress → review)
+
+### Change Log
+
+| Date | Change |
+|------|--------|
+| 2026-06-18 | Audit executed; C2/C4 KEEP, C1/C3 REMEDIATE; NS-1/NS-2/DV-1 drift + parity recommendation recorded; handoffs H-FC-1..2 / H-ES-1..5 filed; nested submodule worktrees verified unmodified; accepted bundled diff documented; code-review patches resolved; status → done. |
+
+### Review Findings
+
+- [x] [Review][Decision · RESOLVED: ACCEPT BUNDLED DIFF] Audit story scope is contaminated by adjacent changes — The accepted story is audit-only and says writes stay in `_bmad-output/`, but the baseline diff also includes Tenants UI/source/test/config/doc changes plus a `Hexalith.FrontComposer` gitlink move (`6edc855` → `f4910d7`). The audit record also says `submodules_modified: false` and "All changes confined to `_bmad-output/`", which is true only for nested submodule working trees, not for the superproject diff. Resolution 2026-06-18 (Administrator): accept the bundled diff and update the audit/story record to explicitly cover the broader set of changes. Evidence: `Hexalith.FrontComposer` gitlink hunk; `_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md:14`; `_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md:190`.
+- [x] [Review][Patch] Update audit/story record to explicitly cover the accepted bundled diff [_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md:190]
+- [x] [Review][Patch] C1 `FcHomeCard` KEEP verdict is not proven against the pinned package [_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md:65]
+- [x] [Review][Patch] C3 `ActivityChart` accessibility is asserted without proving nested buttons remain accessible under `role="img"` [_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md:113]
+- [x] [Review][Patch] `StorageTreemap` clickable SVG is under-classified as doc drift instead of a remediation handoff [_bmad-output/implementation-artifacts/audit-frontcomposer-shell-adminui-fluent-2026-06-18.md:156]
+- [x] [Review][Defer] Sibling structural-governance guard hardening gaps remain open [tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:88] — deferred, pre-existing
+- [x] [Review][Defer] Cross-aggregate timing guide still diagrams subscriber dead-lettering ambiguously [docs/cross-aggregate-timing.md:80] — deferred, pre-existing
+- [x] [Review][Defer] Adjacent layout-story review/deferred records are internally stale or contradictory [_bmad-output/implementation-artifacts/deferred-work.md:15] — deferred, pre-existing
+
 ## Status
 
-ready-for-dev
+done

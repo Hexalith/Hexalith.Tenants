@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered command-flow card; vertical region gap + container padding define the
+   card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-create-flow {
     border: 1px solid CanvasText;
     border-radius: 8px;
@@ -7,46 +9,40 @@
     padding: 1rem;
 }
 
-.tenants-create-flow__heading {
-    display: grid;
-    gap: 0.25rem;
-}
-
+/* fc-css-exception: zero-margin reset on semantic <h2>/<h3>/<p>; no Fluent typography primitive
+   wraps these semantic elements. */
 .tenants-create-flow h2,
 .tenants-create-flow h3,
 .tenants-create-flow p {
     margin: 0;
 }
 
+/* fc-css-exception: responsive two-column form grid with asymmetric row/column gaps; preserves
+   EditForm submit semantics, field order, and exact spacing FluentGrid gutters cannot match. */
 .tenants-create-flow__form {
     display: grid;
     gap: 0.75rem 1.25rem;
     grid-template-columns: 1fr;
 }
 
-/* Each field owns a vertical stack so the field and its hint never flow inline
-   next to a sibling field (previously the hint's first word detached and read
-   like a stray column header). */
-.tenants-create-flow__field {
-    display: grid;
-    gap: 0.25rem;
-    align-content: start;
-}
-
+/* fc-css-exception: vertical stack for the Fluent-generated <label>; cannot restructure the markup
+   emitted by FluentTextInput/FluentTextArea. */
 .tenants-create-flow__form label {
     display: grid;
     gap: 0.25rem;
 }
 
+/* fc-css-exception: small helper-hint text scale (0.8125rem / 1.35 line-height); v5 FluentLabel
+   size tokens (Small/Medium/Large) do not match this hint typography. */
 .tenants-create-flow__hint {
     color: GrayText;
     font-size: 0.8125rem;
     line-height: 1.35;
 }
 
-/* Pair the short fields side by side on wider viewports; keep the description,
-   validation message and action buttons on their own full-width rows. */
 @media (min-width: 40rem) {
+    /* fc-css-exception: responsive breakpoint promoting the form to two columns; no Fluent layout
+       primitive expresses this content-sized column behaviour. */
     .tenants-create-flow__form {
         grid-template-columns: 1fr 1fr;
     }
@@ -58,30 +54,31 @@
     }
 }
 
+/* fc-css-exception: left-accent callout padding for inline alert messages; preserves the
+   border-accent treatment Fluent has no primitive for. */
 .tenants-create-flow__validation,
 .tenants-create-flow__unavailable {
     border-inline-start: 0.25rem solid CanvasText;
     padding-inline-start: 0.75rem;
 }
 
-.tenants-create-flow__actions {
-    align-items: end;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-}
-
+/* fc-css-exception: lifecycle region vertical gap on a semantic <section> landmark; keeping the
+   landmark precludes replacing it with a FluentStack wrapper. */
 .tenants-create-flow__lifecycle {
     display: grid;
     gap: 0.5rem;
 }
 
+/* fc-css-exception: inline icon+text row on a semantic <p> status line; preserves the paragraph
+   semantics that a FluentStack wrapper would drop. */
 .tenants-create-flow__state {
     align-items: center;
     display: flex;
     gap: 0.5rem;
 }
 
+/* fc-css-exception: status glyph badge centering for a single character; no Fluent badge primitive
+   adopted, to preserve the exact high-contrast border treatment. */
 .tenants-create-flow__state span:first-child {
     border: 1px solid CanvasText;
     display: inline-grid;

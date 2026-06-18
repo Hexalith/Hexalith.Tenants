@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered command-flow card; the border, radius, and container padding define the
+   card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenant-lifecycle-flow {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -7,6 +9,8 @@
     position: relative;
 }
 
+/* fc-css-exception: zero-margin reset on semantic heading, text, and definition-list elements; no
+   Fluent typography primitive wraps these semantic elements. */
 .tenant-lifecycle-flow h3,
 .tenant-lifecycle-flow h4,
 .tenant-lifecycle-flow p,
@@ -15,12 +19,16 @@
     margin: 0;
 }
 
+/* fc-css-exception: content-sized auto-fit preview columns on a semantic <dl>; FluentGrid cannot
+   express content-sized columns and a definition list cannot be a FluentStack. */
 .tenant-lifecycle-flow__preview dl {
     display: grid;
     gap: 0.75rem;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
+/* fc-css-exception: bordered preview tile and semantic <section> region sharing a top divider and
+   padding; the border-and-padding chrome has no Fluent card primitive in use here. */
 .tenant-lifecycle-flow__preview div,
 .tenant-lifecycle-flow__lifecycle {
     border-block-start: 1px solid CanvasText;
@@ -30,10 +38,13 @@
     padding-block-start: 0.75rem;
 }
 
+/* fc-css-exception: emphasis weight on a semantic <dt>; FluentLabel cannot wrap a semantic element. */
 .tenant-lifecycle-flow__preview dt {
     font-weight: 600;
 }
 
+/* fc-css-exception: shared vertical layout across an EditForm, its Fluent-generated <label>, the
+   actions row, and a semantic <section>; none of these grouped elements can be a FluentStack. */
 .tenant-lifecycle-flow__form,
 .tenant-lifecycle-flow__form label,
 .tenant-lifecycle-flow__actions,
@@ -42,6 +53,8 @@
     gap: 0.75rem;
 }
 
+/* fc-css-exception: content-sized auto-fit action columns; FluentGrid cannot express content-sized
+   columns for this responsive action row. */
 .tenant-lifecycle-flow__actions {
     grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
@@ -67,6 +80,8 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized preview and action
+       columns to one; no Fluent primitive expresses this content-sized column behaviour. */
     .tenant-lifecycle-flow__preview dl,
     .tenant-lifecycle-flow__actions {
         grid-template-columns: minmax(0, 1fr);

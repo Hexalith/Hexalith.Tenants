@@ -25,9 +25,10 @@
         </div>
     </header>
 
-    <div class="tenant-members__reason-catalog"
-         role="list"
-         aria-label="@Localizer["Tenants.Members.ReasonCatalogLabel"]">
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true"
+                 Class="tenant-members__reason-catalog"
+                 role="list"
+                 aria-label="@Localizer["Tenants.Members.ReasonCatalogLabel"]">
         @foreach (UnavailableReason reason in AllReasons)
         {
             <span class="tenant-members__reason tenant-members__reason--catalog"
@@ -37,7 +38,7 @@
                 <span>@ReasonLabel(reason)</span>
             </span>
         }
-    </div>
+    </FluentStack>
 
     <AddTenantMemberFlow Detail="@Detail"
                          SurfaceKind="@SurfaceKind"
@@ -129,7 +130,7 @@
                 <TemplateColumn Title="@Localizer["Tenants.Members.Column.Actions"]"
                                 ColumnId="member-actions"
                                 Width="360px">
-                    <div class="tenant-members__actions">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="tenant-members__actions">
                         @foreach (ActionSlot slot in context.ActionSlots)
                         {
                             @if (slot.Action is MemberAction.ChangeRole && slot.Reasons.Count == 0)
@@ -183,14 +184,14 @@
                                 </li>
                             }
                         </ul>
-                    </div>
+                    </FluentStack>
                 </TemplateColumn>
             </FluentDataGrid>
         </div>
 
         @if (ActiveChangeRoleMember is not null)
         {
-            <div id="tenants-change-role-flow-region" class="tenant-members__change-role-region">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-change-role-flow-region" Class="tenant-members__change-role-region">
                 <ChangeTenantMemberRoleFlow Detail="@Detail"
                                             Member="@ActiveChangeRoleMember"
                                             SurfaceKind="@SurfaceKind"
@@ -201,12 +202,12 @@
                                             OnCloseRequested="@CloseChangeRoleAsync"
                                             OnCommandActivityChanged="@OnCommandActivityChanged"
                                             ProjectionEvidenceProvider="@ChangeRoleProjectionEvidenceProvider" />
-            </div>
+            </FluentStack>
         }
 
         @if (ActiveRemoveMember is not null)
         {
-            <div id="tenants-remove-member-flow-region" class="tenant-members__remove-member-region">
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" id="tenants-remove-member-flow-region" Class="tenant-members__remove-member-region">
                 <RemoveTenantMemberFlow Detail="@Detail"
                                         Member="@ActiveRemoveMember"
                                         SurfaceKind="@SurfaceKind"
@@ -218,7 +219,7 @@
                                         OnCloseRequested="@CloseRemoveMemberAsync"
                                         OnCommandActivityChanged="@OnCommandActivityChanged"
                                         ProjectionEvidenceProvider="@RemoveMemberProjectionEvidenceProvider" />
-            </div>
+            </FluentStack>
         }
     }
 </section>

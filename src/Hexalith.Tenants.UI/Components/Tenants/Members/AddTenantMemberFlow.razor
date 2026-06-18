@@ -10,10 +10,10 @@
 <section class="tenants-add-member-flow"
          data-testid="tenants-add-member-flow"
          aria-labelledby="tenants-add-member-heading">
-    <div class="tenants-add-member-flow__heading">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.65rem" Class="tenants-add-member-flow__heading">
         <h3 id="tenants-add-member-heading">@Localizer["Tenants.AddMember.Title"]</h3>
         <p>@Localizer["Tenants.AddMember.Description", Detail.TenantId, OwnerCount]</p>
-    </div>
+    </FluentStack>
 
     @if (!string.IsNullOrWhiteSpace(UnavailableReason))
     {
@@ -67,7 +67,7 @@
             </p>
         }
 
-        <div class="tenants-add-member-flow__actions">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom" Class="tenants-add-member-flow__actions">
             <FluentButton Type="ButtonType.Submit"
                           Appearance="ButtonAppearance.Primary"
                           data-testid="tenants-add-member-submit"
@@ -80,7 +80,7 @@
                           OnClick="RefreshStatusAsync">
                 @Localizer["Tenants.AddMember.Refresh"]
             </FluentButton>
-        </div>
+        </FluentStack>
     </EditForm>
 
     <section class="tenants-add-member-flow__lifecycle"

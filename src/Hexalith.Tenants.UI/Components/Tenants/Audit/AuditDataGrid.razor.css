@@ -12,6 +12,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: emphasis-weight outcome pill with bordered chrome; no Fluent badge primitive
+   adopted, to preserve the exact high-contrast border treatment. */
 .audit-data-grid__state {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -24,6 +26,8 @@
     white-space: nowrap;
 }
 
+/* fc-css-exception: content-sized label/value grid; FluentGrid cannot express content-sized columns
+   like minmax(0, 1fr) auto for the reference label plus copy button. */
 .audit-data-grid__reference {
     align-items: start;
     display: grid;

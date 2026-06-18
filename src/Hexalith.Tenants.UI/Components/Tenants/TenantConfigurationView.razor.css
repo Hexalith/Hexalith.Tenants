@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered configuration card region on a semantic <section> landmark; border +
+   padding + vertical gap define the card chrome and keeping the landmark precludes a FluentStack wrapper. */
 .tenant-config {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -6,6 +8,8 @@
     padding: 1rem;
 }
 
+/* fc-css-exception: content-sized title/truth-state header grid on a semantic <header> landmark;
+   FluentGrid cannot express content-sized columns and the landmark cannot become a FluentStack. */
 .tenant-config__header {
     align-items: start;
     display: grid;
@@ -13,6 +17,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* fc-css-exception: zero-margin reset on semantic <h2>/<h3>/<p>; no Fluent typography primitive wraps them. */
 .tenant-config h2,
 .tenant-config h3,
 .tenant-config p {
@@ -25,12 +30,16 @@
     max-width: 64rem;
 }
 
+/* fc-css-exception: truth-state stack uses grid justify-items:end that a responsive breakpoint flips to
+   start; FluentStack flex layout cannot honour the justify-items switch, so it stays a grid. */
 .tenant-config__truth {
     display: grid;
     gap: 0.35rem;
     justify-items: end;
 }
 
+/* fc-css-exception: content-sized search controls grid (filter/clear/help columns); FluentGrid cannot
+   express content-sized columns and the rule has a responsive single-column breakpoint. */
 .tenant-config__controls {
     align-items: end;
     display: grid;
@@ -38,11 +47,15 @@
     grid-template-columns: minmax(12rem, 22rem) auto minmax(14rem, 1fr);
 }
 
+/* fc-css-exception: emphasis weight on the Fluent-generated search <label>; FluentLabel cannot wrap the
+   label emitted by FluentTextInput. */
 .tenant-config__controls label {
     font-weight: 600;
     grid-column: 1 / -1;
 }
 
+/* fc-css-exception: control affordance padding on the FluentTextInput filter control; this is the search
+   field box model, not page layout spacing. */
 .tenant-config__filter {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -51,6 +64,8 @@
     padding: 0.35rem 0.5rem;
 }
 
+/* fc-css-exception: control affordance padding on the clear-filter FluentButton; this is the control box
+   model, not page layout spacing. */
 .tenant-config__clear {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -58,6 +73,8 @@
     padding: 0.35rem 0.75rem;
 }
 
+/* fc-css-exception: control affordance padding on the remove FluentButton; this is the control box model,
+   not page layout spacing. */
 .tenant-config__remove {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -75,11 +92,15 @@
     width: 100%;
 }
 
+/* fc-css-exception: emphasis weight on the semantic caption <p>; FluentLabel cannot wrap a semantic
+   element. */
 .tenant-config__table-caption {
     font-weight: 600;
     margin-block-end: 0.5rem;
 }
 
+/* fc-css-exception: vertical gap on the FluentAccordion group container and its inner data-grid wrapper;
+   the FluentAccordion is an existing Fluent component and must not be replaced by a FluentStack. */
 .tenant-config__groups,
 .tenant-config__group {
     display: grid;
@@ -92,6 +113,8 @@
     width: 100%;
 }
 
+/* fc-css-exception: content-sized literal/value row grid (code/value + copy affordance); FluentGrid
+   cannot express content-sized columns. */
 .tenant-config__literal-row {
     align-items: start;
     display: grid;
@@ -106,6 +129,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: emphasis weight on the unavailable-value <span>; no Fluent typography primitive
+   wraps this inline semantic value. */
 .tenant-config__value--unavailable {
     font-weight: 600;
 }
@@ -119,10 +144,14 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint reducing card padding on the narrow viewport; no Fluent
+       primitive expresses this responsive box-model adjustment. */
     .tenant-config {
         padding: 0.75rem;
     }
 
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized header/controls grids to a
+       single column; no Fluent primitive expresses this content-sized column behaviour. */
     .tenant-config__header,
     .tenant-config__controls {
         grid-template-columns: minmax(0, 1fr);

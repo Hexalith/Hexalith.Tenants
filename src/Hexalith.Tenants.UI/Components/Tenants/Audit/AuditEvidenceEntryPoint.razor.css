@@ -9,6 +9,8 @@
     outline-offset: 2px;
 }
 
+/* fc-css-exception: state-text scale for the availability/reason caption; v5 FluentLabel size
+   tokens do not match this typography. */
 .tenants-audit-entrypoint__reason,
 .tenants-audit-entrypoint__state {
     font-size: 0.875rem;

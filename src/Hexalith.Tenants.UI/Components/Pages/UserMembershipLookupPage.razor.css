@@ -1,17 +1,16 @@
+/* fc-css-exception: vertical region gap on the FluentAccordion sections and the semantic <section>
+   status/results landmarks; keeping the landmarks precludes a FluentStack wrapper. */
 .user-lookup-page__sections,
 .user-lookup-page__status,
 .user-lookup-page__results {
     gap: 0.5rem;
 }
 
+/* fc-css-exception: zero-margin reset on semantic <h2>/<p> text elements; no Fluent typography
+   primitive wraps these semantic elements. */
 .user-lookup-page h2,
 .user-lookup-page p {
     margin: 0;
-}
-
-.user-lookup-page__sort {
-    display: grid;
-    gap: 0.25rem;
 }
 
 .user-lookup-page__form-actions a {
@@ -19,6 +18,8 @@
     color: LinkText;
 }
 
+/* fc-css-exception: bordered status region card; the container padding defines the card chrome,
+   and Fluent v5 has no equivalent bordered card primitive in use here. */
 .user-lookup-page__status {
     border: 1px solid CanvasText;
     max-width: 56rem;

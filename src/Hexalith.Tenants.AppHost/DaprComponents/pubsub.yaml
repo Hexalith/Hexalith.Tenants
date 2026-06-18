@@ -1,7 +1,11 @@
 # DAPR Pub/Sub Component -- Local Development
 # ================================================================
 # Redis-backed pub/sub for tenant event distribution.
-# Dead-letter enabled for undeliverable messages.
+# Dead-lettering is an application-level concern: EventStore's dead-letter
+# publisher routes failed command-processing deliveries to the
+# deadletter.tenants.events topic. It is NOT configured here -- DAPR's native
+# dead-letter topic is a per-subscription setting, not pub/sub component
+# metadata (the Redis component silently ignores enableDeadLetter/deadLetterTopic).
 #
 # Component Scoping:
 #   EventStore publishes tenant events; sample consumes them in local demos.
@@ -18,10 +22,6 @@ spec:
       value: "localhost:6379"
     - name: redisPassword
       value: ""
-    - name: enableDeadLetter
-      value: "true"
-    - name: deadLetterTopic
-      value: "deadletter.tenants.events"
 scopes:
   - eventstore
   - sample

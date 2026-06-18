@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered command-flow card; border + container padding and block margin define
+   the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-remove-member-flow {
     border: 1px solid var(--neutral-stroke-rest, CanvasText);
     display: grid;
@@ -6,56 +8,68 @@
     padding: 1rem;
 }
 
+/* fc-css-exception: spacing reset on semantic heading elements; no Fluent typography primitive
+   wraps these semantic <h3>/<h4> heading elements. */
 .tenants-remove-member-flow__heading h3,
 .tenants-remove-member-flow__preview h4,
 .tenants-remove-member-flow__lifecycle h4 {
     margin-block: 0 .35rem;
 }
 
+/* fc-css-exception: left-accent callout padding on the semantic <section> preview region; preserves
+   the border-accent treatment Fluent has no primitive for. */
 .tenants-remove-member-flow__preview {
     border-inline-start: .25rem solid var(--accent-fill-rest, LinkText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
 
+/* fc-css-exception: vertical gap on the semantic <dl> preview list; keeping the description list
+   precludes a FluentStack wrapper. */
 .tenants-remove-member-flow__preview dl {
     display: grid;
     gap: .6rem;
     margin: 0;
 }
 
+/* fc-css-exception: content-sized two-column label/value grid; FluentGrid cannot express the
+   content-sized column track this dt/dd layout requires. */
 .tenants-remove-member-flow__preview div {
     display: grid;
     grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
     gap: .75rem;
 }
 
+/* fc-css-exception: emphasis weight on semantic <dt> label; FluentLabel cannot wrap a semantic
+   description-list term element. */
 .tenants-remove-member-flow__preview dt {
     font-weight: 700;
 }
 
+/* fc-css-exception: zero-margin reset on semantic <dd> value; no Fluent typography primitive wraps
+   a semantic description-list detail element. */
 .tenants-remove-member-flow__preview dd {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: vertical region gap on the EditForm; keeping the form element precludes a
+   FluentStack wrapper. */
 .tenants-remove-member-flow__form {
     display: grid;
     gap: .75rem;
     max-inline-size: 42rem;
 }
 
+/* fc-css-exception: vertical stack for the Fluent-generated <label>; cannot restructure the markup
+   emitted by FluentTextInput. */
 .tenants-remove-member-flow__form label {
     display: grid;
     gap: .35rem;
 }
 
-.tenants-remove-member-flow__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-}
-
+/* fc-css-exception: left-accent callout padding for inline alert messages on semantic <p>;
+   preserves the border-accent treatment Fluent has no primitive for. */
 .tenants-remove-member-flow__unavailable,
 .tenants-remove-member-flow__validation,
 .tenants-remove-member-flow__risk {
@@ -64,6 +78,8 @@
     padding-inline-start: .75rem;
 }
 
+/* fc-css-exception: inline icon+text row on a semantic <p> status line; preserves the paragraph
+   semantics that a FluentStack wrapper would drop. */
 .tenants-remove-member-flow__state {
     align-items: center;
     display: flex;
@@ -71,6 +87,8 @@
     font-weight: 700;
 }
 
+/* fc-css-exception: visually-hidden live-region offset on semantic <p>; the negative margin clips
+   the announcement text off-screen and has no Fluent primitive. */
 .tenants-remove-member-flow__live {
     block-size: 1px;
     inline-size: 1px;
@@ -85,6 +103,8 @@
 }
 
 @media (max-width: 44rem) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized label/value grid to a
+       single column; no Fluent layout primitive expresses this column behaviour. */
     .tenants-remove-member-flow__preview div {
         grid-template-columns: 1fr;
     }

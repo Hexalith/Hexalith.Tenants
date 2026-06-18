@@ -7,12 +7,16 @@
     max-width: 57.5rem;
 }
 
+/* fc-css-exception: identity cell stack inside a FluentDataGrid TemplateColumn; the min-width:0 overflow
+   guard and tight gap are part of the identity grid a FluentStack wrapper cannot reproduce. */
 .my-tenants-grid__identity {
     display: grid;
     gap: 0.15rem;
     min-width: 0;
 }
 
+/* fc-css-exception: content-sized identity line grid (value + copy affordance); FluentGrid cannot
+   express content-sized columns. */
 .my-tenants-grid__identity-line {
     align-items: start;
     display: grid;

@@ -71,6 +71,40 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Detail_page_renders_unnamed_fallback_heading_for_blank_name_without_crashing(string blankName)
+    {
+        // Regression guard for P-DN1: a tenant persisted with a blank Name must not crash the page.
+        // FcPageHeader.OnParametersSet throws ArgumentException on a blank Heading, so the success
+        // branch supplies the localized "Unnamed tenant" fallback instead of binding the empty name.
+        // Rendering the success identity surface at all proves FcPageHeader did not throw.
+        TenantDetail unnamed = new(
+            "tenant.alpha",
+            blankName,
+            "Tenant alpha description",
+            TenantStatus.Active,
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+            ],
+            new Dictionary<string, string> { ["billing.mode"] = "trial" },
+            DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
+        RegisterServices(_ => Task.FromResult(
+            TenantDetailSnapshot.Ready(unnamed, "\"etag\"", TenantFreshnessState.Current)));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+
+        string expectedFallback = Services
+            .GetRequiredService<IStringLocalizer<TenantsResources>>()["Tenants.Detail.UnnamedTenant"];
+        IElement heading = cut.Find("h1[id='tenants-detail-identity']");
+        heading.TextContent.ShouldNotBeNullOrWhiteSpace();
+        heading.TextContent.Trim().ShouldBe(expectedFallback);
+    }
+
     [Fact]
     public void Detail_page_displays_loading_until_gateway_completes()
     {

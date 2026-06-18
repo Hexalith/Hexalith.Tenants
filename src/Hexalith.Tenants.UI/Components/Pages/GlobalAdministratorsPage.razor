@@ -52,10 +52,10 @@
                      tabindex="0"
                      data-testid="@StateTestId">
                 <span class="global-admins__state-icon" aria-hidden="true">@StateIcon</span>
-                <div class="global-admins__state-copy">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__state-copy">
                     <h2>@StatusHeading</h2>
                     <p id="global-admins-live-region" data-testid="tenants-global-admins-live-region">@StatusMessage</p>
-                </div>
+                </FluentStack>
             </section>
         </FluentAccordionItem>
 
@@ -64,10 +64,10 @@
             <section class="global-admins__grant"
                      aria-labelledby="global-admins-grant-heading"
                      data-testid="tenants-global-admin-grant">
-        <div class="global-admins__grant-heading">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__grant-heading">
             <h2 id="global-admins-grant-heading">@Localizer["Tenants.GlobalAdministrators.Grant.Title"]</h2>
             <p>@Localizer["Tenants.GlobalAdministrators.Grant.Description"]</p>
-        </div>
+        </FluentStack>
 
         @if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
         {
@@ -177,10 +177,10 @@
             <section class="global-admins__remove"
                      aria-labelledby="global-admins-remove-heading"
                      data-testid="tenants-global-admin-remove-flow">
-        <div class="global-admins__remove-heading">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="global-admins__remove-heading">
             <h2 id="global-admins-remove-heading">@Localizer["Tenants.GlobalAdministrators.Remove.Title"]</h2>
             <p>@Localizer["Tenants.GlobalAdministrators.Remove.Description"]</p>
-        </div>
+        </FluentStack>
 
         @if (_removeSnapshot.State is TenantCommandLifecycleState.Previewed
             or TenantCommandLifecycleState.RequestSent
@@ -320,7 +320,7 @@
                                     ColumnId="global-admin-identity"
                                     Width="260px"
                                     Pin="DataGridColumnPin.Start">
-                        <div class="global-admins__identity" data-testid="tenants-global-admins-row">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.375rem" Class="global-admins__identity" data-testid="tenants-global-admins-row">
                             <span class="global-admins__identity-value"
                                   title="@context.UserId"
                                   aria-label="@Localizer["Tenants.GlobalAdministrators.Identity.Accessible", context.UserId]"
@@ -329,7 +329,7 @@
                                                    ValueKind="SupportSafeCopyValueKind.UserId"
                                                    AccessibleName="@Localizer["Tenants.GlobalAdministrators.Copy.UserId", context.UserId]"
                                                    TestId="tenants-global-admins-copy-user-id" />
-                        </div>
+                        </FluentStack>
                     </TemplateColumn>
                     <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Scope"]"
                                     ColumnId="global-admin-scope"
@@ -350,7 +350,7 @@
                     <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Actions"]"
                                     ColumnId="global-admin-actions"
                                     Width="300px">
-                        <div class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.375rem" Class="global-admins__actions" data-testid="tenants-global-admins-action-reasons">
                             <span data-testid="tenants-global-admins-grant-reason">@(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])</span>
                             @if (RemoveUnavailableReason(context) is { Length: > 0 } removeUnavailableReason)
                             {
@@ -364,7 +364,7 @@
                                     @Localizer["Tenants.GlobalAdministrators.Remove.Launch"]
                                 </FluentButton>
                             }
-                        </div>
+                        </FluentStack>
                     </TemplateColumn>
                 </FluentDataGrid>
             </div>

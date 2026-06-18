@@ -1,9 +1,13 @@
+/* fc-css-exception: zero-margin reset on semantic <h2>/<p> text elements; no Fluent typography
+   primitive wraps these semantic elements. */
 .my-tenants-page h2,
 .my-tenants-page p {
     margin: 0;
 }
 
 /* Summary text takes the leading space; the Refresh action stays on the trailing edge. */
+/* fc-css-exception: small caption text scale on the semantic <p> summary; v5 FluentLabel size
+   tokens (Small/Medium/Large) do not match this typography. */
 .my-tenants-page__summary {
     color: GrayText;
     flex: 1 1 12rem;

@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered availability card; vertical region gap plus container padding define
+   the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-audit-availability {
     border: 1px solid CanvasText;
     display: grid;
@@ -6,6 +8,8 @@
     padding: 0.75rem;
 }
 
+/* fc-css-exception: inline icon+text row on a semantic <p> status line; keeping the paragraph
+   semantics precludes replacing it with a FluentStack wrapper. */
 .tenants-audit-availability__state {
     align-items: center;
     display: flex;
@@ -15,6 +19,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: status glyph badge centering for a single character; no Fluent badge primitive
+   adopted, to preserve the exact high-contrast border treatment. */
 .tenants-audit-availability__icon {
     border: 1px solid CanvasText;
     display: inline-grid;
@@ -25,15 +31,11 @@
     width: 1.75rem;
 }
 
+/* fc-css-exception: zero-margin reset on a semantic <p> reason line; no Fluent typography primitive
+   wraps this semantic element. */
 .tenants-audit-availability__reason {
     margin: 0;
     overflow-wrap: anywhere;
-}
-
-.tenants-audit-availability__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
 .tenants-audit-availability__action {

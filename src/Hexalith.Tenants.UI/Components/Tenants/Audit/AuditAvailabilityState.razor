@@ -17,7 +17,7 @@
         {
             <p class="tenants-audit-availability__reason">@ReasonText</p>
         }
-        <div class="tenants-audit-availability__actions" aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-audit-availability__actions" aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
             @foreach (TenantAuditRecoveryVerb verb in Availability.RecoveryVerbs)
             {
                 @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
@@ -36,7 +36,7 @@
                     </FluentButton>
                 }
             }
-        </div>
+        </FluentStack>
     </section>
 }
 

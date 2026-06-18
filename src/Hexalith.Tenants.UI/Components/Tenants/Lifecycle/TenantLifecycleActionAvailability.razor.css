@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered lifecycle card; the border, radius, and container padding define the
+   card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenant-lifecycle {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -6,6 +8,8 @@
     padding: 1rem;
 }
 
+/* fc-css-exception: zero-margin reset on semantic heading, text, and definition-list elements; no
+   Fluent typography primitive wraps these semantic elements. */
 .tenant-lifecycle h2,
 .tenant-lifecycle p,
 .tenant-lifecycle dl,
@@ -13,17 +17,23 @@
     margin: 0;
 }
 
+/* fc-css-exception: internal vertical layout on a semantic <header> landmark; keeping the landmark
+   precludes replacing it with a FluentStack wrapper. */
 .tenant-lifecycle__header {
     display: grid;
     gap: 1rem;
 }
 
+/* fc-css-exception: content-sized auto-fit fact columns on a semantic <dl>; FluentGrid cannot
+   express content-sized columns and a definition list cannot be a FluentStack. */
 .tenant-lifecycle__facts {
     display: grid;
     gap: 0.75rem;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
 }
 
+/* fc-css-exception: bordered fact tile with a top divider and padding; the border-and-padding chrome
+   has no Fluent card primitive in use here. */
 .tenant-lifecycle__facts div {
     border-block-start: 1px solid CanvasText;
     display: grid;
@@ -32,16 +42,21 @@
     padding-block-start: 0.75rem;
 }
 
+/* fc-css-exception: emphasis weight on a semantic <dt>; FluentLabel cannot wrap a semantic element. */
 .tenant-lifecycle__facts dt {
     font-weight: 600;
 }
 
+/* fc-css-exception: content-sized auto-fit action columns; FluentGrid cannot express content-sized
+   columns for this responsive action list. */
 .tenant-lifecycle__actions {
     display: grid;
     gap: 0.75rem;
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
+/* fc-css-exception: bordered action card with radius and padding; the border-and-padding chrome has
+   no Fluent card primitive in use here. */
 .tenant-lifecycle__action {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -60,11 +75,15 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: internal vertical layout on a semantic <p> reason element; preserves the
+   paragraph semantics that a FluentStack wrapper would drop. */
 .tenant-lifecycle__reason {
     display: grid;
     gap: 0.25rem;
 }
 
+/* fc-css-exception: emphasis weight on the leading label span of a semantic <p>; no Fluent
+   typography primitive wraps this inline label. */
 .tenant-lifecycle__reason span:first-child {
     font-weight: 600;
 }
@@ -76,6 +95,8 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized fact and action columns
+       to one; no Fluent primitive expresses this content-sized column behaviour. */
     .tenant-lifecycle__facts,
     .tenant-lifecycle__actions {
         grid-template-columns: minmax(0, 1fr);

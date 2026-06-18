@@ -1,8 +1,12 @@
+/* fc-css-exception: zero-margin reset on semantic <h2>/<p> text elements; no Fluent typography
+   primitive wraps these semantic elements. */
 .tenants-workspace h2,
 .tenants-workspace p {
     margin: 0;
 }
 
+/* fc-css-exception: bordered status region card; vertical region gap plus container padding define
+   the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-workspace__status {
     border: 1px solid CanvasText;
     border-radius: 8px;

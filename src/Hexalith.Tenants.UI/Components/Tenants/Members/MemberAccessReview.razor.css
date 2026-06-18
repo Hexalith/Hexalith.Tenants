@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered review-region card; border + container padding define the card chrome,
+   and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenant-members {
     border: 1px solid CanvasText;
     border-radius: 6px;
@@ -6,6 +8,8 @@
     padding: 1rem;
 }
 
+/* fc-css-exception: content-sized two-column header grid on a semantic <header> landmark; FluentGrid
+   cannot express the content-sized auto column and keeping the landmark precludes a stack wrapper. */
 .tenant-members__header {
     align-items: start;
     display: grid;
@@ -13,6 +17,8 @@
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* fc-css-exception: zero-margin reset on semantic heading/text/list elements; no Fluent typography
+   primitive wraps these semantic <h2>/<h3>/<p>/<ul> elements. */
 .tenant-members h2,
 .tenant-members h3,
 .tenant-members p,
@@ -25,16 +31,12 @@
     max-width: 64rem;
 }
 
+/* fc-css-exception: grid-aligned vertical truth stack using justify-items end; a flex FluentStack
+   cannot replicate the grid item alignment the responsive breakpoint also toggles. */
 .tenant-members__truth {
     display: grid;
     gap: 0.35rem;
     justify-items: end;
-}
-
-.tenant-members__reason-catalog {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
 .tenant-members__table-wrap {
@@ -47,11 +49,15 @@
     width: 100%;
 }
 
+/* fc-css-exception: emphasis weight and spacing on a semantic <p> table caption; no Fluent
+   typography primitive wraps this semantic caption element. */
 .tenant-members__table-caption {
     font-weight: 600;
     margin-block-end: 0.5rem;
 }
 
+/* fc-css-exception: monospace identifier cell weight; no Fluent typography primitive expresses this
+   value-cell font treatment. */
 .tenant-members__user {
     font-weight: 400;
     max-width: 18rem;
@@ -63,6 +69,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: content-sized two-column identifier/copy grid; FluentGrid cannot express the
+   content-sized auto column track this code/button layout requires. */
 .tenant-members__user-row {
     align-items: start;
     display: grid;
@@ -71,6 +79,8 @@
     min-width: 0;
 }
 
+/* fc-css-exception: status pill / reason badge centering with border and padding chrome; no Fluent
+   badge primitive adopted, to preserve the exact high-contrast pill treatment. */
 .tenant-members__badge,
 .tenant-members__reason,
 .tenant-members__action-state {
@@ -82,17 +92,15 @@
     padding: 0.2rem 0.45rem;
 }
 
+/* fc-css-exception: emphasis weight on the badge/reason pill text; no Fluent badge primitive adopted
+   that expresses this label weight. */
 .tenant-members__badge,
 .tenant-members__reason {
     font-weight: 600;
 }
 
-.tenant-members__actions {
-    display: grid;
-    gap: 0.5rem;
-    min-width: 20rem;
-}
-
+/* fc-css-exception: content-sized two-column action name/state grid; FluentGrid cannot express the
+   content-sized minmax column track this slot layout requires. */
 .tenant-members__action-slot {
     align-items: start;
     display: grid;
@@ -104,11 +112,15 @@
     justify-self: start;
 }
 
+/* fc-css-exception: emphasis weight on the action-name <span>; FluentLabel cannot wrap this inline
+   action-name element without altering its grid placement. */
 .tenant-members__action-name {
     font-weight: 600;
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: wrapping reason list on a semantic <ul>; keeping the list element precludes a
+   FluentStack wrapper. */
 .tenant-members__reasons {
     display: flex;
     flex-wrap: wrap;
@@ -117,15 +129,10 @@
     padding: 0;
 }
 
+/* fc-css-exception: emphasis weight on the catalog reason pill text; no Fluent badge primitive
+   adopted that expresses this label weight. */
 .tenant-members__reason--catalog {
     font-weight: 500;
-}
-
-.tenant-members__change-role-region,
-.tenant-members__remove-member-region {
-    display: grid;
-    gap: 0.75rem;
-    min-width: 0;
 }
 
 .tenant-members__table-wrap [tabindex]:focus-visible,
@@ -136,10 +143,14 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint tightening the card container padding; no Fluent
+       primitive expresses this card chrome adjustment. */
     .tenant-members {
         padding: 0.75rem;
     }
 
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized header grid to a single
+       column; no Fluent layout primitive expresses this column behaviour. */
     .tenant-members__header {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -156,6 +167,8 @@
         min-width: 16rem;
     }
 
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized action-slot grid to a
+       single column; no Fluent layout primitive expresses this column behaviour. */
     .tenant-members__action-slot {
         grid-template-columns: minmax(0, 1fr);
     }

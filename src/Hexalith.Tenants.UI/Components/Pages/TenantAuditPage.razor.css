@@ -1,20 +1,28 @@
+/* fc-css-exception: vertical gap on the FluentAccordion support panel and the semantic
+   <section> grid-shell landmark; keeping the landmark precludes a FluentStack wrapper. */
 .tenant-audit__support,
 .tenant-audit__grid-shell {
     display: grid;
     gap: 0.75rem;
 }
 
+/* fc-css-exception: zero-margin reset on the semantic <p> context paragraphs; no Fluent typography
+   primitive wraps these semantic elements. */
 .tenant-audit__context,
 .tenant-audit__return-context {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: left-accent callout padding for the inline context message; preserves the
+   border-accent treatment Fluent has no primitive for. */
 .tenant-audit__context {
     border-inline-start: 3px solid var(--accent-stroke-rest, LinkText);
     padding-inline-start: 0.5rem;
 }
 
+/* fc-css-exception: small caption text scale on the semantic <p> return-context; v5 FluentLabel
+   size tokens (Small/Medium/Large) do not match this typography. */
 .tenant-audit__return-context {
     color: var(--neutral-foreground-hint, GrayText);
     font-size: 0.875rem;
@@ -26,6 +34,8 @@
     }
 }
 
+/* fc-css-exception: bordered status region on a semantic <section> with a content-sized icon/copy
+   grid (auto + 1fr); FluentGrid is a 12-column responsive system and cannot express these columns. */
 .tenant-audit__state {
     align-items: start;
     border: 1px solid CanvasText;
@@ -41,6 +51,8 @@
     outline-offset: 3px;
 }
 
+/* fc-css-exception: status glyph badge centering for a single character on a <span>; no Fluent
+   badge primitive adopted, to preserve the exact high-contrast circular border treatment. */
 .tenant-audit__state-icon {
     border: 1px solid CanvasText;
     border-radius: 50%;
@@ -55,6 +67,8 @@
     min-width: 0;
 }
 
+/* fc-css-exception: bottom-margin reset on semantic <h2>/<p> heading/text elements; no Fluent
+   typography primitive wraps these semantic elements. */
 .tenant-audit__state-copy h2,
 .tenant-audit__state-copy p {
     margin-block: 0 0.25rem;

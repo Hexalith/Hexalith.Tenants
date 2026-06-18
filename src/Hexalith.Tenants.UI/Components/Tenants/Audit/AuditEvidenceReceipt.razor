@@ -78,7 +78,7 @@
         {
             @if (ShouldRenderCorrection)
             {
-                <div class="audit-evidence-receipt__correction">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="audit-evidence-receipt__correction">
                     @if (CorrectionIntent!.IsAvailable)
                     {
                         <FluentButton Appearance="ButtonAppearance.Primary"
@@ -97,9 +97,9 @@
                             @CorrectionUnavailableReason
                         </p>
                     }
-                </div>
+                </FluentStack>
             }
-            <div class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="audit-evidence-receipt__actions" aria-label="@Localizer["Tenants.Audit.Receipt.ActionsLabel"]">
                 @foreach (string action in ActionResourceKeys)
                 {
                     <FluentButton Appearance="ButtonAppearance.Outline"
@@ -108,7 +108,7 @@
                         @Localizer[action]
                     </FluentButton>
                 }
-            </div>
+            </FluentStack>
         }
     </section>
 }

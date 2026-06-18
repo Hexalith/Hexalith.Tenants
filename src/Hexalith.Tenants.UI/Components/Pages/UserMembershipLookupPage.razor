@@ -131,7 +131,7 @@
                     <section class="user-lookup-page__results"
                              aria-labelledby="tenants-user-lookup-status-heading"
                              data-testid="tenants-user-lookup-results">
-                        <div class="user-lookup-page__sort">
+                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem" Class="user-lookup-page__sort">
                             <FluentSelect TOption="string" TValue="string"
                                           Label="@Localizer["Tenants.UserLookup.SortLabel"]"
                                           Value="@_sortColumn"
@@ -142,7 +142,7 @@
                                 <FluentOption TValue="string" Value="@("role")">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
                                 <FluentOption TValue="string" Value="@("status")">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
                             </FluentSelect>
-                        </div>
+                        </FluentStack>
 
                         <MyTenantsDataGrid Rows="@VisibleRows"
                                            ResourcePrefix="Tenants.UserLookup"

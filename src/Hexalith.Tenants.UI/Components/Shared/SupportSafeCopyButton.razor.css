@@ -1,3 +1,5 @@
+/* fc-css-exception: copy button + feedback inline grid on a semantic <span>; content-sized columns
+   (button auto + feedback fill) that FluentGrid cannot express, and the <span> must stay inline. */
 .support-safe-copy {
     align-items: start;
     display: inline-grid;
@@ -23,6 +25,7 @@
     white-space: nowrap;
 }
 
+/* fc-css-exception: copy-confirmation text scale; v5 FluentLabel size tokens do not match this typography. */
 .support-safe-copy__feedback {
     align-self: center;
     font-size: 0.875rem;

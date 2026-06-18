@@ -116,7 +116,7 @@ The planned EventStore authorization plugin is a future/optional synchronous pip
 
 `PublishFailed` means events were persisted but EventStore publication failed after the configured attempts. The persisted event stream remains authoritative. Drain recovery can republish the stored sequence range, and subscribers must handle duplicates.
 
-Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the pub/sub component and resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry before the dead-letter path, and the pub/sub component files configure the `deadletter.tenants.events` topic for deliveries that still cannot be processed. Keep those retry and dead-letter settings reviewed together.
+Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry/backoff. Dead-lettering to the `deadletter.tenants.events` topic is an application-level concern handled by EventStore's dead-letter publisher (it routes command-processing infrastructure failures), not DAPR component metadata — DAPR's native dead-letter topic is a per-subscription setting and is not configured on the `pubsub` component. Keep the retry and dead-letter behavior reviewed together.
 
 When a local projection is stale:
 

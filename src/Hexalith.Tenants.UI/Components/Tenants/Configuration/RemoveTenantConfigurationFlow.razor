@@ -91,7 +91,7 @@
             </p>
         }
 
-        <div class="tenants-config-remove__actions">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-config-remove__actions">
             <span class="tenants-config-remove__button-focus" tabindex="-1" @ref="_submitElement">
                 <FluentButton Type="ButtonType.Submit"
                               Appearance="ButtonAppearance.Primary"
@@ -113,7 +113,7 @@
                     @Localizer["Tenants.Configuration.Remove.Cancel"]
                 </FluentButton>
             </span>
-        </div>
+        </FluentStack>
     </EditForm>
 
     <section class="tenants-config-remove__lifecycle"

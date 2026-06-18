@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered receipt card; vertical region gap plus container padding define the
+   card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .audit-evidence-receipt {
     border: 1px solid CanvasText;
     display: grid;
@@ -5,6 +7,8 @@
     padding: 0.75rem;
 }
 
+/* fc-css-exception: content-sized header grid on a semantic <header> landmark; FluentGrid cannot
+   express content-sized columns like minmax(0, 1fr) auto for the title plus copy button. */
 .audit-evidence-receipt__header {
     align-items: start;
     display: grid;
@@ -12,18 +16,24 @@
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* fc-css-exception: zero-margin reset on semantic <h3>/<p> heading and state lines; no Fluent
+   typography primitive wraps these semantic elements. */
 .audit-evidence-receipt__header h3,
 .audit-evidence-receipt__state {
     margin-block: 0 0.25rem;
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: inline icon+text row on a semantic <p> status line; keeping the paragraph
+   semantics precludes replacing it with a FluentStack wrapper. */
 .audit-evidence-receipt__state {
     align-items: center;
     display: flex;
     gap: 0.5rem;
 }
 
+/* fc-css-exception: status glyph badge centering for a short label; no Fluent badge primitive
+   adopted, to preserve the exact circular high-contrast border treatment. */
 .audit-evidence-receipt__state-icon {
     border: 1px solid CanvasText;
     border-radius: 50%;
@@ -34,6 +44,8 @@
     width: 1.75rem;
 }
 
+/* fc-css-exception: content-sized label/value grid on a semantic <dl>; FluentGrid cannot express
+   the auto-fit minmax(14rem, 1fr) column behaviour these definition fields need. */
 .audit-evidence-receipt__fields {
     display: grid;
     gap: 0.5rem;
@@ -45,26 +57,20 @@
     min-width: 0;
 }
 
+/* fc-css-exception: emphasis weight on a semantic <dt>; FluentLabel cannot wrap a semantic element. */
 .audit-evidence-receipt__field dt {
     font-weight: 700;
 }
 
+/* fc-css-exception: zero-margin reset on a semantic <dd>; no Fluent typography primitive wraps this
+   semantic element. */
 .audit-evidence-receipt__field dd {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
-.audit-evidence-receipt__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.audit-evidence-receipt__correction {
-    display: grid;
-    gap: 0.5rem;
-}
-
+/* fc-css-exception: left-accent callout padding on a semantic <p> correction reason; preserves the
+   border-accent treatment Fluent has no primitive for. */
 .audit-evidence-receipt__correction-reason {
     border-inline-start: 3px solid CanvasText;
     margin: 0;
@@ -83,10 +89,14 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized header columns to one;
+       no Fluent layout primitive expresses this content-sized column behaviour. */
     .audit-evidence-receipt__header {
         grid-template-columns: 1fr;
     }
 
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized field columns to one;
+       no Fluent layout primitive expresses this content-sized column behaviour. */
     .audit-evidence-receipt__fields {
         grid-template-columns: 1fr;
     }

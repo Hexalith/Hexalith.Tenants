@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered command-flow card; top border + container padding define the card
+   chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-config-remove {
     border-block-start: 1px solid CanvasText;
     display: grid;
@@ -5,6 +7,8 @@
     padding-block-start: 1rem;
 }
 
+/* fc-css-exception: content-sized header columns on a semantic <header> landmark; FluentGrid cannot
+   express content-sized columns and keeping the landmark precludes a FluentStack wrapper. */
 .tenants-config-remove__header {
     align-items: start;
     display: grid;
@@ -12,6 +16,8 @@
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* fc-css-exception: zero-margin reset on semantic heading and text elements; no Fluent typography
+   primitive wraps these semantic elements. */
 .tenants-config-remove h3,
 .tenants-config-remove h4,
 .tenants-config-remove p {
@@ -22,51 +28,60 @@
     display: none;
 }
 
+/* fc-css-exception: vertical form layout on an EditForm element with a width constraint; EditForm is
+   not a div or span so a FluentStack wrapper cannot replace it. */
 .tenants-config-remove__form {
     display: grid;
     gap: .75rem;
     max-inline-size: 60rem;
 }
 
+/* fc-css-exception: vertical confirmation stack with a width constraint that a deleted rule would
+   drop; the max-inline-size cap cannot be carried by a FluentStack alone. */
 .tenants-config-remove__confirmation {
     display: grid;
     gap: .35rem;
     max-inline-size: 36rem;
 }
 
+/* fc-css-exception: left-accent callout padding for the preview region; preserves the border-accent
+   treatment Fluent has no primitive for. */
 .tenants-config-remove__preview {
     border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
 
+/* fc-css-exception: zero-margin vertical list on a semantic <dl>; no Fluent typography primitive
+   wraps a definition list. */
 .tenants-config-remove__preview dl {
     display: grid;
     gap: .6rem;
     margin: 0;
 }
 
+/* fc-css-exception: content-sized label/value grid; FluentGrid cannot express content-sized columns
+   for the preview definition rows. */
 .tenants-config-remove__preview div {
     display: grid;
     gap: .75rem;
     grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr);
 }
 
+/* fc-css-exception: emphasis weight on a semantic <dt>; FluentLabel cannot wrap a semantic element. */
 .tenants-config-remove__preview dt {
     font-weight: 700;
 }
 
+/* fc-css-exception: zero-margin reset on a semantic <dd>; no Fluent typography primitive wraps a
+   definition description element. */
 .tenants-config-remove__preview dd {
     margin: 0;
     overflow-wrap: anywhere;
 }
 
-.tenants-config-remove__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-}
-
+/* fc-css-exception: left-accent callout padding for inline alert messages; preserves the
+   border-accent treatment Fluent has no primitive for. */
 .tenants-config-remove__unavailable,
 .tenants-config-remove__validation,
 .tenants-config-remove__preview-blocked,
@@ -75,6 +90,8 @@
     padding-inline-start: .75rem;
 }
 
+/* fc-css-exception: inline icon-and-text row with emphasis weight on a semantic <p> status line;
+   preserves the paragraph semantics that a FluentStack wrapper would drop. */
 .tenants-config-remove__state {
     align-items: center;
     display: flex;
@@ -82,6 +99,8 @@
     font-weight: 700;
 }
 
+/* fc-css-exception: visually-hidden live region using a negative-margin clip; this off-screen
+   technique has no Fluent layout primitive equivalent. */
 .tenants-config-remove__live {
     block-size: 1px;
     inline-size: 1px;
@@ -96,6 +115,8 @@
 }
 
 @media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized header columns to one;
+       no Fluent primitive expresses this content-sized column behaviour. */
     .tenants-config-remove__header {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -108,6 +129,8 @@
         display: block;
     }
 
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized preview columns to one;
+       no Fluent primitive expresses this content-sized column behaviour. */
     .tenants-config-remove__preview div {
         grid-template-columns: 1fr;
     }

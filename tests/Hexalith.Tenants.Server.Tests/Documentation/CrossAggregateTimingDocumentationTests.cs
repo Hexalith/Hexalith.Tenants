@@ -121,8 +121,14 @@ public class CrossAggregateTimingDocumentationTests {
 
         foreach (YamlMappingNode component in new[] { localPubSub, productionPubSub }) {
             Scalar(component, "metadata", "name").ShouldBe("pubsub");
-            MetadataValue(component, "enableDeadLetter").ShouldBe("true");
-            MetadataValue(component, "deadLetterTopic").ShouldBe("deadletter.tenants.events");
+
+            // Dead-lettering is an application-level concern: EventStore's dead-letter publisher routes
+            // failed command-processing deliveries to deadletter.tenants.events. It is NOT DAPR pub/sub
+            // component metadata -- DAPR's native dead-letter topic is a per-subscription setting, so the
+            // Redis pub/sub component silently ignores enableDeadLetter/deadLetterTopic. Guard against the
+            // inert keys being reintroduced on the component (they imply a DLQ wiring that does not exist).
+            MetadataValue(component, "enableDeadLetter").ShouldBeNull();
+            MetadataValue(component, "deadLetterTopic").ShouldBeNull();
             Scopes(component).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
         }
 
@@ -143,6 +149,12 @@ public class CrossAggregateTimingDocumentationTests {
         guide.ShouldContain("DAPR pub/sub");
         guide.ShouldContain("subscriber failure");
         guide.ShouldContain("redeliver");
+
+        // The guide must credit the real (application-level) dead-letter mechanism rather than implying
+        // DAPR component metadata configures it -- keeps the doc honest about where deadletter.tenants.events
+        // comes from (EventStore's dead-letter publisher).
+        guide.ShouldContain("application-level");
+        guide.ShouldContain("dead-letter publisher");
     }
 
     [Fact]

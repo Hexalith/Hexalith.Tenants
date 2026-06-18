@@ -10,10 +10,10 @@
 <section class="tenants-change-role-flow"
          data-testid="tenants-change-role-flow"
          aria-labelledby="tenants-change-role-heading">
-    <div class="tenants-change-role-flow__heading">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.65rem" Class="tenants-change-role-flow__heading">
         <h3 id="tenants-change-role-heading">@Localizer["Tenants.ChangeRole.Title"]</h3>
         <p>@Localizer["Tenants.ChangeRole.Description", Detail.TenantId, Member.UserId, RoleLabel(Member.Role)]</p>
-    </div>
+    </FluentStack>
 
     <dl class="tenants-change-role-flow__context">
         <div>
@@ -82,7 +82,7 @@
             </p>
         }
 
-        <div class="tenants-change-role-flow__actions">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" VerticalAlignment="VerticalAlignment.Bottom" Class="tenants-change-role-flow__actions">
             <FluentButton Type="ButtonType.Submit"
                           Appearance="ButtonAppearance.Primary"
                           data-testid="tenants-change-role-submit"
@@ -100,7 +100,7 @@
                           OnClick="CloseAsync">
                 @Localizer["Tenants.ChangeRole.Cancel"]
             </FluentButton>
-        </div>
+        </FluentStack>
     </EditForm>
 
     <section class="tenants-change-role-flow__lifecycle"

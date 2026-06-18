@@ -1,3 +1,5 @@
+/* fc-css-exception: bordered state-card region on a semantic <section> landmark; border + padding +
+   vertical gap define the card chrome and keeping the landmark precludes a FluentStack wrapper. */
 .list-surface-state {
     border: 1px solid CanvasText;
     border-radius: 8px;
@@ -6,6 +8,7 @@
     padding: 1rem;
 }
 
+/* fc-css-exception: zero-margin reset on semantic <h2>/<p>; no Fluent typography primitive wraps them. */
 .list-surface-state h2,
 .list-surface-state p {
     margin: 0;
