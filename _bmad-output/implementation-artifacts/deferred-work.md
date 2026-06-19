@@ -1,38 +1,119 @@
 # Deferred Work
 
-Tracked items deferred from reviews and sprint execution. Each entry notes its source.
+Updated: 2026-06-19 by Correct Course approval.
+Source proposal: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md`.
 
-## Deferred from: code review of 3-5-tenant-query-gateway-rest-routing (2026-06-07)
+This file is now a routing index. Original review detail remains in the source story/spec artifacts; open items here must point to a Tenants story, a FrontComposer owner handoff, an EventStore owner handoff, or a stale/resolved record.
 
-- **Freshness ladder reports `current` on every successful read (accepted + documented)** — `TenantQueryResult.FromPayload` stamps `ServedAt = UtcNow` + `ProjectionVersion = ETag`, and the BFF client never sets `IsStale`/`IsDegraded`, so `TenantQueryGateway.ResolveFreshness` returns `Current` whenever an ETag exists; `aging`/`stale` are unreachable on the happy path. Accepted for this routing defect-fix: a direct read-model read with a valid ETag is `current`. Follow-up: derive a real `aging`/`stale` signal from a ServedAt threshold or a genuine projection version per D6.
-- **Full Server.Tests + IntegrationTests blocked by pre-existing infra** — full Tier 2 `Server.Tests` and full Tier 3 `IntegrationTests` do not run green due to a missing `pubsub.yaml` evidence gate and health-readiness contract drift, both predating Story 3.5. Pairs with the open AC9 decision (accept focused-suite evidence vs. require full green).
-- **EventStore.Admin.Server still routes tenant queries through the retired actor** — `Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs:209` still assigns `ProjectionActorType: TenantProjectionRouting.ActorTypeName`. Out of scope here (submodule must not be modified per Dev Notes); flags that the broader system retains a live actor-routed tenant query path.
-- **Null/empty read-model ETag silently disables 304** — when `ReadModelEntry.ETag` is null/whitespace, `TenantQueryResult.FromPayload` returns `metadata = null`, so `TenantsQueryController` emits no ETag and never returns 304 (always 200). Fail-open and safe; document the behavior or guarantee non-null read-model ETags.
-- **ETag quote/compare + weak-ETag handling robust only for the current strong-ETag topology** — `QuoteStrongETag` backslash-escapes embedded `"`/`\` while `IsNotModified` compares against the unescaped value; `GetETag` throws `EventStoreGatewayException` and `NormalizeIfNoneMatch` throws `ArgumentException` (which would escape the gateway's `EventStoreGatewayException`-only catch) on weak/`*` ETags. Dormant because DAPR state-store ETags are simple opaque strings and the server emits only strong tags, but harden if a proxy/CDN or new state-store backend can weaken ETags.
-- **StatelessRestartTests state-store-reconstruction coverage deleted, not replaced** — `tests/Hexalith.Tenants.IntegrationTests/StatelessRestartTests.cs` removed the actor-based "persist to state store → reconstructed by a fresh instance" test (correct, the actor is gone) but no REST/handler equivalent was added; net loss of production-path state-store reconstruction coverage.
-- **No explicit test asserts the live error path drops `correlationId` from user copy** — `TenantsQueryApiClient.ThrowGatewayExceptionAsync` packs `correlationId`/`reasonCode` into the exception; `TenantQueryGateway`'s `Map*Exception` methods correctly return only safe generic strings, but only the `UnavailableTenantQueryGateway` fallback is assert-covered for non-leakage. Add a leakage assertion on the populated-correlation-id path.
+## Tenants-Owned Work Routed to Ready-for-Dev Stories
 
-## Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep (2026-06-18)
+### `cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`
 
-- **Page landmark & accessible-name a11y regression (DN2)** — relocating page `<main>` wrappers to roleless `FluentStack` `<div>`s plus per-page `FcPageHeader` `<header>` causes (1) a second `banner` landmark (the page `<header>` is not scoped to a native sectioning element) alongside the shell chrome banner, and (2) an orphaned `aria-labelledby` (`global-admins-heading`, `tenant-audit-heading` now sit on roleless `<div>`s while the real landmark is the shell's `#fc-main-content` `role="main"` with no accessible name). Resolved 2026-06-18 (Jérôme Piquot) as a **cross-submodule FrontComposer/UX decision** per the spec's "FrontComposer boundary" rule — hand to the FrontComposer shell/UX owner (shell native `<main>` + accessible-name parameter; ensure the page `<header>` is not a competing banner). Candidate to fold into the ready-for-dev `cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep`. Refs: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor:9`, `.../FrontComposerShell.razor:113`.
-- **Intermediate commit `4ce8a84` is non-building standalone** — it migrated the Tenants pages to `FcPageHeader` while the `Hexalith.FrontComposer` submodule pointer still referenced `6edc855` (no `FcPageHeader`); the pointer was bumped to `e064573` only at HEAD `9af97d9`. The committed end state is internally consistent (`e064573` ⊃ `80afcd9`, the `FcPageHeader` commit), so this is a per-commit CI/bisect hygiene issue only, not a current-state defect. Fix = squash/reorder the page-header commits so the submodule pointer bump lands with (or before) the consumer migration, if per-commit CI matters.
+Status: `ready-for-dev`.
+Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening.md`.
+Primary source: code review of `3-5-tenant-query-gateway-rest-routing` on 2026-06-07.
 
-## Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep (2026-06-18, independent re-review)
+Routed items:
 
-- **DN2 a11y landmark/accessible-name regression — still open (reaffirmed)** — the independent third review re-confirmed the orphaned `aria-labelledby` (now on roleless `FluentStack` `<div>`s) + duplicate `banner` (each page's `FcPageHeader` `<header>`) + unnamed shell `main` (`#fc-main-content`). Same item already tracked above under the 2026-06-18 entry; logged again here only to flag that it ships open and must be carried by `cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep` (currently `ready-for-dev`). Refs: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor:9`, `.../FrontComposerShell.razor:113`.
-- **`FcPageHeader` is a fail-open contract (FrontComposer-owned)** — `OnParametersSet` hard-throws on a blank `Heading` (`ArgumentException.ThrowIfNullOrWhiteSpace` at `FcPageHeader.razor.cs:60`), so a page-wide crash is one missing/whitespace `.resx` value away; and `FocusHeadingAsync()` silently no-ops if a caller forgets `HeadingTabIndex="-1"` (heading not focusable). The active crash path is closed consumer-side (DN1 option a) and all current callers are safe, but DN1's option (b) "soften the component" was left untaken. Forward-looking hardening for the FrontComposer shell/UX owner; not actionable in the Tenants repo (submodule boundary).
-- **Out-of-scope DAPR/health/`pubsub.yaml`/`Program.cs` bundled into a UI-layout story** — health-response writer + endpoint wiring (`Program.cs`), the new `pubsub.yaml`, and the `HealthEndpointsTests` rename are not page layout/header work. Kept per DN3 (human resolution: keep code + correct the record). Optional follow-up: split into a dedicated deployment-readiness commit if per-commit history/scope hygiene matters. UPDATE 2026-06-18: the inert `pubsub.yaml` dead-letter keys flagged here were **resolved** in the independent re-review (D1, option 1) — removed from both local + production component files and the comments/timing-guide/governance test corrected to credit EventStore's application-level `DeadLetterPublisher` (dead-lettering was never actually broken; the component keys were misleading decoration). No remaining DLQ action; the broader DAPR/health *scope*-bundling note above still stands as optional commit hygiene.
+- Freshness ladder reports `current` on every successful read. Follow-up is to make D6 freshness truthful from real projection metadata or explicitly document the direct-read/unknown rule.
+- Full `Server.Tests` and `IntegrationTests` blockers must be re-baselined with current evidence; old pub/sub and health-readiness blocker wording must not be carried if resolved.
+- Null/empty read-model ETag behavior must be explicit and tested: 200 with no ETag and no 304 support.
+- ETag quoting, weak ETag, `*`, escaped strong tag, and unsupported multi-tag handling must be hardened or safely mapped.
+- The deleted actor-based state-store reconstruction test must be replaced with REST/handler production-path reconstruction coverage.
+- A live populated-correlation gateway error path must assert that `correlationId`, `reasonCode`, raw payloads, stack traces, tokens, cursors, and ETags do not reach user-facing copy.
 
-## Deferred from: code review of spec-frontcomposer-fluent-structural-and-style-conformance-sweep (2026-06-18)
+### `cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`
 
-- **Commit/scope hygiene — working-tree snapshot co-mingles 8 files from adjacent stories** — the reviewed `git diff HEAD` carried the FrontComposer submodule pointer move (`e064573→f4910d7`, forward-only single commit "remove unused .fc-page-header__actions class"), `deploy/dapr/pubsub.yaml` + AppHost `pubsub.yaml`, `docs/cross-aggregate-timing.md` + `CrossAggregateTimingDocumentationTests.cs`, `deferred-work.md`, the sibling layout-page-layout spec, and `TenantDetailSurfaceTests.cs` — none in this story's File List. They belong to the sibling `cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep` story and are already reconciled in its review record (this file, lines 18 and 24). Not a defect of this story; recommend committing the structural-and-style sweep's UI/test files separately from the sibling/DAPR work for per-commit CI/bisect hygiene.
-- **`publishingScopes: "sample="` in `pubsub.yaml` looks malformed/inert** — declares app `sample` may publish to an empty topic list, contradicting the file's own comment (EventStore is the publisher). Pre-existing, not introduced by this change; sits adjacent to the dead-letter-key removal and was not addressed by it. Verify the intended publish-scope mapping (likely `eventstore` should appear here, or the scope is inverted). Ref: `deploy/dapr/pubsub.yaml`.
-- **Blank-`TenantId` audit route renders a dangling "Audit – " header with no fallback** — parallel to the blank-`Name` fallback added for the Detail page; cosmetic only (no crash — the audit heading is not routed through `FcPageHeader`'s blank-`Heading` throw). Already listed in the spec's own "Dismissed" set. Optional: add a `Tenants.Audit.UnnamedTenant`-style fallback for symmetry. Ref: `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor`.
-- **`aria-controls`→region-`id` association untested after the FluentStack migration** — `FluentStack.Id` renders the lowercase `id` (verified by decompile + green 687-test suite), so this is functionally correct; but the only test asserts the *referencing* button's `aria-controls` value, not that the *target* `FluentStack` renders the matching `id` when the region is active. Optional bUnit hardening. Ref: `src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:194,210`, test `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:479-482`.
-- **§5.3 governance guards inherit verbatim-regex bypasses (DN2 — deferred to correct-course)** — the approved §5.3(a)/(b) regexes (implemented byte-for-byte) can be evaded: compact non-zero spacing with no space after the colon (`padding:0.5rem`) is not flagged because `(?!0)` has no whitespace to backtrack (verified: `margin:0.5rem`→pass, `margin: 0.5rem`→flagged); and the inline-layout-style ban only catches `display:flex/grid|gap|grid-template|flex-direction`, so inline `style="margin:2rem;padding:1rem;width:50%;justify-content:space-between"` escapes. **Resolution (Administrator, 2026-06-18): DEFER** — §5.3 is a human-approved frozen contract; renegotiate via correct-course/re-approval rather than deviating mid-review. Current swept code is clean (0 offenders), so the bypasses are theoretical today. **Scope of the correct-course (folded in 2026-06-18):** the review's 5 "guard-hardening" patch candidates were re-verified before applying and **none were applied to the guard file**. One — the claim that the styling scan is "blind to declarations inside `@media` blocks" — was a **verified false positive** (dismissed): `CssRule`'s leftmost match captures each inner rule inside an `@media` block because CSS declaration bodies are brace-free, so `@media (min-width:40rem){ .x{ grid-template-columns:1fr 1fr } }` IS scanned. The remaining four (over-broad `:focus-visible` blanket skip — but note that is an *approved* §5.3(a) exemption; `<div>+<span>` budget comment-counting, with the zero-headroom ceiling being §5.3(c) by design; fc-css-exception rule-vs-declaration scoping; and the `RemoveForcedColorsMediaBlocks` brace-stripping robustness) are folded here so any future change lands in one re-approved effort. The frozen §5.3(a)/(b) regexes remain exactly as shipped. Ref: `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs`, proposal §5.3.
+Status: `ready-for-dev`.
+Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-domain-ui-governance-and-accessibility-hardening.md`.
+Primary sources:
 
-## Deferred from: code review of spec-frontcomposer-shell-and-adminui-fluent-conformance-audit (2026-06-18)
+- Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18.
+- Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18.
 
-- **Sibling structural-governance guard hardening gaps remain open** — the full baseline diff still includes adjacent structural-sweep guard edge cases: route pages with `<FcPageLayout>` but no `Mode`, single-quoted inline layout `style`, fractional non-zero spacing beginning with `0`, pseudo-class root selectors, undocumented new structural tags, and unclosed forced-colors blocks. These are real hardening opportunities but belong to the already-deferred §5.3 correct-course/governance bucket, not this audit-only story. Ref: `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs:88`.
-- **Cross-aggregate timing guide still diagrams subscriber dead-lettering ambiguously** — the prose correctly says `deadletter.tenants.events` is application-level EventStore dead-letter publisher behavior, not DAPR pub/sub component metadata, but the sequence diagram still shows subscriber failure flowing to `deadletter.tenants.events` after retry/dead-letter policy. This belongs with the adjacent DAPR/dead-letter documentation work, not this audit-only story. Ref: `docs/cross-aggregate-timing.md:80`.
-- **Adjacent layout-story review/deferred records are internally stale or contradictory** — the full baseline diff includes prior review notes with stale FrontComposer review range text, "NOT APPLIED" DAPR/health wording later clarified as actually present, and DN2 text that says both "resolved" and "still open". These are adjacent story-record hygiene issues, not part of the Shell/Admin.UI audit deliverable. Ref: `_bmad-output/implementation-artifacts/deferred-work.md:15`.
+Routed items:
+
+- Section 5.3 governance guard bypasses that were explicitly deferred by Administrator: compact non-zero spacing such as `padding:0.5rem`, broader inline layout/spacing/sizing declarations, comment-counting in the `<div>`/`<span>` budget, `fc-css-exception` scoping, `:focus-visible` exemption breadth, and `RemoveForcedColorsMediaBlocks` brace robustness.
+- Sibling structural-governance hardening candidates: route pages with `<FcPageLayout>` but no `Mode`, single-quoted inline layout `style`, fractional non-zero spacing beginning with `0`, pseudo-class root selectors, undocumented new structural tags, and unclosed forced-colors blocks.
+- Blank/whitespace `TenantId` on the audit route renders a dangling `Audit - ` heading. Cosmetic only; route through localized fallback if implemented.
+- `MemberAccessReview` has button-side `aria-controls` coverage, but should also assert the active target region `id` is rendered after the FluentStack migration.
+
+Dismissed record retained:
+
+- The claim that the styling scan is blind to declarations inside `@media` blocks was verified as a false positive in the structural/style story and is not open work.
+
+### `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`
+
+Status: `ready-for-dev`.
+Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md`.
+Primary sources:
+
+- Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18.
+- Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18.
+- Current deployment docs/YAML scan on 2026-06-19.
+
+Routed items:
+
+- `deploy/dapr/pubsub.yaml` contains `publishingScopes: "sample="` while the component comment says EventStore publishes and sample subscribes. Verify against DAPR topic-scoping syntax and correct or document the intended mapping.
+- Local AppHost and production DAPR pub/sub component scope policy must be compared and documented if intentionally different.
+- `docs/cross-aggregate-timing.md` still diagrams subscriber failure flowing to `deadletter.tenants.events` after retry/dead-letter policy. The prose correctly credits EventStore's application-level dead-letter publisher; the diagram should stop implying DAPR component dead-lettering.
+- `CrossAggregateTimingDocumentationTests` should assert the truthful application-level dead-letter wording and the pub/sub scope contract after YAML/docs changes.
+- June 18 review-record contradictions and old DAPR/health bundling text should stay normalized to current facts.
+
+## Cross-Submodule Owner Handoffs
+
+### FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`
+
+Status: routed to FrontComposer owner; do not patch in Tenants.
+Source proposal section: `5.5 FrontComposer Owner Handoff`.
+
+Requested outcomes:
+
+- `FrontComposerShell` exposes a shell content landmark contract that can be a native `<main>` or an equivalent role with an accessible-name parameter.
+- Tenants page headings can name the shell main landmark without orphaned page-level `aria-labelledby`.
+- `FcPageHeader` no longer creates a competing global `banner` landmark on every route page.
+- `FcPageHeader` handles blank `Heading` fail-safely or documents a strict consumer contract with analyzable/tested guardrails.
+- `FocusHeadingAsync()` ensures the heading is focusable when used as a focus target or fails diagnostically when `HeadingTabIndex` is omitted.
+
+Related prior audit handoffs:
+
+- FrontComposer H-FC-1: rework or re-justify `FcHomeCard` against pinned `FluentCard` support.
+- FrontComposer H-FC-2: consider parity guards for structural/style governance.
+
+### EventStore owner: `eventstore-2026-06-19-admin-ui-and-query-record-followup`
+
+Status: routed to EventStore owner; do not patch in Tenants.
+Source proposal section: `5.6 EventStore Owner Handoff`.
+
+Requested outcomes:
+
+- Continue the Admin.UI audit remediation handoffs from `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`: `Index.razor` non-semantic clickable semantics, clickable-span remediation, `ActivityChart` a11y proof, `StorageTreemap` semantics/docs, and optional parity guards.
+- If EventStore tests still encode the retired Tenants actor-routing assumption, update them under EventStore ownership.
+
+## Stale or Resolved Records
+
+### EventStore Admin retired actor-routing entry
+
+Status: stale/resolved as of 2026-06-19.
+
+Previous record said `Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs` still assigned `ProjectionActorType: TenantProjectionRouting.ActorTypeName`.
+
+Verification command:
+
+```bash
+rg -n "ProjectionActorType|TenantProjectionRouting|TenantsProjectionActor" Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs
+```
+
+Result on 2026-06-19: no matches. Do not carry this as open Tenants work.
+
+### Inert DAPR component dead-letter metadata
+
+Status: resolved on 2026-06-18; only the timing-diagram wording remains open under `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`.
+
+The misleading Redis pub/sub component keys `enableDeadLetter` and `deadLetterTopic` were removed from local and production component files. EventStore's application-level dead-letter publisher remains the documented mechanism.
+
+### Per-commit history and commit-scope hygiene
+
+Status: not scheduled as implementation work.
+
+Records about intermediate non-building commits, co-mingled story diffs, and bundled DAPR/health changes are history hygiene notes. The current approved path is to keep completed story states intact and create focused follow-up stories for real runtime, governance, deployment, and documentation work.
