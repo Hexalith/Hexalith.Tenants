@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-18T11:56:33+02:00
+# last_updated: 2026-06-20T09:18:34+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-19T13:14:56+02:00
+last_updated: 2026-06-20T09:18:34+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -137,6 +137,6 @@ development_status:
   # Approved by Administrator via:
   # _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md
   # Scope: convert deferred review work into Tenants-owned stories plus FrontComposer/EventStore handoffs.
-  cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening: ready-for-dev
-  cc-2026-06-19-domain-ui-governance-and-accessibility-hardening: ready-for-dev
+  cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening: done
+  cc-2026-06-19-domain-ui-governance-and-accessibility-hardening: done
   cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup: ready-for-dev

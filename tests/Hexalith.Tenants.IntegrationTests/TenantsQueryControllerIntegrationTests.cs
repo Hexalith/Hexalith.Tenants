@@ -11,17 +11,21 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Server.Pipeline.Queries;
 using Hexalith.EventStore.Server.Queries;
+using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Queries;
+using Hexalith.Tenants.Queries.Handlers;
+using Hexalith.Tenants.Server.Projections;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -261,9 +265,30 @@ public class TenantsQueryControllerIntegrationTests {
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe("\"index-etag-1\"");
         response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe("index-etag-1");
-        response.Headers.GetValues("X-Hexalith-Served-At").ShouldHaveSingleItem().ShouldNotBeNullOrWhiteSpace();
+        response.Headers.TryGetValues("X-Hexalith-Served-At", out _).ShouldBeFalse();
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
         result.GetProperty("items").GetArrayLength().ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task ListTenants_without_read_model_etag_returns_200_without_etag_or_not_modified_support() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(payload, "tenant-index", " "));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.IfNoneMatch.ParseAdd("\"index-etag-1\"");
+
+        HttpResponseMessage response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.ETag.ShouldBeNull();
+        response.Headers.TryGetValues("X-Hexalith-Projection-Version", out _).ShouldBeFalse();
+        response.Headers.TryGetValues("X-Hexalith-Served-At", out _).ShouldBeFalse();
     }
 
     [Fact]
@@ -312,6 +337,97 @@ public class TenantsQueryControllerIntegrationTests {
         response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe("index-etag-2");
         JsonElement result = await response.Content.ReadFromJsonAsync<JsonElement>();
         result.GetProperty("items").GetArrayLength().ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData("W/\"index-etag-1\"")]
+    [InlineData("*")]
+    [InlineData("\"other-etag\", \"index-etag-1\"")]
+    public async Task ListTenants_unsupported_if_none_match_values_return_safe_200(string ifNoneMatch) {
+        JsonElement payload = JsonSerializer.SerializeToElement(new {
+            items = new[] { new { tenantId = "tenant-001", name = "Tenant One", status = "Active" } },
+            cursor = (string?)null,
+            hasMore = false,
+        });
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(payload, "tenant-index", "index-etag-1"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.TryAddWithoutValidation("If-None-Match", ifNoneMatch).ShouldBeTrue();
+
+        HttpResponseMessage response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        string body = await response.Content.ReadAsStringAsync();
+        body.ShouldNotContain(ifNoneMatch);
+    }
+
+    [Fact]
+    public async Task ListTenants_escaped_strong_if_none_match_compares_with_emitted_etag() {
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(payload, "tenant-index", "tenant-\"etag"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.TryAddWithoutValidation("If-None-Match", "\"tenant-\\\"etag\"").ShouldBeTrue();
+
+        HttpResponseMessage response = await client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotModified);
+        response.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe("\"tenant-\\\"etag\"");
+        string body = await response.Content.ReadAsStringAsync();
+        body.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ListTenants_rest_handler_path_reads_persisted_read_model_after_factory_recreation() {
+        var store = new InMemoryReadModelStore();
+        var index = new TenantIndexReadModel {
+            Tenants =
+            {
+                ["tenant.persisted"] = new TenantIndexEntry("Persisted Tenant", TenantStatus.Active),
+            },
+            UserTenants =
+            {
+                ["test-user"] = new Dictionary<string, TenantRole>(StringComparer.Ordinal)
+                {
+                    ["tenant.persisted"] = TenantRole.TenantOwner,
+                },
+            },
+        };
+        await store.SaveAsync(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.TenantIndexProjectionKey,
+            index);
+
+        await using var firstFactory = new TenantsReadModelQueryWebApplicationFactory(store);
+        using HttpClient firstClient = CreateAuthenticatedClient(firstFactory);
+        HttpResponseMessage firstResponse = await firstClient.GetAsync("/api/tenants");
+        firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        firstResponse.Headers.ETag.ShouldNotBeNull();
+        JsonElement firstPayload = await firstResponse.Content.ReadFromJsonAsync<JsonElement>();
+        firstPayload.GetProperty("items").GetArrayLength().ShouldBe(1);
+        firstPayload.GetProperty("items")[0].GetProperty("tenantId").GetString().ShouldBe("tenant.persisted");
+
+        await using var secondFactory = new TenantsReadModelQueryWebApplicationFactory(store);
+        using HttpClient secondClient = CreateAuthenticatedClient(secondFactory);
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        secondRequest.Headers.IfNoneMatch.Add(firstResponse.Headers.ETag);
+
+        HttpResponseMessage secondResponse = await secondClient.SendAsync(secondRequest);
+
+        secondResponse.StatusCode.ShouldBe(HttpStatusCode.NotModified);
+        secondResponse.Headers.ETag.ShouldNotBeNull().Tag.ShouldBe(firstResponse.Headers.ETag!.Tag);
+        string secondBody = await secondResponse.Content.ReadAsStringAsync();
+        secondBody.ShouldBeEmpty();
     }
 
     [Fact]
@@ -1742,6 +1858,18 @@ public class TenantsQueryControllerIntegrationTests {
 
             _ = services.RemoveAll<IDomainQueryHandler>();
             _ = services.AddSingleton(handler);
+        });
+    }
+
+    private sealed class TenantsReadModelQueryWebApplicationFactory(IReadModelStore store) : WebApplicationFactory<TenantBootstrapOptions> {
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
+            _ = services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+
+            _ = services.RemoveAll<IReadModelStore>();
+            _ = services.AddSingleton(store);
+            _ = services.RemoveAll<IDomainQueryHandler>();
+            _ = services.AddScoped<IDomainQueryHandler, ListTenantsQueryHandler>();
         });
     }
 

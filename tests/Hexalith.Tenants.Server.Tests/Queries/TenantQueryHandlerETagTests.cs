@@ -47,7 +47,7 @@ public sealed class TenantQueryHandlerETagTests
         TenantQueryResult tenantResult = result.ShouldBeOfType<TenantQueryResult>();
         tenantResult.Metadata.ShouldNotBeNull().ETag.ShouldBe(expectedETag);
         tenantResult.Metadata.ProjectionVersion.ShouldBe(expectedETag);
-        tenantResult.Metadata.ServedAt.ShouldNotBeNull();
+        tenantResult.Metadata.ServedAt.ShouldBeNull();
     }
 
     private static QueryEnvelope CreateEnvelope(string queryType)

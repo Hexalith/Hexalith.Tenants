@@ -140,8 +140,10 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
         }
 
         string value = ifNoneMatch.Trim();
-        if (value == "*" || value.StartsWith("W/", StringComparison.OrdinalIgnoreCase)) {
-            throw new ArgumentException("If-None-Match must be a strong ETag token.", nameof(ifNoneMatch));
+        if (value == "*"
+            || value.Contains(',', StringComparison.Ordinal)
+            || value.StartsWith("W/", StringComparison.OrdinalIgnoreCase)) {
+            return null;
         }
 
         if (value.StartsWith('"')) {
@@ -149,14 +151,14 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
                 || parsed is null
                 || parsed.IsWeak
                 || parsed.Tag == "*") {
-                throw new ArgumentException("If-None-Match must be a strong ETag token.", nameof(ifNoneMatch));
+                return null;
             }
 
             return parsed.Tag;
         }
 
         if (value.Any(static c => char.IsWhiteSpace(c) || char.IsControl(c) || c is '"' or ',')) {
-            throw new ArgumentException("If-None-Match must be a strong ETag token.", nameof(ifNoneMatch));
+            return null;
         }
 
         return $"\"{value}\"";

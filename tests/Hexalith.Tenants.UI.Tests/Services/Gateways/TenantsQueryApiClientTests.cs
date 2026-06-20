@@ -101,6 +101,88 @@ public sealed class TenantsQueryApiClientTests
         ex.ReasonCode.ShouldBe("insufficient-permission");
     }
 
+    [Theory]
+    [InlineData("W/\"index-etag-1\"")]
+    [InlineData("*")]
+    [InlineData("\"index-etag-1\", \"index-etag-2\"")]
+    [InlineData("index etag 1")]
+    public async Task SendAsync_omits_if_none_match_for_unsupported_cached_tags(string ifNoneMatch)
+    {
+        var handler = new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TenantDetail(
+                "tenant.alpha",
+                "Tenant Alpha",
+                null,
+                TenantStatus.Active,
+                [],
+                new Dictionary<string, string>(),
+                DateTimeOffset.Parse("2026-06-19T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture)))),
+        });
+        var client = new TenantsQueryApiClient(new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://tenants.example/"),
+        });
+
+        EventStoreQueryResult<TenantDetail> result = await client.SendAsync<TenantDetail>(
+            new TenantsQueryApiRequest("/api/tenants/tenant.alpha", "get-tenant"),
+            ifNoneMatch);
+
+        result.Payload.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        handler.Requests.ShouldHaveSingleItem().Headers.IfNoneMatch.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task SendAsync_preserves_escaped_strong_if_none_match()
+    {
+        var handler = new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.NotModified)
+        {
+            Headers =
+            {
+                ETag = new EntityTagHeaderValue("\"tenant-\\\"etag\""),
+            },
+        });
+        var client = new TenantsQueryApiClient(new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://tenants.example/"),
+        });
+
+        EventStoreQueryResult<TenantDetail> result = await client.SendAsync<TenantDetail>(
+            new TenantsQueryApiRequest("/api/tenants/tenant.alpha", "get-tenant"),
+            "\"tenant-\\\"etag\"");
+
+        result.IsNotModified.ShouldBeTrue();
+        handler.Requests.ShouldHaveSingleItem().Headers.IfNoneMatch.ShouldHaveSingleItem().Tag.ShouldBe("\"tenant-\\\"etag\"");
+    }
+
+    [Fact]
+    public async Task SendAsync_success_without_etag_returns_unmarked_metadata()
+    {
+        var handler = new CapturingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TenantDetail(
+                "tenant.alpha",
+                "Tenant Alpha",
+                null,
+                TenantStatus.Active,
+                [],
+                new Dictionary<string, string>(),
+                DateTimeOffset.Parse("2026-06-19T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture)))),
+        });
+        var client = new TenantsQueryApiClient(new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://tenants.example/"),
+        });
+
+        EventStoreQueryResult<TenantDetail> result = await client.SendAsync<TenantDetail>(
+            new TenantsQueryApiRequest("/api/tenants/tenant.alpha", "get-tenant"));
+
+        result.ETag.ShouldBeNull();
+        result.Metadata.ShouldNotBeNull().ETag.ShouldBeNull();
+        result.Metadata.ProjectionVersion.ShouldBeNull();
+        result.Metadata.ServedAt.ShouldBeNull();
+    }
+
     private sealed class CapturingHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
         public List<HttpRequestMessage> Requests { get; } = [];

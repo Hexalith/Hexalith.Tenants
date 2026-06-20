@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -597,6 +598,56 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task List_tenants_does_not_treat_served_at_as_freshness_evidence()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<TenantSummary>([], null, false),
+            eTag: null,
+            metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantListSnapshot snapshot = await gateway
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Empty);
+        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+    }
+
+    [Fact]
+    public async Task Get_tenant_live_problem_details_path_maps_populated_correlation_and_reason_to_safe_copy()
+    {
+        var client = new TenantsQueryApiClient(new HttpClient(new StaticResponseHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)
+        {
+            Content = new StringContent("""
+                {
+                  "title": "Forbidden",
+                  "detail": "raw payload stack trace bearer-token cursor-secret etag-secret",
+                  "correlationId": "correlation-secret-123",
+                  "reasonCode": "internal-reason-code"
+                }
+                """),
+        }))
+        {
+            BaseAddress = new Uri("https://tenants.example/"),
+        });
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unauthorized);
+        snapshot.ToString().ShouldNotContain("raw payload", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("stack trace", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("bearer-token", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("cursor-secret", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("etag-secret", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("correlation-secret-123", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("internal-reason-code", Case.Insensitive);
+    }
+
+    [Fact]
     public async Task List_tenants_uses_previous_snapshot_for_not_modified_response()
     {
         TenantListSnapshot previous = TenantListSnapshot.Ready(
@@ -988,12 +1039,21 @@ public sealed class TenantQueryGatewayTests
     }
 
     private static TenantQueryGateway CreateGateway(CapturingGatewayClient client, string? userId = "operator-user")
+        => CreateGateway((ITenantsQueryApiClient)client, userId);
+
+    private static TenantQueryGateway CreateGateway(ITenantsQueryApiClient client, string? userId = "operator-user")
     {
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(userId);
         userContext.TenantId.Returns("tenant.context");
 
         return new TenantQueryGateway(client, userContext);
+    }
+
+    private sealed class StaticResponseHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(responder(request));
     }
 
     private sealed class CapturingGatewayClient : ITenantsQueryApiClient

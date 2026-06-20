@@ -26,8 +26,7 @@ internal sealed record TenantQueryResult : QueryResult {
             : new QueryResponseMetadata(
                 ETag: normalizedETag,
                 IsNotModified: false,
-                ProjectionVersion: normalizedETag,
-                ServedAt: DateTimeOffset.UtcNow);
+                ProjectionVersion: normalizedETag);
 
         return new TenantQueryResult(
             true,
@@ -41,6 +40,7 @@ internal sealed record TenantQueryResult : QueryResult {
             return null;
         }
 
-        return eTag.Trim().Trim('"');
+        string normalized = eTag.Trim().Trim('"');
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 }

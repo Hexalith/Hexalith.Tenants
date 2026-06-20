@@ -484,6 +484,35 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .ShouldAllBe(static row => row.GetAttribute("tabindex") == "0");
     }
 
+    [Theory]
+    [InlineData("tenants-change-role-open", "tenants-change-role-flow-region", "tenants-change-role-flow")]
+    [InlineData("tenants-remove-member-open", "tenants-remove-member-flow-region", "tenants-remove-member-flow")]
+    public void Member_access_review_aria_controls_resolves_to_rendered_region_after_open(
+        string launchTestId,
+        string regionId,
+        string flowTestId)
+    {
+        RegisterComponentServices();
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, Detail("tenant.alpha"))
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, TenantFreshnessState.Current));
+
+        IElement launch = cut.FindAll($"[data-testid='{launchTestId}']")[0];
+        launch.GetAttribute("aria-controls").ShouldBe(regionId);
+        // The controlled region is not rendered until the launcher is activated.
+        cut.FindAll($"#{regionId}").ShouldBeEmpty();
+
+        launch.Click();
+
+        // After the FluentStack migration the active region must still expose the id that aria-controls
+        // names, so the relationship resolves to a real rendered target (not a dangling reference).
+        IElement region = cut.Find($"#{regionId}");
+        region.Id.ShouldBe(regionId);
+        region.QuerySelector($"[data-testid='{flowTestId}']").ShouldNotBeNull(
+            $"aria-controls on {launchTestId} must point to the rendered {regionId} region containing the flow.");
+    }
+
     [Fact]
     public void Member_access_review_surfaces_all_canonical_unavailable_reason_categories_without_mutation_affordances()
     {

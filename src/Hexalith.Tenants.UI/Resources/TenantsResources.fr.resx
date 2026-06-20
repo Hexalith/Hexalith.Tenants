@@ -3072,6 +3072,9 @@
   <data name="Tenants.Audit.Title" xml:space="preserve">
     <value>Journal d'audit pour {0}</value>
   </data>
+  <data name="Tenants.Audit.UnknownTenant" xml:space="preserve">
+    <value>ce locataire</value>
+  </data>
   <data name="Tenants.Audit.Context.Command" xml:space="preserve">
     <value>Le contexte d'audit de commande {0} est selectionne. Les filtres d'audit limites au locataire restent la reference.</value>
   </data>

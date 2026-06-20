@@ -15,8 +15,8 @@
                  Class="tenant-audit"
                  data-testid="tenants-audit-surface"
                  aria-labelledby="tenant-audit-heading">
-    <FcPageHeader PageTitle="@Localizer["Tenants.Audit.Title", TenantId]"
-                  Heading="@Localizer["Tenants.Audit.Title", TenantId]"
+    <FcPageHeader PageTitle="@Localizer["Tenants.Audit.Title", TenantDisplayName]"
+                  Heading="@Localizer["Tenants.Audit.Title", TenantDisplayName]"
                   HeadingId="tenant-audit-heading"
                   Eyebrow="@Localizer["Tenants.Audit.Eyebrow"]"
                   Description="@Localizer["Tenants.Audit.Description"]"
@@ -196,6 +196,11 @@
 
     private string BackHref
         => IsSafeReturnUrl(ReturnUrl) ? ReturnUrl! : $"/tenants/{Uri.EscapeDataString(TenantId)}";
+
+    // A blank/whitespace TenantId would render a dangling "Audit trail for " heading. Substitute a
+    // localized fallback so the page header always reads as a complete phrase (cosmetic, not a crash fix).
+    private string TenantDisplayName
+        => string.IsNullOrWhiteSpace(TenantId) ? Localizer["Tenants.Audit.UnknownTenant"].Value : TenantId;
 
     private bool HasContext
         => !string.IsNullOrWhiteSpace(TargetUserId)

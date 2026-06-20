@@ -416,6 +416,23 @@ public sealed class TenantAuditPageTests : BunitContext
         }
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Tenant_audit_page_uses_localized_fallback_heading_for_blank_tenant_id(string blankTenantId)
+    {
+        RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, blankTenantId));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        // A blank/whitespace TenantId must render the localized fallback, never a dangling
+        // "Audit trail for " heading (AC8 — cosmetic, not a crash fix).
+        cut.Markup.ShouldContain("Audit trail for this tenant");
+        cut.Markup.ShouldNotContain("Audit trail for <", Case.Insensitive);
+    }
+
     private StubTenantQueryGateway RegisterServices(params TenantAuditSnapshot[] snapshots)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -661,6 +678,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Audit.State.Unavailable.Message"] = "The tenant audit read surface is unavailable.",
             ["Tenants.Audit.State.Unavailable.Title"] = "Audit read surface unavailable",
             ["Tenants.Audit.Title"] = "Audit trail for {0}",
+            ["Tenants.Audit.UnknownTenant"] = "this tenant",
             ["Tenants.Correction.Action.RestoreAccess"] = "restore intended access",
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Action.Start"] = "start correction",

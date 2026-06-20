@@ -577,8 +577,8 @@ internal sealed class TenantQueryGateway(
 
         return metadata?.IsNotModified == true
             || !string.IsNullOrWhiteSpace(eTag)
+            || !string.IsNullOrWhiteSpace(metadata?.ETag)
             || !string.IsNullOrWhiteSpace(metadata?.ProjectionVersion)
-            || metadata?.ServedAt is not null
                 ? TenantFreshnessState.Current
                 : TenantFreshnessState.Unknown;
     }

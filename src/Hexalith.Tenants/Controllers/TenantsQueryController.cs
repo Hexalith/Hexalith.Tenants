@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 using Hexalith.EventStore.Authorization;
@@ -459,7 +459,8 @@ public sealed partial class TenantsQueryController(
     }
 
     private bool IsNotModified(string? currentETag) {
-        if (string.IsNullOrWhiteSpace(currentETag)) {
+        string? currentToken = NormalizeETagToken(currentETag);
+        if (string.IsNullOrWhiteSpace(currentToken)) {
             return false;
         }
 
@@ -468,28 +469,77 @@ public sealed partial class TenantsQueryController(
             return false;
         }
 
-        foreach (string candidate in ifNoneMatch.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)) {
-            if (candidate == "*" || candidate.StartsWith("W/", StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
-            if (EntityTagHeaderValue.TryParse(candidate, out EntityTagHeaderValue? parsed)
-                && parsed is not null
-                && !parsed.IsWeak
-                && string.Equals(parsed.Tag.Trim('"'), currentETag, StringComparison.Ordinal)) {
-                return true;
-            }
-
-            if (string.Equals(candidate.Trim('"'), currentETag, StringComparison.Ordinal)) {
-                return true;
-            }
-        }
-
-        return false;
+        return TryNormalizeSingleStrongETag(ifNoneMatch, out string? submittedToken)
+            && string.Equals(submittedToken, currentToken, StringComparison.Ordinal);
     }
 
     private static string QuoteStrongETag(string eTag)
-        => "\"" + eTag.Trim().Trim('"').Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+        => "\"" + (NormalizeETagToken(eTag) ?? string.Empty)
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            + "\"";
+
+    private static string? NormalizeETagToken(string? eTag) {
+        if (string.IsNullOrWhiteSpace(eTag)) {
+            return null;
+        }
+
+        string value = eTag.Trim();
+        return TryUnquoteStrongETag(value, out string? token) ? token : value;
+    }
+
+    private static bool TryNormalizeSingleStrongETag(string value, out string? token) {
+        token = null;
+        string trimmed = value.Trim();
+        if (trimmed.Length == 0
+            || trimmed == "*"
+            || trimmed.Contains(',', StringComparison.Ordinal)
+            || trimmed.StartsWith("W/", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        return TryUnquoteStrongETag(trimmed, out token);
+    }
+
+    private static bool TryUnquoteStrongETag(string value, out string? token) {
+        token = null;
+        if (value.Length < 2 || value[0] != '"' || value[^1] != '"') {
+            return false;
+        }
+
+        var builder = new StringBuilder(value.Length - 2);
+        bool escaped = false;
+        for (int i = 1; i < value.Length - 1; i++) {
+            char c = value[i];
+            if (escaped) {
+                if (char.IsControl(c)) {
+                    return false;
+                }
+
+                _ = builder.Append(c);
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"' || char.IsControl(c)) {
+                return false;
+            }
+
+            _ = builder.Append(c);
+        }
+
+        if (escaped) {
+            return false;
+        }
+
+        token = builder.ToString();
+        return !string.IsNullOrWhiteSpace(token);
+    }
 
     private IActionResult QueryProblem(int statusCode, string title, string detail, string correlationId, string? reasonCode) {
         var problemDetails = new ProblemDetails {

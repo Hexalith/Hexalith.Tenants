@@ -233,3 +233,13 @@ build validation and no behavioral coverage. Added a dedicated fixture to close 
   passed with 0 warnings / 0 errors. xUnit v3 executable fallback
   `dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll` passed:
   652 total (644 prior + 8 new), 0 errors, 0 failed, 0 skipped.
+
+## CC 2026-06-19 Tenant Query Freshness/ETag/Coverage Hardening
+
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs` - Adds coverage that `ServedAt` alone is not freshness evidence and that live populated ProblemDetails (`correlationId`, `reasonCode`, raw payload text, stack traces, tokens, cursors, ETags) maps to support-safe user copy.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsQueryApiClientTests.cs` - Adds null/no-ETag metadata coverage plus client `If-None-Match` normalization for weak tags, `*`, unsupported multi-tag input, whitespace/control input, and escaped strong tags.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs` - Adds REST controller coverage for no-ETag 200/no-304 behavior, unsupported `If-None-Match` safe 200 handling, escaped strong ETag 304 comparison, and REST/handler persisted read-model reconstruction after app-factory recreation.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryHandlerETagTests.cs` - Updates the handler metadata assertion so query results expose ETag/projection-version without fabricating `ServedAt`.
+- Coverage: story AC1, AC3-AC8 covered; AC2's `aging`/`stale` threshold portion is deferred to the EventStore read-model freshness handoff (`eventstore-2026-06-19-read-model-freshness-metadata`). The direct-read D6 model is ETag/projection-version `current`; unmarked responses are `unknown`; generic persisted projection age/version remains an EventStore owner handoff before threshold-based `aging` can be computed.
+- Validation (2026-06-19T14:18:04+02:00): focused `Server.Tests --filter Query` passed 90/90; focused `UI.Tests --filter TenantQuery` passed 76/76; full `TenantsQueryControllerIntegrationTests` passed 101/101; `StatelessRestart` filter skipped its 1 DAPR-dependent test.
+- Regression (2026-06-19T14:18:04+02:00): Contracts.Tests 106/106, Client.Tests 47/47, Testing.Tests 181/181, Sample.Tests 32/32, UI.Tests 695/695, IntegrationTests 204 passed / 33 skipped. Full Server.Tests remains blocked by 3 unrelated DAPR dead-letter metadata expectation tests (`enableDeadLetter` / `deadLetterTopic` absent).

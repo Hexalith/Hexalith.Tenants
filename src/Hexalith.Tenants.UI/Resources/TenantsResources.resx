@@ -3072,6 +3072,9 @@
   <data name="Tenants.Audit.Title" xml:space="preserve">
     <value>Audit trail for {0}</value>
   </data>
+  <data name="Tenants.Audit.UnknownTenant" xml:space="preserve">
+    <value>this tenant</value>
+  </data>
   <data name="Tenants.Audit.Context.Command" xml:space="preserve">
     <value>Command audit context {0} is selected. Tenant-scoped audit filters remain authoritative.</value>
   </data>

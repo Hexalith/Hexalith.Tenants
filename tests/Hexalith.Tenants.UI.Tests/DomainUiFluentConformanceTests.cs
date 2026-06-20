@@ -85,18 +85,33 @@ public sealed class DomainUiFluentConformanceTests
     // (b) Layout expressed via an inline style= attribute on a raw element must move to
     // FluentStack/FluentGrid. Scans .razor source (not rendered HTML), so FluentStack — which
     // emits its flex style at render time but carries no source-level style= — is not matched.
+    // 2026-06-19 (AC2): widened beyond the original flex/grid/gap/grid-template/flex-direction set
+    // to also catch inline spacing (margin/padding), sizing/measure (width/height/block/inline size
+    // including min/max variants), and alignment (justify-content/align-items). Both quote styles and
+    // whitespace around the equals sign are scanned so small markup variations cannot bypass the guard.
     private static readonly Regex InlineLayoutStyle = new(
-        "<\\w+[^>]*\\bstyle=\"[^\"]*\\b(display\\s*:\\s*(?:flex|grid)|gap\\s*:|grid-template|flex-direction\\s*:)[^\"]*\"",
+        "<\\w+[^>]*\\bstyle\\s*=\\s*(?:\"[^\"]*|'[^']*)\\b("
+        + "display\\s*:\\s*(?:flex|grid)|gap\\s*:|grid-template|flex-direction\\s*:|"
+        + "margin[\\w-]*\\s*:|padding[\\w-]*\\s*:|(?:min-|max-)?(?:width|height|inline-size|block-size)\\s*:|"
+        + "justify-content\\s*:|align-items\\s*:)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     // (a) Component CSS that owns layout/spacing/typography. The directive pushes flex/grid
     // layout to FluentStack/FluentGrid and text sizing/weight to Fluent typography; whatever
-    // genuinely cannot be expressed by a Fluent primitive must be documented per rule. This is
-    // the approved §5.3(a) declaration set, verbatim (incl. the margin/padding "(?!0)" zero-skip).
+    // genuinely cannot be expressed by a Fluent primitive must be documented per rule.
+    // 2026-06-19 (AC1): the original "(?!0)" zero-skip also let compact non-zero spacing such as
+    // "margin:0.5rem" through (any value beginning with the digit 0). The skip now matches a real
+    // zero value only — one or more zero tokens (with optional unit) plus optional !important,
+    // ending the declaration ("; "/"}"/end-of-body) — so "margin:0", "margin:0 0 0 0" and
+    // "padding:0px" stay skipped while "margin:0.5rem"/"padding:0.5rem" are flagged.
+    // Leading \s* absorbs any whitespace the preceding "\s*:\s*" backtracks away, so a multi-token
+    // zero value ("0 0 0 0") cannot slip past by leaving a leading space before this lookahead.
+    private const string ZeroValueSkip = "(?!\\s*(?:0[a-z%]*\\s*)+(?:!important\\s*)?(?:[;}]|$))";
+
     private static readonly Regex StylingOwnershipDeclaration = new(
         "\\b(display\\s*:\\s*(?:flex|grid|inline-flex|inline-grid)|gap\\s*:|grid-template|"
-        + "margin(?:-inline|-block|-top|-right|-bottom|-left)?\\s*:\\s*(?!0)|"
-        + "padding(?:-inline|-block|-top|-right|-bottom|-left)?\\s*:\\s*(?!0)|"
+        + "margin(?:-inline|-block|-top|-right|-bottom|-left)?\\s*:\\s*" + ZeroValueSkip + "|"
+        + "padding(?:-inline|-block|-top|-right|-bottom|-left)?\\s*:\\s*" + ZeroValueSkip + "|"
         + "font-size\\s*:|font-weight\\s*:|line-height\\s*:)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
@@ -113,6 +128,17 @@ public sealed class DomainUiFluentConformanceTests
     private static readonly Regex CssRule = new(
         "(?<prelude>[^{}]*)\\{(?<body>[^{}]*)\\}",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+    // 2026-06-19 (AC3): raw layout-wrapper tags inside Razor (@* ... *@) or HTML (<!-- ... -->)
+    // comments are commented-out markup, not rendered DOM, and must not inflate the <div>/<span>
+    // budget. Comments are stripped before the tags are counted.
+    private static readonly Regex RazorOrHtmlComment = new(
+        "@\\*.*?\\*@|<!--.*?-->",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+    private static readonly Regex DivSpanTag = new(
+        "<(div|span)(\\s|/|>)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     // Raw structural/semantic HTML kept as the documented "no Fluent v5 equivalent" fallback.
     // Each kept tag MUST carry a rationale here (the governance allowlist). <main> is shell-owned
@@ -498,27 +524,9 @@ public sealed class DomainUiFluentConformanceTests
                 }
             }
 
-            // @media (forced-colors) blocks are an always-allowed exception (high-contrast support);
-            // remove them before scanning the remaining declarations.
-            string scannable = RemoveForcedColorsMediaBlocks(raw);
-
-            foreach (Match rule in CssRule.Matches(scannable))
+            foreach (string offender in StylingOwnershipOffenders(raw))
             {
-                string prelude = rule.Groups["prelude"].Value;
-                string body = rule.Groups["body"].Value;
-
-                // :focus-visible outline rules and per-rule fc-css-exception markers are exempt.
-                if (prelude.Contains(":focus-visible", StringComparison.OrdinalIgnoreCase)
-                    || FcCssException.IsMatch(prelude))
-                {
-                    continue;
-                }
-
-                Match owned = StylingOwnershipDeclaration.Match(body);
-                if (owned.Success)
-                {
-                    ownershipOffenders.Add($"{relative} :: '{prelude.Trim()}' owns '{owned.Value.Trim()}'");
-                }
+                ownershipOffenders.Add($"{relative} :: {offender}");
             }
         }
 
@@ -529,8 +537,43 @@ public sealed class DomainUiFluentConformanceTests
         ownershipOffenders.ShouldBeEmpty(
             "Domain UI component CSS must express layout/spacing/typography through Fluent primitives + design "
             + "tokens. A rule may keep a declaration only via an immediately-preceding "
-            + "'/* fc-css-exception: <reason> */' marker, inside @media (forced-colors), or on a :focus-visible "
-            + $"selector. Unmarked ownership found in: {string.Join("; ", ownershipOffenders)}");
+            + "'/* fc-css-exception: <reason> */' marker or inside @media (forced-colors). "
+            + $"Unmarked ownership found in: {string.Join("; ", ownershipOffenders)}");
+    }
+
+    // Returns the styling-ownership offenders in a CSS document: every rule that owns
+    // layout/spacing/typography without an immediately-preceding "/* fc-css-exception: <reason> */"
+    // marker. @media (forced-colors) blocks are removed first (always-allowed high-contrast support).
+    // 2026-06-19 (AC4): fc-css-exception scoping is intentionally kept RULE-level — each marker
+    // exempts only the single rule it immediately precedes (its prelude), never the following rule,
+    // because component rules here are small single-purpose blocks whose marker reason already names
+    // the declarations it covers.
+    // 2026-06-19 (AC5): the :focus-visible blanket exemption was removed. Focus-ring affordances
+    // (outline/outline-offset/outline-color) are not tracked ownership declarations, so genuine focus
+    // rules still pass; a :focus-visible rule that owns layout/spacing/typography is now flagged
+    // unless it carries an fc-css-exception marker.
+    private static IReadOnlyList<string> StylingOwnershipOffenders(string css)
+    {
+        List<string> offenders = [];
+        string scannable = RemoveForcedColorsMediaBlocks(css);
+        foreach (Match rule in CssRule.Matches(scannable))
+        {
+            string prelude = rule.Groups["prelude"].Value;
+            string body = rule.Groups["body"].Value;
+
+            if (FcCssException.IsMatch(prelude))
+            {
+                continue;
+            }
+
+            Match owned = StylingOwnershipDeclaration.Match(body);
+            if (owned.Success)
+            {
+                offenders.Add($"'{prelude.Trim()}' owns '{owned.Value.Trim()}'");
+            }
+        }
+
+        return offenders;
     }
 
     [Fact]
@@ -556,8 +599,7 @@ public sealed class DomainUiFluentConformanceTests
         string[] razorFiles = Directory.GetFiles(componentsRoot, "*.razor", SearchOption.AllDirectories);
         razorFiles.ShouldNotBeEmpty();
 
-        Regex divSpan = new("<(div|span)(\\s|/|>)", RegexOptions.CultureInvariant);
-        int total = razorFiles.Sum(file => divSpan.Matches(File.ReadAllText(file)).Count);
+        int total = razorFiles.Sum(file => CountLayoutWrappers(File.ReadAllText(file)));
 
         total.ShouldBeLessThanOrEqualTo(
             DivSpanLayoutBudgetCeiling,
@@ -566,8 +608,136 @@ public sealed class DomainUiFluentConformanceTests
             + "wrappers to FluentStack/FluentGrid, or — only with a code-review note — raise the ceiling.");
     }
 
+    // ──────────────────────────────────────────────────────────────────────────────────────
+    // 2026-06-19 governance-guard hardening (cc-2026-06-19-domain-ui-governance-and-accessibility).
+    // These unit tests pin the guard *logic* (the private static regex/helpers above) so the closed
+    // §5.3 bypasses cannot silently reopen. They exercise the same detection the file scanners use,
+    // on crafted CSS/markup fragments.
+    // ──────────────────────────────────────────────────────────────────────────────────────
+
+    [Theory]
+    [Trait("Category", "Governance")]
+    [InlineData("margin: 0.5rem")]
+    [InlineData("margin:0.5rem")]
+    [InlineData("padding: 0.5rem")]
+    [InlineData("padding:0.5rem")]
+    [InlineData("padding-inline: 0.25rem")]
+    [InlineData("margin-block: 0.5rem")]
+    [InlineData("padding: 0.15rem 0.4rem")]
+    public void Styling_ownership_guard_flags_compact_non_zero_spacing(string declaration)
+        => StylingOwnershipDeclaration.IsMatch(declaration).ShouldBeTrue(
+            $"compact non-zero spacing '{declaration}' must be treated as layout ownership (AC1).");
+
+    [Theory]
+    [Trait("Category", "Governance")]
+    [InlineData("margin: 0;")]
+    [InlineData("margin:0")]
+    [InlineData("padding: 0px;")]
+    [InlineData("margin: 0 0 0 0;")]
+    [InlineData("padding: 0 0;")]
+    [InlineData("margin: 0 !important;")]
+    public void Styling_ownership_guard_still_skips_genuine_zero_resets(string declaration)
+        => StylingOwnershipDeclaration.IsMatch(declaration).ShouldBeFalse(
+            $"a genuine zero reset '{declaration}' must remain skipped (AC1).");
+
+    [Theory]
+    [Trait("Category", "Governance")]
+    [InlineData("<div style=\"margin: 8px\">")]
+    [InlineData("<span style=\"padding-inline: 4px\">")]
+    [InlineData("<div style=\"width: 50%\">")]
+    [InlineData("<div style=\"height: 10rem\">")]
+    [InlineData("<div style=\"inline-size: 12rem\">")]
+    [InlineData("<div style=\"block-size: 12rem\">")]
+    [InlineData("<div style=\"min-width: 12rem\">")]
+    [InlineData("<div style=\"max-inline-size: 24rem\">")]
+    [InlineData("<div style=\"justify-content: center\">")]
+    [InlineData("<div style=\"align-items: center\">")]
+    [InlineData("<div style='margin: 8px'>")]
+    [InlineData("<div style = \"margin: 8px\">")]
+    public void Inline_layout_style_guard_flags_spacing_sizing_and_alignment(string markup)
+        => InlineLayoutStyle.IsMatch(markup).ShouldBeTrue(
+            $"inline layout/spacing/sizing style '{markup}' must be flagged (AC2).");
+
+    [Theory]
+    [Trait("Category", "Governance")]
+    [InlineData("<div style=\"color: red\">")]
+    [InlineData("<div style=\"background: Canvas\">")]
+    [InlineData("<FluentStack Orientation=\"Orientation.Vertical\" VerticalGap=\"16px\">")]
+    public void Inline_layout_style_guard_allows_non_layout_markup(string markup)
+        => InlineLayoutStyle.IsMatch(markup).ShouldBeFalse(
+            $"non-layout markup '{markup}' must not be flagged (AC2).");
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Div_span_budget_excludes_commented_out_tags()
+    {
+        // Razor (@* *@) and HTML (<!-- -->) comments hold commented-out markup, not rendered DOM (AC3).
+        CountLayoutWrappers("@* <div></div><span></span> *@").ShouldBe(0);
+        CountLayoutWrappers("<!-- <div> <span> -->").ShouldBe(0);
+        CountLayoutWrappers("@* <div> *@\n<div data-testid=\"x\"></div>").ShouldBe(1);
+
+        // Real tags still count, including ones that follow a comment on the same line.
+        CountLayoutWrappers("<div></div><span></span>").ShouldBe(2);
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Fc_css_exception_marker_is_rule_scoped_and_does_not_leak_to_the_next_rule()
+    {
+        // AC4 decision: fc-css-exception scoping stays RULE-level. The marker exempts only the rule it
+        // immediately precedes; the following rule is still scanned.
+        const string css =
+            "/* fc-css-exception: documented layout ownership rationale */\n"
+            + ".exempt { display: flex; }\n"
+            + ".scanned { display: flex; }";
+
+        IReadOnlyList<string> offenders = StylingOwnershipOffenders(css);
+
+        offenders.ShouldHaveSingleItem();
+        offenders[0].ShouldContain(".scanned");
+        offenders[0].ShouldNotContain(".exempt");
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Focus_visible_rules_pass_on_affordances_but_are_flagged_for_layout_ownership()
+    {
+        // AC5 decision: the :focus-visible blanket exemption is removed. Outline affordances are not
+        // tracked ownership declarations, so genuine focus rings still pass...
+        StylingOwnershipOffenders(".a:focus-visible { outline: 2px solid Highlight; outline-offset: 3px; }")
+            .ShouldBeEmpty();
+
+        // ...but a :focus-visible rule that owns spacing is now flagged unless it is documented.
+        StylingOwnershipOffenders(".a:focus-visible { padding: 2rem; }")
+            .ShouldHaveSingleItem();
+        StylingOwnershipOffenders(
+            "/* fc-css-exception: documented focus padding rationale */\n.a:focus-visible { padding: 2rem; }")
+            .ShouldBeEmpty();
+    }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Forced_colors_block_removal_is_stable_with_braces_in_comments_and_strings()
+    {
+        // AC6: a stray brace inside a comment or string must not prematurely close the forced-colors
+        // block and leak its tail (a spacing declaration) back into the scannable CSS.
+        const string withComment =
+            "@media (forced-colors: active) {\n  /* a } brace */\n  .x { margin: 5rem; }\n}\n.real { color: red; }";
+        string remaining = RemoveForcedColorsMediaBlocks(withComment);
+        remaining.ShouldNotContain("margin: 5rem");
+        remaining.ShouldContain(".real");
+        StylingOwnershipOffenders(withComment).ShouldBeEmpty();
+
+        const string withString =
+            "@media (forced-colors: active) {\n  .y::after { content: \"}\"; padding: 9rem; }\n}\n.tail { color: red; }";
+        StylingOwnershipOffenders(withString).ShouldBeEmpty();
+    }
+
     // Removes every "@media (... forced-colors ...) { ... }" block (brace-matched) so the
     // high-contrast exception is not scanned by the styling-ownership guard.
+    // 2026-06-19 (AC6): the brace matcher now skips CSS comments (/* ... */) and quoted strings so a
+    // stray '{' or '}' inside a comment or string cannot desynchronize the depth counter and leak the
+    // tail of a forced-colors block back into the scannable CSS.
     private static string RemoveForcedColorsMediaBlocks(string css)
     {
         while (true)
@@ -586,11 +756,34 @@ public sealed class DomainUiFluentConformanceTests
             int depth = 1;
             while (cursor < css.Length && depth > 0)
             {
-                if (css[cursor] == '{')
+                char current = css[cursor];
+
+                // Skip a /* ... */ comment wholesale so braces inside it are not counted.
+                if (current == '/' && cursor + 1 < css.Length && css[cursor + 1] == '*')
+                {
+                    int commentEnd = css.IndexOf("*/", cursor + 2, StringComparison.Ordinal);
+                    cursor = commentEnd < 0 ? css.Length : commentEnd + 2;
+                    continue;
+                }
+
+                // Skip a quoted string wholesale (honoring backslash escapes) for the same reason.
+                if (current is '"' or '\'')
+                {
+                    cursor++;
+                    while (cursor < css.Length && css[cursor] != current)
+                    {
+                        cursor += css[cursor] == '\\' ? 2 : 1;
+                    }
+
+                    cursor++; // step past the closing quote (or past end-of-string)
+                    continue;
+                }
+
+                if (current == '{')
                 {
                     depth++;
                 }
-                else if (css[cursor] == '}')
+                else if (current == '}')
                 {
                     depth--;
                 }
@@ -598,9 +791,14 @@ public sealed class DomainUiFluentConformanceTests
                 cursor++;
             }
 
-            css = css.Remove(blockStart, cursor - blockStart);
+            css = css.Remove(blockStart, Math.Min(cursor, css.Length) - blockStart);
         }
     }
+
+    // Counts raw <div>/<span> layout-wrapper tags after stripping Razor and HTML comments, so
+    // commented-out markup never inflates the layout-wrapper budget (AC3).
+    private static int CountLayoutWrappers(string razor)
+        => DivSpanTag.Matches(RazorOrHtmlComment.Replace(razor, string.Empty)).Count;
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
