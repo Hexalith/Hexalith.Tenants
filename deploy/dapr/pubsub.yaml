@@ -10,7 +10,11 @@
 #   dead-letter topic: deadletter.tenants.events (produced by EventStore's
 #     application-level dead-letter publisher on command-processing failure --
 #     NOT DAPR component metadata; DAPR's native DLQ is a per-subscription setting)
-#   scopes: eventstore publishes, sample subscribes
+#   component scopes: eventstore and sample can use this component
+#   topic scopes:
+#     - eventstore publishes tenants.events and deadletter.tenants.events
+#     - sample cannot publish to this component
+#     - sample subscribes to tenants.events
 #
 # Replace placeholders through your platform secret/environment mechanism before deployment.
 apiVersion: dapr.io/v1alpha1
@@ -28,7 +32,7 @@ spec:
     - name: enableTLS
       value: "{env:TENANTS_REDIS_ENABLE_TLS|true}"
     - name: publishingScopes
-      value: "sample="
+      value: "eventstore=tenants.events,deadletter.tenants.events;sample="
     - name: subscriptionScopes
       value: "sample=tenants.events"
 scopes:

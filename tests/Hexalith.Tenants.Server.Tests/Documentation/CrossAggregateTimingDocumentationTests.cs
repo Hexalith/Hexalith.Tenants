@@ -141,6 +141,9 @@ public class CrossAggregateTimingDocumentationTests {
             Scalar(resiliency, "spec", "policies", "retries", "pubsubRetryInbound", "maxRetries").ShouldBe("10");
         }
 
+        MetadataValue(localPubSub, "publishingScopes").ShouldBeNull();
+        MetadataValue(localPubSub, "subscriptionScopes").ShouldBeNull();
+        MetadataValue(productionPubSub, "publishingScopes").ShouldBe("eventstore=tenants.events,deadletter.tenants.events;sample=");
         MetadataValue(productionPubSub, "subscriptionScopes").ShouldBe("sample=tenants.events");
 
         guide.ShouldContain("`tenants.events`");
@@ -149,6 +152,10 @@ public class CrossAggregateTimingDocumentationTests {
         guide.ShouldContain("DAPR pub/sub");
         guide.ShouldContain("subscriber failure");
         guide.ShouldContain("redeliver");
+        guide.ShouldContain("Local development intentionally omits topic-level pub/sub scopes");
+        guide.ShouldContain("Production explicitly allows `eventstore` to publish `tenants.events` and `deadletter.tenants.events`");
+        guide.ShouldContain("subscriber redelivery remains on `tenants.events`");
+        guide.ShouldNotContain("deadletter.tenants.events after retry/dead-letter policy");
 
         // The guide must credit the real (application-level) dead-letter mechanism rather than implying
         // DAPR component metadata configures it -- keeps the doc honest about where deadletter.tenants.events

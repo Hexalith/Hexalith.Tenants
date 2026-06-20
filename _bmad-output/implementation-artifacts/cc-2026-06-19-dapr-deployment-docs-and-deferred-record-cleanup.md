@@ -2,7 +2,8 @@
 title: 'DAPR deployment docs and deferred record cleanup'
 type: 'correct-course-hardening'
 created: '2026-06-19'
-status: 'ready-for-dev'
+status: 'review'
+baseline_commit: '8c332d331ce6193f78a61f164348c82acde1d4a8'
 sprint_key: 'cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup'
 source_proposal: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md'
 approval: 'Administrator approved sprint-change-proposal-2026-06-19-deferred-work.md on 2026-06-19'
@@ -47,13 +48,13 @@ Make deployment pub/sub scope documentation and deferred-work records truthful a
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] Verify `publishingScopes` / `subscriptionScopes` behavior against DAPR topic-scoping docs and the intended EventStore publisher / sample subscriber contract.
-- [ ] Correct or remove `publishingScopes: "sample="` if it is inert, misleading, or inverted.
-- [ ] Compare local AppHost and production pub/sub component YAML and document any intentional difference.
-- [ ] Update `docs/cross-aggregate-timing.md` so the subscriber-failure branch does not imply DAPR component dead-lettering to `deadletter.tenants.events`.
-- [ ] Update `CrossAggregateTimingDocumentationTests` to assert the truthful application-level dead-letter wording and the topic-scope contract.
-- [ ] Keep the stale EventStore Admin actor-routing entry closed based on current source verification.
-- [ ] Normalize `deferred-work.md` so it remains a routing index, not a contradictory review-history dump.
+- [x] Verify `publishingScopes` / `subscriptionScopes` behavior against DAPR topic-scoping docs and the intended EventStore publisher / sample subscriber contract.
+- [x] Correct or remove `publishingScopes: "sample="` if it is inert, misleading, or inverted.
+- [x] Compare local AppHost and production pub/sub component YAML and document any intentional difference.
+- [x] Update `docs/cross-aggregate-timing.md` so the subscriber-failure branch does not imply DAPR component dead-lettering to `deadletter.tenants.events`.
+- [x] Update `CrossAggregateTimingDocumentationTests` to assert the truthful application-level dead-letter wording and the topic-scope contract.
+- [x] Keep the stale EventStore Admin actor-routing entry closed based on current source verification.
+- [x] Normalize `deferred-work.md` so it remains a routing index, not a contradictory review-history dump.
 
 **Acceptance Criteria:**
 1. Given `deploy/dapr/pubsub.yaml` says EventStore publishes and sample subscribes, when topic scopes are configured, then `publishingScopes` and `subscriptionScopes` match that intent or are omitted with a documented reason. The current suspicious `publishingScopes: "sample="` must be verified against DAPR topic scoping and corrected if inert or misleading.
@@ -74,4 +75,47 @@ Make deployment pub/sub scope documentation and deferred-work records truthful a
 
 ## Dev Agent Record
 
-Pending implementation.
+### Debug Log
+
+- Resolved `bmad-dev-story` workflow customization: no activation prepend/append steps; persistent project context loaded.
+- Verified DAPR v1.17 and latest v1.18 topic-scoping docs: `publishingScopes` and `subscriptionScopes` are semicolon-separated app-to-topic mappings; an empty topic list denies that app, while omitted apps retain broad default access unless otherwise constrained.
+- Confirmed current stale EventStore Admin routing claim remains false with `rg -n "ProjectionActorType|TenantProjectionRouting|TenantsProjectionActor" Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs` returning no matches.
+- Red phase: added DAPR topic-scope/dead-letter documentation assertions, then confirmed the focused documentation test failed against `publishingScopes: "sample="`.
+- Green/refactor phase: corrected production topic scopes, documented local-vs-production scope differences, removed DAPR subscriber-failure-to-dead-letter implication, updated stale configuration guards, and normalized routing/evidence records.
+
+### Completion Notes
+
+- Production `deploy/dapr/pubsub.yaml` now explicitly allows `eventstore` to publish `tenants.events` and `deadletter.tenants.events`, denies `sample` publishing, and allows `sample` to subscribe to `tenants.events`.
+- Local AppHost pub/sub intentionally omits topic-level scopes while retaining component scopes; the difference is documented in local YAML, production docs, and the cross-aggregate timing guide.
+- `docs/cross-aggregate-timing.md` now separates subscriber redelivery on `tenants.events` from EventStore's application-level dead-letter publisher for `deadletter.tenants.events`.
+- Server documentation/configuration tests now guard against reintroducing inert DAPR component dead-letter metadata and assert the truthful topic-scope contract.
+- `deferred-work.md` remains a routing index with the EventStore Admin actor-routing item stale/resolved and re-verified on 2026-06-20.
+
+### File List
+
+- `_bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/tests/test-summary.md`
+- `deploy/dapr/README.md`
+- `deploy/dapr/pubsub.yaml`
+- `docs/cross-aggregate-timing.md`
+- `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml`
+- `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs`
+
+### Change Log
+
+- 2026-06-20: Implemented DAPR deployment docs and deferred record cleanup; added/updated tests and evidence.
+
+### Validation
+
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Release --no-restore --filter CrossAggregateTimingDocumentationTests` passed 7/7.
+- `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Release --no-restore` passed 106/106.
+- `dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj -c Release --no-restore` passed 47/47.
+- `dotnet test tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj -c Release --no-restore` passed 181/181.
+- `dotnet test samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj -c Release --no-restore` passed 32/32.
+- `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Release --no-restore` passed 700/700.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore` passed 731/731.
+- `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release --no-restore` passed 204, skipped 33.
+- `git diff --check` passed with an existing line-ending warning for `_bmad-output/implementation-artifacts/sprint-status.yaml`.

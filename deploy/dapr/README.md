@@ -6,7 +6,7 @@ This folder contains production-oriented DAPR templates for deploying Hexalith.T
 - State store component: `statestore`
 - Pub/sub component: `pubsub`
 - Event topic: `tenants.events`
-- Dead-letter topic: `deadletter.tenants.events`
+- Application-level dead-letter topic: `deadletter.tenants.events`
 
 The templates intentionally keep infrastructure choice in DAPR YAML. Do not add Redis, broker, database, or cloud-provider SDK references to Tenants domain packages.
 
@@ -38,7 +38,7 @@ Actor startup failures in slim mode usually mean placement, scheduler, or the ac
 Apply the templates in this folder after replacing the placeholders with environment or secret-store values suitable for your platform:
 
 - `statestore.yaml` is scoped to `eventstore`, `tenants`, and `eventstore-admin`.
-- `pubsub.yaml` is scoped to `eventstore` and `sample`; `eventstore` publishes tenant events and `sample` subscribes in demo deployments.
+- `pubsub.yaml` is scoped to `eventstore` and `sample`; `eventstore` publishes `tenants.events` and `deadletter.tenants.events`, `sample` is denied publishing, and `sample` subscribes to `tenants.events` in demo deployments.
 - `accesscontrol.tenants.yaml` is bound only to the Tenants sidecar. It uses `defaultAction: deny` and allows only `eventstore` to call `POST /process` and `POST /project`.
 - `accesscontrol.eventstore.yaml` is bound only to the EventStore sidecar. It keeps Admin.Server delegation explicit and does not grant Tenants, Sample, or Admin UI broad EventStore invocation rights.
 - `accesscontrol.eventstore-admin.yaml` is bound only to Admin.Server and exposes no peer DAPR invocation policies.
@@ -48,7 +48,7 @@ Apply the templates in this folder after replacing the placeholders with environ
 
 EventStore remains the source of truth for tenant events. Pub/sub publication happens after the event has been stored, so a `PublishFailed` command status means publication failed after persistence; it is not evidence that the tenant event was lost or rolled back. EventStore drain recovery republishes the persisted sequence range to `tenants.events` after the pub/sub path recovers.
 
-DAPR pub/sub delivery is at-least-once. Subscriber redelivery and duplicate deliveries are expected during retries, sidecar restarts, and recovery. Consumers must deduplicate by `MessageId`, treat `SequenceNumber` as aggregate-local metadata only, and avoid exactly-once or global-ordering assumptions. The `deadletter.tenants.events` topic is the delivery-failure boundary after the configured component and resiliency retries are exhausted; keep the pub/sub component and `resiliency.yaml` retry settings reviewed together.
+DAPR pub/sub delivery is at-least-once. Subscriber redelivery and duplicate deliveries are expected during retries, sidecar restarts, and recovery. Consumers must deduplicate by `MessageId`, treat `SequenceNumber` as aggregate-local metadata only, and avoid exactly-once or global-ordering assumptions. Subscriber redelivery remains on `tenants.events`; this repository does not configure a DAPR native dead-letter subscription on the `pubsub` component. The `deadletter.tenants.events` topic is produced by EventStore's application-level dead-letter publisher for command-processing infrastructure failures, not by Redis pub/sub component metadata; keep the pub/sub component and `resiliency.yaml` retry settings reviewed together.
 
 Operator support-safe evidence should record command-status states such as `EventsStored`, `PublishFailed`, `EventsPublished`, and `Completed`; topic names; event type names; aggregate-local sequence categories; correlation/message identifier categories; prerequisite availability; and pass/fail/skip counts. Do not record raw event payloads, compact JWTs, bearer tokens, signing keys, decoded payloads, concrete connection strings, production hosts, real tenant/user identifiers, or PII.
 

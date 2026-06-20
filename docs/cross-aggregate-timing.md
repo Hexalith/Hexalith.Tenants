@@ -77,15 +77,29 @@ sequenceDiagram
         Actor->>PubSub: republish persisted event during drain recovery
     end
 
+    alt EventStore application-level dead-letter
+        Actor->>PubSub: publish deadletter.tenants.events
+        Note over Actor,PubSub: EventStore dead-letter publisher, not DAPR component DLQ
+    end
+
     alt subscriber failure
-        PubSub--)Endpoint: subscriber redelivery
-        PubSub--)Endpoint: deadletter.tenants.events after retry/dead-letter policy
+        PubSub--)Endpoint: subscriber redelivery on tenants.events
+        Endpoint-->>PubSub: retryable failure until policy is exhausted
+        Note over PubSub,Endpoint: no DAPR dead-letter subscription is configured here
     end
 ```
 
 Command status polling is separate from subscriber processing. `Completed` means the EventStore pipeline reached its terminal success state. It does not imply hidden rollback of persisted events, synchronous subscriber access enforcement, cross-service ordering, or simultaneous projection catch-up.
 
 If multiple services subscribe to `tenants.events`, treat them as independent consumers of the same topic. One service can catch up before another, and each service must decide how to handle stale local state while it waits.
+
+## Pub/Sub Topic Scope Policy
+
+DAPR topic scoping is component metadata: `publishingScopes` lists which app IDs may publish to which topics, `subscriptionScopes` lists which app IDs may subscribe to which topics, a blank topic list denies that app, and an app omitted from a scope list keeps DAPR's default broad access unless protected by other metadata. The production component therefore lists the intended publisher explicitly instead of relying on an omitted-app default.
+
+Local development intentionally omits topic-level pub/sub scopes in `src/Hexalith.Tenants.AppHost/DaprComponents/pubsub.yaml`; component-level `scopes` still limit the local component to `eventstore` and `sample`, but local demos remain flexible while developers iterate. Production explicitly allows `eventstore` to publish `tenants.events` and `deadletter.tenants.events`, denies `sample` publishing, and allows `sample` to subscribe to `tenants.events` in `deploy/dapr/pubsub.yaml`.
+
+The local and production components intentionally differ only in topic-scope strictness and environment-specific Redis connection settings. They share the same component name (`pubsub`), Redis component type, DAPR component scopes (`eventstore`, `sample`), and application-level dead-letter model.
 
 ## Eventual Consistency Rules
 
@@ -116,7 +130,7 @@ The planned EventStore authorization plugin is a future/optional synchronous pip
 
 `PublishFailed` means events were persisted but EventStore publication failed after the configured attempts. The persisted event stream remains authoritative. Drain recovery can republish the stored sequence range, and subscribers must handle duplicates.
 
-Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry/backoff. Dead-lettering to the `deadletter.tenants.events` topic is an application-level concern handled by EventStore's dead-letter publisher (it routes command-processing infrastructure failures), not DAPR component metadata — DAPR's native dead-letter topic is a per-subscription setting and is not configured on the `pubsub` component. Keep the retry and dead-letter behavior reviewed together.
+Subscriber failure does not roll back the stored event. `MapEventStoreDomainEvents()` returns success for processed, duplicate, unknown, or intentionally unhandled events. Invalid payloads or thrown handlers return an error so DAPR can redeliver according to the resiliency policy. The local and production `resiliency.yaml` files target the `pubsub` component with inbound retry/backoff. For subscriber failures, subscriber redelivery remains on `tenants.events`; no DAPR native dead-letter subscription is configured in this repository. Dead-lettering to the `deadletter.tenants.events` topic is an application-level concern handled by EventStore's dead-letter publisher (it routes command-processing infrastructure failures), not DAPR component metadata — DAPR's native dead-letter topic is a per-subscription setting and is not configured on the `pubsub` component. Keep the retry and dead-letter behavior reviewed together.
 
 When a local projection is stale:
 

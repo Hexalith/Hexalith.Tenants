@@ -51,21 +51,22 @@ Dismissed record retained:
 
 ### `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`
 
-Status: `ready-for-dev`.
+Status: `review` after implementation on 2026-06-20.
 Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md`.
 Primary sources:
 
 - Code review of `spec-frontcomposer-fluent-structural-and-style-conformance-sweep` on 2026-06-18.
 - Code review of `spec-frontcomposer-shell-and-adminui-fluent-conformance-audit` on 2026-06-18.
 - Current deployment docs/YAML scan on 2026-06-19.
+- DAPR v1.17 topic-scoping documentation checked on 2026-06-20.
 
-Routed items:
+Current resolution summary:
 
-- `deploy/dapr/pubsub.yaml` contains `publishingScopes: "sample="` while the component comment says EventStore publishes and sample subscribes. Verify against DAPR topic-scoping syntax and correct or document the intended mapping.
-- Local AppHost and production DAPR pub/sub component scope policy must be compared and documented if intentionally different.
-- `docs/cross-aggregate-timing.md` still diagrams subscriber failure flowing to `deadletter.tenants.events` after retry/dead-letter policy. The prose correctly credits EventStore's application-level dead-letter publisher; the diagram should stop implying DAPR component dead-lettering.
-- `CrossAggregateTimingDocumentationTests` should assert the truthful application-level dead-letter wording and the pub/sub scope contract after YAML/docs changes.
-- June 18 review-record contradictions and old DAPR/health bundling text should stay normalized to current facts.
+- Production `deploy/dapr/pubsub.yaml` now explicitly scopes `eventstore` to publish `tenants.events` and `deadletter.tenants.events`, denies `sample` publishing, and allows `sample` to subscribe to `tenants.events`.
+- Local AppHost pub/sub intentionally omits topic-level scopes while retaining component-level `eventstore` and `sample` scopes; the difference is documented in the component YAML and timing guide.
+- `docs/cross-aggregate-timing.md` distinguishes subscriber redelivery on `tenants.events` from EventStore's application-level dead-letter publisher for `deadletter.tenants.events`.
+- `CrossAggregateTimingDocumentationTests` guards the production topic-scope contract, local topic-scope omission, application-level dead-letter wording, and the absence of DAPR subscriber-failure-to-dead-letter wording.
+- June 18 review-record contradictions are kept as routed, stale/resolved, or future-owner handoff entries instead of open Tenants implementation work.
 
 ## Cross-Submodule Owner Handoffs
 
@@ -112,7 +113,7 @@ Requested outcomes:
 
 ### EventStore Admin retired actor-routing entry
 
-Status: stale/resolved as of 2026-06-19.
+Status: stale/resolved as of 2026-06-19; re-verified on 2026-06-20.
 
 Previous record said `Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs` still assigned `ProjectionActorType: TenantProjectionRouting.ActorTypeName`.
 
@@ -122,7 +123,7 @@ Verification command:
 rg -n "ProjectionActorType|TenantProjectionRouting|TenantsProjectionActor" Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs
 ```
 
-Result on 2026-06-19: no matches. Do not carry this as open Tenants work.
+Result on 2026-06-19 and 2026-06-20: no matches. Do not carry this as open Tenants work.
 
 ### Inert DAPR component dead-letter metadata
 

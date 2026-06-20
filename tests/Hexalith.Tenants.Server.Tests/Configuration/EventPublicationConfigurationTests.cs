@@ -102,14 +102,16 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
-    public void AppHostPubSub_ConfiguresTenantDeadLetterTopicAndCurrentAppIds() {
+    public void AppHostPubSub_UsesApplicationLevelDeadLetterModelAndCurrentAppIds() {
         string path = RepositoryPath("src", "Hexalith.Tenants.AppHost", "DaprComponents", "pubsub.yaml");
 
         YamlMappingNode root = LoadYaml(path);
         Scalar(root, "metadata", "name").ShouldBe("pubsub");
         Scalar(root, "spec", "type").ShouldBe("pubsub.redis");
-        MetadataValue(root, "enableDeadLetter").ShouldBe("true");
-        MetadataValue(root, "deadLetterTopic").ShouldBe(DeadLetterTopic);
+        MetadataValue(root, "enableDeadLetter").ShouldBeNull();
+        MetadataValue(root, "deadLetterTopic").ShouldBeNull();
+        MetadataValue(root, "publishingScopes").ShouldBeNull();
+        MetadataValue(root, "subscriptionScopes").ShouldBeNull();
         Scopes(root).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
     }
 
@@ -158,17 +160,17 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
-    public void ProductionPubSub_UsesStableNameDeadLetterPlaceholdersAndPublisherSubscriberScopes() {
+    public void ProductionPubSub_UsesStableNamePlaceholdersApplicationDeadLetterModelAndTopicScopes() {
         YamlMappingNode root = LoadYaml(RepositoryPath("deploy", "dapr", "pubsub.yaml"));
 
         Scalar(root, "metadata", "name").ShouldBe("pubsub");
         Scalar(root, "spec", "type").ShouldBe("pubsub.redis");
         Scalar(root, "spec", "version").ShouldBe("v1");
-        MetadataValue(root, "enableDeadLetter").ShouldBe("true");
-        MetadataValue(root, "deadLetterTopic").ShouldBe(DeadLetterTopic);
+        MetadataValue(root, "enableDeadLetter").ShouldBeNull();
+        MetadataValue(root, "deadLetterTopic").ShouldBeNull();
         MetadataValue(root, "redisHost").ShouldNotBeNullOrWhiteSpace();
         MetadataValue(root, "redisPassword").ShouldNotBeNull().ShouldContain("{secretKeyRef:");
-        MetadataValue(root, "publishingScopes").ShouldBe("sample=");
+        MetadataValue(root, "publishingScopes").ShouldBe("eventstore=tenants.events,deadletter.tenants.events;sample=");
         MetadataValue(root, "subscriptionScopes").ShouldBe("sample=tenants.events");
         Scopes(root).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
     }
@@ -302,9 +304,15 @@ public class EventPublicationConfigurationTests {
 
         foreach (YamlMappingNode pubSub in new[] { localPubSub, productionPubSub }) {
             Scalar(pubSub, "metadata", "name").ShouldBe("pubsub");
-            MetadataValue(pubSub, "deadLetterTopic").ShouldBe(DeadLetterTopic);
+            MetadataValue(pubSub, "enableDeadLetter").ShouldBeNull();
+            MetadataValue(pubSub, "deadLetterTopic").ShouldBeNull();
             Scopes(pubSub).ShouldContain("eventstore");
         }
+
+        MetadataValue(localPubSub, "publishingScopes").ShouldBeNull();
+        MetadataValue(localPubSub, "subscriptionScopes").ShouldBeNull();
+        MetadataValue(productionPubSub, "publishingScopes").ShouldBe("eventstore=tenants.events,deadletter.tenants.events;sample=");
+        MetadataValue(productionPubSub, "subscriptionScopes").ShouldBe("sample=tenants.events");
 
         string[] diagnosticTerms =
         [

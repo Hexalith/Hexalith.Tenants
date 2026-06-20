@@ -9,6 +9,10 @@
 #
 # Component Scoping:
 #   EventStore publishes tenant events; sample consumes them in local demos.
+#   Local development intentionally omits topic-level publishingScopes and
+#   subscriptionScopes so local experiments are not blocked by production-only
+#   topic policy. Production deploy/dapr/pubsub.yaml carries the explicit topic
+#   scopes.
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
