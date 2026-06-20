@@ -73,8 +73,8 @@ internal static class DaprTestExecutionGate {
 /// Discovery-time prerequisite check for DAPR-backed integration tests.
 /// </summary>
 public static class DaprTestPrerequisites {
-    private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
-    private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
+    private static readonly int PlacementPort = DaprLocalEndpoints.PlacementPort;
+    private static readonly int SchedulerPort = DaprLocalEndpoints.SchedulerPort;
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
     private static readonly Lazy<bool> s_isAvailable = new(CheckAvailability);
 

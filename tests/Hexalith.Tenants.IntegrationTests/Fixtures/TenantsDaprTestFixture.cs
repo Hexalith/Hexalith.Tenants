@@ -33,8 +33,8 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// </summary>
 public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     private const string AppId = "commandapi";
-    private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
-    private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
+    private static readonly int PlacementPort = DaprLocalEndpoints.PlacementPort;
+    private static readonly int SchedulerPort = DaprLocalEndpoints.SchedulerPort;
     private const int RedisPort = 6379;
     private const int HealthTimeoutSeconds = 60;
 

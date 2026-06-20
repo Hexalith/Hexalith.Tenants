@@ -7,6 +7,8 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
 /// <summary>
@@ -28,8 +30,8 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// </para>
 /// </remarks>
 public class AspireTopologyFixture : IAsyncLifetime {
-    private static readonly int PlacementPort = OperatingSystem.IsWindows() ? 6050 : 50005;
-    private static readonly int SchedulerPort = OperatingSystem.IsWindows() ? 6060 : 50006;
+    private static readonly int PlacementPort = DaprLocalEndpoints.PlacementPort;
+    private static readonly int SchedulerPort = DaprLocalEndpoints.SchedulerPort;
 
     // The Redis prerequisite targets the `dapr init`-managed Redis (which DAPR sidecars use as
     // their state-store and pub-sub backend). dapr init defaults to localhost:6379, but
@@ -41,9 +43,16 @@ public class AspireTopologyFixture : IAsyncLifetime {
     private static readonly int RedisPort = ResolveRedisPort();
     private const int DefaultRedisPort = 6379;
     private static readonly TimeSpan DockerProbeTimeout = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(6);
+    private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
+    private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromMinutes(2);
+
+    // Per-request HttpClient timeout for the command-gateway, domain-service, and UI clients. The
+    // heaviest end-to-end tests budget several minutes of wall-clock for a flow, but each individual
+    // request used to be capped at 60s — too tight for the first cold command after startup (first actor
+    // activation + DAPR placement-table dissemination). Keep it aligned with the tests' own multi-minute
+    // cancellation budgets so a single slow cold request does not fail an otherwise-passing flow.
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(3);
     private const string AlivenessEndpointPath = "/alive";
 
     private DistributedApplication? _app;
@@ -138,8 +147,19 @@ public class AspireTopologyFixture : IAsyncLifetime {
                 return;
             }
 
+            // Point the Aspire-managed DAPR sidecars at the same placement/scheduler host ports that the
+            // prerequisite probe found reachable. Without this the sidecars fall back to the daprd default
+            // (localhost:50005/:50006); under a containerized `dapr init` (host ports 6050/6060) the actor
+            // runtime can never reach placement, so the EventStore host blocks during startup and never
+            // serves /alive.
             _builder = await DistributedApplicationTestingBuilder
-                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(new[] { "--EnableKeycloak=false" }, startupCts.Token)
+                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+                    [
+                        "--EnableKeycloak=false",
+                        $"--Dapr:PlacementHostAddress=localhost:{PlacementPort}",
+                        $"--Dapr:SchedulerHostAddress=localhost:{SchedulerPort}",
+                    ],
+                    startupCts.Token)
                 .ConfigureAwait(false);
 
             // Honor StartupTimeout during the build/graph-evaluation phase as well; MSBuild
@@ -148,18 +168,20 @@ public class AspireTopologyFixture : IAsyncLifetime {
 
             await _app.StartAsync(startupCts.Token).ConfigureAwait(false);
 
+            StartResourceLogCaptureIfRequested();
+
             // Create HTTP clients for all resources. Clients are built through Aspire's
             // _app.CreateHttpClient(resourceName, endpointName) so service-discovery and the
             // DelegatingHandler chain remain attached, and HttpClient Timeout is configured
             // inline at construction time rather than mutated after first use.
             _commandApiClient = await WaitForResourceAndCreateClientAsync(
-                "eventstore", "http", TimeSpan.FromSeconds(60), CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
+                "eventstore", "http", RequestTimeout, CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
 
             _tenantsClient = await WaitForResourceAndCreateClientAsync(
-                "tenants", "http", TimeSpan.FromSeconds(60), CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
+                "tenants", "http", RequestTimeout, CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
 
             _tenantsUiClient = await WaitForResourceAndCreateClientAsync(
-                "tenants-ui", "http", TimeSpan.FromSeconds(60), CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
+                "tenants-ui", "http", RequestTimeout, CommandApiHealthTimeout, startupCts.Token).ConfigureAwait(false);
 
             _sampleClient = await WaitForResourceAndCreateClientAsync(
                 "sample", "http", TimeSpan.FromSeconds(30), SampleHealthTimeout, startupCts.Token).ConfigureAwait(false);
@@ -214,6 +236,32 @@ public class AspireTopologyFixture : IAsyncLifetime {
         }
 
         _daprFixtureLock?.Dispose();
+    }
+
+    // Temporary diagnostic: when HEXALITH_TENANTS_TEST_DUMP_LOGS=1, stream every resource's console
+    // output to /tmp/aspire-logs-<resource>.log so a hanging command flow can be root-caused.
+    private void StartResourceLogCaptureIfRequested() {
+        if (_app is null || Environment.GetEnvironmentVariable("HEXALITH_TENANTS_TEST_DUMP_LOGS") != "1") {
+            return;
+        }
+
+        ResourceLoggerService loggerService = _app.Services.GetRequiredService<ResourceLoggerService>();
+        DistributedApplicationModel model = _app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        foreach (IResource resource in model.Resources) {
+            string name = resource.Name;
+            string path = Path.Combine(Path.GetTempPath(), $"aspire-logs-{name}.log");
+            _ = Task.Run(async () => {
+                try {
+                    await foreach (IReadOnlyList<LogLine> batch in loggerService.WatchAsync(resource).ConfigureAwait(false)) {
+                        await File.AppendAllLinesAsync(path, batch.Select(line => line.Content)).ConfigureAwait(false);
+                    }
+                }
+                catch {
+                    // Best-effort diagnostic capture.
+                }
+            });
+        }
     }
 
     private void AcquireDaprFixtureLock() {

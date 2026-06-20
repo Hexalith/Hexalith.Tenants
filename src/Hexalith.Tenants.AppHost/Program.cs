@@ -10,6 +10,15 @@ string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHos
 string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "resiliency.yaml");
 string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
 
+// Optional DAPR placement/scheduler service addresses. When left unset, the DAPR sidecars fall back to
+// the daprd default (localhost:50005 / :50006), which matches a slim-mode `dapr init`. A containerized
+// `dapr init` (the default for Dapr 1.15+) publishes those services on host ports 6050/6060 instead, so
+// environments using Docker-based DAPR set Dapr:PlacementHostAddress / Dapr:SchedulerHostAddress (e.g. to
+// "localhost:6050" / "localhost:6060") to point the Aspire-managed sidecars at the real services. The
+// integration-test AppHost is launched with these set to the auto-detected ports.
+string? daprPlacementHostAddress = builder.Configuration["Dapr:PlacementHostAddress"];
+string? daprSchedulerHostAddress = builder.Configuration["Dapr:SchedulerHostAddress"];
+
 // Keycloak identity provider for JWT authentication.
 // Enabled by default for local development with real OIDC token testing.
 // Set EnableKeycloak=false in environment or appsettings to run without Keycloak
@@ -51,12 +60,19 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     eventStoreDaprConfigPath: accessControlConfigPath,
     adminServerDaprConfigPath: adminServerAccessControlConfigPath,
     resiliencyConfigPath: resiliencyConfigPath,
-    stateStoreComponentPath: stateStoreComponentPath);
+    stateStoreComponentPath: stateStoreComponentPath,
+    daprPlacementHostAddress: daprPlacementHostAddress,
+    daprSchedulerHostAddress: daprSchedulerHostAddress);
 
 // Add the Tenants domain service via the platform domain-module extension (A4): its sidecar shares the
 // EventStore state store + pub/sub. Replaces the per-domain Aspire wiring library.
 IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants")
-    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath)
+    .AddEventStoreDomainModule(
+        eventStoreResources,
+        "tenants",
+        accessControlConfigPath,
+        daprPlacementHostAddress: daprPlacementHostAddress,
+        daprSchedulerHostAddress: daprSchedulerHostAddress)
     .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "admin-user");
 
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
@@ -81,7 +97,12 @@ IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenants
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
 // It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
 IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>("sample")
-    .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath);
+    .AddEventStoreDomainModule(
+        eventStoreResources,
+        "sample",
+        accessControlConfigPath,
+        daprPlacementHostAddress: daprPlacementHostAddress,
+        daprSchedulerHostAddress: daprSchedulerHostAddress);
 
 // Wire Keycloak auth to EventStore, Tenants, Admin.Server, and Admin.UI if enabled.
 if (keycloak is not null && realmUrl is not null) {
