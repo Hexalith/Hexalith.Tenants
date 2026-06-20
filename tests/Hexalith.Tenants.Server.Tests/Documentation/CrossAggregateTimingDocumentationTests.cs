@@ -143,7 +143,9 @@ public class CrossAggregateTimingDocumentationTests {
 
         MetadataValue(localPubSub, "publishingScopes").ShouldBeNull();
         MetadataValue(localPubSub, "subscriptionScopes").ShouldBeNull();
-        MetadataValue(productionPubSub, "publishingScopes").ShouldBe("eventstore=tenants.events,deadletter.tenants.events;sample=");
+        // eventstore stays unlisted in publishingScopes (unrestricted publishing, NFR20);
+        // only the sample subscriber is denied publishing via an empty topic list.
+        MetadataValue(productionPubSub, "publishingScopes").ShouldBe("sample=");
         MetadataValue(productionPubSub, "subscriptionScopes").ShouldBe("sample=tenants.events");
 
         guide.ShouldContain("`tenants.events`");
@@ -153,7 +155,7 @@ public class CrossAggregateTimingDocumentationTests {
         guide.ShouldContain("subscriber failure");
         guide.ShouldContain("redeliver");
         guide.ShouldContain("Local development intentionally omits topic-level pub/sub scopes");
-        guide.ShouldContain("Production explicitly allows `eventstore` to publish `tenants.events` and `deadletter.tenants.events`");
+        guide.ShouldContain("intentionally left unlisted in `publishingScopes`");
         guide.ShouldContain("subscriber redelivery remains on `tenants.events`");
         guide.ShouldNotContain("deadletter.tenants.events after retry/dead-letter policy");
 

@@ -108,8 +108,8 @@ public class EventPublicationConfigurationTests {
         YamlMappingNode root = LoadYaml(path);
         Scalar(root, "metadata", "name").ShouldBe("pubsub");
         Scalar(root, "spec", "type").ShouldBe("pubsub.redis");
-        MetadataValue(root, "enableDeadLetter").ShouldBeNull();
-        MetadataValue(root, "deadLetterTopic").ShouldBeNull();
+        MetadataKeyExists(root, "enableDeadLetter").ShouldBeFalse();
+        MetadataKeyExists(root, "deadLetterTopic").ShouldBeFalse();
         MetadataValue(root, "publishingScopes").ShouldBeNull();
         MetadataValue(root, "subscriptionScopes").ShouldBeNull();
         Scopes(root).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
@@ -166,11 +166,15 @@ public class EventPublicationConfigurationTests {
         Scalar(root, "metadata", "name").ShouldBe("pubsub");
         Scalar(root, "spec", "type").ShouldBe("pubsub.redis");
         Scalar(root, "spec", "version").ShouldBe("v1");
-        MetadataValue(root, "enableDeadLetter").ShouldBeNull();
-        MetadataValue(root, "deadLetterTopic").ShouldBeNull();
+        MetadataKeyExists(root, "enableDeadLetter").ShouldBeFalse();
+        MetadataKeyExists(root, "deadLetterTopic").ShouldBeFalse();
         MetadataValue(root, "redisHost").ShouldNotBeNullOrWhiteSpace();
         MetadataValue(root, "redisPassword").ShouldNotBeNull().ShouldContain("{secretKeyRef:");
-        MetadataValue(root, "publishingScopes").ShouldBe("eventstore=tenants.events,deadletter.tenants.events;sample=");
+
+        // eventstore is intentionally NOT listed in publishingScopes: unlisted means
+        // unrestricted publishing, which EventStore requires for dynamic per-tenant topic
+        // provisioning (NFR20). Subscribers are denied publishing with an empty topic list.
+        MetadataValue(root, "publishingScopes").ShouldBe("sample=");
         MetadataValue(root, "subscriptionScopes").ShouldBe("sample=tenants.events");
         Scopes(root).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
     }
@@ -304,14 +308,14 @@ public class EventPublicationConfigurationTests {
 
         foreach (YamlMappingNode pubSub in new[] { localPubSub, productionPubSub }) {
             Scalar(pubSub, "metadata", "name").ShouldBe("pubsub");
-            MetadataValue(pubSub, "enableDeadLetter").ShouldBeNull();
-            MetadataValue(pubSub, "deadLetterTopic").ShouldBeNull();
+            MetadataKeyExists(pubSub, "enableDeadLetter").ShouldBeFalse();
+            MetadataKeyExists(pubSub, "deadLetterTopic").ShouldBeFalse();
             Scopes(pubSub).ShouldContain("eventstore");
         }
 
         MetadataValue(localPubSub, "publishingScopes").ShouldBeNull();
         MetadataValue(localPubSub, "subscriptionScopes").ShouldBeNull();
-        MetadataValue(productionPubSub, "publishingScopes").ShouldBe("eventstore=tenants.events,deadletter.tenants.events;sample=");
+        MetadataValue(productionPubSub, "publishingScopes").ShouldBe("sample=");
         MetadataValue(productionPubSub, "subscriptionScopes").ShouldBe("sample=tenants.events");
 
         string[] diagnosticTerms =
@@ -542,6 +546,17 @@ public class EventPublicationConfigurationTests {
             .Where(node => Scalar(node, "name") == name)
             .Select(node => Scalar(node, "value"))
             .SingleOrDefault();
+    }
+
+    // Returns true when a metadata entry with the given name exists, regardless of its value.
+    // Use this (not MetadataValue(...).ShouldBeNull()) to assert a key is ABSENT: MetadataValue
+    // returns null both when the key is missing AND when a key is present with no value: line,
+    // so a reintroduced bare `- name: enableDeadLetter` would slip past a null-value check.
+    private static bool MetadataKeyExists(YamlMappingNode root, string name) {
+        var metadata = (YamlSequenceNode)Node(root, "spec", "metadata");
+        return metadata
+            .OfType<YamlMappingNode>()
+            .Any(node => Scalar(node, "name") == name);
     }
 
     private static YamlMappingNode SinglePolicy(YamlMappingNode root, string appId)

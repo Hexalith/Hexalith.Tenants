@@ -2,7 +2,7 @@
 title: 'DAPR deployment docs and deferred record cleanup'
 type: 'correct-course-hardening'
 created: '2026-06-19'
-status: 'review'
+status: 'done'
 baseline_commit: '8c332d331ce6193f78a61f164348c82acde1d4a8'
 sprint_key: 'cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup'
 source_proposal: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md'
@@ -85,7 +85,7 @@ Make deployment pub/sub scope documentation and deferred-work records truthful a
 
 ### Completion Notes
 
-- Production `deploy/dapr/pubsub.yaml` now explicitly allows `eventstore` to publish `tenants.events` and `deadletter.tenants.events`, denies `sample` publishing, and allows `sample` to subscribe to `tenants.events`.
+- Production `deploy/dapr/pubsub.yaml` now explicitly allows `eventstore` to publish `tenants.events` and `deadletter.tenants.events`, denies `sample` publishing, and allows `sample` to subscribe to `tenants.events`. **(Superseded by the 2026-06-20 code review — the explicit `eventstore=...` allow-list was reverted to `publishingScopes: "sample="` because listing `eventstore` violates EventStore NFR20; see Review Findings below.)**
 - Local AppHost pub/sub intentionally omits topic-level scopes while retaining component scopes; the difference is documented in local YAML, production docs, and the cross-aggregate timing guide.
 - `docs/cross-aggregate-timing.md` now separates subscriber redelivery on `tenants.events` from EventStore's application-level dead-letter publisher for `deadletter.tenants.events`.
 - Server documentation/configuration tests now guard against reintroducing inert DAPR component dead-letter metadata and assert the truthful topic-scope contract.
@@ -107,6 +107,7 @@ Make deployment pub/sub scope documentation and deferred-work records truthful a
 ### Change Log
 
 - 2026-06-20: Implemented DAPR deployment docs and deferred record cleanup; added/updated tests and evidence.
+- 2026-06-20: Code review (bmad-code-review). Reverted production `publishingScopes` from the explicit `eventstore=tenants.events,deadletter.tenants.events;sample=` allow-list back to `"sample="` because listing `eventstore` violates EventStore NFR20 (unlisted = unrestricted, required for dynamic per-tenant topics). Updated `deploy/dapr/pubsub.yaml`, `EventPublicationConfigurationTests.cs`, `CrossAggregateTimingDocumentationTests.cs`, `docs/cross-aggregate-timing.md`, `deploy/dapr/README.md`. Hardened the dead-letter absence guards to assert key absence (`MetadataKeyExists`). Two `defer` items logged to `deferred-work.md`. Focused tests: 29/29 pass.
 
 ### Validation
 
@@ -119,3 +120,12 @@ Make deployment pub/sub scope documentation and deferred-work records truthful a
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release --no-restore` passed 731/731.
 - `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release --no-restore` passed 204, skipped 33.
 - `git diff --check` passed with an existing line-ending warning for `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+
+### Review Findings
+
+Code review on 2026-06-20 (bmad-code-review: Blind Hunter + Edge Case Hunter + Acceptance Auditor, all Opus). Acceptance Auditor confirmed 6/6 ACs literally satisfied and 7/7 frozen Boundaries respected; DAPR topic-scoping **syntax** independently verified correct against official DAPR docs. One High architectural finding overrides the AC1 "satisfied" verdict on the publisher contract.
+
+- [x] [Review][Decision→Patch] Production `publishingScopes` now restricts `eventstore`, violating EventStore's NFR20 platform contract — `deploy/dapr/pubsub.yaml:35` sets `publishingScopes: "eventstore=tenants.events,deadletter.tenants.events;sample="`, which (per DAPR semantics) restricts `eventstore` to ONLY those two topics. EventStore's platform design **requires `eventstore` to be UNLISTED = unrestricted** for dynamic tenant provisioning (NFR20): see `Hexalith.EventStore/docs/guides/dapr-component-reference.md:201,235,283` and enforcement test `Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/PubSubTopicIsolationEnforcementTests.cs:63-65` ("eventstore must NOT be listed in publishingScopes — unlisted means unrestricted access (NFR20)"). EventStore's own AppHost follows this — `Hexalith.EventStore/src/Hexalith.EventStore.AppHost/DaprComponents/pubsub.yaml:118-119` = `"sample=;eventstore-test-subscriber="` (lists only subscribers as deny, never `eventstore`). The original Tenants `"sample="` was therefore **already NFR20-compliant**; the "correction" introduced the deviation. Non-`system` tenants publish to `{tenant}.{domain}.events` (`AggregateIdentity.PubSubTopic` + `TopicNameValidator` D6 pattern), which the new allow-list silently denies at the DAPR sidecar (events persist, publication → `PublishFailed`). Safe for the two domains registered today (both resolve to `tenants.events`) but breaks dynamic tenants / any other domain served by the shared `eventstore` sidecar. Story **Task 1 explicitly required verifying against "the intended EventStore publisher contract"** — that part was missed (only DAPR syntax was verified). New assertions at `tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs:173,314` and `tests/Hexalith.Tenants.Server.Tests/Documentation/CrossAggregateTimingDocumentationTests.cs:146` now PIN the restricted value, so any revert must update both. **Decision required** because AC1 is frozen-after-approval and the right fix depends on owner intent (see options below). **RESOLVED 2026-06-20 (owner chose "revert eventstore to unlisted"):** `deploy/dapr/pubsub.yaml` `publishingScopes` reverted to `"sample="` (eventstore unlisted = unrestricted, NFR20); `EventPublicationConfigurationTests.cs:173,314` + `CrossAggregateTimingDocumentationTests.cs:146,156` and the `cross-aggregate-timing.md` / `README.md` prose updated to match; the original `"sample="` value is restored with proper NFR20 documentation. Focused tests pass 29/29.
+- [x] [Review][Patch] `MetadataValue(...).ShouldBeNull()` cannot catch a reintroduced metadata key that has no `value:` line [tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs:111] — the helper returns `null` both when the key is absent AND when a bare `- name: enableDeadLetter` (no `value:`) is present, so the "guard against reintroduced inert keys" intent is narrower than the comment claims. Harden to assert key *absence*, not just null value.
+- [x] [Review][Defer] Docs frame `deadletter.tenants.events` as application-level only, but EventStore platform Redis components enable native DLQ [deploy/dapr/README.md:104] — deferred, operator-documentation nuance out of this story's file scope.
+- [x] [Review][Defer] Stale evidence line in `test-summary.md` still says Server.Tests is "blocked by 3 ... dead-letter metadata expectation tests" [_bmad-output/implementation-artifacts/tests/test-summary.md] — deferred, pre-existing line from the prior tenant-query story's section; this story actually resolved that blocker (Server.Tests 700/700).

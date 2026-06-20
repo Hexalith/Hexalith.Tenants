@@ -38,7 +38,7 @@ Actor startup failures in slim mode usually mean placement, scheduler, or the ac
 Apply the templates in this folder after replacing the placeholders with environment or secret-store values suitable for your platform:
 
 - `statestore.yaml` is scoped to `eventstore`, `tenants`, and `eventstore-admin`.
-- `pubsub.yaml` is scoped to `eventstore` and `sample`; `eventstore` publishes `tenants.events` and `deadletter.tenants.events`, `sample` is denied publishing, and `sample` subscribes to `tenants.events` in demo deployments.
+- `pubsub.yaml` is scoped to `eventstore` and `sample`; `eventstore` is left unlisted in `publishingScopes` so it keeps unrestricted publish access (required for EventStore dynamic per-tenant topic provisioning, NFR20), `sample` is denied publishing via an empty topic list (`sample=`), and `sample` subscribes to `tenants.events` in demo deployments.
 - `accesscontrol.tenants.yaml` is bound only to the Tenants sidecar. It uses `defaultAction: deny` and allows only `eventstore` to call `POST /process` and `POST /project`.
 - `accesscontrol.eventstore.yaml` is bound only to the EventStore sidecar. It keeps Admin.Server delegation explicit and does not grant Tenants, Sample, or Admin UI broad EventStore invocation rights.
 - `accesscontrol.eventstore-admin.yaml` is bound only to Admin.Server and exposes no peer DAPR invocation policies.

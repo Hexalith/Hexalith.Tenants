@@ -12,8 +12,12 @@
 #     NOT DAPR component metadata; DAPR's native DLQ is a per-subscription setting)
 #   component scopes: eventstore and sample can use this component
 #   topic scopes:
-#     - eventstore publishes tenants.events and deadletter.tenants.events
-#     - sample cannot publish to this component
+#     - eventstore is NOT listed in publishingScopes = unrestricted publishing.
+#       EventStore provisions per-tenant topics dynamically ({tenant}.{domain}.events),
+#       so it must stay unlisted (EventStore platform NFR20). Listing it with an
+#       explicit allow-list would silently deny any topic outside the list.
+#       NOTE: do NOT use "eventstore=*" -- DAPR treats * as a literal topic name.
+#     - sample is denied publishing via an empty topic list (sample=)
 #     - sample subscribes to tenants.events
 #
 # Replace placeholders through your platform secret/environment mechanism before deployment.
@@ -32,7 +36,7 @@ spec:
     - name: enableTLS
       value: "{env:TENANTS_REDIS_ENABLE_TLS|true}"
     - name: publishingScopes
-      value: "eventstore=tenants.events,deadletter.tenants.events;sample="
+      value: "sample="
     - name: subscriptionScopes
       value: "sample=tenants.events"
 scopes:
