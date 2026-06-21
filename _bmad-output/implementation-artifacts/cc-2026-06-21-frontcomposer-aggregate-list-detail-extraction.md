@@ -4,7 +4,7 @@ baseline_commit: f4281a100468c90acc6b3a4fd9d7a3f14bc9579e
 
 # Story cc-2026-06-21: FrontComposer Aggregate List/Detail Extraction
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Source of truth: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-reusable-aggregate-pages-and-tenant-search.md (Phase 2). -->
 <!-- Correct Course story, not an epics.md numbered story. Phase 1 search story is already done. -->
