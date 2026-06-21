@@ -308,7 +308,7 @@
         var request = new AddUserToTenantCommandRequest(Detail.TenantId, _userId, role);
         _snapshot = _snapshot.RequestSent(request);
         _isSubmitting = true;
-        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
 
         try
         {
@@ -346,7 +346,7 @@
         finally
         {
             _isSubmitting = false;
-            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
         }
     }
 
@@ -369,7 +369,7 @@
             .ConfigureAwait(false);
         SetSnapshot(_snapshot.ApplyStatus(status));
 
-        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
         {
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);

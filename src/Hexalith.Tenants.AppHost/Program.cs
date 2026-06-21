@@ -72,7 +72,9 @@ IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>(
     .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress)
-    .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "admin-user");
+    // Must be the Keycloak user's stable subject (sub) GUID — the global-admin projection is keyed by
+    // the JWT sub, so a username here would never match. admin-user's id is pinned in the realm import.
+    .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "11111111-1111-1111-1111-111111111111");
 
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
@@ -118,7 +120,13 @@ if (keycloak is not null && realmUrl is not null) {
         .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
         .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
         .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
-        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "")
+        // Service credentials so the startup global-admin bootstrap can obtain a Keycloak token
+        // (resource-owner-password grant) and call the secured EventStore command endpoint.
+        .WithEnvironment("EventStore__Authentication__Authority", realmUrl)
+        .WithEnvironment("EventStore__Authentication__ClientId", "hexalith-eventstore")
+        .WithEnvironment("EventStore__Authentication__Username", "admin-user")
+        .WithEnvironment("EventStore__Authentication__Password", "admin-pass");
 
     _ = adminServer
         .WithReference(keycloak)

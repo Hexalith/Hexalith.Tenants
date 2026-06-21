@@ -106,16 +106,16 @@
             case TenantAuditRecoveryVerb.Wait:
                 break;
             case TenantAuditRecoveryVerb.Refresh:
-                await OnRefresh.InvokeAsync().ConfigureAwait(false);
+                await InvokeAsync(() => OnRefresh.InvokeAsync()).ConfigureAwait(false);
                 break;
             case TenantAuditRecoveryVerb.InspectAudit:
-                await OnInspectAudit.InvokeAsync().ConfigureAwait(false);
+                await InvokeAsync(() => OnInspectAudit.InvokeAsync()).ConfigureAwait(false);
                 break;
             case TenantAuditRecoveryVerb.ContinueReadOnly:
-                await OnContinueReadOnly.InvokeAsync().ConfigureAwait(false);
+                await InvokeAsync(() => OnContinueReadOnly.InvokeAsync()).ConfigureAwait(false);
                 break;
             case TenantAuditRecoveryVerb.Escalate:
-                await OnEscalate.InvokeAsync().ConfigureAwait(false);
+                await InvokeAsync(() => OnEscalate.InvokeAsync()).ConfigureAwait(false);
                 break;
             default:
                 break;
