@@ -44,6 +44,8 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
 
     /// <inheritdoc/>
     protected override void ConfigureDomainConfiguration(ConfigurationManager configuration) {
+        ArgumentNullException.ThrowIfNull(configuration);
+
         // Configure domain service registration: system|tenants|v1 → self (commandapi).
         configuration["EventStore:DomainServices:Registrations:system|tenants|v1:AppId"] = AppId;
         configuration["EventStore:DomainServices:Registrations:system|tenants|v1:MethodName"] = "process";
@@ -70,6 +72,9 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
 
     /// <inheritdoc/>
     protected override void ConfigureDomainServices(IServiceCollection services, IConfiguration configuration) {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
         // Register publisher fakes BEFORE AddEventStoreServer (TryAdd won't override these).
         _ = services.AddSingleton<IEventPublisher>(EventPublisher);
         _ = services.AddSingleton<IDeadLetterPublisher>(DeadLetterPublisher);
@@ -91,6 +96,8 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
 
     /// <inheritdoc/>
     protected override void MapDomainEndpoints(WebApplication app) {
+        ArgumentNullException.ThrowIfNull(app);
+
         _ = app.MapPost("/process", async (
             DomainServiceRequest request,
             IServiceProvider serviceProvider,
