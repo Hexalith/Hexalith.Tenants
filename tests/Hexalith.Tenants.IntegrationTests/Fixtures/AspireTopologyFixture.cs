@@ -1,32 +1,34 @@
-using Hexalith.EventStore.Testing.Integration;
-
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
 /// <summary>
 /// Shared xUnit fixture that boots the full Tenants Aspire AppHost topology
-/// (eventstore + tenants + tenants-ui + sample with DAPR sidecars) on the shared EventStore platform
-/// fixture base, and exposes typed HTTP clients for smoke tests.
+/// (CommandApi + Sample with DAPR sidecars) and creates HTTP clients for smoke tests.
 /// </summary>
 /// <remarks>
-/// This fixture verifies <strong>process liveness</strong>, not full readiness — it waits for
-/// resources to reach <c>Running</c> and for <c>/alive</c> to return HTTP 200. Full Dapr readiness
-/// (placement registration, sidecar handshake, state-store availability) is covered by the
-/// Dapr-specific integration tests. All generic probing/build/start/client-create logic lives in the
-/// EventStore platform package (<see cref="AspireTopologyFixtureBase{TAppHost}"/>).
+/// All DAPR/Aspire plumbing — placement/scheduler endpoint resolution, prerequisite probing, build/
+/// start, client creation, endpoint polling, and liveness diagnostics — lives in the reusable platform
+/// base <see cref="AspireTopologyFixtureBase{TAppHost}"/>. This fixture supplies only the Tenants
+/// AppHost type, the resources to wait on, and the typed client accessors used by the tests.
 /// </remarks>
 public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost> {
-    /// <inheritdoc/>
-    protected override IReadOnlyList<string> ResourceNames =>
-        ["eventstore", "tenants", "tenants-ui", "sample"];
+    private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
+    private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan CommandApiClientTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan SampleClientTimeout = TimeSpan.FromSeconds(30);
 
     /// <inheritdoc/>
-    protected override IReadOnlyList<string> AlivenessResourceNames =>
-        ["eventstore", "tenants", "sample"];
+    protected override IReadOnlyList<AspireResource> Resources =>
+    [
+        new("eventstore", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
+        new("tenants", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: true, CommandApiHealthTimeout),
+        new("tenants-ui", "http", CommandApiClientTimeout, CommandApiHealthTimeout, WaitForAliveness: false, CommandApiHealthTimeout),
+        new("sample", "http", SampleClientTimeout, SampleHealthTimeout, WaitForAliveness: true, SampleHealthTimeout),
+    ];
 
     /// <inheritdoc/>
     protected override IReadOnlyList<string> ExtraAppArgs => ["--EnableKeycloak=false"];
 
-    /// <summary>Gets the HTTP client for the EventStore CommandApi service.</summary>
+    /// <summary>Gets the HTTP client for the CommandApi (eventstore) service.</summary>
     public HttpClient CommandApiClient => Client("eventstore");
 
     /// <summary>Gets the HTTP client for the Tenants domain service (exposes /process endpoint).</summary>

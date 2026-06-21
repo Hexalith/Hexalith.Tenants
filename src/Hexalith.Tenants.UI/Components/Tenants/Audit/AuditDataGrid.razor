@@ -181,7 +181,7 @@
         };
 
     private async Task OpenReceiptAsync(TenantAuditRow row)
-        => await OnOpenReceipt.InvokeAsync(row).ConfigureAwait(false);
+        => await InvokeAsync(() => OnOpenReceipt.InvokeAsync(row)).ConfigureAwait(false);
 
     private TenantCorrectionStartIntent? CorrectionIntentFor(TenantAuditRow row)
         => CorrectionIntentProvider?.Invoke(row);
@@ -209,14 +209,14 @@
             intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
 
     private async Task StartCorrectionAsync(TenantCorrectionStartIntent intent)
-        => await OnStartCorrection.InvokeAsync(intent).ConfigureAwait(false);
+        => await InvokeAsync(() => OnStartCorrection.InvokeAsync(intent)).ConfigureAwait(false);
 
     private async Task SelectCorrectionRoleAsync(TenantAuditRow row, string? value)
     {
         if (Enum.TryParse(value, ignoreCase: false, out TenantRole role)
             && AssignableRoles.Contains(role))
         {
-            await OnRoleSelected.InvokeAsync(new(row.EventReference, role)).ConfigureAwait(false);
+            await InvokeAsync(() => OnRoleSelected.InvokeAsync(new(row.EventReference, role))).ConfigureAwait(false);
         }
     }
 }

@@ -317,3 +317,34 @@ Approve this Sprint Change Proposal for implementation?
 - `yes` — route to EventStore repo owner (platform package) then Tenants Developer agent.
 - `revise` — adjust the target, the extraction surface, or the sequencing.
 - `no` — stop this correction.
+
+## 8. Implementation Log (2026-06-21, commits held for review)
+
+Implemented locally end-to-end; **no commits made** in either repo, pending review.
+
+EventStore submodule (uncommitted):
+
+- Added `src/Hexalith.EventStore.Testing.Integration/` (csproj + `DaprLocalEndpoints`, `DaprTestPrerequisites`/`DaprPerformanceTestPrerequisites`, `DaprFactAttribute`/`DaprPerformanceFactAttribute`/`DaprTestSerializationAttribute`/`DaprTestExecutionGate`, `DaprDomainServiceTestFixtureBase`, `AspireTopologyFixtureBase<TAppHost>`). Generic env vars: `HEXALITH_EVENTSTORE_TEST_*` / `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS`.
+- Added `tests/Hexalith.EventStore.Testing.Integration.Tests/` with the relocated `DaprTestPrerequisiteDiagnosticsTests` (statics now on `DaprDomainServiceTestFixtureBase`; ports via `DaprLocalEndpoints`).
+- `Directory.Packages.props`: added `xunit.v3.extensibility.core`.
+- `Hexalith.EventStore.slnx`: registered both new projects.
+- Package csproj references `Dapr.Actors.AspNetCore` (for `MapActorsHandlers`) and uses `xunit.v3.extensibility.core` + `xunit.v3.assert` (not the executable-only `xunit.v3` metapackage).
+
+Tenants (uncommitted):
+
+- `AspireTopologyFixture` → thin `AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost>` subclass (resource specs + typed client accessors).
+- `TenantsDaprTestFixture` → thin `DaprDomainServiceTestFixtureBase` subclass (domain registration block + fakes).
+- Deleted `Fixtures/DaprLocalEndpoints.cs`, `Fixtures/DaprFactAttribute.cs`, `Fixtures/DaprTestPrerequisiteDiagnosticsTests.cs`. Kept `TestEventPublisher.cs`, collection definitions, all test classes.
+- `Hexalith.Tenants.IntegrationTests.csproj`: added the `Testing.Integration` ProjectReference (via `$(HexalithEventStoreRoot)`) + a project-level `<Using>` for the harness namespace; kept `Aspire.Hosting.Testing` (its targets generate the `Projects.*` markers).
+
+Validation (live DAPR slim-mode on 50005/50006 + Redis + Docker):
+
+- New package builds clean under `TreatWarningsAsErrors` (0 warnings / 0 errors).
+- `Hexalith.EventStore.Testing.Integration.Tests`: 13/13 passed.
+- `Hexalith.Tenants.IntegrationTests`: **223 passed, 1 skipped** (opt-in perf test), 0 failed.
+
+Remaining (owner / commit-time):
+
+- EventStore repo owner approval for the 9th published package; add it to the release/pack list.
+- Commit in EventStore → bump the Tenants submodule pointer → commit in Tenants (Conventional Commits).
+- Workstream C documentation edits.

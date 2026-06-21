@@ -344,7 +344,11 @@
             .ConfigureAwait(false);
         SetSnapshot(_snapshot.ApplyStatus(status));
 
-        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        // Marshal the EventCallback back onto the renderer's Dispatcher: the preceding
+        // ConfigureAwait(false) awaits leave us on a thread-pool thread, and invoking the
+        // callback there triggers the parent's StateHasChanged off-Dispatcher, which throws
+        // "The current thread is not associated with the Dispatcher" and tears down the circuit.
+        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
         {
             TenantSummary? evidence = await ProjectionEvidenceProvider(_snapshot.Intent.TenantId).ConfigureAwait(false);

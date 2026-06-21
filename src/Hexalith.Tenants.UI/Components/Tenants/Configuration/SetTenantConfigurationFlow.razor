@@ -447,7 +447,7 @@
         _isOpen = false;
         _validationMessage = null;
         _focusOpenPending = true;
-        await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
     private void OnNamespaceInput(string? value)
@@ -527,7 +527,7 @@
 
         _snapshot = _snapshot.RequestSent();
         _isSubmitting = true;
-        await OnCommandActivityChanged.InvokeAsync(true).ConfigureAwait(false);
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
 
         try
         {
@@ -565,7 +565,7 @@
         finally
         {
             _isSubmitting = false;
-            await OnCommandActivityChanged.InvokeAsync(false).ConfigureAwait(false);
+            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
         }
     }
 
@@ -591,7 +591,7 @@
             SetSnapshot(_snapshot.ApplyStatus(status));
         }
 
-        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         if (ProjectionEvidenceProvider is not null)
         {
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);

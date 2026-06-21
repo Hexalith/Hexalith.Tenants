@@ -20,8 +20,8 @@ spec:
         maxInterval: 30s
         maxRetries: 10
     timeouts:
-      daprSidecar:
-        general: 5s
+      # Each timeout is a named duration string (DAPR rejects nested objects here).
+      daprSidecar: 5s
       # Pub/sub outbound: prevent hung sidecar->broker calls
       pubsubTimeout: 10s
       # Pub/sub inbound: allow more time for subscriber processing

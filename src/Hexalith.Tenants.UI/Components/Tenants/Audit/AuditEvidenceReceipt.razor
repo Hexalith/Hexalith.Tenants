@@ -210,18 +210,18 @@
     {
         if (actionResourceKey is "Tenants.Audit.Receipt.Action.ContinueReadOnly" or "Tenants.Audit.Receipt.Action.InspectAudit")
         {
-            await OnClose.InvokeAsync().ConfigureAwait(false);
+            await InvokeAsync(() => OnClose.InvokeAsync()).ConfigureAwait(false);
             return;
         }
 
-        await OnRetry.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnRetry.InvokeAsync()).ConfigureAwait(false);
     }
 
     private async Task StartCorrectionAsync()
     {
         if (CorrectionIntent is not null)
         {
-            await OnStartCorrection.InvokeAsync(CorrectionIntent).ConfigureAwait(false);
+            await InvokeAsync(() => OnStartCorrection.InvokeAsync(CorrectionIntent)).ConfigureAwait(false);
         }
     }
 }

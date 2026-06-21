@@ -397,7 +397,7 @@
         }
 
         _hasRaisedCommandActivity = isActive;
-        await OnCommandActivityChanged.InvokeAsync(isActive).ConfigureAwait(false);
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
@@ -516,7 +516,7 @@
             SetSnapshot(_snapshot.ApplyStatus(status));
         }
 
-        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         if (ProjectionEvidenceProvider is not null)
         {
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
@@ -565,7 +565,7 @@
     {
         _validationMessage = null;
         _focusCancelPending = true;
-        await OnCloseRequested.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
     private string SafeConfigurationDisplay(string value)

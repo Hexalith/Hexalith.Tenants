@@ -431,7 +431,7 @@
             .ConfigureAwait(false);
         _snapshot = _snapshot.ApplyStatus(status);
 
-        await OnProjectionRefreshRequested.InvokeAsync().ConfigureAwait(false);
+        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         TenantDetail? projection = await QueryProjectionAsync().ConfigureAwait(false);
         _snapshot = _snapshot.ConfirmProjection(projection);
         if (_snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
@@ -484,7 +484,7 @@
     }
 
     private async Task CloseAsync()
-        => await OnClose.InvokeAsync().ConfigureAwait(false);
+        => await InvokeAsync(() => OnClose.InvokeAsync()).ConfigureAwait(false);
 
     private void OnRoleChanged(string? value)
     {

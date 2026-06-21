@@ -9,6 +9,7 @@ string accessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory,
 string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.eventstore-admin.yaml");
 string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "resiliency.yaml");
 string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
+string pubSubComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "pubsub.yaml");
 
 // Optional DAPR placement/scheduler service addresses. When left unset, the DAPR sidecars fall back to
 // the daprd default (localhost:50005 / :50006), which matches a slim-mode `dapr init`. A containerized
@@ -62,18 +63,18 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     resiliencyConfigPath: resiliencyConfigPath,
     stateStoreComponentPath: stateStoreComponentPath,
     daprPlacementHostAddress: daprPlacementHostAddress,
-    daprSchedulerHostAddress: daprSchedulerHostAddress);
+    daprSchedulerHostAddress: daprSchedulerHostAddress,
+    pubSubComponentPath: pubSubComponentPath);
 
 // Add the Tenants domain service via the platform domain-module extension (A4): its sidecar shares the
 // EventStore state store + pub/sub. Replaces the per-domain Aspire wiring library.
 IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants")
-    .AddEventStoreDomainModule(
-        eventStoreResources,
-        "tenants",
-        accessControlConfigPath,
+    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress)
-    .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "admin-user");
+    // Must be the Keycloak user's stable subject (sub) GUID — the global-admin projection is keyed by
+    // the JWT sub, so a username here would never match. admin-user's id is pinned in the realm import.
+    .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "11111111-1111-1111-1111-111111111111");
 
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
@@ -97,10 +98,7 @@ IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenants
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
 // It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
 IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>("sample")
-    .AddEventStoreDomainModule(
-        eventStoreResources,
-        "sample",
-        accessControlConfigPath,
+    .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress);
 
@@ -122,7 +120,13 @@ if (keycloak is not null && realmUrl is not null) {
         .WithEnvironment("Authentication__JwtBearer__Issuer", realmUrl)
         .WithEnvironment("Authentication__JwtBearer__Audience", "hexalith-eventstore")
         .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false")
-        .WithEnvironment("Authentication__JwtBearer__SigningKey", "");
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", "")
+        // Service credentials so the startup global-admin bootstrap can obtain a Keycloak token
+        // (resource-owner-password grant) and call the secured EventStore command endpoint.
+        .WithEnvironment("EventStore__Authentication__Authority", realmUrl)
+        .WithEnvironment("EventStore__Authentication__ClientId", "hexalith-eventstore")
+        .WithEnvironment("EventStore__Authentication__Username", "admin-user")
+        .WithEnvironment("EventStore__Authentication__Password", "admin-pass");
 
     _ = adminServer
         .WithReference(keycloak)
