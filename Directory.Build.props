@@ -18,6 +18,13 @@
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\Hexalith.FrontComposer\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..\Hexalith.FrontComposer</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == ''">$(MSBuildThisFileDirectory)Hexalith.FrontComposer</HexalithFrontComposerRoot>
+        <!-- Auto-detect Hexalith.Memories location (consumed via source for the tenant search index):
+             1. Memories is a submodule inside Tenants (standalone)
+             2. Memories and Tenants are sibling submodules in an app repo
+             3. Fallback: assume submodule inside Tenants -->
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)Hexalith.Memories</HexalithMemoriesRoot>
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.Memories</HexalithMemoriesRoot>
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == ''">$(MSBuildThisFileDirectory)Hexalith.Memories</HexalithMemoriesRoot>
     </PropertyGroup>
 
     <PropertyGroup>

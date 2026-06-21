@@ -10,6 +10,8 @@
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
     <ProjectReference
       Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.DomainService\Hexalith.EventStore.DomainService.csproj" />
+    <!-- SearchIndexEntryChanged contract for the Memories search-index publisher (consumed via submodule source). -->
+    <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

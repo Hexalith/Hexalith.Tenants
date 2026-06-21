@@ -13,7 +13,14 @@ builder.Services
     .AddHexalithTenants()
     .AddEventStoreDomainEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
     .AddEventStoreDomainEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()
-    .AddEventStoreDomainEventHandler<TenantDisabled, SampleLoggingEventHandler>();
+    .AddEventStoreDomainEventHandler<TenantDisabled, SampleLoggingEventHandler>()
+    // Memories search-index maintenance: publish one curated SearchIndexEntryChanged per tenant lifecycle
+    // event to the Memories ingestion topic (search-as-index-only). Co-located with the local projection
+    // the publisher reads; kept out of the broker-free Client package.
+    .AddEventStoreDomainEventHandler<TenantCreated, MemoriesSearchIndexEventPublisher>()
+    .AddEventStoreDomainEventHandler<TenantUpdated, MemoriesSearchIndexEventPublisher>()
+    .AddEventStoreDomainEventHandler<TenantDisabled, MemoriesSearchIndexEventPublisher>()
+    .AddEventStoreDomainEventHandler<TenantEnabled, MemoriesSearchIndexEventPublisher>();
 
 WebApplication app = builder.Build();
 

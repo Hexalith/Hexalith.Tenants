@@ -29,6 +29,8 @@
                 <FluentTextInput TextInputType="TextInputType.Search"
                                  Value="@_search"
                                  ValueChanged="OnSearchChanged"
+                                 Immediate="true"
+                                 ImmediateDelay="350"
                                  Label="@Localizer["Tenants.List.SearchLabel"]"
                                  Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
                                  data-testid="tenants-list-search"
@@ -234,14 +236,16 @@
 
     private async Task ResetFiltersAsync()
     {
+        // Clearing the search term must reload the full cursor list from the server, not re-filter the
+        // (now stale) search snapshot still held in _snapshot.
         _search = null;
         _statusFilter = null;
         _sortColumn = TenantListSortColumns.TenantId;
         _sortDescending = false;
         _selectedTenantId = null;
         _returnAnchor = null;
-        ApplyVisibleRows();
-        await Task.CompletedTask.ConfigureAwait(false);
+        ResetPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
     private async Task NextPageAsync()
@@ -262,29 +266,35 @@
 
     private async Task OnSearchChanged(string? value)
     {
+        // Cross-set server search, debounced by FluentTextInput (Immediate/ImmediateDelay) on the
+        // renderer Dispatcher — NOT an in-memory re-filter. A changed term is a fresh query → first page.
         _search = value;
-        ApplyVisibleRows();
-        await Task.CompletedTask.ConfigureAwait(false);
+        ResetPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
     private async Task OnStatusFilterChanged(string? value)
     {
+        // Status participates in the server query (the search index for a term; the hydrated detail for the
+        // cursor list), so a change reloads from the server rather than filtering only the loaded page.
         _statusFilter = value;
-        ApplyVisibleRows();
-        await Task.CompletedTask.ConfigureAwait(false);
+        ResetPaging();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private void ResetPaging()
+    {
+        _currentCursor = null;
+        _cursorHistory.Clear();
     }
 
     private void ApplyVisibleRows()
     {
         IEnumerable<TenantListRow> rows = _snapshot.Rows;
 
-        if (!string.IsNullOrWhiteSpace(_search))
-        {
-            rows = rows.Where(r =>
-                r.TenantId.Contains(_search, StringComparison.OrdinalIgnoreCase)
-                || r.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
-        }
-
+        // Search is performed server-side across the whole tenant set (Memories index), not by filtering
+        // the loaded page. Status stays a page-local filter for the cursor list (the tenant read backend
+        // has no server-side status filter); for a search the gateway already applied it to hydrated rows.
         if (Enum.TryParse(_statusFilter, out TenantStatus status))
         {
             rows = rows.Where(r => r.Status == status);

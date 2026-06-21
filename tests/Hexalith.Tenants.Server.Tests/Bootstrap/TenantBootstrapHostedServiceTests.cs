@@ -8,6 +8,7 @@ using Hexalith.Commons.UniqueIds;
 using Hexalith.Tenants.Bootstrap;
 using Hexalith.Tenants.Configuration;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -37,7 +38,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
+        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
@@ -83,6 +84,7 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            new ConfigurationBuilder().Build(),
             lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 
@@ -115,6 +117,7 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            new ConfigurationBuilder().Build(),
             lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 
@@ -140,6 +143,7 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            new ConfigurationBuilder().Build(),
             lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 
@@ -164,7 +168,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
+        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
@@ -190,7 +194,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
+        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
 
         await service.StartAsync(CancellationToken.None);
         lifetime.StartApplication();
@@ -219,7 +223,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, lifetime, logger);
+        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
 
         await service.StartAsync(CancellationToken.None);
         lifetime.StartApplication();
@@ -252,6 +256,7 @@ public class TenantBootstrapHostedServiceTests {
         var service = new TenantBootstrapHostedService(
             scopeFactory,
             options,
+            new ConfigurationBuilder().Build(),
             lifetime,
             NullLogger<TenantBootstrapHostedService>.Instance);
 

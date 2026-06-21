@@ -373,6 +373,21 @@ existing projections only.
 - **Concurrency policy:** **one-at-a-time** commands (FC-CNC fallback) until FC-CNC lands — no
   concurrent submission, bulk, or toast-batching. `409 ConcurrencyConflict` (+`Retry-After`) →
   `retry status lookup`.
+- **Tenant search (Memories-backed, index-only; cc-2026-06-21):** cross-set list search is served by
+  `Hexalith.Memories`, **not** a new EventStore endpoint (the read backend stays consume-only — no
+  server-side filter on `ListTenantsQuery`). Data path: `MemoriesClient.SearchAsync(tenants-index,
+  syntactic)` returns a **match-set of tenant ids** (parsed from `ScoredResult.SourceUri` = `tenant:{id}`);
+  the BFF then **hydrates each row through the existing ETag-fresh detail read** (D6). Memories decides
+  *which* tenants appear; the read path decides *what each row shows*, so a stale index never renders wrong
+  data. Index maintenance is a separate async flow: on tenant lifecycle events the Tenants consumer
+  publishes **one curated `SearchIndexEntryChanged` per tenant** (upsert by `(tenants-index, tenantId)`,
+  searchable text = name + id, `status` attribute) to the `memories-events` topic — the cross-domain
+  **index-maintenance pattern** for feeding Memories without a raw-event ingestion adapter. This dissolves
+  the FC-`IQueryService`-vs-REST/ETag tension: search bypasses the query-service abstraction entirely and
+  reuses the ETag/freshness read path. Memories unavailable → non-blocking fallback to the cursor list.
+  Full end-to-end search is gated on the Memories server handoff
+  (`memories-search-index-handoff-2026-06-21.md`): upsert ingestion, attribute indexing + REST attribute
+  filter, `tenants-index` registration.
 
 ### Frontend Architecture
 

@@ -29,3 +29,6 @@ spec:
 scopes:
   - eventstore
   - sample
+  # The Tenants consumer publishes SearchIndexEntryChanged to the memories-events topic and the
+  # Memories server subscribes to it; both app-ids need the shared pub/sub in scope.
+  - memories-server

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -13,14 +14,28 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TruthState;
 using Hexalith.Tenants.UI.State.UserTenants;
 
+// Alias the Memories search DTOs: Hexalith.Memories.Contracts.V1 also defines TenantStatus/TenantSummary,
+// which would collide with the tenant domain contracts if imported wholesale.
+using MemoriesScoredResult = Hexalith.Memories.Contracts.V1.ScoredResult;
+using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
+
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class TenantQueryGateway(
     ITenantsQueryApiClient queryClient,
-    IUserContextAccessor userContextAccessor) : ITenantQueryGateway {
+    IUserContextAccessor userContextAccessor,
+    MemoriesClient memoriesClient) : ITenantQueryGateway {
     private const string SystemTenant = "system";
     private const string GlobalAdministratorsAggregateId = "global-administrators";
     private const string TenantIndexAggregateId = "index";
+
+    // Memories-backed cross-set search (search-as-index-only). The dedicated tenants-index holds one
+    // curated doc per tenant; the BFF recovers tenant ids ONLY from ScoredResult.SourceUri ("tenant:{id}")
+    // and hydrates row data through the ETag-fresh detail path, so a stale index never shows wrong data.
+    private const string TenantsSearchIndex = "tenants-index";
+    private const string SearchSourceUriPrefix = "tenant:";
+    private const string SearchAxis = "syntactic";
+    private const string SearchUnavailableMessage = "Tenant search is temporarily unavailable; showing the full tenant list.";
 
     public async Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
@@ -381,6 +396,18 @@ internal sealed class TenantQueryGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
+        // Empty/whitespace term -> the unchanged cursor-list path (no Memories call). A non-empty term is
+        // a cross-set search served by the Memories tenants-index; rows are still hydrated through the
+        // ETag-fresh detail path, so a stale index never shows wrong row data (D6).
+        return string.IsNullOrWhiteSpace(request.Search)
+            ? await ListByCursorAsync(request, previous, cancellationToken).ConfigureAwait(false)
+            : await SearchTenantsAsync(request, previous, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<TenantListSnapshot> ListByCursorAsync(
+        TenantListRequest request,
+        TenantListSnapshot? previous,
+        CancellationToken cancellationToken) {
         try {
             TenantsQueryApiRequest query = CreateListRequest(request);
             EventStoreQueryResult<PaginatedResult<TenantSummary>> result = await queryClient
@@ -428,6 +455,157 @@ internal sealed class TenantQueryGateway(
         }
     }
 
+    private async Task<TenantListSnapshot> SearchTenantsAsync(
+        TenantListRequest request,
+        TenantListSnapshot? previous,
+        CancellationToken cancellationToken) {
+        MemoriesSearchResult searchResult;
+        try {
+            searchResult = await memoriesClient
+                .SearchAsync(
+                    new SearchRequest(
+                        TenantId: TenantsSearchIndex,
+                        Axis: SearchAxis,
+                        Query: request.Search,
+                        MaxResults: request.PageSize),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsMemoriesSearchUnavailable(ex, cancellationToken)) {
+            // Memories unavailable (timeout/503/remote error/unconfigured endpoint) -> never let the
+            // exception reach the circuit; degrade to the cursor list with a safe notice (AC9).
+            return await SearchUnavailableFallbackAsync(request, previous, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Syntactic axis down / partial degradation reported in-band -> same non-blocking fallback.
+        if (searchResult.Degraded
+            || searchResult.UnavailableAxes?.Any(static axis => string.Equals(axis, SearchAxis, StringComparison.OrdinalIgnoreCase)) == true) {
+            return await SearchUnavailableFallbackAsync(request, previous, cancellationToken).ConfigureAwait(false);
+        }
+
+        IReadOnlyList<string> tenantIds = ParseTenantIds(searchResult.Results);
+        if (tenantIds.Count == 0) {
+            return TenantListSnapshot.FilteredEmpty();
+        }
+
+        (IReadOnlyList<TenantListRow> rows, bool degraded) =
+            await HydrateSearchRowsAsync(tenantIds, request.Status, cancellationToken).ConfigureAwait(false);
+
+        if (rows.Count == 0) {
+            // The match-set existed but every row hydrated to not-found/forbidden, or was filtered out by
+            // status: the search produced no visible rows -> the filtered-empty surface, not an error.
+            return TenantListSnapshot.FilteredEmpty();
+        }
+
+        // BM25 score order from Memories differs from the cursor list's deterministic id/name order; the
+        // visible page is re-sorted client-side (ApplyVisibleRows). Search is a single cross-set page, so
+        // there is no server cursor (NextCursor null, HasMore false) and no list ETag to carry.
+        return TenantListSnapshot.Ready(
+            rows,
+            nextCursor: null,
+            hasMore: false,
+            eTag: null,
+            TenantFreshnessState.Current,
+            degraded);
+    }
+
+    // Recover tenant ids ONLY from ScoredResult.SourceUri ("tenant:{id}"): never parse ContentSnippet
+    // (200-char truncated) and never depend on cloudevent.subject (not mapped into the hit). Preserves the
+    // BM25 score order Memories returns and dedupes defensively; malformed hits are dropped.
+    private static IReadOnlyList<string> ParseTenantIds(IReadOnlyList<MemoriesScoredResult> results) {
+        List<string> tenantIds = new(results.Count);
+        HashSet<string> seen = new(StringComparer.Ordinal);
+        foreach (MemoriesScoredResult result in results) {
+            string sourceUri = result.SourceUri;
+            if (string.IsNullOrWhiteSpace(sourceUri)
+                || !sourceUri.StartsWith(SearchSourceUriPrefix, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            string tenantId = sourceUri[SearchSourceUriPrefix.Length..];
+            if (!string.IsNullOrWhiteSpace(tenantId) && seen.Add(tenantId)) {
+                tenantIds.Add(tenantId);
+            }
+        }
+
+        return tenantIds;
+    }
+
+    // Hydrate each match-set id through the existing ETag-fresh detail read (GetTenantAsync already maps
+    // 404/403/503 to non-throwing snapshots and resolves freshness via ResolveFreshness — never from
+    // Memories). Member/owner counts mirror EnrichRowsAsync. Status (AC6 interim) filters on the
+    // authoritative hydrated TenantDetail.Status, never on fuzzy BM25 text. Ids that hydrate to
+    // not-found/forbidden/unavailable are dropped (degraded, not error).
+    private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> HydrateSearchRowsAsync(
+        IReadOnlyList<string> tenantIds,
+        TenantStatus? statusFilter,
+        CancellationToken cancellationToken) {
+        List<TenantListRow> rows = new(tenantIds.Count);
+        bool degraded = false;
+
+        foreach (string tenantId in tenantIds) {
+            TenantDetailSnapshot detailSnapshot = await GetTenantAsync(
+                new TenantDetailRequest(tenantId),
+                previous: null,
+                cancellationToken).ConfigureAwait(false);
+
+            if (detailSnapshot.Detail is not { } detail) {
+                // Not-found / forbidden / unavailable id from a stale or cross-tenant index entry.
+                degraded = true;
+                continue;
+            }
+
+            if (statusFilter is { } status && detail.Status != status) {
+                continue;
+            }
+
+            int memberCount = detail.Members.Count;
+            int ownerCount = detail.Members.Count(static m => m.Role == TenantRole.TenantOwner);
+            rows.Add(TenantListRow.FromSummary(new TenantSummary(detail.TenantId, detail.Name, detail.Status)) with {
+                MemberCount = TenantCountValue.Known(memberCount),
+                OwnerCount = TenantCountValue.Known(ownerCount),
+                Freshness = detailSnapshot.Freshness,
+            });
+        }
+
+        return (rows, degraded);
+    }
+
+    private async Task<TenantListSnapshot> SearchUnavailableFallbackAsync(
+        TenantListRequest request,
+        TenantListSnapshot? previous,
+        CancellationToken cancellationToken) {
+        // Non-blocking: fall back to the unfiltered cursor list and overlay a support-safe degraded notice
+        // so the operator can keep browsing. Auth/error states from the cursor list are surfaced as-is.
+        TenantListSnapshot cursorSnapshot = await ListByCursorAsync(
+            request with { Search = null },
+            previous,
+            cancellationToken).ConfigureAwait(false);
+
+        return cursorSnapshot.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized
+            ? cursorSnapshot
+            : cursorSnapshot with {
+                Kind = TenantListSurfaceKind.Degraded,
+                IsDegraded = true,
+                ErrorMessage = SearchUnavailableMessage,
+            };
+    }
+
+    private static bool IsMemoriesSearchUnavailable(Exception exception, CancellationToken cancellationToken)
+        => exception switch {
+            MemoriesRemoteException => true,
+            HttpRequestException => true,
+            // MemoriesClient with no configured BaseAddress (Memories:BaseAddress unset) throws this.
+            InvalidOperationException => true,
+            // Timeout from the client's request cancellation, not the caller cancelling the operation.
+            TaskCanceledException or OperationCanceledException => !cancellationToken.IsCancellationRequested,
+            _ => false,
+        };
+
+    // The no-search cursor path carries only cursor + pageSize: the tenant read backend is consume-only
+    // (no server-side filter on ListTenantsQuery), so Search/Status are not server query parameters here.
+    // A non-empty Search term is handled cross-set by SearchTenantsAsync (above); Status is applied to the
+    // hydrated authoritative detail. Filters are therefore never silently dropped — they are routed.
     private static TenantsQueryApiRequest CreateListRequest(TenantListRequest request)
         => new(
             AppendQuery("/api/tenants", new Dictionary<string, string?>(StringComparer.Ordinal) {

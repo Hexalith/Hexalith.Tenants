@@ -2,6 +2,7 @@ using Hexalith.EventStore.Client.Registration;
 using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
@@ -78,6 +79,21 @@ if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absol
 else {
     builder.Services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
 }
+
+// Memories-backed cross-set tenant search. TenantQueryGateway calls MemoriesClient.SearchAsync to get
+// the match-set of tenant ids; rows are still hydrated through the ETag-fresh tenant detail path (D6),
+// so Memories decides which tenants appear, never what each row shows. Registered unconditionally so the
+// gateway always resolves a client; when Memories:BaseAddress is unset the search path degrades to the
+// cursor list (no exception reaches the circuit). The per-user token is intentionally NOT relayed here —
+// per-user visibility is enforced at hydration (forbidden ids dropped), not by the index lookup. Memories
+// uses its own service ApiToken (HEXALITH_MEMORIES_API_TOKEN) via the client's auth handler.
+_ = builder.Services.AddMemoriesClient(o => {
+    if (Uri.TryCreate(builder.Configuration["Memories:BaseAddress"], UriKind.Absolute, out Uri? memoriesBaseAddress)) {
+        o.Endpoint = memoriesBaseAddress;
+    }
+
+    o.ApiToken = builder.Configuration["HEXALITH_MEMORIES_API_TOKEN"];
+});
 
 if (Uri.TryCreate(builder.Configuration["Tenants:BaseAddress"], UriKind.Absolute, out Uri? tenantsBaseAddress)) {
     IHttpClientBuilder queryClient = builder.Services.AddHttpClient<ITenantsQueryApiClient, TenantsQueryApiClient>(

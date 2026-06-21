@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -18,9 +19,19 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TruthState;
 using Hexalith.Tenants.UI.State.UserTenants;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 using Shouldly;
+
+// Memories.Contracts.V1 also defines TenantStatus/TenantSummary, so alias the search DTOs used here.
+using MemoriesErrorResponse = Hexalith.Memories.Contracts.V1.ErrorResponse;
+using MemoriesScoredResult = Hexalith.Memories.Contracts.V1.ScoredResult;
+using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
+using MemoriesSourceType = Hexalith.Memories.Contracts.V1.SourceType;
 
 namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
@@ -1038,17 +1049,224 @@ public sealed class TenantQueryGatewayTests
         snapshot.ToString().ShouldNotContain("correlation-123", Case.Insensitive);
     }
 
-    private static TenantQueryGateway CreateGateway(CapturingGatewayClient client, string? userId = "operator-user")
-        => CreateGateway((ITenantsQueryApiClient)client, userId);
+    [Fact]
+    public async Task List_search_calls_memories_and_maps_source_uri_to_ordered_tenant_ids()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"));
+        client.EnqueueQueryResult(Detail("beta"));
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha", "beta"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
 
-    private static TenantQueryGateway CreateGateway(ITenantsQueryApiClient client, string? userId = "operator-user")
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        snapshot.Rows.Select(r => r.TenantId).ShouldBe(["alpha", "beta"]); // BM25 score order preserved
+        client.SubmittedQueries.Count.ShouldBe(2); // one ETag-fresh detail hydration per match-set id
+        await memories.Received(1).SearchAsync(
+            Arg.Is<SearchRequest>(r => r != null && r.TenantId == "tenants-index" && r.Axis == "syntactic" && r.Query == "term"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task List_search_hydrates_counts_and_freshness_from_detail_path()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"), eTag: "\"alpha-etag\"");
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        TenantListRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.MemberCount.ShouldBe(TenantCountValue.Known(2));
+        row.OwnerCount.ShouldBe(TenantCountValue.Known(1));
+        row.Freshness.ShouldBe(TenantFreshnessState.Current); // from the detail ETag, never from Memories
+    }
+
+    [Fact]
+    public async Task List_search_drops_malformed_source_uris()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"));
+        MemoriesSearchResult result = new()
+        {
+            Results =
+            [
+                new MemoriesScoredResult { MemoryUnitId = "mu1", Score = 10, ContentSnippet = "x", SourceUri = "not-a-tenant-uri", SourceType = MemoriesSourceType.Event },
+                new MemoriesScoredResult { MemoryUnitId = "mu2", Score = 9, ContentSnippet = "y", SourceUri = "tenant:alpha", SourceType = MemoriesSourceType.Event },
+            ],
+            TotalCount = 2,
+            HasIndexedMemoryUnits = true,
+            Query = "term",
+        };
+        TenantQueryGateway gateway = CreateGateway(client, memories: CreateSearchingMemoriesClient(result));
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Rows.Select(r => r.TenantId).ShouldBe(["alpha"]);
+    }
+
+    [Fact]
+    public async Task List_search_status_filter_applies_to_hydrated_detail_status()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(DetailWithStatus("alpha", TenantStatus.Active));
+        client.EnqueueQueryResult(DetailWithStatus("beta", TenantStatus.Disabled));
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha", "beta"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term", Status: TenantStatus.Active), previous: null, CancellationToken.None);
+
+        snapshot.Rows.Select(r => r.TenantId).ShouldBe(["alpha"]); // beta (Disabled) filtered out
+    }
+
+    [Fact]
+    public async Task List_empty_search_uses_cursor_path_and_skips_memories()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([new TenantSummary("alpha", "Alpha", TenantStatus.Active)], null, false));
+        client.EnqueueQueryResult(Detail("alpha"));
+        MemoriesClient memories = CreateMemoriesClient();
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "   "), previous: null, CancellationToken.None); // whitespace term
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        await memories.DidNotReceive().SearchAsync(Arg.Any<SearchRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task List_search_memories_unavailable_falls_back_to_degraded_cursor_list()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([new TenantSummary("alpha", "Alpha", TenantStatus.Active)], null, false));
+        client.EnqueueQueryResult(Detail("alpha"));
+        MemoriesClient memories = CreateMemoriesClient();
+        memories.SearchAsync(Arg.Any<SearchRequest>(), Arg.Any<CancellationToken>())
+            .Throws(new MemoriesRemoteException(HttpStatusCode.ServiceUnavailable, new MemoriesErrorResponse("UNAVAILABLE", "down", "retry")));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Degraded);
+        snapshot.IsDegraded.ShouldBeTrue();
+        snapshot.Rows.ShouldHaveSingleItem(); // unfiltered cursor list still rendered
+        snapshot.ErrorMessage.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task List_search_degraded_axis_falls_back_to_cursor_list()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([new TenantSummary("alpha", "Alpha", TenantStatus.Active)], null, false));
+        client.EnqueueQueryResult(Detail("alpha"));
+        MemoriesSearchResult degraded = SearchHits("alpha") with { Degraded = true, UnavailableAxes = ["syntactic"] };
+        TenantQueryGateway gateway = CreateGateway(client, memories: CreateSearchingMemoriesClient(degraded));
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Degraded);
+        snapshot.Rows.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task List_search_drops_forbidden_match_set_id_as_degraded()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"));
+        client.EnqueueException(new EventStoreGatewayException(403, "Forbidden")); // beta hydrates forbidden
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha", "beta"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Rows.Select(r => r.TenantId).ShouldBe(["alpha"]);
+        snapshot.IsDegraded.ShouldBeTrue(); // dropped id is a degradation, not an error
+    }
+
+    [Fact]
+    public async Task List_search_empty_match_set_renders_filtered_empty()
+    {
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(client, memories: CreateSearchingMemoriesClient(SearchHits()));
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "nomatch"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.FilteredEmpty);
+    }
+
+    [Fact]
+    public async Task List_search_unavailable_snapshot_excludes_secrets()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        MemoriesClient memories = CreateMemoriesClient();
+        memories.SearchAsync(Arg.Any<SearchRequest>(), Arg.Any<CancellationToken>())
+            .Throws(new MemoriesRemoteException(HttpStatusCode.ServiceUnavailable, new MemoriesErrorResponse("UNAVAILABLE", "bearer-token-leak", "etag-secret")));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        string rendered = snapshot.ToString();
+        rendered.ShouldNotContain("bearer-token-leak", Case.Insensitive);
+        rendered.ShouldNotContain("etag-secret", Case.Insensitive);
+    }
+
+    private static TenantQueryGateway CreateGateway(CapturingGatewayClient client, string? userId = "operator-user", MemoriesClient? memories = null)
+        => CreateGateway((ITenantsQueryApiClient)client, userId, memories);
+
+    private static TenantQueryGateway CreateGateway(ITenantsQueryApiClient client, string? userId = "operator-user", MemoriesClient? memories = null)
     {
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(userId);
         userContext.TenantId.Returns("tenant.context");
 
-        return new TenantQueryGateway(client, userContext);
+        return new TenantQueryGateway(client, userContext, memories ?? CreateMemoriesClient());
     }
+
+    // A substituted MemoriesClient (SearchAsync is virtual). Cursor-path tests never call SearchAsync;
+    // search-path tests pass one with SearchAsync stubbed.
+    private static MemoriesClient CreateMemoriesClient()
+        => Substitute.For<MemoriesClient>(
+            new HttpClient { BaseAddress = new Uri("https://memories.example/") },
+            Options.Create(new MemoriesClientOptions()),
+            Substitute.For<ILogger<MemoriesClient>>());
+
+    private static MemoriesClient CreateSearchingMemoriesClient(MemoriesSearchResult result)
+    {
+        MemoriesClient memories = CreateMemoriesClient();
+        memories.SearchAsync(Arg.Any<SearchRequest>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(result));
+        return memories;
+    }
+
+    private static MemoriesSearchResult SearchHits(params string[] tenantIds)
+        => new()
+        {
+            Results = tenantIds
+                .Select(static (id, index) => new MemoriesScoredResult
+                {
+                    MemoryUnitId = $"mu-{id}",
+                    Score = 100 - index,
+                    ContentSnippet = "snippet",
+                    SourceUri = $"tenant:{id}",
+                    SourceType = MemoriesSourceType.Event,
+                })
+                .ToList(),
+            TotalCount = tenantIds.Length,
+            HasIndexedMemoryUnits = true,
+            Query = "term",
+        };
 
     private sealed class StaticResponseHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
     {
@@ -1160,6 +1378,16 @@ public sealed class TenantQueryGatewayTests
             {
                 ["billing.mode"] = "trial",
             },
+            DateTimeOffset.UtcNow);
+
+    private static TenantDetail DetailWithStatus(string tenantId, TenantStatus status)
+        => new(
+            tenantId,
+            $"Name-{tenantId}",
+            null,
+            status,
+            [new TenantMember("owner-user", TenantRole.TenantOwner)],
+            new Dictionary<string, string>(),
             DateTimeOffset.UtcNow);
 
     private static TenantAuditEntry AuditEntry(string eventId, AuditEventCategory category)

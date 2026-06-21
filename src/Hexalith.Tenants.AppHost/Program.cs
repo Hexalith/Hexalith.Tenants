@@ -1,3 +1,7 @@
+using Aspire.Hosting.ApplicationModel;
+
+using CommunityToolkit.Aspire.Hosting.Dapr;
+
 using Hexalith.EventStore.Aspire;
 using Hexalith.Tenants.AppHost;
 
@@ -86,13 +90,66 @@ _ = adminUI
     .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
     .WithExternalHttpEndpoints();
 
+// Memories search-index server (O4): started inline so the Tenants list can search the curated
+// tenants-index. Reuses the shared statestore + pub/sub; runs its own FalkorDB; static dev secretstore +
+// conversation (echo) components; a Dapr sidecar on a unique HTTP port (EventStore uses 3501). The server
+// is built independently (HexalithMemoriesServer.SuppressBuild) so the two repos' package graphs stay
+// isolated. End-to-end ingestion/search is gated on the Memories handoff
+// (memories-search-index-handoff-2026-06-21.md).
+// TODO: extract to a reusable Memories Aspire extension if a second consumer appears.
+string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
+string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
+
+IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
+    "memories-secretstore",
+    "secretstores.local.file",
+    new DaprComponentOptions { LocalPath = memoriesSecretStorePath });
+IResourceBuilder<IDaprComponentResource> memoriesLlm = builder.AddDaprComponent(
+    "memories-llm",
+    "conversation.echo",
+    new DaprComponentOptions { LocalPath = memoriesLlmConfigPath });
+
+IResourceBuilder<ContainerResource> memoriesFalkorDb = builder
+    .AddContainer("memories-falkordb", "falkordb/falkordb")
+    .WithEndpoint(targetPort: 6379, name: "falkordb");
+
+IResourceBuilder<ProjectResource> memoriesServer = builder
+    .AddProject<HexalithMemoriesServer>("memories-server", launchProfileName: "http")
+    .WithDaprSidecar(sidecar => sidecar
+        .WithOptions(new DaprSidecarOptions {
+            AppId = "memories-server",
+            DaprHttpPort = 3502,
+            PlacementHostAddress = daprPlacementHostAddress,
+            SchedulerHostAddress = daprSchedulerHostAddress,
+        })
+        .WithReference(eventStoreResources.StateStore)
+        .WithReference(eventStoreResources.PubSub)
+        .WithReference(memoriesSecretStore)
+        .WithReference(memoriesLlm))
+    // Shared dapr-init Redis (localhost:6379) for the Memories vector store; FalkorDB for the graph store.
+    .WithEnvironment("ConnectionStrings__redis", "localhost:6379")
+    .WithEnvironment("ConnectionStrings__falkordb", memoriesFalkorDb.GetEndpoint("falkordb"))
+    // Memories subscribes this topic; the Tenants consumer publishes SearchIndexEntryChanged to it.
+    .WithEnvironment("MEMORIES_EVENTSTORE_TOPIC", "memories-events")
+    // Route the Tenants producer's CloudEvents (source "hexalith-tenants") into the curated tenants-index
+    // partition, and auto-provision that index tenant at startup so it is Active before the first event
+    // arrives (otherwise the router drops SearchIndexEntryChanged as TenantNotFound). Memories handoff §3.1.
+    .WithEnvironment("EventStoreIntegration__Routing__SourceToTenantMap__hexalith-tenants", "tenants-index")
+    .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true")
+    .WaitFor(memoriesFalkorDb);
+
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(tenants)
     .WithReference(eventStore)
+    .WithReference(memoriesServer)
     .WaitFor(tenants)
     .WaitFor(eventStore)
+    .WaitFor(memoriesServer)
     .WithEnvironment("Tenants__BaseAddress", tenantsHttps)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
+    // Aspire service discovery (not a hardcoded :5000); the BFF reads Memories:BaseAddress and calls
+    // AddMemoriesClient. Memories.Server exposes only an http endpoint.
+    .WithEnvironment("Memories__BaseAddress", memoriesServer.GetEndpoint("http"))
     .WithExternalHttpEndpoints();
 
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.

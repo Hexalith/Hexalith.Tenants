@@ -51,28 +51,41 @@ public sealed class TenantListSurfaceTests : BunitContext
     [Fact]
     public async Task Search_filter_and_sort_preserve_safety_markers()
     {
-        TenantListSnapshot snapshot = ReadySnapshot(
-            [
-                Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None),
-                Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantFreshnessState.Stale, TenantPendingState.Unknown),
-            ]);
-        RegisterServices(snapshot);
+        TenantListRow alpha = Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None);
+        TenantListRow beta = Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantFreshnessState.Stale, TenantPendingState.Unknown);
+
+        // Search is now a server round-trip: a "beta" term returns the beta-only cross-set match-set; an
+        // empty term returns the full cursor list. Status stays a page-local filter applied client-side.
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            IReadOnlyList<TenantListRow> rows = string.Equals(request.Search, "beta", StringComparison.OrdinalIgnoreCase)
+                ? [beta]
+                : [alpha, beta];
+            return Task.FromResult(ReadySnapshot(rows));
+        });
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
 
-        cut.Find("[data-testid='tenants-list-search']").Change("beta");
+        await ChangeSearchAsync(cut, "beta");
 
-        cut.Markup.ShouldContain("tenant.beta");
-        cut.Markup.ShouldNotContain("tenant.alpha");
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.ShouldContain("tenant.beta");
+            cut.Markup.ShouldNotContain("tenant.alpha");
+        });
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("Pending state unknown");
 
         cut.Find("[data-testid='tenants-list-reset']").Click();
         await ChangeSelectAsync(cut, "tenants-list-status-filter", TenantStatus.Active.ToString());
 
-        cut.Markup.ShouldContain("tenant.alpha");
-        cut.Markup.ShouldNotContain("tenant.beta");
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.ShouldContain("tenant.alpha");
+            cut.Markup.ShouldNotContain("tenant.beta");
+        });
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Current");
         cut.Markup.ShouldContain("No pending changes");
 
@@ -89,6 +102,69 @@ public sealed class TenantListSurfaceTests : BunitContext
                 cut.Markup.IndexOf("tenant.alpha", StringComparison.Ordinal)));
         cut.Markup.ShouldContain("data-testid=\"tenants-list-truth-state\"");
         cut.Markup.ShouldContain("Pending state unknown");
+    }
+
+    [Fact]
+    public async Task Search_term_round_trips_to_the_server_not_an_in_memory_filter()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<TenantListRequest>(0));
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)]));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangeSearchAsync(cut, "acme");
+
+        cut.WaitForAssertion(() => requests.ShouldContain(r => r.Search == "acme"));
+    }
+
+    [Fact]
+    public async Task Search_returning_no_matches_renders_filtered_empty_surface()
+    {
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)])
+                : TenantListSnapshot.FilteredEmpty());
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangeSearchAsync(cut, "nomatch");
+
+        cut.WaitForElement("[data-testid='tenants-list-filtered-empty']");
+        cut.Find("[data-testid='tenants-list-filtered-empty']").GetAttribute("role").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Search_unavailable_degraded_snapshot_renders_non_blocking_surface_over_the_list()
+    {
+        const string unavailable = "Tenant search is temporarily unavailable; showing the full tenant list.";
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)])
+                : TenantListSnapshot.Degraded(
+                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)],
+                    unavailable));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangeSearchAsync(cut, "term");
+
+        // Non-blocking: the degraded surface shows AND the (fallback) list rows remain visible.
+        cut.WaitForElement("[data-testid='tenants-list-degraded']");
+        cut.Markup.ShouldContain("tenant.alpha");
     }
 
     [Fact]
@@ -210,6 +286,19 @@ public sealed class TenantListSurfaceTests : BunitContext
                 && attributes.TryGetValue("data-testid", out object? actual)
                 && string.Equals(actual as string, testId, StringComparison.Ordinal));
         await cut.InvokeAsync(() => select.ValueChanged.InvokeAsync(value));
+    }
+
+    // Drives the FluentTextInput search box by invoking its ValueChanged callback directly. The box uses
+    // Immediate/ImmediateDelay (JS-debounced oninput) which bUnit's DOM-event helpers cannot exercise, so
+    // the component instance's callback is the stable way to simulate a debounced search term.
+    private static async Task ChangeSearchAsync(IRenderedComponent<TenantsWorkspace> cut, string value)
+    {
+        FluentTextInput search = cut.FindComponents<FluentTextInput>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-list-search", StringComparison.Ordinal));
+        await cut.InvokeAsync(() => search.ValueChanged.InvokeAsync(value));
     }
 
     private void RegisterServices(TenantListSnapshot snapshot)
