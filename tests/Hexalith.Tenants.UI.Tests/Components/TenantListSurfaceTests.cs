@@ -2,6 +2,9 @@ using System.Globalization;
 
 using Bunit;
 
+using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.FrontComposer.Shell.Components.Layout;
+
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -46,6 +49,21 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldContain("No pending changes");
+    }
+
+    [Fact]
+    public void Workspace_is_composed_from_the_frontcomposer_aggregate_list_wrapper()
+    {
+        // cc-2026-06-21 extraction guard: the workspace reuses FcAggregateListPage<TItem> (the shared
+        // FC-LST chrome) and declares the full-width measure through it, instead of a Tenants-local
+        // FcPageLayout/FcPageHeader page shell. Keeps the rebase from silently regressing.
+        RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-workspace']");
+
+        FcAggregateListPage<TenantListRow> wrapper = cut.FindComponent<FcAggregateListPage<TenantListRow>>().Instance;
+        wrapper.LayoutMode.ShouldBe(FcPageLayoutMode.FullWidth);
     }
 
     [Fact]

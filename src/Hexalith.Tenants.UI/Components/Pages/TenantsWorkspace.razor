@@ -4,108 +4,107 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 
-<FcPageLayout Mode="FcPageLayoutMode.FullWidth">
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="tenants-workspace" data-testid="tenants-workspace">
-    <FcPageHeader @ref="_pageHeader"
-                  PageTitle="@Localizer["Tenants.List.Title"]"
-                  Heading="@Localizer["Tenants.List.Title"]"
-                  HeadingId="tenants-list-heading"
-                  HeadingTabIndex="-1"
-                  Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
-                  TestId="tenants-list-page-header">
-        <Metadata>
-            @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
-            {
-                <p class="tenants-workspace__return-context" data-testid="tenants-list-return-context">
-                    @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
-                </p>
-            }
-        </Metadata>
-    </FcPageHeader>
-
-    <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
-        <FluentGrid Class="tenants-workspace__filters" Spacing="3">
-            <FluentGridItem Xs="12" Md="6" Lg="4">
-                <FluentTextInput TextInputType="TextInputType.Search"
-                                 Value="@_search"
-                                 ValueChanged="OnSearchChanged"
-                                 Immediate="true"
-                                 ImmediateDelay="350"
-                                 Label="@Localizer["Tenants.List.SearchLabel"]"
-                                 Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
-                                 data-testid="tenants-list-search"
-                                 aria-label="@Localizer["Tenants.List.SearchLabel"]" />
-            </FluentGridItem>
-            <FluentGridItem Xs="12" Md="6" Lg="4">
-                <FluentSelect TOption="string" TValue="string"
-                              Value="@_statusFilter"
-                              ValueChanged="OnStatusFilterChanged"
-                              Label="@Localizer["Tenants.List.StatusFilterLabel"]"
-                              data-testid="tenants-list-status-filter"
-                              aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
-                    <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
-                    <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
-                    <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
-                    <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
-                </FluentSelect>
-            </FluentGridItem>
-        @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
-           (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
-        </FluentGrid>
-
-        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" VerticalGap="12px" Wrap="true" Class="tenants-workspace__actions">
-            <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
-                @Localizer["Tenants.List.Refresh"]
-            </FluentButton>
-            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
-                @Localizer["Tenants.List.Reset"]
-            </FluentButton>
-            <span class="tenants-workspace__actions-spacer" aria-hidden="true"></span>
-            <FluentAnchorButton Href="/tenants/my"
-                                Appearance="ButtonAppearance.Subtle"
-                                data-testid="tenants-my-link">
-                @Localizer["Tenants.MyTenants.Link"]
-            </FluentAnchorButton>
-            <FluentAnchorButton Href="/tenants/users"
-                                Appearance="ButtonAppearance.Subtle"
-                                data-testid="tenants-user-lookup-link">
-                @Localizer["Tenants.UserLookup.Link"]
-            </FluentAnchorButton>
-        </FluentStack>
-    </section>
-
-    <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                      IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
-                      OnProjectionRefreshRequested="RefreshAsync"
-                      ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
-
-    @if (_snapshot.Kind is TenantListSurfaceKind.Loading)
-    {
-        <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
-    }
-    else if (_visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
-    {
-        <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
-    }
-    else if (_snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
-    {
-        <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
-    }
-    else if (_snapshot.Kind is TenantListSurfaceKind.Empty)
-    {
-        <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
-    }
-    else if (_snapshot.Kind is TenantListSurfaceKind.Error)
-    {
-        <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Detail="@_snapshot.ErrorMessage" />
-    }
-    else if (_snapshot.Kind is TenantListSurfaceKind.Unauthorized)
-    {
-        <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
-    }
-    else
-    {
-        @if (_snapshot.Kind is TenantListSurfaceKind.Stale)
+<FcAggregateListPage TItem="TenantListRow"
+                     @ref="_listPage"
+                     LayoutMode="FcPageLayoutMode.FullWidth"
+                     RootTestId="tenants-workspace"
+                     RootClass="tenants-workspace"
+                     PageTitle="@Localizer["Tenants.List.Title"]"
+                     Heading="@Localizer["Tenants.List.Title"]"
+                     HeadingId="tenants-list-heading"
+                     HeadingTabIndex="-1"
+                     Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
+                     HeaderTestId="tenants-list-page-header">
+    <Toolbar>
+        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
+            @Localizer["Tenants.List.Refresh"]
+        </FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
+            @Localizer["Tenants.List.Reset"]
+        </FluentButton>
+        <FluentAnchorButton Href="/tenants/my"
+                            Appearance="ButtonAppearance.Subtle"
+                            data-testid="tenants-my-link">
+            @Localizer["Tenants.MyTenants.Link"]
+        </FluentAnchorButton>
+        <FluentAnchorButton Href="/tenants/users"
+                            Appearance="ButtonAppearance.Subtle"
+                            data-testid="tenants-user-lookup-link">
+            @Localizer["Tenants.UserLookup.Link"]
+        </FluentAnchorButton>
+    </Toolbar>
+    <HeaderMetadata>
+        @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
+        {
+            <p class="tenants-workspace__return-context" data-testid="tenants-list-return-context">
+                @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
+            </p>
+        }
+    </HeaderMetadata>
+    <Filters>
+        <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
+            <FluentGrid Class="tenants-workspace__filters" Spacing="3">
+                <FluentGridItem Xs="12" Md="6" Lg="4">
+                    <FluentTextInput TextInputType="TextInputType.Search"
+                                     Value="@_search"
+                                     ValueChanged="OnSearchChanged"
+                                     Immediate="true"
+                                     ImmediateDelay="350"
+                                     Label="@Localizer["Tenants.List.SearchLabel"]"
+                                     Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                                     data-testid="tenants-list-search"
+                                     aria-label="@Localizer["Tenants.List.SearchLabel"]" />
+                </FluentGridItem>
+                <FluentGridItem Xs="12" Md="6" Lg="4">
+                    <FluentSelect TOption="string" TValue="string"
+                                  Value="@_statusFilter"
+                                  ValueChanged="OnStatusFilterChanged"
+                                  Label="@Localizer["Tenants.List.StatusFilterLabel"]"
+                                  data-testid="tenants-list-status-filter"
+                                  aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+                        <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
+                        <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
+                        <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
+                        <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
+                    </FluentSelect>
+                </FluentGridItem>
+            @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
+               (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
+            </FluentGrid>
+        </section>
+    </Filters>
+    <Commands>
+        <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
+                          IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
+                          OnProjectionRefreshRequested="RefreshAsync"
+                          ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+    </Commands>
+    <States>
+        @if (_snapshot.Kind is TenantListSurfaceKind.Loading)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
+        }
+        else if (_visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+        }
+        else if (_snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
+        }
+        else if (_snapshot.Kind is TenantListSurfaceKind.Empty)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
+        }
+        else if (_snapshot.Kind is TenantListSurfaceKind.Error)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Detail="@_snapshot.ErrorMessage" />
+        }
+        else if (_snapshot.Kind is TenantListSurfaceKind.Unauthorized)
+        {
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
+        }
+        else if (_snapshot.Kind is TenantListSurfaceKind.Stale)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Stale" OnRefresh="RefreshAsync" />
         }
@@ -113,22 +112,29 @@
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Detail="@_snapshot.ErrorMessage" />
         }
-
-        <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
-
-        <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                    @Localizer["Tenants.List.Previous"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                    @Localizer["Tenants.List.Next"]
-                </FluentButton>
-            </FluentStack>
-        </nav>
-    }
-    </FluentStack>
-</FcPageLayout>
+    </States>
+    <Body>
+        @if (ShowList)
+        {
+            <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
+        }
+    </Body>
+    <Pager>
+        @if (ShowList)
+        {
+            <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
+                <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                        @Localizer["Tenants.List.Previous"]
+                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                        @Localizer["Tenants.List.Next"]
+                    </FluentButton>
+                </FluentStack>
+            </nav>
+        }
+    </Pager>
+</FcAggregateListPage>
 
 @code {
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
@@ -141,7 +147,7 @@
     private bool _sortDescending;
     private string? _selectedTenantId;
     private string? _returnAnchor;
-    private FcPageHeader _pageHeader = default!;
+    private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
     private long _loadVersion;
 
@@ -176,6 +182,16 @@
     private bool HasActiveFilters
         => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_statusFilter);
 
+    // The list/grid surface (the former else branch): everything that is not a blocking/empty list state.
+    // The Stale/Degraded list-surface banners still render in the States slot above this body.
+    private bool ShowList
+        => _snapshot.Kind is not TenantListSurfaceKind.Loading
+            && !(_visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
+            && _snapshot.Kind is not (TenantListSurfaceKind.FilteredEmpty
+                or TenantListSurfaceKind.Empty
+                or TenantListSurfaceKind.Error
+                or TenantListSurfaceKind.Unauthorized);
+
     protected override async Task OnInitializedAsync()
     {
         RestoreContextFromQuery();
@@ -193,7 +209,7 @@
         if (_focusHeadingPending)
         {
             _focusHeadingPending = false;
-            await _pageHeader.FocusHeadingAsync().ConfigureAwait(false);
+            await _listPage.FocusHeadingAsync().ConfigureAwait(false);
         }
     }
 

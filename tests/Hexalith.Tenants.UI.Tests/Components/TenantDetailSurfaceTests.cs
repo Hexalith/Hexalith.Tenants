@@ -5,6 +5,9 @@ using AngleSharp.Dom;
 
 using Bunit;
 
+using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.FrontComposer.Shell.Components.Layout;
+
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
@@ -69,6 +72,23 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
         cut.Markup.ShouldContain("aria-label=\"Full tenant identifier tenant.alpha\"");
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
+    }
+
+    [Fact]
+    public void Detail_page_is_composed_from_the_frontcomposer_aggregate_detail_wrapper()
+    {
+        // cc-2026-06-21 extraction guard: the detail page reuses FcAggregateDetailPage<TItem> (the shared
+        // FC-DTL chrome) and maps its ready snapshot onto the constrained-measure wrapper instead of a
+        // Tenants-local detail page shell. Keeps the rebase from silently regressing.
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+
+        FcAggregateDetailPage<TenantDetail> wrapper = cut.FindComponent<FcAggregateDetailPage<TenantDetail>>().Instance;
+        wrapper.LayoutMode.ShouldBe(FcPageLayoutMode.Constrained);
+        wrapper.State.ShouldBe(FcAggregateDetailState.Ready);
     }
 
     [Theory]

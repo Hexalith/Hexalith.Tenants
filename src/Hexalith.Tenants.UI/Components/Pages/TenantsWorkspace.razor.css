@@ -25,13 +25,6 @@
     min-width: 0;
 }
 
-/* Pushes the navigation anchor buttons to the trailing edge, separating them
-   from the refresh/reset filter actions on wide viewports. */
-.tenants-workspace__actions-spacer {
-    flex: 1 1 0;
-    min-inline-size: 1rem;
-}
-
 .tenants-workspace__focus-link {
     color: LinkText;
     width: fit-content;

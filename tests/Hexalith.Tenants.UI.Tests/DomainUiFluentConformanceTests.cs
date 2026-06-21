@@ -298,8 +298,7 @@ public sealed class DomainUiFluentConformanceTests
         foreach ((string fileName, string expectedMode, string rationale) in expectedDeclarations)
         {
             string content = File.ReadAllText(Path.Combine(pagesRoot, fileName));
-            if (!content.Contains("<FcPageLayout", StringComparison.Ordinal)
-                || !content.Contains($"Mode=\"{expectedMode}\"", StringComparison.Ordinal))
+            if (!DeclaresLayoutMeasure(content) || !DeclaresLayoutMode(content, expectedMode))
             {
                 offenders.Add($"{fileName} must declare {expectedMode} ({rationale})");
             }
@@ -311,7 +310,7 @@ public sealed class DomainUiFluentConformanceTests
         {
             string content = File.ReadAllText(razorFile);
             if (content.Contains("@page", StringComparison.Ordinal)
-                && !content.Contains("<FcPageLayout", StringComparison.Ordinal))
+                && !DeclaresLayoutMeasure(content))
             {
                 offenders.Add($"{Path.GetFileName(razorFile)} is a route page but declares no FcPageLayout measure");
             }
@@ -341,7 +340,7 @@ public sealed class DomainUiFluentConformanceTests
             }
 
             string fileName = Path.GetFileName(file);
-            if (!content.Contains("<FcPageHeader", StringComparison.Ordinal))
+            if (!DeclaresFrontComposerHeader(content))
             {
                 offenders.Add($"{fileName} must declare route title/header through FcPageHeader");
             }
@@ -799,6 +798,26 @@ public sealed class DomainUiFluentConformanceTests
     // commented-out markup never inflates the layout-wrapper budget (AC3).
     private static int CountLayoutWrappers(string razor)
         => DivSpanTag.Matches(RazorOrHtmlComment.Replace(razor, string.Empty)).Count;
+
+    // cc-2026-06-21: the route-level browser title + visible header may be declared either directly via
+    // FcPageHeader or through the FrontComposer aggregate page wrappers (FcAggregateListPage /
+    // FcAggregateDetailPage), which compose FcPageHeader internally. Both are FrontComposer-owned; this
+    // does NOT relax the raw <PageTitle>/<h1> bans, which are still enforced separately.
+    private static bool DeclaresFrontComposerHeader(string content)
+        => content.Contains("<FcPageHeader", StringComparison.Ordinal)
+            || content.Contains("<FcAggregateListPage", StringComparison.Ordinal)
+            || content.Contains("<FcAggregateDetailPage", StringComparison.Ordinal);
+
+    // The FC-LYT measure may be declared directly via FcPageLayout or forwarded through an aggregate page
+    // wrapper, which owns the FcPageLayout element and exposes the measure as its LayoutMode parameter.
+    private static bool DeclaresLayoutMeasure(string content)
+        => content.Contains("<FcPageLayout", StringComparison.Ordinal)
+            || content.Contains("<FcAggregateListPage", StringComparison.Ordinal)
+            || content.Contains("<FcAggregateDetailPage", StringComparison.Ordinal);
+
+    private static bool DeclaresLayoutMode(string content, string expectedMode)
+        => content.Contains($"Mode=\"{expectedMode}\"", StringComparison.Ordinal)
+            || content.Contains($"LayoutMode=\"{expectedMode}\"", StringComparison.Ordinal);
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));

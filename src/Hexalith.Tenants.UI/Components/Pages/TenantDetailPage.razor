@@ -9,67 +9,60 @@
 @inject ITenantQueryGateway QueryGateway
 @inject ITenantsBffComposition BffComposition
 
-<FcPageLayout Mode="FcPageLayoutMode.Constrained">
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="16px" Class="tenant-detail" data-testid="tenants-detail">
-    <a class="tenant-detail__back"
-       href="@BackHref"
-       data-testid="tenants-detail-back">
-        @Localizer["Tenants.Detail.Back"]
-    </a>
-
-    @if (_snapshot.Kind is TenantDetailSurfaceKind.Loading)
-    {
+<FcAggregateDetailPage TItem="TenantDetail"
+                       LayoutMode="FcPageLayoutMode.Constrained"
+                       RootTestId="tenants-detail"
+                       RootClass="tenant-detail"
+                       State="DetailState"
+                       BackHref="@BackHref"
+                       BackLinkLabel="@Localizer["Tenants.Detail.Back"]"
+                       BackLinkTestId="tenants-detail-back"
+                       BackLinkClass="tenant-detail__back">
+    <LoadingContent>
         <section class="tenant-detail__state" role="status" data-testid="tenants-detail-loading">
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.Loading.Title"]"
                           Description="@Localizer["Tenants.Detail.State.Loading.Message"]"
                           TestId="tenants-detail-state-header" />
         </section>
-    }
-    else if (_snapshot.Kind is TenantDetailSurfaceKind.Unauthorized)
-    {
+    </LoadingContent>
+    <UnauthorizedContent>
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-unauthorized">
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.Unauthorized.Title"]"
                           Description="@Localizer["Tenants.Detail.State.Unauthorized.Message"]"
                           TestId="tenants-detail-state-header" />
         </section>
-    }
-    else if (_snapshot.Kind is TenantDetailSurfaceKind.NotFound)
-    {
+    </UnauthorizedContent>
+    <NotFoundContent>
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.NotFound.Title"]"
                           Description="@Localizer["Tenants.Detail.State.NotFound.Message"]"
                           TestId="tenants-detail-state-header" />
         </section>
-    }
-    else if (_snapshot.Kind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
-    {
+    </NotFoundContent>
+    <UnavailableContent>
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
             <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
                           Heading="@Localizer["Tenants.Detail.State.Unavailable.Title"]"
                           Description="@Localizer["Tenants.Detail.State.Unavailable.Message"]"
                           TestId="tenants-detail-state-header" />
         </section>
-    }
-    else if (_snapshot.Detail is not null)
-    {
-        @if (_snapshot.Kind is TenantDetailSurfaceKind.Stale)
-        {
-            <section class="tenant-detail__state" role="status" data-testid="tenants-detail-stale">
-                <h2>@Localizer["Tenants.Detail.State.Stale.Title"]</h2>
-                <p>@Localizer["Tenants.Detail.State.Stale.Message"]</p>
-            </section>
-        }
-        else if (_snapshot.Kind is TenantDetailSurfaceKind.Degraded)
-        {
-            <section class="tenant-detail__state" role="status" data-testid="tenants-detail-degraded">
-                <h2>@Localizer["Tenants.Detail.State.Degraded.Title"]</h2>
-                <p>@Localizer["Tenants.Detail.State.Degraded.Message"]</p>
-            </section>
-        }
-
+    </UnavailableContent>
+    <StaleBanner>
+        <section class="tenant-detail__state" role="status" data-testid="tenants-detail-stale">
+            <h2>@Localizer["Tenants.Detail.State.Stale.Title"]</h2>
+            <p>@Localizer["Tenants.Detail.State.Stale.Message"]</p>
+        </section>
+    </StaleBanner>
+    <DegradedBanner>
+        <section class="tenant-detail__state" role="status" data-testid="tenants-detail-degraded">
+            <h2>@Localizer["Tenants.Detail.State.Degraded.Title"]</h2>
+            <p>@Localizer["Tenants.Detail.State.Degraded.Message"]</p>
+        </section>
+    </DegradedBanner>
+    <ReadyContent>
         <FluentStack Orientation="Orientation.Vertical"
                      VerticalGap="16px"
                      Class="tenant-detail__summary"
@@ -196,18 +189,8 @@
                 </FluentAccordionItem>
             </FluentAccordion>
         </FluentStack>
-    }
-    else
-    {
-        <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-degraded">
-            <FcPageHeader PageTitle="@Localizer["Tenants.Detail.Title"]"
-                          Heading="@Localizer["Tenants.Detail.State.Degraded.Title"]"
-                          Description="@Localizer["Tenants.Detail.State.Degraded.Message"]"
-                          TestId="tenants-detail-state-header" />
-        </section>
-    }
-    </FluentStack>
-</FcPageLayout>
+    </ReadyContent>
+</FcAggregateDetailPage>
 
 @code {
     private TenantDetailSnapshot _snapshot = TenantDetailSnapshot.Loading();
@@ -229,6 +212,23 @@
 
     private bool IsCommandSurfaceAvailable
         => !_commandInFlight && BffComposition.IsCommandSurfaceConnected;
+
+    // Maps the Tenants detail snapshot kind onto the domain-agnostic FC-DTL surface state the wrapper
+    // routes. Kind takes precedence (loading/unauthorized/not-found/unavailable/unknown render their own
+    // state regardless of payload); the ready body (Ready/Stale/Degraded) only renders with a payload, so a
+    // missing payload fails closed to Unavailable instead of an optimistic ready surface.
+    private FcAggregateDetailState DetailState
+        => _snapshot.Kind switch
+        {
+            TenantDetailSurfaceKind.Loading => FcAggregateDetailState.Loading,
+            TenantDetailSurfaceKind.Unauthorized => FcAggregateDetailState.Unauthorized,
+            TenantDetailSurfaceKind.NotFound => FcAggregateDetailState.NotFound,
+            TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown => FcAggregateDetailState.Unavailable,
+            _ when _snapshot.Detail is null => FcAggregateDetailState.Unavailable,
+            TenantDetailSurfaceKind.Stale => FcAggregateDetailState.Stale,
+            TenantDetailSurfaceKind.Degraded => FcAggregateDetailState.Degraded,
+            _ => FcAggregateDetailState.Ready,
+        };
 
     protected override async Task OnParametersSetAsync()
     {

@@ -4,7 +4,7 @@ baseline_commit: f4281a100468c90acc6b3a4fd9d7a3f14bc9579e
 
 # Story cc-2026-06-21: FrontComposer Aggregate List/Detail Extraction
 
-Status: in-progress
+Status: review
 
 <!-- Source of truth: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-reusable-aggregate-pages-and-tenant-search.md (Phase 2). -->
 <!-- Correct Course story, not an epics.md numbered story. Phase 1 search story is already done. -->
@@ -62,58 +62,58 @@ This story is **not** a new tenant list, a new tenant detail page, or a backend 
 
 > Build order: define the FrontComposer contract first, implement wrappers with focused tests, then re-base Tenants list/detail one page at a time while keeping existing tests green after each page.
 
-- [ ] **Task 1 - Contract and boundary setup** (AC: 1, 13, 15)
-  - [ ] Record the `FC-LST` / `FC-DTL` contract in the appropriate FrontComposer `_bmad-output/contracts/` or project-docs location, including component names, package/public-surface posture, state model, toolbar slots, data-source callbacks, and non-goals.
-  - [ ] Confirm explicit owner approval for `Hexalith.FrontComposer/**` edits in this dev-story run. If absent, create only the handoff spec and stop without marking the story done.
-  - [ ] Read current FrontComposer `FcPageHeader`, `FcPageLayout`, DataGrid filter/search/status components, and their tests before writing wrappers.
-  - [ ] Confirm no changes are needed in `Hexalith.Memories/**` for this story.
+- [x] **Task 1 - Contract and boundary setup** (AC: 1, 13, 15)
+  - [x] Record the `FC-LST` / `FC-DTL` contract in the appropriate FrontComposer `_bmad-output/contracts/` or project-docs location, including component names, package/public-surface posture, state model, toolbar slots, data-source callbacks, and non-goals.
+  - [x] Confirm explicit owner approval for `Hexalith.FrontComposer/**` edits in this dev-story run. If absent, create only the handoff spec and stop without marking the story done.
+  - [x] Read current FrontComposer `FcPageHeader`, `FcPageLayout`, DataGrid filter/search/status components, and their tests before writing wrappers.
+  - [x] Confirm no changes are needed in `Hexalith.Memories/**` for this story.
 
-- [ ] **Task 2 - Implement `FcAggregateListPage<TItem>` in FrontComposer** (AC: 1, 2, 8, 9, 10, 13)
-  - [ ] Compose `FcPageLayout`, `FcPageHeader`, header `Actions` toolbar, optional `Metadata`, and a domain-provided grid/body slot.
-  - [ ] Expose parameters for title/heading/eyebrow/description/test id, layout mode, search value/callback, filter/status slot or value/callback, refresh/reset/paging actions, state kind/content, item list/data-source result, and row/detail navigation callback.
-  - [ ] Reuse existing FC-TBL primitives where compatible, but do not force the generated projection Fluxor search model onto domain pages that need server-side BFF search.
-  - [ ] Keep the wrapper generic over `TItem`; no Tenants DTOs, resources, or query gateway dependencies.
+- [x] **Task 2 - Implement `FcAggregateListPage<TItem>` in FrontComposer** (AC: 1, 2, 8, 9, 10, 13)
+  - [x] Compose `FcPageLayout`, `FcPageHeader`, header `Actions` toolbar, optional `Metadata`, and a domain-provided grid/body slot.
+  - [x] Expose parameters for title/heading/eyebrow/description/test id, layout mode, search value/callback, filter/status slot or value/callback, refresh/reset/paging actions, state kind/content, item list/data-source result, and row/detail navigation callback.
+  - [x] Reuse existing FC-TBL primitives where compatible, but do not force the generated projection Fluxor search model onto domain pages that need server-side BFF search.
+  - [x] Keep the wrapper generic over `TItem`; no Tenants DTOs, resources, or query gateway dependencies.
 
-- [ ] **Task 3 - Implement `FcAggregateDetailPage<TItem>` in FrontComposer** (AC: 1, 3, 8, 9, 10, 13)
-  - [ ] Compose `FcPageLayout`, `FcPageHeader`, safe toolbar/metadata slots, state rendering slots, and ready-body/sections slots.
-  - [ ] Support route-level heading focus, nonblank heading requirements, and caller-supplied fallback heading for blank item names.
-  - [ ] Support multi-section detail surfaces without forcing Tenants domain sections into FrontComposer.
-  - [ ] Ensure sections can render `FluentAccordion ExpandMode="AccordionExpandMode.Multi"` with first/all relevant items expanded by default.
+- [x] **Task 3 - Implement `FcAggregateDetailPage<TItem>` in FrontComposer** (AC: 1, 3, 8, 9, 10, 13)
+  - [x] Compose `FcPageLayout`, `FcPageHeader`, safe toolbar/metadata slots, state rendering slots, and ready-body/sections slots.
+  - [x] Support route-level heading focus, nonblank heading requirements, and caller-supplied fallback heading for blank item names.
+  - [x] Support multi-section detail surfaces without forcing Tenants domain sections into FrontComposer.
+  - [x] Ensure sections can render `FluentAccordion ExpandMode="AccordionExpandMode.Multi"` with first/all relevant items expanded by default.
 
-- [ ] **Task 4 - FrontComposer tests, docs, and public surface** (AC: 1, 9, 10, 11, 12, 13, 15)
-  - [ ] Add Shell component tests for both wrappers: toolbar action slot, metadata slot, loading/error/degraded/stale/ready states, section rendering, test ids, layout mode, and no domain copy.
-  - [ ] Add/update governance tests if wrappers introduce new layout/CSS surface.
-  - [ ] Update component inventory/docs and public API baselines if the components are package-facing.
-  - [ ] Run the focused FrontComposer Shell test lane with `DiffEngine_Disabled=true` and the repo-required test command shape.
+- [x] **Task 4 - FrontComposer tests, docs, and public surface** (AC: 1, 9, 10, 11, 12, 13, 15)
+  - [x] Add Shell component tests for both wrappers: toolbar action slot, metadata slot, loading/error/degraded/stale/ready states, section rendering, test ids, layout mode, and no domain copy.
+  - [x] Add/update governance tests if wrappers introduce new layout/CSS surface.
+  - [x] Update component inventory/docs and public API baselines if the components are package-facing.
+  - [x] Run the focused FrontComposer Shell test lane with `DiffEngine_Disabled=true` and the repo-required test command shape.
 
-- [ ] **Task 5 - Re-base `TenantsWorkspace.razor`** (AC: 4, 6, 7, 8, 9, 10, 11, 14)
-  - [ ] Replace page-level local chrome with `FcAggregateListPage<TenantListRow>` while keeping the Tenants-specific query state and callbacks.
-  - [ ] Preserve server-side search (`OnSearchChanged` -> `LoadAsync`), status behavior, cursor history, reset/refresh, return-context focus, and query-string restoration.
-  - [ ] Preserve `TenantDataGrid` or move its column template into the wrapper body without losing `ItemKey`, support-safe copy, audit entrypoint, pinned/safety classes, detail link context, and existing test ids.
-  - [ ] Host `CreateTenantFlow` in the wrapper toolbar/body according to the contract without changing command lifecycle behavior.
+- [x] **Task 5 - Re-base `TenantsWorkspace.razor`** (AC: 4, 6, 7, 8, 9, 10, 11, 14)
+  - [x] Replace page-level local chrome with `FcAggregateListPage<TenantListRow>` while keeping the Tenants-specific query state and callbacks.
+  - [x] Preserve server-side search (`OnSearchChanged` -> `LoadAsync`), status behavior, cursor history, reset/refresh, return-context focus, and query-string restoration.
+  - [x] Preserve `TenantDataGrid` or move its column template into the wrapper body without losing `ItemKey`, support-safe copy, audit entrypoint, pinned/safety classes, detail link context, and existing test ids.
+  - [x] Host `CreateTenantFlow` in the wrapper toolbar/body according to the contract without changing command lifecycle behavior.
 
-- [ ] **Task 6 - Re-base `TenantDetailPage.razor`** (AC: 5, 6, 8, 9, 10, 11, 14)
-  - [ ] Replace page-level local chrome with `FcAggregateDetailPage<TenantDetail>` while keeping the Tenants-specific sections and command flows.
-  - [ ] Preserve safe back link, `returnUrl` validation, blank-name fallback, tenant id literal display/copy, audit entrypoint, truth-state badge, facts, and accordion sections.
-  - [ ] Preserve all projection evidence providers and command activity callbacks. Command flows must still block when stale/unknown/unavailable and must not show optimistic success.
-  - [ ] Keep `ITenantsBffComposition` and `ITenantQueryGateway` semantics local to Tenants.
+- [x] **Task 6 - Re-base `TenantDetailPage.razor`** (AC: 5, 6, 8, 9, 10, 11, 14)
+  - [x] Replace page-level local chrome with `FcAggregateDetailPage<TenantDetail>` while keeping the Tenants-specific sections and command flows.
+  - [x] Preserve safe back link, `returnUrl` validation, blank-name fallback, tenant id literal display/copy, audit entrypoint, truth-state badge, facts, and accordion sections.
+  - [x] Preserve all projection evidence providers and command activity callbacks. Command flows must still block when stale/unknown/unavailable and must not show optimistic success.
+  - [x] Keep `ITenantsBffComposition` and `ITenantQueryGateway` semantics local to Tenants.
 
-- [ ] **Task 7 - Tenants tests and conformance** (AC: 4-12, 14)
-  - [ ] Update `TenantListSurfaceTests` to prove the rebased list still renders grid controls, server-search round-trip, filtered-empty/degraded states, cursor paging, support-safe copy, and stable selectors.
-  - [ ] Update `TenantDetailSurfaceTests` to prove gateway load, safe return URL, blank-name fallback, all state surfaces, command sections, resource parity, support-safety, and CSS responsive hooks.
-  - [ ] Keep `DomainUiFluentConformanceTests`, `PageLayoutDeclarationTests`, and browser-backend guard tests green without weakening their assertions.
-  - [ ] Add any new wrapper-consumption test needed to catch a regression that old tests would miss.
+- [x] **Task 7 - Tenants tests and conformance** (AC: 4-12, 14)
+  - [x] Update `TenantListSurfaceTests` to prove the rebased list still renders grid controls, server-search round-trip, filtered-empty/degraded states, cursor paging, support-safe copy, and stable selectors.
+  - [x] Update `TenantDetailSurfaceTests` to prove gateway load, safe return URL, blank-name fallback, all state surfaces, command sections, resource parity, support-safety, and CSS responsive hooks.
+  - [x] Keep `DomainUiFluentConformanceTests`, `PageLayoutDeclarationTests`, and browser-backend guard tests green without weakening their assertions.
+  - [x] Add any new wrapper-consumption test needed to catch a regression that old tests would miss.
 
-- [ ] **Task 8 - Verification** (AC: all)
-  - [ ] Run focused FrontComposer tests for the new wrappers.
-  - [ ] Run `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`.
-  - [ ] Run any affected sample/package tests if FrontComposer or Tenants public surface changes.
-  - [ ] Build with warnings as errors through the repo's `.slnx` build path when practical; do not run solution-level `dotnet test`.
+- [x] **Task 8 - Verification** (AC: all)
+  - [x] Run focused FrontComposer tests for the new wrappers.
+  - [x] Run `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`.
+  - [x] Run any affected sample/package tests if FrontComposer or Tenants public surface changes.
+  - [x] Build with warnings as errors through the repo's `.slnx` build path when practical; do not run solution-level `dotnet test`.
 
-- [ ] **Task 9 - Story artifacts and handoff** (AC: 1, 12, 13)
-  - [ ] Update this story's Dev Agent Record with exact files, tests, and any FrontComposer submodule commit/status.
-  - [ ] If FrontComposer work cannot be completed in this repo run, create a handoff under `_bmad-output/planning-artifacts/` and leave the story status truthful.
-  - [ ] Do not mark done until Tenants pages consume the wrappers and the focused tests prove behavior is preserved.
+- [x] **Task 9 - Story artifacts and handoff** (AC: 1, 12, 13)
+  - [x] Update this story's Dev Agent Record with exact files, tests, and any FrontComposer submodule commit/status.
+  - [x] If FrontComposer work cannot be completed in this repo run, create a handoff under `_bmad-output/planning-artifacts/` and leave the story status truthful.
+  - [x] Do not mark done until Tenants pages consume the wrappers and the focused tests prove behavior is preserved.
 
 ## Dev Notes
 
@@ -219,16 +219,92 @@ External references checked during story creation:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.8 (claude-opus-4-8[1m])
 
 ### Debug Log References
 
+- FrontComposer Shell build (Debug + Release `-warnaserror`): 0 warnings / 0 errors.
+- Focused FrontComposer wrapper lane (`DiffEngine_Disabled=true`): `FcAggregateListPageTests` + `FcAggregateDetailPageTests` = 19/19 pass.
+- Full FrontComposer Shell test suite: 1938/1949 pass. The 11 failures are all in the pre-existing,
+  unrelated `Governance.Story12_4_RedPhaseDefTests` red-phase class (release-readiness-cases.json fixtures
+  such as `credentialed-url-leakage`). FrontComposer changes are purely additive (8 untracked new files,
+  zero modifications to tracked files), so these failures pre-date this story; `FcTblPackageBoundaryTests`
+  passes (new `Components.Layout` types are outside the FC-TBL `Components.DataGrid` baseline).
+- Tenants `dotnet test tests/Hexalith.Tenants.UI.Tests/...`: 749/749 pass (747 prior + 2 new extraction
+  consumption guards).
+- Tenants.UI Release `-warnaserror` and full `Hexalith.Tenants.slnx` Release `-warnaserror`: 0 warnings / 0 errors.
+
 ### Completion Notes List
 
+Owner approval to edit the `Hexalith.FrontComposer` submodule was explicitly granted in this dev-story run
+(full implementation), satisfying the Task 1 / AC1 boundary gate.
+
+- **FC-LST / FC-DTL contracts (AC1, AC13).** Added `FcAggregateListPage<TItem>` and
+  `FcAggregateDetailPage<TItem>` as public `Hexalith.FrontComposer.Shell.Components.Layout` components plus
+  the `FcAggregateDetailState` enum in `Hexalith.FrontComposer.Contracts.Rendering`. Both are domain-agnostic
+  (no `Tenant*`/EventStore/Memories references; pinned by "does not inject domain resources" reflection
+  tests). Documented in `_bmad-output/contracts/fc-lst-dtl-aggregate-page-contract-2026-06-21.md`, including
+  the deliberate public-surface decision: the new types live outside the FC-TBL `PublicAPI.FcTbl.Shipped.txt`
+  baseline (which is scoped to `Components.DataGrid`), so the existing `FcTblPackageBoundaryTests` is
+  unaffected; no full-Shell public-API analyzer baseline exists, so the surface is pinned by the new
+  component parameter/reflection tests.
+- **List wrapper (AC2).** Composes `FcPageLayout` (measure) + vertical `FluentStack` root + `FcPageHeader`
+  with the header **Actions** slot as the toolbar and **Metadata** for return context; exposes
+  Filters/Commands/States/Body/Pager/ChildContent slots, `FocusHeadingAsync()` forwarding, and an optional
+  typed `OnItemSelected` row-navigation hook. It owns no grid, query gateway, `IQueryService`, or generated
+  Fluxor search model — a server-side-BFF domain supplies its own search/filter controls into `Filters`.
+- **Detail wrapper (AC3, AC8).** Composes `FcPageLayout` + root + optional back link and routes
+  `FcAggregateDetailState` so the ready body renders only for Ready/Stale/Degraded (stale/degraded show a
+  caller banner above the body) and every non-ready state renders its own caller content, failing closed to
+  `UnavailableContent`. Domains supply all `FcPageHeader`s (per-state + ready identity, with Actions/Metadata),
+  copy, accordion sections, and command flows; an optional `ReadyTemplate<TItem>`+`Item` typed path is
+  available (Tenants uses untemplated `ReadyContent`, keeping its `Detail` accessor).
+- **Tenants rebase (AC4–AC8, AC10, AC11, AC14).** `TenantsWorkspace.razor` now consumes
+  `FcAggregateListPage<TenantListRow>` (toolbar = refresh/reset/My Tenants/User lookup in the header Actions
+  slot; removed the now-dead `tenants-workspace__actions-spacer` span + CSS). `TenantDetailPage.razor` now
+  consumes `FcAggregateDetailPage<TenantDetail>` with a `DetailState` mapping (Unknown→Unavailable;
+  payload-less ready-ish kinds fail closed to Unavailable). All server-side search/freshness/cursor/return-
+  context/create-flow/grid/audit/copy/section/command-flow/evidence-provider/in-flight behavior and every
+  `data-testid` are preserved; Phase 1 Memories search and `ITenantQueryGateway` are untouched (AC6, AC7).
+- **Governance (AC9, AC12).** Broadened two `DomainUiFluentConformanceTests` guards
+  (`Domain_route_pages_declare_frontcomposer_page_headers`,
+  `Domain_page_components_declare_frontcomposer_page_layout_modes`) to accept the wrappers as the
+  FrontComposer-owned header/layout declaration (via three new helpers), without relaxing the raw
+  `<PageTitle>`/`<h1>`/`<main>` bans or any other assertion. Added two Tenants extraction-consumption guards
+  so a silent revert of the rebase is caught. No regression test was weakened or deleted.
+
+Not committed — changes are left in the working tree of both the Tenants repo and the `Hexalith.FrontComposer`
+submodule (the parent gitlink will show the submodule dirty), matching the Phase 1 handoff discipline.
+No changes to `Hexalith.Memories` (AC confirmed). No package versions added to any `.csproj`; no
+Fluent/Aspire/Dapr bumps (AC15).
+
 ### File List
+
+**Hexalith.Tenants repo**
+
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` (rebased onto `FcAggregateListPage<TenantListRow>`)
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor.css` (removed dead `__actions-spacer` rule)
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` (rebased onto `FcAggregateDetailPage<TenantDetail>`)
+- `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs` (broadened 2 guards + 3 helpers for wrapper usage)
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` (+ list wrapper consumption test, usings)
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` (+ detail wrapper consumption test, usings)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (status: in-progress → review)
+- `_bmad-output/implementation-artifacts/cc-2026-06-21-frontcomposer-aggregate-list-detail-extraction.md` (this story)
+
+**Hexalith.FrontComposer submodule** (uncommitted; new files)
+
+- `src/Hexalith.FrontComposer.Contracts/Rendering/FcAggregateDetailState.cs`
+- `src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateListPage.razor`
+- `src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateListPage.razor.cs`
+- `src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor`
+- `src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor.cs`
+- `tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateListPageTests.cs`
+- `tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateDetailPageTests.cs`
+- `_bmad-output/contracts/fc-lst-dtl-aggregate-page-contract-2026-06-21.md`
 
 ### Change Log
 
 | Date | Change |
 |---|---|
 | 2026-06-21 | Created ready-for-dev story context for Phase 2 FrontComposer aggregate list/detail extraction and Tenants rebase. |
+| 2026-06-21 | Implemented `FcAggregateListPage<TItem>` / `FcAggregateDetailPage<TItem>` + `FcAggregateDetailState` in FrontComposer with focused tests and contract doc; rebased `TenantsWorkspace`/`TenantDetailPage` onto the wrappers; broadened 2 Tenants conformance guards and added 2 extraction-consumption tests. FrontComposer Shell + full Tenants `.slnx` build warning-clean (Release `-warnaserror`); Tenants UI 749/749 and FrontComposer wrapper lane 19/19 green. Status → review. |
