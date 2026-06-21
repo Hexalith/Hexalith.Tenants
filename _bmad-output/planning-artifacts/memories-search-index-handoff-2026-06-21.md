@@ -72,6 +72,9 @@ result set, which self-heals as the index catches up.
 
 ## 4. Interim behavior until §3.6 lands
 
+> **Superseded 2026-06-21:** §3.6 has since landed and the BFF switch is done — see "§7 → Landed: §3.6". The
+> paragraph below describes the *original* interim path and is kept for historical context only.
+
 The BFF passes **no** attribute filter to `SearchAsync` and instead filters the **hydrated authoritative**
 `TenantDetail.Status` after the match-set is resolved. This is exact (never fuzzy BM25-on-status-word) but
 applies only across the returned page. Once §3.6 ships, switch the BFF to pass `status` as a structured
@@ -114,9 +117,9 @@ Landed in `Hexalith.Memories` (server side) — search now works end-to-end with
   `SearchIndexEntryRemoved` deletes by the same key. Naturally idempotent → no dedup needed.
 - **§3.4 — BM25.** The curated `Text` is stored in the existing syntactic `content` field; the entry uses the
   existing syntactic schema so `SyntacticSearchService` returns it unchanged. **No schema change.**
-- **§3.5 — attributes (partial).** Attributes are persisted as a flattened, searchable `metadataText` plus a
-  verbatim `metadataJson` blob (exact values preserved). The exact-match attribute **TAG** field is part of
-  §3.6 below.
+- **§3.5 — attributes (landed).** Attributes are persisted as a flattened, searchable `metadataText` plus a
+  verbatim `metadataJson` blob (exact values preserved). The exact-match attribute **TAG** field landed as
+  part of §3.6 (see below).
 - **§3.7 — SourceUri.** `sourceUri` = the CloudEvent `id` (`tenant:{id}`) verbatim → the BFF recovers the
   tenant id from a hit with no change.
 
@@ -124,12 +127,16 @@ Tests: `EventIngestionServiceTests` (curated dispatch: upsert/remove bypass dedu
 invalid, maintenance fault → retryable) and `RedisSearchIndexMaintenanceAdapterTests` (searchable hash keyed
 by aggregate, delete by key, guards).
 
-### Deferred: §3.6 (exact-match attribute filter API) — bundle with the BFF switch
+### Landed: §3.6 (exact-match attribute filter API) + the BFF switch (2026-06-21)
 
-§3.6 (a filterable `attributes` TAG field on the shared syntactic schema + the REST `attributeFilters` query
-param + REST client plumbing) is **not** implemented. Rationale: per §4 the BFF currently filters on the
-**hydrated authoritative status**, so §3.6 has no consumer until the (on-hold) story resumes and makes the
-"one-line BFF change"; implementing it now would migrate the shared product schema (new TAG field across
-every tenant index + the strict equality validator + a multi-field upgrade path) for an unused surface.
-Attributes are already persisted (above), so §3.6 can be added later — schema TAG + REST plumbing + a
-re-tag/republish — as one coherent change alongside the BFF switch.
+§3.6 shipped in `Hexalith.Memories` commit `f401175` ("Enhance SearchRequest and SearchQuery with additional
+filters"): `SearchRequest` / `SearchQuery` gained `AttributeFilters` (plus `Offset`, `Subject`, `SourceType`,
+`MetadataQuery`); `IndexSchemaDefinitions`, `IndexSyntacticActivity`, and `RedisSearchIndexMaintenanceAdapter`
+add the attribute TAG fields to the syntactic schema; `SyntacticSearchService` builds the exact-match attribute
+query; and `MemoriesClient` threads the new params through the REST path. The Tenants BFF consumes it:
+`TenantQueryGateway.SearchTenantsAsync` now passes `Offset:` (cursor paging) and
+`AttributeFilters: { ["status"] = … }` to `SearchAsync`. The hydrated-authoritative-status re-check in
+`HydrateSearchRowsAsync` is **retained on purpose** as the source-of-truth confirmation — the index attribute
+can lag a status change between an upsert and the next lifecycle event — so the structured filter narrows the
+match-set while the projection stays authoritative. This supersedes the §4 "interim hydrated-status only"
+framing.

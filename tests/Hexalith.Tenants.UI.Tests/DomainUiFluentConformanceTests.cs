@@ -108,10 +108,15 @@ public sealed class DomainUiFluentConformanceTests
     // zero value ("0 0 0 0") cannot slip past by leaving a leading space before this lookahead.
     private const string ZeroValueSkip = "(?!\\s*(?:0[a-z%]*\\s*)+(?:!important\\s*)?(?:[;}]|$))";
 
+    // 2026-06-21 (deferred-work hardening): the logical longhand suffixes "-start"/"-end" on the
+    // "-inline"/"-block" axes (margin-inline-start, margin-inline-end, margin-block-start,
+    // margin-block-end, and the padding equivalents) were previously NOT matched, so a rule whose
+    // only spacing ownership was a logical longhand declaration slipped past unmarked. They are now
+    // tracked alongside the physical longhands and the shorthand.
     private static readonly Regex StylingOwnershipDeclaration = new(
         "\\b(display\\s*:\\s*(?:flex|grid|inline-flex|inline-grid)|gap\\s*:|grid-template|"
-        + "margin(?:-inline|-block|-top|-right|-bottom|-left)?\\s*:\\s*" + ZeroValueSkip + "|"
-        + "padding(?:-inline|-block|-top|-right|-bottom|-left)?\\s*:\\s*" + ZeroValueSkip + "|"
+        + "margin(?:-(?:inline|block)(?:-(?:start|end))?|-top|-right|-bottom|-left)?\\s*:\\s*" + ZeroValueSkip + "|"
+        + "padding(?:-(?:inline|block)(?:-(?:start|end))?|-top|-right|-bottom|-left)?\\s*:\\s*" + ZeroValueSkip + "|"
         + "font-size\\s*:|font-weight\\s*:|line-height\\s*:)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
@@ -623,6 +628,10 @@ public sealed class DomainUiFluentConformanceTests
     [InlineData("padding-inline: 0.25rem")]
     [InlineData("margin-block: 0.5rem")]
     [InlineData("padding: 0.15rem 0.4rem")]
+    [InlineData("margin-inline-start: 0.5rem")]
+    [InlineData("margin-inline-end:0.5rem")]
+    [InlineData("padding-block-start: 0.75rem")]
+    [InlineData("padding-block-end: 0.25rem")]
     public void Styling_ownership_guard_flags_compact_non_zero_spacing(string declaration)
         => StylingOwnershipDeclaration.IsMatch(declaration).ShouldBeTrue(
             $"compact non-zero spacing '{declaration}' must be treated as layout ownership (AC1).");
@@ -635,6 +644,8 @@ public sealed class DomainUiFluentConformanceTests
     [InlineData("margin: 0 0 0 0;")]
     [InlineData("padding: 0 0;")]
     [InlineData("margin: 0 !important;")]
+    [InlineData("margin-inline-start: 0;")]
+    [InlineData("padding-block-end: 0px;")]
     public void Styling_ownership_guard_still_skips_genuine_zero_resets(string declaration)
         => StylingOwnershipDeclaration.IsMatch(declaration).ShouldBeFalse(
             $"a genuine zero reset '{declaration}' must remain skipped (AC1).");
@@ -732,6 +743,21 @@ public sealed class DomainUiFluentConformanceTests
         StylingOwnershipOffenders(withString).ShouldBeEmpty();
     }
 
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void Forced_colors_unterminated_block_does_not_hide_trailing_ownership()
+    {
+        // 2026-06-21 (deferred-work hardening): a forced-colors block with a MISSING closing brace must
+        // not drop the remainder of the file from the scan. The trailing ".tail" spacing ownership must
+        // still survive removal and still be flagged by the ownership guard.
+        const string unterminated =
+            "@media (forced-colors: active) {\n  .x { color: red; }\n.tail { margin: 5rem; }";
+        string remaining = RemoveForcedColorsMediaBlocks(unterminated);
+        remaining.ShouldContain(".tail");
+        remaining.ShouldContain("margin: 5rem");
+        StylingOwnershipOffenders(unterminated).ShouldNotBeEmpty();
+    }
+
     // Removes every "@media (... forced-colors ...) { ... }" block (brace-matched) so the
     // high-contrast exception is not scanned by the styling-ownership guard.
     // 2026-06-19 (AC6): the brace matcher now skips CSS comments (/* ... */) and quoted strings so a
@@ -790,7 +816,18 @@ public sealed class DomainUiFluentConformanceTests
                 cursor++;
             }
 
-            css = css.Remove(blockStart, Math.Min(cursor, css.Length) - blockStart);
+            if (depth > 0)
+            {
+                // 2026-06-21 (deferred-work hardening): an unterminated forced-colors block (missing
+                // closing '}') must NOT swallow the rest of the file. Removing to end-of-file would let a
+                // single missing brace silently hide every layout-ownership declaration that follows it.
+                // Strip only the "@media (...) {" opener — enough for the loop to make progress without
+                // re-matching it — and leave the body plus the tail scannable so they are still evaluated.
+                css = css.Remove(blockStart, media.Length);
+                continue;
+            }
+
+            css = css.Remove(blockStart, cursor - blockStart);
         }
     }
 

@@ -82,6 +82,8 @@
     padding: 0.35rem 0.75rem;
 }
 
+/* fc-css-exception: compact block-start spacing + readability measure on the inline remove-reason
+   note; no Fluent layout primitive expresses this single-element top gap and max-inline-size. */
 .tenant-config__remove-reason {
     margin-block-start: 0.35rem;
     max-inline-size: 18rem;

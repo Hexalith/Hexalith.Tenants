@@ -544,9 +544,11 @@ internal sealed class TenantQueryGateway(
 
     // Hydrate each match-set id through the existing ETag-fresh detail read (GetTenantAsync already maps
     // 404/403/503 to non-throwing snapshots and resolves freshness via ResolveFreshness — never from
-    // Memories). Member/owner counts mirror EnrichRowsAsync. Status (AC6 interim) filters on the
-    // authoritative hydrated TenantDetail.Status, never on fuzzy BM25 text. Ids that hydrate to
-    // not-found/forbidden/unavailable are dropped (degraded, not error).
+    // Memories). Member/owner counts mirror EnrichRowsAsync. Status is applied twice by design: a structured
+    // exact AttributeFilter narrows the Memories match-set (see SearchTenantsAsync), and this hydrated
+    // authoritative TenantDetail.Status is the source-of-truth re-check (the index attribute can lag a status
+    // change), never fuzzy BM25 text. Ids that hydrate to not-found/forbidden/unavailable are dropped
+    // (degraded, not error).
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> HydrateSearchRowsAsync(
         IReadOnlyList<string> tenantIds,
         TenantStatus? statusFilter,

@@ -1,8 +1,3 @@
-.tenant-detail__back {
-    color: LinkText;
-    width: fit-content;
-}
-
 .tenant-detail__summary {
     min-width: 0;
 }
@@ -71,7 +66,6 @@
     white-space: nowrap;
 }
 
-.tenant-detail__back:focus-visible,
 .tenant-detail__identity:focus-visible,
 .tenant-detail__state:focus-visible {
     outline: 2px solid Highlight;
@@ -95,7 +89,6 @@
         color: CanvasText;
     }
 
-    .tenant-detail__back:focus-visible,
     .tenant-detail__identity:focus-visible,
     .tenant-detail__state:focus-visible {
         outline-color: Highlight;

@@ -47,6 +47,8 @@
     overflow-wrap: anywhere;
 }
 
+/* fc-css-exception: left-accent inset padding on the correction-reason region; preserves the
+   border-accent treatment Fluent has no primitive for. */
 .correction-start-panel__reason {
     border-inline-start: 3px solid CanvasText;
     padding-inline-start: 0.5rem;

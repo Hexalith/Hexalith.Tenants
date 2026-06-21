@@ -4,7 +4,7 @@ baseline_commit: f4281a100468c90acc6b3a4fd9d7a3f14bc9579e
 
 # Story cc-2026-06-21: FrontComposer Aggregate List/Detail Extraction
 
-Status: review
+Status: done
 
 <!-- Source of truth: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-reusable-aggregate-pages-and-tenant-search.md (Phase 2). -->
 <!-- Correct Course story, not an epics.md numbered story. Phase 1 search story is already done. -->
@@ -273,10 +273,24 @@ Owner approval to edit the `Hexalith.FrontComposer` submodule was explicitly gra
   `<PageTitle>`/`<h1>`/`<main>` bans or any other assertion. Added two Tenants extraction-consumption guards
   so a silent revert of the rebase is caught. No regression test was weakened or deleted.
 
-Not committed — changes are left in the working tree of both the Tenants repo and the `Hexalith.FrontComposer`
-submodule (the parent gitlink will show the submodule dirty), matching the Phase 1 handoff discipline.
-No changes to `Hexalith.Memories` (AC confirmed). No package versions added to any `.csproj`; no
-Fluent/Aspire/Dapr bumps (AC15).
+Committed — the Tenants rebase + tests landed in commit `0009869`; the FrontComposer wrappers in submodule
+commit `e1ae065` (reachable on `origin/main`). No changes to `Hexalith.Memories` (AC confirmed). No package
+versions added to any `.csproj`; no Fluent/Aspire/Dapr bumps (AC15).
+
+**Correct Course review remediation (2026-06-21).** An independent adversarial review of the committed diff
+returned PASS-WITH-NITS (no blockers); both nits were fixed in-session:
+
+- **Back-link affordances (AC10).** Because the wrapper renders the back-link `<a>`, its scoped CSS no longer
+  came from `TenantDetailPage.razor.css`. Added `FcAggregateDetailPage.razor.css` in FrontComposer to own
+  `.fc-aggregate-detail__back` (link color, `fit-content`, `:focus-visible` outline, forced-colors outline),
+  and removed the now-dead `.tenant-detail__back` rules + the pointless `BackLinkClass` from Tenants so
+  ownership is unambiguous (FrontComposer-submodule edit, owner-approved for this Correct Course run).
+- **Degraded(null) fail-closed (AC8).** Added
+  `Detail_page_fails_closed_to_unavailable_when_degraded_snapshot_has_no_payload`, pinning that a `Degraded`
+  surface with a null payload maps to `Unavailable` (`tenants-detail-error`), never the degraded body.
+
+Verification after remediation: UI.Tests 757/757; `DomainUiFluentConformanceTests` 51/51; FrontComposer Shell
+builds 0 warnings / 0 errors.
 
 ### File List
 
@@ -302,9 +316,17 @@ Fluent/Aspire/Dapr bumps (AC15).
 - `tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcAggregateDetailPageTests.cs`
 - `_bmad-output/contracts/fc-lst-dtl-aggregate-page-contract-2026-06-21.md`
 
+**Correct Course review remediation (2026-06-21)**
+
+- `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor.css` (new — back-link color/`fit-content`/`:focus-visible`/forced-colors outline)
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` (removed pointless `BackLinkClass="tenant-detail__back"`)
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor.css` (removed now-dead `.tenant-detail__back` rules)
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` (+ `Degraded(null)→Unavailable` fail-closed test)
+
 ### Change Log
 
 | Date | Change |
 |---|---|
 | 2026-06-21 | Created ready-for-dev story context for Phase 2 FrontComposer aggregate list/detail extraction and Tenants rebase. |
 | 2026-06-21 | Implemented `FcAggregateListPage<TItem>` / `FcAggregateDetailPage<TItem>` + `FcAggregateDetailState` in FrontComposer with focused tests and contract doc; rebased `TenantsWorkspace`/`TenantDetailPage` onto the wrappers; broadened 2 Tenants conformance guards and added 2 extraction-consumption tests. FrontComposer Shell + full Tenants `.slnx` build warning-clean (Release `-warnaserror`); Tenants UI 749/749 and FrontComposer wrapper lane 19/19 green. Status → review. |
+| 2026-06-21 | Correct Course review closure: committed (Tenants `0009869`, FrontComposer `e1ae065`); fixed the two PASS-WITH-NITS items — back-link focus/forced-colors CSS now owned by `FcAggregateDetailPage.razor.css` (FrontComposer) with the dead `.tenant-detail__back` rules + `BackLinkClass` removed, and added a `Degraded(null)→Unavailable` fail-closed test. UI.Tests 757/757; conformance 51/51; FrontComposer Shell builds 0/0. Status → done. |

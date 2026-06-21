@@ -9,7 +9,7 @@ This file is now a routing index. Original review detail remains in the source s
 
 ### `cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`
 
-Status: `review` after implementation on 2026-06-19.
+Status: `done` (sprint-status.yaml) — closed after the 2026-06-19 implementation and review.
 Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening.md`.
 Primary source: code review of `3-5-tenant-query-gateway-rest-routing` on 2026-06-07.
 
@@ -21,11 +21,11 @@ Resolution summary:
 - ETag handling is hardened and tested for weak tags, `*`, escaped strong tags, and unsupported multi-tag input.
 - REST/handler read-model reconstruction coverage now proves a recreated controller factory can serve the persisted read model from the shared store and honor 304 through the production REST/handler path.
 - Live populated-correlation gateway error coverage now asserts that `correlationId`, `reasonCode`, raw payload text, stack traces, tokens, cursors, and ETags do not reach user-facing copy.
-- Current full-suite evidence: `Server.Tests` remains blocked by 3 DAPR component expectation tests that still assert removed `enableDeadLetter` / `deadLetterTopic` metadata; `IntegrationTests` passes with DAPR/Aspire/performance skips. The old health-readiness blocker wording is no longer current evidence.
+- Current full-suite evidence (corrected 2026-06-21): the earlier `Server.Tests` blocker — 3 DAPR component expectation tests asserting removed `enableDeadLetter` / `deadLetterTopic` metadata — was resolved on 2026-06-20 by `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`; full `Server.Tests` now passes 700/700. `IntegrationTests` passes with DAPR/Aspire/performance skips. The old health-readiness blocker wording is no longer current evidence.
 
 ### `cc-2026-06-19-domain-ui-governance-and-accessibility-hardening`
 
-Status: `review` after implementation on 2026-06-19.
+Status: `done` (sprint-status.yaml) — closed after the 2026-06-19 implementation and review.
 Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-domain-ui-governance-and-accessibility-hardening.md`.
 Primary sources:
 
@@ -51,7 +51,7 @@ Dismissed record retained:
 
 ### `cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup`
 
-Status: `review` after implementation on 2026-06-20.
+Status: `done` (sprint-status.yaml) — closed after the 2026-06-20 implementation and review.
 Story artifact: `_bmad-output/implementation-artifacts/cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup.md`.
 Primary sources:
 

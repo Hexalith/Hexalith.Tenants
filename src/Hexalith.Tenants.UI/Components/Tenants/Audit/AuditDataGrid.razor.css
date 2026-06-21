@@ -41,6 +41,8 @@
     min-height: 2.25rem;
 }
 
+/* fc-css-exception: left-accent inset padding on the correction-reason cell; preserves the
+   border-accent treatment Fluent has no primitive for. */
 .audit-data-grid__correction-reason {
     border-inline-start: 3px solid CanvasText;
     display: inline-block;

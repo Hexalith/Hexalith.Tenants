@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-21T17:45:00+02:00
+last_updated: 2026-06-21T19:30:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -150,9 +150,16 @@ development_status:
   # re-base Tenants onto them. Search-first sequencing; §8 defaults assumed.
   cc-2026-06-21-memories-backed-tenant-search: done
   # Phase 2 is blocked by Phase 1 (extract a proven, working list/detail).
-  cc-2026-06-21-frontcomposer-aggregate-list-detail-extraction: review
-  # Upstream handoffs (tracked here, executed in the submodule repos — do not edit submodule source unsolicited):
-  #   - Hexalith.Memories: add MemoriesClient paging params (offset/subject/sourceType);
-  #     optional syntactic-only ingestion gate to drop the embeddings/FalkorDB requirement.
-  #   - Hexalith.FrontComposer: confirm FC-LST / FC-DTL contracts; implement
-  #     FcAggregateListPage<T> / FcAggregateDetailPage<T> composing existing FC-TBL + FcPageHeader.
+  # done 2026-06-21: implemented (FC commit e1ae065 + Tenants rebase commit 0009869) and closed after the
+  # Correct Course adversarial review (PASS-WITH-NITS, no blockers). Both nits were fixed in-session:
+  # (1) the detail back-link focus-visible/forced-colors outline (now owned by FcAggregateDetailPage.razor.css
+  # in FrontComposer; dead .tenant-detail__back rules removed), and (2) a Degraded(null)->Unavailable
+  # fail-closed test was added. UI.Tests 757/757; conformance 51/51.
+  cc-2026-06-21-frontcomposer-aggregate-list-detail-extraction: done
+  # Upstream handoffs (executed in the submodule repos):
+  #   - Hexalith.Memories: DONE — MemoriesClient paging params (offset/subject/sourceType) + structured
+  #     AttributeFilters landed in commit f401175; the BFF consumes Offset + AttributeFilters in
+  #     TenantQueryGateway.SearchTenantsAsync (supersedes the §3.6 "deferred" framing in the handoff doc).
+  #   - Hexalith.FrontComposer: DONE — FC-LST/FC-DTL contracts confirmed; FcAggregateListPage<T> /
+  #     FcAggregateDetailPage<T> implemented (commit e1ae065) and Tenants rebased (commit 0009869), plus the
+  #     back-link CSS fix above.

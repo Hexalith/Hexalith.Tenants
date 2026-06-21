@@ -190,6 +190,27 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Detail_page_fails_closed_to_unavailable_when_degraded_snapshot_has_no_payload()
+    {
+        // A Degraded surface with a NULL detail payload (reachable via an unmapped gateway status ->
+        // Degraded(null, ...) or a 304-not-modified with no cached detail) must NOT render the degraded
+        // body. The FcAggregateDetailPage state mapping fails closed to Unavailable so a projection-less
+        // state is never dressed as the ready surface. The payload-carrying Degraded case does not cover
+        // this; this pins the fail-closed edge.
+        RegisterServices(_ => Task.FromResult(
+            TenantDetailSnapshot.Degraded(null, "Tenant detail query gateway returned a safe degraded state.")));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-error']");
+
+        cut.Find("[data-testid='tenants-detail-error']").TextContent.ShouldContain("unavailable", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-detail-degraded']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-detail-identity']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("tenants-config-table");
+    }
+
+    [Fact]
     public void Configuration_view_groups_namespaces_redacts_sensitive_values_and_preserves_accessible_literals()
     {
         RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
