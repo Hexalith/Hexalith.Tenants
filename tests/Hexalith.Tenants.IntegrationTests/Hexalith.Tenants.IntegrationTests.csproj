@@ -7,18 +7,23 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants\Hexalith.Tenants.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.AppHost\Hexalith.Tenants.AppHost.csproj" />
-    <!-- Domain-agnostic DAPR/Aspire integration-test harness (daprd sidecar bootstrap, Aspire topology
-         fixture, prerequisite probing, support-safe diagnostics). The Testing reference is kept for the
-         in-memory fakes (FakeDeadLetterPublisher, InMemoryCommandStatusStore) consumed below. -->
-    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing.Integration\Hexalith.EventStore.Testing.Integration.csproj" />
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing\Hexalith.EventStore.Testing.csproj" />
+    <!-- Reusable DAPR/Aspire integration-test harness (sidecar bootstrap, endpoint resolution,
+         topology fixture base, support-safe diagnostics). The domain-agnostic machinery lives here;
+         this project supplies only the Tenants subclasses. -->
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing.Integration\Hexalith.EventStore.Testing.Integration.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Kept as a direct reference: its build targets generate the Projects.* AppHost markers
+         (e.g. Projects.Hexalith_Tenants_AppHost) used by the topology fixture. -->
+    <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Surfaces the harness types (DaprFactAttribute, DaprTestPrerequisites, fixture bases, …) to all
+         test files without per-file using directives. -->
     <Using Include="Hexalith.EventStore.Testing.Integration" />
   </ItemGroup>
 

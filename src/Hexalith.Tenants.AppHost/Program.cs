@@ -9,6 +9,7 @@ string accessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory,
 string adminServerAccessControlConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "accesscontrol.eventstore-admin.yaml");
 string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "resiliency.yaml");
 string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
+string pubSubComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "pubsub.yaml");
 
 // Optional DAPR placement/scheduler service addresses. When left unset, the DAPR sidecars fall back to
 // the daprd default (localhost:50005 / :50006), which matches a slim-mode `dapr init`. A containerized
@@ -62,15 +63,13 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     resiliencyConfigPath: resiliencyConfigPath,
     stateStoreComponentPath: stateStoreComponentPath,
     daprPlacementHostAddress: daprPlacementHostAddress,
-    daprSchedulerHostAddress: daprSchedulerHostAddress);
+    daprSchedulerHostAddress: daprSchedulerHostAddress,
+    pubSubComponentPath: pubSubComponentPath);
 
 // Add the Tenants domain service via the platform domain-module extension (A4): its sidecar shares the
 // EventStore state store + pub/sub. Replaces the per-domain Aspire wiring library.
 IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants")
-    .AddEventStoreDomainModule(
-        eventStoreResources,
-        "tenants",
-        accessControlConfigPath,
+    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress)
     .WithEnvironment("Tenants__BootstrapGlobalAdminUserId", "admin-user");
@@ -97,10 +96,7 @@ IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenants
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
 // It subscribes tenants.events, so it shares the pub/sub component (no isolated resources path).
 IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>("sample")
-    .AddEventStoreDomainModule(
-        eventStoreResources,
-        "sample",
-        accessControlConfigPath,
+    .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress);
 
