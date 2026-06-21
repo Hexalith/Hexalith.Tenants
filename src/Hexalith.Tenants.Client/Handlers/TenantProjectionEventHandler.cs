@@ -126,6 +126,10 @@ public class TenantProjectionEventHandler :
         await tenantLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             TenantLocalState state = await GetOrCreateStateAsync(context.AggregateId, cancellationToken).ConfigureAwait(false);
+            if (state.LastEvent is { } lastEvent && lastEvent.LastSequenceNumber > context.SequenceNumber) {
+                return;
+            }
+
             apply(state, @event);
             state.LastEvent = new TenantProjectionEventMetadata(
                 context.MessageId,

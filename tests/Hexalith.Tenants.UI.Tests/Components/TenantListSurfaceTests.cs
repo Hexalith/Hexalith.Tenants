@@ -168,6 +168,26 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
+    public async Task Search_degraded_empty_snapshot_renders_degraded_not_filtered_empty()
+    {
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)])
+                : TenantListSnapshot.Degraded([], "Search results could not be verified."));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangeSearchAsync(cut, "term");
+
+        cut.WaitForElement("[data-testid='tenants-list-degraded']");
+        cut.FindAll("[data-testid='tenants-list-filtered-empty']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Cursor_paging_passes_opaque_cursor_and_preserves_markers()
     {
         TenantListSnapshot firstPage = ReadySnapshot(

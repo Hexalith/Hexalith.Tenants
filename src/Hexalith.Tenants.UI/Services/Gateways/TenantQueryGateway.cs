@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 
@@ -35,7 +36,9 @@ internal sealed class TenantQueryGateway(
     private const string TenantsSearchIndex = "tenants-index";
     private const string SearchSourceUriPrefix = "tenant:";
     private const string SearchAxis = "syntactic";
+    private const string SearchCursorPrefix = "memories-search:";
     private const string SearchUnavailableMessage = "Tenant search is temporarily unavailable; showing the full tenant list.";
+    private const string SearchHydrationDegradedMessage = "Tenant search results could not be verified; showing a degraded search state.";
 
     public async Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
@@ -460,6 +463,7 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? previous,
         CancellationToken cancellationToken) {
         MemoriesSearchResult searchResult;
+        int offset = ParseSearchOffset(request.Cursor);
         try {
             searchResult = await memoriesClient
                 .SearchAsync(
@@ -467,7 +471,9 @@ internal sealed class TenantQueryGateway(
                         TenantId: TenantsSearchIndex,
                         Axis: SearchAxis,
                         Query: request.Search,
-                        MaxResults: request.PageSize),
+                        MaxResults: request.PageSize,
+                        Offset: offset,
+                        AttributeFilters: CreateSearchAttributeFilters(request.Status)),
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -492,18 +498,23 @@ internal sealed class TenantQueryGateway(
             await HydrateSearchRowsAsync(tenantIds, request.Status, cancellationToken).ConfigureAwait(false);
 
         if (rows.Count == 0) {
-            // The match-set existed but every row hydrated to not-found/forbidden, or was filtered out by
-            // status: the search produced no visible rows -> the filtered-empty surface, not an error.
-            return TenantListSnapshot.FilteredEmpty();
+            // A non-empty match-set that cannot hydrate authoritative rows is degraded. A clean exact-filter
+            // match-set with no visible rows remains a filtered-empty state, not an error.
+            return degraded
+                ? TenantListSnapshot.Degraded([], SearchHydrationDegradedMessage)
+                : TenantListSnapshot.FilteredEmpty();
         }
 
+        int nextOffset = offset + searchResult.Results.Count;
+        bool hasMore = searchResult.TotalCount > nextOffset;
+
         // BM25 score order from Memories differs from the cursor list's deterministic id/name order; the
-        // visible page is re-sorted client-side (ApplyVisibleRows). Search is a single cross-set page, so
-        // there is no server cursor (NextCursor null, HasMore false) and no list ETag to carry.
+        // visible page is re-sorted client-side (ApplyVisibleRows). Search cursors are opaque offset cursors
+        // over the Memories result window and do not carry a list ETag.
         return TenantListSnapshot.Ready(
             rows,
-            nextCursor: null,
-            hasMore: false,
+            nextCursor: hasMore ? CreateSearchCursor(nextOffset) : null,
+            hasMore,
             eTag: null,
             TenantFreshnessState.Current,
             degraded);
@@ -556,6 +567,7 @@ internal sealed class TenantQueryGateway(
             }
 
             if (statusFilter is { } status && detail.Status != status) {
+                degraded = true;
                 continue;
             }
 
@@ -570,6 +582,27 @@ internal sealed class TenantQueryGateway(
 
         return (rows, degraded);
     }
+
+    private static IReadOnlyDictionary<string, string>? CreateSearchAttributeFilters(TenantStatus? status)
+        => status is { } value
+            ? new Dictionary<string, string>(StringComparer.Ordinal) { ["status"] = value.ToString() }
+            : null;
+
+    private static int ParseSearchOffset(string? cursor)
+    {
+        if (string.IsNullOrWhiteSpace(cursor)
+            || !cursor.StartsWith(SearchCursorPrefix, StringComparison.Ordinal)
+            || !int.TryParse(cursor[SearchCursorPrefix.Length..], out int offset)
+            || offset < 0)
+        {
+            return 0;
+        }
+
+        return offset;
+    }
+
+    private static string CreateSearchCursor(int offset)
+        => SearchCursorPrefix + offset.ToString(CultureInfo.InvariantCulture);
 
     private async Task<TenantListSnapshot> SearchUnavailableFallbackAsync(
         TenantListRequest request,

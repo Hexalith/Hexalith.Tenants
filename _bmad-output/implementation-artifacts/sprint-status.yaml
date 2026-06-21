@@ -148,7 +148,7 @@ development_status:
   # Memories supplies the match-set, existing ETag-fresh read path supplies row data); then
   # (Phase 2) extract reusable FrontComposer aggregate list/detail page wrappers (with toolbars) and
   # re-base Tenants onto them. Search-first sequencing; §8 defaults assumed.
-  cc-2026-06-21-memories-backed-tenant-search: review
+  cc-2026-06-21-memories-backed-tenant-search: done
   # Phase 2 is blocked by Phase 1 (extract a proven, working list/detail).
   cc-2026-06-21-frontcomposer-aggregate-list-detail-extraction: backlog
   # Upstream handoffs (tracked here, executed in the submodule repos — do not edit submodule source unsolicited):

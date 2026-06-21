@@ -4,7 +4,7 @@ baseline_commit: d4aff694211983e34af4e1051d7e06dac69ab49b
 
 # Story cc-2026-06-21: Memories-Backed Cross-Set Tenant Search
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 <!-- Source of truth: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-reusable-aggregate-pages-and-tenant-search.md (Phase 1). This is a Correct Course (cc-*) story, not an epics.md story. -->
@@ -90,6 +90,18 @@ It is **Phase 1** of the proposal. Phase 2 (extracting reusable `FcAggregateList
   - [x] Author the **Memories handoff spec** (no `Hexalith.Memories/**` edits): `MemoriesIndexUpdate` contract; upsert-by-`(Tenant,AggregateId)` ingestion (overwrite, not append-dedup); attribute indexing; **REST search attribute filter** (`SearchRequest`/`BuildSearchPath`/`GET /api/search` currently expose none — required for AC6 structured status filter); **map aggregate id into `ScoredResult`** or guarantee `SourceUri="tenant:{id}"` for AC3; register the `tenants-index` tenant + `SourceToTenantMap` prefix. Note it supersedes the proposal's P1.7 paging handoff framing.
   - [x] PRD FR-1: add testable consequences (fields = Name + TenantId; matching = Memories syntactic/BM25; structured `status` filter; eventual-consistency + degradation caveats).
   - [x] Architecture: add the "Tenant search (Memories-backed, index-only)" note (match-set from Memories; rows from the ETag-fresh path; no new EventStore endpoint; `MemoriesIndexUpdate` as the cross-domain index-maintenance pattern; the FC-`IQueryService`-vs-REST/ETag position dissolved by search bypassing it).
+
+### Review Findings
+
+- [x] [Review][Patch] Search/status filtering is incomplete after the first Memories result window — Decision: complete the Memories search API/filtering/paging path now so AC1/AC6 can be met. The gateway asks Memories for only `request.PageSize` hits before applying hydrated authorization/status filtering. With the current Memories REST client there is no exact attribute filter or offset, so valid visible matches ranked below hidden/wrong-status hits are unreachable.
+- [x] [Review][Patch] Hydration failures can be shown as "no matches" instead of degraded search [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:494]
+- [x] [Review][Patch] Degraded search fallback can be masked by the workspace filtered-empty branch [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:86]
+- [x] [Review][Patch] Search reloads can update component state after ConfigureAwait(false) without dispatcher marshalling or stale-request protection [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:215]
+- [x] [Review][Patch] Memories AppHost wiring misses the configured DAPR gRPC port and full dependency waits [src/Hexalith.Tenants.AppHost/Program.cs:119]
+- [x] [Review][Patch] Memories FalkorDB connection string is passed as an endpoint reference instead of host:port [src/Hexalith.Tenants.AppHost/Program.cs:131]
+- [x] [Review][Patch] Search-index publishing relies on projection state without rejecting stale aggregate sequences [samples/Hexalith.Tenants.Sample/Handlers/MemoriesSearchIndexEventPublisher.cs:99]
+- [x] [Review][Patch] Unrelated EventStore and FrontComposer submodule gitlink updates are included in the story diff [Hexalith.EventStore:1]
+- [x] [Review][Patch] Required not-found search-hit hydration test is missing [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:1181]
 
 ## Dev Notes
 

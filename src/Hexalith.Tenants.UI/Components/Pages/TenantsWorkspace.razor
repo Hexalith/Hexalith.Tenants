@@ -83,7 +83,7 @@
     {
         <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
     }
-    else if (_visibleRows.Count == 0 && HasActiveFilters)
+    else if (_visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
     {
         <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
     }
@@ -143,6 +143,7 @@
     private string? _returnAnchor;
     private FcPageHeader _pageHeader = default!;
     private bool _focusHeadingPending;
+    private long _loadVersion;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "search")]
@@ -198,6 +199,7 @@
 
     private async Task LoadAsync(bool reuseETag)
     {
+        long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
         TenantListSnapshot previous = _snapshot;
         _snapshot = TenantListSnapshot.Loading();
         ApplyVisibleRows();
@@ -212,10 +214,20 @@
             SortDescending: _sortDescending,
             ETag: reuseETag ? previous.ETag : null);
 
-        _snapshot = await QueryGateway
+        TenantListSnapshot snapshot = await QueryGateway
             .ListTenantsAsync(request, previous, CancellationToken.None)
             .ConfigureAwait(false);
-        ApplyVisibleRows();
+
+        await InvokeAsync(() =>
+        {
+            if (loadVersion != _loadVersion)
+            {
+                return;
+            }
+
+            _snapshot = snapshot;
+            ApplyVisibleRows();
+        }).ConfigureAwait(false);
     }
 
     private async Task RefreshAsync()

@@ -63,6 +63,33 @@ public class TenantProjectionEventHandlerTests {
     }
 
     [Fact]
+    public async Task HandleAsync_StaleSequence_DoesNotOverwriteProjectionState() {
+        // Arrange
+        var store = new InMemoryTenantProjectionStore();
+        var handler = new TenantProjectionEventHandler(store);
+        DateTimeOffset newerTimestamp = DateTimeOffset.Parse("2026-06-01T09:15:00+00:00");
+        DateTimeOffset staleTimestamp = DateTimeOffset.Parse("2026-06-01T09:14:00+00:00");
+
+        await handler.HandleAsync(
+            new TenantCreated("acme", "Current Name", "Current description", newerTimestamp),
+            CreateContext("acme", "msg-10", 10, newerTimestamp, "corr-10"));
+
+        // Act
+        await handler.HandleAsync(
+            new TenantUpdated("acme", "Stale Name", "Stale description", staleTimestamp),
+            CreateContext("acme", "msg-9", 9, staleTimestamp, "corr-9"));
+
+        // Assert
+        TenantLocalState? state = await store.GetAsync("acme");
+        _ = state.ShouldNotBeNull();
+        state.Name.ShouldBe("Current Name");
+        state.Description.ShouldBe("Current description");
+        _ = state.LastEvent.ShouldNotBeNull();
+        state.LastEvent.LastMessageId.ShouldBe("msg-10");
+        state.LastEvent.LastSequenceNumber.ShouldBe(10);
+    }
+
+    [Fact]
     public async Task HandleAsync_UserAddedToTenant_AddsMemberWithRole() {
         // Arrange
         var store = new InMemoryTenantProjectionStore();

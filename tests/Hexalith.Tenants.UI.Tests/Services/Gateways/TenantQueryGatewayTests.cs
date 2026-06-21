@@ -1123,6 +1123,42 @@ public sealed class TenantQueryGatewayTests
             new TenantListRequest(Search: "term", Status: TenantStatus.Active), previous: null, CancellationToken.None);
 
         snapshot.Rows.Select(r => r.TenantId).ShouldBe(["alpha"]); // beta (Disabled) filtered out
+        await memories.Received(1).SearchAsync(
+            Arg.Is<SearchRequest>(request => HasActiveStatusFilter(request)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task List_search_uses_memories_offset_cursor_for_paging()
+    {
+        CapturingGatewayClient firstPageClient = new();
+        firstPageClient.EnqueueQueryResult(Detail("alpha"));
+        firstPageClient.EnqueueQueryResult(Detail("beta"));
+        MemoriesClient firstPageMemories = CreateSearchingMemoriesClient(SearchHits("alpha", "beta") with { TotalCount = 3 });
+        TenantQueryGateway firstPageGateway = CreateGateway(firstPageClient, memories: firstPageMemories);
+
+        TenantListSnapshot firstPage = await firstPageGateway.ListTenantsAsync(
+            new TenantListRequest(PageSize: 2, Search: "term"), previous: null, CancellationToken.None);
+
+        firstPage.HasMore.ShouldBeTrue();
+        firstPage.NextCursor.ShouldBe("memories-search:2");
+        await firstPageMemories.Received(1).SearchAsync(
+            Arg.Is<SearchRequest>(request => request != null && request.MaxResults == 2 && request.Offset == 0),
+            Arg.Any<CancellationToken>());
+
+        CapturingGatewayClient secondPageClient = new();
+        secondPageClient.EnqueueQueryResult(Detail("gamma"));
+        MemoriesClient secondPageMemories = CreateSearchingMemoriesClient(SearchHits("gamma") with { TotalCount = 3 });
+        TenantQueryGateway secondPageGateway = CreateGateway(secondPageClient, memories: secondPageMemories);
+
+        TenantListSnapshot secondPage = await secondPageGateway.ListTenantsAsync(
+            new TenantListRequest(Cursor: firstPage.NextCursor, PageSize: 2, Search: "term"), previous: null, CancellationToken.None);
+
+        secondPage.HasMore.ShouldBeFalse();
+        secondPage.NextCursor.ShouldBeNull();
+        await secondPageMemories.Received(1).SearchAsync(
+            Arg.Is<SearchRequest>(request => request != null && request.MaxResults == 2 && request.Offset == 2),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -1191,6 +1227,22 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Rows.Select(r => r.TenantId).ShouldBe(["alpha"]);
         snapshot.IsDegraded.ShouldBeTrue(); // dropped id is a degradation, not an error
+    }
+
+    [Fact]
+    public async Task List_search_not_found_match_set_id_renders_degraded()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException(404, "Not found"));
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("missing"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Degraded);
+        snapshot.IsDegraded.ShouldBeTrue();
+        snapshot.Rows.ShouldBeEmpty();
     }
 
     [Fact]
@@ -1363,6 +1415,11 @@ public sealed class TenantQueryGatewayTests
     }
 
     private sealed record SubmittedQuery(TenantsQueryApiRequest Request, string? IfNoneMatch);
+
+    private static bool HasActiveStatusFilter(SearchRequest? request)
+        => request?.AttributeFilters is { } filters
+        && filters.TryGetValue("status", out string? value)
+        && string.Equals(value, TenantStatus.Active.ToString(), StringComparison.Ordinal);
 
     private static TenantDetail Detail(string tenantId)
         => new(

@@ -112,6 +112,7 @@ IResourceBuilder<IDaprComponentResource> memoriesLlm = builder.AddDaprComponent(
 IResourceBuilder<ContainerResource> memoriesFalkorDb = builder
     .AddContainer("memories-falkordb", "falkordb/falkordb")
     .WithEndpoint(targetPort: 6379, name: "falkordb");
+EndpointReference memoriesFalkorDbEndpoint = memoriesFalkorDb.GetEndpoint("falkordb");
 
 IResourceBuilder<ProjectResource> memoriesServer = builder
     .AddProject<HexalithMemoriesServer>("memories-server", launchProfileName: "http")
@@ -119,6 +120,7 @@ IResourceBuilder<ProjectResource> memoriesServer = builder
         .WithOptions(new DaprSidecarOptions {
             AppId = "memories-server",
             DaprHttpPort = 3502,
+            DaprGrpcPort = 50002,
             PlacementHostAddress = daprPlacementHostAddress,
             SchedulerHostAddress = daprSchedulerHostAddress,
         })
@@ -126,9 +128,9 @@ IResourceBuilder<ProjectResource> memoriesServer = builder
         .WithReference(eventStoreResources.PubSub)
         .WithReference(memoriesSecretStore)
         .WithReference(memoriesLlm))
-    // Shared dapr-init Redis (localhost:6379) for the Memories vector store; FalkorDB for the graph store.
+    // Shared dapr-init Redis (localhost:6379) for the Memories vector/search store; FalkorDB for the graph store.
     .WithEnvironment("ConnectionStrings__redis", "localhost:6379")
-    .WithEnvironment("ConnectionStrings__falkordb", memoriesFalkorDb.GetEndpoint("falkordb"))
+    .WithEnvironment("ConnectionStrings__falkordb", ReferenceExpression.Create($"{memoriesFalkorDbEndpoint.Property(EndpointProperty.HostAndPort)}"))
     // Memories subscribes this topic; the Tenants consumer publishes SearchIndexEntryChanged to it.
     .WithEnvironment("MEMORIES_EVENTSTORE_TOPIC", "memories-events")
     // Route the Tenants producer's CloudEvents (source "hexalith-tenants") into the curated tenants-index
@@ -136,7 +138,9 @@ IResourceBuilder<ProjectResource> memoriesServer = builder
     // arrives (otherwise the router drops SearchIndexEntryChanged as TenantNotFound). Memories handoff §3.1.
     .WithEnvironment("EventStoreIntegration__Routing__SourceToTenantMap__hexalith-tenants", "tenants-index")
     .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true")
-    .WaitFor(memoriesFalkorDb);
+    .WaitFor(memoriesFalkorDb)
+    .WaitFor(memoriesSecretStore)
+    .WaitFor(memoriesLlm);
 
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(tenants)
