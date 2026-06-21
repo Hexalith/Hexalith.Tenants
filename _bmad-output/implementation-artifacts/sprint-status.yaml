@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-20T10:55:15+02:00
+# last_updated: 2026-06-21T11:16:32+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-20T10:55:15+02:00
+last_updated: 2026-06-21T11:16:32+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -140,3 +140,19 @@ development_status:
   cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening: done
   cc-2026-06-19-domain-ui-governance-and-accessibility-hardening: done
   cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup: done
+
+  # --- Cross-cutting Correct Course 2026-06-21 ---
+  # Approved by Administrator via:
+  # _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-reusable-aggregate-pages-and-tenant-search.md
+  # Scope: (Phase 1) complete the stubbed tenant-list search on Hexalith.Memories (search-as-index-only:
+  # Memories supplies the match-set, existing ETag-fresh read path supplies row data); then
+  # (Phase 2) extract reusable FrontComposer aggregate list/detail page wrappers (with toolbars) and
+  # re-base Tenants onto them. Search-first sequencing; §8 defaults assumed.
+  cc-2026-06-21-memories-backed-tenant-search: backlog
+  # Phase 2 is blocked by Phase 1 (extract a proven, working list/detail).
+  cc-2026-06-21-frontcomposer-aggregate-list-detail-extraction: backlog
+  # Upstream handoffs (tracked here, executed in the submodule repos — do not edit submodule source unsolicited):
+  #   - Hexalith.Memories: add MemoriesClient paging params (offset/subject/sourceType);
+  #     optional syntactic-only ingestion gate to drop the embeddings/FalkorDB requirement.
+  #   - Hexalith.FrontComposer: confirm FC-LST / FC-DTL contracts; implement
+  #     FcAggregateListPage<T> / FcAggregateDetailPage<T> composing existing FC-TBL + FcPageHeader.
