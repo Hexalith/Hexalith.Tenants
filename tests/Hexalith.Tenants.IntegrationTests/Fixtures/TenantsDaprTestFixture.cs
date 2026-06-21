@@ -1,8 +1,3 @@
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Results;
@@ -11,15 +6,13 @@ using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
 using Hexalith.EventStore.Testing.Fakes;
+using Hexalith.EventStore.Testing.Integration;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Server.Aggregates;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -27,49 +20,18 @@ using Microsoft.Extensions.Logging;
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
 /// <summary>
-/// Integration test fixture that starts the Tenants CommandApi with a local daprd sidecar,
-/// reusing the DAPR infrastructure (Redis, placement, scheduler) from dapr init.
-/// Tests the full command pipeline: Actor → Domain Service Invocation → /process → Aggregate → Events.
+/// Tenants integration-test fixture that hosts the Tenants domain service on the shared EventStore
+/// DAPR sidecar harness (<see cref="DaprDomainServiceTestFixtureBase"/>). It supplies only the
+/// tenant-specific configuration, fakes, aggregate registration, query-cursor codec, and the
+/// <c>/process</c> router map; all generic daprd/Aspire bootstrap lives in the EventStore platform
+/// package.
 /// </summary>
-public sealed class TenantsDaprTestFixture : IAsyncLifetime {
-    private const string AppId = "commandapi";
-    private static readonly int PlacementPort = DaprLocalEndpoints.PlacementPort;
-    private static readonly int SchedulerPort = DaprLocalEndpoints.SchedulerPort;
-    private const int RedisPort = 6379;
-    private const int HealthTimeoutSeconds = 60;
+public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
+    /// <inheritdoc/>
+    protected override string AppId => "commandapi";
 
-    private Process? _daprProcess;
-    private WebApplication? _testHost;
-    private int _appPort;
-    private int _daprHttpPort;
-    private int _daprGrpcPort;
-    private int _daprInternalGrpcPort;
-    private int _daprMetricsPort;
-    private int _daprProfilePort;
-    private string? _componentsDir;
-    private FileStream? _daprFixtureLock;
-
-    private string? _previousDaprHttpPort;
-    private string? _previousDaprGrpcPort;
-    private readonly StringBuilder _daprStdout = new();
-    private readonly StringBuilder _daprStderr = new();
-    private bool _disposed;
-
-    /// <summary>Gets the Dapr HTTP endpoint for actor proxy clients.</summary>
-    public string DaprHttpEndpoint {
-        get {
-            SkipIfUnavailable();
-            return $"http://localhost:{_daprHttpPort}";
-        }
-    }
-
-    /// <summary>Gets the application HTTP endpoint (used to force actor deactivation in tests).</summary>
-    public string AppEndpoint {
-        get {
-            SkipIfUnavailable();
-            return $"http://localhost:{_appPort}";
-        }
-    }
+    /// <inheritdoc/>
+    protected override string DeadLetterTopic => "deadletter.tenants.events";
 
     /// <summary>Gets the fake event publisher for capturing published events.</summary>
     public TestEventPublisher EventPublisher { get; } = new();
@@ -80,322 +42,56 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
     /// <summary>Gets the in-memory command status store for tracking command lifecycle.</summary>
     public InMemoryCommandStatusStore CommandStatusStore { get; } = new();
 
-    /// <summary>Gets the last exception thrown by the /process endpoint, for test diagnostics.</summary>
-    public Exception? LastProcessException { get; private set; }
-
-    /// <summary>Gets a support-safe description of the last /process endpoint failure.</summary>
-    public string? LastProcessDiagnostic { get; private set; }
-
-    /// <summary>
-    /// Gets a value indicating whether local DAPR prerequisites were available during fixture startup.
-    /// </summary>
-    public bool PrerequisitesAvailable { get; private set; } = true;
-
-    /// <summary>
-    /// Gets the skip reason when local DAPR prerequisites are unavailable.
-    /// </summary>
-    public string? SkipReason { get; private set; }
-
     /// <inheritdoc/>
-    public async ValueTask InitializeAsync() {
-        AcquireDaprFixtureLock();
+    protected override void ConfigureDomainConfiguration(ConfigurationManager configuration) {
+        // Configure domain service registration: system|tenants|v1 → self (commandapi).
+        configuration["EventStore:DomainServices:Registrations:system|tenants|v1:AppId"] = AppId;
+        configuration["EventStore:DomainServices:Registrations:system|tenants|v1:MethodName"] = "process";
+        configuration["EventStore:DomainServices:Registrations:system|tenants|v1:TenantId"] = "system";
+        configuration["EventStore:DomainServices:Registrations:system|tenants|v1:Domain"] = "tenants";
+        configuration["EventStore:DomainServices:Registrations:system|tenants|v1:Version"] = "v1";
+        configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:AppId"] = AppId;
+        configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:MethodName"] = "process";
+        configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:TenantId"] = "system";
+        configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Domain"] = TenantIdentity.GlobalAdministratorsDomain;
+        configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Version"] = "v1";
 
-        KillOrphanedDaprdProcesses();
-
-        int[] ports;
-        try {
-            ports = GetAvailablePorts(6);
-        }
-        catch (SocketException ex) {
-            PrerequisitesAvailable = false;
-            SkipReason = "Dapr infrastructure pre-flight check failed. Unable to allocate local listener ports for the test fixture."
-                + Environment.NewLine
-                + $"  - {ex.GetType().FullName} ({ex.NativeErrorCode}): {ex.Message}";
-            return;
-        }
-
-        _appPort = ports[0];
-        _daprHttpPort = ports[1];
-        _daprGrpcPort = ports[2];
-        _daprInternalGrpcPort = ports[3];
-        _daprMetricsPort = ports[4];
-        _daprProfilePort = ports[5];
-
-        _previousDaprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
-        _previousDaprGrpcPort = Environment.GetEnvironmentVariable("DAPR_GRPC_PORT");
-        Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", _daprHttpPort.ToString());
-        Environment.SetEnvironmentVariable("DAPR_GRPC_PORT", _daprGrpcPort.ToString());
-
-        IReadOnlyList<string> prerequisiteFailures = await GetPrerequisiteFailuresAsync().ConfigureAwait(false);
-        if (prerequisiteFailures.Count > 0) {
-            PrerequisitesAvailable = false;
-            SkipReason = BuildPrerequisiteFailureMessage(prerequisiteFailures);
-            return;
-        }
-
-        _componentsDir = CreateComponentFiles();
-
-        await StartTestHostAsync().ConfigureAwait(false);
-
-        await VerifyAppListeningAsync().ConfigureAwait(false);
-
-        try {
-            StartDaprSidecar();
-
-            await WaitForDaprHealthAsync().ConfigureAwait(false);
-        }
-        catch (InvalidOperationException ex) when (IsDaprInfrastructureStartupFailure(ex)) {
-            PrerequisitesAvailable = false;
-            SkipReason = "Dapr sidecar infrastructure startup failed. Ensure Redis, placement, and scheduler are healthy before running these tests."
-                + Environment.NewLine
-                + ToSupportSafeDiagnostic(ex.Message);
-            await DisposeAsync().ConfigureAwait(false);
-            return;
-        }
-
-        // Let sidecar complete actor registration with placement service.
-        await Task.Delay(2000).ConfigureAwait(false);
-
-        await VerifyAppListeningAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Skips the current test when local DAPR prerequisites were not available during fixture startup.
-    /// </summary>
-    public void SkipIfUnavailable() {
-        if (!PrerequisitesAvailable) {
-            Assert.Skip(SkipReason ?? DaprTestPrerequisites.SkipReason);
-        }
-    }
-
-    /// <inheritdoc/>
-    public async ValueTask DisposeAsync() {
-        if (_disposed) {
-            return;
-        }
-
-        _disposed = true;
-
-        if (_testHost is not null) {
-            await _testHost.StopAsync().ConfigureAwait(false);
-            await _testHost.DisposeAsync().ConfigureAwait(false);
-        }
-
-        if (_daprProcess is not null && !_daprProcess.HasExited) {
-            _daprProcess.Kill(entireProcessTree: true);
-            await _daprProcess.WaitForExitAsync().ConfigureAwait(false);
-        }
-
-        _daprProcess?.Dispose();
-
-        if (_componentsDir is not null && Directory.Exists(_componentsDir)) {
-            try {
-                Directory.Delete(_componentsDir, recursive: true);
-            }
-            catch {
-                // Best-effort cleanup
-            }
-        }
-
-        Environment.SetEnvironmentVariable("DAPR_HTTP_PORT", _previousDaprHttpPort);
-        Environment.SetEnvironmentVariable("DAPR_GRPC_PORT", _previousDaprGrpcPort);
-
-        _daprFixtureLock?.Dispose();
-    }
-
-    private void AcquireDaprFixtureLock() {
-        string lockPath = Path.Combine(Path.GetTempPath(), "hexalith-tenants-dapr-fixture.lock");
-        while (true) {
-            try {
-                _daprFixtureLock = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-                return;
-            }
-            catch (IOException) {
-                Thread.Sleep(250);
-            }
-        }
-    }
-
-    private static async Task<IReadOnlyList<string>> GetPrerequisiteFailuresAsync() {
-        var failures = new List<string>();
-
-        if (!await IsRedisResponsiveAsync().ConfigureAwait(false)) {
-            failures.Add($"Redis is not responding to PING on localhost:{RedisPort}");
-        }
-
-        if (!await IsPortReachableAsync("localhost", PlacementPort).ConfigureAwait(false)) {
-            failures.Add($"Dapr placement service is not reachable on localhost:{PlacementPort}");
-        }
-
-        if (!await IsPortReachableAsync("localhost", SchedulerPort).ConfigureAwait(false)) {
-            failures.Add($"Dapr scheduler service is not reachable on localhost:{SchedulerPort}");
-        }
-
-        return failures;
-    }
-
-    internal static string BuildPrerequisiteFailureMessage(IReadOnlyList<string> failures)
-        => "Dapr infrastructure pre-flight check failed. Have you run 'dapr init'?" + Environment.NewLine
-            + string.Join(Environment.NewLine, failures.Select(f => $"  - {f}"));
-
-    private static async Task<bool> IsPortReachableAsync(string host, int port) {
-        try {
-            using var client = new TcpClient();
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await client.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
-            return true;
-        }
-        catch {
-            return false;
-        }
-    }
-
-    private static async Task<bool> IsRedisResponsiveAsync() {
-        try {
-            using var client = new TcpClient();
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await client.ConnectAsync("localhost", RedisPort, cts.Token).ConfigureAwait(false);
-            await using NetworkStream stream = client.GetStream();
-            byte[] ping = Encoding.ASCII.GetBytes("*1\r\n$4\r\nPING\r\n");
-            await stream.WriteAsync(ping, cts.Token).ConfigureAwait(false);
-
-            byte[] buffer = new byte[16];
-            int total = 0;
-            while (total < 5) {
-                int chunk = await stream.ReadAsync(buffer.AsMemory(total), cts.Token).ConfigureAwait(false);
-                if (chunk <= 0) {
-                    break;
-                }
-
-                total += chunk;
-            }
-
-            return total >= 5 && Encoding.ASCII.GetString(buffer, 0, total).StartsWith("+PONG", StringComparison.Ordinal);
-        }
-        catch {
-            return false;
-        }
-    }
-
-    internal static bool IsDaprInfrastructureStartupFailure(InvalidOperationException exception) {
-        // Match infrastructure-startup signatures specifically — broad substrings like
-        // "statestore" alone over-match and would silently turn unrelated test failures
-        // into prerequisite skips.
-        string message = exception.Message;
-        return message.Contains("daprd exited", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("Dapr sidecar did not become healthy", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("state.redis", StringComparison.OrdinalIgnoreCase)
-            || (message.Contains("statestore", StringComparison.OrdinalIgnoreCase)
-                && message.Contains("init timeout", StringComparison.OrdinalIgnoreCase));
-    }
-
-    internal static string ToSupportSafeDiagnostic(string value) {
-        string result = value;
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+",
-            "[redacted-jwt]");
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"Bearer\s+[A-Za-z0-9._~+/=-]{20,}",
-            "Bearer [redacted-token]",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"(?:AccountKey|SharedAccessKey|Password)\s*=\s*[^;\s\r\n]+",
-            "[redacted-secret]",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"(redisPassword[^\r\n:=]*[:=]\s*)([^{}\s\r\n]+)",
-            "$1{redacted-secret}",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"(redis://|amqp://|Endpoint=sb://)[^\s\r\n]+",
-            "[redacted-connection]",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"(?<!localhost:)(?<!127\.0\.0\.1:)\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b",
-            "[redacted-private-address]");
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"https?://(?!(?:localhost|127\.0\.0\.1)(?::|/|\b))[^\s\r\n]+",
-            "[redacted-url]",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
-            "[redacted-email]",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        result = System.Text.RegularExpressions.Regex.Replace(
-            result,
-            @"\b(tenantId|tenant|userId|user|sub|subject)\s*[:=]\s*['""]?[A-Za-z0-9._@%+-]{3,}['""]?",
-            "$1=[redacted-id]",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        return result;
-    }
-
-    private async Task StartTestHostAsync() {
-        WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions());
-
-        // Configure DAPR ports for actor runtime
-        builder.Configuration["DAPR_HTTP_PORT"] = _daprHttpPort.ToString();
-        builder.Configuration["DAPR_GRPC_PORT"] = _daprGrpcPort.ToString();
-        builder.Configuration["Dapr:HttpPort"] = _daprHttpPort.ToString();
-        builder.Configuration["Dapr:GrpcPort"] = _daprGrpcPort.ToString();
-
-        // Configure domain service registration: system|tenants|v1 → self (commandapi)
-        builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:AppId"] = AppId;
-        builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:MethodName"] = "process";
-        builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:TenantId"] = "system";
-        builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:Domain"] = "tenants";
-        builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:Version"] = "v1";
-        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:AppId"] = AppId;
-        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:MethodName"] = "process";
-        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:TenantId"] = "system";
-        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Domain"] = TenantIdentity.GlobalAdministratorsDomain;
-        builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Version"] = "v1";
-
-        // Configure pub/sub name for event publisher
-        builder.Configuration["EventStore:Publisher:PubSubName"] = "pubsub";
-        builder.Configuration["EventStore:Publisher:TopicOverrides:global-administrators"] = "tenants.events";
+        // Configure pub/sub name for event publisher.
+        configuration["EventStore:Publisher:PubSubName"] = PubSubName;
+        configuration["EventStore:Publisher:TopicOverrides:global-administrators"] = "tenants.events";
         EventPublisher.TopicOverrides[TenantIdentity.GlobalAdministratorsDomain] = "tenants.events";
 
         // Speed up drain recovery for tests (default is 30s initial / 60s period).
         // Keeps DrainRecovery_PublishesPendingEvents_WhenPubSubRecovers deterministic
         // within its 90s poll budget even if the first reminder tick races ClearFailure().
-        builder.Configuration["EventStore:Drain:InitialDrainDelay"] = "00:00:05";
-        builder.Configuration["EventStore:Drain:DrainPeriod"] = "00:00:05";
+        configuration["EventStore:Drain:InitialDrainDelay"] = "00:00:05";
+        configuration["EventStore:Drain:DrainPeriod"] = "00:00:05";
+    }
 
-        _ = builder.WebHost.ConfigureKestrel(serverOptions =>
-            serverOptions.ListenLocalhost(_appPort, listenOptions =>
-                listenOptions.Protocols = HttpProtocols.Http1));
-
+    /// <inheritdoc/>
+    protected override void ConfigureDomainServices(IServiceCollection services, IConfiguration configuration) {
         // Register publisher fakes BEFORE AddEventStoreServer (TryAdd won't override these).
-        _ = builder.Services.AddSingleton<IEventPublisher>(EventPublisher);
-        _ = builder.Services.AddSingleton<IDeadLetterPublisher>(DeadLetterPublisher);
+        _ = services.AddSingleton<IEventPublisher>(EventPublisher);
+        _ = services.AddSingleton<IDeadLetterPublisher>(DeadLetterPublisher);
 
-        // Register DAPR client and EventStore server infrastructure (actors, command routing, REAL domain service invoker)
-        builder.Services.AddDaprClient();
-        _ = builder.Services.AddEventStoreServer(builder.Configuration);
-        _ = builder.Services.RemoveAll<ICommandStatusStore>();
-        _ = builder.Services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
+        // Register DAPR client and EventStore server infrastructure (actors, command routing, REAL domain service invoker).
+        services.AddDaprClient();
+        _ = services.AddEventStoreServer(configuration);
+        _ = services.RemoveAll<ICommandStatusStore>();
+        _ = services.AddSingleton<ICommandStatusStore>(CommandStatusStore);
 
         // Register real domain processors (TenantAggregate, GlobalAdministratorsAggregate). The keyed
         // IDomainProcessor registrations back the SDK /process router (DomainServiceRequestRouter).
-        _ = builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
+        _ = services.AddEventStore(typeof(TenantAggregate).Assembly);
 
-        _ = builder.Services.AddDataProtection()
+        _ = services.AddDataProtection()
             .SetApplicationName("Hexalith.Tenants.IntegrationTests");
-        builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+        services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+    }
 
-        _testHost = builder.Build();
-
-        // Map endpoints
-        _ = _testHost.MapActorsHandlers();
-        _ = _testHost.MapPost("/process", async (
+    /// <inheritdoc/>
+    protected override void MapDomainEndpoints(WebApplication app) {
+        _ = app.MapPost("/process", async (
             DomainServiceRequest request,
             IServiceProvider serviceProvider,
             ILogger<TenantsDaprTestFixture> logger) => {
@@ -404,296 +100,14 @@ public sealed class TenantsDaprTestFixture : IAsyncLifetime {
                     return Microsoft.AspNetCore.Http.Results.Ok(result);
                 }
                 catch (Exception ex) {
-                    LastProcessException = ex;
-                    LastProcessDiagnostic = $"Domain processing failed for command type {request.Command.CommandType}.";
-                    Console.Error.WriteLine($"[DAPR-TEST] /process 500. {LastProcessDiagnostic}");
+                    string diagnostic = $"Domain processing failed for command type {request.Command.CommandType}.";
+                    RecordProcessFailure(ex, diagnostic);
+                    Console.Error.WriteLine($"[DAPR-TEST] /process 500. {diagnostic}");
                     logger.LogError("Domain processing failed for command type {CommandType}.", request.Command.CommandType);
                     return Microsoft.AspNetCore.Http.Results.Problem(
-                        detail: LastProcessDiagnostic,
+                        detail: diagnostic,
                         statusCode: 500);
                 }
             });
-        _ = _testHost.MapGet("/healthz", () => Microsoft.AspNetCore.Http.Results.Ok("healthy"));
-
-        await _testHost.StartAsync().ConfigureAwait(false);
-
-        IServer server = _testHost.Services.GetRequiredService<IServer>();
-        ICollection<string>? addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses;
-        if (addresses is null || addresses.Count == 0) {
-            throw new InvalidOperationException(
-                $"Kestrel did not bind to any addresses. Expected port {_appPort}.");
-        }
-    }
-
-    private void StartDaprSidecar() {
-        string daprdPath = ResolveDaprdPath();
-
-        _daprProcess = new Process {
-            StartInfo = new ProcessStartInfo {
-                FileName = daprdPath,
-                Arguments = string.Join(' ',
-                    "--app-id", AppId,
-                    "--app-port", _appPort.ToString(),
-                    "--app-protocol", "http",
-                    "--app-channel-address", "127.0.0.1",
-                    "--dapr-http-port", _daprHttpPort.ToString(),
-                    "--dapr-grpc-port", _daprGrpcPort.ToString(),
-                    "--dapr-internal-grpc-port", _daprInternalGrpcPort.ToString(),
-                    "--metrics-port", _daprMetricsPort.ToString(),
-                    "--profile-port", _daprProfilePort.ToString(),
-                    "--resources-path", $"\"{_componentsDir}\"",
-                    "--log-level", "info",
-                    "--placement-host-address", $"localhost:{PlacementPort}",
-                    "--scheduler-host-address", $"localhost:{SchedulerPort}"),
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-            },
-            EnableRaisingEvents = true,
-        };
-
-        _daprProcess.OutputDataReceived += (_, e) => {
-            if (e.Data is not null) {
-                lock (_daprStdout) {
-                    _ = _daprStdout.AppendLine(e.Data);
-                }
-            }
-        };
-
-        _daprProcess.ErrorDataReceived += (_, e) => {
-            if (e.Data is not null) {
-                lock (_daprStderr) {
-                    _ = _daprStderr.AppendLine(e.Data);
-                }
-            }
-        };
-
-        _ = _daprProcess.Start();
-        _daprProcess.BeginOutputReadLine();
-        _daprProcess.BeginErrorReadLine();
-
-        if (_daprProcess.HasExited) {
-            throw new InvalidOperationException(
-                $"daprd exited immediately with code {_daprProcess.ExitCode}.\nstderr: {GetCapturedStderr()}");
-        }
-    }
-
-    private static string CreateComponentFiles() {
-        string tempDir = Path.Combine(Path.GetTempPath(), $"dapr-tenants-{Guid.NewGuid():N}");
-        _ = Directory.CreateDirectory(tempDir);
-
-        string stateStoreYaml = $$"""
-            apiVersion: dapr.io/v1alpha1
-            kind: Component
-            metadata:
-              name: statestore
-            spec:
-              type: state.redis
-              version: v1
-              metadata:
-                - name: redisHost
-                  value: "localhost:{{RedisPort}}"
-                - name: redisPassword
-                  value: ""
-                - name: actorStateStore
-                  value: "true"
-            scopes:
-              - commandapi
-            """;
-
-        string pubSubYaml = $$"""
-            apiVersion: dapr.io/v1alpha1
-            kind: Component
-            metadata:
-              name: pubsub
-            spec:
-              type: pubsub.redis
-              version: v1
-              metadata:
-                - name: redisHost
-                  value: "localhost:{{RedisPort}}"
-                - name: redisPassword
-                  value: ""
-                - name: enableDeadLetter
-                  value: "true"
-                - name: deadLetterTopic
-                  value: "deadletter.tenants.events"
-            scopes:
-              - commandapi
-            """;
-
-        File.WriteAllText(Path.Combine(tempDir, "statestore.yaml"), stateStoreYaml);
-        File.WriteAllText(Path.Combine(tempDir, "pubsub.yaml"), pubSubYaml);
-
-        return tempDir;
-    }
-
-    private async Task WaitForDaprHealthAsync() {
-        using var httpClient = new HttpClient();
-        string healthUrl = $"{DaprHttpEndpoint}/v1.0/healthz/outbound";
-
-        HttpStatusCode lastStatus = default;
-        string? lastError = null;
-
-        for (int i = 0; i < HealthTimeoutSeconds; i++) {
-            if (_daprProcess?.HasExited == true) {
-                throw new InvalidOperationException(
-                    $"daprd exited with code {_daprProcess.ExitCode} during health check.\n" +
-                    $"stdout:\n{GetCapturedStdout()}\n" +
-                    $"stderr:\n{GetCapturedStderr()}");
-            }
-
-            try {
-                HttpResponseMessage response = await httpClient.GetAsync(healthUrl).ConfigureAwait(false);
-                lastStatus = response.StatusCode;
-                if (response.IsSuccessStatusCode) {
-                    return;
-                }
-            }
-            catch (HttpRequestException ex) {
-                lastError = ex.Message;
-            }
-
-            await Task.Delay(1000).ConfigureAwait(false);
-        }
-
-        throw new InvalidOperationException(
-            $"Dapr sidecar did not become healthy within {HealthTimeoutSeconds} seconds.\n" +
-            $"Health endpoint: {healthUrl}\n" +
-            $"Last HTTP status: {lastStatus}\n" +
-            $"Last connection error: {lastError ?? "(none)"}\n" +
-            $"Ports: app={_appPort}, daprHttp={_daprHttpPort}, daprGrpc={_daprGrpcPort}\n" +
-            $"--- daprd stdout (last 2000 chars) ---\n{TailString(GetCapturedStdout(), 2000)}\n" +
-            $"--- daprd stderr (last 2000 chars) ---\n{TailString(GetCapturedStderr(), 2000)}");
-    }
-
-    private async Task VerifyAppListeningAsync() {
-        using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-        string healthUrl = $"http://127.0.0.1:{_appPort}/healthz";
-        string? lastError = null;
-
-        for (int i = 0; i < 30; i++) {
-            try {
-                _ = await httpClient.GetAsync(healthUrl).ConfigureAwait(false);
-                return;
-            }
-            catch (HttpRequestException ex) {
-                lastError = ex.Message;
-            }
-            catch (TaskCanceledException) {
-                lastError = "Request timed out";
-            }
-
-            await Task.Delay(200).ConfigureAwait(false);
-        }
-
-        throw new InvalidOperationException(
-            $"Test host HTTP check failed on http://127.0.0.1:{_appPort} after 30 attempts.\n" +
-            $"Last HTTP error: {lastError}");
-    }
-
-    private static void KillOrphanedDaprdProcesses() {
-        if (Environment.GetEnvironmentVariable("DAPR_TEST_PRESERVE_SIDECARS") == "1") {
-            return;
-        }
-
-        try {
-            foreach (Process process in Process.GetProcessesByName("daprd")) {
-                try {
-                    string? cmdLine = GetProcessCommandLine(process);
-                    if (cmdLine is null || !cmdLine.Contains(AppId, StringComparison.OrdinalIgnoreCase)) {
-                        process.Dispose();
-                        continue;
-                    }
-
-                    process.Kill(entireProcessTree: true);
-                    _ = process.WaitForExit(5000);
-                }
-                catch {
-                    // Best-effort cleanup
-                }
-                finally {
-                    process.Dispose();
-                }
-            }
-        }
-        catch {
-            // Best-effort cleanup
-        }
-    }
-
-    private static string? GetProcessCommandLine(Process process) {
-        try {
-            if (OperatingSystem.IsWindows()) {
-                using var searcher = new Process {
-                    StartInfo = new ProcessStartInfo {
-                        FileName = "wmic",
-                        Arguments = $"process where processid={process.Id} get CommandLine /format:list",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true,
-                    },
-                };
-                _ = searcher.Start();
-                string output = searcher.StandardOutput.ReadToEnd();
-                _ = searcher.WaitForExit(3000);
-                return output;
-            }
-
-            string cmdlinePath = $"/proc/{process.Id}/cmdline";
-            if (File.Exists(cmdlinePath)) {
-                return File.ReadAllText(cmdlinePath).Replace('\0', ' ');
-            }
-        }
-        catch {
-            // Best-effort
-        }
-
-        return null;
-    }
-
-    private static string ResolveDaprdPath() {
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string candidate = Path.Combine(home, ".dapr", "bin", "daprd" + (OperatingSystem.IsWindows() ? ".exe" : string.Empty));
-
-        if (File.Exists(candidate)) {
-            return candidate;
-        }
-
-        return OperatingSystem.IsWindows() ? "daprd.exe" : "daprd";
-    }
-
-    private static int[] GetAvailablePorts(int count) {
-        var listeners = new TcpListener[count];
-        int[] ports = new int[count];
-
-        for (int i = 0; i < count; i++) {
-            listeners[i] = new TcpListener(IPAddress.Loopback, 0);
-            listeners[i].Start();
-            ports[i] = ((IPEndPoint)listeners[i].LocalEndpoint).Port;
-        }
-
-        for (int i = 0; i < count; i++) {
-            listeners[i].Stop();
-        }
-
-        return ports;
-    }
-
-    private string GetCapturedStdout() {
-        lock (_daprStdout) { return _daprStdout.ToString(); }
-    }
-
-    private string GetCapturedStderr() {
-        lock (_daprStderr) { return _daprStderr.ToString(); }
-    }
-
-    private static string TailString(string value, int maxChars) {
-        if (string.IsNullOrEmpty(value) || value.Length <= maxChars) {
-            return value;
-        }
-
-        return "..." + value[^maxChars..];
     }
 }
