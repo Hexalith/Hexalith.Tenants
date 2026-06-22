@@ -224,10 +224,18 @@ public class CiQualityGateScriptTests {
     // Mirrors EXPECTED_DEPENDENCIES in scripts/validate-nuget-packages.py so synthetic fixtures satisfy the
     // dependency-boundary validation added in Story 1.4 and keep isolating license/symbol/version behavior.
     private static readonly Dictionary<string, string[]> ExpectedDependencies = new(StringComparer.Ordinal) {
-        ["Hexalith.Tenants.Contracts"] = ["Hexalith.EventStore.Contracts"],
-        ["Hexalith.Tenants.Client"] = ["Dapr.AspNetCore", "Hexalith.Tenants.Contracts"],
+        ["Hexalith.Tenants.Contracts"] = ["ByteAether.Ulid", "Hexalith.EventStore.Contracts"],
+        ["Hexalith.Tenants.Client"] =
+        [
+            "ByteAether.Ulid",
+            "Dapr.AspNetCore",
+            "Dapr.Client",
+            "Hexalith.EventStore.Client",
+            "Hexalith.Tenants.Contracts",
+        ],
         ["Hexalith.Tenants.Server"] =
         [
+            "ByteAether.Ulid",
             "Dapr.Actors",
             "Dapr.Actors.AspNetCore",
             "Dapr.Client",
@@ -235,8 +243,32 @@ public class CiQualityGateScriptTests {
             "Hexalith.EventStore.Server",
             "Hexalith.Tenants.Contracts",
             "MediatR",
+            "Microsoft.Extensions.Configuration.Binder",
+            "Microsoft.Extensions.Hosting.Abstractions",
+            "Microsoft.IdentityModel.Abstractions",
+            "Microsoft.IdentityModel.JsonWebTokens",
+            "Microsoft.IdentityModel.Logging",
+            "Microsoft.IdentityModel.Tokens",
         ],
-        ["Hexalith.Tenants.Testing"] = ["Hexalith.Tenants.Contracts", "Hexalith.Tenants.Server", "Shouldly", "xunit.v3.assert"],
+        ["Hexalith.Tenants.Testing"] =
+        [
+            "ByteAether.Ulid",
+            "Dapr.Actors",
+            "Dapr.Actors.AspNetCore",
+            "Dapr.Client",
+            "FluentValidation",
+            "Hexalith.Tenants.Contracts",
+            "Hexalith.Tenants.Server",
+            "MediatR",
+            "Microsoft.Extensions.Configuration.Binder",
+            "Microsoft.Extensions.Hosting.Abstractions",
+            "Microsoft.IdentityModel.Abstractions",
+            "Microsoft.IdentityModel.JsonWebTokens",
+            "Microsoft.IdentityModel.Logging",
+            "Microsoft.IdentityModel.Tokens",
+            "Shouldly",
+            "xunit.v3.assert",
+        ],
     };
 
     private static string CoverageClass(string filename, string[] lines)

@@ -20,13 +20,22 @@ EXPECTED_PACKAGE_IDS = frozenset({
 
 EXPECTED_DEPENDENCIES = {
     "Hexalith.Tenants.Contracts": frozenset({
+        # ByteAether.Ulid flows transitively from Hexalith.EventStore.Contracts (ULID identifiers).
+        "ByteAether.Ulid",
         "Hexalith.EventStore.Contracts",
     }),
     "Hexalith.Tenants.Client": frozenset({
+        # The client integrates the EventStore platform client for tenant event handling
+        # (ea20e58), so its published dependency surface includes Hexalith.EventStore.Client
+        # and that package's transitive Dapr.Client / ByteAether.Ulid dependencies.
+        "ByteAether.Ulid",
         "Dapr.AspNetCore",
+        "Dapr.Client",
+        "Hexalith.EventStore.Client",
         "Hexalith.Tenants.Contracts",
     }),
     "Hexalith.Tenants.Server": frozenset({
+        "ByteAether.Ulid",
         "Dapr.Actors",
         "Dapr.Actors.AspNetCore",
         "Dapr.Client",
@@ -34,10 +43,32 @@ EXPECTED_DEPENDENCIES = {
         "Hexalith.EventStore.Server",
         "Hexalith.Tenants.Contracts",
         "MediatR",
+        # JWT bearer authentication wiring (commit 04a321b) + configuration/hosting binders.
+        "Microsoft.Extensions.Configuration.Binder",
+        "Microsoft.Extensions.Hosting.Abstractions",
+        "Microsoft.IdentityModel.Abstractions",
+        "Microsoft.IdentityModel.JsonWebTokens",
+        "Microsoft.IdentityModel.Logging",
+        "Microsoft.IdentityModel.Tokens",
     }),
     "Hexalith.Tenants.Testing": frozenset({
+        # The testing helpers reference Hexalith.Tenants.Server, so its full dependency surface
+        # (Dapr.*, FluentValidation, MediatR, ByteAether.Ulid, Microsoft.IdentityModel/Extensions.*)
+        # flows through transitively in addition to the test frameworks.
+        "ByteAether.Ulid",
+        "Dapr.Actors",
+        "Dapr.Actors.AspNetCore",
+        "Dapr.Client",
+        "FluentValidation",
         "Hexalith.Tenants.Contracts",
         "Hexalith.Tenants.Server",
+        "MediatR",
+        "Microsoft.Extensions.Configuration.Binder",
+        "Microsoft.Extensions.Hosting.Abstractions",
+        "Microsoft.IdentityModel.Abstractions",
+        "Microsoft.IdentityModel.JsonWebTokens",
+        "Microsoft.IdentityModel.Logging",
+        "Microsoft.IdentityModel.Tokens",
         "Shouldly",
         "xunit.v3.assert",
     }),
