@@ -102,9 +102,10 @@ _ = adminUI
     .WithExternalHttpEndpoints();
 
 // Memories search-index server (O4): the Tenants list searches the curated tenants-index. The reusable
-// Memories hosting recipe (FalkorDB graph store + secret store + conversation component + the memories-server
-// project and its Dapr sidecar on a unique HTTP port) now lives in the Hexalith.Memories.Aspire platform
-// library; this AppHost owns only the component YAML paths and the Tenants-specific source->index routing.
+// Memories hosting recipe (memories-vectors Redis Stack store + memories-graphs FalkorDB store + secret store
+// + conversation component + the memories project and its Dapr sidecar on a unique HTTP port) now lives in the
+// Hexalith.Memories.Aspire platform library; this AppHost owns only the component YAML paths and the
+// Tenants-specific source->index routing.
 // End-to-end ingestion/search is gated on the Memories handoff (memories-search-index-handoff-2026-06-21.md).
 string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
 string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
@@ -114,9 +115,10 @@ HexalithMemoriesSearchIndexServerResources memories = builder.AddHexalithMemorie
     eventStoreResources.PubSub,
     memoriesSecretStorePath,
     memoriesLlmConfigPath,
+    serverName: "memories",
     daprPlacementHostAddress: daprPlacementHostAddress,
     daprSchedulerHostAddress: daprSchedulerHostAddress);
-IResourceBuilder<ProjectResource> memoriesServer = memories.Server
+IResourceBuilder<ProjectResource> memoriesService = memories.Server
     // Route the Tenants producer's CloudEvents (source "hexalith-tenants") into the curated tenants-index
     // partition, and auto-provision that index tenant at startup so it is Active before the first event
     // arrives (otherwise the router drops SearchIndexEntryChanged as TenantNotFound). Memories handoff §3.1.
@@ -126,15 +128,15 @@ IResourceBuilder<ProjectResource> memoriesServer = memories.Server
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(tenants)
     .WithReference(eventStore)
-    .WithReference(memoriesServer)
+    .WithReference(memoriesService)
     .WaitFor(tenants)
     .WaitFor(eventStore)
-    .WaitFor(memoriesServer)
+    .WaitFor(memoriesService)
     .WithEnvironment("Tenants__BaseAddress", tenantsHttps)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
     // Aspire service discovery (not a hardcoded :5000); the BFF reads Memories:BaseAddress and calls
     // AddMemoriesClient. Memories.Server exposes only an http endpoint.
-    .WithEnvironment("Memories__BaseAddress", memoriesServer.GetEndpoint("http"))
+    .WithEnvironment("Memories__BaseAddress", memoriesService.GetEndpoint("http"))
     .WithExternalHttpEndpoints();
 
 // Add the Sample consuming service (a pub/sub subscriber) via the platform domain-module extension.
