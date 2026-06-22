@@ -10,8 +10,9 @@ This file is now a routing index. Original review detail remains in the source s
 ## 2026-06-21 Correct Course — Deferred + Pending Work Implemented
 
 Administrator approved implementing every remaining deferred/pending item, including crossing the
-submodule boundary for the owner handoffs. Outcome of this run (all changes verified building/green;
-submodule edits are owner-approved and live in the working tree pending the commit/push step):
+submodule boundary for the owner handoffs. Outcome of this run (all changes verified building/green
+and **committed + pushed**: FrontComposer `main` → `c6c3c39`, EventStore `main` → `5613fed4`,
+Tenants branch `correct-course/2026-06-21-deferred-and-pending-work` → `62a94b0`):
 
 - **FrontComposer owner handoff** `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening` — **IMPLEMENTED** in `Hexalith.FrontComposer`. `FcPageHeader` no longer emits a competing `banner` (header root is `role="presentation"`); `FrontComposerShell` exposes `ContentLabel`/`ContentLabelledBy` + a new `FcContentLabel` marker so a page can name the shell `main` landmark without an orphaned page-level `aria-labelledby`; blank `Heading` now fail-safes (no dangling `<h1>`, replacing the prior throw); `FocusHeadingAsync()` fails diagnostically when the heading is not focusable. Backward-compatible (new params default to null). FrontComposer Shell suite 1962/0 failed.
 - **EventStore owner handoff** `eventstore-2026-06-19-admin-ui-and-query-record-followup` — **IMPLEMENTED** (Admin.UI a11y portion) in `Hexalith.EventStore`: `Index.razor` stat cards, `ActivityChart` (`role="group"` + real `<button>` bars), `StorageTreemap` (focusable `role="button"` cells), `RelatedTypeList`, `TypeDetailPanel`, `DaprHealthHistory`, and non-functional `cursor:pointer` spans on `Commands.razor`/`Events.razor` all remediated; conformance carve-out comment updated. The retired actor-routing sub-item was already verified stale/resolved (see below). Admin.UI.Tests green except 6 pre-existing unrelated `Dw5GovernanceAtddTests` (missing DW5 evidence artifact, not introduced here).
@@ -90,7 +91,7 @@ Current resolution summary:
 
 ### FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`
 
-Status: **IMPLEMENTED 2026-06-21** in the `Hexalith.FrontComposer` submodule under Administrator approval (see the run summary at the top). Changes live in the submodule working tree pending commit + gitlink pointer update + push.
+Status: **IMPLEMENTED 2026-06-21** in the `Hexalith.FrontComposer` submodule under Administrator approval (see the run summary at the top). Committed + pushed (FrontComposer `main` → `c6c3c39`).
 Source proposal section: `5.5 FrontComposer Owner Handoff`.
 
 Requested outcomes:
@@ -108,7 +109,7 @@ Related prior audit handoffs:
 
 ### EventStore owner: `eventstore-2026-06-19-admin-ui-and-query-record-followup`
 
-Status: **IMPLEMENTED 2026-06-21** (Admin.UI a11y portion) in the `Hexalith.EventStore` submodule under Administrator approval. The actor-routing sub-item was already verified stale/resolved (see Stale or Resolved Records). Changes live in the submodule working tree pending commit + pointer update + push.
+Status: **IMPLEMENTED 2026-06-21** (Admin.UI a11y portion) in the `Hexalith.EventStore` submodule under Administrator approval. The actor-routing sub-item was already verified stale/resolved (see Stale or Resolved Records). Committed + pushed (EventStore `main` → `5613fed4`).
 Source proposal section: `5.6 EventStore Owner Handoff`.
 
 Requested outcomes:
@@ -118,7 +119,7 @@ Requested outcomes:
 
 ### EventStore owner: `eventstore-2026-06-19-read-model-freshness-metadata`
 
-Status: **IMPLEMENTED 2026-06-21** in the `Hexalith.EventStore.Client.Projections` namespace under Administrator approval (`IReadModelFreshness` + `ReadModelFreshness*` types + `IReadModelStore.GetWithFreshnessAsync<T>()`/`ToQueryResponseMetadata()`). Changes live in the submodule working tree pending commit + pointer update + push. Tenants-UI adoption (replace the hand-rolled `TenantFreshnessState` with this shared surface) remains a follow-up.
+Status: **IMPLEMENTED 2026-06-21** in the `Hexalith.EventStore.Client.Projections` namespace under Administrator approval (`IReadModelFreshness` + `ReadModelFreshness*` types + `IReadModelStore.GetWithFreshnessAsync<T>()`/`ToQueryResponseMetadata()`). Committed + pushed (EventStore `main` → `5613fed4`). Tenants-UI adoption (replace the hand-rolled `TenantFreshnessState` with this shared surface) remains a follow-up.
 Source story: `cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`.
 
 Requested outcomes:

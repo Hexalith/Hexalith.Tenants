@@ -168,8 +168,9 @@ development_status:
   # Approved by Administrator: implement ALL remaining deferred/pending work, including crossing the
   # submodule boundary for the owner handoffs.
   # Proposal: sprint-change-proposal-2026-06-21-deferred-and-pending-work-implementation.md
-  # All implemented + verified building/green; submodule edits are owner-approved and live in the
-  # working tree pending the commit + gitlink pointer update + push step (NOT yet pushed).
+  # All implemented + verified building/green and COMMITTED + PUSHED:
+  #   FrontComposer main -> c6c3c39, EventStore main -> 5613fed4,
+  #   Tenants branch correct-course/2026-06-21-deferred-and-pending-work -> 62a94b0.
   cc-2026-06-21-frontcomposer-page-header-landmarks-and-contract-hardening: review
   cc-2026-06-21-eventstore-admin-ui-a11y-remediation: review
   cc-2026-06-21-eventstore-read-model-freshness-metadata: review

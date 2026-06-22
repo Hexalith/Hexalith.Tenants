@@ -110,4 +110,10 @@ Scope: **Moderate**. All implementation is complete and verified; what remains i
 
 ## 6. Approval Decision
 
-Scope approved by Administrator on 2026-06-21 (all four workstreams + boundary crossing). The commit/push step in §5.1 awaits a separate explicit authorization.
+Scope approved by Administrator on 2026-06-21 (all four workstreams + boundary crossing). The commit/push step in §5.1 was then authorized and executed with submodule-first pointer consistency:
+
+- FrontComposer `main` → `c6c3c39` (pushed)
+- EventStore `main` → `5613fed4` (pushed; 3 focused commits: Admin.UI a11y, read-model freshness, Dapr DataProtection)
+- Tenants branch `correct-course/2026-06-21-deferred-and-pending-work` → `62a94b0` (pushed; gitlink pointers advanced to the two pushed submodule commits). PR can be opened at the GitHub branch URL.
+
+Remaining non-blocking follow-up: adopt the new `IReadModelFreshness` surface in the Tenants UI to retire the hand-rolled `TenantFreshnessState`.
