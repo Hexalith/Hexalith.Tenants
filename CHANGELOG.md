@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.0.1...v2.0.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* update subproject commit reference for Hexalith.EventStore ([7b20767](https://github.com/Hexalith/Hexalith.Tenants/commit/7b207670e094fc59b59ab9e14e1ebd0e2df8d5a6))
+
 ## [2.0.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.0.0...v2.0.1) (2026-06-22)
 
 
