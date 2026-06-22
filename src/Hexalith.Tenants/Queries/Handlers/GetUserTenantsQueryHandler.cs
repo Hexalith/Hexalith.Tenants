@@ -37,7 +37,7 @@ public sealed class GetUserTenantsQueryHandler(
         // This complements D11 response-body uniformity by closing a timing-based user-enumeration oracle.
         bool isSelfLookup = string.Equals(targetUserId, envelope.UserId, StringComparison.Ordinal);
         bool canViewAllTargetTenants = isSelfLookup
-            || await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false);
+            || await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
 
         (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
         string scope = TenantQueryCursorScopes.GetUserTenants(envelope.UserId, targetUserId);

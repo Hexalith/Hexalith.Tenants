@@ -48,7 +48,7 @@ public sealed class GetGlobalAdministratorsQueryHandler(
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (model is null || !model.Administrators.Contains(envelope.UserId)) {
+        if (model is null || (!envelope.IsGlobalAdmin && !model.Administrators.Contains(envelope.UserId))) {
             return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 

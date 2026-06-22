@@ -23,7 +23,7 @@ public sealed class GetTenantAuditQueryHandler(
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         // CRITICAL: Check GlobalAdmin FIRST — non-admins must get 403, not 501
-        if (!await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false)) {
+        if (!await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 

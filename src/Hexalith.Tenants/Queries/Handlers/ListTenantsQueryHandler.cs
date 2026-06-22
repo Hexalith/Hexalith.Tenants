@@ -40,7 +40,7 @@ public sealed class ListTenantsQueryHandler(
             return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexEntry?.ETag);
         }
 
-        bool isGlobalAdmin = await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false);
+        bool isGlobalAdmin = await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         IEnumerable<KeyValuePair<string, TenantIndexEntry>> tenants;

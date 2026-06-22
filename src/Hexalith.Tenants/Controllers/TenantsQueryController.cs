@@ -65,7 +65,8 @@ public sealed partial class TenantsQueryController(
             payload: [],
             correlationId: GetCorrelationId(),
             userId: userId,
-            entityId: tenantId);
+            entityId: tenantId,
+            isGlobalAdmin: IsGlobalAdministrator());
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
@@ -135,7 +136,8 @@ public sealed partial class TenantsQueryController(
             payload: payloadBytes,
             correlationId: correlationId,
             userId: userId,
-            entityId: tenantId);
+            entityId: tenantId,
+            isGlobalAdmin: IsGlobalAdministrator());
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
@@ -186,7 +188,8 @@ public sealed partial class TenantsQueryController(
             payload: payloadBytes,
             correlationId: correlationId,
             userId: userId,
-            entityId: tenantId);
+            entityId: tenantId,
+            isGlobalAdmin: IsGlobalAdministrator());
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
@@ -236,7 +239,8 @@ public sealed partial class TenantsQueryController(
             payload: payloadBytes,
             correlationId: correlationId,
             userId: authenticatedUserId,
-            entityId: userId);
+            entityId: userId,
+            isGlobalAdmin: IsGlobalAdministrator());
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
@@ -282,7 +286,8 @@ public sealed partial class TenantsQueryController(
             payload: payloadBytes,
             correlationId: correlationId,
             userId: userId,
-            entityId: TenantIdentity.GlobalAdministratorsAggregateId);
+            entityId: TenantIdentity.GlobalAdministratorsAggregateId,
+            isGlobalAdmin: IsGlobalAdministrator());
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
@@ -326,7 +331,8 @@ public sealed partial class TenantsQueryController(
             payload: payloadBytes,
             correlationId: correlationId,
             userId: userId,
-            entityId: userId);
+            entityId: userId,
+            isGlobalAdmin: IsGlobalAdministrator());
 
         return await DispatchAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
@@ -440,6 +446,9 @@ public sealed partial class TenantsQueryController(
 
     private string GetCorrelationId()
         => Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+
+    private bool IsGlobalAdministrator()
+        => GlobalAdministratorHelper.IsGlobalAdministrator(User);
 
     private void ApplyFreshnessHeaders(QueryResponseMetadata metadata) {
         if (!string.IsNullOrWhiteSpace(metadata.ETag)) {

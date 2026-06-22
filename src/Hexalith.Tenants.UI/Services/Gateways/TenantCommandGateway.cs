@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -599,7 +600,9 @@ internal sealed class TenantCommandGateway(
         || Contains(exception.Reason, "TenantAlreadyExists")
         || Contains(exception.Title, "TenantAlreadyExists")
         || Contains(exception.Type, "tenant-already-exists")
-        || Contains(exception.Detail, "TenantAlreadyExists");
+        || Contains(exception.Detail, "TenantAlreadyExists")
+        || Contains(ProblemDetailsExtension(exception, GatewayProblemDetailsExtensions.RejectionType), "TenantAlreadyExists")
+        || Contains(ProblemDetailsExtension(exception, GatewayProblemDetailsExtensions.CorrectiveAction), "already exists");
 
     private static string? SafeMessageForStatus(CommandStatus status, string? rejectionEventType, string? failureReason)
         => status switch {
@@ -941,6 +944,11 @@ internal sealed class TenantCommandGateway(
 
     private static bool Contains(string? value, string expected)
         => value?.Contains(expected, StringComparison.OrdinalIgnoreCase) == true;
+
+    private static string? ProblemDetailsExtension(EventStoreGatewayException exception, string key)
+        => exception.Extensions.TryGetValue(key, out JsonElement value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
 
     private sealed record TenantCommandStatusResponse(
         string CorrelationId,

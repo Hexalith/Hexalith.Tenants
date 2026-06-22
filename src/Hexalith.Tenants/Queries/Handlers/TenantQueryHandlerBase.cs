@@ -372,12 +372,21 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             .GetAsync<TValue>(StateStoreName, key, cancellationToken)
             .ConfigureAwait(false);
 
-    private protected async Task<bool> IsAuthorizedForTenantAsync(string userId, TenantReadModel model, CancellationToken cancellationToken) {
-        if (model.Members.TryGetValue(userId, out TenantRole role) && IsConcreteTenantRole(role)) {
+    private protected async Task<bool> IsAuthorizedForTenantAsync(QueryEnvelope envelope, TenantReadModel model, CancellationToken cancellationToken) {
+        if (model.Members.TryGetValue(envelope.UserId, out TenantRole role) && IsConcreteTenantRole(role)) {
             return true;
         }
 
-        return await IsGlobalAdminAsync(userId, cancellationToken).ConfigureAwait(false);
+        return await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
+    }
+
+    private protected Task<bool> IsGlobalAdminAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
+        if (envelope.IsGlobalAdmin) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(true);
+        }
+
+        return IsGlobalAdminAsync(envelope.UserId, cancellationToken);
     }
 
     private protected async Task<bool> IsGlobalAdminAsync(string userId, CancellationToken cancellationToken) {

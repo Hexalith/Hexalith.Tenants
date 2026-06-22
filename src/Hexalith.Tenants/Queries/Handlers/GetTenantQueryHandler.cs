@@ -31,12 +31,12 @@ public sealed class GetTenantQueryHandler(
         cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null) {
-            return await IsGlobalAdminAsync(envelope.UserId, cancellationToken).ConfigureAwait(false)
+            return await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false)
                 ? new QueryResult(false, default, ErrorMessage: "Tenant not found")
                 : new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 
-        if (!await IsAuthorizedForTenantAsync(envelope.UserId, model, cancellationToken).ConfigureAwait(false)) {
+        if (!await IsAuthorizedForTenantAsync(envelope, model, cancellationToken).ConfigureAwait(false)) {
             return new QueryResult(false, default, ErrorMessage: "Forbidden");
         }
 

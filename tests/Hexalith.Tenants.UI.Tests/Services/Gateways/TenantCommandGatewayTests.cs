@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
@@ -1138,6 +1139,38 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
         safeMessage.ShouldNotContain("token", Case.Insensitive);
         safeMessage.ShouldNotContain("correlation-123", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Create_tenant_maps_problem_details_rejection_type_extension_to_duplicate_safe_text()
+    {
+        CapturingGatewayClient client = new(new EventStoreGatewayException(
+            (int)HttpStatusCode.Conflict,
+            "Domain rejection",
+            detail: "Domain rejection returned by the aggregate.",
+            extensions: new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+            {
+                [GatewayProblemDetailsExtensions.RejectionType] = JsonSerializer.SerializeToElement(
+                    "Hexalith.Tenants.Contracts.Events.Rejections.TenantAlreadyExistsRejection"),
+                [GatewayProblemDetailsExtensions.CorrectiveAction] = JsonSerializer.SerializeToElement(
+                    "Refresh the list or open the existing tenant."),
+            }));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"), new HttpClient(new StatusHandler("{}"))
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        });
+
+        TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
+            new CreateTenantCommandRequest("tenant.alpha", "Alpha", null),
+            CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        result.RejectionCode.ShouldBe("TenantAlreadyExists");
+        string safeMessage = result.SafeMessage.ShouldNotBeNull();
+        safeMessage.ShouldContain("already exists", Case.Insensitive);
+        safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        safeMessage.ShouldNotContain("token", Case.Insensitive);
+        safeMessage.ShouldNotContain("correlation", Case.Insensitive);
     }
 
     [Fact]
