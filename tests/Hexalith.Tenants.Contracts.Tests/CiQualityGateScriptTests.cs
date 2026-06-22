@@ -192,7 +192,7 @@ public class CiQualityGateScriptTests {
             $"scripts/validate-nuget-packages.py {Quote(temp.Path)}");
 
         result.ExitCode.ShouldBe(0, result.Output);
-        result.Output.ShouldContain("Validated 4 NuGet packages at version 1.2.3");
+        result.Output.ShouldContain("Validated 5 NuGet packages at version 1.2.3");
     }
 
     [Fact]
@@ -219,6 +219,7 @@ public class CiQualityGateScriptTests {
         "Hexalith.Tenants.Client",
         "Hexalith.Tenants.Server",
         "Hexalith.Tenants.Testing",
+        "Hexalith.Tenants.Aspire",
     ];
 
     // Mirrors EXPECTED_DEPENDENCIES in scripts/validate-nuget-packages.py so synthetic fixtures satisfy the
@@ -268,6 +269,21 @@ public class CiQualityGateScriptTests {
             "Microsoft.IdentityModel.Tokens",
             "Shouldly",
             "xunit.v3.assert",
+        ],
+        ["Hexalith.Tenants.Aspire"] =
+        [
+            "Aspire.Hosting",
+            "Aspire.Hosting.Redis",
+            "CommunityToolkit.Aspire.Hosting.Dapr",
+            "Hexalith.EventStore.Aspire",
+            "MessagePack",
+            "Microsoft.Extensions.Configuration.Binder",
+            "Microsoft.Extensions.Hosting",
+            "Microsoft.Extensions.Hosting.Abstractions",
+            "OpenTelemetry.Exporter.OpenTelemetryProtocol",
+            "OpenTelemetry.Extensions.Hosting",
+            "StackExchange.Redis",
+            "YamlDotNet",
         ],
     };
 

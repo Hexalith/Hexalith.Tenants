@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-22T12:00:00+02:00
+last_updated: 2026-06-22T16:00:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -194,3 +194,21 @@ development_status:
   #   (3) Tenants: commit AppHost as refactor(apphost) — NOT feat (AppHost IsPackable=false, no bump).
   # Follow-up (separate FrontComposer repo/PR, out of scope): FrontComposer.AppHost can adopt the helper.
   cc-2026-06-22-eventstore-aspire-platform-projects-helper: review
+
+  # --- Cross-cutting Correct Course 2026-06-22: per-module Memories & Tenants Aspire helpers ---
+  # Approved by Administrator (Jérôme Piquot) 2026-06-22.
+  # Proposal: sprint-change-proposal-2026-06-22-memories-tenants-aspire-helpers.md
+  # Scope: "do the same for memories and tenants" as the EventStore.Aspire helper. (1) NEW published
+  # Hexalith.Memories.Aspire (Memories submodule): AddHexalithMemoriesSearchIndexServer extracts the inline
+  # FalkorDB + secret-store + LLM + memories-server sidecar block. (2) REINSTATED published
+  # Hexalith.Tenants.Aspire (this repo): AddHexalithTenantsServer adds the Tenants server + sidecar
+  # (gateway-side domain-service registrations stay AppHost composition, mirroring the EventStore helper).
+  # Intentionally overrides the EventStore "no domain *.Aspire" rule (owner decision); restores the 5th
+  # Tenants package. Aspire resource graph unchanged (independently verified). Build/test verified:
+  # Tenants .slnx Release -warnaserror 0/0; 1831 tests pass; 5-package NuGet validation passes;
+  # Memories.Aspire 0/0 + validate-release-packages.ps1 green + release_packages_test 18/18.
+  # Bundled pre-existing-drift fix: classified src/Hexalith.Memories.Web in Memories release-packages.json.
+  # Status review (implemented locally, UNCOMMITTED):
+  #   Ordered handoff — (1) Memories: commit feat(aspire) + PUSH (reachable on remote);
+  #   (2) Tenants: bump Memories submodule pointer; (3) Tenants: commit feat(aspire) (new published package).
+  cc-2026-06-22-memories-tenants-aspire-helpers: review

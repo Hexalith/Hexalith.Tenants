@@ -16,6 +16,7 @@ EXPECTED_PACKAGE_IDS = frozenset({
     "Hexalith.Tenants.Client",
     "Hexalith.Tenants.Server",
     "Hexalith.Tenants.Testing",
+    "Hexalith.Tenants.Aspire",
 })
 
 EXPECTED_DEPENDENCIES = {
@@ -71,6 +72,23 @@ EXPECTED_DEPENDENCIES = {
         "Microsoft.IdentityModel.Tokens",
         "Shouldly",
         "xunit.v3.assert",
+    }),
+    "Hexalith.Tenants.Aspire": frozenset({
+        # AppHost-orchestration helper: depends on the EventStore platform Aspire library plus the Aspire/DAPR
+        # hosting surface. The transitive Aspire/OpenTelemetry/Redis/YamlDotNet/Microsoft.Extensions closure is
+        # promoted to direct package dependencies by CentralPackageTransitivePinningEnabled.
+        "Aspire.Hosting",
+        "Aspire.Hosting.Redis",
+        "CommunityToolkit.Aspire.Hosting.Dapr",
+        "Hexalith.EventStore.Aspire",
+        "MessagePack",
+        "Microsoft.Extensions.Configuration.Binder",
+        "Microsoft.Extensions.Hosting",
+        "Microsoft.Extensions.Hosting.Abstractions",
+        "OpenTelemetry.Exporter.OpenTelemetryProtocol",
+        "OpenTelemetry.Extensions.Hosting",
+        "StackExchange.Redis",
+        "YamlDotNet",
     }),
 }
 

@@ -38,32 +38,39 @@ public class EventPublicationConfigurationTests {
 
     [Fact]
     public void AppHost_DaprTopology_UsesPlatformDomainModuleExtensionAndStableResourceNames() {
-        // The per-domain Hexalith.Tenants.Aspire re-implementation was removed; the AppHost now consumes the
-        // platform Aspire boilerplate (Hexalith.EventStore.Aspire): AddHexalithEventStore wires the shared
-        // state store + pub/sub + sidecars, and AddEventStoreDomainModule attaches each domain service (A4).
+        // The AppHost composes the platform Aspire helpers instead of hand-rolling per-domain wiring:
+        // AddHexalithEventStorePlatformProjects + AddHexalithEventStore wire the shared EventStore topology;
+        // AddHexalithTenantsServer (Hexalith.Tenants.Aspire) adds the Tenants service runtime (server + sidecar);
+        // and AddHexalithMemoriesSearchIndexServer (Hexalith.Memories.Aspire) embeds the search-index server.
+        // Gateway-side domain-service registrations stay in the AppHost (composition); the sample stays inline.
         string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
         string normalizedProgram = program.Replace("\r\n", "\n", StringComparison.Ordinal);
 
-        string[] requiredResourceNames = ["eventstore", "eventstore-admin", "eventstore-admin-ui", "tenants", "sample"];
-        foreach (string resourceName in requiredResourceNames) {
-            program.ShouldContain($"AddProject<");
-            program.ShouldContain($"\"{resourceName}\"");
-        }
-
-        // Reusable DAPR/topology wiring comes from the platform extensions, not hand-rolled per-domain code.
+        // Reusable platform/topology wiring comes from the platform Aspire extensions, not hand-rolled code.
+        program.ShouldContain("AddHexalithEventStorePlatformProjects(");
         program.ShouldContain("AddHexalithEventStore(");
-        program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"tenants\"");
-        program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"sample\"");
+        program.ShouldContain("builder.AddHexalithTenantsServer(");
+        program.ShouldContain("builder.AddHexalithMemoriesSearchIndexServer(");
+
+        // The Tenants service runtime (server project + DAPR sidecar) is provided by the reusable helper.
+        string tenantsAspire = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.Aspire", "HexalithTenantsServerExtensions.cs"));
+        tenantsAspire.ShouldContain("AddProject<TenantsServerProjectMetadata>(appId)");
+        tenantsAspire.ShouldContain(".AddEventStoreDomainModule(");
+
+        // The sample subscriber stays composed inline and shares the platform domain-module sidecar.
         program.ShouldContain("IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>(\"sample\")");
+        program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"sample\"");
         normalizedProgram.ShouldContain(string.Join(
             "\n",
             "    _ = sample",
             "        .WithReference(keycloak)",
             "        .WaitFor(keycloak);"));
+
+        // Gateway-side domain-service registrations + the global-administrators topic override remain explicit
+        // AppHost composition (the helper adds only the service runtime).
         program.ShouldContain("EventStore__DomainServices__Registrations__system|tenants|v1__AppId");
         program.ShouldContain("EventStore__DomainServices__Registrations__system|global-administrators|v1__AppId");
-        program.ShouldNotContain("AddHexalithTenants");
-        program.ShouldNotContain("Hexalith.Tenants.Aspire");
+        program.ShouldContain("EventStore__Publisher__TopicOverrides__global-administrators");
 
         program.ShouldContain("ResolveDaprConfigPath");
         program.ShouldContain("accesscontrol.yaml");

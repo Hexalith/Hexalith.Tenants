@@ -14,6 +14,7 @@ PACKAGE_PROJECTS = [
     "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
     "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
     "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+    "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
 ]
 
 

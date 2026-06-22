@@ -13,18 +13,20 @@ public class SolutionStructureTests {
         "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
         "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
         "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
-        // Tenants keeps its own Aspire AppHost (its composition root), but it consumes the platform
-        // Aspire boilerplate (AddHexalithEventStore + AddEventStoreDomainModule) rather than a per-domain
-        // Aspire library.
+        // Tenants keeps its own Aspire AppHost (its composition root) and a thin Hexalith.Tenants.Aspire
+        // hosting helper (AddHexalithTenantsServer), reinstated symmetric with the EventStore and Memories
+        // platform Aspire libraries; the AppHost still consumes the platform boilerplate
+        // (AddHexalithEventStore + AddEventStoreDomainModule).
+        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
         "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
     ];
 
-    // Domain-centric guardrail (Epic B): the module must NOT re-implement reusable infrastructure as its
-    // own Aspire wiring library or a ServiceDefaults copy — that boilerplate lives in the EventStore
-    // platform (Hexalith.EventStore.Aspire + the domain-service SDK), consumed by the AppHost above.
+    // Domain-centric guardrail (Epic B): the module must NOT re-implement the platform's shared
+    // ServiceDefaults — hosting/telemetry/health/endpoints come from the EventStore domain-service SDK.
+    // (Hexalith.Tenants.Aspire is the Tenants-specific Aspire hosting helper, symmetric with the
+    // EventStore/Memories platform Aspire libraries, and is a required source project above.)
     private static readonly string[] ForbiddenSourceProjects =
     [
-        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
         "src/Hexalith.Tenants.ServiceDefaults/Hexalith.Tenants.ServiceDefaults.csproj",
     ];
 
