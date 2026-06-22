@@ -1,9 +1,9 @@
 using Aspire.Hosting.ApplicationModel;
 
-using CommunityToolkit.Aspire.Hosting.Dapr;
-
 using Hexalith.EventStore.Aspire;
+using Hexalith.Memories.Aspire;
 using Hexalith.Tenants.AppHost;
+using Hexalith.Tenants.Aspire;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
@@ -45,6 +45,11 @@ HexalithEventStorePlatformProjects eventStorePlatform = builder.AddHexalithEvent
 IResourceBuilder<ProjectResource> eventStore = eventStorePlatform.EventStore;
 IResourceBuilder<ProjectResource> adminServer = eventStorePlatform.AdminServer;
 IResourceBuilder<ProjectResource> adminUI = eventStorePlatform.AdminUI;
+
+// Register the Tenants domain service's two domains with the EventStore command gateway so it routes
+// tenants/global-administrators commands to the "tenants" app, and publish global-administrators events on the
+// shared tenants.events topic. This gateway-side composition stays in the AppHost (the helper adds only the
+// Tenants service runtime), mirroring how the EventStore platform projects are composed here.
 _ = eventStore
     .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__AppId", "tenants")
     .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__MethodName", "process")
@@ -73,10 +78,13 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     daprSchedulerHostAddress: daprSchedulerHostAddress,
     pubSubComponentPath: pubSubComponentPath);
 
-// Add the Tenants domain service via the platform domain-module extension (A4): its sidecar shares the
-// EventStore state store + pub/sub. Replaces the per-domain Aspire wiring library.
-IResourceBuilder<ProjectResource> tenants = builder.AddProject<HexalithTenants>("tenants")
-    .AddEventStoreDomainModule(eventStoreResources, "tenants", accessControlConfigPath,
+// Add the Tenants domain service via the Tenants platform Aspire helper: it registers the tenants /
+// global-administrators domain routing on the EventStore command gateway and attaches a DAPR sidecar that
+// shares the EventStore state store + pub/sub. The reusable recipe lives in Hexalith.Tenants.Aspire so every
+// AppHost hosting the Tenants service calls this single helper instead of re-declaring the wiring.
+IResourceBuilder<ProjectResource> tenants = builder.AddHexalithTenantsServer(
+        eventStoreResources,
+        accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
         daprSchedulerHostAddress: daprSchedulerHostAddress)
     // Must be the Keycloak user's stable subject (sub) GUID — the global-admin projection is keyed by
@@ -93,57 +101,27 @@ _ = adminUI
     .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
     .WithExternalHttpEndpoints();
 
-// Memories search-index server (O4): started inline so the Tenants list can search the curated
-// tenants-index. Reuses the shared statestore + pub/sub; runs its own FalkorDB; static dev secretstore +
-// conversation (echo) components; a Dapr sidecar on a unique HTTP port (EventStore uses 3501). The server
-// is built independently (HexalithMemoriesServer.SuppressBuild) so the two repos' package graphs stay
-// isolated. End-to-end ingestion/search is gated on the Memories handoff
-// (memories-search-index-handoff-2026-06-21.md).
-// TODO: extract to a reusable Memories Aspire extension if a second consumer appears.
+// Memories search-index server (O4): the Tenants list searches the curated tenants-index. The reusable
+// Memories hosting recipe (FalkorDB graph store + secret store + conversation component + the memories-server
+// project and its Dapr sidecar on a unique HTTP port) now lives in the Hexalith.Memories.Aspire platform
+// library; this AppHost owns only the component YAML paths and the Tenants-specific source->index routing.
+// End-to-end ingestion/search is gated on the Memories handoff (memories-search-index-handoff-2026-06-21.md).
 string memoriesSecretStorePath = ResolveDaprConfigPath(builder.AppHostDirectory, "secretstore.memories.yaml");
 string memoriesLlmConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "llm.memories.yaml");
 
-IResourceBuilder<IDaprComponentResource> memoriesSecretStore = builder.AddDaprComponent(
-    "memories-secretstore",
-    "secretstores.local.file",
-    new DaprComponentOptions { LocalPath = memoriesSecretStorePath });
-IResourceBuilder<IDaprComponentResource> memoriesLlm = builder.AddDaprComponent(
-    "memories-llm",
-    "conversation.echo",
-    new DaprComponentOptions { LocalPath = memoriesLlmConfigPath });
-
-IResourceBuilder<ContainerResource> memoriesFalkorDb = builder
-    .AddContainer("memories-falkordb", "falkordb/falkordb")
-    .WithEndpoint(targetPort: 6379, name: "falkordb");
-EndpointReference memoriesFalkorDbEndpoint = memoriesFalkorDb.GetEndpoint("falkordb");
-
-IResourceBuilder<ProjectResource> memoriesServer = builder
-    .AddProject<HexalithMemoriesServer>("memories-server", launchProfileName: "http")
-    .WithDaprSidecar(sidecar => sidecar
-        .WithOptions(new DaprSidecarOptions {
-            AppId = "memories-server",
-            DaprHttpPort = 3502,
-            DaprGrpcPort = 50002,
-            PlacementHostAddress = daprPlacementHostAddress,
-            SchedulerHostAddress = daprSchedulerHostAddress,
-        })
-        .WithReference(eventStoreResources.StateStore)
-        .WithReference(eventStoreResources.PubSub)
-        .WithReference(memoriesSecretStore)
-        .WithReference(memoriesLlm))
-    // Shared dapr-init Redis (localhost:6379) for the Memories vector/search store; FalkorDB for the graph store.
-    .WithEnvironment("ConnectionStrings__redis", "localhost:6379")
-    .WithEnvironment("ConnectionStrings__falkordb", ReferenceExpression.Create($"{memoriesFalkorDbEndpoint.Property(EndpointProperty.HostAndPort)}"))
-    // Memories subscribes this topic; the Tenants consumer publishes SearchIndexEntryChanged to it.
-    .WithEnvironment("MEMORIES_EVENTSTORE_TOPIC", "memories-events")
+HexalithMemoriesSearchIndexServerResources memories = builder.AddHexalithMemoriesSearchIndexServer(
+    eventStoreResources.StateStore,
+    eventStoreResources.PubSub,
+    memoriesSecretStorePath,
+    memoriesLlmConfigPath,
+    daprPlacementHostAddress: daprPlacementHostAddress,
+    daprSchedulerHostAddress: daprSchedulerHostAddress);
+IResourceBuilder<ProjectResource> memoriesServer = memories.Server
     // Route the Tenants producer's CloudEvents (source "hexalith-tenants") into the curated tenants-index
     // partition, and auto-provision that index tenant at startup so it is Active before the first event
     // arrives (otherwise the router drops SearchIndexEntryChanged as TenantNotFound). Memories handoff §3.1.
     .WithEnvironment("EventStoreIntegration__Routing__SourceToTenantMap__hexalith-tenants", "tenants-index")
-    .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true")
-    .WaitFor(memoriesFalkorDb)
-    .WaitFor(memoriesSecretStore)
-    .WaitFor(memoriesLlm);
+    .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true");
 
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
     .WithReference(tenants)

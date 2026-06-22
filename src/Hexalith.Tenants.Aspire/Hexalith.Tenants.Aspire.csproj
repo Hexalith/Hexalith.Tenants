@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>.NET Aspire hosting extensions for the Hexalith Tenants domain service — adds the Tenants server and its EventStore domain-module wiring to a consuming AppHost.</Description>
+    <PackageTags>multi-tenancy;tenants;dapr;aspire;eventsourcing;dotnet</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Aspire\Hexalith.EventStore.Aspire.csproj" />
+  </ItemGroup>
+
+</Project>

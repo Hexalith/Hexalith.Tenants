@@ -37,6 +37,7 @@ public class PackageGovernanceTests {
         "src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj",
         "src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj",
         "src/Hexalith.Tenants.Testing/Hexalith.Tenants.Testing.csproj",
+        "src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj",
     ];
 
     private static readonly string[] ExplicitlyNonPackableProjects =
@@ -64,6 +65,7 @@ public class PackageGovernanceTests {
         "Hexalith.Tenants.Client",
         "Hexalith.Tenants.Server",
         "Hexalith.Tenants.Testing",
+        "Hexalith.Tenants.Aspire",
     ];
 
     private static readonly string[] BoundedArtifactGlobs =
@@ -346,9 +348,9 @@ public class PackageGovernanceTests {
         script.ShouldContain("Hexalith.Tenants.Contracts");
         script.ShouldContain("Hexalith.Tenants.Client");
         script.ShouldContain("Hexalith.Tenants.Testing");
-        // The per-domain Aspire consumer surface (AddHexalithTenants / HexalithTenantsResources) was
-        // removed with the Hexalith.Tenants.Aspire package (domain-centric refactor); orchestration is
-        // provided by the EventStore platform's AddEventStoreDomainModule.
+        // Hexalith.Tenants.Aspire is a published AppHost-orchestration helper (AddHexalithTenantsServer), not a
+        // domain consumer surface, so it is intentionally NOT exercised by the package-only consumer build that
+        // validates domain consumption of Contracts/Client/Testing.
         script.ShouldNotContain("Hexalith.Tenants.Aspire");
         script.ShouldContain("CreateTenant");
         script.ShouldContain("TenantCreated");

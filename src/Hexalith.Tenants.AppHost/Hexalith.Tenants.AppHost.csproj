@@ -12,7 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Platform Aspire helper libraries consumed for their hosting extensions only (not added to the Aspire
+         resource graph). The Tenants/Memories project files they reference are resolved cross-repo with
+         SuppressBuild, so the AppHost build never compiles those servers. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Aspire\Hexalith.EventStore.Aspire.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\Hexalith.Tenants.Aspire\Hexalith.Tenants.Aspire.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Aspire\Hexalith.Memories.Aspire.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>
