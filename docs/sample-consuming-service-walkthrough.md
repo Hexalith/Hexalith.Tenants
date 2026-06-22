@@ -16,6 +16,7 @@ consumers use.
 | Package/project references | `samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj` |
 | DI/subscription setup | `samples/Hexalith.Tenants.Sample/Program.cs` |
 | Custom logging handler | `samples/Hexalith.Tenants.Sample/Handlers/SampleLoggingEventHandler.cs` |
+| Memories search-index publisher handler | `samples/Hexalith.Tenants.Sample/Handlers/MemoriesSearchIndexEventPublisher.cs` |
 | Local projection access endpoint | `samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs` |
 | Configuration endpoint | `samples/Hexalith.Tenants.Sample/Endpoints/TenantConfigurationEndpoints.cs` |
 | AppHost sample registration | `src/Hexalith.Tenants.AppHost/Program.cs` and `src/Hexalith.Tenants.AppHost/HexalithTenantsSample.cs` |
@@ -57,7 +58,13 @@ builder.Services
     .AddHexalithTenants()
     .AddEventStoreDomainEventHandler<UserAddedToTenant, SampleLoggingEventHandler>()
     .AddEventStoreDomainEventHandler<UserRemovedFromTenant, SampleLoggingEventHandler>()
-    .AddEventStoreDomainEventHandler<TenantDisabled, SampleLoggingEventHandler>();
+    .AddEventStoreDomainEventHandler<TenantDisabled, SampleLoggingEventHandler>()
+    // Memories search-index maintenance: publish one curated SearchIndexEntryChanged per
+    // tenant lifecycle event to the Memories ingestion topic (search-as-index-only).
+    .AddEventStoreDomainEventHandler<TenantCreated, MemoriesSearchIndexEventPublisher>()
+    .AddEventStoreDomainEventHandler<TenantUpdated, MemoriesSearchIndexEventPublisher>()
+    .AddEventStoreDomainEventHandler<TenantDisabled, MemoriesSearchIndexEventPublisher>()
+    .AddEventStoreDomainEventHandler<TenantEnabled, MemoriesSearchIndexEventPublisher>();
 
 WebApplication app = builder.Build();
 
@@ -81,6 +88,9 @@ Reusable package setup:
 Sample-specific teaching surfaces:
 
 - `SampleLoggingEventHandler` logs a small set of events for demo visibility.
+- `MemoriesSearchIndexEventPublisher` publishes one curated search-index entry per
+  tenant lifecycle event to the Memories ingestion topic (search-as-index-only), showing
+  how a consumer can fan tenant events out to a downstream index.
 - `/access/{tenantId}/{userId}` shows one projection-backed authorization check.
 - `/configuration/{tenantId}/sample` shows namespace-filtered configuration
   reads from the local projection.

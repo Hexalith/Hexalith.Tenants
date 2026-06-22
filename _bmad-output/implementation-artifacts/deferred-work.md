@@ -1,9 +1,27 @@
 # Deferred Work
 
-Updated: 2026-06-19 by Correct Course approval.
-Source proposal: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md`.
+Updated: 2026-06-21 by Correct Course (deferred + pending work implementation).
+Source proposals:
+`_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md` (original triage),
+`_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-deferred-and-pending-work-implementation.md` (this run).
 
 This file is now a routing index. Original review detail remains in the source story/spec artifacts; open items here must point to a Tenants story, a FrontComposer owner handoff, an EventStore owner handoff, or a stale/resolved record.
+
+## 2026-06-21 Correct Course — Deferred + Pending Work Implemented
+
+Administrator approved implementing every remaining deferred/pending item, including crossing the
+submodule boundary for the owner handoffs. Outcome of this run (all changes verified building/green;
+submodule edits are owner-approved and live in the working tree pending the commit/push step):
+
+- **FrontComposer owner handoff** `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening` — **IMPLEMENTED** in `Hexalith.FrontComposer`. `FcPageHeader` no longer emits a competing `banner` (header root is `role="presentation"`); `FrontComposerShell` exposes `ContentLabel`/`ContentLabelledBy` + a new `FcContentLabel` marker so a page can name the shell `main` landmark without an orphaned page-level `aria-labelledby`; blank `Heading` now fail-safes (no dangling `<h1>`, replacing the prior throw); `FocusHeadingAsync()` fails diagnostically when the heading is not focusable. Backward-compatible (new params default to null). FrontComposer Shell suite 1962/0 failed.
+- **EventStore owner handoff** `eventstore-2026-06-19-admin-ui-and-query-record-followup` — **IMPLEMENTED** (Admin.UI a11y portion) in `Hexalith.EventStore`: `Index.razor` stat cards, `ActivityChart` (`role="group"` + real `<button>` bars), `StorageTreemap` (focusable `role="button"` cells), `RelatedTypeList`, `TypeDetailPanel`, `DaprHealthHistory`, and non-functional `cursor:pointer` spans on `Commands.razor`/`Events.razor` all remediated; conformance carve-out comment updated. The retired actor-routing sub-item was already verified stale/resolved (see below). Admin.UI.Tests green except 6 pre-existing unrelated `Dw5GovernanceAtddTests` (missing DW5 evidence artifact, not introduced here).
+- **EventStore owner handoff** `eventstore-2026-06-19-read-model-freshness-metadata` — **IMPLEMENTED** in `Hexalith.EventStore.Client.Projections`: `IReadModelFreshness` (`ProjectedAt`/`ProjectionVersion`), `ReadModelFreshnessState`, `ReadModelFreshnessThresholds`, pure `ReadModelFreshness.Classify/Age`, plus `IReadModelStore.GetWithFreshnessAsync<T>()` and `ToQueryResponseMetadata()` bridges. This is the generic, persisted-timestamp replacement for the Tenants hand-rolled `TenantFreshnessState`; adoption by the Tenants UI is left as a follow-up (see Still-open below). Client.Tests 462/462.
+- **Epic 11 — Production Authorization Readiness (persisted DataProtection key ring)** — **IMPLEMENTED**. A Dapr-state-store-backed `IXmlRepository` (`DaprXmlRepository`) + `AddEventStoreDataProtection(...)` live in the `Hexalith.EventStore.DomainService` host-SDK layer; backend is chosen by `statestore.yaml` (Redis in prod) so the Tenants domain package gains NO infra SDK. `src/Hexalith.Tenants/Program.cs` swaps to `AddEventStoreDataProtection(config, "Hexalith.Tenants")`; production persists to the `statestore` (`dataprotection-keys`), Development stays ephemeral. DomainService.Tests 36/36 (incl. cross-replica reload + ETag concurrency).
+- **Pending (newly discovered) — Memories-integration doc/test drift** — **FIXED**. The committed Memories search-index integration added `memories-server` to the local AppHost `pubsub.yaml` scopes and 4 `MemoriesSearchIndexEventPublisher` handlers to the Sample program, but left 3 conformance/doc tests red on `main`. Updated `EventPublicationConfigurationTests` + `CrossAggregateTimingDocumentationTests` (local now scopes `memories-server`; production stays `eventstore`+`sample`), `docs/cross-aggregate-timing.md`, and `docs/sample-consuming-service-walkthrough.md`. Tenants Server.Tests back to 700/700.
+
+The previously-open Tenants-owned code-review-deferred items (CSS logical-longhand guard, forced-colors
+unterminated block, DLQ operator-scope note, stale `test-summary.md` line) were already closed in the
+2026-06-21 hardening pass; the records below are updated to reflect that.
 
 ## Tenants-Owned Work Routed to Ready-for-Dev Stories
 
@@ -72,7 +90,7 @@ Current resolution summary:
 
 ### FrontComposer owner: `frontcomposer-2026-06-19-page-header-landmarks-and-contract-hardening`
 
-Status: routed to FrontComposer owner; do not patch in Tenants.
+Status: **IMPLEMENTED 2026-06-21** in the `Hexalith.FrontComposer` submodule under Administrator approval (see the run summary at the top). Changes live in the submodule working tree pending commit + gitlink pointer update + push.
 Source proposal section: `5.5 FrontComposer Owner Handoff`.
 
 Requested outcomes:
@@ -90,7 +108,7 @@ Related prior audit handoffs:
 
 ### EventStore owner: `eventstore-2026-06-19-admin-ui-and-query-record-followup`
 
-Status: routed to EventStore owner; do not patch in Tenants.
+Status: **IMPLEMENTED 2026-06-21** (Admin.UI a11y portion) in the `Hexalith.EventStore` submodule under Administrator approval. The actor-routing sub-item was already verified stale/resolved (see Stale or Resolved Records). Changes live in the submodule working tree pending commit + pointer update + push.
 Source proposal section: `5.6 EventStore Owner Handoff`.
 
 Requested outcomes:
@@ -100,7 +118,7 @@ Requested outcomes:
 
 ### EventStore owner: `eventstore-2026-06-19-read-model-freshness-metadata`
 
-Status: routed to EventStore owner; do not patch in Tenants.
+Status: **IMPLEMENTED 2026-06-21** in the `Hexalith.EventStore.Client.Projections` namespace under Administrator approval (`IReadModelFreshness` + `ReadModelFreshness*` types + `IReadModelStore.GetWithFreshnessAsync<T>()`/`ToQueryResponseMetadata()`). Changes live in the submodule working tree pending commit + pointer update + push. Tenants-UI adoption (replace the hand-rolled `TenantFreshnessState` with this shared surface) remains a follow-up.
 Source story: `cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening`.
 
 Requested outcomes:
@@ -143,11 +161,11 @@ Records about intermediate non-building commits, co-mingled story diffs, and bun
 
 ## Deferred from: code review of cc-2026-06-19-domain-ui-governance-and-accessibility-hardening (2026-06-19)
 
-- CSS ownership guard logical longhand spacing — `DomainUiFluentConformanceTests` still does not catch `margin-inline-start`, `margin-inline-end`, `padding-block-start`, or `padding-block-end`. This was already recorded as a still-open sibling candidate, not a regression from this story.
-- Forced-colors malformed block handling — `RemoveForcedColorsMediaBlocks` now ignores braces inside comments and strings, but an unclosed forced-colors block can still remove the rest of a CSS file from the scan. Keep as a future hardening candidate.
+- CSS ownership guard logical longhand spacing — **RESOLVED (2026-06-21 hardening).** `DomainUiFluentConformanceTests` now tracks the logical longhands (`margin-inline-start/-end`, `padding-block-start/-end`, etc.) alongside the physical longhands and shorthand, with `[InlineData]` coverage for both flagged and zero-reset cases.
+- Forced-colors malformed block handling — **RESOLVED (2026-06-21 hardening).** `RemoveForcedColorsMediaBlocks` plus a dedicated `Forced_colors_unterminated_block_does_not_hide_trailing_ownership` test now ensure an unterminated forced-colors block cannot hide trailing ownership declarations from the scan.
 - Sibling query ETag special-character robustness — quote/comma ETag edge cases surfaced again because the working-tree diff includes the completed tenant-query hardening story. Keep routed under the tenant-query review / EventStore read-model freshness handoff; it is outside the domain UI governance story.
 
 ## Deferred from: code review of cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup (2026-06-20)
 
-- Application-level vs native dead-letter framing for operators — `deploy/dapr/README.md` and `docs/cross-aggregate-timing.md` correctly state the Tenants `pubsub` component configures no DAPR native DLQ and that `deadletter.tenants.events` is produced by EventStore's application-level publisher. However, EventStore's own platform Redis pub/sub components DO set `enableDeadLetter`/`deadLetterTopic` (e.g. `Hexalith.EventStore/samples/dapr-components/redis/pubsub.yaml`). An operator who deploys Tenants against an EventStore-provided pubsub component (rather than this repo's template) could get native dead-lettering the Tenants docs say does not exist. Future hardening: add an explicit operator note that the "no native DLQ" claim is scoped to the Tenants-provided component. Source: edge-case review, low confidence/low impact.
-- Stale Server.Tests evidence line in `test-summary.md` — the prior tenant-query story's section still reads "Full Server.Tests remains blocked by 3 unrelated DAPR dead-letter metadata expectation tests (`enableDeadLetter` / `deadLetterTopic` absent)." This story resolved that blocker (Server.Tests now 700/700), so the older line is now misleading. Optional cleanup; pre-existing text in a prior story's evidence block, not a regression from this story.
+- Application-level vs native dead-letter framing for operators — **RESOLVED (2026-06-21 hardening).** `deploy/dapr/README.md:53` now carries an explicit operator note scoping the "no native dead-letter" claim to the `pubsub` component shipped here and warning that an EventStore-provided component may set its own `enableDeadLetter`/`deadLetterTopic`.
+- Stale Server.Tests evidence line in `test-summary.md` — **RESOLVED (2026-06-21 hardening).** A correction note was added (`tests/test-summary.md:246`) recording that the 3-test Server.Tests blocker was resolved on 2026-06-20 and that Server.Tests passes; the old line is retained only as dated historical evidence.

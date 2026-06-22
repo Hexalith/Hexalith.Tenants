@@ -1,7 +1,8 @@
 # DAPR State Store Component -- Production Template
 # =================================================
 # Redis-backed state store for EventStore aggregate actor state, Tenants projections,
-# command status, and admin diagnostics.
+# command status, admin diagnostics, and the shared Data Protection key ring that backs
+# the opaque query pagination cursor codec (see deploy/dapr/README.md, EventStore:DataProtection).
 #
 # Component contract:
 #   name: statestore

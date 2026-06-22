@@ -31,7 +31,6 @@ using Hexalith.Tenants.Validation;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -74,12 +73,12 @@ builder.Services.AddProblemDetails();
 // Data Protection backs the opaque query cursor codec. SetApplicationName
 // anchors the key ring to a stable application identity so the keyring path/purpose chain is not
 // influenced by IHostEnvironment.ApplicationName drift across host variants.
-// DEFERRED (Epic 11 — Production Authorization Readiness): configure a shared, persisted key ring
-// (Azure Blob + Key Vault / Redis / Dapr secret store) so cursors issued by one replica can be
-// unprotected by another and survive pod restarts. Without persistence, every restart/rollout
-// invalidates outstanding cursors and multi-replica deployments will see intermittent 400s.
-builder.Services.AddDataProtection()
-    .SetApplicationName("Hexalith.Tenants");
+// Epic 11 — Production Authorization Readiness: AddEventStoreDataProtection persists the key ring to a
+// shared DAPR state store when configured (EventStore:DataProtection:PersistToStateStore = true) so
+// cursors issued by one replica can be unprotected by another and survive pod restarts/rollouts. The
+// backing store is selected by DAPR YAML (deploy/dapr/statestore.yaml) — no infrastructure SDK enters
+// this domain assembly. Local/dev keeps the framework's ephemeral key ring (PersistToStateStore = false).
+builder.Services.AddEventStoreDataProtection(builder.Configuration, "Hexalith.Tenants");
 
 // MediatR pipeline - registers SubmitQueryHandler and SubmitCommandHandler for controller dispatch.
 // Authorization stays narrow: Tenants uses EventStore claim/RBAC validation without registering
