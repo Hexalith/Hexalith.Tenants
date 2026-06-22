@@ -425,10 +425,20 @@ public class PackageGovernanceTests {
             .Where(path => !path.Contains("/bin/", StringComparison.Ordinal))
             .Where(path => !path.StartsWith("obj/", StringComparison.Ordinal))
             .Where(path => !path.Contains("/obj/", StringComparison.Ordinal))
+            // node_modules is installed tooling (semantic-release et al.), not Tenants-owned container
+            // config. It is present during the CI/release npm steps and contains source files whose names
+            // start with "Dockerfile" (e.g. highlight.js' lib/languages/dockerfile.js), which would
+            // otherwise be misread as ad-hoc container files. Exclude it like bin/ and obj/.
+            .Where(path => !path.StartsWith("node_modules/", StringComparison.Ordinal))
+            .Where(path => !path.Contains("/node_modules/", StringComparison.Ordinal))
+            // Submodules own their own container strategy; this governance is scoped to Tenants files.
             .Where(path => !path.StartsWith("Hexalith.EventStore/", StringComparison.Ordinal))
             .Where(path => !path.StartsWith("Hexalith.Commons/", StringComparison.Ordinal))
             .Where(path => !path.StartsWith("Hexalith.Builds/", StringComparison.Ordinal))
             .Where(path => !path.StartsWith("Hexalith.FrontComposer/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("Hexalith.Memories/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("Hexalith.AI.Tools/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("Hexalith.PolymorphicSerializations/", StringComparison.Ordinal))
             .Where(IsAdHocContainerFile)
             .ToArray();
 
