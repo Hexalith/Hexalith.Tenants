@@ -112,7 +112,10 @@ public class EventPublicationConfigurationTests {
         MetadataKeyExists(root, "deadLetterTopic").ShouldBeFalse();
         MetadataValue(root, "publishingScopes").ShouldBeNull();
         MetadataValue(root, "subscriptionScopes").ShouldBeNull();
-        Scopes(root).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
+        // The local AppHost additionally scopes the Memories search-index demo subscriber
+        // (memories-server), which subscribes to tenants.events to maintain the search index.
+        // Production (deploy/dapr/pubsub.yaml) keeps only eventstore + sample.
+        Scopes(root).ShouldBe(["eventstore", "sample", "memories-server"], ignoreOrder: true);
     }
 
     [Fact]

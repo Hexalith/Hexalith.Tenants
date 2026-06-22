@@ -10,6 +10,23 @@ This folder contains production-oriented DAPR templates for deploying Hexalith.T
 
 The templates intentionally keep infrastructure choice in DAPR YAML. Do not add Redis, broker, database, or cloud-provider SDK references to Tenants domain packages.
 
+## Data Protection Key Ring (cursor durability)
+
+The opaque query pagination cursor codec is backed by an ASP.NET Core Data Protection key ring. In production the key ring is persisted to the shared `statestore` DAPR component (via a `DaprClient`-backed `IXmlRepository` provided by `Hexalith.EventStore.DomainService.AddEventStoreDataProtection`), so:
+
+- a cursor sealed by one Tenants replica can be unprotected by any other replica, and
+- outstanding cursors survive pod restarts and rolling deploys (no intermittent 400s from a regenerated ephemeral ring).
+
+The backing infrastructure is whatever `statestore.yaml` selects (Redis here) — no infrastructure SDK is added to the Tenants domain assembly. Configuration lives under `EventStore:DataProtection`:
+
+| Key | Default | Notes |
+| --- | --- | --- |
+| `EventStore:DataProtection:PersistToStateStore` | `true` (prod `appsettings.json`), `false` (`appsettings.Development.json`) | When `false`, the framework's ephemeral per-host key ring is used (safe for single-replica local/dev); the host then starts without a state store. |
+| `EventStore:DataProtection:StateStoreName` | `statestore` | The DAPR state-store component that persists the ring. Must be scoped to `tenants` (it already is in `statestore.yaml`). |
+| `EventStore:DataProtection:StateKey` | `dataprotection-keys` | State key under which the key-ring elements are stored. |
+
+Operators running multi-replica Tenants must keep `PersistToStateStore: true` and ensure `statestore` is reachable; otherwise each replica mints cursors against its own ephemeral ring.
+
 ## Local Development Mode
 
 Normal local development should run full `dapr init` before the Aspire AppHost starts. Full init provides Redis, actor placement, and scheduler services used by EventStore aggregate actors and Tenants projection flows.

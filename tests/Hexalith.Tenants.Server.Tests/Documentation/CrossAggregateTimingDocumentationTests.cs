@@ -129,8 +129,13 @@ public class CrossAggregateTimingDocumentationTests {
             // inert keys being reintroduced on the component (they imply a DLQ wiring that does not exist).
             MetadataValue(component, "enableDeadLetter").ShouldBeNull();
             MetadataValue(component, "deadLetterTopic").ShouldBeNull();
-            Scopes(component).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
         }
+
+        // Component scopes diverge by environment: the local AppHost additionally scopes the Memories
+        // search-index demo subscriber (memories-server, subscribes tenants.events), while the production
+        // template keeps only the eventstore publisher and the sample subscriber.
+        Scopes(localPubSub).ShouldBe(["eventstore", "sample", "memories-server"], ignoreOrder: true);
+        Scopes(productionPubSub).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
 
         foreach (YamlMappingNode resiliency in new[] { localResiliency, productionResiliency }) {
             Scalar(resiliency, "kind").ShouldBe("Resiliency");
