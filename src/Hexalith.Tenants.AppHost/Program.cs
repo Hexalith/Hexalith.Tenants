@@ -37,9 +37,14 @@ if (!string.Equals(builder.Configuration["EnableKeycloak"], "false", StringCompa
     realmUrl = ReferenceExpression.Create($"{keycloakEndpoint}/realms/hexalith");
 }
 
-// Add EventStore (command gateway), Admin Server, and Admin UI projects.
-// Project paths are resolved cross-repo via the IProjectMetadata classes in this AppHost.
-IResourceBuilder<ProjectResource> eventStore = builder.AddProject<HexalithEventStore>("eventstore");
+// Add EventStore (command gateway), Admin Server, and Admin UI projects via the platform Aspire helper.
+// The cross-repo IProjectMetadata wiring (and the repository-path resolution it relies on) now lives in
+// the Hexalith.EventStore.Aspire library, so every domain-module AppHost calls this single helper instead
+// of re-declaring identical metadata classes.
+HexalithEventStorePlatformProjects eventStorePlatform = builder.AddHexalithEventStorePlatformProjects();
+IResourceBuilder<ProjectResource> eventStore = eventStorePlatform.EventStore;
+IResourceBuilder<ProjectResource> adminServer = eventStorePlatform.AdminServer;
+IResourceBuilder<ProjectResource> adminUI = eventStorePlatform.AdminUI;
 _ = eventStore
     .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__AppId", "tenants")
     .WithEnvironment("EventStore__DomainServices__Registrations__system|tenants|v1__MethodName", "process")
@@ -52,8 +57,6 @@ _ = eventStore
     .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__Domain", "global-administrators")
     .WithEnvironment("EventStore__DomainServices__Registrations__system|global-administrators|v1__Version", "v1")
     .WithEnvironment("EventStore__Publisher__TopicOverrides__global-administrators", "tenants.events");
-IResourceBuilder<ProjectResource> adminServer = builder.AddProject<HexalithEventStoreAdminServerHost>("eventstore-admin");
-IResourceBuilder<ProjectResource> adminUI = builder.AddProject<HexalithEventStoreAdminUI>("eventstore-admin-ui");
 
 // Wire the EventStore + Admin DAPR topology (shared state store + pub/sub, sidecars, resiliency)
 // using the platform Aspire extension — the reusable boilerplate now lives in the EventStore platform

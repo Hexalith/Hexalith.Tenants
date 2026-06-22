@@ -1,10 +1,10 @@
-using Projects;
+using Hexalith.EventStore.Aspire;
 
 namespace Hexalith.Tenants.AppHost;
 
 public class HexalithTenantsSample : IProjectMetadata {
 
-    public string ProjectPath => ProjectMetadataPaths.GetProjectPath(
+    public string ProjectPath => RepositoryProjectPaths.GetProjectPath(
         "samples",
         "Hexalith.Tenants.Sample",
         "Hexalith.Tenants.Sample.csproj");

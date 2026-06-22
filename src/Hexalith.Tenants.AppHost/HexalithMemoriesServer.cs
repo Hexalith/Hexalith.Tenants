@@ -1,4 +1,4 @@
-using Projects;
+using Hexalith.EventStore.Aspire;
 
 namespace Hexalith.Tenants.AppHost;
 
@@ -10,7 +10,7 @@ namespace Hexalith.Tenants.AppHost;
 /// </summary>
 public class HexalithMemoriesServer : IProjectMetadata {
 
-    public string ProjectPath => ProjectMetadataPaths.GetProjectPath(
+    public string ProjectPath => RepositoryProjectPaths.GetProjectPath(
         "Hexalith.Memories",
         "src",
         "Hexalith.Memories.Server",

@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-21T21:00:00+02:00
+last_updated: 2026-06-22T12:00:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -179,3 +179,18 @@ development_status:
   # doc/config-conformance failures (memories-server pubsub scope + Sample MemoriesSearchIndexEventPublisher
   # registrations not reflected in tests/docs). Fixed in-repo; Tenants Server.Tests back to 700/700.
   cc-2026-06-21-memories-integration-doc-test-drift-fix: done
+
+  # --- Cross-cutting Correct Course 2026-06-22: EventStore.Aspire platform-projects helper ---
+  # Approved by Administrator (Jérôme Piquot) 2026-06-22.
+  # Proposal: sprint-change-proposal-2026-06-22-eventstore-aspire-platform-projects-helper.md
+  # Scope: move the AppHost EventStore project-metadata boilerplate (ProjectMetadataPaths + the 3
+  # EventStore IProjectMetadata classes — also duplicated verbatim in FrontComposer.AppHost) into the
+  # Hexalith.EventStore.Aspire package as a new public helper AddHexalithEventStorePlatformProjects()
+  # + public RepositoryProjectPaths. Platform-boundary correction only — no product/PRD/epic/UX
+  # scope change; reinforces Story 1.1 AC. Aspire resource graph unchanged.
+  # Status review (implemented locally + build-verified clean under -warnaserror, UNCOMMITTED):
+  #   Ordered handoff — (1) EventStore repo owner: review + regen API docs + commit feat(aspire) + PUSH;
+  #   (2) Tenants: bump EventStore submodule pointer (verify reachable on remote);
+  #   (3) Tenants: commit AppHost as refactor(apphost) — NOT feat (AppHost IsPackable=false, no bump).
+  # Follow-up (separate FrontComposer repo/PR, out of scope): FrontComposer.AppHost can adopt the helper.
+  cc-2026-06-22-eventstore-aspire-platform-projects-helper: review
