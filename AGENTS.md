@@ -6,6 +6,10 @@ Before working in this repository, read
 [`hexalith-llm-instructions.md`](./Hexalith.AI.Tools/hexalith-llm-instructions.md)
 (in the `Hexalith.AI.Tools` submodule) and follow it.
 
+Before working on any module user interface or UX, also read
+[`Hexalith.AI.Tools/hexalith-ux-instructions.md`](./Hexalith.AI.Tools/hexalith-ux-instructions.md)
+and follow it.
+
 ## File Discovery and Search
 
 Use `rg` and `rg --files` for repository searches when available. If `rg` is unavailable in a local environment, fall back to `find`, `ls`, or `grep -rn` without changing repository behavior.
