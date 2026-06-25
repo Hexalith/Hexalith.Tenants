@@ -198,7 +198,7 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<UpdateTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<UpdateTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantUpdateMetadataCommandSnapshot Snapshot => _snapshot;
 
@@ -404,7 +404,7 @@
             return;
         }
 
-        var request = new UpdateTenantCommandRequest(
+        var request = new UpdateTenant(
             Detail.TenantId,
             submittedName,
             string.IsNullOrWhiteSpace(_description) ? null : _description);

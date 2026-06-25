@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -13,7 +14,7 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_target_projection_evidence_before_confirmation()
     {
-        var intent = new SetGlobalAdministratorCommandRequest("User/CaseSensitive.01");
+        var intent = new SetGlobalAdministrator("User/CaseSensitive.01");
         GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -37,7 +38,7 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
     [Fact]
     public void Already_admin_rejection_stays_rejected_and_not_already_applied()
     {
-        var intent = new SetGlobalAdministratorCommandRequest("existing-admin");
+        var intent = new SetGlobalAdministrator("existing-admin");
         GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -55,7 +56,7 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_grant_or_audit_success()
     {
-        var intent = new SetGlobalAdministratorCommandRequest("target-user");
+        var intent = new SetGlobalAdministrator("target-user");
         GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -77,7 +78,7 @@ public sealed class GlobalAdministratorGrantCommandSnapshotTests
         TenantCommandLifecycleState expectedState,
         TenantCommandAuditState expectedAudit)
     {
-        var intent = new SetGlobalAdministratorCommandRequest("target-user");
+        var intent = new SetGlobalAdministrator("target-user");
         GlobalAdministratorGrantCommandSnapshot snapshot = GlobalAdministratorGrantCommandSnapshot
             .Idle()
             .RequestSent(intent)

@@ -30,7 +30,7 @@ so that member authority can be corrected while preserving domain safety and pro
 ## Tasks / Subtasks
 
 - [x] Extend the existing Tenants command gateway for change-role (AC: 3, 5)
-  - [x] Add `ChangeUserRoleAsync(ChangeUserRoleCommandRequest request, CancellationToken cancellationToken = default)` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`; do not add a second generic command gateway or browser-side backend client.
+  - [x] Add `ChangeUserRoleAsync(ChangeUserRole request, CancellationToken cancellationToken = default)` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`; do not add a second generic command gateway or browser-side backend client.
   - [x] Submit `ChangeUserRole` as a `SubmitCommandRequest` with `Tenant = "system"`, `Domain = "tenants"`, `AggregateId = tenantId`, `CommandType = nameof(ChangeUserRole)`, and `Payload = JsonSerializer.SerializeToElement(new ChangeUserRole(tenantId, userId, newRole))`.
   - [x] Use the already-registered `IUlidFactory.NewUlid()` for `MessageId`; never parse or generate `TenantId` or `UserId` as GUIDs or ULIDs.
   - [x] Validate tenant id, user id, and assignable `NewRole` before submit; reject `TenantRole.Unknown` and out-of-range roles client-side while still relying on backend validation/domain rejection as the gate.
@@ -38,7 +38,7 @@ so that member authority can be corrected while preserving domain safety and pro
   - [x] Keep shared status fallback command-neutral and support-safe; do not let add-member copy appear in a change-role lifecycle.
 
 - [x] Add change-role lifecycle state while reusing Story 2.1/2.2 command patterns (AC: 2, 4, 8, 9)
-  - [x] Add `ChangeUserRoleCommandRequest` and a focused `TenantChangeRoleCommandSnapshot`, or generalize the existing member-command snapshot only if it reduces duplication without weakening add-member/create-tenant tests.
+  - [x] Add `ChangeUserRole` and a focused `TenantChangeRoleCommandSnapshot`, or generalize the existing member-command snapshot only if it reduces duplication without weakening add-member/create-tenant tests.
   - [x] Add an explicit `AlreadyApplied` lifecycle state or equivalent model value; same-role submission must render `already applied`, not `Confirmed`, `Rejected`, or `Failed`.
   - [x] Same-role selection should be resolved from the current confirmed member projection before gateway submission. The aggregate NoOp remains a backend guard; if backend status evidence later exposes a zero-event NoOp, map it to the same `AlreadyApplied` state.
   - [x] Store tenant id, target user id, current confirmed role, requested new role, message id, correlation id, safe message, rejection code, audit handoff state, owner-count context, and focus target.

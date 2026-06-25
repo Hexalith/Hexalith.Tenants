@@ -192,7 +192,7 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<ChangeUserRoleCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<ChangeUserRole, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantChangeRoleCommandSnapshot Snapshot => _snapshot;
 
@@ -353,7 +353,7 @@
             return;
         }
 
-        var request = new ChangeUserRoleCommandRequest(Detail.TenantId, Member.UserId, newRole);
+        var request = new ChangeUserRole(Detail.TenantId, Member.UserId, newRole);
         if (Member.Role == newRole)
         {
             SetSnapshot(_snapshot.AlreadyApplied(

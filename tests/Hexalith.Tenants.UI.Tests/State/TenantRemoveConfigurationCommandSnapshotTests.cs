@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
     [Fact]
     public void Configuration_remove_confirms_only_when_projection_no_longer_contains_literal_key()
     {
-        var intent = new RemoveTenantConfigurationCommandRequest("tenant.alpha", "billing.mode");
+        var intent = new RemoveTenantConfiguration("tenant.alpha", "billing.mode");
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Previewed(intent, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
@@ -42,7 +43,7 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
     [Fact]
     public void Configuration_key_not_found_stays_rejected_even_when_projection_later_lacks_key()
     {
-        var intent = new RemoveTenantConfigurationCommandRequest("tenant.alpha", "billing.mode");
+        var intent = new RemoveTenantConfiguration("tenant.alpha", "billing.mode");
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Previewed(intent, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
@@ -68,7 +69,7 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Previewed(
-                new RemoveTenantConfigurationCommandRequest("tenant.alpha", "billing.mode"),
+                new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
                 Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
@@ -100,7 +101,7 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
         TenantRemoveConfigurationCommandSnapshot snapshot = TenantRemoveConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Previewed(
-                new RemoveTenantConfigurationCommandRequest("tenant.alpha", "billing.mode"),
+                new RemoveTenantConfiguration("tenant.alpha", "billing.mode"),
                 Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))

@@ -212,3 +212,17 @@ development_status:
   #   Ordered handoff — (1) Memories: commit feat(aspire) + PUSH (reachable on remote);
   #   (2) Tenants: bump Memories submodule pointer; (3) Tenants: commit feat(aspire) (new published package).
   cc-2026-06-22-memories-tenants-aspire-helpers: review
+
+  # --- Correct Course 2026-06-25: collapse duplicate UI command-request DTOs ---
+  # Approved by Administrator 2026-06-25.
+  # Proposal: sprint-change-proposal-2026-06-25-collapse-duplicate-ui-command-request-dtos.md
+  # Scope (Minor refactor, no behaviour change): deleted 9 UI *CommandRequest records that were
+  # field-for-field duplicates of Hexalith.Tenants.Contracts.Commands (7 from
+  # State/TenantCommands/TenantCreateCommandModels.cs + 2 standalone GA files); rewired the gateway,
+  # interface, snapshots, components, and tests onto the contract records; dropped redundant
+  # `var command = new …(request.…)` re-constructions. Retained TenantLifecycleCommandRequest (the one
+  # genuine UI composite). Literal type-name replacement across 9 done story docs (2-2,2-3,2-4,2-5,
+  # 3-3,3-4,4-3,4-4,5-6). Verified: UI .slnx Release -warnaserror 0/0; Hexalith.Tenants.UI.Tests 761/761.
+  # Status done (implemented + verified, UNCOMMITTED): handoff — Developer agent commits on a
+  # refactor/… branch (Conventional Commits `refactor` → no version bump / no 5-package NuGet publish).
+  cc-2026-06-25-collapse-duplicate-ui-command-request-dtos: done

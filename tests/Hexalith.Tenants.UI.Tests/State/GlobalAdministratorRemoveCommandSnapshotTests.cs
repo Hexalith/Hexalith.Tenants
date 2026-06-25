@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -13,7 +14,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_absent_target_projection_evidence_before_confirmation()
     {
-        var intent = new RemoveGlobalAdministratorCommandRequest("User/CaseSensitive.01");
+        var intent = new RemoveGlobalAdministrator("User/CaseSensitive.01");
         GlobalAdministratorRemoveCommandSnapshot snapshot = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
             .Preview(intent, CurrentRows("User/CaseSensitive.01", "other-admin"))
@@ -42,7 +43,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
         string rejectionCode,
         string safeMessage)
     {
-        var intent = new RemoveGlobalAdministratorCommandRequest("target-admin");
+        var intent = new RemoveGlobalAdministrator("target-admin");
         GlobalAdministratorRemoveCommandSnapshot snapshot = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
             .Preview(intent, CurrentRows("target-admin", "other-admin"))
@@ -60,7 +61,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_remove_or_audit_success()
     {
-        var intent = new RemoveGlobalAdministratorCommandRequest("target-admin");
+        var intent = new RemoveGlobalAdministrator("target-admin");
         GlobalAdministratorRemoveCommandSnapshot snapshot = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
             .Preview(intent, CurrentRows("target-admin", "other-admin"))
@@ -78,7 +79,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
     {
         GlobalAdministratorRemoveCommandSnapshot lastAdmin = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
-            .Preview(new RemoveGlobalAdministratorCommandRequest("target-admin"), CurrentRows("target-admin"));
+            .Preview(new RemoveGlobalAdministrator("target-admin"), CurrentRows("target-admin"));
 
         lastAdmin.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         lastAdmin.SafeMessage.ShouldNotBeNull().ShouldContain("last global administrator", Case.Insensitive);
@@ -86,7 +87,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
 
         GlobalAdministratorRemoveCommandSnapshot missingTarget = GlobalAdministratorRemoveCommandSnapshot
             .Idle()
-            .Preview(new RemoveGlobalAdministratorCommandRequest("missing-admin"), CurrentRows("target-admin", "other-admin"));
+            .Preview(new RemoveGlobalAdministrator("missing-admin"), CurrentRows("target-admin", "other-admin"));
 
         missingTarget.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         missingTarget.SafeMessage.ShouldNotBeNull().ShouldContain("not visible", Case.Insensitive);

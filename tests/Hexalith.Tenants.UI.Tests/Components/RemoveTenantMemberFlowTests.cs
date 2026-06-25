@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
@@ -349,32 +350,32 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         public TenantCommandStatusResult Status { get; init; }
             = TenantCommandStatusResult.Unknown("Command status is unavailable.");
 
-        public Func<RemoveUserFromTenantCommandRequest, Task<TenantCommandSubmissionResult>>? RemoveMemberAsync { get; init; }
+        public Func<RemoveUserFromTenant, Task<TenantCommandSubmissionResult>>? RemoveMemberAsync { get; init; }
 
-        public RemoveUserFromTenantCommandRequest? LastRemoveMemberRequest { get; private set; }
+        public RemoveUserFromTenant? LastRemoveMemberRequest { get; private set; }
 
         public int RemoveMemberCallCount { get; private set; }
 
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenantCommandRequest request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenantCommandRequest request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRoleCommandRequest request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(ChangeUserRole request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenantCommandRequest request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(RemoveUserFromTenant request, CancellationToken cancellationToken = default)
         {
             RemoveMemberCallCount++;
             LastRemoveMemberRequest = request;
             return RemoveMemberAsync is null ? Task.FromResult(Submission) : RemoveMemberAsync(request);
         }
 
-        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenantCommandRequest request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
-        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfigurationCommandRequest request, CancellationToken cancellationToken = default)
+        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
             => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)

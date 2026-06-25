@@ -52,8 +52,8 @@ so that recovery is deliberate, auditable, and proven by projection confirmation
   - [x] Keep the original receipt visible or reachable throughout the preview and command lifecycle; never hide or rename the original event as corrected/undone.
 
 - [x] Submit eligible tenant-domain correction commands through the existing gateway and confirmation pattern (AC: 3, 4, 7)
-  - [x] For mistaken removal restore, submit `AddUserToTenantCommandRequest` through `ITenantCommandGateway.AddUserToTenantAsync` with tenant id, target user id, and explicit intended role.
-  - [x] For wrong-role correction, submit `ChangeUserRoleCommandRequest` through `ITenantCommandGateway.ChangeUserRoleAsync` with tenant id, target user id, and explicit intended role as `NewRole`.
+  - [x] For mistaken removal restore, submit `AddUserToTenant` through `ITenantCommandGateway.AddUserToTenantAsync` with tenant id, target user id, and explicit intended role.
+  - [x] For wrong-role correction, submit `ChangeUserRole` through `ITenantCommandGateway.ChangeUserRoleAsync` with tenant id, target user id, and explicit intended role as `NewRole`.
   - [x] Do not add backend correction, preview, receipt, or proof-link endpoints. Use `POST /api/v1/commands` through the existing gateway and `GET /api/v1/commands/status/{correlationId}` through `GetStatusAsync`.
   - [x] Enforce one-at-a-time correction command locking; prevent double-submit, duplicate click, and browser-refresh resubmission from creating a second command attempt.
   - [x] On accepted command, store message id and correlation id in the correction snapshot as support-safe internal tracking data; do not render raw correlation ids in visible copy unless existing support-safe classifiers explicitly allow the specific reference.

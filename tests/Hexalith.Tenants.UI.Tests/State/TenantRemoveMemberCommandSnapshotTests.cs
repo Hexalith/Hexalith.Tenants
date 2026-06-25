@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     [Fact]
     public void Preview_records_complete_context_without_submitting_command()
     {
-        var intent = new RemoveUserFromTenantCommandRequest("tenant.alpha", "owner-user");
+        var intent = new RemoveUserFromTenant("tenant.alpha", "owner-user");
         TenantDetail detail = Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]);
 
         TenantRemoveMemberCommandSnapshot snapshot = TenantRemoveMemberCommandSnapshot
@@ -34,7 +35,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_projection_confirmed_absence_before_confirmed_state()
     {
-        var intent = new RemoveUserFromTenantCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01");
+        var intent = new RemoveUserFromTenant("Tenant.Mixed-01", "User/CaseSensitive.01");
         TenantRemoveMemberCommandSnapshot snapshot = TenantRemoveMemberCommandSnapshot
             .Idle()
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
@@ -67,7 +68,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     [Fact]
     public void User_not_in_tenant_rejection_becomes_already_applied_only_after_absence_requery()
     {
-        var intent = new RemoveUserFromTenantCommandRequest("tenant.alpha", "literal-user");
+        var intent = new RemoveUserFromTenant("tenant.alpha", "literal-user");
         TenantRemoveMemberCommandSnapshot rejected = TenantRemoveMemberCommandSnapshot
             .Idle()
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
@@ -96,7 +97,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_absence_or_audit_available()
     {
-        var intent = new RemoveUserFromTenantCommandRequest("tenant.alpha", "literal-user");
+        var intent = new RemoveUserFromTenant("tenant.alpha", "literal-user");
         TenantRemoveMemberCommandSnapshot snapshot = TenantRemoveMemberCommandSnapshot
             .Idle()
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
@@ -136,7 +137,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         TenantCommandLifecycleState expectedState,
         TenantCommandAuditState expectedAuditState)
     {
-        var intent = new RemoveUserFromTenantCommandRequest("tenant.alpha", "literal-user");
+        var intent = new RemoveUserFromTenant("tenant.alpha", "literal-user");
         TenantRemoveMemberCommandSnapshot snapshot = TenantRemoveMemberCommandSnapshot
             .Idle()
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(

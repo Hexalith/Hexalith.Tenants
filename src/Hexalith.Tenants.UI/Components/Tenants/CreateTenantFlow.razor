@@ -290,7 +290,7 @@
             return;
         }
 
-        var request = new CreateTenantCommandRequest(_tenantId, _name, _description);
+        var request = new CreateTenant(_tenantId, _name, _description);
         _snapshot = _snapshot.RequestSent(request);
         _isSubmitting = true;
 

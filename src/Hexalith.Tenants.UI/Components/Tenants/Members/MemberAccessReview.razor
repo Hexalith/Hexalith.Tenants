@@ -277,13 +277,13 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<AddUserToTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<AddUserToTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     [Parameter]
-    public Func<ChangeUserRoleCommandRequest, Task<TenantDetail?>>? ChangeRoleProjectionEvidenceProvider { get; set; }
+    public Func<ChangeUserRole, Task<TenantDetail?>>? ChangeRoleProjectionEvidenceProvider { get; set; }
 
     [Parameter]
-    public Func<RemoveUserFromTenantCommandRequest, Task<TenantDetail?>>? RemoveMemberProjectionEvidenceProvider { get; set; }
+    public Func<RemoveUserFromTenant, Task<TenantDetail?>>? RemoveMemberProjectionEvidenceProvider { get; set; }
 
     private IReadOnlyList<MemberRow> Rows
         => Detail.Members

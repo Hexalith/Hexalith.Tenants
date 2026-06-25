@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantAddMemberCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_member_projection_evidence_before_confirmation()
     {
-        var intent = new AddUserToTenantCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor);
+        var intent = new AddUserToTenant("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor);
         TenantAddMemberCommandSnapshot snapshot = TenantAddMemberCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -40,7 +41,7 @@ public sealed class TenantAddMemberCommandSnapshotTests
     [Fact]
     public void Accepted_status_stays_distinct_when_requery_has_no_member_evidence()
     {
-        var intent = new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantReader);
+        var intent = new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader);
         TenantAddMemberCommandSnapshot accepted = TenantAddMemberCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -59,7 +60,7 @@ public sealed class TenantAddMemberCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_member_or_audit_success()
     {
-        var intent = new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantReader);
+        var intent = new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader);
         TenantAddMemberCommandSnapshot snapshot = TenantAddMemberCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -80,7 +81,7 @@ public sealed class TenantAddMemberCommandSnapshotTests
         CommandStatus status,
         TenantCommandLifecycleState expectedState)
     {
-        var intent = new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantReader);
+        var intent = new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader);
         TenantAddMemberCommandSnapshot snapshot = TenantAddMemberCommandSnapshot
             .Idle()
             .RequestSent(intent)

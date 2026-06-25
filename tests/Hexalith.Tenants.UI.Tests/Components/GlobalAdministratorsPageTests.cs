@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
@@ -869,47 +870,47 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public int RemoveGlobalAdministratorCalls { get; private set; }
 
-        public List<SetGlobalAdministratorCommandRequest> Requests { get; } = [];
+        public List<SetGlobalAdministrator> Requests { get; } = [];
 
-        public List<RemoveGlobalAdministratorCommandRequest> RemoveRequests { get; } = [];
+        public List<RemoveGlobalAdministrator> RemoveRequests { get; } = [];
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(
-            CreateTenantCommandRequest request,
+            CreateTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
-            AddUserToTenantCommandRequest request,
+            AddUserToTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
-            ChangeUserRoleCommandRequest request,
+            ChangeUserRole request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
-            RemoveUserFromTenantCommandRequest request,
+            RemoveUserFromTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
-            UpdateTenantCommandRequest request,
+            UpdateTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
-            SetTenantConfigurationCommandRequest request,
+            SetTenantConfiguration request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
-            RemoveTenantConfigurationCommandRequest request,
+            RemoveTenantConfiguration request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
-            SetGlobalAdministratorCommandRequest request,
+            SetGlobalAdministrator request,
             CancellationToken cancellationToken = default)
         {
             SetGlobalAdministratorCalls++;
@@ -918,7 +919,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         }
 
         public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
-            RemoveGlobalAdministratorCommandRequest request,
+            RemoveGlobalAdministrator request,
             CancellationToken cancellationToken = default)
         {
             RemoveGlobalAdministratorCalls++;

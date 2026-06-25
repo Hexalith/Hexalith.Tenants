@@ -228,10 +228,10 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<SetTenantConfigurationCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<SetTenantConfiguration, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     [Parameter]
-    public Func<RemoveTenantConfigurationCommandRequest, Task<TenantDetail?>>? RemoveProjectionEvidenceProvider { get; set; }
+    public Func<RemoveTenantConfiguration, Task<TenantDetail?>>? RemoveProjectionEvidenceProvider { get; set; }
 
     private IReadOnlyList<ConfigurationRow> Rows
         => Detail.Configuration

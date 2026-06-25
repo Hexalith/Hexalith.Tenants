@@ -236,7 +236,7 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<SetTenantConfigurationCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<SetTenantConfiguration, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantSetConfigurationCommandSnapshot Snapshot => _snapshot;
 
@@ -296,7 +296,7 @@
     {
         get
         {
-            if (!TryBuildRequest(out SetTenantConfigurationCommandRequest? request, out string? normalizedNamespace, showValidation: false)
+            if (!TryBuildRequest(out SetTenantConfiguration? request, out string? normalizedNamespace, showValidation: false)
                 || request is null
                 || normalizedNamespace is null)
             {
@@ -471,7 +471,7 @@
     private void ClearValidationAndPreview()
     {
         _validationMessage = null;
-        if (TryBuildRequest(out SetTenantConfigurationCommandRequest? request, out _, showValidation: false) && request is not null)
+        if (TryBuildRequest(out SetTenantConfiguration? request, out _, showValidation: false) && request is not null)
         {
             _snapshot = _snapshot.Previewed(request, Detail);
             return;
@@ -509,7 +509,7 @@
             return;
         }
 
-        if (!TryBuildRequest(out SetTenantConfigurationCommandRequest? request, out _, showValidation: true) || request is null)
+        if (!TryBuildRequest(out SetTenantConfiguration? request, out _, showValidation: true) || request is null)
         {
             return;
         }
@@ -600,7 +600,7 @@
     }
 
     private bool TryBuildRequest(
-        out SetTenantConfigurationCommandRequest? request,
+        out SetTenantConfiguration? request,
         out string? normalizedNamespace,
         bool showValidation)
     {
@@ -648,7 +648,7 @@
         }
 
         normalizedNamespace = namespaceValue;
-        request = new SetTenantConfigurationCommandRequest(Detail.TenantId, fullKey, value);
+        request = new SetTenantConfiguration(Detail.TenantId, fullKey, value);
         return true;
     }
 

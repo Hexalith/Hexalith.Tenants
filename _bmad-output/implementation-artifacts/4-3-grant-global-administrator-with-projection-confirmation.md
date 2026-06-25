@@ -34,7 +34,7 @@ so that platform authority changes are explicit, scoped to `global-administrator
   - [x] If implementation proceeds, treat this story as grant-only scope. Do not implement `RemoveGlobalAdministrator`, last-admin removal behavior, destructive consequence preview, audit recovery, or tenant-membership side effects in Story 4.3.
 
 - [x] Add a focused global-administrator grant command request and gateway method (AC: 1, 2, 3, 4, 5, 7)
-  - [x] Add a request model such as `SetGlobalAdministratorCommandRequest(string UserId)` under `src/Hexalith.Tenants.UI/State/TenantCommands/` or a focused `State/GlobalAdministrators/` command file.
+  - [x] Add a request model such as `SetGlobalAdministrator(string UserId)` under `src/Hexalith.Tenants.UI/State/TenantCommands/` or a focused `State/GlobalAdministrators/` command file.
   - [x] Add `SetGlobalAdministratorAsync` to `ITenantCommandGateway` and `TenantCommandGateway`.
   - [x] Submit `SetGlobalAdministrator` through `IEventStoreGatewayClient.SubmitCommandAsync` with `tenant = "system"`, `domain = "global-administrators"`, `aggregateId = "global-administrators"`, `commandType = nameof(SetGlobalAdministrator)`, and payload `{ UserId }` only.
   - [x] Generate `messageId` with the existing `IUlidFactory`; do not parse the target user id as ULID or GUID.
@@ -199,7 +199,7 @@ GPT-5 Codex
 - Story returned to backlog pending a separate governance clearance for FR19 global-administrator grant/remove command management.
 - Focused UI test-project build passed, and xUnit v3 executable fallback passed all 470 UI tests after `dotnet test` hit the known .NET 10 runner incompatibility.
 - Story 4.3 grant-only implementation completed after explicit user direction to proceed on 2026-06-07.
-- Added `SetGlobalAdministratorCommandRequest` and `SetGlobalAdministratorAsync` through the existing EventStore command gateway with fixed `system/global-administrators/global-administrators` routing, ULID message id generation, and `{ UserId }` payload only.
+- Added `SetGlobalAdministrator` and `SetGlobalAdministratorAsync` through the existing EventStore command gateway with fixed `system/global-administrators/global-administrators` routing, ULID message id generation, and `{ UserId }` payload only.
 - Extended `GlobalAdministratorsPage` with a localized grant form, stable selectors, fail-closed unavailable reasons, one-at-a-time command locking, support-safe lifecycle/audit states, focus targets, and no tenant membership or tenant-role substitute inputs.
 - Implemented projection-confirmed lifecycle behavior: command status alone cannot confirm success; the page re-queries `GetGlobalAdministratorsAsync` and only confirms when the target user appears in the fixed projection.
 - Added EN/FR `Tenants.GlobalAdministrators.Grant.*` resources, forced-colors/focus-visible styling, and wrapping support for long literal user ids.
@@ -240,7 +240,7 @@ Validation evidence:
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs`
-- `src/Hexalith.Tenants.UI/State/TenantCommands/SetGlobalAdministratorCommandRequest.cs`
+- ~~`src/Hexalith.Tenants.UI/State/TenantCommands/SetGlobalAdministratorCommandRequest.cs`~~ removed 2026-06-25 — the grant intent now reuses the `SetGlobalAdministrator` contract command (see `planning-artifacts/sprint-change-proposal-2026-06-25-collapse-duplicate-ui-command-request-dtos.md`)
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
 - `tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`

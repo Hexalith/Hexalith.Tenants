@@ -1,11 +1,12 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
 public sealed record GlobalAdministratorRemoveCommandSnapshot(
     TenantCommandLifecycleState State,
-    RemoveGlobalAdministratorCommandRequest? Intent = null,
+    RemoveGlobalAdministrator? Intent = null,
     IReadOnlyList<GlobalAdministratorRow>? PreviewRows = null,
     GlobalAdministratorRow? LastConfirmedProjection = null,
     string? MessageId = null,
@@ -27,7 +28,7 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
     public GlobalAdministratorRemoveCommandSnapshot Preview(
-        RemoveGlobalAdministratorCommandRequest intent,
+        RemoveGlobalAdministrator intent,
         IReadOnlyList<GlobalAdministratorRow> rows) {
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(rows);

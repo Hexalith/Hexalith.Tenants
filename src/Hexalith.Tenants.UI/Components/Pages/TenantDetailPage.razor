@@ -244,37 +244,37 @@
             .ConfigureAwait(false);
     }
 
-    private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenantCommandRequest request)
+    private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetChangeRoleProjectionEvidenceAsync(ChangeUserRoleCommandRequest request)
+    private Task<TenantDetail?> GetChangeRoleProjectionEvidenceAsync(ChangeUserRole request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetRemoveMemberProjectionEvidenceAsync(RemoveUserFromTenantCommandRequest request)
+    private Task<TenantDetail?> GetRemoveMemberProjectionEvidenceAsync(RemoveUserFromTenant request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenantCommandRequest request)
+    private Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfigurationCommandRequest request)
+    private Task<TenantDetail?> GetSetConfigurationProjectionEvidenceAsync(SetTenantConfiguration request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
-    private Task<TenantDetail?> GetRemoveConfigurationProjectionEvidenceAsync(RemoveTenantConfigurationCommandRequest request)
+    private Task<TenantDetail?> GetRemoveConfigurationProjectionEvidenceAsync(RemoveTenantConfiguration request)
         => Task.FromResult(
             string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail

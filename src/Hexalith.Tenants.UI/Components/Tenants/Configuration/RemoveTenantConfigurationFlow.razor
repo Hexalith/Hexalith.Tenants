@@ -208,7 +208,7 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<RemoveTenantConfigurationCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<RemoveTenantConfiguration, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantRemoveConfigurationCommandSnapshot Snapshot => _snapshot;
 
@@ -263,7 +263,7 @@
     {
         get
         {
-            if (!TryBuildRequest(out RemoveTenantConfigurationCommandRequest? request, showValidation: false) || request is null)
+            if (!TryBuildRequest(out RemoveTenantConfiguration? request, showValidation: false) || request is null)
             {
                 return [];
             }
@@ -354,7 +354,7 @@
         }
 
         if (_snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed
-            && TryBuildRequest(out RemoveTenantConfigurationCommandRequest? request, showValidation: false)
+            && TryBuildRequest(out RemoveTenantConfiguration? request, showValidation: false)
             && request is not null)
         {
             _snapshot = _snapshot.Previewed(request, Detail);
@@ -438,7 +438,7 @@
             return;
         }
 
-        if (!TryBuildRequest(out RemoveTenantConfigurationCommandRequest? request, showValidation: true) || request is null)
+        if (!TryBuildRequest(out RemoveTenantConfiguration? request, showValidation: true) || request is null)
         {
             return;
         }
@@ -526,7 +526,7 @@
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
-    private bool TryBuildRequest(out RemoveTenantConfigurationCommandRequest? request, bool showValidation)
+    private bool TryBuildRequest(out RemoveTenantConfiguration? request, bool showValidation)
     {
         request = null;
 
@@ -548,7 +548,7 @@
             return false;
         }
 
-        request = new RemoveTenantConfigurationCommandRequest(Detail.TenantId, TargetKey);
+        request = new RemoveTenantConfiguration(Detail.TenantId, TargetKey);
         return true;
     }
 

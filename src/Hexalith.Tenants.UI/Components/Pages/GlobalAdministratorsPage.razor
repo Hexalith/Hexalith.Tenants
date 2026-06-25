@@ -724,7 +724,7 @@
             return;
         }
 
-        var request = new SetGlobalAdministratorCommandRequest(_grantUserId.Trim());
+        var request = new SetGlobalAdministrator(_grantUserId.Trim());
         SetGrantSnapshot(_grantSnapshot.RequestSent(request));
         _isGrantSubmitting = true;
 
@@ -813,7 +813,7 @@
             return;
         }
 
-        var request = new RemoveGlobalAdministratorCommandRequest(userId);
+        var request = new RemoveGlobalAdministrator(userId);
         SetRemoveSnapshot(_removeSnapshot.Preview(request, _snapshot.Rows));
     }
 

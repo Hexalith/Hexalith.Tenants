@@ -1,11 +1,12 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
 public sealed record GlobalAdministratorGrantCommandSnapshot(
     TenantCommandLifecycleState State,
-    SetGlobalAdministratorCommandRequest? Intent = null,
+    SetGlobalAdministrator? Intent = null,
     GlobalAdministratorRow? LastConfirmedProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
@@ -25,7 +26,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public GlobalAdministratorGrantCommandSnapshot RequestSent(SetGlobalAdministratorCommandRequest intent)
+    public GlobalAdministratorGrantCommandSnapshot RequestSent(SetGlobalAdministrator intent)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,

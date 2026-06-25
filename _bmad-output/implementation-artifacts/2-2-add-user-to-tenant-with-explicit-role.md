@@ -38,7 +38,7 @@ so that tenant access can be granted without invitation or pending-member ambigu
   - [x] Preserve current `CreateTenantAsync` behavior and tests while adding the new command path.
 
 - [x] Add add-member lifecycle state that reuses the Story 2.1 command model pattern (AC: 3, 4, 6, 7)
-  - [x] Add focused models under `src/Hexalith.Tenants.UI/State/TenantCommands/`, for example `AddUserToTenantCommandRequest` and `TenantAddMemberCommandSnapshot`, or generalize `TenantCreateCommandSnapshot` only if that reduces duplication without weakening create-tenant tests.
+  - [x] Add focused models under `src/Hexalith.Tenants.UI/State/TenantCommands/`, for example `AddUserToTenant` and `TenantAddMemberCommandSnapshot`, or generalize `TenantCreateCommandSnapshot` only if that reduces duplication without weakening create-tenant tests.
   - [x] Store tenant id, target user id, requested role, message id, correlation id, safe message, rejection code, audit handoff state, and focus target.
   - [x] Preserve the non-collapse invariant: request sent, accepted, projection pending, confirmed, rejected, failed, degraded, unable to verify, audit pending, audit unavailable, and missing support remain distinct.
   - [x] Keep last-confirmed member projection separate from submitted intent; never add the target user to the member table until an authoritative tenant detail/member re-query proves the user and role.

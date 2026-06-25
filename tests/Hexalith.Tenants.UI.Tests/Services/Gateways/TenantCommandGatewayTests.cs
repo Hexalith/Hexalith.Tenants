@@ -29,7 +29,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
-            new SetGlobalAdministratorCommandRequest("User/CaseSensitive.01"),
+            new SetGlobalAdministrator("User/CaseSensitive.01"),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -56,7 +56,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveGlobalAdministratorAsync(
-            new RemoveGlobalAdministratorCommandRequest("User/CaseSensitive.01"),
+            new RemoveGlobalAdministrator("User/CaseSensitive.01"),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -86,7 +86,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveGlobalAdministratorAsync(
-            new RemoveGlobalAdministratorCommandRequest(userId!),
+            new RemoveGlobalAdministrator(userId!),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -113,7 +113,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveGlobalAdministratorAsync(
-            new RemoveGlobalAdministratorCommandRequest("secret-user"),
+            new RemoveGlobalAdministrator("secret-user"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -139,7 +139,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
-            new SetGlobalAdministratorCommandRequest(userId!),
+            new SetGlobalAdministrator(userId!),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -160,7 +160,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
-            new SetGlobalAdministratorCommandRequest("target-user"),
+            new SetGlobalAdministrator("target-user"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -189,7 +189,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetGlobalAdministratorAsync(
-            new SetGlobalAdministratorCommandRequest("secret-user"),
+            new SetGlobalAdministrator("secret-user"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -353,7 +353,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
-            new UpdateTenantCommandRequest("Tenant.Mixed-01", "Updated tenant", string.Empty),
+            new UpdateTenant("Tenant.Mixed-01", "Updated tenant", string.Empty),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -382,7 +382,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
-            new UpdateTenantCommandRequest("tenant.alpha", name!, "description"),
+            new UpdateTenant("tenant.alpha", name!, "description"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -409,7 +409,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.UpdateTenantAsync(
-            new UpdateTenantCommandRequest("tenant.alpha", "Alpha", null),
+            new UpdateTenant("tenant.alpha", "Alpha", null),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -431,7 +431,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationAsync(
-            new SetTenantConfigurationCommandRequest("Tenant.Mixed-01", "billing.mode", "enterprise"),
+            new SetTenantConfiguration("Tenant.Mixed-01", "billing.mode", "enterprise"),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -460,7 +460,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationAsync(
-            new SetTenantConfigurationCommandRequest("tenant.alpha", key!, "value"),
+            new SetTenantConfiguration("tenant.alpha", key!, "value"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -488,7 +488,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.SetTenantConfigurationAsync(
-            new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "super-secret"),
+            new SetTenantConfiguration("tenant.alpha", "billing.mode", "super-secret"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -547,7 +547,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationAsync(
-            new RemoveTenantConfigurationCommandRequest("Tenant.Mixed-01", "billing.mode"),
+            new RemoveTenantConfiguration("Tenant.Mixed-01", "billing.mode"),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -575,7 +575,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationAsync(
-            new RemoveTenantConfigurationCommandRequest("tenant.alpha", key!),
+            new RemoveTenantConfiguration("tenant.alpha", key!),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -603,7 +603,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationAsync(
-            new RemoveTenantConfigurationCommandRequest("tenant.alpha", "billing.secret"),
+            new RemoveTenantConfiguration("tenant.alpha", "billing.secret"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -662,7 +662,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
-            new RemoveUserFromTenantCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01"),
+            new RemoveUserFromTenant("Tenant.Mixed-01", "User/CaseSensitive.01"),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -690,7 +690,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
-            new RemoveUserFromTenantCommandRequest("tenant.alpha", userId!),
+            new RemoveUserFromTenant("tenant.alpha", userId!),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -718,7 +718,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.RemoveUserFromTenantAsync(
-            new RemoveUserFromTenantCommandRequest("tenant.alpha", "literal-user"),
+            new RemoveUserFromTenant("tenant.alpha", "literal-user"),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -740,7 +740,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
-            new ChangeUserRoleCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantReader),
+            new ChangeUserRole("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantReader),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -769,7 +769,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
-            new ChangeUserRoleCommandRequest("tenant.alpha", userId!, TenantRole.TenantReader),
+            new ChangeUserRole("tenant.alpha", userId!, TenantRole.TenantReader),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -787,7 +787,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
-            new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.Unknown),
+            new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.Unknown),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -816,7 +816,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.ChangeUserRoleAsync(
-            new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantContributor),
+            new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -959,7 +959,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
-            new AddUserToTenantCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor),
+            new AddUserToTenant("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -988,7 +988,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
-            new AddUserToTenantCommandRequest("tenant.alpha", userId!, TenantRole.TenantReader),
+            new AddUserToTenant("tenant.alpha", userId!, TenantRole.TenantReader),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -1006,7 +1006,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
-            new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.Unknown),
+            new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.Unknown),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -1035,7 +1035,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.AddUserToTenantAsync(
-            new AddUserToTenantCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantReader),
+            new AddUserToTenant("tenant.alpha", "literal-user", TenantRole.TenantReader),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -1099,7 +1099,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
-            new CreateTenantCommandRequest("Tenant.Mixed-01", "Mixed Tenant", "literal id"),
+            new CreateTenant("Tenant.Mixed-01", "Mixed Tenant", "literal id"),
             CancellationToken.None);
 
         SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
@@ -1129,7 +1129,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
-            new CreateTenantCommandRequest("tenant.alpha", "Alpha", null),
+            new CreateTenant("tenant.alpha", "Alpha", null),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -1161,7 +1161,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
-            new CreateTenantCommandRequest("tenant.alpha", "Alpha", null),
+            new CreateTenant("tenant.alpha", "Alpha", null),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
@@ -1183,7 +1183,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
-            new CreateTenantCommandRequest("", "Alpha", null),
+            new CreateTenant("", "Alpha", null),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Failed);
@@ -1204,7 +1204,7 @@ public sealed class TenantCommandGatewayTests
         });
 
         TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(
-            new CreateTenantCommandRequest("tenant.alpha", "Alpha", null),
+            new CreateTenant("tenant.alpha", "Alpha", null),
             CancellationToken.None);
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);

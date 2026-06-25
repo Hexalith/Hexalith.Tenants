@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     [Fact]
     public void Same_role_selection_records_already_applied_without_command_tracking()
     {
-        var intent = new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantReader);
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantReader);
 
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
@@ -30,7 +31,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_target_user_role_projection_evidence_before_confirmation()
     {
-        var intent = new ChangeUserRoleCommandRequest("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor);
+        var intent = new ChangeUserRole("Tenant.Mixed-01", "User/CaseSensitive.01", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
             .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
@@ -58,7 +59,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     [Fact]
     public void Missing_target_user_after_terminal_status_is_unable_to_verify()
     {
-        var intent = new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantContributor);
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
             .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
@@ -77,7 +78,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     [Fact]
     public void Accepted_status_stays_distinct_when_requery_has_no_requested_role_evidence()
     {
-        var intent = new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantContributor);
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot accepted = TenantChangeRoleCommandSnapshot
             .Idle()
             .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
@@ -95,7 +96,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_role_or_audit_success()
     {
-        var intent = new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantContributor);
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
             .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)
@@ -111,7 +112,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
     [Fact]
     public void Completed_zero_event_status_maps_backend_noop_to_already_applied()
     {
-        var intent = new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantContributor);
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
 
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
@@ -133,7 +134,7 @@ public sealed class TenantChangeRoleCommandSnapshotTests
         CommandStatus status,
         TenantCommandLifecycleState expectedState)
     {
-        var intent = new ChangeUserRoleCommandRequest("tenant.alpha", "literal-user", TenantRole.TenantContributor);
+        var intent = new ChangeUserRole("tenant.alpha", "literal-user", TenantRole.TenantContributor);
         TenantChangeRoleCommandSnapshot snapshot = TenantChangeRoleCommandSnapshot
             .Idle()
             .RequestSent(intent, TenantRole.TenantReader, ownerCount: 2)

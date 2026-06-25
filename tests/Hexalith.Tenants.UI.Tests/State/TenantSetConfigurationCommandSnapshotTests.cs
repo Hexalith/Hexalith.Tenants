@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
     [Fact]
     public void Configuration_set_confirms_only_when_projection_contains_literal_key_and_value()
     {
-        var intent = new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "enterprise");
+        var intent = new SetTenantConfiguration("tenant.alpha", "billing.mode", "enterprise");
         TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", "billing.mode", "trial"))
             .Previewed(intent, Detail("tenant.alpha", "billing.mode", "trial"))
@@ -39,7 +40,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
     [Fact]
     public void Completed_without_events_is_already_applied_only_after_projection_still_proves_value()
     {
-        var intent = new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "enterprise");
+        var intent = new SetTenantConfiguration("tenant.alpha", "billing.mode", "enterprise");
         TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", "billing.mode", "trial"))
             .Previewed(intent, Detail("tenant.alpha", "billing.mode", "trial"))
@@ -66,7 +67,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", "billing.mode", "trial"))
             .Previewed(
-                new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "enterprise"),
+                new SetTenantConfiguration("tenant.alpha", "billing.mode", "enterprise"),
                 Detail("tenant.alpha", "billing.mode", "trial"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
@@ -113,7 +114,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", "billing.mode", "trial"))
             .Previewed(
-                new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "enterprise"),
+                new SetTenantConfiguration("tenant.alpha", "billing.mode", "enterprise"),
                 Detail("tenant.alpha", "billing.mode", "trial"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
@@ -139,7 +140,7 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
         TenantSetConfigurationCommandSnapshot snapshot = TenantSetConfigurationCommandSnapshot
             .Idle(Detail("tenant.alpha", "billing.mode", "trial"))
             .Previewed(
-                new SetTenantConfigurationCommandRequest("tenant.alpha", "billing.mode", "enterprise"),
+                new SetTenantConfiguration("tenant.alpha", "billing.mode", "enterprise"),
                 Detail("tenant.alpha", "billing.mode", "trial"))
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))

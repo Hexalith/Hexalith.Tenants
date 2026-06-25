@@ -198,7 +198,7 @@
     public EventCallback<bool> OnCommandActivityChanged { get; set; }
 
     [Parameter]
-    public Func<RemoveUserFromTenantCommandRequest, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<RemoveUserFromTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantRemoveMemberCommandSnapshot Snapshot => _snapshot;
 
@@ -341,7 +341,7 @@
         if (_snapshot.State is TenantCommandLifecycleState.Idle && IsPreviewComplete)
         {
             _snapshot = _snapshot.Previewed(
-                new RemoveUserFromTenantCommandRequest(Detail.TenantId, Member.UserId),
+                new RemoveUserFromTenant(Detail.TenantId, Member.UserId),
                 Member.Role,
                 OwnerCount,
                 TargetGlobalAdministratorFriction,
@@ -397,7 +397,7 @@
             return;
         }
 
-        RemoveUserFromTenantCommandRequest request = new(Detail.TenantId, Member.UserId);
+        RemoveUserFromTenant request = new(Detail.TenantId, Member.UserId);
         if (!TargetIsVisibleMember
             && SurfaceKind is TenantDetailSurfaceKind.Ready
             && Freshness is TenantFreshnessState.Current

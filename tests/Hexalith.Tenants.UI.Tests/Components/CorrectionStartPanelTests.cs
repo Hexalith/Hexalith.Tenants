@@ -3,6 +3,7 @@ using System.Globalization;
 using Bunit;
 
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Audit;
@@ -245,16 +246,16 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
-        public List<AddUserToTenantCommandRequest> AddUserRequests { get; } = [];
+        public List<AddUserToTenant> AddUserRequests { get; } = [];
 
-        public List<ChangeUserRoleCommandRequest> ChangeRoleRequests { get; } = [];
+        public List<ChangeUserRole> ChangeRoleRequests { get; } = [];
 
         public List<TenantCommandTrackingHandle> StatusHandles { get; } = [];
 
         public Task<TenantCommandSubmissionResult>? AddUserResultTask { get; init; }
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
-            AddUserToTenantCommandRequest request,
+            AddUserToTenant request,
             CancellationToken cancellationToken = default)
         {
             AddUserRequests.Add(request);
@@ -262,7 +263,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         }
 
         public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
-            ChangeUserRoleCommandRequest request,
+            ChangeUserRole request,
             CancellationToken cancellationToken = default)
         {
             ChangeRoleRequests.Add(request);
@@ -278,22 +279,22 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(
-            CreateTenantCommandRequest request,
+            CreateTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
-            RemoveUserFromTenantCommandRequest request,
+            RemoveUserFromTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
-            UpdateTenantCommandRequest request,
+            UpdateTenant request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
-            SetTenantConfigurationCommandRequest request,
+            SetTenantConfiguration request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }

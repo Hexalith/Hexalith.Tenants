@@ -36,7 +36,7 @@ so that obsolete configuration can be removed with clear consequence and proof.
   - [x] Keep configuration remove unavailable on mobile/narrow layouts that cannot preserve preview, freshness, tenant identity, target key, current-state, and last-confirmed configuration context.
 
 - [x] Add remove-configuration request, snapshot, and gateway support using existing command infrastructure (AC: 3, 4, 5)
-  - [x] Add `RemoveTenantConfigurationCommandRequest(string TenantId, string Key)` to `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs`.
+  - [x] Add `RemoveTenantConfiguration(string TenantId, string Key)` to `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs`.
   - [x] Add a focused `TenantRemoveConfigurationCommandSnapshot` that keeps `Previewed`, `RequestSent`, `Accepted`, `ProjectionPending`, `Confirmed`, `Rejected`, `Failed`, `Degraded`, `UnableToVerify`, duplicate prevention, and audit states distinct.
   - [x] Add `RemoveTenantConfigurationAsync` to `ITenantCommandGateway`, `TenantCommandGateway`, `UnavailableTenantCommandGateway`, and all test stubs that implement the interface.
   - [x] Submit the existing contract record `RemoveTenantConfiguration` through `POST /api/v1/commands` using the shared EventStore gateway: client-generated `messageId`, tenant `"system"`, domain `"tenants"`, aggregate id equal to the literal tenant id, command name `nameof(RemoveTenantConfiguration)`, and JSON payload serialized from the existing command record.
@@ -196,7 +196,7 @@ GPT-5 Codex
 - Story context marks Story 3.4 ready-for-dev because tenant-scoped configuration commands are fallback-eligible and the required `FC-CNS`/`FC-CMD`/`FC-CNC` gates are approved/confirmed by prior planning and implemented command-flow precedent.
 - Story context identifies the key implementation risks: unauthorized key-existence leakage, optimistic deletion, missing-key rejection being mislabeled as success, partial consequence preview, command-state collapse, command-specific rejection copy leaking through shared status, support-unsafe key/value exposure, and regressions to existing read/set configuration behavior.
 - Implemented a focused `RemoveTenantConfigurationFlow` composed from visible configuration rows, with complete inline consequence preview, narrow-layout blocking, cancel/Escape no-commit behavior, support-safe current-state display, stable selectors, state-driven live regions, and projection-confirmed absence before confirmed removal.
-- Extended the existing tenant command gateway and command state model with `RemoveTenantConfigurationCommandRequest`, `TenantRemoveConfigurationCommandSnapshot`, `RemoveTenantConfigurationAsync`, unavailable gateway support, safe submission/status rejection mapping, and `ConfigurationKeyNotFound` rejected-state handling.
+- Extended the existing tenant command gateway and command state model with `RemoveTenantConfiguration`, `TenantRemoveConfigurationCommandSnapshot`, `RemoveTenantConfigurationAsync`, unavailable gateway support, safe submission/status rejection mapping, and `ConfigurationKeyNotFound` rejected-state handling.
 - Preserved the read-only configuration table, namespace grouping/filtering, copy/redaction behavior, Story 3.3 set-configuration flow, and page-level command lock/projection-refresh pattern.
 - Added EN/FR `Tenants.Configuration.Remove.*` resources and resource parity coverage.
 - Added focused gateway, state, component, and composition tests; updated both test summary files with Story 3.4 evidence.

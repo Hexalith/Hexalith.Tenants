@@ -34,7 +34,7 @@ so that the platform never loses its last global administrator and the UI never 
   - [x] If implementation proceeds, keep this story remove-only. Do not implement `SetGlobalAdministrator`, grant flows, bulk revocation, tenant membership removal, audit recovery, or event/projection repair in Story 4.4.
 
 - [x] Add a focused global-administrator remove command request and gateway method (AC: 3, 4, 5, 6, 7)
-  - [x] Add a request model such as `RemoveGlobalAdministratorCommandRequest(string UserId)` under `src/Hexalith.Tenants.UI/State/GlobalAdministrators/` or the existing `State/TenantCommands/` command models area.
+  - [x] Add a request model such as `RemoveGlobalAdministrator(string UserId)` under `src/Hexalith.Tenants.UI/State/GlobalAdministrators/` or the existing `State/TenantCommands/` command models area.
   - [x] Add `RemoveGlobalAdministratorAsync` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`.
   - [x] Submit through `IEventStoreGatewayClient.SubmitCommandAsync` with `tenant = "system"`, `domain = "global-administrators"`, `aggregateId = "global-administrators"`, `commandType = nameof(RemoveGlobalAdministrator)`, and payload `{ UserId }` only.
   - [x] Generate the command `messageId` with the existing `IUlidFactory`; never parse the target user id as a GUID or ULID.
@@ -190,7 +190,7 @@ GPT-5 Codex
 - Story returned to backlog pending a separate governance clearance for FR19 global-administrator grant/remove command management.
 - Focused UI test-project build passed, and xUnit v3 executable fallback passed all 470 UI tests after `dotnet test` hit the known .NET 10 runner incompatibility.
 - Story 4.4 remove-only implementation completed after explicit user direction to proceed on 2026-06-07.
-- Added `RemoveGlobalAdministratorCommandRequest` and `RemoveGlobalAdministratorAsync` through the existing EventStore command gateway with fixed `system/global-administrators/global-administrators` routing, ULID message id generation, and `{ UserId }` payload only.
+- Added `RemoveGlobalAdministrator` and `RemoveGlobalAdministratorAsync` through the existing EventStore command gateway with fixed `system/global-administrators/global-administrators` routing, ULID message id generation, and `{ UserId }` payload only.
 - Extended `GlobalAdministratorsPage` with row-level remove availability, last-admin pre-submit hard stop, localized high-impact consequence preview, one-at-a-time command locking with grant, support-safe lifecycle/audit states, keyboard Escape cancellation, focus sentinels, and no tenant membership or tenant-role substitute inputs.
 - Implemented projection-confirmed remove behavior: command status alone cannot confirm success; the page re-queries `GetGlobalAdministratorsAsync` and only confirms when the target user is absent from the fixed projection.
 - Added EN/FR `Tenants.GlobalAdministrators.Remove.*` resources, forced-colors/focus-visible styling, and wrapping support for long literal user ids and preview/lifecycle copy.
@@ -208,7 +208,7 @@ GPT-5 Codex
 - `src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs`
 - `src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs`
 - `src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRemoveCommandSnapshot.cs`
-- `src/Hexalith.Tenants.UI/State/TenantCommands/RemoveGlobalAdministratorCommandRequest.cs`
+- ~~`src/Hexalith.Tenants.UI/State/TenantCommands/RemoveGlobalAdministratorCommandRequest.cs`~~ removed 2026-06-25 — the remove intent now reuses the `RemoveGlobalAdministrator` contract command (see `planning-artifacts/sprint-change-proposal-2026-06-25-collapse-duplicate-ui-command-request-dtos.md`)
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorRemoveCommandSnapshotTests.cs`

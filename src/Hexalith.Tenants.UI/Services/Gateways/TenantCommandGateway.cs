@@ -38,7 +38,7 @@ internal sealed class TenantCommandGateway(
     ];
 
     public async Task<TenantCommandSubmissionResult> CreateTenantAsync(
-        CreateTenantCommandRequest request,
+        CreateTenant request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -47,14 +47,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new CreateTenant(request.TenantId, request.Name, request.Description);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(CreateTenant),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -69,7 +68,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
-        AddUserToTenantCommandRequest request,
+        AddUserToTenant request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -80,14 +79,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new AddUserToTenant(request.TenantId, request.UserId, request.Role);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(AddUserToTenant),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -102,7 +100,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
-        ChangeUserRoleCommandRequest request,
+        ChangeUserRole request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -113,14 +111,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new ChangeUserRole(request.TenantId, request.UserId, request.NewRole);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(ChangeUserRole),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -135,7 +132,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
-        RemoveUserFromTenantCommandRequest request,
+        RemoveUserFromTenant request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -144,14 +141,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new RemoveUserFromTenant(request.TenantId, request.UserId);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(RemoveUserFromTenant),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -166,7 +162,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> UpdateTenantAsync(
-        UpdateTenantCommandRequest request,
+        UpdateTenant request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -175,14 +171,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new UpdateTenant(request.TenantId, request.Name, request.Description);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(UpdateTenant),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -197,7 +192,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
-        SetTenantConfigurationCommandRequest request,
+        SetTenantConfiguration request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -208,14 +203,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new SetTenantConfiguration(request.TenantId, request.Key, request.Value);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(SetTenantConfiguration),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -230,7 +224,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
-        RemoveTenantConfigurationCommandRequest request,
+        RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -239,14 +233,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new RemoveTenantConfiguration(request.TenantId, request.Key);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             TenantsDomain,
             request.TenantId,
             nameof(RemoveTenantConfiguration),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -261,7 +254,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
-        SetGlobalAdministratorCommandRequest request,
+        SetGlobalAdministrator request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -270,14 +263,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new SetGlobalAdministrator(request.UserId);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             GlobalAdministratorsDomain,
             GlobalAdministratorsAggregateId,
             nameof(SetGlobalAdministrator),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient
@@ -292,7 +284,7 @@ internal sealed class TenantCommandGateway(
     }
 
     public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
-        RemoveGlobalAdministratorCommandRequest request,
+        RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -301,14 +293,13 @@ internal sealed class TenantCommandGateway(
         }
 
         string messageId = ulidFactory.NewUlid();
-        var command = new RemoveGlobalAdministrator(request.UserId);
         var submit = new SubmitCommandRequest(
             messageId,
             SystemTenant,
             GlobalAdministratorsDomain,
             GlobalAdministratorsAggregateId,
             nameof(RemoveGlobalAdministrator),
-            JsonSerializer.SerializeToElement(command));
+            JsonSerializer.SerializeToElement(request));
 
         try {
             SubmitCommandResponse response = await gatewayClient

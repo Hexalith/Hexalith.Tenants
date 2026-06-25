@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantCreateCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_projection_evidence_before_confirmation()
     {
-        var intent = new CreateTenantCommandRequest("Tenant.Mixed-01", "Mixed Tenant", null);
+        var intent = new CreateTenant("Tenant.Mixed-01", "Mixed Tenant", null);
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -35,7 +36,7 @@ public sealed class TenantCreateCommandSnapshotTests
     [Fact]
     public void Accepted_status_stays_distinct_from_projection_pending_when_requery_has_no_evidence()
     {
-        var intent = new CreateTenantCommandRequest("tenant.alpha", "Alpha", null);
+        var intent = new CreateTenant("tenant.alpha", "Alpha", null);
         TenantCreateCommandSnapshot accepted = TenantCreateCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -55,7 +56,7 @@ public sealed class TenantCreateCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_command_or_audit_success()
     {
-        var intent = new CreateTenantCommandRequest("tenant.alpha", "Alpha", null);
+        var intent = new CreateTenant("tenant.alpha", "Alpha", null);
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
             .Idle()
             .RequestSent(intent)
@@ -91,7 +92,7 @@ public sealed class TenantCreateCommandSnapshotTests
         CommandStatus status,
         TenantCommandLifecycleState expectedState)
     {
-        var intent = new CreateTenantCommandRequest("tenant.alpha", "Alpha", null);
+        var intent = new CreateTenant("tenant.alpha", "Alpha", null);
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot
             .Idle()
             .RequestSent(intent)

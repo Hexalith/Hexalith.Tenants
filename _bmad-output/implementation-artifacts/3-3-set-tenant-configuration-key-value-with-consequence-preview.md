@@ -36,7 +36,7 @@ so that tenant configuration can be changed within my scope with proof and witho
   - [x] Keep configuration commands unavailable on mobile/narrow layouts that cannot preserve preview, freshness, tenant identity, and last-confirmed configuration context.
 
 - [x] Add set-configuration request, snapshot, and gateway support using existing command infrastructure (AC: 3, 4, 5)
-  - [x] Add `SetTenantConfigurationCommandRequest` with literal `TenantId`, full configuration `Key`, and `Value` to `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` unless a clearer existing command-model split exists.
+  - [x] Add `SetTenantConfiguration` with literal `TenantId`, full configuration `Key`, and `Value` to `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` unless a clearer existing command-model split exists.
   - [x] Add a focused `TenantSetConfigurationCommandSnapshot` that represents `Previewed`, `RequestSent`, `Accepted`, `ProjectionPending`, `Confirmed`, `AlreadyApplied`, `Rejected`, `Failed`, `Degraded`, `UnableToVerify`, and audit states distinctly.
   - [x] Add `SetTenantConfigurationAsync` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`.
   - [x] Submit the existing contract record `SetTenantConfiguration` through the shared command endpoint with a client-generated `messageId`, tenant `"system"`, domain `"tenants"`, aggregate id equal to the literal tenant id, command name `nameof(SetTenantConfiguration)`, and JSON payload serialized from the existing command record.

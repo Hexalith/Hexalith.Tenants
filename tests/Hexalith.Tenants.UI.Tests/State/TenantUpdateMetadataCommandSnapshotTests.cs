@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -12,7 +13,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     [Fact]
     public void Completed_status_requires_matching_metadata_projection_evidence_before_confirmation()
     {
-        var intent = new UpdateTenantCommandRequest("Tenant.Mixed-01", "Updated", null);
+        var intent = new UpdateTenant("Tenant.Mixed-01", "Updated", null);
         TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
             .Idle("Original", "Original description", Detail("Tenant.Mixed-01", "Original", "Original description"))
             .RequestSent(intent)
@@ -45,7 +46,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     [Fact]
     public void Accepted_status_stays_distinct_when_requery_has_no_matching_metadata()
     {
-        var intent = new UpdateTenantCommandRequest("tenant.alpha", "Updated", "submitted");
+        var intent = new UpdateTenant("tenant.alpha", "Updated", "submitted");
         TenantUpdateMetadataCommandSnapshot accepted = TenantUpdateMetadataCommandSnapshot
             .Idle("Original", "Original description")
             .RequestSent(intent)
@@ -65,7 +66,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     [Fact]
     public void Signalr_nudge_cannot_confirm_metadata_or_audit_success()
     {
-        var intent = new UpdateTenantCommandRequest("tenant.alpha", "Updated", "submitted");
+        var intent = new UpdateTenant("tenant.alpha", "Updated", "submitted");
         TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
             .Idle("Original", "Original description")
             .RequestSent(intent)
@@ -81,7 +82,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     [Fact]
     public void Completed_zero_event_status_still_waits_for_projection_because_update_tenant_is_not_noop_suppressed()
     {
-        var intent = new UpdateTenantCommandRequest("tenant.alpha", "Alpha", "same description");
+        var intent = new UpdateTenant("tenant.alpha", "Alpha", "same description");
         TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
             .Idle("Alpha", "same description")
             .RequestSent(intent)
@@ -101,7 +102,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
         TenantCommandLifecycleState expectedState,
         TenantCommandAuditState expectedAudit)
     {
-        var intent = new UpdateTenantCommandRequest("tenant.alpha", "Updated", "submitted");
+        var intent = new UpdateTenant("tenant.alpha", "Updated", "submitted");
         TenantUpdateMetadataCommandSnapshot snapshot = TenantUpdateMetadataCommandSnapshot
             .Idle("Original", "Original description")
             .RequestSent(intent)

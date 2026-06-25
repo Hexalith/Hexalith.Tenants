@@ -1,44 +1,45 @@
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> CreateTenantAsync(
-        CreateTenantCommandRequest request,
+        CreateTenant request,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
-        AddUserToTenantCommandRequest request,
+        AddUserToTenant request,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
-        ChangeUserRoleCommandRequest request,
+        ChangeUserRole request,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
-        RemoveUserFromTenantCommandRequest request,
+        RemoveUserFromTenant request,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> UpdateTenantAsync(
-        UpdateTenantCommandRequest request,
+        UpdateTenant request,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
-        SetTenantConfigurationCommandRequest request,
+        SetTenantConfiguration request,
         CancellationToken cancellationToken = default);
 
     Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
-        RemoveTenantConfigurationCommandRequest request,
+        RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant configuration removal gateway is unavailable."));
 
     Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
-        SetGlobalAdministratorCommandRequest request,
+        SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."));
 
     Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
-        RemoveGlobalAdministratorCommandRequest request,
+        RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."));
 

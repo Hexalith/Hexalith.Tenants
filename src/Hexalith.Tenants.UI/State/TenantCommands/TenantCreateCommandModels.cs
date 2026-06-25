@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -11,39 +12,11 @@ using TenantDetailSnapshot = Hexalith.Tenants.UI.State.TenantDetail.TenantDetail
 
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
-public sealed record CreateTenantCommandRequest(
-    string TenantId,
-    string Name,
-    string? Description);
-
-public sealed record AddUserToTenantCommandRequest(
-    string TenantId,
-    string UserId,
-    TenantRole Role);
-
-public sealed record ChangeUserRoleCommandRequest(
-    string TenantId,
-    string UserId,
-    TenantRole NewRole);
-
-public sealed record RemoveUserFromTenantCommandRequest(
-    string TenantId,
-    string UserId);
-
-public sealed record UpdateTenantCommandRequest(
-    string TenantId,
-    string Name,
-    string? Description);
-
-public sealed record SetTenantConfigurationCommandRequest(
-    string TenantId,
-    string Key,
-    string Value);
-
-public sealed record RemoveTenantConfigurationCommandRequest(
-    string TenantId,
-    string Key);
-
+// CreateTenant, AddUserToTenant, ChangeUserRole, RemoveUserFromTenant, UpdateTenant,
+// SetTenantConfiguration, and RemoveTenantConfiguration intents reuse the domain command records
+// from Hexalith.Tenants.Contracts.Commands directly instead of mirroring them with UI-only request
+// records. TenantLifecycleCommandRequest stays UI-owned because it carries a lifecycle operation
+// the gateway resolves to either EnableTenant or DisableTenant.
 public sealed record TenantLifecycleCommandRequest(
     string TenantId,
     TenantLifecycleOperation Operation);
@@ -126,7 +99,7 @@ public sealed record TenantCommandStatusResult(
 
 public sealed record TenantCreateCommandSnapshot(
     TenantCommandLifecycleState State,
-    CreateTenantCommandRequest? Intent = null,
+    CreateTenant? Intent = null,
     TenantSummary? LastConfirmedListEvidence = null,
     TenantDetailSnapshot? LastConfirmedDetailEvidence = null,
     string? MessageId = null,
@@ -147,7 +120,7 @@ public sealed record TenantCreateCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantCreateCommandSnapshot RequestSent(CreateTenantCommandRequest intent)
+    public TenantCreateCommandSnapshot RequestSent(CreateTenant intent)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
@@ -269,7 +242,7 @@ public sealed record TenantCreateCommandSnapshot(
 
 public sealed record TenantAddMemberCommandSnapshot(
     TenantCommandLifecycleState State,
-    AddUserToTenantCommandRequest? Intent = null,
+    AddUserToTenant? Intent = null,
     TenantDetailProjection? LastConfirmedMemberProjection = null,
     string? MessageId = null,
     string? CorrelationId = null,
@@ -289,7 +262,7 @@ public sealed record TenantAddMemberCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantAddMemberCommandSnapshot RequestSent(AddUserToTenantCommandRequest intent)
+    public TenantAddMemberCommandSnapshot RequestSent(AddUserToTenant intent)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
@@ -409,7 +382,7 @@ public sealed record TenantAddMemberCommandSnapshot(
 
 public sealed record TenantChangeRoleCommandSnapshot(
     TenantCommandLifecycleState State,
-    ChangeUserRoleCommandRequest? Intent = null,
+    ChangeUserRole? Intent = null,
     TenantRole CurrentConfirmedRole = TenantRole.Unknown,
     TenantDetailProjection? LastConfirmedMemberProjection = null,
     int OwnerCount = 0,
@@ -432,7 +405,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
     public TenantChangeRoleCommandSnapshot RequestSent(
-        ChangeUserRoleCommandRequest intent,
+        ChangeUserRole intent,
         TenantRole currentConfirmedRole,
         int ownerCount)
         => this with {
@@ -448,7 +421,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
         };
 
     public TenantChangeRoleCommandSnapshot AlreadyApplied(
-        ChangeUserRoleCommandRequest intent,
+        ChangeUserRole intent,
         TenantRole currentConfirmedRole,
         int ownerCount,
         string safeMessage)
@@ -592,7 +565,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
 
 public sealed record TenantRemoveMemberCommandSnapshot(
     TenantCommandLifecycleState State,
-    RemoveUserFromTenantCommandRequest? Intent = null,
+    RemoveUserFromTenant? Intent = null,
     TenantRole CurrentConfirmedRole = TenantRole.Unknown,
     int OwnerCount = 0,
     bool TargetGlobalAdministratorFriction = false,
@@ -617,7 +590,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
     public TenantRemoveMemberCommandSnapshot Previewed(
-        RemoveUserFromTenantCommandRequest intent,
+        RemoveUserFromTenant intent,
         TenantRole currentConfirmedRole,
         int ownerCount,
         bool targetGlobalAdministratorFriction,
@@ -638,7 +611,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
         };
 
     public TenantRemoveMemberCommandSnapshot AlreadyApplied(
-        RemoveUserFromTenantCommandRequest intent,
+        RemoveUserFromTenant intent,
         TenantRole currentConfirmedRole,
         int ownerCount,
         TenantDetailProjection? lastConfirmedMemberProjection,
@@ -802,7 +775,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
 public sealed record TenantUpdateMetadataCommandSnapshot(
     TenantCommandLifecycleState State,
-    UpdateTenantCommandRequest? Intent = null,
+    UpdateTenant? Intent = null,
     string? LastConfirmedName = null,
     string? LastConfirmedDescription = null,
     TenantDetailProjection? LastConfirmedDetailProjection = null,
@@ -831,7 +804,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             FocusTarget: focusTarget,
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
-    public TenantUpdateMetadataCommandSnapshot RequestSent(UpdateTenantCommandRequest intent)
+    public TenantUpdateMetadataCommandSnapshot RequestSent(UpdateTenant intent)
         => this with {
             State = TenantCommandLifecycleState.RequestSent,
             Intent = intent,
@@ -952,7 +925,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
 
 public sealed record TenantSetConfigurationCommandSnapshot(
     TenantCommandLifecycleState State,
-    SetTenantConfigurationCommandRequest? Intent = null,
+    SetTenantConfiguration? Intent = null,
     TenantDetailProjection? LastConfirmedConfigurationProjection = null,
     bool IsPreviewComplete = false,
     bool CompletedWithoutEvents = false,
@@ -975,7 +948,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
     public TenantSetConfigurationCommandSnapshot Previewed(
-        SetTenantConfigurationCommandRequest intent,
+        SetTenantConfiguration intent,
         TenantDetailProjection lastConfirmedConfigurationProjection)
         => this with {
             State = TenantCommandLifecycleState.Previewed,
@@ -991,7 +964,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
         };
 
     public TenantSetConfigurationCommandSnapshot AlreadyApplied(
-        SetTenantConfigurationCommandRequest intent,
+        SetTenantConfiguration intent,
         TenantDetailProjection lastConfirmedConfigurationProjection,
         string safeMessage)
         => this with {
@@ -1147,7 +1120,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
 
 public sealed record TenantRemoveConfigurationCommandSnapshot(
     TenantCommandLifecycleState State,
-    RemoveTenantConfigurationCommandRequest? Intent = null,
+    RemoveTenantConfiguration? Intent = null,
     TenantDetailProjection? LastConfirmedConfigurationProjection = null,
     bool IsPreviewComplete = false,
     string? MessageId = null,
@@ -1169,7 +1142,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             LiveRegionPoliteness: TenantCommandLiveRegionPoliteness.Assertive);
 
     public TenantRemoveConfigurationCommandSnapshot Previewed(
-        RemoveTenantConfigurationCommandRequest intent,
+        RemoveTenantConfiguration intent,
         TenantDetailProjection lastConfirmedConfigurationProjection)
         => this with {
             State = TenantCommandLifecycleState.Previewed,

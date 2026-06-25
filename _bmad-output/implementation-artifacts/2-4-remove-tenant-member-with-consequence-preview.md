@@ -28,14 +28,14 @@ so that access removal is deliberate, projection-confirmed, and never shown as a
 ## Tasks / Subtasks
 
 - [x] Extend the existing Tenants command gateway for tenant-member removal (AC: 3, 4, 5)
-  - [x] Add `RemoveUserFromTenantAsync(RemoveUserFromTenantCommandRequest request, CancellationToken cancellationToken = default)` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`; do not add a generic command gateway, browser-side backend client, controller, or new endpoint.
+  - [x] Add `RemoveUserFromTenantAsync(RemoveUserFromTenant request, CancellationToken cancellationToken = default)` to `ITenantCommandGateway`, `TenantCommandGateway`, and `UnavailableTenantCommandGateway`; do not add a generic command gateway, browser-side backend client, controller, or new endpoint.
   - [x] Submit the existing `RemoveUserFromTenant` domain command through the existing EventStore command path with `messageId = IUlidFactory.NewUlid()`, `tenant = "system"`, `domain = "tenants"`, `aggregateId = tenantId`, `commandType = nameof(RemoveUserFromTenant)`, and payload `new RemoveUserFromTenant(tenantId, userId)`.
   - [x] Validate tenant id and user id before submit. Tenant ids and user ids are literal caller-supplied strings; never parse or generate them as GUIDs or ULIDs.
   - [x] Add remove-member-specific safe submission mappings for `UserNotInTenantRejection`, `InsufficientPermissionsRejection`, `TenantDisabledRejection`, and `TenantNotFoundRejection`.
   - [x] Keep `GetStatusAsync` shared-status fallback command-neutral for shared rejection types. Do not reintroduce the Story 2.2/2.3 cross-command rejection-copy leak.
 
 - [x] Add remove-member consequence preview and lifecycle state without optimistic projection mutation (AC: 1, 3, 4, 5)
-  - [x] Add `RemoveUserFromTenantCommandRequest` and a focused `TenantRemoveMemberCommandSnapshot`, or reuse/generalize existing member-command state only if it preserves create/add/change-role behavior and tests.
+  - [x] Add `RemoveUserFromTenant` and a focused `TenantRemoveMemberCommandSnapshot`, or reuse/generalize existing member-command state only if it preserves create/add/change-role behavior and tests.
   - [x] Track tenant id, target user id, current confirmed role, owner count, target-global-admin friction flag if available, preview completeness, message id, correlation id, safe message, rejection code, audit handoff state, focus target, and last-confirmed projection evidence.
   - [x] Represent `previewed`, request sent, accepted, projection pending, confirmed, rejected, already applied, duplicate/prevented duplicate, failed, degraded, unable to verify, audit pending, audit delayed, audit unavailable, and missing support distinctly in the remove flow. If the shared enum cannot express one of these safely, add a remove-specific state or extend the shared model with regression coverage.
   - [x] Treat "target already absent from the current confirmed projection before submit" as already applied/continue read-only and do not submit a new destructive command.
@@ -206,7 +206,7 @@ GPT-5 Codex
 - Story context scopes Story 2.4 to tenant membership removal through existing UI command infrastructure, not backend contract or shared FrontComposer component work.
 - Story context identifies the key implementation risks: full 10-item preview, no partial destructive preview, last-owner allowed with friction, global-admin target friction without `RemoveGlobalAdministrator`, projection-confirmed absence before row removal, no audit proof before Epic 5, support-safe lifecycle/recovery copy, and preservation of Story 2.1-2.3 command patterns.
 - Extended the existing Tenants command gateway with `RemoveUserFromTenantAsync`, preserving the existing EventStore command endpoint and command-neutral shared status lookup.
-- Added `RemoveUserFromTenantCommandRequest` and `TenantRemoveMemberCommandSnapshot` with explicit previewed, duplicate-prevented, projection-pending, confirmed, already-applied, degraded, unable-to-verify, audit-delayed, audit-unavailable, and missing-support states.
+- Added `RemoveUserFromTenant` and `TenantRemoveMemberCommandSnapshot` with explicit previewed, duplicate-prevented, projection-pending, confirmed, already-applied, degraded, unable-to-verify, audit-delayed, audit-unavailable, and missing-support states.
 - Added `RemoveTenantMemberFlow` with the approved inline structured-text consequence preview, all 10 required preview items, explicit target-user confirmation, last-owner friction, global-admin known/unknown risk copy, honest audit/recovery handoff, and stable selectors.
 - Wired remove-member activation from `MemberAccessReview` and projection evidence from `TenantDetailPage`, preserving add-member, change-role, member table semantics, copy controls, stale/degraded messaging, and exact-row focus return.
 - Added EN/FR `Tenants.RemoveMember.*` resources and focused gateway, state, component, preservation, resource parity, and summary tests.
