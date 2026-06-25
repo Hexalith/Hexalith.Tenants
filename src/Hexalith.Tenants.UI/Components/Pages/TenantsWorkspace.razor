@@ -74,10 +74,17 @@
         </section>
     </Filters>
     <Commands>
-        <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                          IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
-                          OnProjectionRefreshRequested="RefreshAsync"
-                          ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+        <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Class="tenants-workspace__commands">
+            <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
+                                 Expanded="false"
+                                 data-testid="tenants-create-accordion">
+                <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
+                                  IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
+                                  ShowHeading="false"
+                                  OnProjectionRefreshRequested="RefreshAsync"
+                                  ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+            </FluentAccordionItem>
+        </FluentAccordion>
     </Commands>
     <States>
         @if (_snapshot.Kind is TenantListSurfaceKind.Loading)

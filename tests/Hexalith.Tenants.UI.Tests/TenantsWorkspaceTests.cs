@@ -71,6 +71,34 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-search']").NodeName.ShouldBe("FLUENT-TEXT-INPUT");
     }
 
+    [Fact]
+    public void Workspace_hosts_create_flow_in_a_collapsed_accordion_without_a_duplicate_title()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-create-accordion']");
+
+        // The create block is grouped in a FluentAccordion item (the "Page sections" UX rule), and the
+        // create form is hosted inside it rather than as a tall card pushing the list down.
+        cut.Find("[data-testid='tenants-create-accordion']").NodeName.ShouldBe("FLUENT-ACCORDION-ITEM");
+        cut.Find("[data-testid='tenants-create-flow']");
+
+        // Collapsed by default: the item must not be expanded, so the tenant list stays the primary content.
+        string? expanded = cut.Find("[data-testid='tenants-create-accordion']").GetAttribute("expanded");
+        (string.IsNullOrEmpty(expanded) || expanded == "false").ShouldBeTrue();
+
+        // The accordion header already shows the title, so the inner <h2> must not be rendered (no duplicate).
+        cut.FindAll("#tenants-create-heading").ShouldBeEmpty();
+    }
+
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)

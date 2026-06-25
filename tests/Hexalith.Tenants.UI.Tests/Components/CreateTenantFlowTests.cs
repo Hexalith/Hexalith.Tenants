@@ -39,6 +39,35 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Create_flow_renders_visible_heading_by_default()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+
+        cut.Find("#tenants-create-heading").TextContent.ShouldBe("Create tenant");
+        cut.Find("[data-testid='tenants-create-flow']")
+            .GetAttribute("aria-labelledby").ShouldBe("tenants-create-heading");
+    }
+
+    [Fact]
+    public void Create_flow_hides_duplicate_heading_when_show_heading_is_false()
+    {
+        // When the flow is hosted inside an accordion whose header already shows the title, the inner
+        // <h2> must not be rendered (no duplicate visible title) while the section keeps an accessible name.
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.ShowHeading, false));
+
+        cut.FindAll("#tenants-create-heading").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-create-flow']").GetAttribute("aria-labelledby").ShouldBeNull();
+        cut.Find("[data-testid='tenants-create-flow']").GetAttribute("aria-label").ShouldBe("Create tenant");
+    }
+
+    [Fact]
     public void Submit_preserves_literal_tenant_id_and_does_not_confirm_without_projection_evidence()
     {
         StubTenantCommandGateway gateway = new()
