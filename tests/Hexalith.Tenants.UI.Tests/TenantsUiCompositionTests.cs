@@ -232,13 +232,12 @@ public sealed class TenantsUiCompositionTests
     [Fact]
     public void Styles_include_forced_colors_and_visible_focus_rules()
     {
-        string styles = File.ReadAllText(
-            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantsWorkspace.razor.css"));
-
-        styles.ShouldContain("@media (forced-colors: active)");
-        styles.ShouldContain(":focus-visible");
-        styles.ShouldContain("outline");
-
+        // 2026-06-25 ergonomic pass: TenantsWorkspace no longer ships component CSS. Its surface is
+        // composed entirely from Fluent v5 primitives + FrontComposer chrome, which own their own focus
+        // and forced-colors affordances; the prior workspace stylesheet only styled status/focus-link
+        // classes that the markup no longer renders. The route <h1> focus ring is owned by FrontComposer
+        // (FcPageHeader.razor.css). Pages that still hand-author bespoke surfaces keep their a11y CSS
+        // pinned below.
         string globalAdminStyles = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Pages", "GlobalAdministratorsPage.razor.css"));
 

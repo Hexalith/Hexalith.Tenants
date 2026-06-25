@@ -754,20 +754,30 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
-    public void Route_and_workspace_keep_users_contextual_and_global_admins_top_level()
+    public void Route_and_nav_keep_users_contextual_and_global_admins_top_level()
     {
         string projectRoot = ProjectRoot();
         string page = File.ReadAllText(
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "GlobalAdministratorsPage.razor"));
         string workspace = File.ReadAllText(
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantsWorkspace.razor"));
+        string registration = File.ReadAllText(
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Composition", "TenantsFrontComposerRegistration.cs"));
         string detail = File.ReadAllText(
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantDetailPage.razor"));
 
         page.ShouldContain("@page \"/global-administrators\"");
-        workspace.ShouldContain("href=\"/tenants/my\"");
-        workspace.ShouldContain("href=\"/tenants/users\"");
+
+        // "My tenants" and "User lookup" stay contextual to the tenants area: they are registered under
+        // the "tenants" nav category at /tenants/my and /tenants/users (not promoted to a top-level
+        // /users route), while Global Administrators is its own top-level route. 2026-06-25 ergonomic
+        // pass: the contextual links live in the shell navigation, not duplicated in the list command bar.
+        registration.ShouldContain("\"/tenants/my\"");
+        registration.ShouldContain("\"/tenants/users\"");
+        registration.ShouldContain("\"/global-administrators\"");
         workspace.ShouldNotContain("href=\"/users\"");
+        workspace.ShouldNotContain("href=\"/tenants/my\"");
+        workspace.ShouldNotContain("href=\"/tenants/users\"");
         detail.ShouldContain("returnUrl.StartsWith(\"/tenants\", StringComparison.Ordinal)");
     }
 

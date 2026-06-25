@@ -16,34 +16,31 @@
                      Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
                      HeaderTestId="tenants-list-page-header">
     <Toolbar>
+        @* Command bar exposes list ACTIONS only. "My tenants" / "User lookup" are reachable from the
+           shell navigation rail (TenantsFrontComposerRegistration), so duplicating them here was
+           redundant chrome (2026-06-25 ergonomic pass). A toolbar that mirrors the navigation is a
+           recognised anti-pattern in professional admin UIs. *@
         <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
             @Localizer["Tenants.List.Refresh"]
         </FluentButton>
         <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
             @Localizer["Tenants.List.Reset"]
         </FluentButton>
-        <FluentAnchorButton Href="/tenants/my"
-                            Appearance="ButtonAppearance.Subtle"
-                            data-testid="tenants-my-link">
-            @Localizer["Tenants.MyTenants.Link"]
-        </FluentAnchorButton>
-        <FluentAnchorButton Href="/tenants/users"
-                            Appearance="ButtonAppearance.Subtle"
-                            data-testid="tenants-user-lookup-link">
-            @Localizer["Tenants.UserLookup.Link"]
-        </FluentAnchorButton>
     </Toolbar>
     <HeaderMetadata>
         @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
         {
-            <p class="tenants-workspace__return-context" data-testid="tenants-list-return-context">
+            <FluentText As="TextTag.Paragraph"
+                        Size="TextSize.Size300"
+                        Color="Color.Lightweight"
+                        data-testid="tenants-list-return-context">
                 @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
-            </p>
+            </FluentText>
         }
     </HeaderMetadata>
     <Filters>
-        <section class="tenants-workspace__controls" aria-label="@Localizer["Tenants.List.ControlsLabel"]">
-            <FluentGrid Class="tenants-workspace__filters" Spacing="3">
+        <section aria-label="@Localizer["Tenants.List.ControlsLabel"]">
+            <FluentGrid Spacing="3">
                 <FluentGridItem Xs="12" Md="6" Lg="4">
                     <FluentTextInput TextInputType="TextInputType.Search"
                                      Value="@_search"
@@ -74,7 +71,7 @@
         </section>
     </Filters>
     <Commands>
-        <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Class="tenants-workspace__commands">
+        <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
             <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
                                  Expanded="false"
                                  data-testid="tenants-create-accordion">
@@ -129,7 +126,7 @@
     <Pager>
         @if (ShowList)
         {
-            <nav class="tenants-workspace__pager" aria-label="@Localizer["Tenants.List.PaginationLabel"]">
+            <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
                     <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.List.Previous"]

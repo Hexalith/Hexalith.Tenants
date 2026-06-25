@@ -54,7 +54,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Tenants_workspace_exposes_contextual_my_tenants_link()
+    public void Tenants_workspace_toolbar_does_not_duplicate_shell_navigation_links()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
@@ -66,11 +66,14 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
-        cut.WaitForElement("[data-testid='tenants-my-link']");
+        cut.WaitForElement("[data-testid='tenants-list-refresh']");
 
-        cut.Find("[data-testid='tenants-my-link']").GetAttribute("href").ShouldBe("/tenants/my");
-        cut.Find("[data-testid='tenants-user-lookup-link']").GetAttribute("href").ShouldBe("/tenants/users");
-        cut.Markup.ShouldNotContain("Users", Case.Sensitive);
+        // 2026-06-25 ergonomic pass: "My tenants" and "User lookup" are reachable from the shell
+        // navigation rail (registered in TenantsFrontComposerRegistration), so the list command bar no
+        // longer duplicates them — it exposes list actions only (refresh/reset). Mirroring navigation
+        // links inside a list toolbar is a professional-admin-UI anti-pattern.
+        cut.FindAll("[data-testid='tenants-my-link']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-user-lookup-link']").ShouldBeEmpty();
     }
 
     [Fact]
