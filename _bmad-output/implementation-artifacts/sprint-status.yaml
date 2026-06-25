@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-22T16:00:00+02:00
+last_updated: 2026-06-25T00:00:00+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -171,8 +171,8 @@ development_status:
   # All implemented + verified building/green and COMMITTED + PUSHED:
   #   FrontComposer main -> c6c3c39, EventStore main -> 5613fed4,
   #   Tenants branch correct-course/2026-06-21-deferred-and-pending-work -> 62a94b0.
-  cc-2026-06-21-frontcomposer-page-header-landmarks-and-contract-hardening: review
-  cc-2026-06-21-eventstore-admin-ui-a11y-remediation: review
+  cc-2026-06-21-frontcomposer-page-header-landmarks-and-contract-hardening: done
+  cc-2026-06-21-eventstore-admin-ui-a11y-remediation: done
   cc-2026-06-21-eventstore-read-model-freshness-metadata: review
   cc-2026-06-21-epic-11-persisted-dataprotection-key-ring: review
   # Newly discovered pending work (red on main from the committed Memories integration): 3 Server.Tests

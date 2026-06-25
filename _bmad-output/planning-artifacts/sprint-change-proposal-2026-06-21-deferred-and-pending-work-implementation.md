@@ -117,3 +117,41 @@ Scope approved by Administrator on 2026-06-21 (all four workstreams + boundary c
 - Tenants branch `correct-course/2026-06-21-deferred-and-pending-work` → `62a94b0` (pushed; gitlink pointers advanced to the two pushed submodule commits). PR can be opened at the GitHub branch URL.
 
 Remaining non-blocking follow-up: adopt the new `IReadModelFreshness` surface in the Tenants UI to retire the hand-rolled `TenantFreshnessState`.
+
+## 7. Review Findings — Admin.UI a11y (`cc-2026-06-21-eventstore-admin-ui-a11y-remediation`, code review 2026-06-25)
+
+Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of EventStore commit `d6d3ea69` (`feat(admin-ui): keyboard-accessible interactive semantics across Admin.UI`) — the §4.2 handoff only. All findings live in the `Hexalith.EventStore` submodule; any fix is a new follow-up commit, not an amendment. Verified-good: Index StatCards (NS-1), ActivityChart `role=group` (C3/H-ES-3), StorageTreemap button semantics (DV-1/H-ES-4), Commands/Events `cursor:pointer` removal, RelatedTypeList→FluentButton governance compliance, sr-only data tables present.
+
+### Decision-needed (resolved by Administrator 2026-06-25 → patch)
+
+- [x] [Review][Patch] **(from Decision) Dapr heatmap → roving-tabindex ARIA grid** — implement the full ARIA grid keyboard model on the `role="grid"` heatmap: one tab stop into the grid, arrow keys move the active cell (roving tabindex), Enter/Space activates `FilterByCell`; convert the per-row `tabindex="0"`/row-as-activation-target into the roving model so the data cells become keyboard-reachable inside the grid (not as N independent tab stops). `Pages/DaprHealthHistory.razor:129,145,157-161`.
+- [x] [Review][Patch] **(from Decision) Single-select `aria-current` for selection state** — replace the treemap cells' `aria-pressed` with `aria-current` (single-select, not toggle) and add `aria-current` to the Dapr component selectors so selected state is exposed to AT consistently across both. `StorageTreemap.razor:67`, `DaprHealthHistory.razor:145,275`.
+
+### Patch
+
+- [x] [Review][Patch] **(Critical) Space activation scrolls the page — no `preventDefault`** on the 6 hand-rolled `role=button`/focusable elements (Index ×2 stat-card divs, StorageTreemap `<g>`, DaprHealthHistory row + transition span). Prevent the Space default **conditionally** (Space-only) — a blanket `@onkeydown:preventDefault="true"` is wrong (it also cancels Tab → focus trap). Prefer native/`FluentButton` where geometry allows; for the SVG `<g>` and grid use Space-gated preventDefault via JS interop or a `:preventDefault`-bound flag. `Index.razor:213,225`, `StorageTreemap.razor:72`, `DaprHealthHistory.razor:145,275`.
+- [x] [Review][Patch] **Missing keyboard/aria test coverage** — add tests for TypeDetailPanel (Enter→navigate), DaprHealthHistory (Enter+Space on row + span → SelectComponent), RelatedTypeList (FluentButton renders + `aria-label`), and Space-key (`" "`/`"Spacebar"`) activation for StorageTreemap + Index (currently Enter-only). Space is the headline of the commit message yet untested everywhere.
+- [x] [Review][Patch] **Carve-out comment factual fix** — `AdminUiFluentConformanceTests.cs:~39` claims ActivityChart bars "carry aria-label/data-testid"; the bar `<button>` has no `data-testid`. Add `data-testid` to the bar button (makes the governance claim true + aids testing) or correct the comment. `ActivityChart.razor:38`.
+- [x] [Review][Patch] **Treemap accessible-name verbosity + redundant `<title>`** — per-cell `aria-label` repeats "Filter by this aggregate type." on every cell, and the inner `<rect><title>@rect.Tooltip</title>` is now redundant with the `<g>` label. Move the instruction to the container group label (mirror ActivityChart); keep per-cell name = "{Label}: {Value} events". `StorageTreemap.razor:72,84`.
+- [x] [Review][Patch] **RelatedTypeList interactive target size** — `font-size: 0.8em` + `ButtonSize.Small` risks a target below the ~24×24px WCAG 2.5.8 minimum (and changes the visual from the prior Ghost badge). Verify rendered size ≥24px; drop the `font-size` override or add padding. `RelatedTypeList.razor`.
+- [x] [Review][Patch] **DRY the activation-key predicate** — three byte-identical `e.Key is "Enter" or " " or "Spacebar"` handlers; extract a shared `KeyboardEventArgs.IsActivationKey()` helper so the preventDefault fix + key set stay consistent.
+
+### Deferred
+
+- [x] [Review][Defer] **SVG `<g tabindex=0>` focusability not guaranteed cross-browser** `StorageTreemap.razor:72` — deferred, validate against target browser matrix (see deferred-work.md 2026-06-25).
+
+### Applied (2026-06-25)
+
+All 8 patches (6 + 2 resolved decisions) were applied to the `Hexalith.EventStore` submodule and verified:
+- Build: Admin.UI Release `-warnaserror` **0 warnings / 0 errors**.
+- Tests: **Admin.UI.Tests 839/839** (prior 829 baseline + 10 new keyboard/aria tests — roving-grid single-tab-stop + arrow nav + Enter-cell + Space-rowheader, treemap aria-current + Space, StatCard Space, TypeDetailPanel Enter/not-Space, RelatedTypeList FluentButton, ActivityChart data-testid). 0 failed / 0 skipped.
+- New shared helper `KeyboardActivation.IsActivationKey`; conditional Space/arrow `preventDefault` + roving focus via one delegated `interop.js` keydown listener (avoids the focus-trapping blanket `@onkeydown:preventDefault`).
+- **Status: UNCOMMITTED in the EventStore submodule working tree** — landing requires a follow-up `feat`/`fix(admin-ui)` commit + push (cross-repo; not an amendment of `d6d3ea69`), then a Tenants gitlink bump for reachability.
+- Known follow-up folded into the deferred item: the heatmap remains a flat CSS grid (no `role="row"` wrappers around cells) — a pre-existing structural-ARIA limitation independent of the keyboard model; revisit with the browser/AT validation.
+
+### Dismissed (considered, not actionable)
+
+- `"Spacebar"` legacy `KeyboardEvent.key` alias — dead on modern browsers, harmless.
+- `NavigateTo` one-line wrapper in Index.razor — a reasonable shared onclick+keydown seam.
+- `role="group"` vs "toolbar" comment wording — `group` is a defensible choice; the sr-only data table it references was verified to exist.
+- "role=link vs role=button inconsistency" for the two type-name spans — **correctly** differentiated by action: TypeDetailPanel *navigates* (`role=link`, Enter-only is ARIA-correct), DaprHealthHistory *selects in-page* (`role=button`, Enter+Space). The commit-message "Enter/Space" blanket wording is immaterial.
