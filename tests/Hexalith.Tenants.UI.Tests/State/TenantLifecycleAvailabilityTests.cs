@@ -1,7 +1,7 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Shouldly;
 
@@ -56,11 +56,10 @@ public sealed class TenantLifecycleAvailabilityTests
         availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.Governance");
     }
 
-    [Theory]
-    [InlineData(TenantFreshnessState.Aging)]
-    [InlineData(TenantFreshnessState.Refreshing)]
-    public void Aging_or_refreshing_freshness_does_not_bypass_unresolved_governance(TenantFreshnessState freshness)
+    [Fact]
+    public void Aging_freshness_does_not_bypass_unresolved_governance()
     {
+        const ReadModelFreshnessState freshness = ReadModelFreshnessState.Aging;
         TenantLifecycleAvailability availability = CurrentInput(
                 TenantStatus.Active,
                 freshness: freshness)
@@ -73,12 +72,12 @@ public sealed class TenantLifecycleAvailabilityTests
     }
 
     [Theory]
-    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Current)]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Stale)]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown)]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Current)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Stale)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
     public void Stale_or_unknown_freshness_blocks_lifecycle_actions(
         TenantDetailSurfaceKind surfaceKind,
-        TenantFreshnessState freshness)
+        ReadModelFreshnessState freshness)
     {
         TenantLifecycleAvailability availability = CurrentInput(
                 TenantStatus.Active,
@@ -98,7 +97,7 @@ public sealed class TenantLifecycleAvailabilityTests
         TenantLifecycleAvailability availability = CurrentInput(
                 TenantStatus.Active,
                 TenantDetailSurfaceKind.Unauthorized,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 TenantLifecycleGovernanceReadiness.Ready)
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
@@ -116,7 +115,7 @@ public sealed class TenantLifecycleAvailabilityTests
         TenantLifecycleAvailability availability = CurrentInput(
                 TenantStatus.Active,
                 surfaceKind,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 TenantLifecycleGovernanceReadiness.Ready)
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
@@ -144,7 +143,7 @@ public sealed class TenantLifecycleAvailabilityTests
         TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
                 "tenant.alpha",
                 TenantStatus.Active,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
@@ -161,7 +160,7 @@ public sealed class TenantLifecycleAvailabilityTests
         TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
                 "tenant.alpha",
                 TenantStatus.Active,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: false,
                 TenantLifecycleGovernanceReadiness.Ready,
@@ -179,7 +178,7 @@ public sealed class TenantLifecycleAvailabilityTests
         TenantLifecycleAvailability availability = new TenantLifecycleAvailabilityInput(
                 "tenant.alpha",
                 TenantStatus.Active,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,
@@ -195,7 +194,7 @@ public sealed class TenantLifecycleAvailabilityTests
     private static TenantLifecycleAvailabilityInput CurrentInput(
         TenantStatus status,
         TenantDetailSurfaceKind surfaceKind = TenantDetailSurfaceKind.Ready,
-        TenantFreshnessState freshness = TenantFreshnessState.Current,
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current,
         TenantLifecycleGovernanceReadiness governanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved)
         => new(
             "tenant.alpha",

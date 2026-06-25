@@ -5,7 +5,7 @@ using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Shouldly;
 
@@ -22,7 +22,7 @@ public sealed class TenantAuditReceiptTests
                 ["userId"] = "target-user",
                 ["key"] = "billing.mode",
             }),
-            TenantFreshnessState.Current,
+            ReadModelFreshnessState.Current,
             supportSafeCommandReference: "command-safe-reference");
 
         receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
@@ -32,7 +32,7 @@ public sealed class TenantAuditReceiptTests
         receipt.Outcome.ShouldBe("UserAddedToTenant (Access)");
         receipt.AuditReference.ShouldBe("event-safe-reference");
         receipt.CommandReference.ShouldBe("command-safe-reference");
-        receipt.ProjectionMarker.ShouldBe(TenantFreshnessState.Current);
+        receipt.ProjectionMarker.ShouldBe(ReadModelFreshnessState.Current);
         receipt.CopyableReferenceText.ShouldContain("event-safe-reference");
         receipt.CopyableReferenceText.ShouldContain("command-safe-reference");
         receipt.CopyableReferenceText.ShouldContain("tenant.alpha");
@@ -47,14 +47,14 @@ public sealed class TenantAuditReceiptTests
         {
             ["userId"] = "target-user",
             ["key"] = "billing.mode",
-        }), TenantFreshnessState.Current).Target.ShouldBe("target-user");
+        }), ReadModelFreshnessState.Current).Target.ShouldBe("target-user");
 
         TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>
         {
             ["key"] = "billing.mode",
-        }), TenantFreshnessState.Current).Target.ShouldBe("billing.mode");
+        }), ReadModelFreshnessState.Current).Target.ShouldBe("billing.mode");
 
-        TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>()), TenantFreshnessState.Current)
+        TenantAuditReceipt.FromEntry(Entry(new Dictionary<string, string>()), ReadModelFreshnessState.Current)
             .Target.ShouldBe("tenant.alpha");
     }
 
@@ -71,7 +71,7 @@ public sealed class TenantAuditReceiptTests
                 ["correlationId"] = "internal-correlation-123",
                 ["stackTrace"] = "System.InvalidOperationException stack trace",
             }),
-            TenantFreshnessState.Current);
+            ReadModelFreshnessState.Current);
 
         receipt.Target.ShouldBe("target-user");
         receipt.CopyableReferenceText.ShouldContain("target-user");
@@ -171,7 +171,7 @@ public sealed class TenantAuditReceiptTests
         string actorId = "actor-user",
         string target = "target-user",
         string referenceContext = "userId: target-user",
-        TenantFreshnessState freshness = TenantFreshnessState.Current)
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current)
         => new(
             eventReference,
             "UserAddedToTenant",

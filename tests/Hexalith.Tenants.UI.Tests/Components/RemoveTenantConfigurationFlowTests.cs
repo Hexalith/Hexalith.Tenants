@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -35,7 +35,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             }))
             .Add(p => p.TargetKey, "billing.endpoint")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-remove-flow']");
         cut.Find("[data-testid='tenants-config-remove-focus-start']");
@@ -64,7 +64,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "security.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.FindAll("[data-testid='tenants-config-remove-preview']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-config-remove-preview-blocked']").TextContent
@@ -89,7 +89,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-remove-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("Billing.Mode");
@@ -117,7 +117,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { ["billing.other"] = "kept" }))));
 
@@ -147,7 +147,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCommandActivityChanged, isActive => commandActivity.Add(isActive))
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = "trial" }))));
@@ -180,7 +180,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string>()))));
 
@@ -206,7 +206,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.TargetKey, "billing.mode")
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-config-remove-cancel']").Click();

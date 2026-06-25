@@ -35,17 +35,24 @@ public sealed class TenantProjectionHandler {
 
     private readonly ILogger<TenantProjectionHandler> _logger;
     private readonly IReadModelStore _store;
+    private readonly TimeProvider _timeProvider;
 
     public TenantProjectionHandler(IReadModelStore store)
         : this(store, NullLogger<TenantProjectionHandler>.Instance) {
     }
 
-    public TenantProjectionHandler(IReadModelStore store, ILogger<TenantProjectionHandler> logger) {
+    public TenantProjectionHandler(IReadModelStore store, ILogger<TenantProjectionHandler> logger)
+        : this(store, logger, TimeProvider.System) {
+    }
+
+    public TenantProjectionHandler(IReadModelStore store, ILogger<TenantProjectionHandler> logger, TimeProvider timeProvider) {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(timeProvider);
 
         _store = store;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
@@ -64,6 +71,8 @@ public sealed class TenantProjectionHandler {
         // violation aborts the whole batch before any state-store write commits — extending the spirit of
         // AC12 to the tenant read-model and singleton-index writes too.
         TenantAuditReadModel incomingAuditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+        DateTimeOffset projectedAt = _timeProvider.GetUtcNow();
+        incomingAuditModel.ProjectedAt = projectedAt;
         cancellationToken.ThrowIfCancellationRequested();
 
         TenantReadModel state = await ReadModelWritePolicy
@@ -73,7 +82,10 @@ public sealed class TenantProjectionHandler {
                 TenantProjectionKeyPrefix + request.AggregateId,
                 events,
                 static () => new TenantReadModel(),
-                ApplyEvent,
+                (model, evt) => {
+                    ApplyEvent(model, evt);
+                    StampProjection(model, projectedAt);
+                },
                 new ReadModelWriteContext(TenantProjectionKeyCategory, nameof(TenantReadModel)),
                 _logger,
                 cancellationToken: cancellationToken)
@@ -103,7 +115,10 @@ public sealed class TenantProjectionHandler {
                 TenantIndexProjectionKey,
                 events,
                 static () => new TenantIndexReadModel(),
-                ApplyIndexEvent,
+                (model, evt) => {
+                    ApplyIndexEvent(model, evt);
+                    StampProjection(model, projectedAt);
+                },
                 new ReadModelWriteContext(TenantIndexKeyCategory, nameof(TenantIndexReadModel)),
                 _logger,
                 cancellationToken: cancellationToken)
@@ -123,6 +138,8 @@ public sealed class TenantProjectionHandler {
         // state-store implementation that returns a cached/shared reference from a read.
         TenantAuditReadModel merged = new() {
             Entries = [.. persisted.Entries ?? []],
+            ProjectedAt = incoming.ProjectedAt,
+            ProjectionVersion = incoming.ProjectionVersion,
         };
 
         // Null/whitespace EventIds cannot participate in dedup. Persisted entries are preserved verbatim
@@ -145,6 +162,20 @@ public sealed class TenantProjectionHandler {
 
         merged.SortEntries();
         return merged;
+    }
+
+    private static void StampProjection(IReadModelFreshness model, DateTimeOffset projectedAt) {
+        switch (model) {
+            case TenantReadModel tenant:
+                tenant.ProjectedAt = projectedAt;
+                break;
+            case TenantIndexReadModel index:
+                index.ProjectedAt = projectedAt;
+                break;
+            case TenantAuditReadModel audit:
+                audit.ProjectedAt = projectedAt;
+                break;
+        }
     }
 
     private static void ApplyEvent(TenantReadModel state, ProjectionEventDto evt) {

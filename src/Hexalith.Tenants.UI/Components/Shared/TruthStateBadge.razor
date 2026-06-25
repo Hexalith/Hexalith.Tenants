@@ -13,7 +13,10 @@
 
 @code {
     [Parameter]
-    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+    public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
+
+    [Parameter]
+    public bool IsRefreshing { get; set; }
 
     [Parameter]
     public string TestId { get; set; } = "tenants-list-truth-state";
@@ -21,25 +24,25 @@
     [Parameter]
     public string ResourcePrefix { get; set; } = "Tenants.List";
 
-    private string Label => Localizer[$"{ResourcePrefix}.Freshness.{Freshness}"];
+    private string FreshnessKey => IsRefreshing ? "Refreshing" : Freshness.ToString();
 
-    private string CssClass => Freshness.ToString().ToLowerInvariant();
+    private string Label => Localizer[$"{ResourcePrefix}.Freshness.{FreshnessKey}"];
 
-    private BadgeColor FreshnessBadgeColor => Freshness switch
+    private string CssClass => FreshnessKey.ToLowerInvariant();
+
+    private BadgeColor FreshnessBadgeColor => IsRefreshing ? BadgeColor.Informative : Freshness switch
     {
-        TenantFreshnessState.Current => BadgeColor.Success,
-        TenantFreshnessState.Refreshing => BadgeColor.Informative,
-        TenantFreshnessState.Aging => BadgeColor.Warning,
-        TenantFreshnessState.Stale => BadgeColor.Severe,
+        ReadModelFreshnessState.Current => BadgeColor.Success,
+        ReadModelFreshnessState.Aging => BadgeColor.Warning,
+        ReadModelFreshnessState.Stale => BadgeColor.Severe,
         _ => BadgeColor.Subtle,
     };
 
-    private Icon StateIcon => Freshness switch
+    private Icon StateIcon => IsRefreshing ? FcFluentIcons.ArrowSync16() : Freshness switch
     {
-        TenantFreshnessState.Current => FcFluentIcons.Checkmark16(),
-        TenantFreshnessState.Refreshing => FcFluentIcons.ArrowSync16(),
-        TenantFreshnessState.Aging => FcFluentIcons.Warning16(),
-        TenantFreshnessState.Stale => FcFluentIcons.Warning16(),
+        ReadModelFreshnessState.Current => FcFluentIcons.Checkmark16(),
+        ReadModelFreshnessState.Aging => FcFluentIcons.Warning16(),
+        ReadModelFreshnessState.Stale => FcFluentIcons.Warning16(),
         _ => FcFluentIcons.QuestionCircle16(),
     };
 }

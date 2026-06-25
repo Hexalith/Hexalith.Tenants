@@ -120,9 +120,9 @@ public class EventPublicationConfigurationTests {
         MetadataValue(root, "publishingScopes").ShouldBeNull();
         MetadataValue(root, "subscriptionScopes").ShouldBeNull();
         // The local AppHost additionally scopes the Memories search-index demo subscriber
-        // (memories-server), which subscribes to tenants.events to maintain the search index.
+        // (memories), which subscribes to tenants.events to maintain the search index.
         // Production (deploy/dapr/pubsub.yaml) keeps only eventstore + sample.
-        Scopes(root).ShouldBe(["eventstore", "sample", "memories-server"], ignoreOrder: true);
+        Scopes(root).ShouldBe(["eventstore", "sample", "memories"], ignoreOrder: true);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class EventPublicationConfigurationTests {
         Scalar(root, "metadata", "name").ShouldBe("statestore");
         Scalar(root, "spec", "type").ShouldBe("state.redis");
         MetadataValue(root, "actorStateStore").ShouldBe("true");
-        Scopes(root).ShouldBe(["eventstore", "eventstore-admin", "tenants"], ignoreOrder: true);
+        Scopes(root).ShouldBe(["eventstore", "eventstore-admin", "memories", "tenants"], ignoreOrder: true);
     }
 
     [Fact]

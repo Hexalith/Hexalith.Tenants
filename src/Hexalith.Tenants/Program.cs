@@ -60,6 +60,7 @@ builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 // Persisted multi-read-model store for the tenant /project build path (platform A8 abstraction,
 // replacing the hand-rolled DaprTenantProjectionStateStore + TenantProjectionWritePolicy).
 builder.Services.AddEventStoreReadModelStore();
+builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
@@ -68,6 +69,12 @@ builder.Services.AddHostedService<TenantBootstrapHostedService>();
 builder.Services.AddSingleton<TenantTelemetry>();
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
+builder.Services.AddOptions<ReadModelFreshnessOptions>()
+    .Bind(builder.Configuration.GetSection(ReadModelFreshnessOptions.SectionName))
+    .Validate(
+        static options => IsValidReadModelFreshnessOptions(options),
+        "Tenants read-model freshness thresholds must be non-negative and Stale must be greater than or equal to Aging.")
+    .ValidateOnStart();
 builder.Services.AddProblemDetails();
 
 // Data Protection backs the opaque query cursor codec. SetApplicationName
@@ -167,8 +174,9 @@ app.MapPost("/project", async (
     IReadModelStore readModelStore,
     TenantTelemetry telemetry,
     ILoggerFactory loggerFactory,
+    TimeProvider timeProvider,
     CancellationToken cancellationToken)
-    => await new ProjectionDispatcher(readModelStore, telemetry, loggerFactory).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
+    => await new ProjectionDispatcher(readModelStore, telemetry, loggerFactory, timeProvider).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
 // Canonical DAPR-invoked domain-service endpoints from the SDK: /process (keyed domain processor),
 // /replay-state, /query (in-process IDomainQueryHandler dispatch), and /admin/operational-index-metadata
 // (now reporting handler-served query types). Replaces the hand-rolled DomainServiceRequestHandler and
@@ -183,6 +191,18 @@ static void ConfigureTenantsHealthEndpoints(HexalithServiceDefaultsOptions optio
     options.LivenessEndpointPath = "/alive";
     options.ReadinessEndpointPath = "/ready";
     options.DevelopmentHealthResponseWriter = WriteSupportSafeDevelopmentHealthResponseAsync;
+}
+
+static bool IsValidReadModelFreshnessOptions(ReadModelFreshnessOptions options) {
+    ArgumentNullException.ThrowIfNull(options);
+
+    try {
+        _ = options.ToThresholds();
+        return true;
+    }
+    catch (ArgumentOutOfRangeException) {
+        return false;
+    }
 }
 
 static async Task WriteSupportSafeDevelopmentHealthResponseAsync(

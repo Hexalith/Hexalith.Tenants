@@ -19,7 +19,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,7 +47,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterServices(call =>
         {
             requests.Add(call.ArgAt<TenantDetailRequest>(0));
-            return Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current));
+            return Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current));
         });
 
         Services.GetRequiredService<NavigationManager>()
@@ -81,7 +81,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // cc-2026-06-21 extraction guard: the detail page reuses FcAggregateDetailPage<TItem> (the shared
         // FC-DTL chrome) and maps its ready snapshot onto the constrained-measure wrapper instead of a
         // Tenants-local detail page shell. Keeps the rebase from silently regressing.
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
@@ -113,7 +113,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             new Dictionary<string, string> { ["billing.mode"] = "trial" },
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
         RegisterServices(_ => Task.FromResult(
-            TenantDetailSnapshot.Ready(unnamed, "\"etag\"", TenantFreshnessState.Current)));
+            TenantDetailSnapshot.Ready(unnamed, "\"etag\"", ReadModelFreshnessState.Current)));
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
@@ -137,7 +137,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-detail-loading']").TextContent.ShouldContain("loading", Case.Insensitive);
 
-        detailResult.SetResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current));
+        detailResult.SetResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current));
 
         cut.WaitForElement("[data-testid='tenants-detail-identity']");
         cut.Find("[data-testid='tenants-detail-identity']").TextContent.ShouldContain("tenant.alpha");
@@ -152,7 +152,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
             "\"etag\"",
-            TenantFreshnessState.Current)));
+            ReadModelFreshnessState.Current)));
 
         Services.GetRequiredService<NavigationManager>()
             .NavigateTo($"/tenants/tenant.alpha?returnUrl={encodedReturnUrl}");
@@ -214,7 +214,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Configuration_view_groups_namespaces_redacts_sensitive_values_and_preserves_accessible_literals()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
         {
             ["billing.mode"] = "trial",
@@ -226,7 +226,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.FindAll("[data-testid='tenants-config-group']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
@@ -253,7 +253,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Configuration_view_launches_remove_flow_from_visible_rows_without_hiding_read_or_set_context()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
         {
             ["billing.mode"] = "trial",
@@ -263,7 +263,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.FindAll("[data-testid='tenants-config-remove-open']").First().Click();
 
@@ -277,7 +277,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Configuration_view_returns_focus_to_launching_remove_control_on_cancel()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
         {
             ["billing.mode"] = "trial",
@@ -287,7 +287,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.FindAll("[data-testid='tenants-config-remove-open']").First().Click();
         cut.Find("[data-testid='tenants-config-remove-flow']");
@@ -304,7 +304,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Configuration_view_redacts_backend_error_metadata_correlation_ids_tokens_stack_traces_and_pii()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
         {
             ["billing.mode"] = "trial",
@@ -318,7 +318,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("trial");
@@ -336,11 +336,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Configuration_view_keeps_empty_and_filtered_empty_states_distinct()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         IRenderedComponent<TenantConfigurationView> empty = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string>()))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         empty.Find("[data-testid='tenants-config-empty']").TextContent.ShouldContain("No visible configuration");
         empty.Markup.ShouldNotContain("tenants-config-filtered-empty");
@@ -348,7 +348,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<TenantConfigurationView> filtered = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         filtered.Find("[data-testid='tenants-config-filter']").Change("missing");
 
@@ -361,7 +361,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Configuration_view_preserves_namespace_context_scope_freshness_and_keyboard_semantics_while_filtering()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha", new Dictionary<string, string>
             {
@@ -369,7 +369,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 ["identity.region"] = "eu",
             }))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-filter']").Change("billing");
 
@@ -386,15 +386,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Theory]
-    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, "stale")]
-    [InlineData(TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown, "degraded")]
-    [InlineData(TenantDetailSurfaceKind.Unknown, TenantFreshnessState.Unknown, "Unknown")]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "stale")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "degraded")]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ReadModelFreshnessState.Unknown, "Unknown")]
     public void Configuration_view_surfaces_non_current_truth_without_collapsing_to_success(
         TenantDetailSurfaceKind kind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string expectedText)
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
 
         IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha"))
@@ -409,7 +409,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [Fact]
     public void Detail_page_composes_member_access_review_without_replacing_existing_surfaces()
     {
-        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", TenantFreshnessState.Current)));
+        RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
@@ -462,7 +462,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("OWNER/User.01");
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("reader-user-with-a-very-long-literal-identifier");
@@ -501,7 +501,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         HashSet<string> reasonListIds = cut.FindAll("[data-testid='tenants-member-reason-list']")
             .Select(static list => list.GetAttribute("id").ShouldNotBeNull())
@@ -538,7 +538,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         IElement launch = cut.FindAll($"[data-testid='{launchTestId}']")[0];
         launch.GetAttribute("aria-controls").ShouldBe(regionId);
@@ -562,7 +562,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         string[] categories =
         [
@@ -600,7 +600,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-change-role-open']").Click();
 
@@ -618,15 +618,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Theory]
-    [InlineData(TenantStatus.Disabled, TenantDetailSurfaceKind.Ready, TenantFreshnessState.Current, "missing lifecycle support")]
-    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, "stale data")]
-    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown, "stale data")]
-    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown, "missing permission")]
-    [InlineData(TenantStatus.Unknown, TenantDetailSurfaceKind.Ready, TenantFreshnessState.Current, "missing lifecycle support")]
+    [InlineData(TenantStatus.Disabled, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, "missing lifecycle support")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "stale data")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "stale data")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "missing permission")]
+    [InlineData(TenantStatus.Unknown, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, "missing lifecycle support")]
     public void Member_access_review_fails_closed_for_disabled_stale_unknown_and_degraded_states(
         TenantStatus status,
         TenantDetailSurfaceKind surfaceKind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string expectedReason)
     {
         RegisterComponentServices();
@@ -656,7 +656,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha"))
             .Add(view => view.SurfaceKind, surfaceKind)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("missing permission");
         cut.FindAll("[data-testid='tenants-member-action-slot']")
@@ -676,7 +676,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 [new TenantMember("literal-user", TenantRole.TenantOwner)]))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Current));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("literal-user");
         cut.Markup.ShouldNotContain("/api/tenants", Case.Insensitive);
@@ -699,7 +699,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 []))
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, TenantFreshnessState.Unknown));
+            .Add(view => view.Freshness, ReadModelFreshnessState.Unknown));
 
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("No visible members");
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("does not reveal hidden memberships");
@@ -717,7 +717,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             isDegraded: false);
         RegisterServices(snapshot);
 
@@ -751,7 +751,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             isDegraded: false);
         RegisterListServices(call =>
         {

@@ -10,7 +10,7 @@ using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +31,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Indeterminate)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Unresolved));
@@ -65,7 +65,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Unresolved));
@@ -84,7 +84,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.TenantId, "tenant.disabled")
             .Add(component => component.CurrentStatus, TenantStatus.Disabled)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Unresolved));
@@ -110,7 +110,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
@@ -130,7 +130,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.TenantId, "tenant.alpha")
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
@@ -194,7 +194,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
@@ -242,7 +242,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
@@ -279,7 +279,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.IsCommandSurfaceAvailable, false)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
@@ -347,7 +347,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
             .Add(component => component.CurrentStatus, TenantStatus.Active)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current)
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
             .Add(component => component.IsCommandSurfaceAvailable, true)
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
@@ -395,7 +395,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         => new TenantLifecycleAvailabilityInput(
                 "tenant.alpha",
                 currentStatus,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 TenantDetailSurfaceKind.Ready,
                 IsCommandSurfaceConnected: true,
                 TenantLifecycleGovernanceReadiness.Ready,

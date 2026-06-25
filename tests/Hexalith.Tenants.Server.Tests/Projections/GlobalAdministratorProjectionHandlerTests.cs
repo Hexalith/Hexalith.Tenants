@@ -17,6 +17,7 @@ public class GlobalAdministratorProjectionHandlerTests {
     private const string StateStoreName = GlobalAdministratorProjectionHandler.StateStoreName;
     private const string SingletonKey = GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey;
     private const string ForbiddenTenantKey = "projection:tenants:global-administrators";
+    private static readonly DateTimeOffset ProjectionTime = new(2026, 6, 25, 12, 15, 0, TimeSpan.Zero);
 
     private static readonly JsonSerializerOptions _options = new() {
         PropertyNameCaseInsensitive = true,
@@ -189,6 +190,27 @@ public class GlobalAdministratorProjectionHandlerTests {
     }
 
     [Fact]
+    public async Task ProjectAsync_StampsSingletonAndAuditProjectionWritesWithTimeProviderAsync() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        ProjectionRequest request = CreateRequest(
+            new GlobalAdministratorSet("system", "admin-user"));
+
+        _ = await new GlobalAdministratorProjectionHandler(store, new FixedTimeProvider(ProjectionTime))
+            .ProjectAsync(request);
+
+        await store.Received(1).SaveAsync(
+            StateStoreName,
+            SingletonKey,
+            Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.ProjectedAt == ProjectionTime),
+            Arg.Any<CancellationToken>());
+        await store.Received(1).SaveAsync(
+            StateStoreName,
+            "audit:system",
+            Arg.Is<TenantAuditReadModel>(m => m != null && m.ProjectedAt == ProjectionTime),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task ProjectAsync_WithPreCancelledTokenThrowsBeforeSaveAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         ProjectionRequest request = CreateRequest(
@@ -245,5 +267,9 @@ public class GlobalAdministratorProjectionHandlerTests {
             "corr-1",
             messageId,
             "actor-1");
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider {
+        public override DateTimeOffset GetUtcNow() => utcNow;
     }
 }

@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -34,7 +34,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
                 ["billing.endpoint"] = "Bearer raw-token",
             }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
@@ -69,7 +69,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-namespace']").Change("security");
@@ -90,7 +90,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
@@ -123,7 +123,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-namespace']").Change(namespaceValue);
@@ -147,7 +147,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
@@ -175,7 +175,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
         cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
@@ -202,7 +202,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
@@ -234,7 +234,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
                 ? Detail(request.TenantId, new Dictionary<string, string> { ["billing.mode"] = "trial" })
                 : Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
@@ -273,7 +273,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
@@ -309,7 +309,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = request.Value }))));
 
@@ -329,14 +329,14 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantDetailSurfaceKind.Unauthorized, TenantFreshnessState.Current, TenantStatus.Active, "not authorized")]
-    [InlineData(TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Current, TenantStatus.Active, "degraded")]
-    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, TenantStatus.Active, "Refresh current")]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Current, TenantStatus.Disabled, "lifecycle state")]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Unauthorized, ReadModelFreshnessState.Current, TenantStatus.Active, "not authorized")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Current, TenantStatus.Active, "degraded")]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, TenantStatus.Disabled, "lifecycle state")]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, TenantStatus.Active, "Refresh current")]
     public void Set_configuration_fails_closed_for_stale_unknown_or_disabled_projection(
         TenantDetailSurfaceKind surfaceKind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         TenantStatus status,
         string expectedReason)
     {
@@ -360,7 +360,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> unauthorized = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsAuthorized, false));
 
         unauthorized.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent
@@ -370,7 +370,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> missingScope = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string>()))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         missingScope.Find("[data-testid='tenants-config-set-unavailable-reason']").TextContent
             .ShouldContain("namespace prefix evidence", Case.Insensitive);
@@ -388,7 +388,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
@@ -437,7 +437,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active)));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();
@@ -465,7 +465,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsCommandSurfaceAvailable, true));
 
         cut.Find("[data-testid='tenants-config-set-open']").Click();

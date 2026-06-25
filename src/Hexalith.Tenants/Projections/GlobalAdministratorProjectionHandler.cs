@@ -16,7 +16,7 @@ namespace Hexalith.Tenants.Projections;
 /// Domain authorization key consumed by the tenant query handlers:
 /// <c>projection:global-administrators:singleton</c>. Any other key is bogus for this domain.
 /// </remarks>
-public sealed class GlobalAdministratorProjectionHandler(IReadModelStore store) {
+public sealed class GlobalAdministratorProjectionHandler {
     public const string StateStoreName = "statestore";
     public const string GlobalAdministratorsProjectionKey = "projection:global-administrators:singleton";
     public const string GlobalAdministratorsAggregateId = "global-administrators";
@@ -27,7 +27,20 @@ public sealed class GlobalAdministratorProjectionHandler(IReadModelStore store) 
         PropertyNameCaseInsensitive = true,
     };
 
-    private readonly IReadModelStore _store = store ?? throw new ArgumentNullException(nameof(store));
+    private readonly IReadModelStore _store;
+    private readonly TimeProvider _timeProvider;
+
+    public GlobalAdministratorProjectionHandler(IReadModelStore store)
+        : this(store, TimeProvider.System) {
+    }
+
+    public GlobalAdministratorProjectionHandler(IReadModelStore store, TimeProvider timeProvider) {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+
+        _store = store;
+        _timeProvider = timeProvider;
+    }
 
     public async Task<ProjectionResponse> ProjectAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
@@ -40,9 +53,13 @@ public sealed class GlobalAdministratorProjectionHandler(IReadModelStore store) 
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
         TenantAuditReadModel auditState = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+        DateTimeOffset projectedAt = _timeProvider.GetUtcNow();
+        auditState.ProjectedAt = projectedAt;
         cancellationToken.ThrowIfCancellationRequested();
 
-        GlobalAdministratorReadModel state = new();
+        GlobalAdministratorReadModel state = new() {
+            ProjectedAt = projectedAt,
+        };
         foreach (ProjectionEventDto? evt in events) {
             if (evt is null) {
                 continue;

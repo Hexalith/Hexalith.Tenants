@@ -75,7 +75,7 @@ Repos: `Hexalith.EventStore.DomainService` (host-SDK layer) + `Hexalith.Tenants`
 
 - New `DaprXmlRepository` (`IXmlRepository` over `DaprClient`, ETag compare-and-swap), `EventStoreDataProtectionOptions`, `AddEventStoreDataProtection(config, appName)`.
 - Backend is chosen entirely by `statestore.yaml` (Redis in prod) → **Tenants domain package gains NO infra SDK** (constraint satisfied).
-- `src/Hexalith.Tenants/Program.cs` swaps the ephemeral `AddDataProtection()` for `AddEventStoreDataProtection(builder.Configuration, "Hexalith.Tenants")`; `appsettings.json` persists to `statestore` key `dataprotection-keys`; Development stays ephemeral; `deploy/dapr/README.md` + `statestore.yaml` document the contract.
+- `src/Hexalith.Tenants/Program.cs` swaps the ephemeral `AddDataProtection()` for `AddEventStoreDataProtection(builder.Configuration, "Hexalith.Tenants")`; `appsettings.json` persists to `statestore` under the application-specific key `hexalith-tenants-dataprotection-keys`; Development stays explicitly ephemeral; `deploy/dapr/README.md` + `statestore.yaml` document the contract.
 
 Evidence: DomainService.Tests **36/36** (incl. cross-replica reload + concurrent-write ETag retry); integrated Tenants Release build clean.
 
@@ -155,3 +155,14 @@ All 8 patches (6 + 2 resolved decisions) were applied to the `Hexalith.EventStor
 - `NavigateTo` one-line wrapper in Index.razor — a reasonable shared onclick+keydown seam.
 - `role="group"` vs "toolbar" comment wording — `group` is a defensible choice; the sr-only data table it references was verified to exist.
 - "role=link vs role=button inconsistency" for the two type-name spans — **correctly** differentiated by action: TypeDetailPanel *navigates* (`role=link`, Enter-only is ARIA-correct), DaprHealthHistory *selects in-page* (`role=button`, Enter+Space). The commit-message "Enter/Space" blanket wording is immaterial.
+
+## 8. Review Findings — Epic 11 persisted DataProtection key ring (code review 2026-06-25)
+
+- [x] [Review][Decision][Dismissed] DataProtection key material is persisted without an at-rest encryptor — Decision 2026-06-25: accept the DAPR state store as the trusted boundary for Epic 11; no additional key encryptor is required in this story.
+- [x] [Review][Patch] Namespace or isolate the Tenants key-ring state [Hexalith.EventStore/src/Hexalith.EventStore.DomainService/EventStoreDataProtectionOptions.cs:30] — patched: the shared option now defaults blank `StateKey` to an application-specific key, Tenants uses `hexalith-tenants-dataprotection-keys`, and deploy docs describe the shared-state-store trust boundary.
+- [x] [Review][Patch] Add bounded timeout handling for synchronous repository calls [Hexalith.EventStore/src/Hexalith.EventStore.DomainService/DaprXmlRepository.cs:56] — patched: `DaprXmlRepository` now uses a configurable positive `OperationTimeout` and bounded cancellation for synchronous key-ring load/store calls.
+- [x] [Review][Patch] Add backoff or stronger retry policy for concurrent key writes [Hexalith.EventStore/src/Hexalith.EventStore.DomainService/DaprXmlRepository.cs:85] — patched: concurrent-write retries now use additional attempts with exponential backoff instead of five immediate retries.
+- [x] [Review][Patch] Prove the actual Data Protection contract end-to-end [Hexalith.EventStore/tests/Hexalith.EventStore.DomainService.Tests/EventStoreDataProtectionTests.cs:31] — patched: tests now protect with one `IDataProtectionProvider` and unprotect with a second provider over the same persisted key ring.
+- [x] [Review][Patch] Fix the non-persistent mode contract [Hexalith.EventStore/src/Hexalith.EventStore.DomainService/EventStoreDataProtectionServiceCollectionExtensions.cs:35] — patched: `PersistToStateStore=false` now explicitly uses `UseEphemeralDataProtectionProvider()`, with a test proving a fresh provider cannot unprotect the prior provider's payload.
+- [x] [Review][Patch] Document the ETag-capable state-store requirement [Hexalith.EventStore/src/Hexalith.EventStore.DomainService/DaprXmlRepository.cs:94] — patched: the registration remarks, deployment README, and `statestore.yaml` now state that the selected DAPR state store must support ETag / first-write concurrency.
+- [x] [Review][Patch] Correct stale landing-state prose in the routing docs [_bmad-output/implementation-artifacts/deferred-work.md:10] — already corrected in the current workspace: the routing index records the pushed FrontComposer/EventStore/Tenants commits and no longer says the submodule edits are pending commit/pointer update/push.

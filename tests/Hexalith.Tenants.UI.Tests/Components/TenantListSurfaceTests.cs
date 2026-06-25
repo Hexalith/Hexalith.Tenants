@@ -11,7 +11,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -30,7 +30,7 @@ public sealed class TenantListSurfaceTests : BunitContext
     {
         TenantListSnapshot snapshot = ReadySnapshot(
             [
-                Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Stale, TenantPendingState.None),
+                Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Stale, TenantPendingState.None),
             ],
             nextCursor: "next-cursor",
             hasMore: true);
@@ -57,7 +57,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         // cc-2026-06-21 extraction guard: the workspace reuses FcAggregateListPage<TItem> (the shared
         // FC-LST chrome) and declares the full-width measure through it, instead of a Tenants-local
         // FcPageLayout/FcPageHeader page shell. Keeps the rebase from silently regressing.
-        RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown));
+        RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown));
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-workspace']");
@@ -69,8 +69,8 @@ public sealed class TenantListSurfaceTests : BunitContext
     [Fact]
     public async Task Search_filter_and_sort_preserve_safety_markers()
     {
-        TenantListRow alpha = Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None);
-        TenantListRow beta = Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantFreshnessState.Stale, TenantPendingState.Unknown);
+        TenantListRow alpha = Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None);
+        TenantListRow beta = Row("tenant.beta", "Beta", TenantStatus.Disabled, ReadModelFreshnessState.Stale, TenantPendingState.Unknown);
 
         // Search is now a server round-trip: a "beta" term returns the beta-only cross-set match-set; an
         // empty term returns the full cursor list. Status stays a page-local filter applied client-side.
@@ -130,7 +130,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             requests.Add(call.ArgAt<TenantListRequest>(0));
             return Task.FromResult(ReadySnapshot(
-                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)]));
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
         });
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
@@ -148,7 +148,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             TenantListRequest request = call.ArgAt<TenantListRequest>(0);
             return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
-                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)])
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
                 : TenantListSnapshot.FilteredEmpty());
         });
 
@@ -169,9 +169,9 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             TenantListRequest request = call.ArgAt<TenantListRequest>(0);
             return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
-                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)])
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
                 : TenantListSnapshot.Degraded(
-                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)],
+                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
                     unavailable));
         });
 
@@ -192,7 +192,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             TenantListRequest request = call.ArgAt<TenantListRequest>(0);
             return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
-                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None)])
+                ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
                 : TenantListSnapshot.Degraded([], "Search results could not be verified."));
         });
 
@@ -210,13 +210,13 @@ public sealed class TenantListSurfaceTests : BunitContext
     {
         TenantListSnapshot firstPage = ReadySnapshot(
             [
-                Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantFreshnessState.Current, TenantPendingState.None),
+                Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None),
             ],
             nextCursor: "opaque-next-cursor",
             hasMore: true);
         TenantListSnapshot secondPage = ReadySnapshot(
             [
-                Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantFreshnessState.Stale, TenantPendingState.Unknown),
+                Row("tenant.beta", "Beta", TenantStatus.Disabled, ReadModelFreshnessState.Stale, TenantPendingState.Unknown),
             ]);
         Queue<TenantListSnapshot> snapshots = new([firstPage, secondPage, firstPage]);
         List<TenantListRequest> requests = [];
@@ -257,7 +257,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         TenantListSnapshot snapshot = kind switch
         {
             TenantListSurfaceKind.Loading => TenantListSnapshot.Loading(),
-            TenantListSurfaceKind.Empty => TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown),
+            TenantListSurfaceKind.Empty => TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown),
             TenantListSurfaceKind.FilteredEmpty => TenantListSnapshot.FilteredEmpty(),
             TenantListSurfaceKind.Error => TenantListSnapshot.Error("Unavailable"),
             TenantListSurfaceKind.Stale => TenantListSnapshot.Stale(
@@ -362,16 +362,16 @@ public sealed class TenantListSurfaceTests : BunitContext
             nextCursor,
             hasMore,
             eTag: "\"etag\"",
-            freshness: rows.Any(row => row.Freshness == TenantFreshnessState.Stale)
-                ? TenantFreshnessState.Stale
-                : TenantFreshnessState.Current,
+            freshness: rows.Any(row => row.Freshness == ReadModelFreshnessState.Stale)
+                ? ReadModelFreshnessState.Stale
+                : ReadModelFreshnessState.Current,
             isDegraded: false);
 
     private static TenantListRow Row(
         string tenantId,
         string name,
         TenantStatus status,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         TenantPendingState pendingState)
         => TenantListRow.FromSummary(new TenantSummary(tenantId, name, status)) with
         {

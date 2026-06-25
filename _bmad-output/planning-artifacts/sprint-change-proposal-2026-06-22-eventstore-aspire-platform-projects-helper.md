@@ -328,3 +328,11 @@ Approve this Sprint Change Proposal for implementation?
   (public-API commit) then the Tenants Developer agent (submodule-pointer bump + AppHost commit).
 - `revise` — adjust the target, the extraction surface, the naming, or the sequencing.
 - `no` — stop this correction.
+
+## 9. Review Findings
+
+Code review run: 2026-06-25 (`bmad-code-review`)
+
+- [x] [Review][Patch] Regenerate EventStore.Aspire API reference docs [Hexalith.EventStore/docs/reference/api/Hexalith.EventStore.Aspire/index.md:1] -- fixed 2026-06-25; regenerated the `Hexalith.EventStore.Aspire` API reference folder with the new public `RepositoryProjectPaths`, `HexalithEventStorePlatformExtensions`, and `HexalithEventStorePlatformProjects` pages.
+- [x] [Review][Patch] Fix invalid `IProjectMetadata` XML cref in `RepositoryProjectPaths` [Hexalith.EventStore/src/Hexalith.EventStore.Aspire/RepositoryProjectPaths.cs:12] -- fixed 2026-06-25; replaced the unresolved fully qualified `cref` with code text and removed two overload-sensitive EventStore.Aspire `cref` links that blocked the current API-reference build.
+- [x] [Review][Patch] Validate public `RepositoryProjectPaths` inputs and resolved root [Hexalith.EventStore/src/Hexalith.EventStore.Aspire/RepositoryProjectPaths.cs:28] -- fixed 2026-06-25; validates non-empty relative path segments, rejects parent-directory traversal and rooted segments, verifies the inferred repository root contains `src`, and guards the final resolved path against escaping the repository root.

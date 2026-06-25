@@ -14,7 +14,11 @@ namespace Hexalith.Tenants.Projections;
 /// requested <see cref="ProjectionRequest.Domain"/>. Unknown domains fail closed with
 /// <see cref="StatusCodes.Status400BadRequest"/> instead of silently being projected as tenants.
 /// </summary>
-public sealed partial class ProjectionDispatcher(IReadModelStore store, TenantTelemetry telemetry, ILoggerFactory? loggerFactory = null) {
+public sealed partial class ProjectionDispatcher(
+    IReadModelStore store,
+    TenantTelemetry telemetry,
+    ILoggerFactory? loggerFactory = null,
+    TimeProvider? timeProvider = null) {
     public const string TenantsDomain = "tenants";
     public const string GlobalAdministratorsDomain = "global-administrators";
 
@@ -45,6 +49,7 @@ public sealed partial class ProjectionDispatcher(IReadModelStore store, TenantTe
     ], StringComparer.Ordinal);
 
     private readonly ILoggerFactory _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     public async Task<IResult> DispatchAsync(ProjectionRequest request, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
@@ -74,7 +79,8 @@ public sealed partial class ProjectionDispatcher(IReadModelStore store, TenantTe
                 case TenantsDomain:
                     ProjectionResponse tenantsResponse = await new TenantProjectionHandler(
                         store,
-                        _loggerFactory.CreateLogger<TenantProjectionHandler>())
+                        _loggerFactory.CreateLogger<TenantProjectionHandler>(),
+                        _timeProvider)
                         .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                     outcome = CompletedOutcome;
                     return Results.Ok(tenantsResponse);
@@ -89,7 +95,7 @@ public sealed partial class ProjectionDispatcher(IReadModelStore store, TenantTe
                             title: "Invalid global administrator projection identity");
                     }
 
-                    ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(store)
+                    ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(store, _timeProvider)
                         .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                     outcome = CompletedOutcome;
                     return Results.Ok(globalAdminResponse);

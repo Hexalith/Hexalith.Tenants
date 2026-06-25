@@ -16,7 +16,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -113,7 +113,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         {
             MemberCount = TenantCountValue.Known(2),
             OwnerCount = TenantCountValue.Known(1),
-            Freshness = TenantFreshnessState.Current,
+            Freshness = ReadModelFreshnessState.Current,
         };
 
         IRenderedComponent<TenantDataGrid> cut = Render<TenantDataGrid>(parameters => parameters
@@ -133,7 +133,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     public void User_lookup_grid_carries_target_user_context_without_primary_users_navigation()
     {
         RegisterFluentServices();
-        UserTenantMembershipRow row = new("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, TenantFreshnessState.Current);
+        UserTenantMembershipRow row = new("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current);
 
         IRenderedComponent<MyTenantsDataGrid> cut = Render<MyTenantsDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
@@ -159,7 +159,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(component => component.Detail, detail)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(component => component.Freshness, TenantFreshnessState.Current));
+            .Add(component => component.Freshness, ReadModelFreshnessState.Current));
 
         string auditHref = RequiredAttribute(EntryPointFromMarker(cut, "tenants-member-audit-entrypoint"), "href");
         auditHref.ShouldContain("/tenants/tenant.alpha/audit?");
@@ -196,7 +196,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(call => Task.FromResult(TenantAuditSnapshot.Empty(true, TenantFreshnessState.Current, null, call.ArgAt<TenantAuditRequest>(0))));
+            .Returns(call => Task.FromResult(TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, null, call.ArgAt<TenantAuditRequest>(0))));
         RegisterFluentServices(gateway);
         Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>()
             .NavigateTo("/tenants/tenant.alpha/audit?targetUserId=user.alpha&source=member-row&returnUrl=%2Ftenants%2Ftenant.alpha&returnFocus=tenants-member-user.alpha");
@@ -218,7 +218,7 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(call => Task.FromResult(TenantAuditSnapshot.Empty(true, TenantFreshnessState.Current, null, call.ArgAt<TenantAuditRequest>(0))));
+            .Returns(call => Task.FromResult(TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, null, call.ArgAt<TenantAuditRequest>(0))));
         RegisterFluentServices(gateway);
         Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>()
             .NavigateTo("/tenants/tenant.alpha/audit?source=tenant-list");

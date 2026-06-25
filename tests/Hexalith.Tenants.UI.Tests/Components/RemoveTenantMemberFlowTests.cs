@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -32,7 +32,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-remove-member-flow']");
         cut.Find("[data-testid='tenants-remove-member-preview']");
@@ -62,7 +62,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, detail)
             .Add(p => p.Member, new TenantMember("owner-user", TenantRole.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-remove-member-owner-risk']").TextContent.ShouldContain("Last-owner");
         cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldBeNull();
@@ -82,7 +82,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.TargetGlobalAdministratorFriction, true));
 
         cut.Find("[data-testid='tenants-remove-member-global-admin-risk']").TextContent
@@ -106,7 +106,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.Member, new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
                 ? Detail(
                     request.TenantId,
@@ -149,7 +149,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
                 request.TenantId,
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]))));
@@ -175,7 +175,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
                 request.TenantId,
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]))));
@@ -206,7 +206,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("Reader-User");
         cut.Find("form").Submit();
@@ -226,7 +226,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("form").Submit();
 
@@ -250,7 +250,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
@@ -266,12 +266,12 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, "Refresh current tenant detail")]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown, "Refresh current tenant detail")]
-    [InlineData(TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown, "not authorized")]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "Refresh current tenant detail")]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "Refresh current tenant detail")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "not authorized")]
     public void Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(
         TenantDetailSurfaceKind surfaceKind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string expectedReason)
     {
         StubTenantCommandGateway gateway = new();
@@ -305,7 +305,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-remove-member-cancel']").Click();

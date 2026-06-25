@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -28,11 +28,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     public void Authorized_operator_sees_global_administrators_from_fixed_scope()
     {
         var gateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("platform-admin.alpha", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("platform-admin.alpha", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current));
+            freshness: ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -60,11 +60,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     public void Tenant_owner_without_platform_authority_gets_fail_closed_without_querying_gateway()
     {
         var gateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("hidden-admin", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("hidden-admin", ReadModelFreshnessState.Current)],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current));
+            ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Indeterminate));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -81,11 +81,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(GlobalAdministratorsSurfaceKind.Stale, TenantFreshnessState.Stale, "freshness")]
-    [InlineData(GlobalAdministratorsSurfaceKind.Degraded, TenantFreshnessState.Unknown, "freshness")]
+    [InlineData(GlobalAdministratorsSurfaceKind.Stale, ReadModelFreshnessState.Stale, "freshness")]
+    [InlineData(GlobalAdministratorsSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "freshness")]
     public void Stale_or_degraded_review_surface_keeps_rows_visible_and_actions_unavailable(
         GlobalAdministratorsSurfaceKind kind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string expectedReason)
     {
         GlobalAdministratorsSnapshot snapshot = kind is GlobalAdministratorsSurfaceKind.Stale
@@ -118,7 +118,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         {
             GlobalAdministratorsSurfaceKind.Empty => GlobalAdministratorsSnapshot.Empty(
                 isAuthorizationScoped: true,
-                TenantFreshnessState.Current,
+                ReadModelFreshnessState.Current,
                 "\"empty\""),
             GlobalAdministratorsSurfaceKind.Invalid => GlobalAdministratorsSnapshot.Invalid(),
             GlobalAdministratorsSurfaceKind.Unavailable => GlobalAdministratorsSnapshot.Unavailable(),
@@ -143,17 +143,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         var gateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"etag-1\"",
-                freshness: TenantFreshnessState.Current),
+                freshness: ReadModelFreshnessState.Current),
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"etag-1\"",
-                freshness: TenantFreshnessState.Current));
+                freshness: ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -175,17 +175,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         var gateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 nextCursor: "protected-next-cursor",
                 hasMore: true,
                 eTag: "\"etag-1\"",
-                freshness: TenantFreshnessState.Current),
+                freshness: ReadModelFreshnessState.Current),
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-2", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"etag-2\"",
-                freshness: TenantFreshnessState.Current));
+                freshness: ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -211,11 +211,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current)));
+            freshness: ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -236,11 +236,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         var commandGateway = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("only-admin", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("only-admin", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current)));
+            freshness: ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -259,13 +259,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
             [
-                new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
-                new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
             ],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current)));
+            freshness: ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -292,13 +292,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
             [
-                new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
-                new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
             ],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current)));
+            freshness: ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -323,19 +323,19 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         var queryGateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
                 [
-                    new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
-                    new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
                 ],
                 null,
                 false,
                 "\"etag-1\"",
-                TenantFreshnessState.Current),
+                ReadModelFreshnessState.Current),
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                TenantFreshnessState.Current));
+                ReadModelFreshnessState.Current));
         var commandGateway = new StubTenantCommandGateway(statuses: [new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)])
         {
             RemoveSubmission = TenantCommandSubmissionResult.Accepted("message-remove", "correlation-remove"),
@@ -372,13 +372,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
             [
-                new GlobalAdministratorRow("target-admin", TenantFreshnessState.Current),
-                new GlobalAdministratorRow("other-admin", TenantFreshnessState.Current),
+                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
             ],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current)));
+            ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
         {
             RemoveSubmission = TenantCommandSubmissionResult.Rejected(expectedText, rejectionCode),
@@ -409,11 +409,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         var commandGateway = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current)));
+            freshness: ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -437,20 +437,20 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         var queryGateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-1\"",
-                TenantFreshnessState.Current),
+                ReadModelFreshnessState.Current),
             GlobalAdministratorsSnapshot.Ready(
                 [
-                    new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current),
-                    new GlobalAdministratorRow("target-user", TenantFreshnessState.Current),
+                    new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("target-user", ReadModelFreshnessState.Current),
                 ],
                 null,
                 false,
                 "\"etag-2\"",
-                TenantFreshnessState.Current));
+                ReadModelFreshnessState.Current));
         var commandGateway = new StubTenantCommandGateway(
             TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
             new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
@@ -490,11 +490,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             isReadSurfaceConnected,
             isCommandSurfaceConnected));
         var queryGateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current));
+            ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantQueryGateway>(queryGateway);
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -526,11 +526,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         var commandGateway = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current)));
+            ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -552,17 +552,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         var queryGateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-1\"",
-                TenantFreshnessState.Current),
+                ReadModelFreshnessState.Current),
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                TenantFreshnessState.Current));
+                ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(queryGateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
@@ -594,11 +594,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         string expectedAuditText)
     {
         var queryGateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current));
+            ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(queryGateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
@@ -629,11 +629,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("existing-admin", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("existing-admin", ReadModelFreshnessState.Current)],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current)));
+            ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
             TenantCommandSubmissionResult.Rejected(
                 "This user is already a global administrator. Refresh the platform authority projection before trying another action.",
@@ -660,11 +660,11 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             null,
             false,
             "\"etag\"",
-            TenantFreshnessState.Current)));
+            ReadModelFreshnessState.Current)));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(
             TenantCommandSubmissionResult.Rejected(
                 "The caller is not authorized for platform governance changes.",
@@ -692,17 +692,17 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     {
         var queryGateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-1\"",
-                TenantFreshnessState.Current),
+                ReadModelFreshnessState.Current),
             GlobalAdministratorsSnapshot.Ready(
-                [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+                [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                TenantFreshnessState.Current));
+                ReadModelFreshnessState.Current));
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(queryGateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway(

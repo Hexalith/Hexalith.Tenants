@@ -4,7 +4,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Shouldly;
@@ -34,7 +34,7 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.NextCursor.ShouldBeNull();
         snapshot.HasMore.ShouldBeFalse();
         snapshot.ETag.ShouldBeNull();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.ErrorMessage.ShouldNotBeNullOrWhiteSpace();
         snapshot.ErrorMessage.ShouldNotContain("secret-etag", Case.Insensitive);
         snapshot.ErrorMessage.ShouldNotContain("opaque-cursor", Case.Insensitive);
@@ -56,7 +56,7 @@ public sealed class UnavailableTenantQueryGatewayTests
                 new Dictionary<string, string>(),
                 DateTimeOffset.UtcNow),
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current);
 
         TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
             new TenantDetailRequest("tenant.alpha", ETag: "\"secret-etag\""),
@@ -66,7 +66,7 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.ETag.ShouldBeNull();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.ErrorMessage.ShouldNotBeNullOrWhiteSpace();
         snapshot.ErrorMessage.ShouldNotContain("secret-etag", Case.Insensitive);
     }
@@ -84,7 +84,7 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Unavailable);
         snapshot.Reason.ShouldBe(UserTenantMembershipReason.GatewayUnavailable);
         snapshot.Rows.ShouldBeEmpty();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.ETag.ShouldBeNull();
     }
 
@@ -102,7 +102,7 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.Reason.ShouldBe(UserTenantMembershipReason.GatewayUnavailable);
         snapshot.TargetUserId.ShouldBe("user-2");
         snapshot.Rows.ShouldBeEmpty();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
         snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayUnavailable);
         snapshot.Rows.ShouldBeEmpty();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.ETag.ShouldBeNull();
     }
 
@@ -147,7 +147,7 @@ public sealed class UnavailableTenantQueryGatewayTests
         snapshot.To.ShouldBe(request.To);
         snapshot.Category.ShouldBe(AuditEventCategory.Administrative.ToString());
         snapshot.Rows.ShouldBeEmpty();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.ETag.ShouldBeNull();
     }
 

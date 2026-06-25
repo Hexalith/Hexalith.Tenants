@@ -4,7 +4,7 @@ using System.Text;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.SupportSafety;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -27,7 +27,7 @@ public sealed record TenantAuditReceipt(
     string Scope,
     string Outcome,
     DateTimeOffset? Timestamp,
-    TenantFreshnessState ProjectionMarker,
+    ReadModelFreshnessState ProjectionMarker,
     string AuditReference,
     string? CommandReference,
     TenantAuditReceiptState State,
@@ -37,7 +37,7 @@ public sealed record TenantAuditReceipt(
 
     public static TenantAuditReceipt FromEntry(
         TenantAuditEntry entry,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string? supportSafeCommandReference = null,
         TenantAuditSurfaceKind surfaceKind = TenantAuditSurfaceKind.Ready,
         TenantCommandAuditState auditState = TenantCommandAuditState.NotStarted) {
@@ -85,7 +85,7 @@ public sealed record TenantAuditReceipt(
             scope,
             string.Empty,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             auditReference,
             commandReference,
             TenantAuditReceiptState.InvalidReference,
@@ -123,7 +123,7 @@ public sealed record TenantAuditReceipt(
             return auditReceiptState;
         }
 
-        if (row.Freshness is TenantFreshnessState.Stale) {
+        if (row.Freshness is ReadModelFreshnessState.Stale) {
             return TenantAuditReceiptState.Stale;
         }
 

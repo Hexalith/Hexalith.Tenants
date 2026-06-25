@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.GlobalAdministrators;
 
@@ -8,7 +8,7 @@ public sealed record GlobalAdministratorsSnapshot(
     string? NextCursor,
     bool HasMore,
     string? ETag,
-    TenantFreshnessState Freshness,
+    ReadModelFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
     GlobalAdministratorsReason Reason) {
     public static GlobalAdministratorsSnapshot Loading()
@@ -18,7 +18,7 @@ public sealed record GlobalAdministratorsSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             GlobalAdministratorsReason.None);
 
@@ -27,20 +27,20 @@ public sealed record GlobalAdministratorsSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness)
+        ReadModelFreshnessState freshness)
         => new(
-            freshness == TenantFreshnessState.Stale ? GlobalAdministratorsSurfaceKind.Stale : GlobalAdministratorsSurfaceKind.Ready,
+            freshness == ReadModelFreshnessState.Stale ? GlobalAdministratorsSurfaceKind.Stale : GlobalAdministratorsSurfaceKind.Ready,
             rows,
             nextCursor,
             hasMore,
             eTag,
             freshness,
             false,
-            freshness == TenantFreshnessState.Stale ? GlobalAdministratorsReason.ProjectionStale : GlobalAdministratorsReason.None);
+            freshness == ReadModelFreshnessState.Stale ? GlobalAdministratorsReason.ProjectionStale : GlobalAdministratorsReason.None);
 
     public static GlobalAdministratorsSnapshot Empty(
         bool isAuthorizationScoped,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string? eTag)
         => new(
             GlobalAdministratorsSurfaceKind.Empty,
@@ -63,7 +63,7 @@ public sealed record GlobalAdministratorsSnapshot(
             nextCursor,
             hasMore,
             eTag,
-            TenantFreshnessState.Stale,
+            ReadModelFreshnessState.Stale,
             false,
             GlobalAdministratorsReason.ProjectionStale);
 
@@ -79,7 +79,7 @@ public sealed record GlobalAdministratorsSnapshot(
             nextCursor,
             hasMore,
             eTag,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason);
 
@@ -91,7 +91,7 @@ public sealed record GlobalAdministratorsSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason);
 
@@ -103,7 +103,7 @@ public sealed record GlobalAdministratorsSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason);
 
@@ -115,7 +115,7 @@ public sealed record GlobalAdministratorsSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason);
 }

@@ -1,10 +1,13 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
+
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -16,8 +19,10 @@ public sealed class GetGlobalAdministratorsQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
-    ILogger<GetGlobalAdministratorsQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
+    ILogger<GetGlobalAdministratorsQueryHandler> logger,
+    IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
+    TimeProvider? timeProvider = null)
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     public override string Domain => GetGlobalAdministratorsQuery.Domain;
 
@@ -43,9 +48,10 @@ public sealed class GetGlobalAdministratorsQueryHandler(
                 failureReason);
         }
 
-        GlobalAdministratorReadModel? model = await GetStateAsync<GlobalAdministratorReadModel>(
+        ReadModelEntry<GlobalAdministratorReadModel>? adminEntry = await GetStateEntryAsync<GlobalAdministratorReadModel>(
             GlobalAdminProjectionKey,
             cancellationToken).ConfigureAwait(false);
+        GlobalAdministratorReadModel? model = adminEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
         if (model is null || (!envelope.IsGlobalAdmin && !model.Administrators.Contains(envelope.UserId))) {
@@ -66,6 +72,8 @@ public sealed class GetGlobalAdministratorsQueryHandler(
         cancellationToken.ThrowIfCancellationRequested();
         return CreateSuccessResult(
             SerializeToElement(result),
-            GetGlobalAdministratorsQuery.ProjectionType);
+            GetGlobalAdministratorsQuery.ProjectionType,
+            model,
+            adminEntry?.ETag);
     }
 }

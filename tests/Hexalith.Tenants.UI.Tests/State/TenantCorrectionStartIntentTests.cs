@@ -3,7 +3,7 @@ using System.Globalization;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Shouldly;
 
@@ -73,9 +73,9 @@ public sealed class TenantCorrectionStartIntentTests
     }
 
     [Theory]
-    [InlineData(TenantFreshnessState.Stale, TenantCorrectionUnavailableReason.FreshnessIndeterminate)]
-    [InlineData(TenantFreshnessState.Unknown, TenantCorrectionUnavailableReason.FreshnessIndeterminate)]
-    public void Non_current_projection_fails_closed(TenantFreshnessState freshness, TenantCorrectionUnavailableReason reason)
+    [InlineData(ReadModelFreshnessState.Stale, TenantCorrectionUnavailableReason.FreshnessIndeterminate)]
+    [InlineData(ReadModelFreshnessState.Unknown, TenantCorrectionUnavailableReason.FreshnessIndeterminate)]
+    public void Non_current_projection_fails_closed(ReadModelFreshnessState freshness, TenantCorrectionUnavailableReason reason)
     {
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
             Row("UserRemovedFromTenant", "userId: target-user", freshness),
@@ -142,7 +142,7 @@ public sealed class TenantCorrectionStartIntentTests
             Scope: "tenant.alpha",
             "UserRemovedFromTenant",
             "userId: target-user",
-            TenantFreshnessState.Current);
+            ReadModelFreshnessState.Current);
 
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(new(
             TenantAuditReceipt.FromRow(row),
@@ -189,7 +189,7 @@ public sealed class TenantCorrectionStartIntentTests
     private static TenantAuditRow Row(
         string eventType,
         string referenceContext,
-        TenantFreshnessState freshness = TenantFreshnessState.Current)
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current)
         => new(
             "event-safe-reference",
             eventType,

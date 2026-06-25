@@ -476,7 +476,7 @@
             TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind),
             row,
             IsAuthorized: true,
-            HasCurrentProjectionSnapshot: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready && _tenantDetailSnapshot.Freshness is TenantFreshnessState.Current,
+            HasCurrentProjectionSnapshot: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready && _tenantDetailSnapshot.Freshness is ReadModelFreshnessState.Current,
             CurrentProjectionSnapshotReference: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready
                 ? "Current tenant projection is available."
                 : "Current tenant projection is not available.",

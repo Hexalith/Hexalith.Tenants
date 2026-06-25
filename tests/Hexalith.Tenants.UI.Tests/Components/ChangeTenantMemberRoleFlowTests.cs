@@ -14,7 +14,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -34,7 +34,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-change-role-flow']");
         cut.Find("[data-testid='tenants-change-role-user-id']").TextContent.ShouldContain("reader-user");
@@ -60,7 +60,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantReader));
         cut.Find("form").Submit();
@@ -87,7 +87,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
                 request.TenantId,
                 [
@@ -121,7 +121,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(originalDetail)));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
@@ -149,7 +149,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha") with { Status = tenantStatus })
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsCommandSurfaceAvailable, isCommandSurfaceAvailable));
 
         cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("disabled").ShouldNotBeNull();
@@ -177,7 +177,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, detail)
             .Add(p => p.Member, new TenantMember("owner-user", TenantRole.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantReader));
 
@@ -202,7 +202,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -232,7 +232,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -255,7 +255,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, detail)
             .Add(p => p.Member, new TenantMember("owner-user", TenantRole.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
-            .Add(p => p.Freshness, TenantFreshnessState.Stale));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Stale));
 
         IElement roleSelect = cut.Find("[data-testid='tenants-change-role-new-role']");
         cut.Find("label[for='tenants-change-role-new-role']").TextContent.ShouldContain("New role");
@@ -281,7 +281,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.Unknown));
         cut.Find("form").Submit();
@@ -311,7 +311,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
                 ? Detail(request.TenantId)
                 : Detail(
@@ -356,7 +356,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
                 request.TenantId,
                 [
@@ -386,7 +386,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCloseRequested, () => closeRequested = true));
 
         cut.Find("[data-testid='tenants-change-role-cancel']").Click();

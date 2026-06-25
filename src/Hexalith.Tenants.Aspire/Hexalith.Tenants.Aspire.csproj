@@ -3,6 +3,9 @@
   <PropertyGroup>
     <Description>.NET Aspire hosting extensions for the Hexalith Tenants domain service — adds the Tenants server and its EventStore domain-module wiring to a consuming AppHost.</Description>
     <PackageTags>multi-tenancy;tenants;dapr;aspire;eventsourcing;dotnet</PackageTags>
+    <!-- NU5104: Hexalith.EventStore.Aspire depends on CommunityToolkit.Aspire.Hosting.Dapr, which currently
+         ships only as a prerelease aligned with Aspire 13.4. Keep the suppression scoped to this package. -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

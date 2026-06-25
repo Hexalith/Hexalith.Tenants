@@ -1,5 +1,5 @@
 using Hexalith.Tenants.Contracts.Enums;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -85,7 +85,7 @@ public sealed record TenantCorrectionStartIntent(
             reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
         }
 
-        if (context.Row.Freshness is not TenantFreshnessState.Current) {
+        if (context.Row.Freshness is not ReadModelFreshnessState.Current) {
             reasons.Add(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
         }
 
@@ -151,8 +151,8 @@ public sealed record TenantCorrectionStartIntent(
             receipt,
             row,
             IsAuthorized: true,
-            HasCurrentProjectionSnapshot: receipt.ProjectionMarker is TenantFreshnessState.Current,
-            CurrentProjectionSnapshotReference: receipt.ProjectionMarker is TenantFreshnessState.Current
+            HasCurrentProjectionSnapshot: receipt.ProjectionMarker is ReadModelFreshnessState.Current,
+            CurrentProjectionSnapshotReference: receipt.ProjectionMarker is ReadModelFreshnessState.Current
                 ? "Current tenant projection is available."
                 : "Current tenant projection is not available.",
             TenantStatus: TenantStatus.Active,

@@ -132,9 +132,9 @@ public class CrossAggregateTimingDocumentationTests {
         }
 
         // Component scopes diverge by environment: the local AppHost additionally scopes the Memories
-        // search-index demo subscriber (memories-server, subscribes tenants.events), while the production
+        // search-index demo subscriber (memories, subscribes tenants.events), while the production
         // template keeps only the eventstore publisher and the sample subscriber.
-        Scopes(localPubSub).ShouldBe(["eventstore", "sample", "memories-server"], ignoreOrder: true);
+        Scopes(localPubSub).ShouldBe(["eventstore", "sample", "memories"], ignoreOrder: true);
         Scopes(productionPubSub).ShouldBe(["eventstore", "sample"], ignoreOrder: true);
 
         foreach (YamlMappingNode resiliency in new[] { localResiliency, productionResiliency }) {

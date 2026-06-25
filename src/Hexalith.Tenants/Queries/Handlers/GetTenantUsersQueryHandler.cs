@@ -3,9 +3,12 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
+
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -17,8 +20,10 @@ public sealed class GetTenantUsersQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
-    ILogger<GetTenantUsersQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
+    ILogger<GetTenantUsersQueryHandler> logger,
+    IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
+    TimeProvider? timeProvider = null)
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     public override string QueryType => GetTenantUsersQuery.QueryType;
 
@@ -59,6 +64,6 @@ public sealed class GetTenantUsersQueryHandler(
 
         cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = SerializeToElement(result);
-        return CreateSuccessResult(payload, "tenants", tenantEntry?.ETag);
+        return CreateSuccessResult(payload, "tenants", model, tenantEntry?.ETag);
     }
 }

@@ -16,7 +16,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.Logging;
@@ -58,7 +58,7 @@ public sealed class TenantQueryGatewayTests
         query.IfNoneMatch.ShouldBe("\"known\"");
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Current);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class TenantQueryGatewayTests
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             Detail("tenant.alpha"),
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueDetailNotModified("\"known\"");
 
@@ -94,7 +94,7 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
         snapshot.Detail.ShouldBeNull();
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Theory]
@@ -123,13 +123,13 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(true, false, TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale)]
-    [InlineData(false, true, TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown)]
+    [InlineData(true, false, TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale)]
+    [InlineData(false, true, TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown)]
     public async Task Get_tenant_maps_stale_and_degraded_metadata_to_safe_states(
         bool isStale,
         bool isDegraded,
         TenantDetailSurfaceKind expectedKind,
-        TenantFreshnessState expectedFreshness)
+        ReadModelFreshnessState expectedFreshness)
     {
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
@@ -234,11 +234,11 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_global_administrators_preserves_previous_rows_for_not_modified()
     {
         GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Ready(
-            [new GlobalAdministratorRow("admin-1", TenantFreshnessState.Current)],
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current);
         CapturingGatewayClient client = new();
         client.EnqueueGlobalAdministratorsNotModified("\"known\"");
 
@@ -250,17 +250,17 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
         snapshot.ETag.ShouldBe("\"known\"");
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Current);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
     }
 
     [Theory]
-    [InlineData(true, false, GlobalAdministratorsSurfaceKind.Stale, TenantFreshnessState.Stale)]
-    [InlineData(false, true, GlobalAdministratorsSurfaceKind.Degraded, TenantFreshnessState.Unknown)]
+    [InlineData(true, false, GlobalAdministratorsSurfaceKind.Stale, ReadModelFreshnessState.Stale)]
+    [InlineData(false, true, GlobalAdministratorsSurfaceKind.Degraded, ReadModelFreshnessState.Unknown)]
     public async Task Get_global_administrators_maps_stale_and_degraded_metadata_without_losing_rows(
         bool isStale,
         bool isDegraded,
         GlobalAdministratorsSurfaceKind expectedKind,
-        TenantFreshnessState expectedFreshness)
+        ReadModelFreshnessState expectedFreshness)
     {
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
@@ -395,13 +395,13 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(true, false, TenantAuditSurfaceKind.Stale, TenantFreshnessState.Stale)]
-    [InlineData(false, true, TenantAuditSurfaceKind.Degraded, TenantFreshnessState.Unknown)]
+    [InlineData(true, false, TenantAuditSurfaceKind.Stale, ReadModelFreshnessState.Stale)]
+    [InlineData(false, true, TenantAuditSurfaceKind.Degraded, ReadModelFreshnessState.Unknown)]
     public async Task Get_tenant_audit_maps_stale_and_degraded_metadata_to_distinct_states(
         bool isStale,
         bool isDegraded,
         TenantAuditSurfaceKind expectedKind,
-        TenantFreshnessState expectedFreshness)
+        ReadModelFreshnessState expectedFreshness)
     {
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
@@ -422,11 +422,11 @@ public sealed class TenantQueryGatewayTests
     {
         TenantAuditRequest originalRequest = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "\"known\"");
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
-            [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), TenantFreshnessState.Current)],
+            [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             originalRequest);
         CapturingGatewayClient client = new();
         client.EnqueueAuditNotModified("\"known\"");
@@ -469,11 +469,11 @@ public sealed class TenantQueryGatewayTests
     {
         TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access);
         TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
-            [TenantAuditRow.FromEntry(AuditEntry("event-5", AuditEventCategory.Access), TenantFreshnessState.Current)],
+            [TenantAuditRow.FromEntry(AuditEntry("event-5", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             request);
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
@@ -604,7 +604,7 @@ public sealed class TenantQueryGatewayTests
         TenantListSnapshot snapshot = await gateway
             .ListTenantsAsync(new TenantListRequest(PageSize: 10), null, CancellationToken.None);
 
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Empty);
     }
 
@@ -623,7 +623,7 @@ public sealed class TenantQueryGatewayTests
             .ListTenantsAsync(new TenantListRequest(PageSize: 10), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Empty);
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Fact]
@@ -666,7 +666,7 @@ public sealed class TenantQueryGatewayTests
             nextCursor: null,
             hasMore: false,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             isDegraded: false);
         CapturingGatewayClient client = new();
         client.EnqueueNotModified("\"known\"");
@@ -678,7 +678,7 @@ public sealed class TenantQueryGatewayTests
 
         client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"known\"");
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Current);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
     }
 
     [Fact]
@@ -810,11 +810,11 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_user_tenants_reuses_not_modified_snapshot_only_for_same_target_user()
     {
         UserTenantMembershipSnapshot previous = UserTenantMembershipSnapshot.Ready(
-            [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, TenantFreshnessState.Current)],
+            [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             nextCursor: "next",
             hasMore: true,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             targetUserId: "target.one");
         CapturingGatewayClient client = new();
         client.EnqueueUserTenantsNotModified("\"known\"");
@@ -867,13 +867,13 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(true, false, UserTenantMembershipSurfaceKind.Stale, TenantFreshnessState.Stale, UserTenantMembershipReason.ProjectionStale)]
-    [InlineData(false, true, UserTenantMembershipSurfaceKind.Degraded, TenantFreshnessState.Unknown, UserTenantMembershipReason.ProjectionDegraded)]
+    [InlineData(true, false, UserTenantMembershipSurfaceKind.Stale, ReadModelFreshnessState.Stale, UserTenantMembershipReason.ProjectionStale)]
+    [InlineData(false, true, UserTenantMembershipSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, UserTenantMembershipReason.ProjectionDegraded)]
     public async Task Get_user_tenants_maps_target_lookup_stale_and_degraded_metadata_to_distinct_states(
         bool isStale,
         bool isDegraded,
         UserTenantMembershipSurfaceKind expectedKind,
-        TenantFreshnessState expectedFreshness,
+        ReadModelFreshnessState expectedFreshness,
         UserTenantMembershipReason expectedReason)
     {
         CapturingGatewayClient client = new();
@@ -960,11 +960,11 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_my_tenants_uses_previous_snapshot_for_not_modified_response()
     {
         UserTenantMembershipSnapshot previous = UserTenantMembershipSnapshot.Ready(
-            [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, TenantFreshnessState.Current)],
+            [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             nextCursor: "next",
             hasMore: true,
             eTag: "\"known\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             targetUserId: "operator-user");
         CapturingGatewayClient client = new();
         client.EnqueueUserTenantsNotModified("\"known\"");
@@ -992,17 +992,17 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Degraded);
         snapshot.Reason.ShouldBe(UserTenantMembershipReason.NotModifiedWithoutSnapshot);
-        snapshot.Freshness.ShouldBe(TenantFreshnessState.Unknown);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Theory]
-    [InlineData(true, false, UserTenantMembershipSurfaceKind.Stale, TenantFreshnessState.Stale, UserTenantMembershipReason.ProjectionStale)]
-    [InlineData(false, true, UserTenantMembershipSurfaceKind.Degraded, TenantFreshnessState.Unknown, UserTenantMembershipReason.ProjectionDegraded)]
+    [InlineData(true, false, UserTenantMembershipSurfaceKind.Stale, ReadModelFreshnessState.Stale, UserTenantMembershipReason.ProjectionStale)]
+    [InlineData(false, true, UserTenantMembershipSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, UserTenantMembershipReason.ProjectionDegraded)]
     public async Task Get_my_tenants_maps_stale_and_degraded_metadata_to_distinct_states(
         bool isStale,
         bool isDegraded,
         UserTenantMembershipSurfaceKind expectedKind,
-        TenantFreshnessState expectedFreshness,
+        ReadModelFreshnessState expectedFreshness,
         UserTenantMembershipReason expectedReason)
     {
         CapturingGatewayClient client = new();
@@ -1083,7 +1083,7 @@ public sealed class TenantQueryGatewayTests
         TenantListRow row = snapshot.Rows.ShouldHaveSingleItem();
         row.MemberCount.ShouldBe(TenantCountValue.Known(2));
         row.OwnerCount.ShouldBe(TenantCountValue.Known(1));
-        row.Freshness.ShouldBe(TenantFreshnessState.Current); // from the detail ETag, never from Memories
+        row.Freshness.ShouldBe(ReadModelFreshnessState.Current); // from the detail ETag, never from Memories
     }
 
     [Fact]

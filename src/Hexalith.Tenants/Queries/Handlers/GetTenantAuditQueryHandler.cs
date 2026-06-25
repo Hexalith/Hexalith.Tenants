@@ -1,9 +1,12 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
+
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -15,8 +18,10 @@ public sealed class GetTenantAuditQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
-    ILogger<GetTenantAuditQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
+    ILogger<GetTenantAuditQueryHandler> logger,
+    IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
+    TimeProvider? timeProvider = null)
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     public override string QueryType => GetTenantAuditQuery.QueryType;
 
@@ -67,6 +72,6 @@ public sealed class GetTenantAuditQueryHandler(
             GetTenantAuditQuery.QueryType,
             scope);
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenants", auditEntry?.ETag);
+        return CreateSuccessResult(SerializeToElement(result), "tenants", model, auditEntry?.ETag);
     }
 }

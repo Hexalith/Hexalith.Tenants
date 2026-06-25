@@ -2,11 +2,13 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Telemetry;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Server.Tests.Support;
 
@@ -23,19 +25,22 @@ internal static class TenantQueryTestHarness {
         IReadModelStore store,
         IQueryCursorCodec cursorCodec,
         ILoggerFactory? loggerFactory = null,
-        TenantTelemetry? telemetry = null) {
+        TenantTelemetry? telemetry = null,
+        ReadModelFreshnessOptions? freshnessOptions = null,
+        TimeProvider? timeProvider = null) {
         ILoggerFactory factory = loggerFactory ?? NullLoggerFactory.Instance;
         // The convention-named diagnostics produce a source/meter named "Hexalith.EventStore.Domain.tenants"
         // regardless of instance, so a telemetry listener that filters by name observes these handlers'
         // emissions whether or not the caller supplied its own telemetry.
         TenantTelemetry domainTelemetry = telemetry ?? new TenantTelemetry(new EventStoreDomainDiagnostics("tenants"));
+        IOptions<ReadModelFreshnessOptions> options = Options.Create(freshnessOptions ?? new ReadModelFreshnessOptions());
         return [
-            new GetTenantQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantQueryHandler>()),
-            new GetTenantUsersQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantUsersQueryHandler>()),
-            new GetUserTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetUserTenantsQueryHandler>()),
-            new ListTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<ListTenantsQueryHandler>()),
-            new GetTenantAuditQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>()),
-            new GetGlobalAdministratorsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetGlobalAdministratorsQueryHandler>()),
+            new GetTenantQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantQueryHandler>(), options, timeProvider),
+            new GetTenantUsersQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantUsersQueryHandler>(), options, timeProvider),
+            new GetUserTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetUserTenantsQueryHandler>(), options, timeProvider),
+            new ListTenantsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<ListTenantsQueryHandler>(), options, timeProvider),
+            new GetTenantAuditQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetTenantAuditQueryHandler>(), options, timeProvider),
+            new GetGlobalAdministratorsQueryHandler(store, cursorCodec, domainTelemetry, factory.CreateLogger<GetGlobalAdministratorsQueryHandler>(), options, timeProvider),
         ];
     }
 
@@ -45,8 +50,10 @@ internal static class TenantQueryTestHarness {
         QueryEnvelope envelope,
         CancellationToken cancellationToken = default,
         ILoggerFactory? loggerFactory = null,
-        TenantTelemetry? telemetry = null) {
-        TenantQueryHandlerBase? handler = CreateHandlers(store, cursorCodec, loggerFactory, telemetry)
+        TenantTelemetry? telemetry = null,
+        ReadModelFreshnessOptions? freshnessOptions = null,
+        TimeProvider? timeProvider = null) {
+        TenantQueryHandlerBase? handler = CreateHandlers(store, cursorCodec, loggerFactory, telemetry, freshnessOptions, timeProvider)
             .FirstOrDefault(h =>
                 string.Equals(h.Domain, envelope.Domain, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(h.QueryType, envelope.QueryType, StringComparison.OrdinalIgnoreCase));

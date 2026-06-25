@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
@@ -8,7 +8,7 @@ public sealed record UserTenantMembershipSnapshot(
     string? NextCursor,
     bool HasMore,
     string? ETag,
-    TenantFreshnessState Freshness,
+    ReadModelFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
     UserTenantMembershipReason Reason,
     string? TargetUserId = null) {
@@ -19,7 +19,7 @@ public sealed record UserTenantMembershipSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             UserTenantMembershipReason.None);
 
@@ -28,22 +28,22 @@ public sealed record UserTenantMembershipSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string? targetUserId = null)
         => new(
-            freshness == TenantFreshnessState.Stale ? UserTenantMembershipSurfaceKind.Stale : UserTenantMembershipSurfaceKind.Ready,
+            freshness == ReadModelFreshnessState.Stale ? UserTenantMembershipSurfaceKind.Stale : UserTenantMembershipSurfaceKind.Ready,
             rows,
             nextCursor,
             hasMore,
             eTag,
             freshness,
             false,
-            freshness == TenantFreshnessState.Stale ? UserTenantMembershipReason.ProjectionStale : UserTenantMembershipReason.None,
+            freshness == ReadModelFreshnessState.Stale ? UserTenantMembershipReason.ProjectionStale : UserTenantMembershipReason.None,
             targetUserId);
 
     public static UserTenantMembershipSnapshot Empty(
         bool isAuthorizationScoped,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string? eTag,
         string? targetUserId = null)
         => new(
@@ -66,7 +66,7 @@ public sealed record UserTenantMembershipSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason,
             targetUserId);
@@ -83,7 +83,7 @@ public sealed record UserTenantMembershipSnapshot(
             nextCursor,
             hasMore,
             eTag,
-            TenantFreshnessState.Stale,
+            ReadModelFreshnessState.Stale,
             false,
             UserTenantMembershipReason.ProjectionStale,
             targetUserId);
@@ -101,7 +101,7 @@ public sealed record UserTenantMembershipSnapshot(
             nextCursor,
             hasMore,
             eTag,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason,
             targetUserId);
@@ -115,7 +115,7 @@ public sealed record UserTenantMembershipSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason,
             targetUserId);
@@ -129,7 +129,7 @@ public sealed record UserTenantMembershipSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason,
             targetUserId);

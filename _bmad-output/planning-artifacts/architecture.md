@@ -308,8 +308,13 @@ per the implementation-readiness report's recommendation.
 **Important Decisions (made — cascade from D1–D4):**
 - **D5 Truth-state model:** one shared **Fluxor "truth-state" feature** + a typed,
   casing-faithful **canonical-vocabulary library**.
-- **D6 Freshness:** **server-side** conditional reads (`If-None-Match`→`304`); thresholds
-  configurable + surfaced; `unknown` when unmeasurable (fail-closed).
+- **D6 Freshness:** **server-side** conditional reads (`If-None-Match`→`304`); freshness is
+  classified **server-side** from a **persisted projection timestamp** (`IReadModelFreshness.ProjectedAt`,
+  EventStore Client) against **configurable thresholds**; the wire (`QueryResponseMetadata`) carries
+  **`current`/`stale`/`unknown`** only (`refreshing` is a client transient; `aging` collapses into
+  `current` until a `QueryResponseMetadata.ProjectedAt` wire field exists — future EventStore handoff);
+  `unknown` when unmeasurable (fail-closed). Thresholds default **conservative** because `ProjectedAt`
+  measures the last projection write (quiescence ≠ lag).
 - **D7 Authorization reflection:** **server-side** claims→action-availability service.
 - **D8 Support-safety:** **server-side** receipt/preview/redaction assembly.
 - **D9 Cursors:** opaque, **server-held** pass-through; page-1 re-query on invalidation.
@@ -317,7 +322,7 @@ per the implementation-readiness report's recommendation.
 
 **Deferred Decisions (post-MVP, with rationale):**
 - NFR performance budgets (set against the real projection at implementation).
-- Freshness numeric thresholds (product/ops input; kept out of the model as config).
+- Freshness threshold tuning (product/ops input; code defaults stay conservative and config-owned).
 - RTL shipping (Open Q#6), WCAG 2.2 confirmation (against the pinned Fluent build),
   sensitive-config display (Open Q#11) — none blocks the MVP.
 
@@ -334,9 +339,13 @@ existing projections only.
     (`POST /api/v1/queries` → `QueryRouter` / `HandlerAwareQueryRouter`): the projection actor is
     retired, and the handler-aware path drops projection ETags — breaking the D6 freshness contract
     below. See `sprint-change-proposal-2026-06-06-tenant-query-routing.md`.
-- **Freshness/caching (D6):** conditional requests executed server-side; the Truth State Badge
-  derives `current/refreshing/aging/stale/unknown` from ETag / timestamp / projection-version;
-  thresholds are configuration, **no magic numbers**; unmeasurable → `unknown` → fail-closed.
+- **Freshness/caching (D6):** conditional requests executed server-side; freshness is classified
+  server-side from the persisted projection timestamp via the shared `ReadModelFreshness.Classify`
+  (EventStore Client) and surfaced as `QueryResponseMetadata.IsStale`. The Truth State Badge renders
+  the shared `ReadModelFreshnessState` (`current/aging/stale/unknown`) plus a client-only `refreshing`
+  transient; on the wire only `current/stale/unknown` are producible today (`aging` collapses to
+  `current`). Thresholds are configuration, **no magic numbers**, defaulted conservatively;
+  unmeasurable → `unknown` → fail-closed.
 - **Cursors (D9):** opaque, signed, scope-bound; held server-side, never surfaced as user-facing
   ids; on invalidation re-query page 1 with an honest "list refreshed" notice; multi-replica
   durability treated as **not-yet-guaranteed** (backend Epic 11).

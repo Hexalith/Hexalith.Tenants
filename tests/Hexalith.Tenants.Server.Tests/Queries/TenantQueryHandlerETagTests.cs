@@ -21,6 +21,8 @@ namespace Hexalith.Tenants.Server.Tests.Queries;
 
 public sealed class TenantQueryHandlerETagTests
 {
+    private static readonly DateTimeOffset Now = new(2026, 6, 25, 14, 0, 0, TimeSpan.Zero);
+
     [Theory]
     [InlineData("list-tenants", "projection:tenant-index:singleton", "index-etag-1")]
     [InlineData("get-user-tenants", "projection:tenant-index:singleton", "index-etag-2")]
@@ -41,13 +43,15 @@ public sealed class TenantQueryHandlerETagTests
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
-            CreateEnvelope(queryType));
+            CreateEnvelope(queryType),
+            timeProvider: new FixedTimeProvider(Now));
 
         result.Success.ShouldBeTrue();
         TenantQueryResult tenantResult = result.ShouldBeOfType<TenantQueryResult>();
         tenantResult.Metadata.ShouldNotBeNull().ETag.ShouldBe(expectedETag);
         tenantResult.Metadata.ProjectionVersion.ShouldBe(expectedETag);
-        tenantResult.Metadata.ServedAt.ShouldBeNull();
+        tenantResult.Metadata.IsStale.ShouldBe(false);
+        tenantResult.Metadata.ServedAt.ShouldBe(Now);
     }
 
     private static QueryEnvelope CreateEnvelope(string queryType)
@@ -128,6 +132,7 @@ public sealed class TenantQueryHandlerETagTests
         var model = new GlobalAdministratorReadModel
         {
             Administrators = administratorIds.ToHashSet(StringComparer.Ordinal),
+            ProjectedAt = Now,
         };
 
         _ = store.GetAsync<GlobalAdministratorReadModel>(
@@ -141,6 +146,7 @@ public sealed class TenantQueryHandlerETagTests
     {
         var model = new TenantIndexReadModel
         {
+            ProjectedAt = Now,
             Tenants =
             {
                 ["tenant.alpha"] = new TenantIndexEntry("Tenant Alpha", TenantStatus.Active),
@@ -170,6 +176,7 @@ public sealed class TenantQueryHandlerETagTests
             Name = "Tenant Alpha",
             Status = TenantStatus.Active,
             CreatedAt = DateTimeOffset.Parse("2026-06-07T08:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            ProjectedAt = Now,
             Members =
             {
                 ["test-user"] = TenantRole.TenantReader,
@@ -187,6 +194,7 @@ public sealed class TenantQueryHandlerETagTests
     {
         var model = new TenantAuditReadModel
         {
+            ProjectedAt = Now,
             Entries =
             [
                 new TenantAuditEntry(
@@ -205,5 +213,9 @@ public sealed class TenantQueryHandlerETagTests
                 TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant.alpha",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ReadModelEntry<TenantAuditReadModel>(model, eTag)));
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider {
+        public override DateTimeOffset GetUtcNow() => utcNow;
     }
 }

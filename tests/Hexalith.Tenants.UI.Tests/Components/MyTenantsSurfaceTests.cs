@@ -7,7 +7,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -27,8 +27,8 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     {
         RegisterServices(ReadySnapshot(
             [
-                Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, TenantFreshnessState.Current),
-                Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, TenantFreshnessState.Unknown),
+                Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current),
+                Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Unknown),
             ],
             nextCursor: "next",
             hasMore: true));
@@ -58,7 +58,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown)));
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
@@ -87,7 +87,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-my-loading']").GetAttribute("role").ShouldBe("status");
 
-        pending.SetResult(UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, TenantFreshnessState.Unknown, eTag: null));
+        pending.SetResult(UserTenantMembershipSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown, eTag: null));
     }
 
     [Theory]
@@ -104,7 +104,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         {
             UserTenantMembershipSurfaceKind.Empty => UserTenantMembershipSnapshot.Empty(
                 isAuthorizationScoped: true,
-                TenantFreshnessState.Unknown,
+                ReadModelFreshnessState.Unknown,
                 eTag: null),
             UserTenantMembershipSurfaceKind.Unauthorized => UserTenantMembershipSnapshot.Unauthorized(),
             UserTenantMembershipSurfaceKind.Unavailable => UserTenantMembershipSnapshot.Unavailable(),
@@ -131,12 +131,12 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         UserTenantMembershipSnapshot snapshot = kind switch
         {
             UserTenantMembershipSurfaceKind.Stale => UserTenantMembershipSnapshot.Stale(
-                [Row("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader, TenantFreshnessState.Stale)],
+                [Row("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Stale)],
                 nextCursor: "next",
                 hasMore: true,
                 eTag: "\"etag\""),
             UserTenantMembershipSurfaceKind.Degraded => UserTenantMembershipSnapshot.Degraded(
-                [Row("tenant.alpha", "Alpha", TenantStatus.Unknown, TenantRole.Unknown, TenantFreshnessState.Unknown)],
+                [Row("tenant.alpha", "Alpha", TenantStatus.Unknown, TenantRole.Unknown, ReadModelFreshnessState.Unknown)],
                 UserTenantMembershipReason.ProjectionDegraded,
                 eTag: "\"etag\"",
                 nextCursor: "next",
@@ -173,11 +173,11 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     public void My_tenants_cursor_paging_passes_opaque_cursor_and_keeps_truth_state()
     {
         UserTenantMembershipSnapshot firstPage = ReadySnapshot(
-            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, TenantFreshnessState.Current)],
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)],
             nextCursor: "opaque-next-cursor",
             hasMore: true);
         UserTenantMembershipSnapshot secondPage = UserTenantMembershipSnapshot.Stale(
-            [Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, TenantFreshnessState.Stale)],
+            [Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Stale)],
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"");
@@ -265,16 +265,16 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             nextCursor,
             hasMore,
             eTag: "\"etag\"",
-            freshness: rows.Any(row => row.Freshness == TenantFreshnessState.Stale)
-                ? TenantFreshnessState.Stale
-                : TenantFreshnessState.Current);
+            freshness: rows.Any(row => row.Freshness == ReadModelFreshnessState.Stale)
+                ? ReadModelFreshnessState.Stale
+                : ReadModelFreshnessState.Current);
 
     private static UserTenantMembershipRow Row(
         string tenantId,
         string name,
         TenantStatus status,
         TenantRole role,
-        TenantFreshnessState freshness)
+        ReadModelFreshnessState freshness)
         => new(tenantId, name, status, role, freshness);
 
     private static string ProjectRoot()

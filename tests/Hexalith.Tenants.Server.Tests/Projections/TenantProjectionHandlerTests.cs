@@ -20,6 +20,7 @@ public class TenantProjectionHandlerTests {
     private const string TenantAuditProjectionKey = "audit:tenant-1";
     private const string TenantIndexKey = "projection:tenant-index:singleton";
     private const string TenantProjectionKey = "projection:tenants:tenant-1";
+    private static readonly DateTimeOffset ProjectionTime = new(2026, 6, 25, 11, 45, 0, TimeSpan.Zero);
 
     [Theory]
     [InlineData("")]
@@ -160,6 +161,30 @@ public class TenantProjectionHandlerTests {
         TenantIndexReadModel saved = (TenantIndexReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantIndexKey).Value;
         saved.Tenants["tenant-1"].Name.ShouldBe("Acme");
         saved.UserTenants["user-1"]["tenant-1"].ShouldBe(TenantRole.TenantReader);
+    }
+
+    [Fact]
+    public async Task ProjectAsync_StampsAllTenantProjectionWritesWithTimeProviderAsync() {
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        stateStore.EnqueueRead<TenantAuditReadModel>(TenantAuditProjectionKey, null, null);
+        stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+
+        _ = await new TenantProjectionHandler(
+                stateStore,
+                NullLogger<TenantProjectionHandler>.Instance,
+                new FixedTimeProvider(ProjectionTime))
+            .ProjectAsync(CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1"));
+
+        ((TenantReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantProjectionKey).Value)
+            .ProjectedAt.ShouldBe(ProjectionTime);
+        ((TenantAuditReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantAuditProjectionKey).Value)
+            .ProjectedAt.ShouldBe(ProjectionTime);
+        ((TenantIndexReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantIndexKey).Value)
+            .ProjectedAt.ShouldBe(ProjectionTime);
     }
 
     [Fact]
@@ -715,4 +740,8 @@ public class TenantProjectionHandlerTests {
         string ETag,
         Type ValueType,
         CancellationToken CancellationToken);
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider {
+        public override DateTimeOffset GetUtcNow() => utcNow;
+    }
 }

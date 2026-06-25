@@ -218,7 +218,7 @@
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
 
     [Parameter]
-    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+    public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
     public bool IsAuthorized { get; set; } = true;
@@ -251,7 +251,7 @@
             ? Localizer["Tenants.Configuration.Set.Unavailable.Authorization"].Value
             : SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
                 ? Localizer["Tenants.Configuration.Set.Unavailable.ProjectionState"].Value
-            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.Configuration.Set.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.Configuration.Set.Unavailable.TenantLifecycle"].Value

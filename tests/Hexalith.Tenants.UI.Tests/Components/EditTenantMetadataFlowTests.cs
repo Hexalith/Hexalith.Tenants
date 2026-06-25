@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -31,7 +31,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-edit-metadata-flow']");
         cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldContain("Alpha");
@@ -59,7 +59,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsAuthorized, false));
 
         cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent.ShouldContain("not authorized", Case.Insensitive);
@@ -68,12 +68,12 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, TenantStatus.Active, "Refresh current")]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Current, TenantStatus.Disabled, "lifecycle state")]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, TenantStatus.Disabled, "lifecycle state")]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, TenantStatus.Active, "Refresh current")]
     public void Edit_metadata_fails_closed_for_stale_unknown_or_disabled_projection(
         TenantDetailSurfaceKind surfaceKind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         TenantStatus status,
         string expectedReason)
     {
@@ -97,7 +97,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsCommandSurfaceAvailable, false));
 
         cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent
@@ -115,7 +115,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("");
@@ -144,7 +144,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(++projectionCalls == 1
                 ? Detail(request.TenantId, "Alpha", "Tenant alpha description")
                 : Detail(request.TenantId, request.Name, request.Description))));
@@ -188,7 +188,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Original description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
                 Detail(request.TenantId, request.Name, request.Description))));
 
@@ -215,7 +215,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(null)));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -246,7 +246,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(Detail("tenant.alpha", "Updated", null))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -275,7 +275,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
@@ -301,7 +301,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -348,7 +348,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active)));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();

@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -8,7 +8,7 @@ public sealed record TenantAuditSnapshot(
     string? NextCursor,
     bool HasMore,
     string? ETag,
-    TenantFreshnessState Freshness,
+    ReadModelFreshnessState Freshness,
     bool IsAuthorizationScopedEmpty,
     TenantAuditReason Reason,
     string? TenantId = null,
@@ -22,7 +22,7 @@ public sealed record TenantAuditSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             TenantAuditReason.None,
             tenantId);
@@ -32,25 +32,25 @@ public sealed record TenantAuditSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
         return FromRequest(
-            freshness == TenantFreshnessState.Stale ? TenantAuditSurfaceKind.Stale : TenantAuditSurfaceKind.Ready,
+            freshness == ReadModelFreshnessState.Stale ? TenantAuditSurfaceKind.Stale : TenantAuditSurfaceKind.Ready,
             rows,
             nextCursor,
             hasMore,
             eTag,
             freshness,
             false,
-            freshness == TenantFreshnessState.Stale ? TenantAuditReason.ProjectionStale : TenantAuditReason.None,
+            freshness == ReadModelFreshnessState.Stale ? TenantAuditReason.ProjectionStale : TenantAuditReason.None,
             request);
     }
 
     public static TenantAuditSnapshot Empty(
         bool isAuthorizationScoped,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string? eTag,
         TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
@@ -81,7 +81,7 @@ public sealed record TenantAuditSnapshot(
             nextCursor,
             hasMore,
             eTag,
-            TenantFreshnessState.Stale,
+            ReadModelFreshnessState.Stale,
             false,
             TenantAuditReason.ProjectionStale,
             request);
@@ -102,7 +102,7 @@ public sealed record TenantAuditSnapshot(
             nextCursor,
             hasMore,
             eTag,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             reason,
             request);
@@ -117,7 +117,7 @@ public sealed record TenantAuditSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             TenantAuditReason.Unauthorized,
             request);
@@ -132,7 +132,7 @@ public sealed record TenantAuditSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             TenantAuditReason.InvalidCursor,
             request);
@@ -143,7 +143,7 @@ public sealed record TenantAuditSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         TenantAuditRequest request) {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -168,7 +168,7 @@ public sealed record TenantAuditSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             TenantAuditReason.GatewayUnavailable,
             request);
@@ -183,7 +183,7 @@ public sealed record TenantAuditSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             TenantAuditReason.GatewayFailure,
             request);
@@ -204,7 +204,7 @@ public sealed record TenantAuditSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         bool isAuthorizationScopedEmpty,
         TenantAuditReason reason,
         TenantAuditRequest request)

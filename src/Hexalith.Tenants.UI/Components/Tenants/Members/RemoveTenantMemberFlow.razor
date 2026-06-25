@@ -177,7 +177,7 @@
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
 
     [Parameter]
-    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+    public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
     public bool IsAuthorized { get; set; } = true;
@@ -216,13 +216,13 @@
         && !string.IsNullOrWhiteSpace(Detail.TenantId)
         && !string.IsNullOrWhiteSpace(Member.UserId)
         && Member.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
-        && Freshness is TenantFreshnessState.Current
+        && Freshness is ReadModelFreshnessState.Current
         && TargetIsVisibleMember;
 
     private string? UnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
             ? Localizer["Tenants.RemoveMember.Unavailable.Authorization"].Value
-            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current
+            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.RemoveMember.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value
@@ -400,7 +400,7 @@
         RemoveUserFromTenant request = new(Detail.TenantId, Member.UserId);
         if (!TargetIsVisibleMember
             && SurfaceKind is TenantDetailSurfaceKind.Ready
-            && Freshness is TenantFreshnessState.Current
+            && Freshness is ReadModelFreshnessState.Current
             && !string.IsNullOrWhiteSpace(Detail.TenantId)
             && !string.IsNullOrWhiteSpace(Member.UserId))
         {

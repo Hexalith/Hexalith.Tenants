@@ -3,7 +3,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Shouldly;
 
@@ -94,7 +94,7 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
     }
 
     private static IReadOnlyList<GlobalAdministratorRow> CurrentRows(params string[] userIds)
-        => userIds.Select(userId => new GlobalAdministratorRow(userId, TenantFreshnessState.Current)).ToArray();
+        => userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray();
 
     private static GlobalAdministratorsSnapshot Ready(params string[] userIds)
         => GlobalAdministratorsSnapshot.Ready(
@@ -102,5 +102,5 @@ public sealed class GlobalAdministratorRemoveCommandSnapshotTests
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: TenantFreshnessState.Current);
+            freshness: ReadModelFreshnessState.Current);
 }

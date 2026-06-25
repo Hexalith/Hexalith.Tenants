@@ -1,6 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
@@ -15,7 +15,7 @@ public sealed record TenantAuditRow(
     string Scope,
     string Outcome,
     string ReferenceContext,
-    TenantFreshnessState Freshness) {
+    ReadModelFreshnessState Freshness) {
     private static readonly string[] ApprovedNarrativeKeys =
     [
         "userId",
@@ -28,7 +28,7 @@ public sealed record TenantAuditRow(
         "occurredAt",
     ];
 
-    public static TenantAuditRow FromEntry(TenantAuditEntry entry, TenantFreshnessState freshness) {
+    public static TenantAuditRow FromEntry(TenantAuditEntry entry, ReadModelFreshnessState freshness) {
         ArgumentNullException.ThrowIfNull(entry);
 
         return new(

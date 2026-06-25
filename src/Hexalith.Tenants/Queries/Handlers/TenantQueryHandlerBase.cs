@@ -6,11 +6,14 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.DomainService;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Serialization;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
+
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -40,8 +43,10 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         Converters = { new TenantStatusJsonConverter(), new JsonStringEnumConverter() },
     };
 
+    private readonly ReadModelFreshnessThresholds _freshnessThresholds;
     private readonly IReadModelStore _store;
     private readonly TenantTelemetry _telemetry;
+    private readonly TimeProvider _timeProvider;
 
     // Per-handler-instance dedup so a persistent orphan does not re-emit a Warning for every visible
     // membership within a single query. Handlers are scoped (one instance per request).
@@ -54,7 +59,13 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     /// <param name="cursorCodec">The protected pagination cursor codec.</param>
     /// <param name="telemetry">The domain telemetry instruments.</param>
     /// <param name="logger">The logger.</param>
-    protected TenantQueryHandlerBase(IReadModelStore store, IQueryCursorCodec cursorCodec, TenantTelemetry telemetry, ILogger logger) {
+    protected TenantQueryHandlerBase(
+        IReadModelStore store,
+        IQueryCursorCodec cursorCodec,
+        TenantTelemetry telemetry,
+        ILogger logger,
+        IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
+        TimeProvider? timeProvider = null) {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(cursorCodec);
         ArgumentNullException.ThrowIfNull(telemetry);
@@ -63,6 +74,8 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         CursorCodec = cursorCodec;
         _telemetry = telemetry;
         Logger = logger;
+        _freshnessThresholds = (freshnessOptions?.Value ?? new ReadModelFreshnessOptions()).ToThresholds();
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <inheritdoc/>
@@ -140,6 +153,19 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
 
     private protected static QueryResult CreateSuccessResult(JsonElement payload, string? projectionType, string? eTag)
         => TenantQueryResult.FromPayload(payload, projectionType, eTag);
+
+    private protected QueryResult CreateSuccessResult(
+        JsonElement payload,
+        string? projectionType,
+        IReadModelFreshness? readModel,
+        string? eTag)
+        => TenantQueryResult.FromPayload(
+            payload,
+            projectionType,
+            readModel,
+            _freshnessThresholds,
+            _timeProvider.GetUtcNow(),
+            eTag);
 
     private protected static JsonElement SerializeToElement<T>(T value)
         => JsonSerializer.SerializeToElement(value, s_queryJsonOptions);

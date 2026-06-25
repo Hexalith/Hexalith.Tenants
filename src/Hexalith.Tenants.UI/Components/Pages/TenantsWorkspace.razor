@@ -76,7 +76,7 @@
                                  Expanded="false"
                                  data-testid="tenants-create-accordion">
                 <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                                  IsFresh="@(_snapshot.Freshness is TenantFreshnessState.Current or TenantFreshnessState.Unknown)"
+                                  IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current or ReadModelFreshnessState.Unknown)"
                                   ShowHeading="false"
                                   OnProjectionRefreshRequested="RefreshAsync"
                                   ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />

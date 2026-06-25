@@ -1,4 +1,4 @@
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantList;
 
@@ -8,7 +8,7 @@ public sealed record TenantListSnapshot(
     string? NextCursor,
     bool HasMore,
     string? ETag,
-    TenantFreshnessState Freshness,
+    ReadModelFreshnessState Freshness,
     bool IsDegraded,
     bool IsAuthorizationScopedEmpty,
     string? ErrorMessage) {
@@ -19,7 +19,7 @@ public sealed record TenantListSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             false,
             null);
@@ -29,10 +29,10 @@ public sealed record TenantListSnapshot(
         string? nextCursor,
         bool hasMore,
         string? eTag,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         bool isDegraded)
         => new(
-            isDegraded ? TenantListSurfaceKind.Degraded : freshness == TenantFreshnessState.Stale ? TenantListSurfaceKind.Stale : TenantListSurfaceKind.Ready,
+            isDegraded ? TenantListSurfaceKind.Degraded : freshness == ReadModelFreshnessState.Stale ? TenantListSurfaceKind.Stale : TenantListSurfaceKind.Ready,
             rows,
             nextCursor,
             hasMore,
@@ -42,7 +42,7 @@ public sealed record TenantListSnapshot(
             false,
             null);
 
-    public static TenantListSnapshot Empty(bool isAuthorizationScoped, TenantFreshnessState freshness)
+    public static TenantListSnapshot Empty(bool isAuthorizationScoped, ReadModelFreshnessState freshness)
         => new(
             TenantListSurfaceKind.Empty,
             [],
@@ -61,7 +61,7 @@ public sealed record TenantListSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             false,
             null);
@@ -73,7 +73,7 @@ public sealed record TenantListSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             false,
             message);
@@ -85,7 +85,7 @@ public sealed record TenantListSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             false,
             false,
             null);
@@ -97,7 +97,7 @@ public sealed record TenantListSnapshot(
             null,
             false,
             eTag,
-            TenantFreshnessState.Stale,
+            ReadModelFreshnessState.Stale,
             false,
             false,
             null);
@@ -109,7 +109,7 @@ public sealed record TenantListSnapshot(
             null,
             false,
             null,
-            TenantFreshnessState.Unknown,
+            ReadModelFreshnessState.Unknown,
             true,
             false,
             message);

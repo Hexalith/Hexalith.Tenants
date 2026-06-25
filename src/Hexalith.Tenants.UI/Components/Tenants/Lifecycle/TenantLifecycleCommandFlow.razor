@@ -197,7 +197,7 @@
         && (IsCommandSurfaceAvailable || IsOwnedCommandInFlight)
         && !string.IsNullOrWhiteSpace(Detail.TenantId)
         && !string.IsNullOrWhiteSpace(Detail.Name)
-        && Availability.Freshness is TenantFreshnessState.Current
+        && Availability.Freshness is ReadModelFreshnessState.Current
         && Availability.GovernanceReadiness is TenantLifecycleGovernanceReadiness.Ready
         && Availability.AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
         && Detail.Status == Availability.CurrentStatus

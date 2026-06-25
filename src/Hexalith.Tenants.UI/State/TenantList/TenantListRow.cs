@@ -1,6 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantList;
 
@@ -11,7 +11,7 @@ public sealed record TenantListRow(
     TenantCountValue MemberCount,
     TenantCountValue OwnerCount,
     TenantPendingState PendingState,
-    TenantFreshnessState Freshness) {
+    ReadModelFreshnessState Freshness) {
     public static TenantListRow FromSummary(TenantSummary summary) {
         ArgumentNullException.ThrowIfNull(summary);
 
@@ -22,6 +22,6 @@ public sealed record TenantListRow(
             TenantCountValue.Unknown,
             TenantCountValue.Unknown,
             TenantPendingState.None,
-            TenantFreshnessState.Unknown);
+            ReadModelFreshnessState.Unknown);
     }
 }

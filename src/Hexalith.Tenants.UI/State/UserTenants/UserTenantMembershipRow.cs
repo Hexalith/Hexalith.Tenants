@@ -1,6 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.UserTenants;
 
@@ -9,7 +9,7 @@ public sealed record UserTenantMembershipRow(
     string Name,
     TenantStatus Status,
     TenantRole Role,
-    TenantFreshnessState Freshness) {
+    ReadModelFreshnessState Freshness) {
     public static UserTenantMembershipRow FromMembership(UserTenantMembership membership) {
         ArgumentNullException.ThrowIfNull(membership);
 
@@ -18,6 +18,6 @@ public sealed record UserTenantMembershipRow(
             membership.Name,
             membership.Status,
             membership.Role,
-            TenantFreshnessState.Unknown);
+            ReadModelFreshnessState.Unknown);
     }
 }

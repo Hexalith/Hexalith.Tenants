@@ -1,9 +1,10 @@
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 
 namespace Hexalith.Tenants.Server.Projections;
 
-public sealed class TenantReadModel {
+public sealed class TenantReadModel : IReadModelFreshness {
     public string TenantId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -11,6 +12,8 @@ public sealed class TenantReadModel {
     public Dictionary<string, TenantRole> Members { get; set; } = [];
     public Dictionary<string, string> Configuration { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? ProjectedAt { get; set; }
+    public string? ProjectionVersion { get; set; }
 
     public void Apply(TenantCreated e) {
         ArgumentNullException.ThrowIfNull(e);

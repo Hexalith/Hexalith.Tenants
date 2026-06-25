@@ -476,7 +476,7 @@
     };
 
     private string UnavailableActionReason
-        => _snapshot.Freshness is TenantFreshnessState.Current
+        => _snapshot.Freshness is ReadModelFreshnessState.Current
             ? Localizer["Tenants.GlobalAdministrators.Action.Unavailable.ReadOnly"]
             : Localizer["Tenants.GlobalAdministrators.Action.Unavailable.Freshness"];
 
@@ -499,7 +499,7 @@
                 ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.ReadSurface"].Value
                 : !BffComposition.IsCommandSurfaceConnected
                     ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.CommandSurface"].Value
-                    : _snapshot.Freshness is not TenantFreshnessState.Current
+                    : _snapshot.Freshness is not ReadModelFreshnessState.Current
                         ? Localizer["Tenants.GlobalAdministrators.Grant.Unavailable.Freshness"].Value
                         : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
                             or GlobalAdministratorsSurfaceKind.Degraded
@@ -520,7 +520,7 @@
                 ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.ReadSurface"].Value
                 : !BffComposition.IsCommandSurfaceConnected
                     ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.CommandSurface"].Value
-                    : _snapshot.Freshness is not TenantFreshnessState.Current
+                    : _snapshot.Freshness is not ReadModelFreshnessState.Current
                         ? Localizer["Tenants.GlobalAdministrators.Remove.Unavailable.Freshness"].Value
                         : _snapshot.Kind is GlobalAdministratorsSurfaceKind.Loading
                             or GlobalAdministratorsSurfaceKind.Degraded

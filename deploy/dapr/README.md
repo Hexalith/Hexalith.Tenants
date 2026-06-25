@@ -17,13 +17,14 @@ The opaque query pagination cursor codec is backed by an ASP.NET Core Data Prote
 - a cursor sealed by one Tenants replica can be unprotected by any other replica, and
 - outstanding cursors survive pod restarts and rolling deploys (no intermittent 400s from a regenerated ephemeral ring).
 
-The backing infrastructure is whatever `statestore.yaml` selects (Redis here) — no infrastructure SDK is added to the Tenants domain assembly. Configuration lives under `EventStore:DataProtection`:
+The backing infrastructure is whatever `statestore.yaml` selects (Redis here) — no infrastructure SDK is added to the Tenants domain assembly. The selected DAPR state store must support ETag / first-write concurrency because key writes use compare-and-swap retries to merge concurrent key generation during rollout. Configuration lives under `EventStore:DataProtection`:
 
 | Key | Default | Notes |
 | --- | --- | --- |
-| `EventStore:DataProtection:PersistToStateStore` | `true` (prod `appsettings.json`), `false` (`appsettings.Development.json`) | When `false`, the framework's ephemeral per-host key ring is used (safe for single-replica local/dev); the host then starts without a state store. |
-| `EventStore:DataProtection:StateStoreName` | `statestore` | The DAPR state-store component that persists the ring. Must be scoped to `tenants` (it already is in `statestore.yaml`). |
-| `EventStore:DataProtection:StateKey` | `dataprotection-keys` | State key under which the key-ring elements are stored. |
+| `EventStore:DataProtection:PersistToStateStore` | `true` (prod `appsettings.json`), `false` (`appsettings.Development.json`) | When `false`, an explicit ephemeral per-host key ring is used (safe for single-replica local/dev); the host then starts without a state store. |
+| `EventStore:DataProtection:StateStoreName` | `statestore` | The DAPR state-store component that persists the ring. Must be scoped to `tenants` (it already is in `statestore.yaml`) and should not be scoped to untrusted app IDs. |
+| `EventStore:DataProtection:StateKey` | `hexalith-tenants-dataprotection-keys` | Application-specific state key under which the key-ring elements are stored. The component is shared with EventStore/Admin for platform state, so key namespacing prevents accidental ring commingling; the DAPR state store remains a trusted boundary. |
+| `EventStore:DataProtection:OperationTimeout` | `00:00:30` | Maximum duration allowed for each synchronous key-ring state-store operation. |
 
 Operators running multi-replica Tenants must keep `PersistToStateStore: true` and ensure `statestore` is reachable; otherwise each replica mints cursors against its own ephemeral ring.
 

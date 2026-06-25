@@ -1,10 +1,13 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
+
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -17,8 +20,10 @@ public sealed class GetUserTenantsQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
-    ILogger<GetUserTenantsQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
+    ILogger<GetUserTenantsQueryHandler> logger,
+    IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
+    TimeProvider? timeProvider = null)
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     public override string QueryType => GetUserTenantsQuery.QueryType;
 
@@ -49,7 +54,7 @@ public sealed class GetUserTenantsQueryHandler(
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
             cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
-            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexEntry?.ETag);
+            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexModel, indexEntry?.ETag);
         }
 
         IEnumerable<KeyValuePair<string, TenantRole>> visibleUserTenants = GetVisibleUserTenants(
@@ -96,6 +101,6 @@ public sealed class GetUserTenantsQueryHandler(
             scope);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexEntry?.ETag);
+        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexModel, indexEntry?.ETag);
     }
 }

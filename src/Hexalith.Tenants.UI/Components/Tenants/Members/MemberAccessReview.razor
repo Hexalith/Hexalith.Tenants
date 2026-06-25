@@ -253,7 +253,7 @@
     public TenantDetailSurfaceKind SurfaceKind { get; set; } = TenantDetailSurfaceKind.Unknown;
 
     [Parameter]
-    public TenantFreshnessState Freshness { get; set; } = TenantFreshnessState.Unknown;
+    public ReadModelFreshnessState Freshness { get; set; } = ReadModelFreshnessState.Unknown;
 
     [Parameter]
     public bool IsAddMemberAuthorized { get; set; } = true;
@@ -377,7 +377,7 @@
             return [UnavailableReason.MissingLifecycleSupport];
         }
 
-        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not TenantFreshnessState.Current)
+        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current)
         {
             return [UnavailableReason.StaleData];
         }

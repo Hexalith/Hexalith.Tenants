@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
@@ -10,12 +11,14 @@ namespace Hexalith.Tenants.Server.Projections;
 /// <summary>
 /// Materialized tenant audit entries built from tenant projection events.
 /// </summary>
-public sealed class TenantAuditReadModel {
+public sealed class TenantAuditReadModel : IReadModelFreshness {
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
     };
 
     public List<TenantAuditEntry> Entries { get; set; } = [];
+    public DateTimeOffset? ProjectedAt { get; set; }
+    public string? ProjectionVersion { get; set; }
 
     public void Apply(ProjectionEventDto evt) {
         ArgumentNullException.ThrowIfNull(evt);

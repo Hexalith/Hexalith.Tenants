@@ -1,6 +1,6 @@
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 namespace Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -32,14 +32,14 @@ public enum TenantLifecycleUnavailableReasonCategory {
 public sealed record TenantLifecycleAvailabilityInput(
     string TenantId,
     TenantStatus CurrentStatus,
-    TenantFreshnessState Freshness,
+    ReadModelFreshnessState Freshness,
     TenantDetailSurfaceKind SurfaceKind,
     bool IsCommandSurfaceConnected,
     TenantLifecycleGovernanceReadiness GovernanceReadiness = TenantLifecycleGovernanceReadiness.Unresolved,
     TenantLifecycleAuthorizationReflectionState AuthorizationReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
     bool IsNarrowSafetyContext = false) {
     public TenantLifecycleAvailability Evaluate(TenantLifecycleOperation operation) {
-        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is TenantFreshnessState.Stale or TenantFreshnessState.Unknown) {
+        if (SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is ReadModelFreshnessState.Stale or ReadModelFreshnessState.Unknown) {
             return Blocked(operation, TenantLifecycleUnavailableReasonCategory.StaleData, "Tenants.Lifecycle.Unavailable.StaleFreshness", TenantCommandFocusTarget.Refresh);
         }
 
@@ -139,7 +139,7 @@ public sealed record TenantLifecycleAvailability(
     string TenantId,
     TenantStatus CurrentStatus,
     TenantLifecycleOperation Operation,
-    TenantFreshnessState Freshness,
+    ReadModelFreshnessState Freshness,
     TenantDetailSurfaceKind SurfaceKind,
     bool IsCommandSurfaceConnected,
     TenantLifecycleGovernanceReadiness GovernanceReadiness,

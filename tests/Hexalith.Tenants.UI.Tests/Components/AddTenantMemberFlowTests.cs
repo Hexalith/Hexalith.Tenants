@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -31,7 +31,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-add-member-flow']");
         cut.Find("[data-testid='tenants-add-member-user-id']");
@@ -64,7 +64,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(originalDetail)));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("User/CaseSensitive.01");
@@ -93,7 +93,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
                 request.TenantId,
                 [
@@ -125,7 +125,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("owner-user");
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantOwner));
@@ -147,7 +147,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("form").Submit();
 
@@ -176,7 +176,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha") with { Status = tenantStatus })
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsCommandSurfaceAvailable, isCommandSurfaceAvailable));
 
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("disabled").ShouldNotBeNull();
@@ -203,7 +203,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, TenantFreshnessState.Current));
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
@@ -222,12 +222,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantDetailSurfaceKind.Stale, TenantFreshnessState.Stale, "Refresh current tenant detail")]
-    [InlineData(TenantDetailSurfaceKind.Ready, TenantFreshnessState.Unknown, "Refresh current tenant detail")]
-    [InlineData(TenantDetailSurfaceKind.Degraded, TenantFreshnessState.Unknown, "not authorized")]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "Refresh current tenant detail")]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "Refresh current tenant detail")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "not authorized")]
     public void Add_member_fails_closed_when_truth_or_authorization_is_not_eligible(
         TenantDetailSurfaceKind surfaceKind,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         string expectedReason)
     {
         RegisterServices(new StubTenantCommandGateway());

@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
@@ -452,9 +452,9 @@ public sealed class TenantAuditPageTests : BunitContext
             nextCursor,
             hasMore,
             eTag: "\"etag\"",
-            freshness: rows.Any(row => row.Freshness == TenantFreshnessState.Stale)
-                ? TenantFreshnessState.Stale
-                : TenantFreshnessState.Current,
+            freshness: rows.Any(row => row.Freshness == ReadModelFreshnessState.Stale)
+                ? ReadModelFreshnessState.Stale
+                : ReadModelFreshnessState.Current,
             new TenantAuditRequest("tenant.alpha"));
 
     private static TenantAuditSnapshot SnapshotFor(TenantAuditSurfaceKind kind)
@@ -463,13 +463,13 @@ public sealed class TenantAuditPageTests : BunitContext
         return kind switch
         {
             TenantAuditSurfaceKind.Loading => TenantAuditSnapshot.Loading("tenant.alpha"),
-            TenantAuditSurfaceKind.Empty => TenantAuditSnapshot.Empty(true, TenantFreshnessState.Current, "\"etag\"", request),
-            TenantAuditSurfaceKind.FilteredEmpty => TenantAuditSnapshot.Empty(true, TenantFreshnessState.Current, "\"etag\"", request),
-            TenantAuditSurfaceKind.Stale => TenantAuditSnapshot.Stale([Row("event-stale", AuditEventCategory.Access, freshness: TenantFreshnessState.Stale)], null, false, "\"etag\"", request),
+            TenantAuditSurfaceKind.Empty => TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "\"etag\"", request),
+            TenantAuditSurfaceKind.FilteredEmpty => TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "\"etag\"", request),
+            TenantAuditSurfaceKind.Stale => TenantAuditSnapshot.Stale([Row("event-stale", AuditEventCategory.Access, freshness: ReadModelFreshnessState.Stale)], null, false, "\"etag\"", request),
             TenantAuditSurfaceKind.Degraded => TenantAuditSnapshot.Degraded([Row("event-degraded", AuditEventCategory.Access)], TenantAuditReason.ProjectionDegraded, request),
             TenantAuditSurfaceKind.Unauthorized => TenantAuditSnapshot.Unauthorized(request),
             TenantAuditSurfaceKind.InvalidCursor => TenantAuditSnapshot.InvalidCursor(request),
-            TenantAuditSurfaceKind.ListRefreshed => TenantAuditSnapshot.ListRefreshed([Row("event-refreshed", AuditEventCategory.Access)], null, false, "\"etag\"", TenantFreshnessState.Current, request),
+            TenantAuditSurfaceKind.ListRefreshed => TenantAuditSnapshot.ListRefreshed([Row("event-refreshed", AuditEventCategory.Access)], null, false, "\"etag\"", ReadModelFreshnessState.Current, request),
             TenantAuditSurfaceKind.Unavailable => TenantAuditSnapshot.Unavailable(request),
             TenantAuditSurfaceKind.Error => TenantAuditSnapshot.Error(request),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
@@ -480,7 +480,7 @@ public sealed class TenantAuditPageTests : BunitContext
         string eventReference,
         AuditEventCategory category,
         string referenceContext = "userId: target-user",
-        TenantFreshnessState freshness = TenantFreshnessState.Current,
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current,
         string? eventType = null)
     {
         string outcome = eventType ?? (category is AuditEventCategory.Access ? "UserAddedToTenant" : "TenantConfigurationSet");
@@ -532,7 +532,7 @@ public sealed class TenantAuditPageTests : BunitContext
                 [new TenantMember("target-user", TenantRole.TenantContributor)],
                 new Dictionary<string, string>(StringComparer.Ordinal),
                 DateTimeOffset.Parse("2026-06-01T09:00:00Z", CultureInfo.InvariantCulture));
-            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"detail-etag\"", TenantFreshnessState.Current));
+            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"detail-etag\"", ReadModelFreshnessState.Current));
         }
 
         public Task<TenantListSnapshot> ListTenantsAsync(

@@ -78,10 +78,9 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     daprSchedulerHostAddress: daprSchedulerHostAddress,
     pubSubComponentPath: pubSubComponentPath);
 
-// Add the Tenants domain service via the Tenants platform Aspire helper: it registers the tenants /
-// global-administrators domain routing on the EventStore command gateway and attaches a DAPR sidecar that
-// shares the EventStore state store + pub/sub. The reusable recipe lives in Hexalith.Tenants.Aspire so every
-// AppHost hosting the Tenants service calls this single helper instead of re-declaring the wiring.
+// Add the Tenants domain service runtime via the Tenants platform Aspire helper. Gateway-side tenants /
+// global-administrators routing remains explicit AppHost composition above; the helper adds the server project
+// and a DAPR sidecar that shares the EventStore state store + pub/sub.
 IResourceBuilder<ProjectResource> tenants = builder.AddHexalithTenantsServer(
         eventStoreResources,
         accessControlConfigPath,

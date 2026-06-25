@@ -14,7 +14,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -220,7 +220,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"audit-etag\"",
-            freshness: TenantFreshnessState.Current,
+            freshness: ReadModelFreshnessState.Current,
             request: new TenantAuditRequest("tenant.alpha"));
 
     private static TenantAuditRow Row(
@@ -242,7 +242,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             string.IsNullOrWhiteSpace(referenceContext)
                 ? eventType.StartsWith("GlobalAdministrator", StringComparison.Ordinal) ? "userId: admin-user" : "userId: target-user"
                 : referenceContext,
-            TenantFreshnessState.Current);
+            ReadModelFreshnessState.Current);
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
@@ -311,7 +311,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             DetailRequests.Add(request);
-            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"detail-etag\"", TenantFreshnessState.Current));
+            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"detail-etag\"", ReadModelFreshnessState.Current));
         }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(

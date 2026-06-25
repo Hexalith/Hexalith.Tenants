@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Server.Configuration;
+using Hexalith.Tenants.Configuration;
 
 using Microsoft.Extensions.Configuration;
 
@@ -66,5 +67,29 @@ public class SnapshotConfigurationTests {
         // Act & Assert - No per-tenant-domain overrides should be set
         _ = options.TenantDomainIntervals.ShouldNotBeNull();
         options.TenantDomainIntervals.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AppSettings_ReadModelFreshnessConfiguration_UsesConservativeDefaults() {
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: false)
+            .Build();
+
+        var options = new ReadModelFreshnessOptions();
+        configuration.GetSection(ReadModelFreshnessOptions.SectionName).Bind(options);
+
+        options.Aging.ShouldBe(TimeSpan.FromDays(365));
+        options.Stale.ShouldBe(TimeSpan.FromDays(3650));
+        Should.NotThrow(() => options.ToThresholds());
+    }
+
+    [Fact]
+    public void ReadModelFreshnessConfiguration_rejects_stale_before_aging() {
+        var options = new ReadModelFreshnessOptions {
+            Aging = TimeSpan.FromMinutes(10),
+            Stale = TimeSpan.FromMinutes(5),
+        };
+
+        _ = Should.Throw<ArgumentOutOfRangeException>(() => _ = options.ToThresholds());
     }
 }

@@ -12,7 +12,7 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.Tenants.UI.State.TruthState;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 // Alias the Memories search DTOs: Hexalith.Memories.Contracts.V1 also defines TenantStatus/TenantSummary,
@@ -58,7 +58,7 @@ internal sealed class TenantQueryGateway(
                         // A 304 means the cached snapshot is unchanged, not that a degraded/stale
                         // snapshot recovered. Preserve the prior truth state; only a previously
                         // Ready snapshot earns refreshed Current freshness from the conditional hit.
-                        Freshness = previous.Kind is TenantDetailSurfaceKind.Ready ? TenantFreshnessState.Current : previous.Freshness,
+                        Freshness = previous.Kind is TenantDetailSurfaceKind.Ready ? ReadModelFreshnessState.Current : previous.Freshness,
                         ETag = result.ETag ?? previous.ETag,
                     };
             }
@@ -67,7 +67,7 @@ internal sealed class TenantQueryGateway(
                 return TenantDetailSnapshot.Unknown("Tenant detail projection returned no payload.", result.ETag);
             }
 
-            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
             if (result.Metadata?.IsStale == true) {
                 return TenantDetailSnapshot.Stale(result.Payload, result.ETag);
             }
@@ -145,14 +145,14 @@ internal sealed class TenantQueryGateway(
                         ETag = result.ETag ?? previous.ETag,
                         Freshness = previous.Kind is UserTenantMembershipSurfaceKind.Ready
                             or UserTenantMembershipSurfaceKind.Empty
-                                ? TenantFreshnessState.Current
+                                ? ReadModelFreshnessState.Current
                                 : previous.Freshness,
                     };
             }
 
             PaginatedResult<UserTenantMembership> payload = result.Payload
                 ?? new PaginatedResult<UserTenantMembership>([], null, false);
-            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
             IReadOnlyList<UserTenantMembershipRow> rows = payload.Items
                 .Select(m => UserTenantMembershipRow.FromMembership(m) with {
                     Freshness = freshness,
@@ -160,7 +160,7 @@ internal sealed class TenantQueryGateway(
                 .ToArray();
 
             if (result.Metadata?.IsStale == true) {
-                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
+                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
                 return UserTenantMembershipSnapshot.Stale(
                     rows,
                     payload.Cursor,
@@ -170,7 +170,7 @@ internal sealed class TenantQueryGateway(
             }
 
             if (result.Metadata?.IsDegraded == true) {
-                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Unknown }).ToArray();
+                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
                 return UserTenantMembershipSnapshot.Degraded(
                     rows,
                     UserTenantMembershipReason.ProjectionDegraded,
@@ -224,7 +224,7 @@ internal sealed class TenantQueryGateway(
                         ETag = result.ETag ?? previous.ETag,
                         Freshness = previous.Kind is GlobalAdministratorsSurfaceKind.Ready
                             or GlobalAdministratorsSurfaceKind.Empty
-                                ? TenantFreshnessState.Current
+                                ? ReadModelFreshnessState.Current
                                 : previous.Freshness,
                     };
             }
@@ -240,22 +240,22 @@ internal sealed class TenantQueryGateway(
                         Kind = GlobalAdministratorsSurfaceKind.Degraded,
                         Reason = GlobalAdministratorsReason.MissingPayload,
                         ETag = result.ETag ?? previous.ETag,
-                        Freshness = TenantFreshnessState.Unknown,
+                        Freshness = ReadModelFreshnessState.Unknown,
                     };
             }
 
-            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
             IReadOnlyList<GlobalAdministratorRow> rows = payload.Items
                 .Select(m => GlobalAdministratorRow.FromSummary(m) with { Freshness = freshness })
                 .ToArray();
 
             if (result.Metadata?.IsStale == true) {
-                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
+                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
                 return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
             }
 
             if (result.Metadata?.IsDegraded == true) {
-                rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Unknown }).ToArray();
+                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
                 return GlobalAdministratorsSnapshot.Degraded(
                     rows,
                     GlobalAdministratorsReason.ProjectionDegraded,
@@ -338,7 +338,7 @@ internal sealed class TenantQueryGateway(
                     or TenantAuditSurfaceKind.Empty
                     or TenantAuditSurfaceKind.FilteredEmpty
                     or TenantAuditSurfaceKind.ListRefreshed
-                        ? TenantFreshnessState.Current
+                        ? ReadModelFreshnessState.Current
                         : previous.Freshness,
             };
         }
@@ -350,23 +350,23 @@ internal sealed class TenantQueryGateway(
                     Kind = TenantAuditSurfaceKind.Degraded,
                     Reason = TenantAuditReason.MissingPayload,
                     ETag = result.ETag ?? previous.ETag,
-                    Freshness = TenantFreshnessState.Unknown,
+                    Freshness = ReadModelFreshnessState.Unknown,
                 }
                 : TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingPayload, request, result.ETag);
         }
 
-        TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+        ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
         IReadOnlyList<TenantAuditRow> rows = payload.Items
             .Select(entry => TenantAuditRow.FromEntry(entry, freshness))
             .ToArray();
 
         if (result.Metadata?.IsStale == true) {
-            rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Stale }).ToArray();
+            rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
             return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request);
         }
 
         if (result.Metadata?.IsDegraded == true) {
-            rows = rows.Select(static row => row with { Freshness = TenantFreshnessState.Unknown }).ToArray();
+            rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
             return TenantAuditSnapshot.Degraded(
                 rows,
                 TenantAuditReason.ProjectionDegraded,
@@ -422,14 +422,14 @@ internal sealed class TenantQueryGateway(
                     ? TenantListSnapshot.Degraded([], "Tenant list was unchanged, but no cached server snapshot is available.")
                     : previous with {
                         Kind = previous.Rows.Count == 0 ? TenantListSurfaceKind.Empty : TenantListSurfaceKind.Ready,
-                        Freshness = TenantFreshnessState.Current,
+                        Freshness = ReadModelFreshnessState.Current,
                         ETag = result.ETag ?? previous.ETag,
                         ErrorMessage = null,
                     };
             }
 
             PaginatedResult<TenantSummary> payload = result.Payload ?? new PaginatedResult<TenantSummary>([], null, false);
-            TenantFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
             (IReadOnlyList<TenantListRow> rows, bool enrichmentDegraded) = await EnrichRowsAsync(
                 payload.Items,
                 freshness,
@@ -516,7 +516,7 @@ internal sealed class TenantQueryGateway(
             nextCursor: hasMore ? CreateSearchCursor(nextOffset) : null,
             hasMore,
             eTag: null,
-            TenantFreshnessState.Current,
+            ReadModelFreshnessState.Current,
             degraded);
     }
 
@@ -717,7 +717,7 @@ internal sealed class TenantQueryGateway(
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
         IReadOnlyList<TenantSummary> summaries,
-        TenantFreshnessState freshness,
+        ReadModelFreshnessState freshness,
         CancellationToken cancellationToken) {
         List<TenantListRow> rows = new(summaries.Count);
         bool degraded = false;
@@ -779,21 +779,21 @@ internal sealed class TenantQueryGateway(
     private static string EscapePath(string value)
         => Uri.EscapeDataString(value);
 
-    private static TenantFreshnessState ResolveFreshness(QueryResponseMetadata? metadata, string? eTag) {
+    private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata, string? eTag) {
         if (metadata?.IsDegraded == true) {
-            return TenantFreshnessState.Unknown;
+            return ReadModelFreshnessState.Unknown;
         }
 
         if (metadata?.IsStale == true) {
-            return TenantFreshnessState.Stale;
+            return ReadModelFreshnessState.Stale;
         }
 
         return metadata?.IsNotModified == true
             || !string.IsNullOrWhiteSpace(eTag)
             || !string.IsNullOrWhiteSpace(metadata?.ETag)
             || !string.IsNullOrWhiteSpace(metadata?.ProjectionVersion)
-                ? TenantFreshnessState.Current
-                : TenantFreshnessState.Unknown;
+                ? ReadModelFreshnessState.Current
+                : ReadModelFreshnessState.Unknown;
     }
 
     private static bool IsUnauthorized(EventStoreGatewayException exception)

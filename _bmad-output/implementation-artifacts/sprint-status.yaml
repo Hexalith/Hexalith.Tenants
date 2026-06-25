@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-25T00:00:00+02:00
+last_updated: 2026-06-25T20:44:45+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -174,7 +174,7 @@ development_status:
   cc-2026-06-21-frontcomposer-page-header-landmarks-and-contract-hardening: done
   cc-2026-06-21-eventstore-admin-ui-a11y-remediation: done
   cc-2026-06-21-eventstore-read-model-freshness-metadata: review
-  cc-2026-06-21-epic-11-persisted-dataprotection-key-ring: review
+  cc-2026-06-21-epic-11-persisted-dataprotection-key-ring: done
   # Newly discovered pending work (red on main from the committed Memories integration): 3 Server.Tests
   # doc/config-conformance failures (memories-server pubsub scope + Sample MemoriesSearchIndexEventPublisher
   # registrations not reflected in tests/docs). Fixed in-repo; Tenants Server.Tests back to 700/700.
@@ -193,7 +193,7 @@ development_status:
   #   (2) Tenants: bump EventStore submodule pointer (verify reachable on remote);
   #   (3) Tenants: commit AppHost as refactor(apphost) — NOT feat (AppHost IsPackable=false, no bump).
   # Follow-up (separate FrontComposer repo/PR, out of scope): FrontComposer.AppHost can adopt the helper.
-  cc-2026-06-22-eventstore-aspire-platform-projects-helper: review
+  cc-2026-06-22-eventstore-aspire-platform-projects-helper: done
 
   # --- Cross-cutting Correct Course 2026-06-22: per-module Memories & Tenants Aspire helpers ---
   # Approved by Administrator (Jérôme Piquot) 2026-06-22.
@@ -208,10 +208,10 @@ development_status:
   # Tenants .slnx Release -warnaserror 0/0; 1831 tests pass; 5-package NuGet validation passes;
   # Memories.Aspire 0/0 + validate-release-packages.ps1 green + release_packages_test 18/18.
   # Bundled pre-existing-drift fix: classified src/Hexalith.Memories.Web in Memories release-packages.json.
-  # Status review (implemented locally, UNCOMMITTED):
+  # Status done (review patches applied locally, UNCOMMITTED):
   #   Ordered handoff — (1) Memories: commit feat(aspire) + PUSH (reachable on remote);
   #   (2) Tenants: bump Memories submodule pointer; (3) Tenants: commit feat(aspire) (new published package).
-  cc-2026-06-22-memories-tenants-aspire-helpers: review
+  cc-2026-06-22-memories-tenants-aspire-helpers: done
 
   # --- Correct Course 2026-06-25: collapse duplicate UI command-request DTOs ---
   # Approved by Administrator 2026-06-25.
@@ -226,3 +226,17 @@ development_status:
   # Status done (implemented + verified, UNCOMMITTED): handoff — Developer agent commits on a
   # refactor/… branch (Conventional Commits `refactor` → no version bump / no 5-package NuGet publish).
   cc-2026-06-25-collapse-duplicate-ui-command-request-dtos: done
+
+  # --- Correct Course 2026-06-25: adopt EventStore read-model freshness metadata ---
+  # Approved by Administrator 2026-06-25 (Correct Course; "Server-side, 3-state" option).
+  # Proposal: sprint-change-proposal-2026-06-25-tenant-read-model-freshness-adoption.md
+  # Scope (Moderate): complete the deferred AC2 of cc-2026-06-19 now that the EventStore read-model
+  # freshness surface has shipped (5613fed4). Tenants read models implement IReadModelFreshness
+  # (persisted ProjectedAt, stamped on every projection write); query handlers classify server-side
+  # via ToQueryResponseMetadata (current/stale/unknown; configurable, conservatively-defaulted
+  # thresholds; ServedAt no longer faked as age); the UI retires the hand-rolled TenantFreshnessState
+  # for the shared ReadModelFreshnessState (Refreshing kept as a client transient). No submodule edits.
+  # Aging stays a dormant UI value pending a future QueryResponseMetadata.ProjectedAt wire field
+  # (separate EventStore handoff). Architecture D6 + deferred-work.md + test-summary.md reconciled to
+  # the 3-state-on-wire reality.
+  cc-2026-06-25-tenant-read-model-freshness-adoption: review

@@ -1,9 +1,12 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
+
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Queries.Handlers;
 
@@ -15,8 +18,10 @@ public sealed class ListTenantsQueryHandler(
     IReadModelStore store,
     IQueryCursorCodec cursorCodec,
     TenantTelemetry telemetry,
-    ILogger<ListTenantsQueryHandler> logger)
-    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger) {
+    ILogger<ListTenantsQueryHandler> logger,
+    IOptions<ReadModelFreshnessOptions>? freshnessOptions = null,
+    TimeProvider? timeProvider = null)
+    : TenantQueryHandlerBase(store, cursorCodec, telemetry, logger, freshnessOptions, timeProvider) {
     /// <inheritdoc/>
     public override string QueryType => ListTenantsQuery.QueryType;
 
@@ -37,7 +42,7 @@ public sealed class ListTenantsQueryHandler(
         if (indexModel is null) {
             cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<TenantSummary> empty = new([], null, false);
-            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexEntry?.ETag);
+            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexModel, indexEntry?.ETag);
         }
 
         bool isGlobalAdmin = await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
@@ -64,6 +69,6 @@ public sealed class ListTenantsQueryHandler(
             scope);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexEntry?.ETag);
+        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexModel, indexEntry?.ETag);
     }
 }

@@ -1,8 +1,11 @@
 # DAPR State Store Component -- Production Template
 # =================================================
 # Redis-backed state store for EventStore aggregate actor state, Tenants projections,
-# command status, admin diagnostics, and the shared Data Protection key ring that backs
+# command status, admin diagnostics, and the Tenants Data Protection key ring that backs
 # the opaque query pagination cursor codec (see deploy/dapr/README.md, EventStore:DataProtection).
+# The selected DAPR state store must support ETag / first-write concurrency for key-ring
+# compare-and-swap writes. The Tenants ring uses the application-specific state key
+# `hexalith-tenants-dataprotection-keys`; keep this component scoped only to trusted app IDs.
 #
 # Component contract:
 #   name: statestore
