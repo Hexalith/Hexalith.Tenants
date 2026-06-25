@@ -1,3 +1,29 @@
+# [2.1.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.0.3...v2.1.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ui:** bump FrontComposer to route-heading keyboard focus-ring fix ([cbd39f3](https://github.com/Hexalith/Hexalith.Tenants/commit/cbd39f302000483eefb1ced15f13714eba151331))
+* update Hexalith.AI.Tools subproject commit reference ([63a2f3d](https://github.com/Hexalith/Hexalith.Tenants/commit/63a2f3dc697271e6469c6713e33098a7b0f2894a))
+* update Hexalith.FrontComposer subproject commit reference ([58fdaef](https://github.com/Hexalith/Hexalith.Tenants/commit/58fdaef696f77247c7a8efb29615557864d28b0b))
+* update Hexalith.FrontComposer subproject commit reference ([84ba449](https://github.com/Hexalith/Hexalith.Tenants/commit/84ba449ab8ef6bbf2a22d480b868402f4a1ca75e))
+* update Hexalith.FrontComposer subproject commit reference ([ff0ac7e](https://github.com/Hexalith/Hexalith.Tenants/commit/ff0ac7e3985b0a395745e3192e3b1ec4943eed05))
+* update Hexalith.FrontComposer subproject commit reference ([7007e45](https://github.com/Hexalith/Hexalith.Tenants/commit/7007e4589fdf68d83a8f3a5147d7416b4489e86c))
+* update subproject commit reference for Hexalith.EventStore ([5b8b572](https://github.com/Hexalith/Hexalith.Tenants/commit/5b8b572343d6d70054112c8782cbdee163c31107))
+* update subproject commit references for Hexalith.EventStore and Hexalith.FrontComposer ([910c223](https://github.com/Hexalith/Hexalith.Tenants/commit/910c2232f7ec5b472e95ca55cb722b6ea998d24a))
+* update subproject commit references for Hexalith.EventStore and Hexalith.Memories ([60a1cd1](https://github.com/Hexalith/Hexalith.Tenants/commit/60a1cd102b2618419533201357e3177180d8d223))
+* update subproject references and YAML configurations for Memories integration ([fc1b40c](https://github.com/Hexalith/Hexalith.Tenants/commit/fc1b40cd6af0876af8238a8ecf39d53aa8962ec6))
+* update subproject references to latest commits across multiple modules ([8f33562](https://github.com/Hexalith/Hexalith.Tenants/commit/8f33562e0aa3f80374f34402f0b4af9d6da34a44))
+
+
+### Features
+
+* adopt EventStore read-model freshness metadata in Tenants ([116d5af](https://github.com/Hexalith/Hexalith.Tenants/commit/116d5af72ed46dc706292f1102355c9ae164a468))
+* **aspire:** reinstate Hexalith.Tenants.Aspire + consume Memories/Tenants AppHost helpers ([46a53bd](https://github.com/Hexalith/Hexalith.Tenants/commit/46a53bd91c863346701d52eb4ad79dcd21a15b20))
+* enhance tenant query handlers with global admin claim support and add tests for authorization scenarios ([fcef6b8](https://github.com/Hexalith/Hexalith.Tenants/commit/fcef6b842e0db3c9f51be4fd7b150806196353ff))
+* improve TenantsWorkspace ergonomics by removing duplicate navigation links and obsolete CSS ([ebec1db](https://github.com/Hexalith/Hexalith.Tenants/commit/ebec1dbbb90e2bccfe9a6bedb71783192b3da4f2))
+* wrap CreateTenantFlow in a collapsed accordion to improve UI layout and avoid duplicate title ([b2c3a66](https://github.com/Hexalith/Hexalith.Tenants/commit/b2c3a66ab01fa9ceb24c1e0ebb3c52e77df3e668))
+
 ## [2.0.3](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.0.2...v2.0.3) (2026-06-22)
 
 
