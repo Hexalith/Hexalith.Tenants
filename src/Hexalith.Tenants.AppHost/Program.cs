@@ -1,5 +1,6 @@
 using Aspire.Hosting.ApplicationModel;
 
+using Hexalith.Commons.Aspire;
 using Hexalith.EventStore.Aspire;
 using Hexalith.Memories.Aspire;
 using Hexalith.Tenants.AppHost;
@@ -15,14 +16,12 @@ string resiliencyConfigPath = ResolveDaprConfigPath(builder.AppHostDirectory, "r
 string stateStoreComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "statestore.yaml");
 string pubSubComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "pubsub.yaml");
 
-// Optional DAPR placement/scheduler service addresses. When left unset, the DAPR sidecars fall back to
-// the daprd default (localhost:50005 / :50006), which matches a slim-mode `dapr init`. A containerized
-// `dapr init` (the default for Dapr 1.15+) publishes those services on host ports 6050/6060 instead, so
-// environments using Docker-based DAPR set Dapr:PlacementHostAddress / Dapr:SchedulerHostAddress (e.g. to
-// "localhost:6050" / "localhost:6060") to point the Aspire-managed sidecars at the real services. The
-// integration-test AppHost is launched with these set to the auto-detected ports.
-string? daprPlacementHostAddress = builder.Configuration["Dapr:PlacementHostAddress"];
-string? daprSchedulerHostAddress = builder.Configuration["Dapr:SchedulerHostAddress"];
+// Optional DAPR placement/scheduler service addresses. Explicit configuration still wins, but local AppHosts
+// auto-detect the common containerized (6050/6060) and slim/native (50005/50006) DAPR service ports so every
+// Aspire-managed sidecar connects to the actual local actor infrastructure.
+(string? daprPlacementHostAddress, string? daprSchedulerHostAddress) = AspireDaprLocalServiceEndpoints.Resolve(
+    builder.Configuration[AspireDaprLocalServiceEndpoints.PlacementHostAddressKey],
+    builder.Configuration[AspireDaprLocalServiceEndpoints.SchedulerHostAddressKey]);
 
 // Keycloak identity provider for JWT authentication.
 // Enabled by default for local development with real OIDC token testing.
