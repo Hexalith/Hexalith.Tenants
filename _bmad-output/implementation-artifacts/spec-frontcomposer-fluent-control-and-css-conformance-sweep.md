@@ -5,7 +5,7 @@ created: '2026-06-18'
 status: 'done'
 baseline_commit: '146173aaa4345df90450c89f2e6eed12095932ed'
 context:
-  - '{project-root}/Hexalith.AI.Tools/hexalith-llm-instructions.md'
+  - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
   - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-18.md'
   - '{project-root}/_bmad-output/planning-artifacts/architecture.md'
   - '{project-root}/_bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md'

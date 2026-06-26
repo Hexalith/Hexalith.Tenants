@@ -79,7 +79,7 @@ Create two owner handoffs, not Tenants implementation stories:
 
 ### Artifact Conflicts
 
-- `deferred-work.md` currently says the EventStore Admin service still assigns `ProjectionActorType: TenantProjectionRouting.ActorTypeName`. Current source no longer shows that assignment in `Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs`; the entry is stale and should be marked resolved/stale after approval.
+- `deferred-work.md` currently says the EventStore Admin service still assigns `ProjectionActorType: TenantProjectionRouting.ActorTypeName`. Current source no longer shows that assignment in `references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.Server/Services/DaprTenantQueryService.cs`; the entry is stale and should be marked resolved/stale after approval.
 - `docs/cross-aggregate-timing.md` correctly states that dead-lettering is application-level, but the Mermaid sequence still shows subscriber failure flowing to `deadletter.tenants.events` after retry/dead-letter policy. That diagram should be clarified.
 - `deploy/dapr/pubsub.yaml` still contains `publishingScopes: "sample="` while comments say EventStore publishes and sample subscribes. DAPR topic scoping syntax grants app-id/topic pairs, so this should be verified and corrected to match the intended publisher/subscriber contract.
 
@@ -283,9 +283,9 @@ Requested outcomes:
 
 Files to inspect in FrontComposer:
 
-- `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor`
-- `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs`
-- `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FrontComposerShell.razor`
+- `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor`
+- `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs`
+- `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FrontComposerShell.razor`
 - FrontComposer Shell component/a11y tests
 
 Rationale: this is a shared shell contract and should be solved once for all domains.

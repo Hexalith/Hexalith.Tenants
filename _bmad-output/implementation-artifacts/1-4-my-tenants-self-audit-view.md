@@ -100,7 +100,7 @@ Story 1.4 delivers the signed-in user's read-only My Tenants self-audit surface 
 ### Scope Boundaries
 
 - Do not add backend endpoints, new command APIs, EventStore server plumbing, generic UI framework scaffolding, package versions in `.csproj`, Dockerfiles, `.sln` files, copied DTOs, or shared test harness helpers. [Source: `AGENTS.md#Domain Implementation Boundary`; `_bmad-output/project-context.md#Critical Don't-Miss Rules`]
-- Do not modify root-level submodules for this story unless explicitly approved. If a reusable FrontComposer table/token/accessibility gap is found, record a follow-up; do not patch `Hexalith.FrontComposer` from this Tenants story. [Source: `AGENTS.md#Submodule Policy`; `_bmad-output/project-context.md#Code Quality & Style Rules`]
+- Do not modify root-declared submodules under `references/` for this story unless explicitly approved. If a reusable FrontComposer table/token/accessibility gap is found, record a follow-up; do not patch `Hexalith.FrontComposer` from this Tenants story. [Source: `AGENTS.md#Submodule Policy`; `_bmad-output/project-context.md#Code Quality & Style Rules`]
 - Do not implement Story 1.5 general user lookup. The user lookup flow may share state/components later, but Story 1.4 targets the signed-in user's own memberships only. [Source: `_bmad-output/planning-artifacts/epics.md#Story 1.5: User Membership Lookup`]
 
 ### Previous Story Intelligence
@@ -121,7 +121,7 @@ Story 1.4 delivers the signed-in user's read-only My Tenants self-audit surface 
 Network research was not performed because the story can rely on repo-pinned local versions and source. Use local pinned packages and submodule source as authority.
 
 - .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
-- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. Verify exact DataGrid/table/badge APIs locally before using new component features. [Source: `Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/1-3-tenant-detail-navigation-and-overview.md#Technology And Framework Requirements`]
+- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. Verify exact DataGrid/table/badge APIs locally before using new component features. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/1-3-tenant-detail-navigation-and-overview.md#Technology And Framework Requirements`]
 - Tests use xUnit v3, Shouldly, NSubstitute, and bUnit. Test classes/files use plural `{Class}Tests.cs`; avoid raw `Assert.*`. [Source: `_bmad-output/project-context.md#Testing Rules`; `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`]
 
 ### Existing Files To Update And Preserve

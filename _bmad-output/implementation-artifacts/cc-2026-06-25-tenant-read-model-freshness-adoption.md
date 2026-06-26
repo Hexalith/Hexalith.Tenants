@@ -8,8 +8,8 @@ sprint_key: 'cc-2026-06-25-tenant-read-model-freshness-adoption'
 source_proposal: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-25-tenant-read-model-freshness-adoption.md'
 approval: 'Administrator approved 2026-06-25 (Server-side, 3-state option)'
 context:
-  - '{project-root}/Hexalith.AI.Tools/hexalith-llm-instructions.md'
-  - '{project-root}/Hexalith.AI.Tools/hexalith-state-instructions.md'
+  - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
+  - '{project-root}/references/Hexalith.AI.Tools/hexalith-state-instructions.md'
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/planning-artifacts/architecture.md'
   - '{project-root}/_bmad-output/implementation-artifacts/cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening.md'
@@ -214,16 +214,16 @@ the Developer agent; they do not expand the approved correct-course scope.
 - Prior freshness story: `_bmad-output/implementation-artifacts/cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening.md`
 - Deferred handoff: `_bmad-output/implementation-artifacts/deferred-work.md`
 - EventStore API source:
-  `Hexalith.EventStore/src/Hexalith.EventStore.Client/Projections/ReadModelFreshness*.cs`,
+  `references/Hexalith.EventStore/src/Hexalith.EventStore.Client/Projections/ReadModelFreshness*.cs`,
   `IReadModelFreshness.cs`, `IReadModelStore.cs`,
-  `Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Queries/QueryResponseMetadata.cs`
+  `references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Queries/QueryResponseMetadata.cs`
 - UX freshness and badge rules:
   `_bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md`,
   `_bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/EXPERIENCE.md`
 - Project rules: `_bmad-output/project-context.md`,
-  `Hexalith.AI.Tools/hexalith-llm-instructions.md`,
-  `Hexalith.AI.Tools/hexalith-state-instructions.md`,
-  `Hexalith.AI.Tools/hexalith-ux-instructions.md`
+  `references/Hexalith.AI.Tools/hexalith-llm-instructions.md`,
+  `references/Hexalith.AI.Tools/hexalith-state-instructions.md`,
+  `references/Hexalith.AI.Tools/hexalith-ux-instructions.md`
 
 ## Tasks & Acceptance
 

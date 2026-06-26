@@ -138,8 +138,8 @@ The pre-build decision for this story is: compose a Tenants-specific `TenantData
 Use local pinned versions and source as authority; network research was not available in this sandbox.
 
 - .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`]
-- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; verify exact `FluentDataGrid`/column APIs locally before implementation and do not upgrade Fluent as part of this story. [Source: `Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md#4. FC-TBL`]
-- FrontComposer DataGrid helpers exist under `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`, including filter/search/empty/prioritizer helpers, but current generated grid support is not enough for Tenants cursor paging, pinning, and six states. [Source: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`; `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md#4. FC-TBL`]
+- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; verify exact `FluentDataGrid`/column APIs locally before implementation and do not upgrade Fluent as part of this story. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md#4. FC-TBL`]
+- FrontComposer DataGrid helpers exist under `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`, including filter/search/empty/prioritizer helpers, but current generated grid support is not enough for Tenants cursor paging, pinning, and six states. [Source: `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`; `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md#4. FC-TBL`]
 
 ### Testing Standards
 
@@ -154,7 +154,7 @@ Use local pinned versions and source as authority; network research was not avai
 
 - Source should stay in `src/Hexalith.Tenants.UI/`, primarily `Components/Tenants/`, `Components/Shared/`, `Services/Gateways/`, `State/TenantList/`, `State/TruthState/`, `Vocabulary/`, `Resources/`, and page CSS as needed.
 - Tests should stay in `tests/Hexalith.Tenants.UI.Tests/` and mirror the source structure when adding component/service/state/vocabulary tests.
-- Do not modify root-level submodules for this story unless a human explicitly approves it. If a reusable FrontComposer gap is identified, file/reference it; do not patch `Hexalith.FrontComposer` from this Tenants story.
+- Do not modify root-declared submodules under `references/` for this story unless a human explicitly approves it. If a reusable FrontComposer gap is identified, file/reference it; do not patch `Hexalith.FrontComposer` from this Tenants story.
 - Do not add new backend endpoints, new EventStore plumbing, generic UI framework scaffolding, Dockerfiles, `.sln` files, package versions in `.csproj`, or copied DTOs.
 
 ### References
@@ -181,7 +181,7 @@ Codex GPT-5
 - Network research was not performed because the environment has restricted network access and the story can rely on repo-pinned local versions/source.
 - Dev-story workflow started 2026-06-05; existing `baseline_commit` preserved.
 - Verified local Fluent UI Blazor v5 `FluentDataGrid<T>`, `TemplateColumn<T>`, `ColumnBase<T>.Pin`, and `DataGridColumnPin` APIs from `/home/administrator/.nuget/packages/microsoft.fluentui.aspnetcore.components/5.0.0-rc.3-26138.1/lib/net10.0/Microsoft.FluentUI.AspNetCore.Components.xml`.
-- Verified FrontComposer DataGrid helpers under `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`; reusable cursor pagination, safety-column pinning, and six-state list-surface support remains referenced as a FrontComposer enhancement from the Story 1.0 `FC-TBL` spike note rather than implemented generically in Tenants.
+- Verified FrontComposer DataGrid helpers under `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`; reusable cursor pagination, safety-column pinning, and six-state list-surface support remains referenced as a FrontComposer enhancement from the Story 1.0 `FC-TBL` spike note rather than implemented generically in Tenants.
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release` remains blocked by the local .NET 10/Microsoft.Testing.Platform VSTest target error; used the xUnit v3 in-process executable fallback.
 - Exact required `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror` was blocked by `NU1900` package vulnerability lookup failures because the sandbox cannot reach `https://api.nuget.org/v3/index.json`.
 - Sandbox-adjusted verification passed: `dotnet restore Hexalith.Tenants.slnx -p:NuGetAudit=false -p:RestoreIgnoreFailedSources=true -m:1` then `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror --no-restore -m:1 -p:UseSharedCompilation=false`.

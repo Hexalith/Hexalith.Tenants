@@ -18,7 +18,7 @@ related:
 # Story 1.0 Spike — FrontComposer Shell-integration verification
 
 > **Type:** time-boxed enabler spike. Deliverable = this written finding + a go/adjust decision (no production code).
-> **Scope of evidence:** all paths below are inside the `Hexalith.FrontComposer` submodule unless noted. Paths are relative to `Hexalith.FrontComposer/`.
+> **Scope of evidence:** all paths below are inside the `Hexalith.FrontComposer` submodule unless noted. Paths are relative to `references/Hexalith.FrontComposer/`.
 
 ## TL;DR
 
@@ -126,7 +126,7 @@ The grid renders (source-generated projection views over `FluentDataGrid<T>`), a
 
 ## 7. Gate-clearing evidence map
 
-| Gate | Verdict | Citable evidence (under `Hexalith.FrontComposer/`) |
+| Gate | Verdict | Citable evidence (under `references/Hexalith.FrontComposer/`) |
 |------|---------|----------------------------------------------------|
 | **FC-LYT** (build-start) | ✅ **Confirmed** — explicit variant contract | `src/Hexalith.FrontComposer.Contracts/Rendering/FcPageLayoutMode.cs`; `Shell/Components/Layout/FcPageLayout.razor` |
 | **Shell-integration spike** (GROUP 6) | ✅ **Done** — APIs verified | `Shell/Extensions/ServiceCollectionExtensions.cs:72,170,454,493,537`; `EventStoreServiceExtensions.cs:33`; `FrontComposerAuthenticationServiceExtensions.cs:33`; `Shell/Registration/FrontComposerRegistry.cs`; `Shell/Routing/CommandRouteBuilder.cs` |

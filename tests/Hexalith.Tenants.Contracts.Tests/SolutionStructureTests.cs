@@ -42,9 +42,9 @@ public class SolutionStructureTests {
 
     private static readonly string[] RootSubmoduleProjectPrefixes =
     [
-        "Hexalith.Commons/",
-        "Hexalith.EventStore/",
-        "Hexalith.FrontComposer/",
+        "references/Hexalith.Commons/",
+        "references/Hexalith.EventStore/",
+        "references/Hexalith.FrontComposer/",
     ];
 
     private static readonly string[] ForbiddenTenantQueryRoutingTerms =
@@ -129,19 +129,21 @@ public class SolutionStructureTests {
     }
 
     [Fact]
-    public void EventStore_submodule_setup_remains_root_level_only() {
+    public void EventStore_submodule_setup_remains_root_declared_only() {
         string repoRoot = FindRepoRoot();
 
         string gitmodules = File.ReadAllText(Path.Combine(repoRoot, ".gitmodules"));
-        gitmodules.ShouldContain("path = Hexalith.EventStore");
-        gitmodules.ShouldContain("path = Hexalith.Commons");
-        gitmodules.ShouldContain("path = Hexalith.AI.Tools");
-        gitmodules.ShouldContain("path = Hexalith.Builds");
-        gitmodules.ShouldContain("path = Hexalith.FrontComposer");
+        gitmodules.ShouldContain("path = references/Hexalith.EventStore");
+        gitmodules.ShouldContain("path = references/Hexalith.Commons");
+        gitmodules.ShouldContain("path = references/Hexalith.AI.Tools");
+        gitmodules.ShouldContain("path = references/Hexalith.Builds");
+        gitmodules.ShouldContain("path = references/Hexalith.FrontComposer");
+        gitmodules.ShouldContain("path = references/Hexalith.PolymorphicSerializations");
+        gitmodules.ShouldContain("path = references/Hexalith.Memories");
 
         string directoryBuildProps = File.ReadAllText(Path.Combine(repoRoot, "Directory.Build.props"));
         directoryBuildProps.ShouldContain("HexalithEventStoreRoot");
-        directoryBuildProps.ShouldContain("Hexalith.EventStore\\src\\Hexalith.EventStore.Contracts");
+        directoryBuildProps.ShouldContain("references\\Hexalith.EventStore\\src\\Hexalith.EventStore.Contracts");
 
         string[] setupDocs =
         [

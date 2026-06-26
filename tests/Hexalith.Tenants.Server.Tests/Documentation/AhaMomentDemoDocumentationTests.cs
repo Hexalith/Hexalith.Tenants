@@ -249,7 +249,7 @@ public class AhaMomentDemoDocumentationTests {
 
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
-        // that checks the dependency out as a root-level sibling. Fall back to that sibling.
+        // that checks the dependency out as a sibling checkout. Fall back to that sibling.
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

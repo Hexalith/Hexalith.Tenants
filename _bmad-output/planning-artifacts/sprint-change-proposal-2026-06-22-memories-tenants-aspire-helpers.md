@@ -83,7 +83,7 @@ Approved 2026-06-22 by Administrator / Jérôme Piquot (AskUserQuestion + ExitPl
 
 - [x] [Review][Decision] EventStore submodule bump is outside this proposal's stated sequencing — resolved: accepted as intentionally bundled in this review scope. The reviewed merge changes `Hexalith.EventStore` from `95c4b118e2d0bbf5fefc57650912b1b8c5e32c14` to `4914d301a1925b83473b526ac3c80c0e692dfc05`, while §5 only calls for bumping `Hexalith.Memories` before the Tenants commit.
 - [x] [Review][Patch] Add a scoped NU5104 suppression to `Hexalith.Tenants.Aspire` [src/Hexalith.Tenants.Aspire/Hexalith.Tenants.Aspire.csproj:3]
-- [x] [Review][Patch] Add a scoped NU5104 suppression to `Hexalith.Memories.Aspire` [Hexalith.Memories/src/Hexalith.Memories.Aspire/Hexalith.Memories.Aspire.csproj:3]
+- [x] [Review][Patch] Add a scoped NU5104 suppression to `Hexalith.Memories.Aspire` [references/Hexalith.Memories/src/Hexalith.Memories.Aspire/Hexalith.Memories.Aspire.csproj:3]
 - [x] [Review][Patch] Correct the AppHost comment that says `AddHexalithTenantsServer` registers gateway routing [src/Hexalith.Tenants.AppHost/Program.cs:81]
-- [x] [Review][Patch] Add the required Memories copyright header to the new Memories Aspire C# files [Hexalith.Memories/src/Hexalith.Memories.Aspire/HexalithMemoriesServerExtensions.cs:1]
-- [x] [Review][Patch] Split `HexalithMemoriesSearchIndexServerResources` into its own file [Hexalith.Memories/src/Hexalith.Memories.Aspire/HexalithMemoriesServerExtensions.cs:17]
+- [x] [Review][Patch] Add the required Memories copyright header to the new Memories Aspire C# files [references/Hexalith.Memories/src/Hexalith.Memories.Aspire/HexalithMemoriesServerExtensions.cs:1]
+- [x] [Review][Patch] Split `HexalithMemoriesSearchIndexServerResources` into its own file [references/Hexalith.Memories/src/Hexalith.Memories.Aspire/HexalithMemoriesServerExtensions.cs:17]

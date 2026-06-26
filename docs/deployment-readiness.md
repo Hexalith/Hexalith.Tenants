@@ -151,7 +151,7 @@ Operator controls:
 | local fallback boundary | `EnableKeycloak=false` is a local development fallback only. |
 | production override locations | Production values are supplied through deployment environment variables, secret providers, or platform-specific AppHost overrides. |
 | sidecar ports | Tenants readiness does not require fixed DAPR sidecar ports. |
-| submodules | Initialize only root-level submodules; no recursive submodule initialization. |
+| submodules | Initialize only root-declared submodules under `references/`; no recursive submodule initialization. |
 
 ## Evidence Template
 

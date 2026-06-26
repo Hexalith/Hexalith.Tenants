@@ -2,7 +2,7 @@
 
 # Quickstart
 
-Clone the repository, run the application with .NET Aspire, send your first tenant management command through the EventStore command gateway, and inspect the command outcome. This guide follows the same developer experience pattern as the [EventStore quickstart](../Hexalith.EventStore/docs/getting-started/quickstart.md).
+Clone the repository, run the application with .NET Aspire, send your first tenant management command through the EventStore command gateway, and inspect the command outcome. This guide follows the same developer experience pattern as the [EventStore quickstart](../references/Hexalith.EventStore/docs/getting-started/quickstart.md).
 
 ## Prerequisites
 
@@ -50,13 +50,13 @@ Docker Desktop must be running. The Aspire AppHost launches containers for Redis
 
 If not installed, download Docker Desktop from [https://docs.docker.com/get-started/get-docker/](https://docs.docker.com/get-started/get-docker/).
 
-### Root-Level Submodules
+### Root-Declared Submodules
 
-Only initialize the root-level submodules used by this repository:
+Only initialize the root-declared submodules under `references/` used by this repository:
 
 ```bash
-git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
-git submodule status Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
+git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories
+git submodule status references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories
 ```
 
 Expected: each line starts with a commit hash or a leading space. A leading `-` means the submodule is not initialized; rerun the command above.
@@ -71,17 +71,17 @@ For local development, the Aspire AppHost topology handles the `system` tenant c
 
 ## Clone and Build
 
-Clone the repository, then initialize the root-level submodules:
+Clone the repository, then initialize the root-declared submodules:
 
 ```bash
 git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
-git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer
+git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories
 ```
 
 Do not add `--recursive`.
 
-> **Windows users:** The repository contains submodule paths such as `Hexalith.Tenants/Hexalith.EventStore/src/...`. If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
+> **Windows users:** The repository contains submodule paths such as `Hexalith.Tenants/references/Hexalith.EventStore/src/...`. If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
 
 Verify the build:
 
@@ -131,7 +131,7 @@ curl -s -X POST "{security-url}/realms/hexalith/protocol/openid-connect/token" \
 
 If `jq` is not installed, copy the `access_token` value from the JSON response. The token includes the direct `eventstore:tenant=system`, `eventstore:domain=global-administrators`, `eventstore:domain=tenants`, and `eventstore:permission=command:submit` claims required for the two quickstart commands.
 
-If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. The quickstart submits commands to the EventStore command gateway, so that fallback uses the development issuer, audience, and signing key from `Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json`.
+If you intentionally run the AppHost with `EnableKeycloak=false`, generate a development HMAC token instead. The quickstart submits commands to the EventStore command gateway, so that fallback uses the development issuer, audience, and signing key from `references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json`.
 
 The compact payload produced by the examples includes `"aud":"hexalith-eventstore"`.
 

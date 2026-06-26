@@ -7,12 +7,12 @@ sprint_key: 'cc-frontcomposer-shell-and-adminui-fluent-conformance-audit'
 baseline_commit: '4ce8a84'
 approval: 'Administrator approved sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md (§5.2) on 2026-06-18'
 context:
-  - '{project-root}/Hexalith.AI.Tools/hexalith-llm-instructions.md'
-  - '{project-root}/Hexalith.AI.Tools/hexalith-ux-instructions.md'
+  - '{project-root}/references/Hexalith.AI.Tools/hexalith-llm-instructions.md'
+  - '{project-root}/references/Hexalith.AI.Tools/hexalith-ux-instructions.md'
   - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md'
   - '{project-root}/_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-structural-and-style-conformance-sweep.md'
-  - '{project-root}/Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md'  # §4.1 UI component policy + carve-out table
-  - '{project-root}/Hexalith.FrontComposer/_bmad-output/project-context.md'  # Fluent-only UI rule (lines ~131-136)
+  - '{project-root}/references/Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md'  # §4.1 UI component policy + carve-out table
+  - '{project-root}/references/Hexalith.FrontComposer/_bmad-output/project-context.md'  # Fluent-only UI rule (lines ~131-136)
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -40,7 +40,7 @@ These are **already documented** (FrontComposer `architecture.md` §4.1 carve-ou
 
 **Ask First / Stop and hand off:** If a carve-out is found no-longer-justified (a Fluent equivalent now exists, or a11y has regressed), record **REMEDIATE** with the exact owner + submodule file(s) — do **not** fix it in place from this repo. If the human explicitly approves an in-place submodule fix, it must run through that submodule's **own** BMAD workflow (FrontComposer / EventStore each have scoped `bmad-*` skills), not this story.
 
-**Never:** Edit any file under `Hexalith.FrontComposer/` or `Hexalith.EventStore/` (source `.razor`/`.razor.css`, governance guards, or `architecture.md` §4.1) from the Tenants repo. Run `git submodule update --init --recursive` or initialize/modify nested submodules. Weaken or delete any existing conformance guard. Add UI infrastructure to Tenants. Redesign or restyle any surface. Treat the Counter **web app** (`Counter.Web` — shipped, scanned with zero carve-outs) as a fixture: only the `Counter.Specimens` tree is the excluded fixture surface.
+**Never:** Edit any file under `references/Hexalith.FrontComposer/` or `references/Hexalith.EventStore/` (source `.razor`/`.razor.css`, governance guards, or `architecture.md` §4.1) from the Tenants repo. Run `git submodule update --init --recursive` or initialize/modify nested submodules. Weaken or delete any existing conformance guard. Add UI infrastructure to Tenants. Redesign or restyle any surface. Treat the Counter **web app** (`Counter.Web` — shipped, scanned with zero carve-outs) as a fixture: only the `Counter.Specimens` tree is the excluded fixture surface.
 
 ## I/O & Edge-Case Matrix (audit decision matrix)
 
@@ -61,26 +61,26 @@ These are **already documented** (FrontComposer `architecture.md` §4.1 carve-ou
 > Evidence below was gathered from the submodule source on baseline `4ce8a84`. The dev agent **re-verifies** each row against current source + the pinned package, then assigns a Verdict (KEEP / REMEDIATE / DOC-DRIFT) with citations in the Dev Agent Record.
 
 ### C1 — FrontComposer Shell · `FcHomeCard`
-- **Source:** `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Home/FcHomeCard.razor` (+ code-behind `FcHomeCard.razor.cs`; styling in `Components/Home/FcHomeDirectory.razor.css` — `.fc-home-card-button` is `background:transparent; border:0; display:block; width:100%; padding:calc(var(--design-unit)*3px)`).
+- **Source:** `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Home/FcHomeCard.razor` (+ code-behind `FcHomeCard.razor.cs`; styling in `Components/Home/FcHomeDirectory.razor.css` — `.fc-home-card-button` is `background:transparent; border:0; display:block; width:100%; padding:calc(var(--design-unit)*3px)`).
 - **Raw markup:** `<button type="button" role="link">` (custom keyboard activation) hosting `<h2>` title + projection `<ul>`/`<li>`/`<span>`. No inline styles; CSS is scoped + design-token based.
-- **Allowlist:** `Hexalith.FrontComposer/tests/.../Governance/FluentConformanceTests.cs:36` → `carveOuts = ["FcHomeCard.razor"]` (test `Shell_components_use_fluent_v5_only_except_documented_carveouts`, line 29).
+- **Allowlist:** `references/Hexalith.FrontComposer/tests/.../Governance/FluentConformanceTests.cs:36` → `carveOuts = ["FcHomeCard.razor"]` (test `Shell_components_use_fluent_v5_only_except_documented_carveouts`, line 29).
 - **§4.1 row:** `architecture.md:102` — "framework chrome; `role="link"` + custom keyboard activation; hosts `<h2>` + projection `<ul>` a `FluentButton` cannot contain without regression."
 - **Stated justification:** `FluentButton` cannot host nested `<h2>`+`<ul>` semantic content without visual/structural regression; the card needs custom keyboard activation the Razor compiler emits only on a real element. **Re-test:** does the pinned package offer a card-as-link primitive (`FluentCard` + `FluentAnchor` composition, or newer) that hosts heading + list without regression? **Verdict:** _(dev)_
 
 ### C2 — FrontComposer Counter samples · `Counter.Specimens`
-- **Source:** `Hexalith.FrontComposer/samples/Counter/Counter.Specimens/FrontComposerTypeSpecimen.razor` (+ `FrontComposerDataFormattingSpecimen.razor` and the rest of the `Counter.Specimens/` tree). Raw `<button>/<input>/<label>/<form>/<table>` are the **content** (a11y/visual fixtures demonstrating unstyled fallback).
+- **Source:** `references/Hexalith.FrontComposer/samples/Counter/Counter.Specimens/FrontComposerTypeSpecimen.razor` (+ `FrontComposerDataFormattingSpecimen.razor` and the rest of the `Counter.Specimens/` tree). Raw `<button>/<input>/<label>/<form>/<table>` are the **content** (a11y/visual fixtures demonstrating unstyled fallback).
 - **Allowlist:** `FluentConformanceTests.cs:43-47` — the guard scans `Counter.Web` (the **shipped** sample app) with **zero** carve-outs and **excludes the `Counter.Specimens` tree entirely**.
 - **§4.1 row:** `architecture.md:103` — "the raw controls **are** the a11y/visual specimen fixtures; not a shipped UI page."
 - **Re-test:** (1) Confirm `Counter.Web` is still Fluent-clean (guard passes, no new raw controls). (2) Confirm `Counter.Specimens` is genuinely non-shipped — not routed or linked from any shipped surface. If a specimen is reachable as a shipped route ⇒ REMEDIATE. **Verdict:** _(dev)_
 
 ### C3 — EventStore Admin.UI · `ActivityChart`
-- **Source:** `Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/ActivityChart.razor`. `<button class="activity-chart-bar-wrapper">` wraps a height-scaled `<div class="activity-chart-bar" style="height:N%">` (data-driven bar). Carries `aria-label`, container `role="img"`, and a hidden `<table class="sr-only">` tabular fallback. CSS owns flex layout, hover/focus-visible ring, 200ms opacity transition (respects `prefers-reduced-motion`), responsive bar-hiding, forced-colors swap.
-- **Allowlist:** `Hexalith.EventStore/tests/.../Governance/AdminUiFluentConformanceTests.cs:37` → `carveOuts = ["ActivityChart.razor", "Streams.razor"]` (test `AdminUi_components_use_fluent_v5_only_except_documented_carveouts`, line 28).
+- **Source:** `references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/ActivityChart.razor`. `<button class="activity-chart-bar-wrapper">` wraps a height-scaled `<div class="activity-chart-bar" style="height:N%">` (data-driven bar). Carries `aria-label`, container `role="img"`, and a hidden `<table class="sr-only">` tabular fallback. CSS owns flex layout, hover/focus-visible ring, 200ms opacity transition (respects `prefers-reduced-motion`), responsive bar-hiding, forced-colors swap.
+- **Allowlist:** `references/Hexalith.EventStore/tests/.../Governance/AdminUiFluentConformanceTests.cs:37` → `carveOuts = ["ActivityChart.razor", "Streams.razor"]` (test `AdminUi_components_use_fluent_v5_only_except_documented_carveouts`, line 28).
 - **§4.1 row:** `architecture.md:104` — "data-visualization element (height-scaled `<div>`); `aria-label` present; `FluentButton` destroys the bar."
 - **Re-test:** does the pinned package offer a chart/meter/data-bar primitive that preserves the data-driven height? Confirm the sr-only table fallback + aria still present. **Verdict:** _(dev)_
 
 ### C4 — EventStore Admin.UI · `Streams` (aggregate-id-copy cell)
-- **Source:** `Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Pages/Streams.razor`. `<button class="monospace grid-cell-truncate aggregate-id-copy">` inside a `FluentDataGrid` template column; carries `aria-label`, `data-testid="aggregate-id-copy"`, `title`, `@onclick:stopPropagation`/`@onkeydown:stopPropagation`; copies via JS interop with toast + clipboard-unavailable fallback. The button itself has **no** bespoke CSS (inherits `.monospace` + `.grid-cell-truncate`).
+- **Source:** `references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Pages/Streams.razor`. `<button class="monospace grid-cell-truncate aggregate-id-copy">` inside a `FluentDataGrid` template column; carries `aria-label`, `data-testid="aggregate-id-copy"`, `title`, `@onclick:stopPropagation`/`@onkeydown:stopPropagation`; copies via JS interop with toast + clipboard-unavailable fallback. The button itself has **no** bespoke CSS (inherits `.monospace` + `.grid-cell-truncate`).
 - **Allowlist:** same as C3 (`AdminUiFluentConformanceTests.cs:37`). **§4.1 row:** `architecture.md` (Admin.UI Streams row) — "grid-cell affordance; `FluentButton` breaks the cell layout."
 - **Re-test:** does the pinned package offer an in-cell action affordance (e.g. a borderless/inline `FluentButton` appearance, or a copy primitive) that preserves `FluentDataGrid` row alignment? **Verdict:** _(dev)_
 
@@ -92,15 +92,15 @@ These are **already documented** (FrontComposer `architecture.md` §4.1 carve-ou
 ## Code Map (read-only unless noted)
 
 **Carve-out source (READ — submodules, never edit from this repo):**
-- `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Home/FcHomeCard.razor` (+ `.razor.cs`, `FcHomeDirectory.razor.css`).
-- `Hexalith.FrontComposer/samples/Counter/Counter.Specimens/*.razor` and `Hexalith.FrontComposer/samples/Counter/Counter.Web/**` (confirm clean).
-- `Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/ActivityChart.razor`, `Pages/Streams.razor`, `Pages/Index.razor`.
+- `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Home/FcHomeCard.razor` (+ `.razor.cs`, `FcHomeDirectory.razor.css`).
+- `references/Hexalith.FrontComposer/samples/Counter/Counter.Specimens/*.razor` and `references/Hexalith.FrontComposer/samples/Counter/Counter.Web/**` (confirm clean).
+- `references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/ActivityChart.razor`, `Pages/Streams.razor`, `Pages/Index.razor`.
 
 **Governance + documentation (READ — submodules, never edit from this repo):**
-- `Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Governance/FluentConformanceTests.cs` (allowlist `["FcHomeCard.razor"]`; Counter.Web zero carve-outs; Specimens excluded).
-- `Hexalith.EventStore/tests/Hexalith.EventStore.Admin.UI.Tests/Governance/AdminUiFluentConformanceTests.cs` (allowlist `["ActivityChart.razor","Streams.razor"]`).
-- `Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md` §4.1 (lines 83-104 — UI component policy + carve-out table).
-- `Hexalith.FrontComposer/_bmad-output/project-context.md` (Fluent-only UI rule, ~lines 131-136).
+- `references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Governance/FluentConformanceTests.cs` (allowlist `["FcHomeCard.razor"]`; Counter.Web zero carve-outs; Specimens excluded).
+- `references/Hexalith.EventStore/tests/Hexalith.EventStore.Admin.UI.Tests/Governance/AdminUiFluentConformanceTests.cs` (allowlist `["ActivityChart.razor","Streams.razor"]`).
+- `references/Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md` §4.1 (lines 83-104 — UI component policy + carve-out table).
+- `references/Hexalith.FrontComposer/_bmad-output/project-context.md` (Fluent-only UI rule, ~lines 131-136).
 
 **Reference — Tenants conformance baseline (READ; in-repo):**
 - `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs` (nine guards + the three structural/style guards added by the structural-and-style sweep; declares **no** carve-outs — the parity benchmark).
@@ -120,7 +120,7 @@ These are **already documented** (FrontComposer `architecture.md` §4.1 carve-ou
 - [x] **C4 audit — Streams copy cell.** Re-read source; confirm in-`FluentDataGrid` copy affordance + aria/data-testid/stopPropagation/clipboard fallback; query the pinned package for an in-cell action primitive; assign Verdict. → **KEEP** (no in-cell primitive; FluentButton breaks cell).
 - [x] **Undocumented-drift sweep.** Scan all three surfaces for raw controls not in an allowlist and for non-semantic clickables/landmarks (incl. Admin.UI `Index.razor` clickable `<div>`); record each with a Verdict. → 0 undocumented raw controls; Shell+Counter.Web clean; Admin.UI **NS-1/NS-2** (REMEDIATE) + **DV-1** (REMEDIATE + DOC-DRIFT, StorageTreemap).
 - [x] **Governance-parity recommendation.** Compare the three guards vs Tenants.UI's structural-HTML budget / inline-layout-style / component-CSS guards; record whether Shell + Admin.UI should adopt them (advisory only — no edits from this repo). → Tenants 12 guards vs Shell/Admin.UI 1; recommendation in findings §4.
-- [x] **Findings record + handoffs.** Write the per-carve-out decision record (KEEP / REMEDIATE / DOC-DRIFT) with citations; file owner handoffs for every REMEDIATE / DOC-DRIFT / NEW-GUARD item, naming the exact submodule file(s). Make **no** edits under `Hexalith.FrontComposer/` or `Hexalith.EventStore/`. → `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`; handoffs H-FC-1..2 / H-ES-1..5; nested submodule worktrees verified unmodified; accepted review range includes the superproject FrontComposer gitlink move.
+- [x] **Findings record + handoffs.** Write the per-carve-out decision record (KEEP / REMEDIATE / DOC-DRIFT) with citations; file owner handoffs for every REMEDIATE / DOC-DRIFT / NEW-GUARD item, naming the exact submodule file(s). Make **no** edits under `references/Hexalith.FrontComposer/` or `references/Hexalith.EventStore/`. → `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md`; handoffs H-FC-1..2 / H-ES-1..5; nested submodule worktrees verified unmodified; accepted review range includes the superproject FrontComposer gitlink move.
 - [x] **Close.** Update sprint status to `done` only after the record + handoffs exist and are self-consistent. → Set to `review` per the `bmad-dev-story` Step 9 gate (audit deliverable routed for peer review before `done`); see Completion Notes.
 
 **Acceptance Criteria:**
@@ -128,14 +128,14 @@ These are **already documented** (FrontComposer `architecture.md` §4.1 carve-ou
 - Given the three documentation records of each carve-out (source ↔ guard allowlist ↔ `architecture.md` §4.1 row), when the audit cross-checks them, then agreement is confirmed or any drift is recorded as a DOC-DRIFT finding with a handoff.
 - Given the three surfaces, when the audit sweeps for undocumented raw controls and non-semantic clickables/landmarks (including Admin.UI `Index.razor`), then each is recorded with a Verdict and, where applicable, a handoff.
 - Given the three surfaces' guards vs Tenants.UI's structural/style guards, when the audit compares them, then a governance-parity recommendation is recorded for the FrontComposer and EventStore owners.
-- Given every REMEDIATE / DOC-DRIFT / NEW-GUARD finding, when the audit closes, then each has an owner handoff naming the exact submodule file(s), and **no** file under `Hexalith.FrontComposer/` or `Hexalith.EventStore/` was modified from the Tenants repo and no nested submodule was initialized.
+- Given every REMEDIATE / DOC-DRIFT / NEW-GUARD finding, when the audit closes, then each has an owner handoff naming the exact submodule file(s), and **no** file under `references/Hexalith.FrontComposer/` or `references/Hexalith.EventStore/` was modified from the Tenants repo and no nested submodule was initialized.
 - Given the findings record is complete and self-consistent, when sprint status is updated, then `cc-frontcomposer-shell-and-adminui-fluent-conformance-audit` is set to `done` (not before).
 
 ## Dev Notes
 
 - **This is an audit, not a migration.** "Done" = a complete, evidence-backed decision record + handoffs. There is **no** Tenants source change and **no** new passing test required in this repo (the surface guards already exist in their submodules and stay green). Do not "fix" carve-outs here.
-- **Submodule boundary is the #1 trap.** `Hexalith.FrontComposer` and `Hexalith.EventStore` are root-level submodules. Repo policy (CLAUDE.md + `project-context.md`): never modify submodule files without explicit human approval; never `--init --recursive`. The audit READS submodule source freely and WRITES only in-repo `_bmad-output/` artifacts. Every remediation is an owner handoff. If the human approves an in-place submodule fix, it is a separate task run via that submodule's own scoped `bmad-*` skills — not this story.
-- **Authoritative carve-out list is in the FrontComposer submodule, not Tenants.** The Tenants `architecture.md` UI/Styling note (lines 251-260) has **no** §4.1; "§4.1" refers to `Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md:83`. Cite the FrontComposer path.
+- **Submodule boundary is the #1 trap.** `Hexalith.FrontComposer` and `Hexalith.EventStore` are root-declared submodules under `references/`. Repo policy (CLAUDE.md + `project-context.md`): never modify submodule files without explicit human approval; never `--init --recursive`. The audit READS submodule source freely and WRITES only in-repo `_bmad-output/` artifacts. Every remediation is an owner handoff. If the human approves an in-place submodule fix, it is a separate task run via that submodule's own scoped `bmad-*` skills — not this story.
+- **Authoritative carve-out list is in the FrontComposer submodule, not Tenants.** The Tenants `architecture.md` UI/Styling note (lines 251-260) has **no** §4.1; "§4.1" refers to `references/Hexalith.FrontComposer/_bmad-output/project-docs/architecture.md:83`. Cite the FrontComposer path.
 - **Pinned package is RC.** `Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` (no GA as of 2026-06; architecture.md:217, 251). Judge equivalence against **this** pin, not Fluent docs for a newer build. Use `mcp__fluent-ui-blazor__*` (`check_project_version`, `list_components`, `search_components`, `get_component_details`, `get_component_enums`) to confirm what the pinned package actually ships before declaring "no equivalent."
 - **Counter has two surfaces — don't conflate them.** `Counter.Web` is a **shipped** sample app and is scanned with **zero** carve-outs (must stay Fluent-clean). Only `Counter.Specimens` is the excluded fixture tree. The proposal's shorthand "Counter samples" means the Specimens fixtures.
 - **Each surface already self-governs.** Re-running a surface's guard is a read-only confirmation, not a requirement to change it. The three guards are deliberately **per-surface** (none scans across submodules) — do not propose a cross-submodule scanner from Tenants.
@@ -175,7 +175,7 @@ claude-opus-4-8[1m] (Amelia — `bmad-dev-story`), 2026-06-18.
 **Full evidence-backed record:** `audit-frontcomposer-shell-adminui-fluent-2026-06-18.md` (in-repo).
 
 **Baseline.** Pin `Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` confirmed in both
-submodules (`Hexalith.FrontComposer/Directory.Packages.props:46`, `Hexalith.EventStore/Directory.Packages.props:45`).
+submodules (`references/Hexalith.FrontComposer/Directory.Packages.props:46`, `references/Hexalith.EventStore/Directory.Packages.props:45`).
 **Caveat:** the `mcp__fluent-ui-blazor` server documents build `5.0.0.26139` and reports
 **INCOMPATIBLE** (one prerelease build newer) — equivalence verdicts judged conservatively against
 the pin. Post-review verification used the exact local NuGet package for C1 and found
@@ -224,7 +224,7 @@ scale: DaprPubSub 57, DaprResiliency 45, …). Shell already clean → lower pri
   (REMEDIATE) `ActivityChart` `role="img"`/button a11y proof; **H-ES-4** (REMEDIATE + DOC-DRIFT)
   `StorageTreemap` clickable SVG semantics + §4.1 documentation; **H-ES-5** (advisory) adopt parity
   guards + non-semantic-clickable check.
-- **No** file under `Hexalith.FrontComposer/` or `Hexalith.EventStore/` was modified; handoffs are the
+- **No** file under `references/Hexalith.FrontComposer/` or `references/Hexalith.EventStore/` was modified; handoffs are the
   deliverable.
 
 ### Completion Notes List

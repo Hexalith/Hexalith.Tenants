@@ -19,7 +19,7 @@ Decisions captured at navigation start:
 
 The directive asks that module UI use **Blazor Fluent UI v5 + FrontComposer components only**, falling back to raw HTML/CSS/JS **only when no Fluent/FrontComposer equivalent exists**, and that **layout and styling come from Fluent primitives and design tokens** rather than bespoke CSS.
 
-**This is not a new policy.** `Hexalith.AI.Tools/hexalith-ux-instructions.md` already states it verbatim:
+**This is not a new policy.** `references/Hexalith.AI.Tools/hexalith-ux-instructions.md` already states it verbatim:
 
 > Module UI **must always** use the **FrontComposer** technical module and **Blazor Fluent UI V5** components. … Module UX **must avoid** using raw CSS, HTML tags, JavaScript … **when an equivalent component already exists** … Only fall back … when no such component exists.
 

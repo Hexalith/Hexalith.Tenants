@@ -319,7 +319,7 @@ So that the first UI implementation uses shared Hexalith composition patterns in
 
 **Acceptance Criteria:**
 
-**Given** the Hexalith.FrontComposer source is available as a root-level submodule and the Tenants planning artifacts identify `FC-LYT`, `FC-CMD`, `FC-CNC`, and `FC-TBL` as integration gates
+**Given** the Hexalith.FrontComposer source is available as a root-declared submodule under `references/` and the Tenants planning artifacts identify `FC-LYT`, `FC-CMD`, `FC-CNC`, and `FC-TBL` as integration gates
 **When** the spike inspects the current FrontComposer shell registration APIs, manifest registration pattern, projection routing, and table/DataGrid contract
 **Then** the spike records which APIs and contracts are confirmed for Tenants use, which remain blocked, and which approved fallbacks apply
 **And** the spike does not modify shared FrontComposer files unless explicitly approved in a separate task.

@@ -121,7 +121,7 @@ public class CiQualityGateScriptTests {
             Path.Combine(coverageRoot, "coverage.cobertura.xml"),
             [
                 CoverageClass(
-                    "Hexalith.EventStore/src/Hexalith.EventStore.Contracts/EventStoreContract.cs",
+                    "references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/EventStoreContract.cs",
                     [
                         Line(1, 1),
                     ]),

@@ -30,7 +30,7 @@ This is **not** a request for net-new pages. A tenant list page and tenant detai
 - **Query contract:** `src/Hexalith.Tenants.Contracts/Queries/ListTenantsQuery.cs` is a bare routing marker — **zero** search/filter fields. Read store `TenantIndexReadModel.Tenants` is a `Dictionary<string, TenantIndexEntry(Name, Status)>` — `Name` is already materialized.
 - **Specs:** PRD FR-1 ("scan, **search**, filter, sort, page"), FR-2 (open/return), FR-5 (detail). UX mockup `mock-tenant-list.html` literally shows `placeholder="Search tenants by name or id…"`. So search is **documented MVP scope, stubbed** — not new scope. FR-1 has **no testable consequence** defining search fields/semantics — a real gap.
 - **FrontComposer:** already provides `FrontComposerShell`, `FcPageLayout` (FC-LYT ✔), `FcPageHeader` (with `Actions`/`Metadata` slots = the toolbar mechanism), a `[Projection]`-driven view source-generator (`DetailRecord` → `FluentCard`; `Default/ActionQueue/StatusOverview` → `FluentDataGrid`), and FC-TBL DataGrid blocks (`FcProjectionGlobalSearch`, `FcColumnFilterCell`, `FcStatusFilterChips`, `FcFilterResetButton`, `FcFilterEmptyState`, …). **Gap:** no *page-level* `FcAggregateListPage`/`FcAggregateDetailPage` wrapper.
-- **Boundary:** `Hexalith.FrontComposer` and `Hexalith.Memories` are root-level submodules; Tenants must not edit submodule source unsolicited (CLAUDE.md Submodule Policy; FcPageHeader precedent = `sprint-change-proposal-2026-06-18-page-header-frontcomposer.md`).
+- **Boundary:** `Hexalith.FrontComposer` and `Hexalith.Memories` are root-declared submodules under `references/`; Tenants must not edit submodule source unsolicited (CLAUDE.md Submodule Policy; FcPageHeader precedent = `sprint-change-proposal-2026-06-18-page-header-frontcomposer.md`).
 
 ---
 
@@ -120,7 +120,7 @@ Rationale: lowest risk (proven artifact extracted second), delivers visible user
 
 **P2.3 Tenants migration.** Re-base `TenantsWorkspace.razor` on `FcAggregateListPage<TenantSummary>` (data-delegate = `ITenantQueryGateway`, preserving the Phase 1 Memories search + ETag re-read) and `TenantDetailPage.razor` on `FcAggregateDetailPage`. Existing command-flow components (the 12 `*Flow.razor` already modified on this branch) rehost into toolbar `Actions` slots.
 
-**P2.4 Upstream handoff → `Hexalith.FrontComposer` repo:** implement FC-LST/FC-DTL per the confirmed contracts; record contract docs in `Hexalith.FrontComposer/_bmad-output/contracts/`.
+**P2.4 Upstream handoff → `Hexalith.FrontComposer` repo:** implement FC-LST/FC-DTL per the confirmed contracts; record contract docs in `references/Hexalith.FrontComposer/_bmad-output/contracts/`.
 
 ### Artifact updates
 

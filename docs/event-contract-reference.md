@@ -155,7 +155,7 @@ Consumers commonly need these envelope fields:
 | EventStore `CausationId` | Originating command message ID/idempotency key. |
 | EventStore `UserId` | Authenticated actor user ID captured by EventStore. |
 
-This document covers the **payload fields** — the domain-specific content inside each event. For the full envelope schema, see the [EventStore Event Envelope documentation](../Hexalith.EventStore/docs/concepts/event-envelope.md) ([GitHub link](https://github.com/Hexalith/Hexalith.EventStore/blob/main/docs/concepts/event-envelope.md)).
+This document covers the **payload fields** — the domain-specific content inside each event. For the full envelope schema, see the [EventStore Event Envelope documentation](../references/Hexalith.EventStore/docs/concepts/event-envelope.md) ([GitHub link](https://github.com/Hexalith/Hexalith.EventStore/blob/main/docs/concepts/event-envelope.md)).
 
 ## Serialization Shape
 

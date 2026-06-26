@@ -60,9 +60,9 @@ Every state pairs the semantic color with **text plus an icon or shape** so it i
 
 ### 1.3 `FC-TOK` readiness truth (do not assert a token name as ready)
 
-- Role/status semantics may reuse **existing Fluent/FrontComposer status/role badges** (`Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Badges`) **only when a consuming story names that as the fallback**.
+- Role/status semantics may reuse **existing Fluent/FrontComposer status/role badges** (`references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Badges`) **only when a consuming story names that as the fallback**.
 - Timeline-connector and consequence-severity tokens are `missing` and remain blockers for polished audit/consequence visuals until tokens are confirmed or product/UX approves a named fallback.
-- Exact Fluent UI Blazor v5 component APIs and token names must be verified against the pinned package (`Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` in `Hexalith.FrontComposer/Directory.Packages.props`) and current official docs during implementation. Stable v4, React Fluent, or legacy `@hexalith/ui` aliases are not sufficient evidence. **Do NOT assert a specific Fluent token name as available here.** [Source: `docs/tenants-ui-frontcomposer-dependency-map.md#FC-TOK`; `#Fluent UI API Verification Prerequisite`]
+- Exact Fluent UI Blazor v5 component APIs and token names must be verified against the pinned package (`Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` in `references/Hexalith.FrontComposer/Directory.Packages.props`) and current official docs during implementation. Stable v4, React Fluent, or legacy `@hexalith/ui` aliases are not sufficient evidence. **Do NOT assert a specific Fluent token name as available here.** [Source: `docs/tenants-ui-frontcomposer-dependency-map.md#FC-TOK`; `#Fluent UI API Verification Prerequisite`]
 
 ## 2. Typography and Layout for Dense Operational Screens (AC2)
 

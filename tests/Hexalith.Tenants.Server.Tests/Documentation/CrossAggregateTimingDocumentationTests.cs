@@ -54,8 +54,8 @@ public class CrossAggregateTimingDocumentationTests {
 
         string[] sourcePaths =
         [
-            "Hexalith.EventStore/docs/concepts/command-lifecycle.md",
-            "Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs",
+            "references/Hexalith.EventStore/docs/concepts/command-lifecycle.md",
+            "references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs",
             "src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs",
             "src/Hexalith.Tenants.Client/Handlers/TenantProjectionEventHandler.cs",
             "samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs",
@@ -75,6 +75,7 @@ public class CrossAggregateTimingDocumentationTests {
     public void Timing_guide_matches_current_EventStore_command_status_contract() {
         string guide = ReadGuide();
         string controller = File.ReadAllText(RepositoryPath(
+            "references",
             "Hexalith.EventStore",
             "src",
             "Hexalith.EventStore",
@@ -241,7 +242,7 @@ public class CrossAggregateTimingDocumentationTests {
 
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
-        // that checks the dependency out as a root-level sibling. Fall back to that sibling.
+        // that checks the dependency out as a sibling checkout. Fall back to that sibling.
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

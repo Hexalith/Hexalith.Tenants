@@ -83,8 +83,8 @@ public class CompensatingCommandsDocumentationTests {
     [Fact]
     public void Compensating_guide_command_gateway_and_status_routes_match_EventStore_source() {
         string guide = ReadGuide();
-        string commandsController = File.ReadAllText(RepositoryPath("Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandsController.cs"));
-        string commandStatusController = File.ReadAllText(RepositoryPath("Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandStatusController.cs"));
+        string commandsController = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandsController.cs"));
+        string commandStatusController = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandStatusController.cs"));
 
         commandsController.ShouldContain("[Route(\"api/v1/commands\")]");
         commandStatusController.ShouldContain("[Route(\"api/v1/commands/status\")]");
@@ -312,7 +312,7 @@ public class CompensatingCommandsDocumentationTests {
 
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
-        // that checks the dependency out as a root-level sibling. Fall back to that sibling.
+        // that checks the dependency out as a sibling checkout. Fall back to that sibling.
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

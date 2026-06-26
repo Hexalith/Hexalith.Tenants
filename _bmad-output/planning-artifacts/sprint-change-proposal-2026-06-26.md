@@ -18,8 +18,8 @@ Trigger: direct user instruction, `$bmad-correct-course HexalithEventStoreSecuri
 Evidence:
 
 - `src/Hexalith.Tenants.AppHost/Program.cs` manually called `builder.AddKeycloak("keycloak", 8180)` and built the realm URL locally.
-- `Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreSecurityExtensions.cs` already ships `AddHexalithEventStoreSecurity`, `WithJwtBearerSecurity`, `WithEventStoreClientCredentials`, `WithOpenIdConnectSecurity`, and `WithSecurityDependency`.
-- `Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreSecurityOptions.cs` defaults the Aspire resource name to `security`, the realm to `hexalith`, the audience to `hexalith-eventstore`, and the `EnableKeycloak` disable key to the current Tenants AppHost contract.
+- `references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreSecurityExtensions.cs` already ships `AddHexalithEventStoreSecurity`, `WithJwtBearerSecurity`, `WithEventStoreClientCredentials`, `WithOpenIdConnectSecurity`, and `WithSecurityDependency`.
+- `references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreSecurityOptions.cs` defaults the Aspire resource name to `security`, the realm to `hexalith`, the audience to `hexalith-eventstore`, and the `EnableKeycloak` disable key to the current Tenants AppHost contract.
 
 ## 2. Change Analysis Checklist Results
 

@@ -47,8 +47,8 @@ inputDocuments:
   - docs/sample-consuming-service-walkthrough.md
   # --- Project context (AI agent rules) ---
   - _bmad-output/project-context.md
-  - Hexalith.Commons/_bmad-output/project-context.md
-  - Hexalith.EventStore/_bmad-output/project-context.md
+  - references/Hexalith.Commons/_bmad-output/project-context.md
+  - references/Hexalith.EventStore/_bmad-output/project-context.md
 workflowType: 'architecture'
 lastStep: 8
 status: 'complete'

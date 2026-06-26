@@ -3,11 +3,11 @@
 ## AI assistant instructions
 
 Before working in this repository, read
-[`hexalith-llm-instructions.md`](./Hexalith.AI.Tools/hexalith-llm-instructions.md)
+[`hexalith-llm-instructions.md`](./references/Hexalith.AI.Tools/hexalith-llm-instructions.md)
 (in the `Hexalith.AI.Tools` submodule) and follow it.
 
 Before working on any module user interface or UX, also read
-[`Hexalith.AI.Tools/hexalith-ux-instructions.md`](./Hexalith.AI.Tools/hexalith-ux-instructions.md)
+[`references/Hexalith.AI.Tools/hexalith-ux-instructions.md`](./references/Hexalith.AI.Tools/hexalith-ux-instructions.md)
 and follow it.
 
 ## File Discovery and Search
@@ -67,9 +67,9 @@ feat!: rename TenantAggregate state shape
 
 ## Submodule Policy
 
-Only initialize submodules declared at the root of this repository.
+Only initialize submodules declared in the root `.gitmodules` file under `references/`.
 
-Never initialize nested submodules. Do not run `git submodule update --init --recursive`, `git submodule foreach --recursive`, or any equivalent command that initializes submodules inside the root-level submodules. If a nested submodule appears uninitialized, leave it alone unless a human explicitly requests otherwise.
+Never initialize nested submodules. Do not run `git submodule update --init --recursive`, `git submodule foreach --recursive`, or any equivalent command that initializes submodules inside the root-declared submodules under `references/`. If a nested submodule appears uninitialized, leave it alone unless a human explicitly requests otherwise.
 
 ## Project Structure
 
@@ -78,4 +78,4 @@ Never initialize nested submodules. Do not run `git submodule update --init --re
   - `_bmad-output/planning-artifacts/` - PRD, architecture, epics, product brief
   - `_bmad-output/implementation-artifacts/` - sprint status, story files
 - **BMAD tooling**: `_bmad/` - BMAD framework installation (tracked)
-- **Git submodules**: root-level dependencies listed in the Submodule Policy section
+- **Git submodules**: root-declared dependencies under `references/` listed in the Submodule Policy section

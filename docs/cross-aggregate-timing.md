@@ -6,8 +6,8 @@ Tenant commands, EventStore status records, DAPR pub/sub, Tenants query projecti
 
 Source anchors for this guide:
 
-- `Hexalith.EventStore/docs/concepts/command-lifecycle.md`
-- `Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs`
+- `references/Hexalith.EventStore/docs/concepts/command-lifecycle.md`
+- `references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs`
 - `src/Hexalith.Tenants.Client/Registration/TenantServiceCollectionExtensions.cs`
 - `src/Hexalith.Tenants.Client/Handlers/TenantProjectionEventHandler.cs`
 - `samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs`

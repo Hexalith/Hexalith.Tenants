@@ -29,7 +29,7 @@ public class QuickstartDocumentationTests {
         quickstart.ShouldContain("dapr init --slim");
         quickstart.ShouldContain("Docker");
         quickstart.ShouldContain("docker info");
-        quickstart.ShouldContain("git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer");
+        quickstart.ShouldContain("git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories");
         quickstart.ShouldContain("Do not run `git submodule update --init --recursive`");
         quickstart.ShouldContain("dotnet build Hexalith.Tenants.slnx --configuration Release");
         quickstart.ShouldContain("dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj");
@@ -52,7 +52,7 @@ public class QuickstartDocumentationTests {
             "src/Hexalith.Tenants.AppHost/Program.cs",
             "src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json",
             "src/Hexalith.Tenants/appsettings.Development.json",
-            "Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json",
+            "references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json",
             "docs/quickstart.md",
             "docs/production-auth-claim-contract.md",
             "docs/production-auth-readiness.md",
@@ -73,8 +73,8 @@ public class QuickstartDocumentationTests {
     [Fact]
     public void Quickstart_command_gateway_and_status_routes_match_EventStore_source() {
         string quickstart = ReadQuickstart();
-        string commandsController = File.ReadAllText(RepositoryPath("Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandsController.cs"));
-        string commandStatusController = File.ReadAllText(RepositoryPath("Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandStatusController.cs"));
+        string commandsController = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandsController.cs"));
+        string commandStatusController = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "Controllers", "CommandStatusController.cs"));
 
         commandsController.ShouldContain("[Route(\"api/v1/commands\")]");
         commandStatusController.ShouldContain("[Route(\"api/v1/commands/status\")]");
@@ -88,14 +88,14 @@ public class QuickstartDocumentationTests {
     [Fact]
     public void Quickstart_hmac_fallback_targets_EventStore_development_auth_settings() {
         string quickstart = ReadQuickstart();
-        string eventStoreDevelopmentSettings = File.ReadAllText(RepositoryPath("Hexalith.EventStore", "src", "Hexalith.EventStore", "appsettings.Development.json"));
+        string eventStoreDevelopmentSettings = File.ReadAllText(RepositoryPath("references", "Hexalith.EventStore", "src", "Hexalith.EventStore", "appsettings.Development.json"));
         string tenantsDevelopmentSettings = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants", "appsettings.Development.json"));
 
         eventStoreDevelopmentSettings.ShouldContain("\"Audience\": \"hexalith-eventstore\"");
         eventStoreDevelopmentSettings.ShouldContain("\"SigningKey\": \"DevOnlySigningKey-AtLeast32Chars!\"");
         tenantsDevelopmentSettings.ShouldContain("\"Audience\": \"hexalith-tenants\"");
 
-        quickstart.ShouldContain("Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json");
+        quickstart.ShouldContain("references/Hexalith.EventStore/src/Hexalith.EventStore/appsettings.Development.json");
         quickstart.ShouldContain("aud=\"hexalith-eventstore\"");
         quickstart.ShouldContain("aud\":\"hexalith-eventstore\"");
         quickstart.ShouldContain("DevOnlySigningKey-AtLeast32Chars!");
@@ -206,7 +206,7 @@ public class QuickstartDocumentationTests {
 
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
-        // that checks the dependency out as a root-level sibling. Fall back to that sibling.
+        // that checks the dependency out as a sibling checkout. Fall back to that sibling.
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

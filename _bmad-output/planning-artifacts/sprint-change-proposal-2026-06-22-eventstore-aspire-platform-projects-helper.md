@@ -45,7 +45,7 @@ three `IProjectMetadata` classes and the same repository-path resolver.
 The identical files exist verbatim in a second domain module's AppHost:
 
 ```
-Hexalith.FrontComposer/src/Hexalith.FrontComposer.AppHost/
+references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.AppHost/
   HexalithEventStore.cs
   HexalithEventStoreAdminServerHost.cs
   HexalithEventStoreAdminUI.cs
@@ -333,6 +333,6 @@ Approve this Sprint Change Proposal for implementation?
 
 Code review run: 2026-06-25 (`bmad-code-review`)
 
-- [x] [Review][Patch] Regenerate EventStore.Aspire API reference docs [Hexalith.EventStore/docs/reference/api/Hexalith.EventStore.Aspire/index.md:1] -- fixed 2026-06-25; regenerated the `Hexalith.EventStore.Aspire` API reference folder with the new public `RepositoryProjectPaths`, `HexalithEventStorePlatformExtensions`, and `HexalithEventStorePlatformProjects` pages.
-- [x] [Review][Patch] Fix invalid `IProjectMetadata` XML cref in `RepositoryProjectPaths` [Hexalith.EventStore/src/Hexalith.EventStore.Aspire/RepositoryProjectPaths.cs:12] -- fixed 2026-06-25; replaced the unresolved fully qualified `cref` with code text and removed two overload-sensitive EventStore.Aspire `cref` links that blocked the current API-reference build.
-- [x] [Review][Patch] Validate public `RepositoryProjectPaths` inputs and resolved root [Hexalith.EventStore/src/Hexalith.EventStore.Aspire/RepositoryProjectPaths.cs:28] -- fixed 2026-06-25; validates non-empty relative path segments, rejects parent-directory traversal and rooted segments, verifies the inferred repository root contains `src`, and guards the final resolved path against escaping the repository root.
+- [x] [Review][Patch] Regenerate EventStore.Aspire API reference docs [references/Hexalith.EventStore/docs/reference/api/Hexalith.EventStore.Aspire/index.md:1] -- fixed 2026-06-25; regenerated the `Hexalith.EventStore.Aspire` API reference folder with the new public `RepositoryProjectPaths`, `HexalithEventStorePlatformExtensions`, and `HexalithEventStorePlatformProjects` pages.
+- [x] [Review][Patch] Fix invalid `IProjectMetadata` XML cref in `RepositoryProjectPaths` [references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/RepositoryProjectPaths.cs:12] -- fixed 2026-06-25; replaced the unresolved fully qualified `cref` with code text and removed two overload-sensitive EventStore.Aspire `cref` links that blocked the current API-reference build.
+- [x] [Review][Patch] Validate public `RepositoryProjectPaths` inputs and resolved root [references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/RepositoryProjectPaths.cs:28] -- fixed 2026-06-25; validates non-empty relative path segments, rejects parent-directory traversal and rooted segments, verifies the inferred repository root contains `src`, and guards the final resolved path against escaping the repository root.

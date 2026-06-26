@@ -125,7 +125,7 @@ Story 1.7 delivers FR8 and FR9: an authorization-safe, read-only member table pl
 Network research was not performed because network access is restricted and this story relies on repo-pinned local versions plus existing backend contracts.
 
 - .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
-- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent or FrontComposer as part of this story. Verify exact table/icon APIs locally before using new component features. [Source: `Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/planning-artifacts/architecture.md#Starter Template Evaluation`]
+- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent or FrontComposer as part of this story. Verify exact table/icon APIs locally before using new component features. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/planning-artifacts/architecture.md#Starter Template Evaluation`]
 - Tests use xUnit v3, Shouldly, NSubstitute, and bUnit. Test classes/files use plural `{Class}Tests.cs`; avoid raw `Assert.*`. [Source: `_bmad-output/project-context.md#Testing Rules`; `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`]
 
 ### Project Structure Notes

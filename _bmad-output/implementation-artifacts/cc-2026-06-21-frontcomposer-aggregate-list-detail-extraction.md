@@ -22,7 +22,7 @@ This story is **not** a new tenant list, a new tenant detail page, or a backend 
 
 ### Cross-repo split
 
-- **FrontComposer submodule:** define and implement the shared contracts/components for `FC-LST` and `FC-DTL`, expected names `FcAggregateListPage<TItem>` and `FcAggregateDetailPage<TItem>`, plus docs/tests/public-surface evidence. These changes belong in `Hexalith.FrontComposer/**`. Because that is a root-level submodule, do not edit it unless the dev-story run has explicit owner approval for this cross-submodule story. If that approval is not present, stop after producing a FrontComposer handoff spec; do not claim completion.
+- **FrontComposer submodule:** define and implement the shared contracts/components for `FC-LST` and `FC-DTL`, expected names `FcAggregateListPage<TItem>` and `FcAggregateDetailPage<TItem>`, plus docs/tests/public-surface evidence. These changes belong in `references/Hexalith.FrontComposer/**`. Because that is a root-declared submodule under `references/`, do not edit it unless the dev-story run has explicit owner approval for this cross-submodule story. If that approval is not present, stop after producing a FrontComposer handoff spec; do not claim completion.
 - **Tenants repo:** consume the new wrappers from `src/Hexalith.Tenants.UI` and re-base `TenantsWorkspace.razor` and `TenantDetailPage.razor` without changing the backend contract or browser security posture.
 - **Memories submodule:** no work expected. Phase 1 search must keep working. Do not reopen the `SearchIndexEntryChanged` ingestion path or status-filter handoff in this story.
 
@@ -64,9 +64,9 @@ This story is **not** a new tenant list, a new tenant detail page, or a backend 
 
 - [x] **Task 1 - Contract and boundary setup** (AC: 1, 13, 15)
   - [x] Record the `FC-LST` / `FC-DTL` contract in the appropriate FrontComposer `_bmad-output/contracts/` or project-docs location, including component names, package/public-surface posture, state model, toolbar slots, data-source callbacks, and non-goals.
-  - [x] Confirm explicit owner approval for `Hexalith.FrontComposer/**` edits in this dev-story run. If absent, create only the handoff spec and stop without marking the story done.
+  - [x] Confirm explicit owner approval for `references/Hexalith.FrontComposer/**` edits in this dev-story run. If absent, create only the handoff spec and stop without marking the story done.
   - [x] Read current FrontComposer `FcPageHeader`, `FcPageLayout`, DataGrid filter/search/status components, and their tests before writing wrappers.
-  - [x] Confirm no changes are needed in `Hexalith.Memories/**` for this story.
+  - [x] Confirm no changes are needed in `references/Hexalith.Memories/**` for this story.
 
 - [x] **Task 2 - Implement `FcAggregateListPage<TItem>` in FrontComposer** (AC: 1, 2, 8, 9, 10, 13)
   - [x] Compose `FcPageLayout`, `FcPageHeader`, header `Actions` toolbar, optional `Metadata`, and a domain-provided grid/body slot.
@@ -126,9 +126,9 @@ This story is **not** a new tenant list, a new tenant detail page, or a backend 
 | `src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor` | Tenants-specific `FluentDataGrid` with identity/status/member/owner/pending/freshness/audit columns, support-safe copy, detail/audit href delegates, and sortable Tenant/Status columns. | Either keep as the domain grid child of the generic list wrapper or split only if the reusable wrapper needs a `RenderFragment` column/body contract. | `ItemKey`, data-testids, safe id copy, audit entrypoint, safety classes, localized labels, `TruthStateBadge`, no raw table markup. |
 | `src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor` | Tenants-local mapping of list surface states to localized state sections and reset/refresh actions. | May remain Tenants-local and be passed into wrapper state slots. Do not move Tenants copy into FrontComposer. | Distinct state selectors and roles/live-region semantics. |
 | `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` | Owns tenant list/detail reads. Phase 1 added Memories search branch and ETag-fresh hydration. | No change expected unless wrapper consumption reveals an adapter type is needed. | Memories match-set only, detail hydration, support-safe degraded fallback, `ResolveFreshness`, REST read path, no EventStore generic query gateway. |
-| `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.*` | Existing page header with `Actions` and `Metadata` slots, `PageTitle`, heading focus, and Fluent-based layout. | Reuse inside wrappers; do not fork the header. | `FocusHeadingAsync`, nonblank heading validation, Fluent-only styling, route-level header contract. |
-| `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageLayout.*` | Layout mode declaration component for `FullWidth`/`Constrained` via shell coordinator. | Reuse inside wrappers; wrapper should forward `FcPageLayoutMode`. | Full-width list surfaces, constrained detail surfaces, no page-root layout wrappers. |
-| `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid/FcProjectionGlobalSearch.*`, `FcStatusFilterChips.*`, `FcFilterEmptyState.*`, `FcFilterResetButton.*`, `FcColumnFilterCell.*` | Existing FC-TBL pieces, mostly Fluxor/DataGrid navigation-state oriented. | Reuse where compatible, or keep wrapper generic enough that Tenants can supply its own server-side search controls. | Do not force a client-side/generated projection model onto Tenants. |
+| `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.*` | Existing page header with `Actions` and `Metadata` slots, `PageTitle`, heading focus, and Fluent-based layout. | Reuse inside wrappers; do not fork the header. | `FocusHeadingAsync`, nonblank heading validation, Fluent-only styling, route-level header contract. |
+| `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageLayout.*` | Layout mode declaration component for `FullWidth`/`Constrained` via shell coordinator. | Reuse inside wrappers; wrapper should forward `FcPageLayoutMode`. | Full-width list surfaces, constrained detail surfaces, no page-root layout wrappers. |
+| `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid/FcProjectionGlobalSearch.*`, `FcStatusFilterChips.*`, `FcFilterEmptyState.*`, `FcFilterResetButton.*`, `FcColumnFilterCell.*` | Existing FC-TBL pieces, mostly Fluxor/DataGrid navigation-state oriented. | Reuse where compatible, or keep wrapper generic enough that Tenants can supply its own server-side search controls. | Do not force a client-side/generated projection model onto Tenants. |
 | `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` | Locks server search, list states, cursor paging, support-safe/browser-backend guard, grid markers. | Update expected markup/component location only. | Do not weaken behavioral assertions. |
 | `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` | Locks detail load, safe return URL, blank-name fallback, state branches, sections, resources, support-safety, CSS hooks. | Update selectors only if the wrapper contract intentionally changes the DOM wrapper. | Do not remove coverage for command sections or safe states. |
 | `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs` | Governance guard for Fluent-only controls/forms/tables, page layout/header, CSS ownership, raw layout budget. | Keep green; update only for intentionally new FrontComposer wrapper usage. | Do not raise budgets or allowlists without a code-review note. |
@@ -187,12 +187,12 @@ External references checked during story creation:
 ### Project Structure Notes
 
 - Expected Tenants changes: `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`, `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`, maybe `TenantDataGrid.razor` and UI tests. Keep Tenants domain copy/resources in Tenants.
-- Expected FrontComposer changes: new wrapper components under `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/` or a better existing Shell component folder, plus tests under `Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/`, docs/contracts, and public API baseline if required.
+- Expected FrontComposer changes: new wrapper components under `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/` or a better existing Shell component folder, plus tests under `references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/`, docs/contracts, and public API baseline if required.
 - Avoid AppHost, EventStore, Memories, server aggregate, contract DTO, or persistence changes unless a compile break proves they are necessary. Generic UI belongs in FrontComposer; Tenants should only adapt to the new shared components.
 
 ### Open Questions / Assumptions
 
-- Assumption: the approved 2026-06-21 Correct Course authorizes the FrontComposer handoff, but actual submodule source edits still require explicit dev-story owner approval. The dev agent must verify that approval before editing `Hexalith.FrontComposer/**`.
+- Assumption: the approved 2026-06-21 Correct Course authorizes the FrontComposer handoff, but actual submodule source edits still require explicit dev-story owner approval. The dev agent must verify that approval before editing `references/Hexalith.FrontComposer/**`.
 - Assumption: the first implementation can keep `TenantDataGrid` as the domain-specific grid body passed into `FcAggregateListPage<TenantListRow>`. A later story can generalize column definitions further if other domains need it.
 
 ### References
@@ -208,9 +208,9 @@ External references checked during story creation:
 - [Source: `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`]
 - [Source: `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor`]
 - [Source: `src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor`]
-- [Source: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor`]
-- [Source: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageLayout.razor`]
-- [Source: `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid/`]
+- [Source: `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor`]
+- [Source: `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageLayout.razor`]
+- [Source: `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid/`]
 - [Source: `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs`]
 - [Source: `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`]
 - [Source: `tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs`]
@@ -318,7 +318,7 @@ builds 0 warnings / 0 errors.
 
 **Correct Course review remediation (2026-06-21)**
 
-- `Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor.css` (new — back-link color/`fit-content`/`:focus-visible`/forced-colors outline)
+- `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcAggregateDetailPage.razor.css` (new — back-link color/`fit-content`/`:focus-visible`/forced-colors outline)
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor` (removed pointless `BackLinkClass="tenant-detail__back"`)
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor.css` (removed now-dead `.tenant-detail__back` rules)
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs` (+ `Degraded(null)→Unavailable` fail-closed test)

@@ -101,7 +101,7 @@ scripts/
 
 ### Development Workflow
 
-1. Fork and clone, then initialize root-level submodules: `git submodule update --init Hexalith.EventStore Hexalith.Commons Hexalith.AI.Tools Hexalith.Builds Hexalith.FrontComposer Hexalith.PolymorphicSerializations Hexalith.Memories`
+1. Fork and clone, then initialize root-declared submodules under `references/`: `git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories`
 2. Create a feature branch from `main`
 3. Make changes following the code style defined in [`.editorconfig`](.editorconfig)
 4. Build the solution with `dotnet build Hexalith.Tenants.slnx -c Release -warnaserror`

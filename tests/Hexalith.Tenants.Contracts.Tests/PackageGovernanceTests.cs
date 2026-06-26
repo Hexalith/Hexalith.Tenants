@@ -155,8 +155,8 @@ public class PackageGovernanceTests {
         RequiredValueFor(buildProps, "PackageTags").ShouldContain("multi-tenancy");
         RequiredValueFor(buildProps, "PackageReadmeFile").ShouldBe("README.md");
 
-        buildProps.Descendants("HexalithEventStoreRoot").Count().ShouldBe(4);
-        buildPropsText.ShouldContain("Hexalith.EventStore\\src\\Hexalith.EventStore.Contracts");
+        buildProps.Descendants("HexalithEventStoreRoot").Count().ShouldBe(6);
+        buildPropsText.ShouldContain("references\\Hexalith.EventStore\\src\\Hexalith.EventStore.Contracts");
         buildPropsText.ShouldNotContain("GenerateDocumentationFile");
         buildPropsText.ShouldNotContain("StyleCop");
         buildPropsText.ShouldNotContain("SonarAnalyzer");
@@ -434,13 +434,13 @@ public class PackageGovernanceTests {
             .Where(path => !path.StartsWith("node_modules/", StringComparison.Ordinal))
             .Where(path => !path.Contains("/node_modules/", StringComparison.Ordinal))
             // Submodules own their own container strategy; this governance is scoped to Tenants files.
-            .Where(path => !path.StartsWith("Hexalith.EventStore/", StringComparison.Ordinal))
-            .Where(path => !path.StartsWith("Hexalith.Commons/", StringComparison.Ordinal))
-            .Where(path => !path.StartsWith("Hexalith.Builds/", StringComparison.Ordinal))
-            .Where(path => !path.StartsWith("Hexalith.FrontComposer/", StringComparison.Ordinal))
-            .Where(path => !path.StartsWith("Hexalith.Memories/", StringComparison.Ordinal))
-            .Where(path => !path.StartsWith("Hexalith.AI.Tools/", StringComparison.Ordinal))
-            .Where(path => !path.StartsWith("Hexalith.PolymorphicSerializations/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.EventStore/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.Commons/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.Builds/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.FrontComposer/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.Memories/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.AI.Tools/", StringComparison.Ordinal))
+            .Where(path => !path.StartsWith("references/Hexalith.PolymorphicSerializations/", StringComparison.Ordinal))
             .Where(IsAdHocContainerFile)
             .ToArray();
 

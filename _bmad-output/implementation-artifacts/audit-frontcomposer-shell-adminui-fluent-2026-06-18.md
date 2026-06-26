@@ -20,7 +20,7 @@ accepted_bundled_diff: true
 # FrontComposer Shell + Counter + Admin.UI — Fluent Conformance Audit (2026-06-18)
 
 > **Audit, not migration.** This record is the deliverable. No file inside the
-> `Hexalith.FrontComposer/` or `Hexalith.EventStore/` worktrees was modified (verified: both
+> `references/Hexalith.FrontComposer/` or `references/Hexalith.EventStore/` worktrees was modified (verified: both
 > `git -C <submodule> status --porcelain` empty). The accepted review range does include adjacent
 > Tenants UI/DAPR/story-record changes and a superproject `Hexalith.FrontComposer` gitlink move
 > (`6edc855` -> `f4910d7`); Administrator accepted that bundled diff during code review on
@@ -30,7 +30,7 @@ accepted_bundled_diff: true
 ## 1. Baseline & decision criteria
 
 **Pinned package (both submodules, central):** `Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1`
-— `Hexalith.FrontComposer/Directory.Packages.props:46`, `Hexalith.EventStore/Directory.Packages.props:45`.
+— `references/Hexalith.FrontComposer/Directory.Packages.props:46`, `references/Hexalith.EventStore/Directory.Packages.props:45`.
 
 **⚠️ MCP-vs-pin version caveat (material to most "no equivalent" verdicts).** The
 `mcp__fluent-ui-blazor` server documents build **`5.0.0.26139`** and reports **INCOMPATIBLE** against
@@ -53,11 +53,11 @@ Fail either ⇒ **REMEDIATE** (handoff). The standing rule: FrontComposer `proje
 ("Fluent-only UI (project-wide)") and `architecture.md:83-105` §4.1; raw `<a>` nav links permitted.
 
 **Guards re-confirmed (read-only):**
-- Shell — `Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Governance/FluentConformanceTests.cs`:
+- Shell — `references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Governance/FluentConformanceTests.cs`:
   carve-out `["FcHomeCard.razor"]` at **:36** (test `Shell_components_use_fluent_v5_only_except_documented_carveouts` :29);
   Counter.Web scanned with **zero** carve-outs at **:47** (test `CounterWeb_components_use_fluent_v5_only` :42);
   regex control-only `<(button|input|select|textarea)(\s|/|>)` :24-26.
-- Admin.UI — `Hexalith.EventStore/tests/Hexalith.EventStore.Admin.UI.Tests/Governance/AdminUiFluentConformanceTests.cs`:
+- Admin.UI — `references/Hexalith.EventStore/tests/Hexalith.EventStore.Admin.UI.Tests/Governance/AdminUiFluentConformanceTests.cs`:
   carve-out `["ActivityChart.razor","Streams.razor"]` at **:37** (test `AdminUi_components_use_fluent_v5_only_except_documented_carveouts` :28); same control-only regex :22-24.
 
 ## 2. Carve-out verdicts (C1–C4)

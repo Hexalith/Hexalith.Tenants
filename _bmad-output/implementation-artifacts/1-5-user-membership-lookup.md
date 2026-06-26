@@ -104,7 +104,7 @@ Story 1.5 delivers FR4: an operator-facing, read-only user membership lookup. It
 ### Scope Boundaries
 
 - Do not add backend endpoints, new query contracts, command APIs, EventStore server plumbing, generic UI framework scaffolding, package versions in `.csproj`, Dockerfiles, `.sln` files, copied DTOs, or shared test harness helpers. [Source: `AGENTS.md#Domain Implementation Boundary`; `_bmad-output/project-context.md#Critical Don't-Miss Rules`]
-- Do not modify root-level submodules for this story. If a reusable FrontComposer user-search, table, token, accessibility, or localization gap appears, record a follow-up instead of patching `Hexalith.FrontComposer` from this Tenants story. [Source: `AGENTS.md#Submodule Policy`; `_bmad-output/project-context.md#Code Quality & Style Rules`]
+- Do not modify root-declared submodules under `references/` for this story. If a reusable FrontComposer user-search, table, token, accessibility, or localization gap appears, record a follow-up instead of patching `Hexalith.FrontComposer` from this Tenants story. [Source: `AGENTS.md#Submodule Policy`; `_bmad-output/project-context.md#Code Quality & Style Rules`]
 - Do not implement Story 1.7 tenant member table, Story 1.8 copy-to-clipboard readiness evidence, global administrator review, audit evidence, command lifecycle, consequence previews, or any tenant/user mutation. [Source: `_bmad-output/planning-artifacts/epics.md#Epic 1: Tenant Workspace Triage and Read-Only Insight`]
 
 ### Previous Story Intelligence
@@ -125,7 +125,7 @@ Story 1.5 delivers FR4: an operator-facing, read-only user membership lookup. It
 Network research was not performed because this story relies on repo-pinned local versions, existing source, and already implemented backend contracts.
 
 - .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
-- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. Verify exact DataGrid/table/form APIs locally before using new component features. [Source: `Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/planning-artifacts/architecture.md#Starter Template Evaluation`]
+- Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. Verify exact DataGrid/table/form APIs locally before using new component features. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/planning-artifacts/architecture.md#Starter Template Evaluation`]
 - Tests use xUnit v3, Shouldly, NSubstitute, and bUnit. Test classes/files use plural `{Class}Tests.cs`; avoid raw `Assert.*`. [Source: `_bmad-output/project-context.md#Testing Rules`; `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`]
 
 ### Existing Files To Update And Preserve

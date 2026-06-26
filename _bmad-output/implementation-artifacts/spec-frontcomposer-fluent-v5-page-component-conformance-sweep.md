@@ -6,7 +6,7 @@ status: 'done'
 baseline_commit: '5666377fc41031fefe2fc1ecb04c096495b93e5e'
 context:
   - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-17.md'
-  - '{project-root}/Hexalith.AI.Tools/hexalith-ux-instructions.md'
+  - '{project-root}/references/Hexalith.AI.Tools/hexalith-ux-instructions.md'
 ---
 
 <frozen-after-approval reason="human-owned intent - do not modify unless human renegotiates">
