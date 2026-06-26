@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.1.1...v2.1.2) (2026-06-26)
+
+
+### Bug Fixes
+
+* update OpenTelemetry and commitlint package versions ([a0c9728](https://github.com/Hexalith/Hexalith.Tenants/commit/a0c97287708282570f7a4eb7c9b1628dfb0b5e6c))
+
 ## [2.1.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.1.0...v2.1.1) (2026-06-26)
 
 
