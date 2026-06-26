@@ -19,7 +19,7 @@ Open the Aspire dashboard URL printed by the AppHost. In the dashboard, collect 
 - `eventstore`: EventStore command gateway base URL for `POST /api/v1/commands` and `GET /api/v1/commands/status/{correlationId}`
 - `tenants`: Tenants query API base URL for `GET /api/tenants/{tenantId}` and `GET /api/tenants/{tenantId}/audit`
 - `sample`: Sample subscribing service base URL for `/access/{tenantId}/{userId}`
-- `keycloak`: local identity provider base URL, unless you intentionally started with `EnableKeycloak=false`
+- `security`: local Keycloak-backed identity provider base URL, unless you intentionally started with `EnableKeycloak=false`
 
 Default local auth uses Keycloak and the `hexalith-eventstore` audience. Get a token with the [Quickstart token flow](quickstart.md#get-an-access-token). HMAC development tokens are only for the explicit `EnableKeycloak=false` fallback.
 

@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Keycloak" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Platform Aspire helper libraries consumed for their hosting extensions only (not added to the Aspire
          resource graph). The Tenants/Memories project files they reference are resolved cross-repo with
          SuppressBuild, so the AppHost build never compiles those servers. -->

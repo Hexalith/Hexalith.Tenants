@@ -106,7 +106,7 @@ Before sending a command, confirm the dashboard shows these local resources as r
 - `eventstore`: EventStore command gateway, including `POST /api/v1/commands`
 - `tenants`: Tenants domain processor for `/process` and query endpoints
 - `tenants-ui`: Blazor InteractiveServer Tenants workspace composed through FrontComposer
-- `keycloak`: local identity provider, unless you explicitly set `EnableKeycloak=false`
+- `security`: local Keycloak-backed identity provider, unless you explicitly set `EnableKeycloak=false`
 - `redis`: local state store backing DAPR actor and projection state
 - `sample`: consuming service subscribed to tenant events
 - DAPR sidecars for `eventstore`, `tenants`, and `sample`
@@ -117,10 +117,10 @@ If `eventstore` or `tenants` is missing or unhealthy, do not submit the first co
 
 The EventStore command gateway requires a JWT token for authentication. The default local AppHost starts Keycloak with a sample realm and user.
 
-Find the `keycloak` base URL in the Aspire dashboard, then request a token with the local sample credentials:
+Find the `security` base URL in the Aspire dashboard, then request a token with the local sample credentials:
 
 ```bash
-curl -s -X POST "{keycloak-url}/realms/hexalith/protocol/openid-connect/token" \
+curl -s -X POST "{security-url}/realms/hexalith/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
   -d "client_id=hexalith-eventstore" \

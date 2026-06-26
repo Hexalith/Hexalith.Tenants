@@ -49,8 +49,10 @@ public class EventPublicationConfigurationTests {
         // Reusable platform/topology wiring comes from the platform Aspire extensions, not hand-rolled code.
         program.ShouldContain("AddHexalithEventStorePlatformProjects(");
         program.ShouldContain("AddHexalithEventStore(");
+        program.ShouldContain("AddHexalithEventStoreSecurity(");
         program.ShouldContain("builder.AddHexalithTenantsServer(");
         program.ShouldContain("builder.AddHexalithMemoriesSearchIndexServer(");
+        program.ShouldNotContain("AddKeycloak(\"keycloak\"");
 
         // The Tenants service runtime (server project + DAPR sidecar) is provided by the reusable helper.
         string tenantsAspire = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.Aspire", "HexalithTenantsServerExtensions.cs"));
@@ -60,11 +62,9 @@ public class EventPublicationConfigurationTests {
         // The sample subscriber stays composed inline and shares the platform domain-module sidecar.
         program.ShouldContain("IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>(\"sample\")");
         program.ShouldContain(".AddEventStoreDomainModule(eventStoreResources, \"sample\"");
-        normalizedProgram.ShouldContain(string.Join(
-            "\n",
-            "    _ = sample",
-            "        .WithReference(keycloak)",
-            "        .WaitFor(keycloak);"));
+        normalizedProgram.ShouldContain("    _ = sample.WithSecurityDependency(security);");
+        normalizedProgram.ShouldContain("    _ = eventStore.WithJwtBearerSecurity(security);");
+        normalizedProgram.ShouldContain(".WithOpenIdConnectSecurity(");
 
         // Gateway-side domain-service registrations + the global-administrators topic override remain explicit
         // AppHost composition (the helper adds only the service runtime).
