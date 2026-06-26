@@ -4,27 +4,38 @@
              1. Tenants is a submodule inside Hexalith.EventStore
              2. EventStore is a submodule inside Tenants (standalone) — prioritized over sibling
              3. Tenants and EventStore are sibling submodules in an app repo
-             4. Fallback: assume submodule inside Tenants -->
+             4. Tenants is under an EventStore references/ folder
+             5. Fallback: assume submodule inside Tenants references/ -->
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..</HexalithEventStoreRoot>
+        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\..\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\..</HexalithEventStoreRoot>
+        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)references\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)references\Hexalith.EventStore</HexalithEventStoreRoot>
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)Hexalith.EventStore</HexalithEventStoreRoot>
+        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.EventStore</HexalithEventStoreRoot>
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.EventStore</HexalithEventStoreRoot>
-        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == ''">$(MSBuildThisFileDirectory)Hexalith.EventStore</HexalithEventStoreRoot>
+        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\references\Hexalith.EventStore</HexalithEventStoreRoot>
+        <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.EventStore</HexalithEventStoreRoot>
         <!-- Auto-detect Hexalith.FrontComposer location:
              1. FrontComposer is a submodule inside Tenants (standalone)
              2. FrontComposer and Tenants are sibling submodules in an app repo
              3. Tenants is a submodule of the FrontComposer root repo (FrontComposer src at the repo root)
-             4. Fallback: assume submodule inside Tenants -->
+             4. Fallback: assume submodule inside Tenants references/ -->
+        <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)references\Hexalith.FrontComposer\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)references\Hexalith.FrontComposer</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)Hexalith.FrontComposer\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)Hexalith.FrontComposer</HexalithFrontComposerRoot>
+        <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.FrontComposer\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..\Hexalith.FrontComposer</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\Hexalith.FrontComposer\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..\Hexalith.FrontComposer</HexalithFrontComposerRoot>
+        <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.FrontComposer\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..\references\Hexalith.FrontComposer</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..</HexalithFrontComposerRoot>
-        <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == ''">$(MSBuildThisFileDirectory)Hexalith.FrontComposer</HexalithFrontComposerRoot>
+        <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.FrontComposer</HexalithFrontComposerRoot>
         <!-- Auto-detect Hexalith.Memories location (consumed via source for the tenant search index):
              1. Memories is a submodule inside Tenants (standalone)
              2. Memories and Tenants are sibling submodules in an app repo
-             3. Fallback: assume submodule inside Tenants -->
+             3. Fallback: assume submodule inside Tenants references/ -->
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)references\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)references\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)Hexalith.Memories</HexalithMemoriesRoot>
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.Memories</HexalithMemoriesRoot>
-        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == ''">$(MSBuildThisFileDirectory)Hexalith.Memories</HexalithMemoriesRoot>
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\references\Hexalith.Memories</HexalithMemoriesRoot>
+        <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.Memories</HexalithMemoriesRoot>
     </PropertyGroup>
 
     <PropertyGroup>
