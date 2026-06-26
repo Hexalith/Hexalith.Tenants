@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.1.0...v2.1.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* update Aspire.AppHost.Sdk version to 13.4.6 ([43f548c](https://github.com/Hexalith/Hexalith.Tenants/commit/43f548ca872d97d0dc671a7947cc48299f03dbf6))
+
 # [2.1.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.0.3...v2.1.0) (2026-06-25)
 
 
