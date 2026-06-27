@@ -456,11 +456,16 @@
         _tenantScope = NormalizeScope(QueryScope);
         _search = QuerySearch;
         _statusFilter = QueryStatus;
-        _sortColumn = string.IsNullOrWhiteSpace(QuerySort) ? TenantListSortColumns.TenantId : QuerySort;
-        _sortDescending = QuerySortDescending;
-        _currentCursor = QueryCursor;
         _selectedTenantId = QuerySelectedTenantId;
         _returnAnchor = QueryAnchor;
+
+        // sort/cursor in the URL are surface-specific. Adopt them into the tenant-list state only when the
+        // tenant list is the active surface; the My Tenants / Users panels consume their own InitialSort/
+        // InitialCursor, and feeding the list a foreign (user-lookup) cursor would load a bogus page.
+        bool tenantListActive = IsTenantListView;
+        _sortColumn = tenantListActive && !string.IsNullOrWhiteSpace(QuerySort) ? QuerySort : TenantListSortColumns.TenantId;
+        _sortDescending = tenantListActive && QuerySortDescending;
+        _currentCursor = tenantListActive ? QueryCursor : null;
     }
 
     private async Task OnActiveTabChanged(string? activeTabId)
@@ -468,12 +473,15 @@
         _activeTabId = NormalizeTab(activeTabId);
         if (IsUsersTab)
         {
-            _tenantScope = AllTenantsScope;
+            // Keep the remembered tenant scope so a Tenants -> Users -> Tenants round-trip can restore the
+            // My tenants view. Scope is inert on the Users tab (IsMyTenantsView requires the Tenants tab).
             Navigation.NavigateTo("/tenants?tab=users", replace: true);
             return;
         }
 
-        Navigation.NavigateTo(IsMyTenantsView ? "/tenants?tab=tenants&scope=mine" : "/tenants", replace: true);
+        // Preserve the active list search/status/sort/cursor in the URL (mirrors OnTenantScopeChanged) so a
+        // refresh or shared link re-inits the same list instead of an empty default.
+        Navigation.NavigateTo(IsMyTenantsView ? "/tenants?tab=tenants&scope=mine" : CurrentNavigationContext().ToReturnUrl(), replace: true);
         if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             await LoadAsync(reuseETag: false).ConfigureAwait(false);

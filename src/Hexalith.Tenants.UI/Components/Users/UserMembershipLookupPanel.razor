@@ -270,6 +270,13 @@
     protected override async Task OnInitializedAsync()
     {
         _currentCursor = InitialCursor;
+        if (!string.IsNullOrWhiteSpace(InitialCursor))
+        {
+            // Deep-link at a non-first cursor: seed history with null so "Previous" returns to page 1
+            // instead of being permanently disabled.
+            _cursorHistory.Push(null);
+        }
+
         if (!string.IsNullOrEmpty(InitialUserId))
         {
             _inputUserId = InitialUserId;
@@ -283,13 +290,15 @@
         if (_focusStatusPending)
         {
             _focusStatusPending = false;
-            await _statusElement.FocusAsync().ConfigureAwait(false);
+            // No ConfigureAwait(false): OnAfterRenderAsync runs on the Dispatcher and the second focus block
+            // below also performs JS interop, which must stay on the Dispatcher thread.
+            await _statusElement.FocusAsync();
         }
 
         if (_focusInputPending)
         {
             _focusInputPending = false;
-            await _inputElement.Element.FocusAsync().ConfigureAwait(false);
+            await _inputElement.Element.FocusAsync();
         }
     }
 
@@ -381,12 +390,20 @@
             PageSize: PageSize,
             ETag: reuseETag ? previous?.ETag : null);
 
-        _snapshot = await QueryGateway
+        UserTenantMembershipSnapshot snapshot = await QueryGateway
             .GetUserTenantsAsync(request, previous, CancellationToken.None)
             .ConfigureAwait(false);
-        _announcement = AnnouncementFor(_snapshot, validTargetUserId);
-        _focusStatusPending = true;
-        Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
+
+        // Marshal the navigation + focus interop back onto the renderer Dispatcher. The gateway await uses
+        // ConfigureAwait(false), so this continuation runs on a thread-pool thread; calling NavigateTo (which
+        // raises LocationChanged -> StateHasChanged) off the Dispatcher tears down the Blazor Server circuit.
+        await InvokeAsync(() =>
+        {
+            _snapshot = snapshot;
+            _announcement = AnnouncementFor(snapshot, validTargetUserId);
+            _focusStatusPending = true;
+            Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
+        });
     }
 
     private string AnnouncementFor(UserTenantMembershipSnapshot snapshot, string targetUserId)

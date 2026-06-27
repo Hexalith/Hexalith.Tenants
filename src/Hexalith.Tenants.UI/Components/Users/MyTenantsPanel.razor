@@ -110,6 +110,13 @@
     protected override async Task OnInitializedAsync()
     {
         _currentCursor = InitialCursor;
+        if (!string.IsNullOrWhiteSpace(InitialCursor))
+        {
+            // Deep-link / audit-return at a non-first cursor: seed history with null so "Previous" returns
+            // to page 1 instead of being permanently disabled.
+            _cursorHistory.Push(null);
+        }
+
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
