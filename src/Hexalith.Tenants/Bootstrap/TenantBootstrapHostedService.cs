@@ -34,8 +34,14 @@ public partial class TenantBootstrapHostedService(
 
         // Defer until Kestrel is accepting requests — EventStore will invoke /process on
         // this service to handle the command, which requires the web host to be listening.
+        //
+        // Bind the deferred call to ApplicationStopping, NOT the StartAsync token: the StartAsync token is
+        // only valid for the duration of host startup, and its source is torn down once startup completes
+        // (right after ApplicationStarted fires). Capturing it for this post-startup HTTP call risks
+        // cancelling the in-flight bootstrap request. ApplicationStopping cancels only on shutdown.
+        CancellationToken stoppingToken = lifetime.ApplicationStopping;
         _ = lifetime.ApplicationStarted.Register(() =>
-            _ = Task.Run(() => RunBootstrapAsync(userId, cancellationToken), cancellationToken));
+            _ = Task.Run(() => RunBootstrapAsync(userId, stoppingToken), stoppingToken));
 
         return Task.CompletedTask;
     }
@@ -86,11 +92,12 @@ public partial class TenantBootstrapHostedService(
 
                 string errorBody = await ReadExpectedRejectionProbeAsync(httpResponse.Content, cancellationToken).ConfigureAwait(false);
 
-                // Bootstrap is idempotent at the domain level. A 409 with the
-                // GlobalAdminAlreadyBootstrappedRejection type means the global admin was
-                // already registered (typical on every restart after the first successful run).
-                if (httpResponse.StatusCode == HttpStatusCode.Conflict
-                    && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
+                // Bootstrap is idempotent at the domain level. The GlobalAdminAlreadyBootstrappedRejection
+                // type in the response body means the global admin was already registered (typical on every
+                // restart after the first successful run). The gateway maps this to 409 Conflict, but accept
+                // the marker on any non-success status so a relayed/remapped status code (e.g. via the Dapr
+                // sidecar) is still recognized as the benign already-done outcome rather than a warning.
+                if (errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
                     Log.BootstrapAlreadyDone(logger);
                     return;
                 }
