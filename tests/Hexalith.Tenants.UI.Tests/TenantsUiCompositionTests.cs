@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Xml.Linq;
 
 using Hexalith.FrontComposer.Contracts.Registration;
+using Hexalith.FrontComposer.Shell.Components.Icons;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Resources;
@@ -12,6 +13,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 using Shouldly;
 
@@ -45,6 +47,13 @@ public sealed class TenantsUiCompositionTests
         manifest.BoundedContext.ShouldBe("tenants");
         manifest.Projections.ShouldBeEmpty();
         manifest.Commands.ShouldBeEmpty();
+        manifest.Icon.ShouldBe("Regular.Size20.BuildingPeople");
+
+        FcFluentIcons.TryCreate(manifest.Icon, out Icon? tenantIcon).ShouldBeTrue();
+        tenantIcon.ShouldNotBeNull();
+        tenantIcon!.Name.ShouldBe("BuildingPeople");
+        tenantIcon.Size.ShouldBe(IconSize.Size20);
+        tenantIcon.Variant.ShouldBe(IconVariant.Regular);
     }
 
     [Fact]

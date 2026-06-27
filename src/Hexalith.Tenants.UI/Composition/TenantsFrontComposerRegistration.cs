@@ -17,10 +17,10 @@ public static class TenantsFrontComposerRegistration {
         "tenants",
         [],
         [],
-        // Icon + localization for the left-nav category: the shell shows the People glyph on the
+        // Icon + localization for the left-nav category: the shell shows the BuildingPeople glyph on the
         // collapsed rail and resolves the category title ("Tenants" / "Locataires") from TenantsResources
         // per the request culture, matching the localized page body. Name stays the invariant fallback.
-        Icon: "Regular.Size20.People",
+        Icon: "Regular.Size20.BuildingPeople",
         NameKey: "Tenants.Navigation.Tenants",
         Resource: typeof(TenantsResources));
 
