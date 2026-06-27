@@ -271,6 +271,11 @@ the Developer agent; they do not expand the approved correct-course scope.
 - [ ] [Review][Patch] Search results force list-level freshness to current even when hydrated rows are stale or unknown [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:514]
 - [ ] [Review][Patch] Create tenant command gate treats unknown list freshness as fresh [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:78]
 
+Recheck 2026-06-27 (server freshness/projection/query chunk): the first two patch findings remain
+current. No additional server projection/query findings were accepted after triage; the remaining
+chunk candidates were dismissed as already intentional, covered by existing references, or not caused
+by a projection write path.
+
 ## Verification
 
 - `dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Release --no-restore --filter "Freshness|Query"`
