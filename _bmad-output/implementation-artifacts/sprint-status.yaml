@@ -240,3 +240,13 @@ development_status:
   # (separate EventStore handoff). Architecture D6 + deferred-work.md + test-summary.md reconciled to
   # the 3-state-on-wire reality.
   cc-2026-06-25-tenant-read-model-freshness-adoption: review
+
+  # --- Correct Course 2026-06-27: Tenants module tabbed workspace and single nav entry ---
+  # Approved by Administrator 2026-06-27.
+  # Proposal: sprint-change-proposal-2026-06-27.md
+  # Scope (Moderate, Option A): consolidate the Tenants module left navigation to one entry pointing
+  # at /tenants; move Tenants-domain read surfaces into page-local tabs. First tab = tenant list with
+  # a safe "my tenants" filter/view; second tab = lookup-backed Users membership surface using the
+  # existing GET /api/users/{userId}/tenants behavior. Do not claim an exhaustive all-users inventory
+  # unless a future Product/API story adds an authorization-scoped read query first.
+  cc-2026-06-27-tenants-module-tabbed-workspace: backlog
