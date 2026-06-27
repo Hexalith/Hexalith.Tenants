@@ -34,16 +34,23 @@
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 #
-# BUILD-READINESS NOTE (updated by Correct Course 2026-06-05):
+# BUILD-READINESS NOTE (updated by Correct Course 2026-06-27):
 # ===============
 # Canonical story IDs and titles are sourced from:
 #   _bmad-output/planning-artifacts/epics.md
 # Story 1.0 (Spike) is done and clears FC-LYT/FC-CMD/FC-CNC/FC-A11Y/FC-L10N/FC-DOC
 # for Story 1.1 gate purposes. Evidence:
 #   story-1-0-spike-note-2026-06-05.md
+# Resolved planning gates:
+#   - Story 1.2 tenant list: FC-TBL boundary decision is resolved by Tenants-specific
+#     TenantDataGrid composition; reusable grid capability remains a FrontComposer
+#     enhancement/handoff, not Tenants-local generic infrastructure.
+#   - Story 1.2 FR1 search: Memories-backed cross-set search is covered by
+#     cc-2026-06-21-memories-backed-tenant-search and must stay synchronized in epics/PRD/UX.
+#   - Story 2.1 first command flow: command foundation evidence is recorded in the
+#     Story 2.1 artifact; future command stories still split if equivalent foundation
+#     evidence is absent.
 # Remaining planning gates:
-#   - Story 1.2 tenant list: resolve FC-TBL caveat before implementation.
-#   - Command stories: split if shared command/truth/preview foundations do not exist.
 #   - Story 3.2: FR15 disable/enable is approved as reversible soft-delete / availability control;
 #     hard tenant deletion is future administrators-only CLI tooling, not Tenants UI.
 #   - Story 2.4 remove member: audit handoff only until Epic 5 evidence source exists.

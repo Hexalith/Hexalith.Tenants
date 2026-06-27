@@ -129,14 +129,13 @@ verbatim) — translating directly into a **shared client-side truth-state model
   boundary policy, missing shared UI capability belongs in FrontComposer, not Tenants.
   Readiness updated by Story 1.0 spike note (2026-06-05): `FC-LYT`, `FC-CMD`,
   `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed; `FC-TBL` is available
-  with caveats; `FC-AUD` and `FC-CNS` remain covered by Product/UX-approved fallbacks;
+  with a resolved Tenants boundary; `FC-AUD` and `FC-CNS` remain covered by Product/UX-approved fallbacks;
   `FC-TOK` remains a missing shared capability covered by Tenants' canonical vocabulary
   and verified Fluent semantic/icon mapping until a shared token contract exists. The
   FC-AUD/FC-CNS/FC-CNC fallbacks are Product/UX-approved (2026-06-03 - see the
   Fallback Approval Record, `fallback-approval-record-2026-06-03.md`). `FC-TBL` does
   not provide cursor pagination, safety-column pinning, or the six non-collapsing list
-  states required by Tenants. Tenant-list implementation must record a boundary decision
-  before build-start. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
+  states required by Tenants by itself. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
   `TenantDataGrid` from Fluent/FrontComposer primitives while keeping generic reusable
   cursor/pinning/list-state capability as a FrontComposer concern.
 - **Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`** — exact token/component/ARIA names
@@ -451,9 +450,9 @@ The **Fluxor truth-state model**, **canonical-vocabulary library**, **BFF query/
 **authorization-reflection service**, and **support-safety/redaction layer** are shared foundations
 every surface depends on → built first. FrontComposer contract confirmations (FC-LYT/FC-CMD/FC-CNC)
 are closed by Story 1.0 (2026-06-05); the FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
-(2026-06-03 - see `fallback-approval-record-2026-06-03.md`). The remaining pre-list implementation
-decision is the `FC-TBL` caveat: Tenants-specific `TenantDataGrid` composition versus a reusable
-FrontComposer grid enhancement.
+(2026-06-03 - see `fallback-approval-record-2026-06-03.md`). The `FC-TBL` caveat is resolved for
+Tenants by Story 1.2 with Tenants-specific `TenantDataGrid` composition; reusable grid enhancement
+remains FrontComposer-owned future work.
 
 **Action items this architecture surfaces:**
 - ✅ Product/UX approval for the **FC-AUD flat-audit**, **FC-CNS inline-consequence**, and
@@ -798,8 +797,8 @@ communication/process + examples + anti-patterns; all conflict points addressed.
 - **FrontComposer readiness - CLOSED 2026-06-05 for FC-LYT/FC-CMD/FC-CNC.** D3 commits to a
   hybrid posture. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured** (2026-06-03 - see
   `fallback-approval-record-2026-06-03.md`), and Story 1.0 confirms the shell/layout/command/
-  concurrency/accessibility/localization/docs contracts. The remaining pre-list implementation
-  item is the `FC-TBL` grid decision.
+  concurrency/accessibility/localization/docs contracts. Story 1.2 resolves the `FC-TBL`
+  tenant-list grid decision with Tenants-specific grid/table composition.
 - **FrontComposer Shell integration spec - CLOSED 2026-06-05.** Story 1.0 is complete; see
   `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`.
 - **Epics & stories layer - CLOSED.** `epics.md` exists and covers FR1-FR25. The active handoff
@@ -869,7 +868,7 @@ unambiguous decisions/patterns/structure for AI agents.
 
 **Areas for Future Enhancement:**
 - Keep the Story 1.0 gate-clearing evidence current as FrontComposer evolves.
-- Decide the `FC-TBL` tenant-list grid path before Story 1.2.
+- Keep the resolved Story 1.2 `FC-TBL` tenant-list grid path synchronized with any future FrontComposer reusable grid enhancement.
 - Set the deferred numerics; reconcile the flagged doc items; track Fluent RC→GA.
 
 ### Implementation Handoff

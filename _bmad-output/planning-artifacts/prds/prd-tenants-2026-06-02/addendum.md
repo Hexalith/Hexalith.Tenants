@@ -22,7 +22,7 @@ Technical-how and downstream bridge material kept out of the PRD body. This maps
 
 | ID | Capability | Readiness | Notes / fallback |
 |---|---|---|---|
-| FC-TBL | Projection list/table (DataGrid, filter/search/empty/loading) | **available with caveats** | Generated projection grid lacks Tenants-required cursor pagination, safety-column pinning, and six non-collapsing list states. Resolve Story 1.2 grid decision before tenant-list implementation. |
+| FC-TBL | Projection list/table (DataGrid, filter/search/empty/loading) | **available with resolved Tenants boundary** | Generated projection grid lacks Tenants-required cursor pagination, safety-column pinning, and six non-collapsing list states by itself. Story 1.2 resolves the Tenants path with a Tenants-specific `TenantDataGrid`; reusable cursor/pinning/list-state capability remains FrontComposer-owned enhancement work. |
 | FC-LYT | Shell layout contract (full-width vs constrained) | **confirmed** | Confirmed by Story 1.0 spike note (2026-06-05). |
 | FC-CMD | Command lifecycle feedback (three-phase, projection-confirmed) | **confirmed** | Confirmed by Story 1.0 spike note (2026-06-05). Required for ALL command FRs. |
 | FC-CNC | Concurrent-command / toast batching policy | **confirmed** | Story 1.0 confirms one-at-a-time commands as the v1 policy. Applies to all command FRs. |

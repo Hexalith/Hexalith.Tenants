@@ -121,7 +121,7 @@ NFR10: A UI story cannot be marked ready until applicable accessibility, localiz
 
 - Starter requirement: create a new `src/Hexalith.Tenants.UI` Blazor web host as the first implementation story. No UI host exists today; `frontcomposer` is an inspect/migrate tool, not a scaffolder. The host uses .NET 10, `Microsoft.NET.Sdk.Web`, Blazor InteractiveServer, and is added to `Hexalith.Tenants.slnx`.
 - Include a Story 1.0 shell-integration spike before bootstrap implementation. The spike is complete as of 2026-06-05 and verifies `AddHexalithFrontComposer*` registration APIs, manifest registration, projection routing, and FrontComposer readiness gates; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`.
-- Compose the UI through the Hexalith.FrontComposer Shell and Fluent UI Blazor v5. `FC-LYT`, `FC-CMD`, and `FC-CNC` are confirmed by Story 1.0; tenant-list implementation still requires the Story 1.2 `FC-TBL` decision.
+- Compose the UI through the Hexalith.FrontComposer Shell and Fluent UI Blazor v5. `FC-LYT`, `FC-CMD`, and `FC-CNC` are confirmed by Story 1.0. The Story 1.2 `FC-TBL` boundary decision is resolved by composing a Tenants-specific `TenantDataGrid`; reusable cursor pagination, safety-column pinning, and list-state capability remain FrontComposer-owned enhancement work.
 - Use the architecture's InteractiveServer plus server-side BFF model. The browser must never call the backend directly and must never hold backend access tokens.
 - Wire the UI host through the existing `Hexalith.Tenants.AppHost`, Keycloak/JWT configuration, service references, and SignalR client. In local dev, `EnableKeycloak=false` uses the existing symmetric-key JWT path.
 - The UI host ships as a container image using .NET SDK container support with `ContainerRepository=tenants-ui`; do not add Dockerfiles.
@@ -255,7 +255,7 @@ Every story created from these epics must make the safety contract explicit in a
 
 ### Command Story Sizing Guardrail
 
-Command stories may remain single stories only when the shared command lifecycle, TruthState/vocabulary, one-at-a-time admission, consequence-preview fallback, BFF command gateway, projection re-query confirmation, localization, and ready-gate evidence patterns already exist. If those foundations are absent, split the command story into:
+Command stories may remain single stories only when the shared command lifecycle, TruthState/vocabulary, one-at-a-time admission, consequence-preview fallback, BFF command gateway, projection re-query confirmation, localization, and ready-gate evidence patterns already exist. Story 2.1 is the completed evidence-bearing first-command slice for the Tenants UI command gateway and projection-confirmed lifecycle path; future command stories must cite equivalent foundation evidence or split. If those foundations are absent, split the command story into:
 
 1. availability and fail-closed preview,
 2. submit/status/projection confirmation,
@@ -337,7 +337,7 @@ So that the first UI implementation uses shared Hexalith composition patterns in
 **Given** story creation guardrails require implementation-ready evidence
 **When** the spike is complete
 **Then** the output names the projection truth source, permission boundary assumptions, staleness/freshness implications, localization ownership, accessibility and responsive obligations, and stable selector expectations for later UI stories
-**And** it records the current gate verdicts. As of the completed 2026-06-05 spike, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed; `FC-TBL` is available with caveats that must be resolved before tenant-list implementation.
+**And** it records the current gate verdicts. As of the completed 2026-06-05 spike, `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` are confirmed; as of Story 1.2, `FC-TBL` is available with a resolved Tenants boundary through Tenants-specific `TenantDataGrid` composition.
 
 **Test Contract:**
 
@@ -401,7 +401,7 @@ So that I can quickly understand tenant state and risk without changing anything
 
 **Requirements:** FR1; NFR1-NFR4, NFR6-NFR9; UX-DR2-UX-DR6, UX-DR10, UX-DR16, UX-DR23, UX-DR28-UX-DR31.
 
-**Pre-build gate:** Resolve the `FC-TBL` caveat from Story 1.0 before implementation. FrontComposer's generated projection grid does not satisfy Tenants' cursor pagination, safety-column pinning, or six-state list-surface requirements. The default decision is to compose a Tenants-specific `TenantDataGrid` from Fluent/FrontComposer primitives for tenant-specific columns and safety states, while filing any reusable cursor/pinning/list-state capability as a FrontComposer enhancement.
+**Resolved `FC-TBL` boundary decision:** Story 1.2 uses a Tenants-specific `TenantDataGrid` composed from Fluent/FrontComposer primitives for tenant-specific columns, cursor handling, safety-column preservation, and six non-collapsing list states. FrontComposer's generated projection grid remains available but does not by itself satisfy Tenants' cursor pagination, safety-column pinning, or six-state list-surface requirements. Reusable cursor/pinning/list-state capability remains a FrontComposer enhancement, not Tenants-local generic infrastructure.
 
 **Acceptance Criteria:**
 
@@ -414,6 +414,37 @@ So that I can quickly understand tenant state and risk without changing anything
 **When** the tenant list renders
 **Then** each row shows tenant identity, lifecycle/status, member count, owner count, pending state, and a Truth State Badge with freshness
 **And** tenant ids remain caller-supplied strings and are not parsed or displayed as ULIDs or GUIDs.
+
+**Given** the operator enters a non-empty tenant search term
+**When** results are loaded
+**Then** the BFF performs a server-side search through `Hexalith.Memories` syntactic/BM25 search against the dedicated `tenants-index`
+**And** the search matches tenants by Name or TenantId across the whole visible tenant set, not only the currently loaded page
+**And** the browser does not perform direct backend calls or page-local-only filtering for the search result set.
+
+**Given** Memories returns a search match-set
+**When** tenant rows are rendered
+**Then** Memories determines only which tenant ids are candidates
+**And** each row is hydrated through the existing authoritative ETag/freshness tenant read path before display
+**And** stale index data never supplies row status, name, counts, pending state, or freshness.
+
+**Given** the operator combines search with status filtering
+**When** the filter is applied
+**Then** status filtering is exact, not BM25 text matching
+**And** it uses a structured Memories attribute filter when available or the hydrated authoritative status as the interim bridge.
+
+**Given** the search term is empty or whitespace
+**When** results are loaded
+**Then** the list uses the unchanged cursor-list path and does not call Memories.
+
+**Given** Memories is unavailable, degraded, or cannot serve the syntactic axis
+**When** the list reloads
+**Then** the UI falls back to the cursor list with a non-blocking search-unavailable notice
+**And** no token, ETag, correlation id, raw payload, stack trace, or backend diagnostic detail is rendered.
+
+**Given** search indexing lags behind tenant creation or rename
+**When** the operator searches
+**Then** eventual consistency is surfaced honestly
+**And** hydrated rows always show authoritative current data for any returned match.
 
 **Given** the operator searches, filters, sorts, or cursor-pages the tenant list
 **When** new results are loaded
@@ -449,8 +480,9 @@ So that I can quickly understand tenant state and risk without changing anything
 
 **Given** this story is complete
 **When** verification is run
-**Then** unit or component tests cover the BFF query gateway mapping, cursor/freshness states, authorization-safe empty states, and no-direct-browser-backend behavior
-**And** bUnit or Playwright coverage verifies loading, empty, filtered-empty, stale, degraded, error, keyboard navigation, forced-colors-safe status rendering, and stable selectors.
+**Then** unit or component tests cover BFF query gateway mapping, cursor/freshness states, authorization-safe empty states, and no-direct-browser-backend behavior
+**And** gateway tests cover non-empty search term to Memories match-set, TenantId recovery from the search hit, authoritative row hydration, exact status filtering, empty-search bypass, Memories-unavailable fallback, dropped not-found/forbidden match ids, and support-safe degraded copy
+**And** bUnit or Playwright coverage verifies search round-trip, loading, empty, filtered-empty, stale, degraded, error, keyboard navigation, forced-colors-safe status rendering, stable selectors, and no page-local-only search result filtering.
 
 ### Story 1.3: Tenant Detail Navigation and Overview
 
@@ -735,6 +767,8 @@ I want to create a tenant through a projection-confirmed command flow,
 So that new tenant records become visible only when the system has proven the outcome.
 
 **Requirements:** FR13; NFR2-NFR8, NFR10; Additional command confirmation requirements; UX-DR3, UX-DR11-UX-DR13, UX-DR22-UX-DR28, UX-DR33.
+
+**Command-foundation evidence:** Story 2.1 is not an unproven oversized first-command story. Story 1.0 confirmed `FC-CMD` and `FC-CNC`; Story 2.1 implementation added the Tenants command gateway, create-tenant lifecycle state, one-at-a-time admission, projection re-query confirmation, safe rejection mapping, audit handoff states, EN/FR resources, accessibility/focus/live-region evidence, and UI/gateway/state tests. Evidence is recorded in `_bmad-output/implementation-artifacts/2-1-create-tenant-with-projection-confirmed-command-lifecycle.md` and `tests/test-summary.md`. Future command stories may remain single stories only when they cite equivalent foundation evidence; otherwise they must split.
 
 **Acceptance Criteria:**
 

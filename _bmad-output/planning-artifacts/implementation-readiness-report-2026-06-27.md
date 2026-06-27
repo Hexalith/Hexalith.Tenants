@@ -4,6 +4,8 @@ stepsCompleted:
   - step-02-prd-analysis
   - step-03-epic-coverage-validation
   - step-04-ux-alignment
+  - step-05-epic-quality-review
+  - step-06-final-assessment
 includedDocuments:
   architecture:
     - _bmad-output/planning-artifacts/architecture.md
@@ -332,3 +334,112 @@ Architecture supports the UX direction in the main areas:
 - Fluent UI v5 is pinned as an RC; exact token, ARIA, MessageBar live-region, icon, contrast, and forced-colors behavior must be verified against the pinned package at build.
 - `FC-TOK` remains a missing shared capability. Tenants can proceed with canonical vocabulary plus verified Fluent semantic/icon mapping, but a shared token contract remains future work.
 - Missing shared UI capabilities must stay in FrontComposer or approved fallbacks; Tenants should not absorb generic UI scaffolding.
+
+## Epic Quality Review
+
+### Epic Structure Validation
+
+The five epics are primarily user-value epics, not technical milestones:
+
+| Epic | User Value Assessment | Independence Assessment |
+| --- | --- | --- |
+| Epic 1 - Tenant Workspace Triage and Read-Only Insight | Valid. Delivers browse, inspect, self-audit, lookup, read-only configuration/member review, and visible action availability. | Valid as the first standalone slice. It includes setup work because this is the first UI surface. |
+| Epic 2 - Tenant Membership and Tenant Record Management | Valid. Delivers create, metadata, and membership command outcomes with projection-confirmed safety. | Valid after Epic 1. It depends only on the UI/read foundation and establishes the first command path. |
+| Epic 3 - Tenant Lifecycle and Configuration Control | Valid. Delivers lifecycle/configuration control with high-impact safety rules. | Valid after Epic 2. Its dependency on command confirmation is backward, not forward. |
+| Epic 4 - Global Administrator Governance | Valid. Delivers platform authority review/grant/remove separately from tenant membership. | Mostly valid after Epics 1-2. Story 4.1 explicitly handles missing read support as unavailable rather than fabricating rows. |
+| Epic 5 - Audit Evidence and Forward Recovery | Valid. Delivers audit trail, evidence receipts, audit availability recovery, and forward correction. | Valid after Epics 1-2. It reuses earlier read/command foundations and does not require later epics. |
+
+### Story Quality Assessment
+
+The stories mostly use clear user roles, jobs, and outcomes. Acceptance criteria are generally written in Given/When/Then form, include error/unavailable cases, and name test contracts. The strongest recurring quality is the explicit non-collapse of projection truth, command lifecycle, audit availability, authorization, freshness, and support-safe output.
+
+Story sequencing is mostly correct:
+
+- Story 1.1 is a valid first implementation story because the architecture selects a manual Blazor InteractiveServer host starter path and the story creates a real unavailable/not-yet-connected Tenants workspace rather than a mock.
+- Story 1.2 through Story 1.8 build read-only value without requiring later command or audit stories.
+- Epic 2 command stories depend on the Epic 1 read foundation and then progress from first command lifecycle to membership/metadata commands.
+- Epic 3 and Epic 4 command stories depend on earlier command confirmation patterns, which is an allowed backward dependency.
+- Epic 5 depends on prior read/command foundations and audit data contracts; it does not create a circular dependency.
+
+### Dependency Analysis
+
+No critical forward dependency was found. References to future actions in Epic 1 and audit proof in Epic 2 are written as unavailable or honest handoff states, not as required future functionality.
+
+No database/table creation violation was found. The epics consistently consume existing Tenants/EventStore contracts and instruct implementation not to add Tenants-local backend endpoints, generic shell infrastructure, serialization, or event-store plumbing.
+
+The architecture's starter requirement is reflected by Story 1.1: `src/Hexalith.Tenants.UI` is created as a .NET 10 Blazor InteractiveServer web project, added to `.slnx`, composed through FrontComposer/Fluent, wired into AppHost, and containerized through .NET SDK container support.
+
+### Findings by Severity
+
+#### Critical Violations
+
+None found. There are no wholly technical epics, no epic-level circular dependencies, and no forward dependency that makes an earlier epic impossible to deliver.
+
+#### Major Issues
+
+1. **Story 1.2 does not carry the full PRD FR1 search contract.** PRD FR1 requires whole-set search by Name or TenantId through `Hexalith.Memories` syntactic/BM25 search, server round-trip on non-empty terms, authoritative ETag/freshness hydration of search hits, exact status filtering, search-index lag tolerance, and fallback to the cursor list with a non-blocking notice when Memories is unavailable. Story 1.2 only states generic search/filter/sort/page behavior and generic BFF/cursor/freshness tests. This is not implementation-ready for FR1 search.
+
+   Recommendation: update Story 1.2 acceptance criteria and test contract to explicitly cover Memories search, whole-set behavior, empty/whitespace search behavior, authoritative hydration, exact status filtering, lag tolerance, and Memories-unavailable fallback notice.
+
+2. **Story 1.2 `FC-TBL` gate wording remains ambiguous.** The story says to resolve the `FC-TBL` caveat before implementation while also naming the default Tenants-specific `TenantDataGrid` path. Architecture says the Epic 1 path is resolved by composing a Tenants-specific grid from Fluent/FrontComposer primitives, but also keeps the remaining pre-list item as the `FC-TBL` grid decision. A developer cannot tell whether Story 1.2 is ready, ready-with-boundary-decision, or still blocked.
+
+   Recommendation: record one canonical handoff state before implementation: either "resolved by Tenants-specific `TenantDataGrid`; reusable cursor/pinning/list-state capability filed to FrontComposer" or "blocked until the `FC-TBL` boundary decision is recorded." Keep epics, architecture, UX, and sprint status synchronized.
+
+3. **Story 2.1 is the first command story but carries the shared command foundation load.** The epic guardrail says command stories remain single stories only when the shared command lifecycle, TruthState/vocabulary, one-at-a-time admission, command gateway, projection re-query confirmation, localization, and ready-gate evidence already exist. Story 2.1 appears to introduce much of that foundation while also delivering create-tenant behavior, idempotency, status polling/SignalR-nudge handling, projection confirmation, rejection mapping, fail-closed gating, audit handoff, tests, a11y, and selectors.
+
+   Recommendation: before implementation, either cite existing implemented foundation evidence that makes Story 2.1 small enough, or split Story 2.1 into foundation slices such as command gateway/lifecycle state, create-tenant submit plus projection confirmation, and audit/evidence handoff. Keep each slice user-observable or implementation-verifiable.
+
+#### Minor Concerns
+
+1. **Story 1.0 is a completed enabler spike, not user-facing MVP value.** It is acceptable as recorded evidence because it is complete and closes integration gates, but it should not be treated as a remaining implementation story.
+
+2. **Future-proofing language must stay unavailable-state language.** Epic 1 unavailable future actions and Epic 2 audit handoff references are acceptable only because they explicitly avoid requiring future stories. Story implementation should not assert Epic 5 receipts/proof before the Epic 5 evidence source exists.
+
+3. **Story-ready evidence is still per-story.** The epic quality bar names accessibility, localization, responsive, documentation/reference, forced-colors, live-region, and selector evidence. That remains a readiness requirement for each story, not a one-time epic-level pass.
+
+### Best Practices Compliance Summary
+
+| Check | Result |
+| --- | --- |
+| Epics deliver user value | Pass, with Story 1.0 noted as completed enabler evidence. |
+| Epic independence | Pass; dependencies are backward or honest unavailable states. |
+| Stories appropriately sized | Mostly pass; Story 2.1 needs split-or-evidence due first-command foundation scope. |
+| No forward dependencies | Pass; future references are framed as unavailable/handoff states. |
+| Database/entity creation timing | Pass; no upfront table/entity scaffolding inside Tenants. |
+| Clear acceptance criteria | Mostly pass; Story 1.2 search ACs need FR1 detail. |
+| Traceability to FRs maintained | Pass by identifier; one detail-level gap remains for FR1 search. |
+
+## Summary and Recommendations
+
+### Overall Readiness Status
+
+**NEEDS WORK**
+
+The planning package is substantially complete: PRD, architecture, UX, and epics all exist; all 25 PRD functional requirements are mapped to epics by identifier; the UX and architecture mostly preserve the same safety/truth model; and the epic structure is user-value oriented rather than a set of technical milestones.
+
+Implementation should not proceed as a blanket green light. Story 1.2 and Story 2.1 need handoff cleanup before they are safe to implement, and downstream story/sprint status should be synchronized with the canonical decisions in PRD, architecture, UX, and epics.
+
+### Critical Issues Requiring Immediate Action
+
+No critical issue was found that invalidates the entire planning set.
+
+The following major issues require action before implementing the affected stories:
+
+1. **Complete Story 1.2 search acceptance criteria.** Add the PRD FR1 Memories-backed whole-set search behavior: `Hexalith.Memories`, syntactic/BM25 search, Name-or-TenantId matching, server round-trip, empty/whitespace behavior, ETag/freshness hydration, exact status filtering, index-lag behavior, and Memories-unavailable fallback notice.
+2. **Resolve and synchronize the Story 1.2 `FC-TBL` gate.** Make the handoff state unambiguous: either Story 1.2 is ready with the Tenants-specific `TenantDataGrid` boundary decision, or it remains blocked until that decision is recorded. Update epics, architecture, UX wording, and sprint status consistently.
+3. **Right-size Story 2.1 or cite foundation evidence.** If the shared command gateway/lifecycle/TruthState/one-at-a-time/projection-confirmation foundation already exists, cite it. If it does not, split Story 2.1 into smaller command-foundation and create-tenant delivery slices.
+
+### Recommended Next Steps
+
+1. Patch `epics.md` Story 1.2 so its acceptance criteria and test contract fully match PRD FR1 search consequences.
+2. Record the canonical `FC-TBL` decision for the tenant list and synchronize that state across the planning artifacts and sprint handoff.
+3. Decide whether Story 2.1 is a single implementable story or a bundle. If it is a bundle, split it before development.
+4. Update `sprint-status.yaml` and any next-story draft so the first implementation story is not created from stale readiness language.
+5. Preserve the UX/architecture caveats during story creation: InteractiveServer, server-side BFF, no raw mockup implementation, per-story a11y/l10n/responsive evidence, and honest freshness/audit states.
+
+### Final Note
+
+This assessment identified **3 major action items** and several secondary alignment risks across coverage, UX/architecture alignment, and epic quality. Address the major items before handing the affected stories to implementation. After those fixes, the package should be close to implementation-ready for the early read-only UI slice.
+
+**Assessment date:** 2026-06-27  
+**Assessor:** Codex using `bmad-check-implementation-readiness`
