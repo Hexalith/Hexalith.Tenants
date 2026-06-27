@@ -1,4 +1,4 @@
-/* fc-css-exception: vertical region gap on the FluentAccordion sections and the semantic <section>
+/* fc-css-exception: vertical region gap on the FluentAccordion sections and semantic
    status/results landmarks; keeping the landmarks precludes a FluentStack wrapper. */
 .user-lookup-page__sections,
 .user-lookup-page__status,

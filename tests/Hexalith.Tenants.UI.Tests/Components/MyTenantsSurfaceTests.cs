@@ -37,7 +37,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-my-list']");
 
         cut.Find("[data-testid='tenants-my-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
-        cut.Find("[data-testid='tenants-my-back']").GetAttribute("href").ShouldBe("/tenants");
+        cut.Find("[data-testid='tenants-my-back']").GetAttribute("href").ShouldBe("/tenants?tab=tenants&scope=mine");
         cut.FindAll("[data-testid='tenants-my-row']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldContain("tenant.alpha");
         cut.FindAll("[data-testid='tenants-my-copy-reference']").Count.ShouldBe(2);

@@ -4,6 +4,8 @@ using System.Text;
 namespace Hexalith.Tenants.UI.State.TenantList;
 
 public sealed record TenantListNavigationContext(
+    string? Tab,
+    string? Scope,
     string? Search,
     string? Status,
     string SortColumn,
@@ -13,6 +15,8 @@ public sealed record TenantListNavigationContext(
     string? Anchor) {
     public string ToReturnUrl() {
         StringBuilder builder = new("/tenants");
+        AppendQuery(builder, "tab", Tab);
+        AppendQuery(builder, "scope", Scope);
         AppendQuery(builder, "search", Search);
         AppendQuery(builder, "status", Status);
         AppendQuery(builder, "sort", SortColumn == TenantListSortColumns.TenantId ? null : SortColumn);

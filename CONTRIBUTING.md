@@ -30,8 +30,12 @@ dotnet build Hexalith.Tenants.slnx --configuration Release
 
 ### Run Tests
 
+Run test projects individually; use the `.slnx` for restore/build, not solution-level `dotnet test`.
+
 ```bash
-dotnet test Hexalith.Tenants.slnx
+dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release
 ```
 
 ### Run Locally
@@ -96,10 +100,16 @@ All pull requests must pass Tier 1 (unit) and Tier 2 (DAPR integration) tests.
 - **Test framework:** xUnit v3 + Shouldly + NSubstitute
 - **Coverage:** Collected via coverlet (> 80% line coverage target, 100% branch coverage for the configured isolation/auth targets)
 
-Run the full test suite:
+Run the test suite by project:
 
 ```bash
-dotnet test Hexalith.Tenants.slnx
+dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release
+dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release
+dotnet test samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Release
 ```
 
 ## Code Style

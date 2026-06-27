@@ -188,6 +188,49 @@ public class TenantProjectionHandlerTests {
     }
 
     [Fact]
+    public async Task ProjectAsync_RetryAndMergeDoNotMoveProjectedAtBackwardAsync() {
+        DateTimeOffset newerProjectionTime = ProjectionTime.AddMinutes(5);
+        var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantReadModel>(
+            TenantProjectionKey,
+            new TenantReadModel { ProjectedAt = ProjectionTime.AddMinutes(-5) },
+            "tenant-etag-1");
+        stateStore.EnqueueRead<TenantReadModel>(
+            TenantProjectionKey,
+            new TenantReadModel {
+                TenantId = "tenant-1",
+                Name = "Concurrent Name",
+                ProjectedAt = newerProjectionTime,
+            },
+            "tenant-etag-2");
+        stateStore.EnqueueTrySave(TenantProjectionKey, false);
+        stateStore.EnqueueTrySave(TenantProjectionKey, true);
+        stateStore.EnqueueRead(
+            TenantAuditProjectionKey,
+            new TenantAuditReadModel { ProjectedAt = newerProjectionTime },
+            "audit-etag-1");
+        stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
+        stateStore.EnqueueRead(
+            TenantIndexKey,
+            new TenantIndexReadModel { ProjectedAt = newerProjectionTime },
+            "index-etag-1");
+        stateStore.EnqueueTrySave(TenantIndexKey, true);
+
+        _ = await new TenantProjectionHandler(
+                stateStore,
+                NullLogger<TenantProjectionHandler>.Instance,
+                new FixedTimeProvider(ProjectionTime))
+            .ProjectAsync(CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1"));
+
+        ((TenantReadModel)stateStore.TrySaveAttempts.Last(a => a.Key == TenantProjectionKey).Value)
+            .ProjectedAt.ShouldBe(newerProjectionTime);
+        ((TenantAuditReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantAuditProjectionKey).Value)
+            .ProjectedAt.ShouldBe(newerProjectionTime);
+        ((TenantIndexReadModel)stateStore.TrySaveAttempts.Single(a => a.Key == TenantIndexKey).Value)
+            .ProjectedAt.ShouldBe(newerProjectionTime);
+    }
+
+    [Fact]
     public async Task ProjectAsync_ExistingTenantStateUsesLoadedETagAndFirstWriteOptionsAsync() {
         TenantReadModel existing = new() {
             TenantId = "tenant-1",

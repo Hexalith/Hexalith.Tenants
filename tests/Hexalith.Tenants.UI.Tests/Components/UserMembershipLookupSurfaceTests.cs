@@ -231,24 +231,24 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
     public void User_lookup_layout_preserves_responsive_fluent_grid_and_forced_colors_controls()
     {
         string projectRoot = ProjectRoot();
-        string page = File.ReadAllText(Path.Combine(
+        string panel = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
             "Hexalith.Tenants.UI",
             "Components",
-            "Pages",
-            "UserMembershipLookupPage.razor"));
+            "Users",
+            "UserMembershipLookupPanel.razor"));
         string styles = File.ReadAllText(Path.Combine(
             projectRoot,
             "src",
             "Hexalith.Tenants.UI",
             "Components",
-            "Pages",
-            "UserMembershipLookupPage.razor.css"));
+            "Users",
+            "UserMembershipLookupPanel.razor.css"));
 
-        page.ShouldContain("<FluentGrid");
-        page.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"5\">");
-        page.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"7\">");
+        panel.ShouldContain("<FluentGrid");
+        panel.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"5\">");
+        panel.ShouldContain("<FluentGridItem Xs=\"12\" Md=\"6\" Lg=\"7\">");
         styles.ShouldNotContain("grid-template-columns");
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain(":focus-visible");

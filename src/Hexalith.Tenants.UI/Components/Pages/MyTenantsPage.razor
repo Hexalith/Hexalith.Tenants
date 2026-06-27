@@ -1,131 +1,17 @@
 @page "/tenants/my"
 @using Hexalith.Tenants.UI.Components.Users
 @inject IStringLocalizer<TenantsResources> Localizer
-@inject ITenantQueryGateway QueryGateway
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" Class="my-tenants-page" data-testid="tenants-my-page">
-    <FluentStack Orientation="Orientation.Horizontal" Class="my-tenants-page__breadcrumb">
-        <FluentAnchorButton Href="/tenants"
-                            Appearance="ButtonAppearance.Subtle"
-                            data-testid="tenants-my-back">
-            @Localizer["Tenants.MyTenants.Back"]
-        </FluentAnchorButton>
-    </FluentStack>
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px">
+        <FcPageHeader PageTitle="@Localizer["Tenants.MyTenants.Title"]"
+                      Heading="@Localizer["Tenants.MyTenants.Title"]"
+                      Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
+                      Description="@Localizer["Tenants.MyTenants.Description"]"
+                      TestId="tenants-my-page-header" />
 
-    <FcPageHeader PageTitle="@Localizer["Tenants.MyTenants.Title"]"
-                  Heading="@Localizer["Tenants.MyTenants.Title"]"
-                  Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
-                  Description="@Localizer["Tenants.MyTenants.Description"]"
-                  TestId="tenants-my-page-header" />
-
-    <FluentStack Orientation="Orientation.Horizontal"
-                 HorizontalAlignment="HorizontalAlignment.SpaceBetween"
-                 VerticalAlignment="VerticalAlignment.Center"
-                 HorizontalGap="16px"
-                 VerticalGap="12px"
-                 Wrap="true"
-                 Class="my-tenants-page__toolbar"
-                 aria-label="@Localizer["Tenants.MyTenants.ControlsLabel"]">
-        <p class="my-tenants-page__summary" aria-live="polite" data-testid="tenants-my-summary">@SummaryText</p>
-        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-my-refresh" OnClick="RefreshAsync">
-            @Localizer["Tenants.MyTenants.Refresh"]
-        </FluentButton>
-    </FluentStack>
-
-    @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Loading)
-    {
-        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Loading" />
-    }
-    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Empty)
-    {
-        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Empty" />
-    }
-    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Invalid)
-    {
-        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Invalid" />
-    }
-    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unauthorized)
-    {
-        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unauthorized" />
-    }
-    else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Unavailable)
-    {
-        <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Unavailable" />
-    }
-    else
-    {
-        @if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Stale)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Stale" OnRefresh="RefreshAsync" />
-        }
-        else if (_snapshot.Kind is UserTenantMembershipSurfaceKind.Degraded)
-        {
-            <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Degraded" OnRefresh="RefreshAsync" />
-        }
-
-        <MyTenantsDataGrid Rows="@_snapshot.Rows" />
-
-        <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
-                    @Localizer["Tenants.MyTenants.Previous"]
-                </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
-                    @Localizer["Tenants.MyTenants.Next"]
-                </FluentButton>
-            </FluentStack>
-        </nav>
-    }
+        <MyTenantsPanel ShowBackLink="true"
+                        BackHref="/tenants?tab=tenants&scope=mine"
+                        ReturnUrl="/tenants/my" />
     </FluentStack>
 </FcPageLayout>
-
-@code {
-    private UserTenantMembershipSnapshot _snapshot = UserTenantMembershipSnapshot.Loading();
-    private readonly Stack<string?> _cursorHistory = new();
-    private string? _currentCursor;
-
-    // Result-count context for the toolbar; only meaningful when membership rows are visible.
-    private string? SummaryText => _snapshot.Kind is UserTenantMembershipSurfaceKind.Ready
-        or UserTenantMembershipSurfaceKind.Stale
-        or UserTenantMembershipSurfaceKind.Degraded
-            ? Localizer["Tenants.MyTenants.Summary", _snapshot.Rows.Count].Value
-            : null;
-
-    protected override async Task OnInitializedAsync()
-        => await LoadAsync(reuseETag: false).ConfigureAwait(false);
-
-    private async Task LoadAsync(bool reuseETag)
-    {
-        UserTenantMembershipSnapshot previous = _snapshot;
-        _snapshot = UserTenantMembershipSnapshot.Loading();
-
-        UserTenantMembershipRequest request = new(
-            Cursor: _currentCursor,
-            PageSize: 20,
-            ETag: reuseETag ? previous.ETag : null);
-
-        _snapshot = await QueryGateway
-            .GetMyTenantsAsync(request, previous, CancellationToken.None)
-            .ConfigureAwait(false);
-    }
-
-    private async Task RefreshAsync()
-        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
-
-    private async Task NextPageAsync()
-    {
-        _cursorHistory.Push(_currentCursor);
-        _currentCursor = _snapshot.NextCursor;
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
-    }
-
-    private async Task PreviousPageAsync()
-    {
-        if (_cursorHistory.Count > 0)
-        {
-            _currentCursor = _cursorHistory.Pop();
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
-        }
-    }
-}

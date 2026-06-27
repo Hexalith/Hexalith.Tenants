@@ -209,6 +209,33 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
+    public async Task StartAsync_when_non_conflict_body_mentions_already_bootstrapped_logs_unexpected_response() {
+        const string sensitiveBody = "{\"type\":\"GlobalAdminAlreadyBootstrappedRejection\",\"payload\":{\"token\":\"secret-token\"}}";
+        var handler = new TestHttpMessageHandler((_, _)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError) {
+                Content = new StringContent(sensitiveBody),
+            }));
+
+        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
+        var lifetime = new TestHostApplicationLifetime();
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+            BootstrapGlobalAdminUserId = "admin-user-1",
+        });
+
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Messages.Any(m => m.Contains("500", StringComparison.Ordinal)));
+
+        logger.Entries.ShouldNotContain(e => e.EventId.Id == 2004);
+        logger.Messages.ShouldContain(m => m.Contains("500", StringComparison.Ordinal));
+        logger.Messages.ShouldNotContain(m => m.Contains(sensitiveBody, StringComparison.Ordinal));
+        logger.Messages.ShouldNotContain(m => m.Contains("secret-token", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task StartAsync_when_unexpected_response_logs_status_without_response_body() {
         const string sensitiveBody = "{\"detail\":\"do-not-log-command-payload-or-token\"}";
         var handler = new TestHttpMessageHandler((_, _)

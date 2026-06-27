@@ -3,7 +3,7 @@ baseline_commit: 58fdaef696f77247c7a8efb29615557864d28b0b
 title: 'Adopt EventStore read-model freshness metadata in Tenants (retire hand-rolled TenantFreshnessState)'
 type: 'correct-course-hardening'
 created: '2026-06-25'
-status: 'review'
+status: 'done'
 sprint_key: 'cc-2026-06-25-tenant-read-model-freshness-adoption'
 source_proposal: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-25-tenant-read-model-freshness-adoption.md'
 approval: 'Administrator approved 2026-06-25 (Server-side, 3-state option)'
@@ -263,18 +263,41 @@ the Developer agent; they do not expand the approved correct-course scope.
 
 ### Review Findings
 
-- [ ] [Review][Decision] Clarify submodule pointer updates in a no-submodule story - The reviewed diff updates `Hexalith.EventStore` from `d9d3ee0f8eb39a43c25a728d31fc4b19e6d85a0d` to `825a849cd07110a1c8c2ccb124c9123934c9fabd` and `Hexalith.Memories` from `183b53dcced10d5f41b8c804afc6be5858a4cdad` to `0c07af3c2633d6ffacf08ffee742b9536019ed4a`, while the source proposal says this story has no submodule edits and no submodule round-trip. The EventStore pointer may be required for the freshness API, but the Memories pointer appears unrelated to the freshness acceptance criteria; choose whether to keep and document these as dependency updates or split/revert them before accepting the story.
+- [x] [Review][Decision] Clarify submodule pointer updates in a no-submodule story - Resolved 2026-06-27: submodule relocation/pointer churn is not owned by this freshness story; it is covered by separate Administrator-approved correct-course records `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-26-submodule-references.md` and `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-26.md`. Freshness acceptance remains scoped to Tenants-side adoption of the already-shipped EventStore API.
 - [x] [Review][Patch] REST query responses drop freshness classification before the UI can consume it [src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:453] — Fixed 2026-06-27: emitted and parsed `X-Hexalith-Is-Stale` freshness metadata.
 - [x] [Review][Patch] ETag-less successful read models skip `ProjectedAt` freshness classification [src/Hexalith.Tenants/Queries/TenantQueryResult.cs:50] — Fixed 2026-06-27: freshness metadata now classifies read-model age without requiring an ETag.
-- [ ] [Review][Patch] Gateway maps server-unknown freshness with an ETag back to current [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:782]
-- [ ] [Review][Patch] Conditional 304 paths overwrite cached non-current freshness as current [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:54]
-- [ ] [Review][Patch] Search results force list-level freshness to current even when hydrated rows are stale or unknown [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:514]
-- [ ] [Review][Patch] Create tenant command gate treats unknown list freshness as fresh [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:78]
+- [x] [Review][Patch] Gateway maps server-unknown freshness with an ETag back to current [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:782] — Fixed 2026-06-27: `ResolveFreshness` now trusts explicit server freshness metadata only; ETags and projection versions no longer prove `Current`.
+- [x] [Review][Patch] Conditional 304 paths overwrite cached non-current freshness as current [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:54] — Fixed 2026-06-27: conditional responses now use explicit freshness metadata when present and otherwise preserve the cached truth state.
+- [x] [Review][Patch] Search results force list-level freshness to current even when hydrated rows are stale or unknown [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:514] — Fixed 2026-06-27: search snapshot freshness is aggregated from hydrated tenant detail rows.
+- [x] [Review][Patch] Create tenant command gate treats unknown list freshness as fresh [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:117] — Fixed 2026-06-27: create is enabled only when the list freshness is `Current`.
+- [x] [Review][Patch] Projection freshness timestamp can move backward on optimistic-concurrency retry [src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:74] — Fixed 2026-06-27: tenant read-model, audit, and index writes now preserve the newest `ProjectedAt` across retries/merges, with regression coverage for retry monotonicity.
+- [x] [Review][Patch] Stale empty tenant-list responses render as empty instead of stale [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:439] — Fixed 2026-06-27: stale empty responses now surface the stale list state and refresh affordance.
+- [x] [Review][Patch] Degraded freshness metadata loses to stale when both flags are present [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:70] — Fixed 2026-06-27: degraded metadata now takes precedence over stale metadata across tenant detail, list, user-tenants, global-administrators, and audit reads.
+- [x] [Review][Patch] REST freshness wire coverage omits current and unknown header states [tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs:273] — Fixed 2026-06-27: integration coverage now asserts `X-Hexalith-Is-Stale=true`, `false`, and omitted unknown behavior.
+- [x] [Review][Patch] Non-list 304 stale-header paths are unexercised [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:1493] — Fixed 2026-06-27: detail, user-tenants, global-administrators, and audit conditional paths now assert explicit stale metadata updates cached snapshots.
+- [x] [Review][Patch] Bootstrap already-done detection accepts non-conflict bodies containing the rejection marker [src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs:99] — Fixed 2026-06-27: only 409 Conflict plus the already-bootstrapped marker is treated as benign; other statuses remain unexpected.
+- [x] [Review][Patch] Verification/documentation hygiene drift in test summaries and contributor test commands [_bmad-output/implementation-artifacts/tests/test-summary.md:260] — Fixed 2026-06-27: BMAD test summary now reflects the shared freshness enum and implemented CC story; contributor docs use per-project test commands; trailing whitespace in the submodule proposal was removed.
 
-Recheck 2026-06-27 (server freshness/projection/query chunk): the first two patch findings remain
-current. No additional server projection/query findings were accepted after triage; the remaining
-chunk candidates were dismissed as already intentional, covered by existing references, or not caused
-by a projection write path.
+Recheck 2026-06-27 (server freshness/projection/query chunk): the first two server patch findings
+are fixed. One retry monotonicity patch finding was accepted after triage; the remaining chunk
+candidates were dismissed as intentional, covered by existing references, unreachable from current
+production writes, or outside this chunk's approved scope.
+
+Recheck 2026-06-27 (UI freshness/gateway/action-gate chunk): the gateway now fails closed when
+freshness metadata is absent, preserves/updates cached freshness on 304 without treating the ETag as
+current evidence, derives search-level freshness from hydrated detail rows, blocks create on unknown
+freshness, and keeps stale empty lists visibly stale.
+
+Recheck 2026-06-27 (final tests/docs/config/submodule-hygiene chunk): remaining acceptance findings
+were resolved or reconciled. REST freshness wire states now cover current/stale/unknown, conditional
+304 coverage spans all gateway surfaces, bootstrap already-done handling is conflict-only, BMAD test
+summary/contributor docs were corrected, and the submodule-scope decision is recorded as owned by
+the separate approved 2026-06-26 correct-course records.
+
+Review verification 2026-06-27: focused UI freshness/workspace tests passed 106/106; focused server
+freshness/query/bootstrap tests passed 136/136; integration freshness header tests passed 3/3; full
+UI test project passed 776/776; Release solution build completed with 0 warnings / 0 errors; and
+`git diff --check` was clean.
 
 ## Verification
 

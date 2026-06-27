@@ -45,6 +45,7 @@ public class SolutionStructureTests {
         "references/Hexalith.Commons/",
         "references/Hexalith.EventStore/",
         "references/Hexalith.FrontComposer/",
+        "references/Hexalith.Memories/",
     ];
 
     private static readonly string[] ForbiddenTenantQueryRoutingTerms =

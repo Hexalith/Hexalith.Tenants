@@ -299,6 +299,60 @@ public class TenantsQueryControllerIntegrationTests {
     }
 
     [Fact]
+    public async Task ListTenants_emits_current_freshness_header_from_query_metadata() {
+        DateTimeOffset now = new(2026, 6, 25, 13, 0, 0, TimeSpan.Zero);
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        var readModel = new TenantIndexReadModel {
+            ProjectedAt = now.AddMinutes(-5),
+        };
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(
+                payload,
+                "tenant-index",
+                readModel,
+                ReadModelFreshnessThresholds.Create(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30)),
+                now,
+                "index-etag-1"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.GetValues("X-Hexalith-Is-Stale").ShouldHaveSingleItem().ShouldBe("false");
+        response.Headers.GetValues("X-Hexalith-Served-At").ShouldHaveSingleItem().ShouldBe(now.ToString("O", CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public async Task ListTenants_omits_freshness_header_when_query_metadata_is_unknown() {
+        DateTimeOffset now = new(2026, 6, 25, 13, 0, 0, TimeSpan.Zero);
+        JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
+        var readModel = new TenantIndexReadModel();
+        var handler = new CapturingDomainQueryHandler(
+            ListTenantsQuery.Domain,
+            ListTenantsQuery.QueryType,
+            TenantQueryResult.FromPayload(
+                payload,
+                "tenant-index",
+                readModel,
+                ReadModelFreshnessThresholds.Create(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30)),
+                now,
+                "index-etag-1"));
+
+        await using var factory = new TenantsDomainQueryWebApplicationFactory(handler);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.TryGetValues("X-Hexalith-Is-Stale", out _).ShouldBeFalse();
+        response.Headers.GetValues("X-Hexalith-Served-At").ShouldHaveSingleItem().ShouldBe(now.ToString("O", CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public async Task ListTenants_without_read_model_etag_returns_200_without_etag_or_not_modified_support() {
         JsonElement payload = JsonSerializer.SerializeToElement(new { items = Array.Empty<object>(), cursor = (string?)null, hasMore = false });
         var handler = new CapturingDomainQueryHandler(

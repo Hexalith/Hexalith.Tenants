@@ -92,4 +92,3 @@ Update LLM instructions and project context so agents read `references/Hexalith.
 - [x] Recommended path selected.
 - [x] Implementation handoff defined.
 - [x] Change implemented against the approved direct-adjustment path.
-

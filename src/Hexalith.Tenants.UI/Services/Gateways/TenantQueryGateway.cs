@@ -52,28 +52,31 @@ internal sealed class TenantQueryGateway(
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
-                return previous?.Detail is null
-                    ? TenantDetailSnapshot.Degraded(null, "Tenant detail was unchanged, but no cached server snapshot is available.", result.ETag)
-                    : previous with {
-                        // A 304 means the cached snapshot is unchanged, not that a degraded/stale
-                        // snapshot recovered. Preserve the prior truth state; only a previously
-                        // Ready snapshot earns refreshed Current freshness from the conditional hit.
-                        Freshness = previous.Kind is TenantDetailSurfaceKind.Ready ? ReadModelFreshnessState.Current : previous.Freshness,
-                        ETag = result.ETag ?? previous.ETag,
-                    };
+                if (previous?.Detail is null) {
+                    return TenantDetailSnapshot.Degraded(null, "Tenant detail was unchanged, but no cached server snapshot is available.", result.ETag);
+                }
+
+                // A 304 means the cached snapshot is unchanged, not that a degraded/stale
+                // snapshot recovered. Only an explicit freshness header can change truth state.
+                ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
+                return previous with {
+                    Kind = ResolveDetailKindForFreshness(previous.Kind, notModifiedFreshness),
+                    Freshness = notModifiedFreshness,
+                    ETag = result.ETag ?? previous.ETag,
+                };
             }
 
             if (result.Payload is null) {
                 return TenantDetailSnapshot.Unknown("Tenant detail projection returned no payload.", result.ETag);
             }
 
-            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
-            if (result.Metadata?.IsStale == true) {
-                return TenantDetailSnapshot.Stale(result.Payload, result.ETag);
-            }
-
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             if (result.Metadata?.IsDegraded == true) {
                 return TenantDetailSnapshot.Degraded(result.Payload, "Tenant detail projection is degraded.", result.ETag);
+            }
+
+            if (result.Metadata?.IsStale == true) {
+                return TenantDetailSnapshot.Stale(result.Payload, result.ETag);
             }
 
             return TenantDetailSnapshot.Ready(result.Payload, result.ETag, freshness);
@@ -135,39 +138,31 @@ internal sealed class TenantQueryGateway(
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
-                return previous is null || !string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)
-                    ? UserTenantMembershipSnapshot.Degraded(
+                if (previous is null || !string.Equals(previous.TargetUserId, request.TargetUserId, StringComparison.Ordinal)) {
+                    return UserTenantMembershipSnapshot.Degraded(
                         [],
                         UserTenantMembershipReason.NotModifiedWithoutSnapshot,
                         result.ETag,
-                        targetUserId: request.TargetUserId)
-                    : previous with {
-                        ETag = result.ETag ?? previous.ETag,
-                        Freshness = previous.Kind is UserTenantMembershipSurfaceKind.Ready
-                            or UserTenantMembershipSurfaceKind.Empty
-                                ? ReadModelFreshnessState.Current
-                                : previous.Freshness,
-                    };
+                        targetUserId: request.TargetUserId);
+                }
+
+                ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
+                return previous with {
+                    ETag = result.ETag ?? previous.ETag,
+                    Kind = ResolveUserTenantsKindForFreshness(previous, notModifiedFreshness),
+                    Freshness = notModifiedFreshness,
+                    Reason = ResolveUserTenantsReasonForFreshness(previous, notModifiedFreshness),
+                };
             }
 
             PaginatedResult<UserTenantMembership> payload = result.Payload
                 ?? new PaginatedResult<UserTenantMembership>([], null, false);
-            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             IReadOnlyList<UserTenantMembershipRow> rows = payload.Items
                 .Select(m => UserTenantMembershipRow.FromMembership(m) with {
                     Freshness = freshness,
                 })
                 .ToArray();
-
-            if (result.Metadata?.IsStale == true) {
-                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
-                return UserTenantMembershipSnapshot.Stale(
-                    rows,
-                    payload.Cursor,
-                    payload.HasMore,
-                    result.ETag,
-                    request.TargetUserId);
-            }
 
             if (result.Metadata?.IsDegraded == true) {
                 rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
@@ -177,6 +172,16 @@ internal sealed class TenantQueryGateway(
                     result.ETag,
                     payload.Cursor,
                     payload.HasMore,
+                    request.TargetUserId);
+            }
+
+            if (result.Metadata?.IsStale == true) {
+                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
+                return UserTenantMembershipSnapshot.Stale(
+                    rows,
+                    payload.Cursor,
+                    payload.HasMore,
+                    result.ETag,
                     request.TargetUserId);
             }
 
@@ -215,18 +220,20 @@ internal sealed class TenantQueryGateway(
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
-                return previous is null
-                    ? GlobalAdministratorsSnapshot.Degraded(
+                if (previous is null) {
+                    return GlobalAdministratorsSnapshot.Degraded(
                         [],
                         GlobalAdministratorsReason.NotModifiedWithoutSnapshot,
-                        result.ETag)
-                    : previous with {
-                        ETag = result.ETag ?? previous.ETag,
-                        Freshness = previous.Kind is GlobalAdministratorsSurfaceKind.Ready
-                            or GlobalAdministratorsSurfaceKind.Empty
-                                ? ReadModelFreshnessState.Current
-                                : previous.Freshness,
-                    };
+                        result.ETag);
+                }
+
+                ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
+                return previous with {
+                    ETag = result.ETag ?? previous.ETag,
+                    Kind = ResolveGlobalAdministratorsKindForFreshness(previous, notModifiedFreshness),
+                    Freshness = notModifiedFreshness,
+                    Reason = ResolveGlobalAdministratorsReasonForFreshness(previous, notModifiedFreshness),
+                };
             }
 
             PaginatedResult<GlobalAdministratorSummary>? payload = result.Payload;
@@ -244,15 +251,10 @@ internal sealed class TenantQueryGateway(
                     };
             }
 
-            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             IReadOnlyList<GlobalAdministratorRow> rows = payload.Items
                 .Select(m => GlobalAdministratorRow.FromSummary(m) with { Freshness = freshness })
                 .ToArray();
-
-            if (result.Metadata?.IsStale == true) {
-                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
-                return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
-            }
 
             if (result.Metadata?.IsDegraded == true) {
                 rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
@@ -262,6 +264,11 @@ internal sealed class TenantQueryGateway(
                     result.ETag,
                     payload.Cursor,
                     payload.HasMore);
+            }
+
+            if (result.Metadata?.IsStale == true) {
+                rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
+                return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
             }
 
             if (rows.Count == 0) {
@@ -332,14 +339,12 @@ internal sealed class TenantQueryGateway(
                     result.ETag);
             }
 
+            ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
             return previous with {
                 ETag = result.ETag ?? previous.ETag,
-                Freshness = previous.Kind is TenantAuditSurfaceKind.Ready
-                    or TenantAuditSurfaceKind.Empty
-                    or TenantAuditSurfaceKind.FilteredEmpty
-                    or TenantAuditSurfaceKind.ListRefreshed
-                        ? ReadModelFreshnessState.Current
-                        : previous.Freshness,
+                Kind = ResolveTenantAuditKindForFreshness(previous, notModifiedFreshness),
+                Freshness = notModifiedFreshness,
+                Reason = ResolveTenantAuditReasonForFreshness(previous, notModifiedFreshness),
             };
         }
 
@@ -355,15 +360,10 @@ internal sealed class TenantQueryGateway(
                 : TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingPayload, request, result.ETag);
         }
 
-        ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+        ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
         IReadOnlyList<TenantAuditRow> rows = payload.Items
             .Select(entry => TenantAuditRow.FromEntry(entry, freshness))
             .ToArray();
-
-        if (result.Metadata?.IsStale == true) {
-            rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
-            return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request);
-        }
 
         if (result.Metadata?.IsDegraded == true) {
             rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Unknown }).ToArray();
@@ -374,6 +374,11 @@ internal sealed class TenantQueryGateway(
                 result.ETag,
                 payload.Cursor,
                 payload.HasMore);
+        }
+
+        if (result.Metadata?.IsStale == true) {
+            rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
+            return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request);
         }
 
         if (isListRefreshed) {
@@ -418,23 +423,47 @@ internal sealed class TenantQueryGateway(
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
-                return previous is null
-                    ? TenantListSnapshot.Degraded([], "Tenant list was unchanged, but no cached server snapshot is available.")
-                    : previous with {
-                        Kind = previous.Rows.Count == 0 ? TenantListSurfaceKind.Empty : TenantListSurfaceKind.Ready,
-                        Freshness = ReadModelFreshnessState.Current,
-                        ETag = result.ETag ?? previous.ETag,
-                        ErrorMessage = null,
-                    };
+                if (previous is null) {
+                    return TenantListSnapshot.Degraded([], "Tenant list was unchanged, but no cached server snapshot is available.");
+                }
+
+                ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
+                TenantListSurfaceKind kind = ResolveTenantListKindForFreshness(previous, notModifiedFreshness);
+                return previous with {
+                    Kind = kind,
+                    Freshness = notModifiedFreshness,
+                    ETag = result.ETag ?? previous.ETag,
+                    ErrorMessage = ResolveTenantListErrorMessageForNotModified(previous, kind),
+                };
             }
 
             PaginatedResult<TenantSummary> payload = result.Payload ?? new PaginatedResult<TenantSummary>([], null, false);
-            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata, result.ETag);
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
             (IReadOnlyList<TenantListRow> rows, bool enrichmentDegraded) = await EnrichRowsAsync(
                 payload.Items,
                 freshness,
                 cancellationToken).ConfigureAwait(false);
             bool isDegraded = enrichmentDegraded || result.Metadata?.IsDegraded == true;
+
+            if (isDegraded) {
+                return TenantListSnapshot.Ready(
+                    rows,
+                    payload.Cursor,
+                    payload.HasMore,
+                    result.ETag,
+                    ReadModelFreshnessState.Unknown,
+                    isDegraded: true);
+            }
+
+            if (freshness is ReadModelFreshnessState.Stale) {
+                return TenantListSnapshot.Ready(
+                    rows,
+                    payload.Cursor,
+                    payload.HasMore,
+                    result.ETag,
+                    freshness,
+                    isDegraded: false);
+            }
 
             if (rows.Count == 0) {
                 return TenantListSnapshot.Empty(isAuthorizationScoped: true, freshness) with {
@@ -516,7 +545,7 @@ internal sealed class TenantQueryGateway(
             nextCursor: hasMore ? CreateSearchCursor(nextOffset) : null,
             hasMore,
             eTag: null,
-            ReadModelFreshnessState.Current,
+            AggregateRowFreshness(rows),
             degraded);
     }
 
@@ -779,22 +808,158 @@ internal sealed class TenantQueryGateway(
     private static string EscapePath(string value)
         => Uri.EscapeDataString(value);
 
-    private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata, string? eTag) {
+    private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata) {
         if (metadata?.IsDegraded == true) {
             return ReadModelFreshnessState.Unknown;
         }
 
-        if (metadata?.IsStale == true) {
+        return metadata?.IsStale switch {
+            true => ReadModelFreshnessState.Stale,
+            false => ReadModelFreshnessState.Current,
+            _ => ReadModelFreshnessState.Unknown,
+        };
+    }
+
+    private static ReadModelFreshnessState ResolveNotModifiedFreshness(
+        QueryResponseMetadata? metadata,
+        ReadModelFreshnessState previous)
+        => metadata?.IsDegraded == true || metadata?.IsStale is not null
+            ? ResolveFreshness(metadata)
+            : previous;
+
+    private static ReadModelFreshnessState AggregateRowFreshness(IReadOnlyList<TenantListRow> rows) {
+        if (rows.Any(static row => row.Freshness == ReadModelFreshnessState.Stale)) {
             return ReadModelFreshnessState.Stale;
         }
 
-        return metadata?.IsNotModified == true
-            || !string.IsNullOrWhiteSpace(eTag)
-            || !string.IsNullOrWhiteSpace(metadata?.ETag)
-            || !string.IsNullOrWhiteSpace(metadata?.ProjectionVersion)
-                ? ReadModelFreshnessState.Current
-                : ReadModelFreshnessState.Unknown;
+        if (rows.Any(static row => row.Freshness == ReadModelFreshnessState.Unknown)) {
+            return ReadModelFreshnessState.Unknown;
+        }
+
+        if (rows.Any(static row => row.Freshness == ReadModelFreshnessState.Aging)) {
+            return ReadModelFreshnessState.Aging;
+        }
+
+        return ReadModelFreshnessState.Current;
     }
+
+    private static TenantDetailSurfaceKind ResolveDetailKindForFreshness(
+        TenantDetailSurfaceKind previous,
+        ReadModelFreshnessState freshness)
+        => previous is TenantDetailSurfaceKind.Ready or TenantDetailSurfaceKind.Stale
+            ? freshness == ReadModelFreshnessState.Stale ? TenantDetailSurfaceKind.Stale : TenantDetailSurfaceKind.Ready
+            : previous;
+
+    private static UserTenantMembershipSurfaceKind ResolveUserTenantsKindForFreshness(
+        UserTenantMembershipSnapshot previous,
+        ReadModelFreshnessState freshness)
+        => previous.Kind is UserTenantMembershipSurfaceKind.Ready
+            or UserTenantMembershipSurfaceKind.Empty
+            or UserTenantMembershipSurfaceKind.Stale
+                ? freshness == ReadModelFreshnessState.Stale
+                    ? UserTenantMembershipSurfaceKind.Stale
+                    : previous.Rows.Count == 0 ? UserTenantMembershipSurfaceKind.Empty : UserTenantMembershipSurfaceKind.Ready
+                : previous.Kind;
+
+    private static UserTenantMembershipReason ResolveUserTenantsReasonForFreshness(
+        UserTenantMembershipSnapshot previous,
+        ReadModelFreshnessState freshness)
+        => previous.Kind is UserTenantMembershipSurfaceKind.Ready
+            or UserTenantMembershipSurfaceKind.Empty
+            or UserTenantMembershipSurfaceKind.Stale
+                ? freshness == ReadModelFreshnessState.Stale
+                    ? UserTenantMembershipReason.ProjectionStale
+                    : UserTenantMembershipReason.None
+                : previous.Reason;
+
+    private static GlobalAdministratorsSurfaceKind ResolveGlobalAdministratorsKindForFreshness(
+        GlobalAdministratorsSnapshot previous,
+        ReadModelFreshnessState freshness)
+        => previous.Kind is GlobalAdministratorsSurfaceKind.Ready
+            or GlobalAdministratorsSurfaceKind.Empty
+            or GlobalAdministratorsSurfaceKind.Stale
+                ? freshness == ReadModelFreshnessState.Stale
+                    ? GlobalAdministratorsSurfaceKind.Stale
+                    : previous.Rows.Count == 0 ? GlobalAdministratorsSurfaceKind.Empty : GlobalAdministratorsSurfaceKind.Ready
+                : previous.Kind;
+
+    private static GlobalAdministratorsReason ResolveGlobalAdministratorsReasonForFreshness(
+        GlobalAdministratorsSnapshot previous,
+        ReadModelFreshnessState freshness)
+        => previous.Kind is GlobalAdministratorsSurfaceKind.Ready
+            or GlobalAdministratorsSurfaceKind.Empty
+            or GlobalAdministratorsSurfaceKind.Stale
+                ? freshness == ReadModelFreshnessState.Stale
+                    ? GlobalAdministratorsReason.ProjectionStale
+                    : GlobalAdministratorsReason.None
+                : previous.Reason;
+
+    private static TenantAuditSurfaceKind ResolveTenantAuditKindForFreshness(
+        TenantAuditSnapshot previous,
+        ReadModelFreshnessState freshness) {
+        if (previous.Kind is not (TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.ListRefreshed)) {
+            return previous.Kind;
+        }
+
+        if (freshness == ReadModelFreshnessState.Stale) {
+            return TenantAuditSurfaceKind.Stale;
+        }
+
+        if (previous.Kind == TenantAuditSurfaceKind.ListRefreshed) {
+            return TenantAuditSurfaceKind.ListRefreshed;
+        }
+
+        if (previous.Rows.Count != 0) {
+            return TenantAuditSurfaceKind.Ready;
+        }
+
+        return HasAuditFilters(previous) ? TenantAuditSurfaceKind.FilteredEmpty : TenantAuditSurfaceKind.Empty;
+    }
+
+    private static TenantAuditReason ResolveTenantAuditReasonForFreshness(
+        TenantAuditSnapshot previous,
+        ReadModelFreshnessState freshness)
+        => previous.Kind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.ListRefreshed
+                ? freshness == ReadModelFreshnessState.Stale
+                    ? TenantAuditReason.ProjectionStale
+                    : previous.Kind == TenantAuditSurfaceKind.ListRefreshed
+                        ? TenantAuditReason.ListRefreshed
+                        : TenantAuditReason.None
+                : previous.Reason;
+
+    private static TenantListSurfaceKind ResolveTenantListKindForFreshness(
+        TenantListSnapshot previous,
+        ReadModelFreshnessState freshness) {
+        if (previous.Kind == TenantListSurfaceKind.Degraded) {
+            return TenantListSurfaceKind.Degraded;
+        }
+
+        if (freshness == ReadModelFreshnessState.Stale) {
+            return TenantListSurfaceKind.Stale;
+        }
+
+        if (previous.Kind == TenantListSurfaceKind.FilteredEmpty) {
+            return TenantListSurfaceKind.FilteredEmpty;
+        }
+
+        return previous.Rows.Count == 0 ? TenantListSurfaceKind.Empty : TenantListSurfaceKind.Ready;
+    }
+
+    private static string? ResolveTenantListErrorMessageForNotModified(
+        TenantListSnapshot previous,
+        TenantListSurfaceKind resolvedKind)
+        => resolvedKind == TenantListSurfaceKind.Degraded ? previous.ErrorMessage : null;
+
+    private static bool HasAuditFilters(TenantAuditSnapshot snapshot)
+        => snapshot.From is not null || snapshot.To is not null || !string.IsNullOrWhiteSpace(snapshot.Category);
 
     private static bool IsUnauthorized(EventStoreGatewayException exception)
         => exception.StatusCode is (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden;

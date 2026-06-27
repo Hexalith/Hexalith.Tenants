@@ -41,7 +41,9 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_submits_literal_detail_query_and_maps_counts_source()
     {
         CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: new QueryResponseMetadata(IsStale: false, ServedAt: DateTimeOffset.UtcNow));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -82,6 +84,26 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_tenant_applies_stale_freshness_from_not_modified_response()
+    {
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            Detail("tenant.alpha"),
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("\"known\"", isStale: true);
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Stale);
+        snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+    }
+
+    [Fact]
     public async Task Get_tenant_without_previous_snapshot_reports_degraded_not_modified_state()
     {
         CapturingGatewayClient client = new();
@@ -94,6 +116,24 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
         snapshot.Detail.ShouldBeNull();
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+    }
+
+    [Fact]
+    public async Task Get_tenant_with_etag_but_no_freshness_metadata_reports_unknown()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            eTag: "\"tenant-etag\"",
+            metadata: new QueryResponseMetadata(ETag: "\"tenant-etag\""));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
@@ -251,6 +291,28 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
         snapshot.ETag.ShouldBe("\"known\"");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_applies_stale_freshness_from_not_modified_response()
+    {
+        GlobalAdministratorsSnapshot previous = GlobalAdministratorsSnapshot.Ready(
+            [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueGlobalAdministratorsNotModified("\"known\"", isStale: true);
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot snapshot = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Stale);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+        snapshot.Reason.ShouldBe(GlobalAdministratorsReason.ProjectionStale);
     }
 
     [Theory]
@@ -445,6 +507,29 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task Get_tenant_audit_applies_stale_freshness_from_not_modified_response()
+    {
+        TenantAuditRequest request = new("tenant.alpha", Category: AuditEventCategory.Access, ETag: "\"known\"");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-4", AuditEventCategory.Access), ReadModelFreshnessState.Current)],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current,
+            request);
+        CapturingGatewayClient client = new();
+        client.EnqueueAuditNotModified("\"known\"", isStale: true);
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(request, previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Stale);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+        snapshot.Reason.ShouldBe(TenantAuditReason.ProjectionStale);
+    }
+
+    [Fact]
     public async Task Get_tenant_audit_maps_missing_payload_to_safe_degraded_state()
     {
         CapturingGatewayClient client = new();
@@ -597,7 +682,8 @@ public sealed class TenantQueryGatewayTests
         client.EnqueueQueryResult(
             new PaginatedResult<TenantSummary>([], null, false),
             eTag: null,
-            metadata: null);
+            metadata: null,
+            emitDefaultMetadata: false);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -679,6 +765,69 @@ public sealed class TenantQueryGatewayTests
         client.SubmittedQueries[0].IfNoneMatch.ShouldBe("\"known\"");
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+    }
+
+    [Fact]
+    public async Task List_tenants_not_modified_preserves_previous_unknown_freshness_without_freshness_header()
+    {
+        TenantListSnapshot previous = TenantListSnapshot.Ready(
+            [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Unknown,
+            isDegraded: false);
+        CapturingGatewayClient client = new();
+        client.EnqueueNotModified("\"known\"");
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantListSnapshot snapshot = await gateway
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+    }
+
+    [Fact]
+    public async Task List_tenants_not_modified_uses_stale_header_from_conditional_response()
+    {
+        TenantListSnapshot previous = TenantListSnapshot.Ready(
+            [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
+            nextCursor: "next",
+            hasMore: true,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current,
+            isDegraded: false);
+        CapturingGatewayClient client = new();
+        client.EnqueueNotModified("\"known\"", isStale: true);
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantListSnapshot snapshot = await gateway
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Stale);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+        snapshot.NextCursor.ShouldBe("next");
+        snapshot.HasMore.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task List_tenants_stale_empty_response_surfaces_stale_state()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<TenantSummary>([], null, false),
+            metadata: new QueryResponseMetadata(IsStale: true));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantListSnapshot snapshot = await gateway
+            .ListTenantsAsync(new TenantListRequest(PageSize: 10), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Stale);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
     }
 
     [Fact]
@@ -831,6 +980,28 @@ public sealed class TenantQueryGatewayTests
         differentTarget.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Degraded);
         differentTarget.Reason.ShouldBe(UserTenantMembershipReason.NotModifiedWithoutSnapshot);
         differentTarget.TargetUserId.ShouldBe("target.two");
+    }
+
+    [Fact]
+    public async Task Get_user_tenants_applies_stale_freshness_from_not_modified_response()
+    {
+        UserTenantMembershipSnapshot previous = UserTenantMembershipSnapshot.Ready(
+            [new UserTenantMembershipRow("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            nextCursor: "next",
+            hasMore: true,
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current,
+            targetUserId: "target.one");
+        CapturingGatewayClient client = new();
+        client.EnqueueUserTenantsNotModified("\"known\"", isStale: true);
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.one", ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Stale);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+        snapshot.Reason.ShouldBe(UserTenantMembershipReason.ProjectionStale);
     }
 
     [Fact]
@@ -1083,7 +1254,42 @@ public sealed class TenantQueryGatewayTests
         TenantListRow row = snapshot.Rows.ShouldHaveSingleItem();
         row.MemberCount.ShouldBe(TenantCountValue.Known(2));
         row.OwnerCount.ShouldBe(TenantCountValue.Known(1));
-        row.Freshness.ShouldBe(ReadModelFreshnessState.Current); // from the detail ETag, never from Memories
+        row.Freshness.ShouldBe(ReadModelFreshnessState.Current); // from detail freshness metadata, never from Memories
+    }
+
+    [Fact]
+    public async Task List_search_marks_snapshot_stale_when_hydrated_detail_is_stale()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"), metadata: new QueryResponseMetadata(IsStale: true));
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Stale);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+    }
+
+    [Fact]
+    public async Task List_search_marks_snapshot_unknown_when_hydrated_detail_freshness_is_unknown()
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("alpha"),
+            eTag: "\"alpha-etag\"",
+            metadata: new QueryResponseMetadata(ETag: "\"alpha-etag\""));
+        MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha"));
+        TenantQueryGateway gateway = CreateGateway(client, memories: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "term"), previous: null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Fact]
@@ -1350,64 +1556,65 @@ public sealed class TenantQueryGatewayTests
         public void EnqueueQueryResult<T>(
             T payload,
             string? eTag = "\"etag\"",
-            QueryResponseMetadata? metadata = null)
+            QueryResponseMetadata? metadata = null,
+            bool emitDefaultMetadata = true)
             => _responses.Enqueue(new EventStoreQueryResult<T>(
                 "correlation",
                 payload,
                 IsNotModified: false,
                 eTag)
             {
-                Metadata = metadata,
+                Metadata = metadata ?? (emitDefaultMetadata ? new QueryResponseMetadata(ETag: eTag, IsStale: false) : null),
             });
 
-        public void EnqueueNotModified(string? eTag)
+        public void EnqueueNotModified(string? eTag, bool? isStale = null)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantSummary>>(
                 null,
                 null,
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
             });
 
-        public void EnqueueDetailNotModified(string? eTag)
+        public void EnqueueDetailNotModified(string? eTag, bool? isStale = null)
             => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
                 null,
                 null,
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
             });
 
-        public void EnqueueUserTenantsNotModified(string? eTag)
+        public void EnqueueUserTenantsNotModified(string? eTag, bool? isStale = null)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<UserTenantMembership>>(
                 null,
                 null,
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
             });
 
-        public void EnqueueGlobalAdministratorsNotModified(string? eTag)
+        public void EnqueueGlobalAdministratorsNotModified(string? eTag, bool? isStale = null)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>>(
                 null,
                 null,
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
             });
 
-        public void EnqueueAuditNotModified(string? eTag)
+        public void EnqueueAuditNotModified(string? eTag, bool? isStale = null)
             => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantAuditEntry>>(
                 null,
                 null,
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
+                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
             });
 
         public void EnqueueException(Exception exception)

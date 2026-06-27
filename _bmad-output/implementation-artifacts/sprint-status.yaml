@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-27T14:38:54+02:00
+# last_updated: 2026-06-27T20:33:14+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -50,7 +50,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-27T14:38:54+02:00
+last_updated: 2026-06-27T20:33:14+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -239,7 +239,7 @@ development_status:
   # Aging stays a dormant UI value pending a future QueryResponseMetadata.ProjectedAt wire field
   # (separate EventStore handoff). Architecture D6 + deferred-work.md + test-summary.md reconciled to
   # the 3-state-on-wire reality.
-  cc-2026-06-25-tenant-read-model-freshness-adoption: review
+  cc-2026-06-25-tenant-read-model-freshness-adoption: done
 
   # --- Correct Course 2026-06-27: Tenants module tabbed workspace and single nav entry ---
   # Approved by Administrator 2026-06-27.
@@ -249,4 +249,4 @@ development_status:
   # a safe "my tenants" filter/view; second tab = lookup-backed Users membership surface using the
   # existing GET /api/users/{userId}/tenants behavior. Do not claim an exhaustive all-users inventory
   # unless a future Product/API story adds an authorization-scoped read query first.
-  cc-2026-06-27-tenants-module-tabbed-workspace: ready-for-dev
+  cc-2026-06-27-tenants-module-tabbed-workspace: review

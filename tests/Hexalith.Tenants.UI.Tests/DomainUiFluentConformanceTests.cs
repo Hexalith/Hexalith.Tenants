@@ -263,8 +263,8 @@ public sealed class DomainUiFluentConformanceTests
             Path.Combine(componentsRoot, "Pages", "GlobalAdministratorsPage.razor"),
             Path.Combine(componentsRoot, "Pages", "TenantAuditPage.razor"),
             Path.Combine(componentsRoot, "Pages", "TenantDetailPage.razor"),
-            Path.Combine(componentsRoot, "Pages", "UserMembershipLookupPage.razor"),
             Path.Combine(componentsRoot, "Tenants", "TenantConfigurationView.razor"),
+            Path.Combine(componentsRoot, "Users", "UserMembershipLookupPanel.razor"),
         ];
 
         List<string> offenders = [];

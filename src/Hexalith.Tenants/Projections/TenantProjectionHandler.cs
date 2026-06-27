@@ -138,7 +138,7 @@ public sealed class TenantProjectionHandler {
         // state-store implementation that returns a cached/shared reference from a read.
         TenantAuditReadModel merged = new() {
             Entries = [.. persisted.Entries ?? []],
-            ProjectedAt = incoming.ProjectedAt,
+            ProjectedAt = LatestProjectedAt(persisted.ProjectedAt, incoming.ProjectedAt),
             ProjectionVersion = incoming.ProjectionVersion,
         };
 
@@ -165,17 +165,28 @@ public sealed class TenantProjectionHandler {
     }
 
     private static void StampProjection(IReadModelFreshness model, DateTimeOffset projectedAt) {
+        DateTimeOffset? effectiveProjectedAt = LatestProjectedAt(model.ProjectedAt, projectedAt);
         switch (model) {
             case TenantReadModel tenant:
-                tenant.ProjectedAt = projectedAt;
+                tenant.ProjectedAt = effectiveProjectedAt;
                 break;
             case TenantIndexReadModel index:
-                index.ProjectedAt = projectedAt;
+                index.ProjectedAt = effectiveProjectedAt;
                 break;
             case TenantAuditReadModel audit:
-                audit.ProjectedAt = projectedAt;
+                audit.ProjectedAt = effectiveProjectedAt;
                 break;
         }
+    }
+
+    private static DateTimeOffset? LatestProjectedAt(DateTimeOffset? existing, DateTimeOffset? incoming) {
+        if (existing is null) {
+            return incoming;
+        }
+
+        return incoming is null || existing.Value >= incoming.Value
+            ? existing
+            : incoming;
     }
 
     private static void ApplyEvent(TenantReadModel state, ProjectionEventDto evt) {

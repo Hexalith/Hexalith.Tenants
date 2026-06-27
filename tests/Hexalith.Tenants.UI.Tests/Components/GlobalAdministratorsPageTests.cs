@@ -755,11 +755,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
-    public void Route_and_nav_keep_users_contextual_and_global_admins_top_level()
+    public void Routes_stay_reachable_while_tenants_nav_collapses_to_one_module_entry()
     {
         string projectRoot = ProjectRoot();
         string page = File.ReadAllText(
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "GlobalAdministratorsPage.razor"));
+        string myTenantsPage = File.ReadAllText(
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "MyTenantsPage.razor"));
+        string userLookupPage = File.ReadAllText(
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "UserMembershipLookupPage.razor"));
         string workspace = File.ReadAllText(
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantsWorkspace.razor"));
         string registration = File.ReadAllText(
@@ -768,14 +772,16 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Pages", "TenantDetailPage.razor"));
 
         page.ShouldContain("@page \"/global-administrators\"");
+        myTenantsPage.ShouldContain("@page \"/tenants/my\"");
+        userLookupPage.ShouldContain("@page \"/tenants/users\"");
 
-        // "My tenants" and "User lookup" stay contextual to the tenants area: they are registered under
-        // the "tenants" nav category at /tenants/my and /tenants/users (not promoted to a top-level
-        // /users route), while Global Administrators is its own top-level route. 2026-06-25 ergonomic
-        // pass: the contextual links live in the shell navigation, not duplicated in the list command bar.
-        registration.ShouldContain("\"/tenants/my\"");
-        registration.ShouldContain("\"/tenants/users\"");
-        registration.ShouldContain("\"/global-administrators\"");
+        // Correct Course 2026-06-27: the shell rail exposes one Tenants module entry. My Tenants,
+        // User lookup, and Global Administrators remain implemented routes, but they are no longer
+        // registered as Tenants left-menu entries.
+        registration.ShouldContain("\"/tenants\"");
+        registration.ShouldNotContain("\"/tenants/my\"");
+        registration.ShouldNotContain("\"/tenants/users\"");
+        registration.ShouldNotContain("\"/global-administrators\"");
         workspace.ShouldNotContain("href=\"/users\"");
         workspace.ShouldNotContain("href=\"/tenants/my\"");
         workspace.ShouldNotContain("href=\"/tenants/users\"");

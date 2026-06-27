@@ -1,0 +1,10 @@
+/* fc-css-exception: zero-margin reset on semantic text elements; no Fluent typography
+   primitive wraps these semantic elements. */
+.my-tenants-page p {
+    margin: 0;
+}
+
+.my-tenants-page__summary {
+    flex: 1 1 12rem;
+    min-height: 1.25rem;
+}

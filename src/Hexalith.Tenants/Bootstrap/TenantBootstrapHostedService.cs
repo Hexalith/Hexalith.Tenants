@@ -32,6 +32,10 @@ public partial class TenantBootstrapHostedService(
             return Task.CompletedTask;
         }
 
+        if (cancellationToken.IsCancellationRequested) {
+            return Task.CompletedTask;
+        }
+
         // Defer until Kestrel is accepting requests — EventStore will invoke /process on
         // this service to handle the command, which requires the web host to be listening.
         //
@@ -93,11 +97,11 @@ public partial class TenantBootstrapHostedService(
                 string errorBody = await ReadExpectedRejectionProbeAsync(httpResponse.Content, cancellationToken).ConfigureAwait(false);
 
                 // Bootstrap is idempotent at the domain level. The GlobalAdminAlreadyBootstrappedRejection
-                // type in the response body means the global admin was already registered (typical on every
-                // restart after the first successful run). The gateway maps this to 409 Conflict, but accept
-                // the marker on any non-success status so a relayed/remapped status code (e.g. via the Dapr
-                // sidecar) is still recognized as the benign already-done outcome rather than a warning.
-                if (errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
+                // type in a 409 body means the global admin was already registered (typical on every restart
+                // after the first successful run). Other status codes must remain unexpected even if their
+                // support-safe body mentions the marker.
+                if (httpResponse.StatusCode == HttpStatusCode.Conflict
+                    && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection", StringComparison.Ordinal)) {
                     Log.BootstrapAlreadyDone(logger);
                     return;
                 }

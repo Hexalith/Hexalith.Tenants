@@ -28,17 +28,16 @@ public sealed class TenantsUiCompositionTests
 
         TenantsFrontComposerRegistration.RegisterDomain(registry);
 
-        // Domain menu is contributed as declarative data; the shell renders it in the global left nav.
-        registry.NavEntries.Select(static entry => entry.Title)
-            .ShouldBe(["All tenants", "My tenants", "User lookup", "Global Administrators"]);
-        registry.NavEntries.Select(static entry => entry.Href)
-            .ShouldBe(["/tenants", "/tenants/my", "/tenants/users", "/global-administrators"]);
-        registry.NavEntries.ShouldAllBe(static entry => entry.BoundedContext == "tenants");
-
-        FrontComposerNavEntry globalAdmins = registry.NavEntries.Single(static entry => entry.Href == "/global-administrators");
-        globalAdmins.RequiredPolicy.ShouldBe(TenantsFrontComposerRegistration.GlobalAdministratorPolicy);
-        registry.NavEntries.Where(static entry => entry.Href != "/global-administrators")
-            .ShouldAllBe(static entry => entry.RequiredPolicy == null);
+        // Domain menu is contributed as declarative data; the shell renders exactly one Tenants module entry
+        // while page-local tabs own the Tenants-domain sub-surfaces.
+        FrontComposerNavEntry navEntry = registry.NavEntries.ShouldHaveSingleItem();
+        navEntry.Title.ShouldBe("Tenants");
+        navEntry.Href.ShouldBe("/tenants");
+        navEntry.BoundedContext.ShouldBe("tenants");
+        navEntry.RequiredPolicy.ShouldBeNull();
+        navEntry.TitleKey.ShouldBe("Tenants.Navigation.Tenants");
+        navEntry.Resource.ShouldBe(typeof(TenantsResources));
+        navEntry.Order.ShouldBe(0);
 
         // The legacy AddNavGroup stub is no longer used.
         registry.NavGroups.ShouldBeEmpty();
@@ -48,6 +47,8 @@ public sealed class TenantsUiCompositionTests
         manifest.Projections.ShouldBeEmpty();
         manifest.Commands.ShouldBeEmpty();
         manifest.Icon.ShouldBe("Regular.Size20.BuildingPeople");
+        manifest.NameKey.ShouldBe("Tenants.Navigation.Tenants");
+        manifest.Resource.ShouldBe(typeof(TenantsResources));
 
         FcFluentIcons.TryCreate(manifest.Icon, out Icon? tenantIcon).ShouldBeTrue();
         tenantIcon.ShouldNotBeNull();

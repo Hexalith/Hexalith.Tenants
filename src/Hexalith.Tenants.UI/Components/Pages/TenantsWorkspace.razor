@@ -1,34 +1,67 @@
 @page "/"
 @page "/tenants"
 @using Hexalith.Tenants.Contracts.Enums
+@using Hexalith.Tenants.UI.Components.Users
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
+@inject NavigationManager Navigation
 
 <FcAggregateListPage TItem="TenantListRow"
                      @ref="_listPage"
                      LayoutMode="FcPageLayoutMode.FullWidth"
                      RootTestId="tenants-workspace"
                      RootClass="tenants-workspace"
-                     PageTitle="@Localizer["Tenants.List.Title"]"
-                     Heading="@Localizer["Tenants.List.Title"]"
+                     PageTitle="@Localizer["Tenants.Workspace.Title"]"
+                     Heading="@Localizer["Tenants.Workspace.Title"]"
                      HeadingId="tenants-list-heading"
                      HeadingTabIndex="-1"
                      Eyebrow="@Localizer["Tenants.Workspace.Eyebrow"]"
                      HeaderTestId="tenants-list-page-header">
     <Toolbar>
-        @* Command bar exposes list ACTIONS only. "My tenants" / "User lookup" are reachable from the
-           shell navigation rail (TenantsFrontComposerRegistration), so duplicating them here was
-           redundant chrome (2026-06-25 ergonomic pass). A toolbar that mirrors the navigation is a
-           recognised anti-pattern in professional admin UIs. *@
-        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
-            @Localizer["Tenants.List.Refresh"]
-        </FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
-            @Localizer["Tenants.List.Reset"]
-        </FluentButton>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12px" Width="100%">
+            <FluentTabs ActiveTabId="@_activeTabId"
+                        ActiveTabIdChanged="OnActiveTabChanged"
+                        Appearance="TabsAppearance.Subtle"
+                        Width="100%"
+                        aria-label="@Localizer["Tenants.Workspace.Tabs.Label"]"
+                        data-testid="tenants-workspace-tabs">
+                <FluentTab Id="@TenantsTabId" Header="@Localizer["Tenants.Workspace.Tabs.Tenants"]" />
+                <FluentTab Id="@UsersTabId" Header="@Localizer["Tenants.Workspace.Tabs.Users"]" />
+            </FluentTabs>
+
+            @if (IsTenantsTab)
+            {
+                <FluentStack Orientation="Orientation.Horizontal"
+                             HorizontalGap="12px"
+                             VerticalGap="12px"
+                             VerticalAlignment="VerticalAlignment.Bottom"
+                             Wrap="true"
+                             Width="100%">
+                    <FluentSelect TOption="string" TValue="string"
+                                  Value="@_tenantScope"
+                                  ValueChanged="OnTenantScopeChanged"
+                                  Label="@Localizer["Tenants.Workspace.Scope.Label"]"
+                                  data-testid="tenants-workspace-scope"
+                                  aria-label="@Localizer["Tenants.Workspace.Scope.Label"]">
+                        <FluentOption TValue="string" Value="@AllTenantsScope">@Localizer["Tenants.Workspace.Scope.All"]</FluentOption>
+                        <FluentOption TValue="string" Value="@MyTenantsScope">@Localizer["Tenants.Workspace.Scope.Mine"]</FluentOption>
+                    </FluentSelect>
+
+                    @if (IsTenantListView)
+                    {
+                        <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
+                            @Localizer["Tenants.List.Refresh"]
+                        </FluentButton>
+                        <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-reset" OnClick="ResetFiltersAsync">
+                            @Localizer["Tenants.List.Reset"]
+                        </FluentButton>
+                    }
+                </FluentStack>
+            }
+        </FluentStack>
     </Toolbar>
     <HeaderMetadata>
-        @if (!string.IsNullOrWhiteSpace(_selectedTenantId))
+        @if (IsTenantListView && !string.IsNullOrWhiteSpace(_selectedTenantId))
         {
             <FluentText As="TextTag.Paragraph"
                         Size="TextSize.Size300"
@@ -39,92 +72,110 @@
         }
     </HeaderMetadata>
     <Filters>
-        <section aria-label="@Localizer["Tenants.List.ControlsLabel"]">
-            <FluentGrid Spacing="3">
-                <FluentGridItem Xs="12" Md="6" Lg="4">
-                    <FluentTextInput TextInputType="TextInputType.Search"
-                                     Value="@_search"
-                                     ValueChanged="OnSearchChanged"
-                                     Immediate="true"
-                                     ImmediateDelay="350"
-                                     Label="@Localizer["Tenants.List.SearchLabel"]"
-                                     Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
-                                     data-testid="tenants-list-search"
-                                     aria-label="@Localizer["Tenants.List.SearchLabel"]" />
-                </FluentGridItem>
-                <FluentGridItem Xs="12" Md="6" Lg="4">
-                    <FluentSelect TOption="string" TValue="string"
-                                  Value="@_statusFilter"
-                                  ValueChanged="OnStatusFilterChanged"
-                                  Label="@Localizer["Tenants.List.StatusFilterLabel"]"
-                                  data-testid="tenants-list-status-filter"
-                                  aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
-                        <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
-                        <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
-                        <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
-                        <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
-                    </FluentSelect>
-                </FluentGridItem>
-            @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
-               (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
-            </FluentGrid>
-        </section>
+        @if (IsTenantListView)
+        {
+            <section aria-label="@Localizer["Tenants.List.ControlsLabel"]">
+                <FluentGrid Spacing="3">
+                    <FluentGridItem Xs="12" Md="6" Lg="4">
+                        <FluentTextInput TextInputType="TextInputType.Search"
+                                         Value="@_search"
+                                         ValueChanged="OnSearchChanged"
+                                         Immediate="true"
+                                         ImmediateDelay="350"
+                                         Label="@Localizer["Tenants.List.SearchLabel"]"
+                                         Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                                         data-testid="tenants-list-search"
+                                         aria-label="@Localizer["Tenants.List.SearchLabel"]" />
+                    </FluentGridItem>
+                    <FluentGridItem Xs="12" Md="6" Lg="4">
+                        <FluentSelect TOption="string" TValue="string"
+                                      Value="@_statusFilter"
+                                      ValueChanged="OnStatusFilterChanged"
+                                      Label="@Localizer["Tenants.List.StatusFilterLabel"]"
+                                      data-testid="tenants-list-status-filter"
+                                      aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
+                        </FluentSelect>
+                    </FluentGridItem>
+                @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
+                   (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
+                </FluentGrid>
+            </section>
+        }
     </Filters>
     <Commands>
-        <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
-            <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
-                                 Expanded="false"
-                                 data-testid="tenants-create-accordion">
-                <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                                  IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current or ReadModelFreshnessState.Unknown)"
-                                  ShowHeading="false"
-                                  OnProjectionRefreshRequested="RefreshAsync"
-                                  ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
-            </FluentAccordionItem>
-        </FluentAccordion>
+        @if (IsTenantListView)
+        {
+            <FluentAccordion ExpandMode="AccordionExpandMode.Multi">
+                <FluentAccordionItem Header="@Localizer["Tenants.Create.Title"]"
+                                     Expanded="false"
+                                     data-testid="tenants-create-accordion">
+                    <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
+                                      IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current)"
+                                      ShowHeading="false"
+                                      OnProjectionRefreshRequested="RefreshAsync"
+                                      ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+                </FluentAccordionItem>
+            </FluentAccordion>
+        }
     </Commands>
     <States>
-        @if (_snapshot.Kind is TenantListSurfaceKind.Loading)
+        @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
         }
-        else if (_visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
+        else if (IsTenantListView && _visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
         }
-        else if (_snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.FilteredEmpty)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
         }
-        else if (_snapshot.Kind is TenantListSurfaceKind.Empty)
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Empty)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Empty" />
         }
-        else if (_snapshot.Kind is TenantListSurfaceKind.Error)
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Error)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Detail="@_snapshot.ErrorMessage" />
         }
-        else if (_snapshot.Kind is TenantListSurfaceKind.Unauthorized)
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Unauthorized)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Unauthorized" />
         }
-        else if (_snapshot.Kind is TenantListSurfaceKind.Stale)
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Stale)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Stale" OnRefresh="RefreshAsync" />
         }
-        else if (_snapshot.Kind is TenantListSurfaceKind.Degraded)
+        else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Degraded)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Detail="@_snapshot.ErrorMessage" />
         }
     </States>
     <Body>
-        @if (ShowList)
+        @if (IsTenantListView && ShowList)
         {
             <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
         }
+        else if (IsMyTenantsView)
+        {
+            <MyTenantsPanel InitialCursor="@QueryCursor" />
+        }
+        else if (IsUsersTab)
+        {
+            <UserMembershipLookupPanel InitialUserId="@QueryUserId"
+                                       InitialSort="@QuerySort"
+                                       InitialCursor="@QueryCursor"
+                                       UseWorkspaceRoute="true"
+                                       ShowBackLink="false" />
+        }
     </Body>
     <Pager>
-        @if (ShowList)
+        @if (IsTenantListView && ShowList)
         {
             <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
@@ -141,6 +192,10 @@
 </FcAggregateListPage>
 
 @code {
+    private const string TenantsTabId = "tenants";
+    private const string UsersTabId = "users";
+    private const string AllTenantsScope = "all";
+    private const string MyTenantsScope = "mine";
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
     private IReadOnlyList<TenantListRow> _visibleRows = [];
     private readonly Stack<string?> _cursorHistory = new();
@@ -151,9 +206,19 @@
     private bool _sortDescending;
     private string? _selectedTenantId;
     private string? _returnAnchor;
+    private string _activeTabId = TenantsTabId;
+    private string _tenantScope = AllTenantsScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
     private long _loadVersion;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? QueryTab { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "scope")]
+    public string? QueryScope { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "search")]
@@ -183,6 +248,22 @@
     [SupplyParameterFromQuery(Name = "anchor")]
     public string? QueryAnchor { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "userId")]
+    public string? QueryUserId { get; set; }
+
+    private bool IsTenantsTab
+        => string.Equals(_activeTabId, TenantsTabId, StringComparison.Ordinal);
+
+    private bool IsUsersTab
+        => string.Equals(_activeTabId, UsersTabId, StringComparison.Ordinal);
+
+    private bool IsTenantListView
+        => IsTenantsTab && string.Equals(_tenantScope, AllTenantsScope, StringComparison.Ordinal);
+
+    private bool IsMyTenantsView
+        => IsTenantsTab && string.Equals(_tenantScope, MyTenantsScope, StringComparison.Ordinal);
+
     private bool HasActiveFilters
         => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_statusFilter);
 
@@ -205,7 +286,10 @@
         // return-context message explain that filters/sort/cursor/selection were restored.
         _focusHeadingPending = !string.IsNullOrWhiteSpace(_selectedTenantId);
 
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        if (IsTenantListView)
+        {
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -356,6 +440,8 @@
 
     private TenantListNavigationContext CurrentNavigationContext()
         => new(
+            IsTenantListView ? null : _activeTabId,
+            IsMyTenantsView ? _tenantScope : null,
             _search,
             _statusFilter,
             _sortColumn,
@@ -366,6 +452,8 @@
 
     private void RestoreContextFromQuery()
     {
+        _activeTabId = NormalizeTab(QueryTab);
+        _tenantScope = NormalizeScope(QueryScope);
         _search = QuerySearch;
         _statusFilter = QueryStatus;
         _sortColumn = string.IsNullOrWhiteSpace(QuerySort) ? TenantListSortColumns.TenantId : QuerySort;
@@ -374,4 +462,38 @@
         _selectedTenantId = QuerySelectedTenantId;
         _returnAnchor = QueryAnchor;
     }
+
+    private async Task OnActiveTabChanged(string? activeTabId)
+    {
+        _activeTabId = NormalizeTab(activeTabId);
+        if (IsUsersTab)
+        {
+            _tenantScope = AllTenantsScope;
+            Navigation.NavigateTo("/tenants?tab=users", replace: true);
+            return;
+        }
+
+        Navigation.NavigateTo(IsMyTenantsView ? "/tenants?tab=tenants&scope=mine" : "/tenants", replace: true);
+        if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
+        {
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+
+    private async Task OnTenantScopeChanged(string? scope)
+    {
+        _tenantScope = NormalizeScope(scope);
+        Navigation.NavigateTo(IsMyTenantsView ? "/tenants?tab=tenants&scope=mine" : CurrentNavigationContext().ToReturnUrl(), replace: true);
+
+        if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
+        {
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+
+    private static string NormalizeTab(string? value)
+        => string.Equals(value, UsersTabId, StringComparison.OrdinalIgnoreCase) ? UsersTabId : TenantsTabId;
+
+    private static string NormalizeScope(string? value)
+        => string.Equals(value, MyTenantsScope, StringComparison.OrdinalIgnoreCase) ? MyTenantsScope : AllTenantsScope;
 }

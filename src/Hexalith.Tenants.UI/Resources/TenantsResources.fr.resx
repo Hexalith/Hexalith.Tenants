@@ -24,6 +24,24 @@
   <data name="Tenants.Workspace.Title" xml:space="preserve">
     <value>Locataires</value>
   </data>
+  <data name="Tenants.Workspace.Scope.All" xml:space="preserve">
+    <value>Tous les locataires</value>
+  </data>
+  <data name="Tenants.Workspace.Scope.Label" xml:space="preserve">
+    <value>Vue des locataires</value>
+  </data>
+  <data name="Tenants.Workspace.Scope.Mine" xml:space="preserve">
+    <value>Mes locataires</value>
+  </data>
+  <data name="Tenants.Workspace.Tabs.Label" xml:space="preserve">
+    <value>Sections de l'espace locataires</value>
+  </data>
+  <data name="Tenants.Workspace.Tabs.Tenants" xml:space="preserve">
+    <value>Locataires</value>
+  </data>
+  <data name="Tenants.Workspace.Tabs.Users" xml:space="preserve">
+    <value>Utilisateurs</value>
+  </data>
   <data name="Tenants.Workspace.UnavailableHeading" xml:space="preserve">
     <value>Les surfaces de lecture des locataires ne sont pas encore connectées</value>
   </data>

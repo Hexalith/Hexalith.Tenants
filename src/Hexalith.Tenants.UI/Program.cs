@@ -25,9 +25,9 @@ builder.Services.AddHexalithFrontComposerQuickstart(
     o => o.ScanAssemblies(typeof(TenantsFrontComposerDomain).Assembly));
 builder.Services.AddHexalithDomain<TenantsFrontComposerDomain>();
 
-// Gate the Global Administrators left-menu entry (rendered by the shell via AuthorizeView) on the
-// same server-side global-administrator principal shape the BFF composition reflects. Registered
-// unconditionally so the policy resolves whether or not interactive OIDC sign-in is wired.
+// Gate Global Administrators surfaces on the same server-side global-administrator principal shape the BFF
+// composition reflects. Registered unconditionally so the policy resolves whether or not interactive OIDC
+// sign-in is wired.
 builder.Services.AddAuthorizationCore(options =>
     options.AddPolicy(
         TenantsFrontComposerRegistration.GlobalAdministratorPolicy,
