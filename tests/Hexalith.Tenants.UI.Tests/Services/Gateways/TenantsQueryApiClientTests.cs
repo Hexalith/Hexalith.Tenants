@@ -29,6 +29,7 @@ public sealed class TenantsQueryApiClientTests
             response.Headers.ETag = new EntityTagHeaderValue("\"index-etag-2\"");
             response.Headers.Add("X-Hexalith-Projection-Version", "index-etag-2");
             response.Headers.Add("X-Hexalith-Served-At", "2026-06-07T08:00:00.0000000+00:00");
+            response.Headers.Add("X-Hexalith-Is-Stale", "true");
             return response;
         });
         var client = new TenantsQueryApiClient(new HttpClient(handler)
@@ -46,6 +47,7 @@ public sealed class TenantsQueryApiClientTests
         result.IsNotModified.ShouldBeFalse();
         result.ETag.ShouldBe("\"index-etag-2\"");
         result.Metadata.ShouldNotBeNull().ProjectionVersion.ShouldBe("index-etag-2");
+        result.Metadata.IsStale.ShouldBe(true);
         result.Metadata.ServedAt.ShouldBe(DateTimeOffset.Parse("2026-06-07T08:00:00.0000000+00:00", System.Globalization.CultureInfo.InvariantCulture));
         result.Payload.ShouldNotBeNull().Items.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
     }

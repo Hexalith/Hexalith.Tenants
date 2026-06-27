@@ -128,6 +128,12 @@ This implements the approved 2026-06-27 Correct Course, Option A. The Users tab 
 - The 2026-06-25 ergonomics pass deliberately removed duplicate My Tenants/User Lookup toolbar links because they were shell nav entries. This story supersedes that premise: those surfaces move inside the page, so tests/comments from that pass must be updated deliberately.
 - The 2026-06-25 freshness adoption story is in review and migrated UI freshness to `ReadModelFreshnessState`. Do not reintroduce `TenantFreshnessState`; keep `Refreshing` as a transient badge flag if touched.
 
+### Git Intelligence Summary
+
+- Current `HEAD` is `60d99ea feat(tenants): implement tabbed workspace navigation for Tenants module and update sprint status`, but `git show --name-only -1` proves that commit created this story file, touched sprint-story metadata, and updated a submodule pointer; it did not change the production Tenants UI files. Treat the checked-out source as pre-implementation: `TenantsFrontComposerRegistration` still registers four nav entries and `TenantsWorkspace.razor` still has no tabs.
+- Recent UI work in the 2026-06-21 and 2026-06-25 stories established the patterns to preserve: `FcAggregateListPage<TItem>`/`FcAggregateDetailPage<TItem>` own reusable page chrome, tenant search remains server-side and Memories index-only, and UI freshness uses EventStore `ReadModelFreshnessState`.
+- The 2026-06-25 ergonomics comments in tests now encode a stale assumption that My Tenants/User Lookup live in the shell rail. Update those comments/tests deliberately when moving the surfaces into page-local tabs; do not delete them without replacing the behavioral assertion.
+
 ### Architecture And UX Guardrails
 
 - Compose UI through FrontComposer and Blazor Fluent UI V5. Use Fluent/FrontComposer controls before raw CSS/HTML. Raw semantic tags remain allowed only for documented landmark/list/link fallbacks covered by `DomainUiFluentConformanceTests`.
@@ -143,6 +149,7 @@ This implements the approved 2026-06-27 Correct Course, Option A. The Users tab 
 - FrontComposer source currently provides `FcPageToolbar` with `Tabs`, `ActiveTabId`, and `ActiveTabIdChanged`, rendering `FluentTabs` with `TabsAppearance.Subtle`. This is the preferred tab primitive for page-local tabs in Tenants.
 - Microsoft's Blazor routing documentation supports binding query values with `[SupplyParameterFromQuery]`; this matches the existing Tenants pattern for `search`, `status`, `cursor`, `userId`, and return context.
 - Fluent UI Blazor tab documentation and the local FrontComposer wrapper tests show `ActiveTabId`/`ActiveTabIdChanged` as the tab-selection mechanism. Use bUnit tests to verify exact behavior against the pinned package.
+- Version caveat: the Fluent UI Blazor MCP documentation reports `5.0.0.26139`, while this repo pins `5.0.0-rc.3-26138.1`; the public Tabs demo page currently reports a different site version. Use those docs for conceptual confirmation only. The local `FcPageToolbar` source and this repository's compile/test results are the exact-version authority.
 
 External references checked during story creation:
 - Fluent UI Blazor Tabs: https://fluentui-blazor.azurewebsites.net/Tabs
@@ -199,4 +206,3 @@ External references checked during story creation:
 ### Completion Notes List
 
 ### File List
-

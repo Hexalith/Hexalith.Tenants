@@ -36,6 +36,7 @@ public sealed partial class TenantsQueryController(
     ILogger<TenantsQueryController> logger) : ControllerBase {
     internal const string ProjectionVersionHeaderName = "X-Hexalith-Projection-Version";
     internal const string ServedAtHeaderName = "X-Hexalith-Served-At";
+    internal const string IsStaleHeaderName = "X-Hexalith-Is-Stale";
     private const string SystemTenant = "system";
     private static readonly System.Text.RegularExpressions.Regex _identifierRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -464,6 +465,10 @@ public sealed partial class TenantsQueryController(
 
         if (metadata.ServedAt is not null) {
             Response.Headers[ServedAtHeaderName] = metadata.ServedAt.Value.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (metadata.IsStale is not null) {
+            Response.Headers[IsStaleHeaderName] = metadata.IsStale.Value ? "true" : "false";
         }
     }
 

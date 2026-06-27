@@ -264,8 +264,8 @@ the Developer agent; they do not expand the approved correct-course scope.
 ### Review Findings
 
 - [ ] [Review][Decision] Clarify submodule pointer updates in a no-submodule story - The reviewed diff updates `Hexalith.EventStore` from `d9d3ee0f8eb39a43c25a728d31fc4b19e6d85a0d` to `825a849cd07110a1c8c2ccb124c9123934c9fabd` and `Hexalith.Memories` from `183b53dcced10d5f41b8c804afc6be5858a4cdad` to `0c07af3c2633d6ffacf08ffee742b9536019ed4a`, while the source proposal says this story has no submodule edits and no submodule round-trip. The EventStore pointer may be required for the freshness API, but the Memories pointer appears unrelated to the freshness acceptance criteria; choose whether to keep and document these as dependency updates or split/revert them before accepting the story.
-- [ ] [Review][Patch] REST query responses drop freshness classification before the UI can consume it [src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:453]
-- [ ] [Review][Patch] ETag-less successful read models skip `ProjectedAt` freshness classification [src/Hexalith.Tenants/Queries/TenantQueryResult.cs:50]
+- [x] [Review][Patch] REST query responses drop freshness classification before the UI can consume it [src/Hexalith.Tenants/Controllers/TenantsQueryController.cs:453] — Fixed 2026-06-27: emitted and parsed `X-Hexalith-Is-Stale` freshness metadata.
+- [x] [Review][Patch] ETag-less successful read models skip `ProjectedAt` freshness classification [src/Hexalith.Tenants/Queries/TenantQueryResult.cs:50] — Fixed 2026-06-27: freshness metadata now classifies read-model age without requiring an ETag.
 - [ ] [Review][Patch] Gateway maps server-unknown freshness with an ETag back to current [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:782]
 - [ ] [Review][Patch] Conditional 304 paths overwrite cached non-current freshness as current [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:54]
 - [ ] [Review][Patch] Search results force list-level freshness to current even when hydrated rows are stale or unknown [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:514]

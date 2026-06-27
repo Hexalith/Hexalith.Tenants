@@ -11,6 +11,7 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQueryApiClient {
     private const string ProjectionVersionHeaderName = "X-Hexalith-Projection-Version";
     private const string ServedAtHeaderName = "X-Hexalith-Served-At";
+    private const string IsStaleHeaderName = "X-Hexalith-Is-Stale";
     private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<EventStoreQueryResult<T>> SendAsync<T>(
@@ -111,9 +112,16 @@ internal sealed class TenantsQueryApiClient(HttpClient httpClient) : ITenantsQue
             servedAt = parsedServedAt;
         }
 
+        bool? isStale = null;
+        if (response.Headers.TryGetValues(IsStaleHeaderName, out IEnumerable<string>? isStaleValues)
+            && bool.TryParse(isStaleValues.FirstOrDefault(), out bool parsedIsStale)) {
+            isStale = parsedIsStale;
+        }
+
         return new QueryResponseMetadata(
             ETag: eTag,
             IsNotModified: isNotModified,
+            IsStale: isStale,
             ProjectionVersion: projectionVersion,
             ServedAt: servedAt);
     }

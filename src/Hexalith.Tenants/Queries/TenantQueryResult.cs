@@ -48,13 +48,11 @@ internal sealed record TenantQueryResult : QueryResult {
         }
 
         string? normalizedETag = NormalizeETag(eTag);
-        QueryResponseMetadata? metadata = normalizedETag is null
-            ? null
-            : readModel
-                .ToQueryResponseMetadata(thresholds, now, normalizedETag) with {
-                    IsNotModified = false,
-                    ProjectionVersion = readModel?.ProjectionVersion ?? normalizedETag,
-                };
+        QueryResponseMetadata metadata = readModel
+            .ToQueryResponseMetadata(thresholds, now, normalizedETag) with {
+                IsNotModified = false,
+                ProjectionVersion = readModel?.ProjectionVersion ?? normalizedETag,
+            };
 
         return new TenantQueryResult(
             true,

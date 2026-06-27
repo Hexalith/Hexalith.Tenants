@@ -65,6 +65,25 @@ public sealed class TenantQueryFreshnessTests {
         result.Metadata.ServedAt.ShouldBe(Now);
     }
 
+    [Fact]
+    public async Task Get_tenant_with_projected_at_and_no_etag_still_classifies_freshnessAsync() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupTenant(store, " ", Now - TimeSpan.FromMinutes(40));
+        SetupGlobalAdministrators(store, "admin-user");
+
+        TenantQueryResult result = (await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            CreateEnvelope(GetTenantQuery.QueryType),
+            freshnessOptions: Thresholds,
+            timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
+
+        result.Metadata.ShouldNotBeNull().ETag.ShouldBeNull();
+        result.Metadata.IsStale.ShouldBe(true);
+        result.Metadata.ServedAt.ShouldBe(Now);
+        result.Metadata.ProjectionVersion.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData("list-tenants", "projection:tenant-index:singleton", "index-etag-1", false)]
     [InlineData("get-user-tenants", "projection:tenant-index:singleton", "index-etag-1", false)]
