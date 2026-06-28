@@ -7,11 +7,11 @@ Story: 9.2 — Specify the Operations Shell and Read-Only Access Review Surfaces
 
 This document specifies the Phase 2 Admin UI **information architecture (Operations Shell)** and the **read-only access-review surfaces** that let a tenant administrator find tenants, inspect access, and reach audit evidence *before* command-capable workflows are enabled. It is the navigation and read-only surface contract that future Phase 2 implementation stories consume.
 
-## 2026-06-06 Implementation Supersession
+## 2026-06-06 / 2026-06-27 Implementation Supersession
 
-Epic 1 implementation supersedes two older planning assumptions in this document:
+Epic 1 implementation supersedes older planning assumptions in this document:
 
-- Primary navigation is **Tenants**, **Global Administrators**, and **Audit**. Users is contextual through `/tenants/my`, `/tenants/users`, member rows, and lookup entry points; it is not a co-equal primary shell area.
+- **(2026-06-27, Correct Course Option A)** The shell left navigation exposes **one entry per module**. The single **Tenants** module entry opens the Tenants workspace, which groups Tenants-domain read surfaces as **page-local tabs**: first tab **Tenants** (list/triage), second tab **Users** (lookup/search-backed membership; `/tenants/my` and `/tenants/users` remain deep-link aliases that set the active tab). Global Administrators and Audit are reached through module-internal/contextual entry points, not separate Tenants left-menu entries. This supersedes the earlier "primary navigation: Tenants, Global Administrators, Audit; Users contextual" model recorded below.
 - Tenant IDs and user IDs are literal caller-supplied strings. They are not assumed to be ULIDs or GUIDs and must not be parsed, normalized, or reformatted.
 
 ## Scope and Boundary (read first)
@@ -49,7 +49,7 @@ The **tenant list is the default triage surface** — the landing surface of the
 
 - Preserve the selected tenant and active list filters when returning from tenant detail to the tenant list. (AC3)
 - Keep tenant, user, and role context visible during command preview. (Forward-looking; this spec defines read-only context, command preview is a later story.)
-- **User lookup is contextual but reachable** from Tenants workspace entry points and access-review contexts (tenant detail member rows, audit results). Users is not a co-equal primary navigation area. (AC4)
+- **User lookup is reachable** as the **Users** workspace tab and from access-review contexts (tenant detail member rows, audit results). It stays lookup/search-backed — not an exhaustive all-users inventory — and Tenants still contributes a single module left-menu entry (see the 2026-06-27 supersession note above). (AC4)
 - **Audit is reachable from multiple entry points**: global navigation (the Audit area), tenant rows, tenant detail, user lookup, and command result. Audit is never the only way to reach proof, but it is always reachable from any access-review context.
 - **Command lifecycle is never a separate primary navigation model.** Show it inside the affected workflow, close to the affected row or tenant context. (AC1)
 
@@ -164,7 +164,7 @@ Access questions can begin with a user or a platform role, not only a tenant. Bo
 Surface key: `ui-02-my-tenants-and-user-search-read-only`.
 
 - **Source query/endpoint:** `GET /api/users/{userId}/tenants` (`GetUserTenantsQuery`). Cursor-based pagination, signed opaque scoped cursors only.
-- **Reachability:** reachable from contextual Tenants workspace entry points and access-review contexts (a tenant detail member row links to that user's lookup). Users remains contextual. (AC4)
+- **Reachability:** reachable as the **Users** tab of the Tenants workspace and from access-review contexts (a tenant detail member row links to that user's lookup). The Users surface stays lookup/search-backed — not an exhaustive all-users inventory (see the 2026-06-27 supersession note). (AC4)
 - **Authorization-safe states:** expose authorization-safe empty and error states. A user who has no accessible tenants, or whose scope the caller is not authorized to view, must see an authorization-safe empty/error state that does not leak whether memberships exist beyond the caller's authorized scope. Authorization and filtering live in projection/query handling, not in the UI. [Source: `_bmad-output/project-context.md#API Surface`]
 - Cross-tenant revoke/remove actions are custom high-risk command flows and must **not** be generated from query rows.
 - Readiness: `planning-only`; `blockedBy: [FC-LYT, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` (verbatim).

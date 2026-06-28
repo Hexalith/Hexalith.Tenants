@@ -257,3 +257,16 @@ development_status:
   # existing GET /api/users/{userId}/tenants behavior. Do not claim an exhaustive all-users inventory
   # unless a future Product/API story adds an authorization-scoped read query first.
   cc-2026-06-27-tenants-module-tabbed-workspace: done
+
+  # --- Correct Course 2026-06-28: build/test verification + IA documentation sync ---
+  # Approved by Administrator 2026-06-28. Proposal: sprint-change-proposal-2026-06-28.md
+  # Scope (Minor, docs only). Verified the committed state: Hexalith.Tenants.slnx Release -warnaserror
+  # builds 0/0; all test tiers green (Contracts 106, Client 48, Testing 181, Sample 39, UI 777,
+  # Server 738, IntegrationTests 226 = 2115 passing / 0 failing). Found doc drift: the cc-2026-06-27
+  # tabbed-workspace change shipped in code but the IA/navigation sections of the PRD (§5.1 + glossary),
+  # UX EXPERIENCE.md (UX-DR20 + surface table), epics.md (UX-DR20 + story 1.5 / Epic 4 / Epic 5 nav ACs),
+  # and docs/tenants-ui-operations-shell-spec.md still described the superseded "three primary nav areas /
+  # Users contextual" model. Synced all four to the one-entry-per-module + page-local-tabs model
+  # (Users stays lookup/search-backed, Option A). No code/contract/behavior change. UNCOMMITTED — handoff:
+  # Developer commits the 4 docs on a docs/… branch (Conventional Commits `docs:`; no version bump).
+  cc-2026-06-28-ia-documentation-sync: done

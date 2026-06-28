@@ -28,18 +28,18 @@ Desktop-first responsive web — the primary surface is a dense admin workstatio
 
 ## Information Architecture
 
-Anchored to the **Operations Shell**. Primary navigation homes, in order: **Tenants** (default landing/triage) · **Global Administrators** · **Audit**. **Users is CONTEXTUAL** — reached from a member row and from global search, *not* a co-equal nav tab (decision log 2026-06-02; resolves operations-shell GAP-10). Command lifecycle is **never** a nav area: it is shown inline, anchored to the affected row/panel.
+Anchored to the **Operations Shell**, whose left navigation exposes **one entry per module**. The single **Tenants** module entry opens the Tenants workspace, which groups Tenants-domain read surfaces as **page-local tabs**: first tab **Tenants** (default landing/triage), second tab **Users** (lookup-backed membership). **Global Administrators** and **Audit** are reached through module-internal / contextual entry points (tenant rows, tenant detail, user lookup, command results), *not* separate left-menu entries. Command lifecycle is **never** a nav area: it is shown inline, anchored to the affected row/panel. *(Correct Course 2026-06-27, Option A — supersedes the 2026-06-02 "three primary nav homes / Users contextual" model that resolved operations-shell GAP-10. "Users" is now a workspace tab but remains lookup/search-backed, not an exhaustive all-users inventory.)*
 
 | Surface | Reached from | Purpose |
 |---|---|---|
-| **Tenant list / triage** | App open (default landing) · Tenants nav | Scan/search/filter/sort/page tenants via cursor pagination; default triage surface (FR-1). |
+| **Tenant list / triage** | App open (default landing) · Tenants module entry → **Tenants** tab | Scan/search/filter/sort/page tenants via cursor pagination; default triage surface (FR-1). |
 | **Tenant detail** | Tenant list row · deep link | Read-only single-tenant overview: status, metadata, member/configuration summaries, counts, freshness; deep-linkable. Returning to the list restores filter/sort/selection (FR-2, FR-5). |
 | **Tenant configuration view (read-only)** | Tenant detail | Key/values grouped by namespace, filtered to the caller's owned/authorized prefix (FR-6). |
-| **"My Tenants" self-audit** | Signed-in user (own identity) | The signed-in user's own memberships + role per tenant (FR-3). |
-| **User lookup / user memberships** | A member row · global search (**contextual**) | Operator searches a user, views that user's tenant memberships (FR-4). |
+| **"My Tenants" self-audit** | **Tenants** tab → "my tenants" filter/view (signed-in user's own identity) | The signed-in user's own memberships + role per tenant (FR-3). |
+| **User lookup / user memberships** | **Users** tab (lookup/search-backed) · also a member row · global search | Operator searches a user, views that user's tenant memberships (FR-4). Not an exhaustive all-users list. |
 | **Member table / access-review** | Tenant detail | Per-tenant members with role, owner count, status, freshness, orphan/disabled context; read-only ("must not imply mutation"); per-row reflected action availability + Unavailable Action Reason (FR-8, FR-9). |
-| **Global Administrators review** | Global Administrators nav (authorized operators only) | Who holds global-admin access; data from the single fixed-identity `global-administrators` aggregate (FR-18). Never visible to owners. |
-| **Audit trail list** | Audit nav · tenant row · tenant detail · user lookup · command result | Flat, stably-ordered, cursor-paginated list; date + `AuditEventCategory` filters (FR-20, FR-21). In MVP renders an honest not-yet-available placeholder (see *State Patterns*). |
+| **Global Administrators review** | Module-internal / contextual entry (authorized operators only) — not a separate Tenants left-menu entry | Who holds global-admin access; data from the single fixed-identity `global-administrators` aggregate (FR-18). Never visible to owners. |
+| **Audit trail list** | Contextual entry — tenant row · tenant detail · user lookup · command result (not a separate Tenants left-menu entry) | Flat, stably-ordered, cursor-paginated list; date + `AuditEventCategory` filters (FR-20, FR-21). In MVP renders an honest not-yet-available placeholder (see *State Patterns*). |
 | **Audit Evidence Receipt** | Audit row · command result | Support-safe receipt for a recorded action, assembled client-side from `NarrativePayload` (FR-22). |
 | **Consequence Preview** | A high-impact/destructive command trigger (anchored, after gating passes) | Pre-submission summary carrying the full 10-item content set before destructive/high-impact actions (CP-5, FR-12/15/16/17). |
 | **Command Lifecycle Panel** | Inline, anchored to the affected row/panel after dispatch | Tracks a dispatched command's lifecycle without overwriting confirmed projection data (FR-12). **Never a nav area.** |

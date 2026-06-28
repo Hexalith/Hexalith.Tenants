@@ -128,7 +128,7 @@ Downstream workflows and readers must use these terms exactly; FRs, UJs, and SMs
 - **Global administrator** — a platform-level governance principal in the separate `global-administrators` scope (a single fixed-identity aggregate, not tenant-routed); distinct from tenant membership. The **last global administrator** is protected by a backend invariant (its removal is rejected — see CP-6).
 - **Tenant lifecycle status** — a tenant's state, including **disabled** (an eventually-consistent availability signal; commands targeting a disabled tenant are rejected) and enabled.
 - **Configuration** — namespaced tenant key/values, partitioned by a consumer-owned dot-prefix; readers filter by their prefix and ignore others; the UI groups displayed config by namespace.
-- **Operations Shell** — the application's information architecture: four primary navigation areas — **Tenants, Users, Global Administrators, Audit** — within a FrontComposer shell. Tenants is the default landing/triage surface; Users is a secondary area (realized by FR-3 and FR-4).
+- **Operations Shell** — the application's information architecture: a FrontComposer shell whose left navigation exposes **one entry per module**. The single **Tenants** module entry opens the Tenants workspace, which groups Tenants-domain read surfaces as page-local tabs (first tab **Tenants** = list/triage; second tab **Users** = lookup-backed membership). Global Administrators and Audit are reached through module-internal/contextual paths, not separate left-menu entries (see §5.1; Correct Course 2026-06-27).
 - **Pending state** — a tenant/row indicator that a command affecting that tenant or member is in flight (not yet confirmed).
 - **Projection** — the read model the UI reads from; the **source of truth** for confirmation is the projection, not optimistic UI state or live notifications.
 - **Truth State Badge** — the visible indicator of how trustworthy displayed data is, composing freshness, authorization, command lifecycle, projection confirmation, and audit dimensions. Its full canonical 13-state set is defined once (addendum §G) and used verbatim everywhere — no per-screen reinterpretation.
@@ -152,7 +152,15 @@ Downstream workflows and readers must use these terms exactly; FRs, UJs, and SMs
 ## 5. Information Architecture & Visual Language
 
 ### 5.1 Operations Shell
-Three primary navigation areas, in order: **Tenants** (default landing / triage surface), **Global Administrators**, **Audit**. **Users is contextual** — reached from a member row and global search (realized by FR-3 "My Tenants" and FR-4 user lookup), not a co-equal tab (reconciled with architecture + epics, 2026-06-03; resolves the prior PRD↔UX "Users-nav" divergence to *contextual*). Command lifecycle is **never** a primary navigation area — command status and feedback are shown inline, anchored to the affected row/panel. Audit is reachable both as a top-level area and contextually from tenant rows, tenant detail, user lookup, and command results. Navigating between surfaces preserves context (selection, filters) so users don't lose their place.
+The shell left navigation exposes **one entry per module**. For the Tenants module, the single **Tenants** entry opens the Tenants module workspace. The workspace groups Tenants-domain read surfaces as **page-local tabs** (reconciled with the shipped tabbed-workspace implementation, Correct Course 2026-06-27, Option A; supersedes the prior 2026-06-03 "three primary nav areas / Users contextual" model).
+
+The first tab is **Tenants**: the tenant list / triage surface with search, status filter, cursor paging, freshness, and pending state, plus an optional "my tenants" filter that narrows results to tenants the signed-in user belongs to when the caller is authorized.
+
+The second tab is **Users**: the user-membership surface showing a user's tenant memberships. It is currently **lookup/search-backed** (realized by FR-3 "My Tenants" and FR-4 user lookup) and must not be labeled or behave as an exhaustive all-users inventory. Promoting it to a complete cursor-paged list of all users and their memberships requires the backend to add an authorization-scoped read query first.
+
+Global administrator and audit capabilities remain available through module-internal tabs or contextual entry points (tenant rows, tenant detail, user lookup, command results), **not** as separate left-menu entries for the Tenants module unless a future module-level IA decision adds them explicitly.
+
+Command lifecycle is **never** a navigation area — command status and feedback are shown inline, anchored to the affected row/panel. Navigating between surfaces and tabs preserves context (active tab, selection, filters) so users don't lose their place.
 
 ### 5.2 Visual language & tone
 - **Microsoft Fluent UI** is the visual authority; there is no separate branded palette. Meaning maps to **semantic theme roles**, never hard-coded colors. `[ASSUMPTION]`

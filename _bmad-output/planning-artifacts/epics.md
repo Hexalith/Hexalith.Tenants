@@ -187,7 +187,7 @@ UX-DR18: `AuditDataGrid` must be flat, stably ordered, cursor-paginated, filtere
 
 UX-DR19: `DestructiveControl` must never read as a primary or casual action; destructive/high-impact flows require Consequence Preview plus confirmation, focus trap, safe non-committing escape, and elevated friction for zero-owner or target-also-global-admin cases.
 
-UX-DR20: Operations Shell IA must use primary navigation in this order: Tenants, Global Administrators, Audit. Users is contextual from a member row and global search, not a co-equal nav tab. Command lifecycle is never navigation.
+UX-DR20: Operations Shell IA must expose one left-menu entry per module. The single Tenants module entry opens the Tenants workspace, which groups Tenants-domain read surfaces as page-local tabs: first tab Tenants (list/triage), second tab Users (lookup/search-backed membership, not an exhaustive all-users inventory). Global Administrators and Audit are reached through module-internal/contextual entry points, not separate Tenants left-menu entries. Command lifecycle is never navigation. (Superseded the prior "primary navigation: Tenants, Global Administrators, Audit; Users contextual" model — Correct Course 2026-06-27, Option A.)
 
 UX-DR21: Preserve selection, filters, and scroll across navigation, especially tenant list to detail and back.
 
@@ -601,7 +601,7 @@ So that I can understand a user's tenant access without exposing unauthorized me
 **Given** a user membership view is reached from a tenant member row
 **When** the target user id is passed to the lookup route or surface
 **Then** the same authorization-scoped lookup behavior is used
-**And** Users remains contextual rather than becoming a primary navigation tab.
+**And** the Users surface stays lookup/search-backed (whether reached from its workspace tab or a member row) rather than becoming an exhaustive all-users inventory.
 
 **Given** lookup data is loading, stale, degraded, unauthorized, invalid, or unavailable
 **When** the view renders
@@ -1201,8 +1201,8 @@ So that platform authority is never confused with tenant membership or exposed t
 
 **Given** the Operations Shell navigation is rendered
 **When** the caller is an authorized platform operator
-**Then** the primary navigation includes Global Administrators after Tenants and before Audit
-**And** Users remains contextual and is not promoted to primary navigation.
+**Then** the Global Administrators review surface is reachable through an authorized module-internal/contextual entry point (not a separate Tenants left-menu entry, per UX-DR20 / Correct Course 2026-06-27)
+**And** the Users surface stays lookup/search-backed and is not promoted to an exhaustive all-users inventory.
 
 **Given** the caller is a tenant owner without platform authority
 **When** the Operations Shell navigation is rendered
@@ -1446,7 +1446,7 @@ So that proof is attached to tenant, user, and command context instead of buried
 **Given** an audit entry point is opened from user lookup or a member row
 **When** the audit surface loads
 **Then** the evidence context identifies the target user and tenant scope where available
-**And** it does not promote Users to primary navigation or conflate user lookup with global administrator governance.
+**And** it keeps the Users surface lookup/search-backed (a workspace tab, not an exhaustive all-users inventory) and does not conflate user lookup with global administrator governance.
 
 **Given** an audit entry point is opened from a command lifecycle result
 **When** command-specific evidence is available, pending, delayed, unavailable, or unsupported
