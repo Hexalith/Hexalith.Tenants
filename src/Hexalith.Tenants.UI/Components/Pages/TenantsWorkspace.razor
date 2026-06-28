@@ -49,6 +49,26 @@
 
                     @if (IsTenantListView)
                     {
+                        <FluentTextInput TextInputType="TextInputType.Search"
+                                         Value="@_search"
+                                         ValueChanged="OnSearchChanged"
+                                         Immediate="true"
+                                         ImmediateDelay="350"
+                                         Label="@Localizer["Tenants.List.SearchLabel"]"
+                                         Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
+                                         data-testid="tenants-list-search"
+                                         aria-label="@Localizer["Tenants.List.SearchLabel"]" />
+                        <FluentSelect TOption="string" TValue="string"
+                                      Value="@_statusFilter"
+                                      ValueChanged="OnStatusFilterChanged"
+                                      Label="@Localizer["Tenants.List.StatusFilterLabel"]"
+                                      data-testid="tenants-list-status-filter"
+                                      aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
+                            <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
+                        </FluentSelect>
                         <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
                             @Localizer["Tenants.List.Refresh"]
                         </FluentButton>
@@ -71,41 +91,10 @@
             </FluentText>
         }
     </HeaderMetadata>
-    <Filters>
-        @if (IsTenantListView)
-        {
-            <section aria-label="@Localizer["Tenants.List.ControlsLabel"]">
-                <FluentGrid Spacing="3">
-                    <FluentGridItem Xs="12" Md="6" Lg="4">
-                        <FluentTextInput TextInputType="TextInputType.Search"
-                                         Value="@_search"
-                                         ValueChanged="OnSearchChanged"
-                                         Immediate="true"
-                                         ImmediateDelay="350"
-                                         Label="@Localizer["Tenants.List.SearchLabel"]"
-                                         Placeholder="@Localizer["Tenants.List.SearchPlaceholder"]"
-                                         data-testid="tenants-list-search"
-                                         aria-label="@Localizer["Tenants.List.SearchLabel"]" />
-                    </FluentGridItem>
-                    <FluentGridItem Xs="12" Md="6" Lg="4">
-                        <FluentSelect TOption="string" TValue="string"
-                                      Value="@_statusFilter"
-                                      ValueChanged="OnStatusFilterChanged"
-                                      Label="@Localizer["Tenants.List.StatusFilterLabel"]"
-                                      data-testid="tenants-list-status-filter"
-                                      aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
-                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
-                            <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
-                            <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
-                            <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
-                        </FluentSelect>
-                    </FluentGridItem>
-                @* Sorting is now performed in-grid via the FluentDataGrid sortable column headers
-                   (Tenant → name, Status → status), replacing the former sort/direction comboboxes. *@
-                </FluentGrid>
-            </section>
-        }
-    </Filters>
+    @* Search + status moved up into the single toolbar control bar (Aspire-style); the former
+       Filters band is intentionally empty. Sorting is performed in-grid via the FluentDataGrid
+       sortable column headers (Tenant → name, Status → status). *@
+    <Filters></Filters>
     <Commands>
         @if (IsTenantListView)
         {

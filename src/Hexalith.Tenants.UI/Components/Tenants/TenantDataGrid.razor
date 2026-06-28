@@ -21,6 +21,7 @@
                 <div class="tenant-data-grid__identity-line">
                     <a class="tenant-data-grid__detail-link"
                        href="@DetailHref(context)"
+                       title="@context.TenantId"
                        data-testid="tenants-list-detail-link"
                        aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
                         <strong>@context.TenantId</strong>

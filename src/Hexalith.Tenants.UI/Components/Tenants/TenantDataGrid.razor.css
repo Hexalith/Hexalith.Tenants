@@ -18,21 +18,25 @@
 /* fc-css-exception: content-sized identity line grid (link/value + copy affordance); FluentGrid cannot
    express content-sized columns. */
 .tenant-data-grid__identity-line {
-    align-items: start;
+    align-items: center;
     display: grid;
     gap: 0.35rem;
     grid-template-columns: minmax(0, 1fr) auto;
     min-width: 0;
 }
 
-.tenant-data-grid__identity strong,
 .tenant-data-grid__identity span {
     overflow-wrap: anywhere;
 }
 
+/* identity id: single line, clipped with an ellipsis so it can never overrun the copy
+   affordance; the full value stays reachable via the copy button + the link title. */
 .tenant-data-grid__detail-link {
     color: LinkText;
-    width: fit-content;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tenant-data-grid__detail-link:focus-visible {

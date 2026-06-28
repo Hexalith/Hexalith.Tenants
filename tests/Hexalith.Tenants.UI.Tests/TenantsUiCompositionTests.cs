@@ -230,7 +230,9 @@ public sealed class TenantsUiCompositionTests
         string layout = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Layout", "MainLayout.razor"));
 
-        layout.ShouldContain("<FrontComposerShell>");
+        // The shell now carries an explicit AppTitle so the header names this module
+        // ("Hexalith.Tenants") instead of the framework fallback ("Hexalith FrontComposer").
+        layout.ShouldContain("<FrontComposerShell AppTitle=\"Hexalith.Tenants\">");
         layout.ShouldContain("@Body");
         // Sign in / out is now the framework header's FcAccountMenu (avatar) — the bespoke
         // content-area auth bar has been removed.
