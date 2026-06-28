@@ -1,5 +1,5 @@
 # generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-27T21:08:44+02:00
+# last_updated: 2026-06-28T08:31:56+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -57,7 +57,7 @@
 #   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
 
 generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-27T21:08:44+02:00
+last_updated: 2026-06-28T08:31:56+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -256,4 +256,4 @@ development_status:
   # a safe "my tenants" filter/view; second tab = lookup-backed Users membership surface using the
   # existing GET /api/users/{userId}/tenants behavior. Do not claim an exhaustive all-users inventory
   # unless a future Product/API story adds an authorization-scoped read query first.
-  cc-2026-06-27-tenants-module-tabbed-workspace: review
+  cc-2026-06-27-tenants-module-tabbed-workspace: done

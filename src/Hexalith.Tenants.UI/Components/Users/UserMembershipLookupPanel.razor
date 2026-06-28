@@ -177,6 +177,7 @@
     private bool _focusStatusPending;
     private bool _focusInputPending;
     private string _announcement = string.Empty;
+    private long _loadVersion;
 
     [Parameter]
     public string? InitialUserId { get; set; }
@@ -322,6 +323,8 @@
 
     private async Task ClearAsync()
     {
+        // Invalidate any in-flight lookup so a late completion cannot resurrect cleared results.
+        System.Threading.Interlocked.Increment(ref _loadVersion);
         _inputUserId = string.Empty;
         _targetUserId = null;
         _snapshot = null;
@@ -362,6 +365,10 @@
 
     private async Task RunLookupAsync(string? targetUserId, bool reuseETag)
     {
+        // Invalidate any in-flight lookup so its continuation cannot resurrect stale results over a newer
+        // lookup or a Clear (the panel calls the gateway with no cancellation token).
+        long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
+
         if (!IsValidUserId(targetUserId))
         {
             _targetUserId = targetUserId;
@@ -399,6 +406,11 @@
         // raises LocationChanged -> StateHasChanged) off the Dispatcher tears down the Blazor Server circuit.
         await InvokeAsync(() =>
         {
+            if (loadVersion != _loadVersion)
+            {
+                return;
+            }
+
             _snapshot = snapshot;
             _announcement = AnnouncementFor(snapshot, validTargetUserId);
             _focusStatusPending = true;

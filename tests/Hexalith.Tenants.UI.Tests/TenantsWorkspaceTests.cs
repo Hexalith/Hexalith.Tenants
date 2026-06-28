@@ -220,7 +220,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
-    public void Workspace_blocks_create_flow_when_list_freshness_is_unknown()
+    public void Workspace_allows_create_flow_when_list_freshness_is_unknown()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
@@ -234,6 +234,29 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-create-submit']");
 
+        // Unknown freshness is the empty/first-tenant bootstrap state (an empty index has no persisted
+        // ProjectedAt, so no staleness header is emitted). It must NOT block creation, otherwise the first
+        // tenant can never be created. Only an authoritative Stale classification blocks the command.
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-create-unavailable-reason']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Workspace_blocks_create_flow_when_list_freshness_is_stale()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Stale)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-create-submit']");
+
+        // A definite Stale classification must still gate the create command behind a Refresh.
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
             .TextContent.ShouldContain("Refresh tenant data before submitting a command.");

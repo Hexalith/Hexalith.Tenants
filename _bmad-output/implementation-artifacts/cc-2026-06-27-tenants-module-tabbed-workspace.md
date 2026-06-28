@@ -3,7 +3,7 @@ baseline_commit: ba14356a8b2b648eda24a4dd7fbd25d60e0d674d
 title: 'Tenants module tabbed workspace and single navigation entry'
 type: 'correct-course-ui-ia'
 created: '2026-06-27'
-status: 'review'
+status: 'done'
 sprint_key: 'cc-2026-06-27-tenants-module-tabbed-workspace'
 source_proposal: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-27.md'
 approval: 'Administrator approved 2026-06-27, Option A - lookup-backed Users tab'
@@ -20,7 +20,7 @@ context:
 
 # Story cc-2026-06-27: Tenants Module Tabbed Workspace And Single Navigation Entry
 
-Status: review
+Status: done
 
 <!-- Correct Course story, not an epics.md numbered story. -->
 <!-- Completion note: Ultimate context engine analysis completed - comprehensive developer guide created. -->
@@ -90,7 +90,7 @@ This implements the approved 2026-06-27 Correct Course, Option A. The Users tab 
 
 - [x] Task 7 - Focused tests and verification (AC: all)
   - [x] Add bUnit coverage for `/tenants` default tab, tab switching callback/query normalization, my-tenants mode, Users lookup tab, route aliases, and old deep-link behavior.
-  - [x] Update `TenantsUiRouteSmokeTests` so hosted `/tenants/my` and `/tenants/users` expectations match the alias or canonical redirect strategy.
+  - [x] Verified `TenantsUiRouteSmokeTests` needs no change: the alias pages keep the `tenants-my-*` / `tenants-user-lookup` testids, so the existing hosted `/tenants/my` and `/tenants/users` smoke expectations already match the alias strategy (file is unchanged in `ba14356..HEAD`). [corrected 2026-06-28 per review]
   - [x] Run `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`.
   - [x] Run the UI test executable fallback if `dotnet test` hits the known .NET 10 VSTest/MTP incompatibility. Do not run solution-level `dotnet test`.
 
@@ -106,7 +106,7 @@ This implements the approved 2026-06-27 Correct Course, Option A. The Users tab 
 | `src/Hexalith.Tenants.UI/Components/Pages/UserMembershipLookupPage.razor` | Route `/tenants/users`; lookup form, query prefill, canonical URL update, sort, cursor paging, status focus, and `MyTenantsDataGrid` with `ResourcePrefix="Tenants.UserLookup"`. | Convert to Users tab content or route alias. | Literal target user id, `GetUserTenantsAsync`, honest empty/unauthorized/unavailable/degraded states, query/cursor behavior, no browser HTTP/token storage. |
 | `src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor` | Shared membership grid for self-audit and user lookup via resource/selector prefixes, audit entry points, pinned role/status/freshness columns. | Reuse directly. | ResourcePrefix/SelectorPrefix split, TargetUserId, SourceKind, ReturnUrl, `DataGridColumnPin.Start`, no raw table markup. |
 | `src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs` | Builds `/tenants` return/detail/audit URLs with search/status/sort/desc/cursor/selected/anchor. | Extend to carry active tab and mode where needed. | Safe query encoding, tenant row anchor, detail and audit return context. |
-| `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` | Provides `ListTenantsAsync`, `GetMyTenantsAsync`, and `GetUserTenantsAsync`; user membership calls existing `/api/users/{userId}/tenants`. | No backend/API change expected. | REST query path, server-side BFF, Memories search-as-index-only for tenant list, freshness resolution, support-safe error mapping. |
+| `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs` | Provides `ListTenantsAsync`, `GetMyTenantsAsync`, and `GetUserTenantsAsync`; user membership calls existing `/api/users/{userId}/tenants`. | Freshness resolution rewritten (bundled from `cc-2026-06-25`, reconciled here 2026-06-28): `ResolveFreshness` keys off the new `X-Hexalith-Is-Stale` header (absent → `Unknown`), Degraded precedes Stale across all surfaces, and 304/not-modified freshness resolves via `ResolveNotModifiedFreshness`. No new query contract or browser-side API call. | REST query path, server-side BFF, Memories search-as-index-only for tenant list, freshness resolution, support-safe error mapping. |
 | `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs` | Currently asserts four Tenants nav entries and old hrefs. | Assert one entry and preserved manifest. | Icon validation, resource parity, BFF/global-admin authorization tests. |
 | `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs` | Locks `/tenants/my` standalone page and asserts workspace toolbar does not duplicate shell nav links. | Update to tab/mode/alias behavior. | Existing self-audit state, cursor, support-safety, no mutation-control tests. |
 | `tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs` | Locks `/tenants/users` standalone page and canonicalization. | Update to Users tab/alias behavior. | Lookup target, literal ids, distinct safe states, paging/sort/refresh, support-safety tests. |
@@ -262,6 +262,24 @@ GPT-5 Codex
 - `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
 
+#### Bundled `cc-2026-06-25` freshness files (reconciled into this File List 2026-06-28 per review D2)
+
+These `X-Hexalith-Is-Stale` server-header + gateway freshness-resolution files landed in the `ba14356..HEAD` range (commit `ad7312b` + parts of `675dced`). They implement the `cc-2026-06-25-tenant-read-model-freshness-adoption` story and were originally omitted from this File List:
+
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantsQueryApiClient.cs`
+- `src/Hexalith.Tenants/Controllers/TenantsQueryController.cs`
+- `src/Hexalith.Tenants/Queries/TenantQueryResult.cs`
+- `src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsQueryControllerIntegrationTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Projections/TenantProjectionHandlerTests.cs`
+- `tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryFreshnessTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsQueryApiClientTests.cs`
+
+Submodule pointer (review D3): `references/Hexalith.PolymorphicSerializations` bumped `db291e8 → 3f7ca70` (upstream cosmetic "reorder using directives"). Reachable on `origin/main` (not clone-breaking); retained intentionally.
+
 ### Change Log
 
 - 2026-06-27T16:42:50+02:00 - Implemented Tenants module tabbed workspace, single shell navigation entry, reusable self-audit/user lookup panels, resources/docs/tests, and deterministic validation fixes.
@@ -324,3 +342,41 @@ _Chunked adversarial code review of the committed work `ba14356..HEAD` (Blind Hu
 #### Resolution (2026-06-27)
 
 All 5 Group 1 `patch` findings were applied to the working tree (the off-Dispatcher fix marshals `NavigateTo`/focus through `InvokeAsync`; both panels now seed cursor history; tab-switch preserves list state via `ToReturnUrl()`; `RestoreContextFromQuery` adopts `sort`/`cursor` into the tenant list only when it is the active surface; the Users-switch no longer clobbers the remembered scope). D1 deferred (reason: check in next review). Validation: `dotnet build src/Hexalith.Tenants.UI` Release `-m:1` = 0 warnings / 0 errors; UI test executable = **776/776** pass. Patches are **UNCOMMITTED**. **Review is chunked — only Group 1 (UI workspace & panels) is complete; Groups 2 (server freshness header + gateway), 3 (tests), 4 (docs) remain, so the story stays in `review`.**
+
+### Review Findings — Full review 2026-06-28 (Groups 2–4 + Group 1 re-verify)
+
+_Full adversarial code review of `ba14356..HEAD` (Blind Hunter + Edge Case Hunter + Acceptance Auditor), completing Groups 2 (server freshness header + gateway), 3 (tests), and 4 (docs) that the 2026-06-27 chunked pass left open, and re-verifying the committed Group 1 patches. All 14 ACs verified met (AC1–AC11 + AC14 positively; AC8/AC12/AC13 met with the LOW caveats below). Group 1 patches (off-Dispatcher `NavigateTo` via `InvokeAsync`; cursor-history seeding) confirmed correctly landed in `f30d874`. Result: 4 decision-needed, 4 patch, 1 defer, 3 dismissed (all 3 Blind-Hunter items — false positives verified against the code)._
+
+#### Decision needed
+
+- [x] [Review][Decision] First-tenant bootstrap blocked — create gate narrowed to `Current`-only rejects `Unknown` freshness (HIGH) — Resolves the 2026-06-27 deferred D1: it IS a real regression, not a false alarm. `IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current)"` (was `Current or Unknown`) disables the create submit (`CreateTenantFlow` → `UnavailableReason` → `IsSubmitDisabled` → `disabled` button) whenever list freshness is `Unknown`. A cold/empty tenant index has no persisted `ProjectedAt`, so the server emits NO `X-Hexalith-Is-Stale` header (integration test `ListTenants_omits_freshness_header_when_query_metadata_is_unknown`, `new TenantIndexReadModel()`); the gateway's rewritten `ResolveFreshness` maps absent `IsStale`→`Unknown`, and `TenantListSnapshot.Empty` carries it. On a fresh deployment with zero tenants the first-tenant create is unreachable from the UI, and Refresh re-queries the same cold projection → still `Unknown` → no recovery. Test-LOCKED by `Workspace_blocks_create_flow_when_list_freshness_is_unknown`. Triple-confirmed (Auditor + Edge Case Hunter + reviewer). The 2026-06-27 deferred note said "revisit alongside the Group 2 server-freshness review: confirm empty/bootstrap resolves to `Current` (keep) or restore `Current or Unknown`" — it resolves to `Unknown`, so the recommended option is (a). Decision: (a) restore `Current or Unknown` + update the locking test; (b) special-case the authorized-empty/bootstrap path to `Current`; or (c) keep fail-closed but guarantee the empty index is stamped `Current` before first use. [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:117]
+- [x] [Review][Decision] Freshness story bundled into this UI-IA diff; File List omits ~11 changed files (MED) — The entire `X-Hexalith-Is-Stale` server header + the large `TenantQueryGateway` freshness rewrite (`Resolve*ForFreshness`/`ResolveNotModifiedFreshness`/`AggregateRowFreshness`, Degraded-before-Stale reordering across all surfaces) + the `TenantProjectionHandler.LatestProjectedAt` `ProjectedAt` monotonicity guard belong to `cc-2026-06-25-tenant-read-model-freshness-adoption`, not a "Tenants UI IA correction." The code is correct, but: (1) the File List omits `TenantQueryGateway.cs`, `TenantsQueryApiClient.cs`, `TenantsQueryController.cs`, `TenantQueryResult.cs`, `TenantProjectionHandler.cs`, and their 6 test files; and (2) the Dev Notes "Current State To Modify" table asserts the gateway needs "No backend/API change expected," contradicted by the rewrite. Decision: re-attribute/split to the freshness story, or reconcile this story's File List + Dev Notes to own them. [src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs ; src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs]
+- [x] [Review][Decision] Unexplained `Hexalith.PolymorphicSerializations` submodule pointer bump (LOW) — Commit `60d99ea` bumps the submodule `db291e8 → 3f7ca70` (upstream `3f7ca70` is a cosmetic "reorder using directives"). Not in the File List/Completion Notes; out of scope for a UI-IA story under the repo's strict submodule policy. Verified NOT clone-breaking (`3f7ca70` is reachable on `origin/main`, `db291e8` is an ancestor). Decision: document the intent or revert the pointer from this story. [references/Hexalith.PolymorphicSerializations]
+- [x] [Review][Decision] `TenantBootstrapHostedService` 409-only narrowing drops documented Dapr-remap tolerance (LOW) — The benign already-bootstrapped marker is now accepted only on a literal `409 Conflict` (`httpResponse.StatusCode == HttpStatusCode.Conflict && errorBody.Contains("GlobalAdminAlreadyBootstrappedRejection")`), where the prior code deliberately accepted the marker on ANY non-success status, with a comment explaining it tolerates Dapr sidecar status remapping. The new code is more precise but removes that documented resilience: if a sidecar relays/remaps the 409, restarts will log the benign already-done outcome as unexpected. Not in the Completion Notes. Decision: confirm the tightening is intended, or restore the any-status tolerance. [src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs:97-107]
+
+#### Resolution of decision-needed (2026-06-28, Administrator)
+
+- D1 → **PATCH**: restore the `IsFresh` gate to `Current or Unknown` (fail-open on `Unknown`) and update the `Workspace_blocks_create_flow_when_list_freshness_is_unknown` test to assert the bootstrap/empty path stays creatable.
+- D2 → **PATCH**: reconcile this story's File List (add the ~11 bundled freshness files) and fix the Dev Notes "no backend/API change expected" line to reflect the gateway/server changes.
+- D3 → **PATCH**: keep the `Hexalith.PolymorphicSerializations` submodule bump; add a one-line note documenting the intent.
+- D4 → **DISMISSED**: the `409`-only already-bootstrapped narrowing is confirmed intended; no code change.
+
+#### Patch
+
+- [x] [Review][Patch] [D1] Restore create-gate to `Current or Unknown` + update locking test — fail-open on `Unknown` so first-tenant bootstrap is creatable; flip `IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current)"` back to `is Current or Unknown` and update `Workspace_blocks_create_flow_when_list_freshness_is_unknown` to assert Unknown stays creatable (keep a separate Stale-blocks-create assertion). [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:117 ; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs]
+- [x] [Review][Patch] [D2] Reconcile File List + Dev Notes — add the bundled freshness files to the File List and correct the "No backend/API change expected" Dev Notes line. [this story file]
+- [x] [Review][Patch] [D3] Document the `Hexalith.PolymorphicSerializations` submodule bump intent. [this story file / File List]
+- [x] [Review][Patch] User-lookup target silently dropped on a Users → other-tab → Users round-trip — switching to Users always navigates to hard-coded `/tenants?tab=users` (no `userId`); the `@if (IsUsersTab)` panel is disposed on tab-away and recreated with `InitialUserId="@QueryUserId"` = null → blank form, prior results gone. Asymmetric with the deliberately-preserved `scope=mine`. Fix: carry the remembered `userId` in a workspace field (or include it in the nav URL) so re-entering Users restores the last lookup. [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:474-479]
+- [x] [Review][Patch] Extracted panels lack the workspace's request-version/cancellation guard (Clear/overlap races) — `UserMembershipLookupPanel.RunLookupAsync` / `MyTenantsPanel.LoadAsync` call the gateway with `CancellationToken.None` and no `_loadVersion`/Interlocked guard (the workspace's own `LoadAsync` HAS one). So (a) a Clear during an in-flight lookup is undone by the stale completion's `InvokeAsync` continuation (results resurrected + a malformed `userId=` return URL), and (b) overlapping lookups race — last-to-complete wins `_snapshot` while `_targetUserId`/URL say the other user. Fix: add a load-version (or CTS) guard to both panels and bail in the continuation if a newer load started. [src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor:363-406 ; src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor:122-135]
+- [x] [Review][Patch] MyTenantsPanel scoped `margin:0` reset no-ops + stale `fc-css-exception` comment — the summary was migrated to `<FluentText As="TextTag.Paragraph">`, so the scoped rule `.my-tenants-page p` (compiled to `p[b-xxx]`) can't match the `<p>` that the child `FluentText` renders → the reset silently does nothing, and the exception comment ("no Fluent typography primitive wraps these semantic elements") is now factually false. Fix: remove the dead rule + stale comment, or apply the margin via the `__summary` class / `FluentText` params. [src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor.css:1-5]
+- [x] [Review][Patch] Dev Agent Record Task 7 inaccuracy — Task 7 checks off "Update `TenantsUiRouteSmokeTests` …", but `git diff ba14356..HEAD -- …/TenantsUiRouteSmokeTests.cs` is empty (unchanged). AC7 is still functionally met (alias pages keep `tenants-my-*` / `tenants-user-lookup` testids), so this is a record inaccuracy only (also noted by the 2026-06-27 pass, still uncorrected). Fix: correct the Task-7 note. [this story file, Task 7]
+
+#### Deferred
+
+- [x] [Review][Defer] Page-local tabs a11y: empty tabpanels + no Tenants-owned `aria-selected`/keyboard bUnit assertion [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:22-30] — deferred, FrontComposer/UX follow-up. The new `FluentTabs` carry `Id`/`Header` only; active content renders in sibling `FcAggregateListPage` slots, so the tab→tabpanel ARIA association points at empty regions, and AC12/AC13 keyboard/active-tab guarantees ride entirely on the Fluent primitive with no Tenants-owned assertion. Already recorded in `deferred-work.md` (2026-06-27 Group 1 re-review); this run adds the missing-bUnit-assertion observation to it.
+
+#### Dismissed (false positive — verified against the code)
+
+- Blind Hunter "tenant filters/scope wiped after a Users-tab detour" — FALSE POSITIVE: `RestoreContextFromQuery` runs only in `OnInitializedAsync` (there is no `OnParametersSet` override), so a `NavigateTo` query-string change does not re-read the URL; in-memory `_tenantScope`/`_search`/`_sortColumn`/`_currentCursor` survive the round-trip and the return rebuilds the URL via `CurrentNavigationContext().ToReturnUrl()`. (Only a hard F5 parked on the Users tab drops tenants-tab state from the URL — minor/acceptable.)
+- Blind Hunter "stale-on-304 recovery dead in production" — FALSE POSITIVE: `ApplyFreshnessHeaders(metadata)` is called at `TenantsQueryController.cs:370` BEFORE `return StatusCode(304)` at :372, so 304 responses DO carry `X-Hexalith-Is-Stale`; an aging-but-unchanged projection (same ETag) surfaces as Stale on a 304 as intended. (Edge Case Hunter verified the same; reviewer confirmed by reading lines 369–373.)
+- Blind Hunter "double tenant-list fetch on a tab/scope switch" — FALSE POSITIVE: `NavigateTo` to the same component does not re-run `OnInitializedAsync`, so the guarded `if (IsTenantListView && _snapshot.Kind is Loading) LoadAsync` in the handler is the only fetch.

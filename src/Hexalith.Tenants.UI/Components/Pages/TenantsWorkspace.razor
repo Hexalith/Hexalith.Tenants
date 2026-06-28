@@ -114,7 +114,7 @@
                                      Expanded="false"
                                      data-testid="tenants-create-accordion">
                     <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
-                                      IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current)"
+                                      IsFresh="@(_snapshot.Freshness is ReadModelFreshnessState.Current or ReadModelFreshnessState.Unknown)"
                                       ShowHeading="false"
                                       OnProjectionRefreshRequested="RefreshAsync"
                                       ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
@@ -207,6 +207,7 @@
     private string? _selectedTenantId;
     private string? _returnAnchor;
     private string _activeTabId = TenantsTabId;
+    private string? _usersTabUserId;
     private string _tenantScope = AllTenantsScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
@@ -470,12 +471,26 @@
 
     private async Task OnActiveTabChanged(string? activeTabId)
     {
+        string previousTab = _activeTabId;
         _activeTabId = NormalizeTab(activeTabId);
+
+        // Remember the last looked-up user so a Users -> Tenants -> Users round-trip restores it (mirrors the
+        // remembered tenant scope). The userId lives in the URL only while the Users tab is active, so capture
+        // it before navigating away from that tab.
+        if (string.Equals(previousTab, UsersTabId, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(QueryUserId))
+        {
+            _usersTabUserId = QueryUserId;
+        }
+
         if (IsUsersTab)
         {
             // Keep the remembered tenant scope so a Tenants -> Users -> Tenants round-trip can restore the
-            // My tenants view. Scope is inert on the Users tab (IsMyTenantsView requires the Tenants tab).
-            Navigation.NavigateTo("/tenants?tab=users", replace: true);
+            // My tenants view, and restore the last looked-up user so the Users tab is not reset to a blank
+            // form. Scope is inert on the Users tab (IsMyTenantsView requires the Tenants tab).
+            string userId = string.IsNullOrWhiteSpace(_usersTabUserId)
+                ? string.Empty
+                : $"&userId={Uri.EscapeDataString(_usersTabUserId)}";
+            Navigation.NavigateTo($"/tenants?tab=users{userId}", replace: true);
             return;
         }
 
