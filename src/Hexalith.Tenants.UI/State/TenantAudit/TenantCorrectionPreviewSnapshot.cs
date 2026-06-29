@@ -199,7 +199,9 @@ public sealed record TenantCorrectionPreviewSnapshot(
             SafeMessage = result.SafeMessage,
             RejectionCode = result.RejectionCode,
             AuditState = TenantCommandAuditState.AuditUnavailable,
-            FocusTarget = TenantCommandFocusTarget.Refresh,
+            FocusTarget = result.State is TenantCommandLifecycleState.Failed
+                ? TenantCommandFocusTarget.Lifecycle
+                : TenantCommandFocusTarget.Refresh,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
     }

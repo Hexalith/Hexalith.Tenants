@@ -114,6 +114,7 @@
             </section>
 
             <section class="correction-start-panel__lifecycle"
+                     @ref="_lifecycleElement"
                      tabindex="-1"
                      data-testid="tenants-correction-lifecycle"
                      aria-labelledby="tenants-correction-state-label">
@@ -188,6 +189,8 @@
     private string _roleValue = string.Empty;
     private bool _isSubmitting;
     private string? _intentReference;
+    private ElementReference _lifecycleElement;
+    private bool _focusLifecyclePending;
 
     [Parameter]
     public TenantCorrectionStartIntent? Intent { get; set; }
@@ -306,6 +309,15 @@
         SetSnapshotFromIntent();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
     private void SetSnapshotFromIntent()
     {
         if (Intent is null)
@@ -315,6 +327,16 @@
 
         TenantCorrectionStartIntent resolvedIntent = ResolvedIntent();
         _snapshot = TenantCorrectionPreviewSnapshot.FromIntent(resolvedIntent, CurrentProjection);
+    }
+
+    private void SetSnapshot(TenantCorrectionPreviewSnapshot snapshot, bool focusTerminalState = false)
+    {
+        _snapshot = snapshot;
+        if (focusTerminalState
+            && _snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Failed)
+        {
+            _focusLifecyclePending = true;
+        }
     }
 
     private TenantCorrectionStartIntent ResolvedIntent()
@@ -397,9 +419,11 @@
                 _ => TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"]),
             };
 
-            _snapshot = result.State is TenantCommandLifecycleState.Accepted
-                ? _snapshot.Accepted(result)
-                : _snapshot.ApplySubmissionFailure(result);
+            SetSnapshot(
+                result.State is TenantCommandLifecycleState.Accepted
+                    ? _snapshot.Accepted(result)
+                    : _snapshot.ApplySubmissionFailure(result),
+                focusTerminalState: true);
 
             if (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
             {
@@ -433,7 +457,7 @@
 
         await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
         TenantDetail? projection = await QueryProjectionAsync().ConfigureAwait(false);
-        _snapshot = _snapshot.ConfirmProjection(projection);
+        SetSnapshot(_snapshot.ConfirmProjection(projection), focusTerminalState: true);
         if (_snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
         {
             TenantAuditRow? proof = await QueryCorrectiveProofAsync().ConfigureAwait(false);

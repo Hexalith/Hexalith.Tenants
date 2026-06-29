@@ -1,5 +1,5 @@
-# generated: 2026-06-05T13:20:22+02:00
-# last_updated: 2026-06-28T08:31:56+02:00
+# generated: 2026-06-29T14:27:50+02:00
+# last_updated: 2026-06-29
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -27,37 +27,21 @@
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
 #
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
 # WORKFLOW NOTES:
 # ===============
 # - Epic transitions to 'in-progress' automatically when first story is created
 # - Stories can be worked in parallel if team capacity allows
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
-# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
-#
-# BUILD-READINESS NOTE (updated by Correct Course 2026-06-27):
-# ===============
-# Canonical story IDs and titles are sourced from:
-#   _bmad-output/planning-artifacts/epics.md
-# Story 1.0 (Spike) is done and clears FC-LYT/FC-CMD/FC-CNC/FC-A11Y/FC-L10N/FC-DOC
-# for Story 1.1 gate purposes. Evidence:
-#   story-1-0-spike-note-2026-06-05.md
-# Resolved planning gates:
-#   - Story 1.2 tenant list: FC-TBL boundary decision is resolved by Tenants-specific
-#     TenantDataGrid composition; reusable grid capability remains a FrontComposer
-#     enhancement/handoff, not Tenants-local generic infrastructure.
-#   - Story 1.2 FR1 search: Memories-backed cross-set search is covered by
-#     cc-2026-06-21-memories-backed-tenant-search and must stay synchronized in epics/PRD/UX.
-#   - Story 2.1 first command flow: command foundation evidence is recorded in the
-#     Story 2.1 artifact; future command stories still split if equivalent foundation
-#     evidence is absent.
-# Remaining planning gates:
-#   - Story 3.2: FR15 disable/enable is approved as reversible soft-delete / availability control;
-#     hard tenant deletion is future administrators-only CLI tooling, not Tenants UI.
-#   - Story 2.4 remove member: audit handoff only until Epic 5 evidence source exists.
-#   - Every UI story keeps accessibility/localization/responsive/documentation evidence gates.
+# - Dev moves story to review, then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
-generated: 2026-06-05T13:20:22+02:00
-last_updated: 2026-06-28T08:31:56+02:00
+generated: 2026-06-29T14:27:50+02:00
+last_updated: 2026-06-29
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -87,19 +71,14 @@ development_status:
   epic-2-retrospective: done
 
   # --- Epic 3: Tenant Lifecycle and Configuration Control ---
-  epic-3: in-progress
+  epic-3: done
   3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail: done
   3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
   3-3-set-tenant-configuration-key-value-with-consequence-preview: done
   3-4-remove-tenant-configuration-key-with-consequence-preview: done
-  # Defect fix (Correct Course 2026-06-06): tenant read surfaces 500 because the BFF query
-  # gateway routed through the retired TenantsProjectionActor. Re-point the BFF at the REST
-  # endpoints (GET /api/tenants*) per architecture line 319-320 + emit D6 ETag/freshness.
-  # Proposal: sprint-change-proposal-2026-06-06-tenant-query-routing.md
-  3-5-tenant-query-gateway-rest-routing: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
-  # --- Epic 4: Global Administrator Govegive the rnance ---
+  # --- Epic 4: Global Administrator Governance ---
   epic-4: done
   4-1-global-administrators-navigation-and-read-contract-readiness: done
   4-2-review-global-administrators-from-fixed-aggregate: done
@@ -108,165 +87,80 @@ development_status:
   epic-4-retrospective: done
 
   # --- Epic 5: Audit Evidence and Forward Recovery ---
-  epic-5: done
+  epic-5: in-progress
   5-1-tenant-audit-trail-datagrid: done
   5-2-scoped-audit-evidence-entry-points: done
   5-3-support-safe-audit-evidence-receipt: done
   5-4-audit-availability-state-recovery: done
   5-5-start-forward-correction-from-audit-evidence: done
   5-6-preview-and-confirm-correction-with-linked-proof: done
+  5-7-global-administrator-correction-verification: ready-for-dev
   epic-5-retrospective: done
 
-  # --- Cross-cutting Correct Course 2026-06-17 ---
-  cc-2026-06-17-frontcomposer-fluent-v5-page-component-conformance-sweep: done
-  cc-2026-06-18-frontcomposer-fluent-control-and-css-conformance-sweep: done
-  # Reopened after Correct Course approval on 2026-06-18: page title and visible page
-  # header must move into a FrontComposer-owned component before final review.
-  # Independent third code review 2026-06-18 (bmad-code-review): all 7 ACs re-confirmed;
-  # D1 (inert pubsub.yaml dead-letter keys) fixed truthfully, P1 (blank-Name fallback
-  # regression test) added; 3 items deferred (a11y landmark, FcPageHeader contract,
-  # out-of-scope DAPR/health bundling) -> deferred-work.md. UI 684/684, doc test 7/7.
-  cc-2026-06-18-frontcomposer-fluent-layout-page-layout-conformance-sweep: done
-  # Correct Course 2026-06-18 (Fluent-only components/layout/styles), approved by Administrator.
-  # Proposal: sprint-change-proposal-2026-06-18-fluent-only-components-and-styles.md
-  # "Now" work: push layout-only <div>/<span> -> FluentStack/FluentGrid, text-styling
-  # <span>/<p> -> FluentLabel/typography, reduce component .razor.css to Fluent design tokens
-  # + documented exceptions; keep a11y landmarks/lists/nav <a> as a governance allowlist.
-  cc-2026-06-18-frontcomposer-fluent-structural-and-style-conformance-sweep: done
-  # Audit FrontComposer Shell + Counter samples + EventStore Admin.UI carve-outs
-  # (FcHomeCard, Counter.Specimens, Admin.UI ActivityChart bar, Streams copy cell) against
-  # the "only when no Fluent equivalent exists" rule. Crosses submodule boundaries → read-only
-  # audit + owner handoffs (Tenants repo must not edit submodule files).
-  # Spec: spec-frontcomposer-shell-and-adminui-fluent-conformance-audit.md
-  cc-frontcomposer-shell-and-adminui-fluent-conformance-audit: done
-
-  # --- Cross-cutting Correct Course 2026-06-19 ---
-  # Approved by Administrator via:
-  # _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-19-deferred-work.md
-  # Scope: convert deferred review work into Tenants-owned stories plus FrontComposer/EventStore handoffs.
-  cc-2026-06-19-tenant-query-freshness-etag-and-coverage-hardening: done
-  cc-2026-06-19-domain-ui-governance-and-accessibility-hardening: done
-  cc-2026-06-19-dapr-deployment-docs-and-deferred-record-cleanup: done
-
-  # --- Cross-cutting Correct Course 2026-06-21 ---
-  # Approved by Administrator via:
-  # _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-21-reusable-aggregate-pages-and-tenant-search.md
-  # Scope: (Phase 1) complete the stubbed tenant-list search on Hexalith.Memories (search-as-index-only:
-  # Memories supplies the match-set, existing ETag-fresh read path supplies row data); then
-  # (Phase 2) extract reusable FrontComposer aggregate list/detail page wrappers (with toolbars) and
-  # re-base Tenants onto them. Search-first sequencing; §8 defaults assumed.
-  cc-2026-06-21-memories-backed-tenant-search: done
-  # Phase 2 is blocked by Phase 1 (extract a proven, working list/detail).
-  # done 2026-06-21: implemented (FC commit e1ae065 + Tenants rebase commit 0009869) and closed after the
-  # Correct Course adversarial review (PASS-WITH-NITS, no blockers). Both nits were fixed in-session:
-  # (1) the detail back-link focus-visible/forced-colors outline (now owned by FcAggregateDetailPage.razor.css
-  # in FrontComposer; dead .tenant-detail__back rules removed), and (2) a Degraded(null)->Unavailable
-  # fail-closed test was added. UI.Tests 757/757; conformance 51/51.
-  cc-2026-06-21-frontcomposer-aggregate-list-detail-extraction: done
-  # Upstream handoffs (executed in the submodule repos):
-  #   - Hexalith.Memories: DONE — MemoriesClient paging params (offset/subject/sourceType) + structured
-  #     AttributeFilters landed in commit f401175; the BFF consumes Offset + AttributeFilters in
-  #     TenantQueryGateway.SearchTenantsAsync (supersedes the §3.6 "deferred" framing in the handoff doc).
-  #   - Hexalith.FrontComposer: DONE — FC-LST/FC-DTL contracts confirmed; FcAggregateListPage<T> /
-  #     FcAggregateDetailPage<T> implemented (commit e1ae065) and Tenants rebased (commit 0009869), plus the
-  #     back-link CSS fix above.
-
-  # --- Cross-cutting Correct Course 2026-06-21 (session 2): deferred + pending work implementation ---
-  # Approved by Administrator: implement ALL remaining deferred/pending work, including crossing the
-  # submodule boundary for the owner handoffs.
-  # Proposal: sprint-change-proposal-2026-06-21-deferred-and-pending-work-implementation.md
-  # All implemented + verified building/green and COMMITTED + PUSHED:
-  #   FrontComposer main -> c6c3c39, EventStore main -> 5613fed4,
-  #   Tenants branch correct-course/2026-06-21-deferred-and-pending-work -> 62a94b0.
-  cc-2026-06-21-frontcomposer-page-header-landmarks-and-contract-hardening: done
-  cc-2026-06-21-eventstore-admin-ui-a11y-remediation: done
-  cc-2026-06-21-eventstore-read-model-freshness-metadata: done
-  cc-2026-06-21-epic-11-persisted-dataprotection-key-ring: done
-  # Newly discovered pending work (red on main from the committed Memories integration): 3 Server.Tests
-  # doc/config-conformance failures (memories-server pubsub scope + Sample MemoriesSearchIndexEventPublisher
-  # registrations not reflected in tests/docs). Fixed in-repo; Tenants Server.Tests back to 700/700.
-  cc-2026-06-21-memories-integration-doc-test-drift-fix: done
-
-  # --- Cross-cutting Correct Course 2026-06-22: EventStore.Aspire platform-projects helper ---
-  # Approved by Administrator (Jérôme Piquot) 2026-06-22.
-  # Proposal: sprint-change-proposal-2026-06-22-eventstore-aspire-platform-projects-helper.md
-  # Scope: move the AppHost EventStore project-metadata boilerplate (ProjectMetadataPaths + the 3
-  # EventStore IProjectMetadata classes — also duplicated verbatim in FrontComposer.AppHost) into the
-  # Hexalith.EventStore.Aspire package as a new public helper AddHexalithEventStorePlatformProjects()
-  # + public RepositoryProjectPaths. Platform-boundary correction only — no product/PRD/epic/UX
-  # scope change; reinforces Story 1.1 AC. Aspire resource graph unchanged.
-  # Status review (implemented locally + build-verified clean under -warnaserror, UNCOMMITTED):
-  #   Ordered handoff — (1) EventStore repo owner: review + regen API docs + commit feat(aspire) + PUSH;
-  #   (2) Tenants: bump EventStore submodule pointer (verify reachable on remote);
-  #   (3) Tenants: commit AppHost as refactor(apphost) — NOT feat (AppHost IsPackable=false, no bump).
-  # Follow-up (separate FrontComposer repo/PR, out of scope): FrontComposer.AppHost can adopt the helper.
-  cc-2026-06-22-eventstore-aspire-platform-projects-helper: done
-
-  # --- Cross-cutting Correct Course 2026-06-22: per-module Memories & Tenants Aspire helpers ---
-  # Approved by Administrator (Jérôme Piquot) 2026-06-22.
-  # Proposal: sprint-change-proposal-2026-06-22-memories-tenants-aspire-helpers.md
-  # Scope: "do the same for memories and tenants" as the EventStore.Aspire helper. (1) NEW published
-  # Hexalith.Memories.Aspire (Memories submodule): AddHexalithMemoriesSearchIndexServer extracts the inline
-  # FalkorDB + secret-store + LLM + memories-server sidecar block. (2) REINSTATED published
-  # Hexalith.Tenants.Aspire (this repo): AddHexalithTenantsServer adds the Tenants server + sidecar
-  # (gateway-side domain-service registrations stay AppHost composition, mirroring the EventStore helper).
-  # Intentionally overrides the EventStore "no domain *.Aspire" rule (owner decision); restores the 5th
-  # Tenants package. Aspire resource graph unchanged (independently verified). Build/test verified:
-  # Tenants .slnx Release -warnaserror 0/0; 1831 tests pass; 5-package NuGet validation passes;
-  # Memories.Aspire 0/0 + validate-release-packages.ps1 green + release_packages_test 18/18.
-  # Bundled pre-existing-drift fix: classified src/Hexalith.Memories.Web in Memories release-packages.json.
-  # Status done (review patches applied locally, UNCOMMITTED):
-  #   Ordered handoff — (1) Memories: commit feat(aspire) + PUSH (reachable on remote);
-  #   (2) Tenants: bump Memories submodule pointer; (3) Tenants: commit feat(aspire) (new published package).
-  cc-2026-06-22-memories-tenants-aspire-helpers: done
-
-  # --- Correct Course 2026-06-25: collapse duplicate UI command-request DTOs ---
-  # Approved by Administrator 2026-06-25.
-  # Proposal: sprint-change-proposal-2026-06-25-collapse-duplicate-ui-command-request-dtos.md
-  # Scope (Minor refactor, no behaviour change): deleted 9 UI *CommandRequest records that were
-  # field-for-field duplicates of Hexalith.Tenants.Contracts.Commands (7 from
-  # State/TenantCommands/TenantCreateCommandModels.cs + 2 standalone GA files); rewired the gateway,
-  # interface, snapshots, components, and tests onto the contract records; dropped redundant
-  # `var command = new …(request.…)` re-constructions. Retained TenantLifecycleCommandRequest (the one
-  # genuine UI composite). Literal type-name replacement across 9 done story docs (2-2,2-3,2-4,2-5,
-  # 3-3,3-4,4-3,4-4,5-6). Verified: UI .slnx Release -warnaserror 0/0; Hexalith.Tenants.UI.Tests 761/761.
-  # Status done (implemented + verified, UNCOMMITTED): handoff — Developer agent commits on a
-  # refactor/… branch (Conventional Commits `refactor` → no version bump / no 5-package NuGet publish).
-  cc-2026-06-25-collapse-duplicate-ui-command-request-dtos: done
-
-  # --- Correct Course 2026-06-25: adopt EventStore read-model freshness metadata ---
-  # Approved by Administrator 2026-06-25 (Correct Course; "Server-side, 3-state" option).
-  # Proposal: sprint-change-proposal-2026-06-25-tenant-read-model-freshness-adoption.md
-  # Scope (Moderate): complete the deferred AC2 of cc-2026-06-19 now that the EventStore read-model
-  # freshness surface has shipped (5613fed4). Tenants read models implement IReadModelFreshness
-  # (persisted ProjectedAt, stamped on every projection write); query handlers classify server-side
-  # via ToQueryResponseMetadata (current/stale/unknown; configurable, conservatively-defaulted
-  # thresholds; ServedAt no longer faked as age); the UI retires the hand-rolled TenantFreshnessState
-  # for the shared ReadModelFreshnessState (Refreshing kept as a client transient). No submodule edits.
-  # Aging stays a dormant UI value pending a future QueryResponseMetadata.ProjectedAt wire field
-  # (separate EventStore handoff). Architecture D6 + deferred-work.md + test-summary.md reconciled to
-  # the 3-state-on-wire reality.
-  cc-2026-06-25-tenant-read-model-freshness-adoption: done
-
-  # --- Correct Course 2026-06-27: Tenants module tabbed workspace and single nav entry ---
-  # Approved by Administrator 2026-06-27.
-  # Proposal: sprint-change-proposal-2026-06-27.md
-  # Scope (Moderate, Option A): consolidate the Tenants module left navigation to one entry pointing
-  # at /tenants; move Tenants-domain read surfaces into page-local tabs. First tab = tenant list with
-  # a safe "my tenants" filter/view; second tab = lookup-backed Users membership surface using the
-  # existing GET /api/users/{userId}/tenants behavior. Do not claim an exhaustive all-users inventory
-  # unless a future Product/API story adds an authorization-scoped read query first.
-  cc-2026-06-27-tenants-module-tabbed-workspace: done
-
-  # --- Correct Course 2026-06-28: build/test verification + IA documentation sync ---
-  # Approved by Administrator 2026-06-28. Proposal: sprint-change-proposal-2026-06-28.md
-  # Scope (Minor, docs only). Verified the committed state: Hexalith.Tenants.slnx Release -warnaserror
-  # builds 0/0; all test tiers green (Contracts 106, Client 48, Testing 181, Sample 39, UI 777,
-  # Server 738, IntegrationTests 226 = 2115 passing / 0 failing). Found doc drift: the cc-2026-06-27
-  # tabbed-workspace change shipped in code but the IA/navigation sections of the PRD (§5.1 + glossary),
-  # UX EXPERIENCE.md (UX-DR20 + surface table), epics.md (UX-DR20 + story 1.5 / Epic 4 / Epic 5 nav ACs),
-  # and docs/tenants-ui-operations-shell-spec.md still described the superseded "three primary nav areas /
-  # Users contextual" model. Synced all four to the one-entry-per-module + page-local-tabs model
-  # (Users stays lookup/search-backed, Option A). No code/contract/behavior change. UNCOMMITTED — handoff:
-  # Developer commits the 4 docs on a docs/… branch (Conventional Commits `docs:`; no version bump).
-  cc-2026-06-28-ia-documentation-sync: done
+action_items:
+  - id: epic-5-retro-2026-06-29-global-admin-correction-verification
+    epic: 5
+    action: "Create a focused global-administrator correction verification story before enabling global-administrator correction."
+    owner: "Winston (System Architect) and Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
+  - id: epic-5-retro-2026-06-29-terminal-focus
+    epic: 5
+    action: "Add tested terminal-state focus handling for correction confirmed/failed lifecycle states."
+    owner: "Murat (Test Architect) and Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
+  - id: epic-5-retro-2026-06-29-projection-refresh
+    epic: 5
+    action: "Remove redundant correction projection refresh while preserving projection-confirmed success and proof lookup."
+    owner: "Amelia (Developer)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
+  - id: epic-5-retro-2026-06-29-doc-drift
+    epic: 5
+    action: "Audit historical audit/recovery and UI evidence specs for stale blocked/readiness or identifier wording."
+    owner: "Paige (Technical Writer)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
+  - id: epic-5-retro-2026-06-29-support-safety
+    epic: 5
+    action: "Keep support-safety and prohibited recovery terminology guards on every audit or correction change."
+    owner: "Murat (Test Architect)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
+  - id: epic-3-retro-2026-06-29-story-35-tracking
+    epic: 3
+    action: "Reconcile Epic 3 story tracking with the completed Story 3.5 defect-fix artifact."
+    owner: "Amelia (Developer) and Paige (Technical Writer)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
+  - id: epic-3-retro-2026-06-29-command-lock-retention
+    epic: 3
+    action: "Promote command-lock retention through accepted/projection-pending states into a shared command-flow guard."
+    owner: "Amelia (Developer) and Murat (Test Architect)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
+  - id: epic-3-retro-2026-06-29-focus-containment
+    epic: 3
+    action: "Promote tested focus containment, Escape/cancel no-commit behavior, and launcher focus return into the high-impact/destructive-flow checklist."
+    owner: "Sally (UX Designer), Murat (Test Architect), and Amelia (Developer)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
+  - id: epic-3-retro-2026-06-29-reason-honesty
+    epic: 3
+    action: "Add reason-honesty regression checks for degraded/unavailable/unknown projection states on command surfaces."
+    owner: "Murat (Test Architect) and Amelia (Developer)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
+  - id: epic-3-retro-2026-06-29-config-preview-scope
+    epic: 3
+    action: "Resolve and document whether all configuration edits require consequence preview or only a defined high-risk subset."
+    owner: "John (Product Manager), Sally (UX Designer), and Winston (System Architect)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
+  - id: epic-3-retro-2026-06-29-doc-drift
+    epic: 3
+    action: "Audit Epic 3 planning and evidence docs for retired projection-actor and FR15 hard-delete drift."
+    owner: "Paige (Technical Writer) and Winston (System Architect)"
+    status: open
+    source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"

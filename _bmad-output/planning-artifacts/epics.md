@@ -1647,3 +1647,59 @@ So that recovery is deliberate, auditable, and proven by projection confirmation
 **When** verification is run
 **Then** unit/component tests cover preview completeness, current-state conflict blocking, forward command submission, projection-confirmed correction, rejection/unknown/audit-unavailable states, original/corrective record linking, and no history rewrite
 **And** Playwright or component tests verify destructive/corrective confirmation focus behavior, keyboard complete-or-exit, live-region politeness, forced-colors status rendering, support-safe proof links, and stable selectors.
+
+### Story 5.7: Global Administrator Correction Verification
+
+As an authorized operator,
+I want global-administrator correction enabled only after the fixed-scope correction path is verified,
+So that platform authority recovery cannot be inferred from tenant-domain correction behavior.
+
+**Requirements:** FR19, FR24, FR25; NFR2-NFR10; Additional global-administrator correction verification requirements; UX-DR3, UX-DR12-UX-DR15, UX-DR19, UX-DR22-UX-DR28, UX-DR33.
+
+**Acceptance Criteria:**
+
+**Given** audit evidence describes a global-administrator authority outcome
+**When** correction availability is evaluated
+**Then** `GlobalAdministratorRemoved` prepares a `SetGlobalAdministrator` correction and `GlobalAdministratorSet` prepares a `RemoveGlobalAdministrator` correction in the fixed `system` / `global-administrators` / `global-administrators` scope
+**And** the correction path does not use tenant membership, tenant detail, tenant role selection, or tenant-domain commands as substitutes.
+
+**Given** the fixed global-administrator read projection is current and command support is connected
+**When** the operator starts correction from system-scope audit evidence
+**Then** the preview names the platform authority scope, target user id, intended global-administrator command, known consequences, known unknowns, audit/evidence expectation, and recovery path
+**And** submission stays blocked if any required preview item is unavailable.
+
+**Given** the operator confirms a global-administrator correction
+**When** the command is submitted
+**Then** the existing command gateway sends `SetGlobalAdministrator` or `RemoveGlobalAdministrator` through `POST /api/v1/commands` with fixed global-administrator routing and one-at-a-time locking
+**And** no backend correction, receipt, proof-link, tenant-member, or direct projection endpoint is added.
+
+**Given** command status reaches accepted, stored, published, completed, rejected, failed, degraded, or unable-to-verify states
+**When** the correction lifecycle updates
+**Then** each state remains distinct, localized, accessible, and support-safe
+**And** SignalR or status lookup never proves success without authoritative global-administrator projection re-query.
+
+**Given** the correction is a grant/restore path
+**When** projection confirmation is evaluated
+**Then** success is shown only when `GetGlobalAdministratorsAsync` confirms the target user appears in the fixed projection
+**And** `GlobalAdministratorAlreadyExists` remains safe rejection/already-present guidance rather than false correction success.
+
+**Given** the correction is a remove path
+**When** projection confirmation and last-admin safety are evaluated
+**Then** success is shown only when `GetGlobalAdministratorsAsync` confirms the target user is absent from the fixed projection
+**And** the last global administrator is unavailable before submit and `LastGlobalAdministrator` remains a hard-blocked rejection if a race occurs.
+
+**Given** corrective audit proof becomes available
+**When** original and corrective records are linked
+**Then** the proof lookup uses support-safe system-scope audit rows for `GlobalAdministratorSet` or `GlobalAdministratorRemoved`, with absolute timestamps and structured narrative metadata
+**And** raw payloads, tokens, decoded JWTs, EventStore metadata, internal correlation ids, message ids, stack traces, and PII are never rendered or copied.
+
+**Given** authorization, read freshness, command support, audit evidence, target visibility, projection confirmation, or proof lookup is incomplete
+**When** the global-administrator correction path renders
+**Then** it fails closed with visible localized reasons, preserves the original evidence and last-confirmed projection, and never labels the original event as undone or repaired in place.
+
+**Test Contract:**
+
+**Given** this story is complete
+**When** verification is run
+**Then** unit/component tests cover global-administrator correction start enablement, fixed-scope command selection, no tenant-role UI, grant/remove submission, projection-confirmed presence/absence, last-admin pre-submit blocking, `LastGlobalAdministrator`, `GlobalAdministratorAlreadyExists`, `GlobalAdministratorNotFound`, proof linking, fail-closed incomplete evidence, forbidden terminology, and no history mutation
+**And** focused UI or integration tests verify keyboard complete-or-exit, focus return and terminal-state focus for this correction path, live-region politeness, forced-colors rendering, responsive safety, support-safe copy, stable selectors, and fixed command gateway routing.

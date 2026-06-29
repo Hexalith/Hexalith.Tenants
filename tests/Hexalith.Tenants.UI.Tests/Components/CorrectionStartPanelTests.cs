@@ -94,6 +94,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
             .Add(component => component.Intent, intent)
             .Add(component => component.CurrentProjection, Detail()));
+        int focusInvocationCount = JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
 
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
 
@@ -104,7 +106,10 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commandGateway.StatusHandles.ShouldHaveSingleItem().ShouldBe(new TenantCommandTrackingHandle("message-safe", "tracking-safe"));
         queryGateway.DetailRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        cut.Instance.Snapshot!.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
         cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirmed");
+        cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
         cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
         cut.Find("[data-testid='tenants-correction-proof-link']").TextContent.ShouldContain("2026-06-01 10:05:00 UTC");
         cut.Markup.ShouldNotContain("event-original as undone", Case.Insensitive);
@@ -189,6 +194,36 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"));
         cut.WaitForAssertion(() => commandGateway.StatusHandles.Count.ShouldBe(1));
         commandGateway.AddUserRequests.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Panel_failed_terminal_state_moves_focus_to_lifecycle_without_refresh_tracking()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new()
+        {
+            AddUserResultTask = Task.FromResult(TenantCommandSubmissionResult.Failed("Correction command failed before verification.")),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+        int focusInvocationCount = JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed));
+        cut.Instance.Snapshot!.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("failed");
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+        commandGateway.StatusHandles.ShouldBeEmpty();
+        cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
     }
 
     private static TenantCorrectionStartContext Context(

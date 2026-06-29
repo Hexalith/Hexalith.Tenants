@@ -86,6 +86,19 @@ public sealed class TenantCorrectionPreviewSnapshotTests
     }
 
     [Fact]
+    public void Submission_failure_targets_correction_lifecycle_for_terminal_focus()
+    {
+        TenantCorrectionPreviewSnapshot failed = TenantCorrectionPreviewSnapshot
+            .FromIntent(Intent("UserRemovedFromTenant", intendedRole: TenantRole.TenantReader), Detail())
+            .RequestSent()
+            .ApplySubmissionFailure(TenantCommandSubmissionResult.Failed("safe failure"));
+
+        failed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
+        failed.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
+        failed.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+    }
+
+    [Fact]
     public void Projection_confirmation_requires_requeried_projection_before_corrective_proof_link()
     {
         TenantCorrectionPreviewSnapshot pending = TenantCorrectionPreviewSnapshot
@@ -103,6 +116,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
             .WithCorrectiveProof(Row("event-corrective", "UserRoleChanged"));
 
         confirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        confirmed.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         confirmed.ProofLink.ShouldNotBeNull();
         confirmed.ProofLink.OriginalAuditReference.ShouldBe("event-original");
