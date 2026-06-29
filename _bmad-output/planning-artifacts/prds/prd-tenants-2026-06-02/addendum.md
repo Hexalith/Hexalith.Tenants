@@ -62,7 +62,7 @@ A story promotes to `ready` only when its `blockedBy` set empties or a **Product
 | Remove the **last global administrator** | **Rejection** `LastGlobalAdministrator` | UI reflects as *unavailable*, not friction (CP-6) |
 | `TenantAlreadyExists` on create | **Rejection** | safe text |
 
-- **Freshness primitive:** conditional requests (`If-None-Match` → `304`) via the caching projection actor; the Truth State Badge derives `current/refreshing/aging/stale/unknown` from this. Numeric thresholds deferred to implementation.
+- **Freshness primitive:** server-side conditional requests (`If-None-Match` → `304`) served by `TenantsQueryController` over the Tenants REST read endpoints, using read-model ETag/freshness metadata surfaced by the in-process query handlers. The Truth State Badge derives `current/refreshing/aging/stale/unknown` from this. Numeric thresholds deferred to implementation.
 - **Live updates:** SignalR projection notifications are **freshness nudges only** — never advance command lifecycle or audit availability (PRD CP-4). Rationale: at-least-once delivery + projection lag make any optimistic confirmation unsafe.
 - **Pagination:** signed, opaque, scope-bound cursors; never offset/limit. Cursor durability across replicas/restarts is a deferred backend epic (PRD §16.7, R-3).
 - **Identity:** actor identity from JWT `sub` / envelope `UserId`; tenant ids and user ids are **meaningful caller-supplied strings, not ULIDs** (only envelope ids like `MessageId` may be ULIDs). See §E.

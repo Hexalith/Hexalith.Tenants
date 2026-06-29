@@ -172,6 +172,46 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void Tenant_audit_page_opens_fixed_global_administrator_correction_panel_for_authorized_evidence()
+    {
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true,
+            GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
+
+        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.Find("[data-testid='tenants-correction-domain']").TextContent.ShouldContain("Global administrators");
+        // The fixed global-administrator correction never offers a tenant role selector (AC1/AC2).
+        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
+        gateway.GlobalAdminRequests.Count.ShouldBeGreaterThanOrEqualTo(1);
+        cut.VisibleText().ShouldNotContain("tenant role", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_audit_page_keeps_global_administrator_correction_fail_closed_when_unauthorized()
+    {
+        RegisterGlobalAdminServices(
+            authorized: false,
+            GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-unavailable-reason']").ShouldNotBeEmpty();
+        cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
+    }
+
+    [Fact]
     public void Tenant_audit_page_renders_timestamps_in_utc_independent_of_host_timezone()
     {
         RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
@@ -299,8 +339,10 @@ public sealed class TenantAuditPageTests : BunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditDataGrid.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditEvidenceReceipt.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "CorrectionStartPanel.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "GlobalAdministratorCorrectionPanel.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantAuditReceipt.cs"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantCorrectionStartIntent.cs"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "GlobalAdministratorCorrectionSnapshot.cs"),
         ];
         string combined = string.Join('\n', componentFiles.Select(File.ReadAllText));
 
@@ -324,6 +366,7 @@ public sealed class TenantAuditPageTests : BunitContext
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditDataGrid.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "AuditEvidenceReceipt.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "CorrectionStartPanel.razor"),
+            Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Components", "Tenants", "Audit", "GlobalAdministratorCorrectionPanel.razor"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "State", "TenantAudit", "TenantCorrectionStartIntent.cs"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.resx"),
             Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "Resources", "TenantsResources.fr.resx"),
@@ -396,6 +439,19 @@ public sealed class TenantAuditPageTests : BunitContext
         correctionStyles.ShouldContain(":focus-visible");
         correctionStyles.ShouldContain("@media (forced-colors: active)");
         correctionStyles.ShouldContain("@media (prefers-reduced-motion: reduce)");
+
+        string globalAdminCorrectionStyles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "Audit",
+            "GlobalAdministratorCorrectionPanel.razor.css"));
+
+        globalAdminCorrectionStyles.ShouldContain(":focus-visible");
+        globalAdminCorrectionStyles.ShouldContain("@media (forced-colors: active)");
+        globalAdminCorrectionStyles.ShouldContain("@media (prefers-reduced-motion: reduce)");
     }
 
     [Fact]
@@ -438,10 +494,55 @@ public sealed class TenantAuditPageTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         StubTenantQueryGateway gateway = new(snapshots);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
         return gateway;
     }
+
+    private StubTenantQueryGateway RegisterGlobalAdminServices(
+        bool authorized,
+        GlobalAdministratorsSnapshot globalAdministrators,
+        params TenantAuditSnapshot[] snapshots)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        StubTenantQueryGateway gateway = new(snapshots) { GlobalAdministrators = globalAdministrators };
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition(authorized: authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        return gateway;
+    }
+
+    private static GlobalAdministratorsSnapshot GlobalAdmins(params string[] userIds)
+        => GlobalAdministratorsSnapshot.Ready(
+            userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray(),
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"ga-etag\"",
+            freshness: ReadModelFreshnessState.Current);
+
+    private static TenantAuditSnapshot GlobalAdminAuditSnapshot(string eventType, string targetUserId)
+        => TenantAuditSnapshot.Ready(
+            [
+                new TenantAuditRow(
+                    "event-global-admin",
+                    eventType,
+                    AuditEventCategory.Administrative,
+                    "actor-user",
+                    DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
+                    "system",
+                    targetUserId,
+                    "global-administrators",
+                    eventType,
+                    $"userId: {targetUserId}",
+                    ReadModelFreshnessState.Current),
+            ],
+            nextCursor: null,
+            hasMore: false,
+            eTag: "\"etag\"",
+            freshness: ReadModelFreshnessState.Current,
+            new TenantAuditRequest("system"));
 
     private static TenantAuditSnapshot ReadySnapshot(
         IReadOnlyList<TenantAuditRow> rows,
@@ -553,11 +654,19 @@ public sealed class TenantAuditPageTests : BunitContext
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public GlobalAdministratorsSnapshot GlobalAdministrators { get; init; }
+            = GlobalAdministratorsSnapshot.Empty(false, ReadModelFreshnessState.Current, "\"ga-etag\"");
+
+        public List<GlobalAdministratorsRequest> GlobalAdminRequests { get; } = [];
+
         public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
             GlobalAdministratorsRequest request,
             GlobalAdministratorsSnapshot? previous,
             CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        {
+            GlobalAdminRequests.Add(request);
+            return Task.FromResult(GlobalAdministrators);
+        }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(
             TenantAuditRequest request,
@@ -567,6 +676,21 @@ public sealed class TenantAuditPageTests : BunitContext
             Requests.Add(request);
             return Task.FromResult(_snapshots.Dequeue());
         }
+    }
+
+    private sealed class StubBffComposition(
+        bool readConnected = true,
+        bool commandConnected = true,
+        bool authorized = false) : ITenantsBffComposition
+    {
+        public bool IsReadSurfaceConnected => readConnected;
+
+        public bool IsCommandSurfaceConnected => commandConnected;
+
+        public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
+            => authorized
+                ? TenantLifecycleAuthorizationReflectionState.Authorized
+                : TenantLifecycleAuthorizationReflectionState.Indeterminate;
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>
@@ -684,6 +808,10 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Correction.Action.Start"] = "start correction",
             ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
+            ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Authorization for platform governance could not be confirmed.",
+            ["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"] = "Global administrator correction commands are not connected.",
+            ["Tenants.Correction.Domain.GlobalAdministrators"] = "Global administrators",
+            ["Tenants.Correction.Command.SetGlobalAdministrator"] = "Set global administrator",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Copied"] = "Copied",
         };

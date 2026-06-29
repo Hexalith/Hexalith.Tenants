@@ -225,9 +225,7 @@
         || IsOwnedCommandInFlight;
 
     private bool IsOwnedCommandInFlight
-        => _snapshot.State is TenantCommandLifecycleState.RequestSent
-            or TenantCommandLifecycleState.Accepted
-            or TenantCommandLifecycleState.ProjectionPending;
+        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool CanRefresh
         => _snapshot.Intent is not null
@@ -350,7 +348,7 @@
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
-        => await SetCommandActivityRaisedAsync(IsOwnedCommandInFlight).ConfigureAwait(false);
+        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
 
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();

@@ -1,0 +1,85 @@
+/* fc-css-exception: bordered global-administrator correction card; vertical region gap plus container
+   padding define the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
+.ga-correction-panel {
+    border: 1px solid CanvasText;
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+/* fc-css-exception: content-sized header grid on a semantic <header> landmark; FluentGrid cannot
+   express content-sized columns like minmax(0, 1fr) auto for the title plus close button. */
+.ga-correction-panel__header {
+    align-items: start;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* fc-css-exception: zero-margin reset on semantic <h3>/<h4>/<p> heading and reason elements; no
+   Fluent typography primitive wraps these semantic elements. */
+.ga-correction-panel__header h3,
+.ga-correction-panel__preview h4,
+.ga-correction-panel__reason {
+    margin-block: 0 0.25rem;
+    overflow-wrap: anywhere;
+}
+
+/* fc-css-exception: content-sized label/value grid on semantic <dl> elements; FluentGrid cannot
+   express the auto-fit minmax(14rem, 1fr) column behaviour these definition fields need. */
+.ga-correction-panel__fields,
+.ga-correction-panel__preview dl {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    margin: 0;
+}
+
+/* fc-css-exception: emphasis weight on a semantic <dt>; FluentLabel cannot wrap a semantic element. */
+.ga-correction-panel dt {
+    font-weight: 700;
+}
+
+/* fc-css-exception: zero-margin reset on a semantic <dd>; no Fluent typography primitive wraps this
+   semantic element. */
+.ga-correction-panel dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* fc-css-exception: left-accent inset padding on the correction-reason region; preserves the
+   border-accent treatment Fluent has no primitive for. */
+.ga-correction-panel__reason {
+    border-inline-start: 3px solid CanvasText;
+    padding-inline-start: 0.5rem;
+}
+
+.ga-correction-panel :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    /* fc-css-exception: responsive breakpoint collapsing the content-sized header and field columns
+       to one; no Fluent layout primitive expresses this content-sized column behaviour. */
+    .ga-correction-panel__header,
+    .ga-correction-panel__fields,
+    .ga-correction-panel__preview dl {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ga-correction-panel *,
+    .ga-correction-panel *::before,
+    .ga-correction-panel *::after {
+        transition-duration: 0.01ms;
+    }
+}
+
+@media (forced-colors: active) {
+    .ga-correction-panel,
+    .ga-correction-panel__reason {
+        border-color: CanvasText;
+    }
+}

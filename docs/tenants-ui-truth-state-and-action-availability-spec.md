@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact with Epic 2 implementation notes
-Last reviewed: 2026-06-06
+Last reviewed: 2026-06-29
 Story: 9.3 — Define Truth State, Freshness, and Unavailable Action Patterns
 
 This document is the **canonical truth/feedback contract** for the Phase 2 Tenants Admin UI. It defines the Truth State Badge vocabulary, the freshness-gating rules for access-impacting actions, the Unavailable Action Reason taxonomy, the layered command/projection/audit feedback state set, and the feedback-placement/degradation rules — plus a per-pattern consumption mapping back to the existing source-of-truth artifacts. Every Phase 2 UI implementation story must consume these patterns so that "current", "accepted", "confirmed", and "audited" are never reinterpreted per screen.
@@ -22,12 +22,16 @@ No truth-state/action-availability specification existed in `docs/` before this 
 
 Story 9.2's shell spec records two fixed claims that this spec makes canonical and never contradicts:
 
-1. The freshness primitive for every read surface is the `If-None-Match` → `304 Not Modified` ETag pre-check served by `CachingProjectionActor`. [Source: `docs/tenants-ui-operations-shell-spec.md#Truth-State Vocabulary (referenced, not redefined)`; `_bmad-output/project-context.md#API Surface`]
+1. The freshness primitive for every read surface is the `If-None-Match` → `304 Not Modified` ETag pre-check served by the Tenants REST read endpoints through `TenantsQueryController` and in-process query handlers, using read-model ETag/freshness metadata. [Source: `docs/tenants-ui-operations-shell-spec.md#Truth-State Vocabulary (referenced, not redefined)`; `_bmad-output/project-context.md#API Surface`; `_bmad-output/implementation-artifacts/3-5-tenant-query-gateway-rest-routing.md`]
 2. If freshness cannot be measured, the state is `unknown` (and `unknown` freshness fails closed for destructive actions).
 
 ### Numbering hazard (read carefully)
 
 This story's key is the sprint-status Epic 9 UI-planning key `9-3-define-truth-state-freshness-and-unavailable-action-patterns`. The `backendEvidence` arrays inside `docs/tenants-ui-phase-2-story-backlog.md` reference a **separate Phase 2 backend backlog** that also uses `9-x`/`10-x`/`11-x`/`12-x` keys (e.g. `9-3-query-policy-for-disabled-tenants-and-orphan-memberships`). Those are not this epic's stories; do not conflate the two namespaces or mark backend rows complete based on this UI story. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
+
+### Post-implementation status note
+
+This specification remains the canonical truth-state vocabulary, but several historical backlog readiness cells have been superseded by later implementation evidence. Epic 3 delivered `ui-10` and `ui-13` with approved fallbacks, Epic 4 delivered `ui-15`, Story 2.4 delivered the tenant-member removal flow behind historical `ui-14`, and Epic 5 delivered the Tenants-owned flat audit, receipt, availability-state, and tenant-domain correction slices behind historical `ui-11`/`ui-12` audit rows. Reusable FrontComposer audit timeline, grouped-mode, consequence-preview, token, and batching work can still remain blocked independently.
 
 ## 1. Truth State Model (shared contract)
 
@@ -227,7 +231,7 @@ The degraded and unable-to-verify presentations must:
 
 ## 7. Per-Pattern Consumption Mapping (planning-only / blocked)
 
-Each pattern names the consuming backlog rows and copies the relevant `blockedBy` dependency IDs **verbatim** from `docs/tenants-ui-phase-2-story-backlog.md`. No pattern becomes implementation-ready in this story; every consuming row stays `planning-only` or `blocked`. No new dependency IDs, column names, or `ui-NN` keys are introduced. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
+Each pattern names the consuming backlog rows and copies the relevant `blockedBy` dependency IDs **verbatim** from `docs/tenants-ui-phase-2-story-backlog.md`. This historical Story 9.3 specification does not promote rows by itself; current implementation story evidence may supersede row-level readiness while reusable FrontComposer component work remains blocked. No new dependency IDs, column names, or `ui-NN` keys are introduced. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
 
 ### 7.1 Read-only freshness — Truth State Badge (freshness dimension) + Freshness Gate display
 
@@ -244,21 +248,21 @@ Consumed by `ui-01`…`ui-06` (all `planning-only`):
 
 ### 7.2 Command lifecycle / feedback — Command Lifecycle Panel + Feedback Patterns + Unavailable Action Reason (lifecycle gaps)
 
-Consumed by `ui-07`, `ui-08`, `ui-09`, `ui-13` (`planning-only`), `ui-10`/`ui-14` (implemented in earlier epics), and `ui-15` (implemented by Epic 4 Stories 4.3 and 4.4):
+Consumed by `ui-07`, `ui-08`, `ui-09` (`planning-only`), `ui-10`/`ui-13` (ready with approved fallback from Epic 3), `ui-14` (delivered by Story 2.4 while its reusable FrontComposer row remains blocked), and `ui-15` (implemented by Epic 4 Stories 4.3 and 4.4):
 
 | Backlog row | Readiness | `blockedBy` (verbatim) |
 | --- | --- | --- |
 | `ui-07-create-tenant-command` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-08-edit-tenant-metadata-command` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-09-user-management-add-or-change-role` | `planning-only` | `[FC-LYT, FC-CMD, FC-CNC, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-10-tenant-configuration-edit` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
-| `ui-13-disable-or-enable-tenant` | `planning-only` | `[FC-TOK]` after the approved 2026-06-06 FR15 soft-delete correction; implementation stories still require status/severity evidence before marking ready |
+| `ui-10-tenant-configuration-edit` | `ready-with-approved-fallback` | `[]` |
+| `ui-13-disable-or-enable-tenant` | `ready-with-approved-fallback` | `[]` |
 | `ui-14-user-management-remove-user` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-15-global-admin-command-management` | `implemented` | `[]` |
 
 ### 7.3 Audit-evidence states — audit pending / audit available / delayed / unavailable / approved fallback
 
-Consumed by `ui-11`/`ui-12` (`blocked`). Do not claim an `<AuditTimeline>` component exists; the first audit slice is a flat DataGrid-backed list only if product/UX approves the fallback.
+Consumed by `ui-11`/`ui-12` (`blocked` for reusable FrontComposer audit timeline / grouped-mode work). Do not claim an `<AuditTimeline>` component exists. The Tenants-owned first audit slice is now a flat DataGrid-backed implementation delivered by Epic 5; future reusable timeline work still needs `FC-AUD` evidence or an approved replacement path.
 
 | Backlog row | Readiness | `blockedBy` (verbatim) |
 | --- | --- | --- |
@@ -283,7 +287,7 @@ Shared with the other Epic 9 stories and required by every consuming pattern.
 
 ### 9.1 Support-safe references
 
-Support-safe references for command/audit troubleshooting **must never expose** raw payloads, bearer tokens, stack traces, internal correlation IDs, or PII. Reference content is limited to non-sensitive, support-safe tokens (e.g. a support-safe command reference, tenant/user reference, projection version/freshness marker, accepted timestamp, audit event reference or fallback state). [Source: `#Support-Safe References`; `_bmad-output/project-context.md#Logging & Telemetry`; `_bmad-output/project-context.md#Security & Sanitization`]
+Support-safe references for command/audit troubleshooting **must never expose** raw payloads, bearer tokens, stack traces, internal correlation/message ids, or PII. Reference content is limited to non-sensitive, support-safe tokens (e.g. a support-safe command reference, tenant/user reference, projection version/freshness marker, accepted timestamp, audit event reference or fallback state). [Source: `#Support-Safe References`; `_bmad-output/project-context.md#Logging & Telemetry`; `_bmad-output/project-context.md#Security & Sanitization`]
 
 ### 9.2 Accessibility (ties to `FC-A11Y`)
 
@@ -347,5 +351,3 @@ A future Phase 2 UI story may consume these patterns only when it can name **all
 - `_bmad-output/project-context.md#API Surface`
 - `_bmad-output/project-context.md#Identity Scheme`
 - `_bmad-output/project-context.md#Logging & Telemetry`
-</content>
-</invoke>

@@ -3258,6 +3258,72 @@
   <data name="Tenants.Correction.Title" xml:space="preserve">
     <value>Démarrer la correction</value>
   </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Scope" xml:space="preserve">
+    <value>Portée d'autorité de la plateforme</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Scope.Value" xml:space="preserve">
+    <value>system / global-administrators / global-administrators</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AdminCount" xml:space="preserve">
+    <value>Nombre actuel d'administrateurs globaux</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.CurrentState" xml:space="preserve">
+    <value>Cible dans la projection courante</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present" xml:space="preserve">
+    <value>Présent dans la projection courante d'autorité de la plateforme.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent" xml:space="preserve">
+    <value>Absent de la projection courante d'autorité de la plateforme.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact" xml:space="preserve">
+    <value>Impact sur le dernier administrateur</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value" xml:space="preserve">
+    <value>Le dernier administrateur global ne peut pas être retiré ; au moins un administrateur global doit subsister.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Consequences" xml:space="preserve">
+    <value>Conséquences connues</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Consequence.Restore" xml:space="preserve">
+    <value>Un nouvel événement d'octroi d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est absente.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Consequence.Revoke" xml:space="preserve">
+    <value>Un nouvel événement de retrait d'autorité de la plateforme peut être ajouté lorsque la projection fixe confirme que la cible est présente.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Unknowns" xml:space="preserve">
+    <value>Inconnues connues</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value" xml:space="preserve">
+    <value>La consultation de statut et les notifications en direct peuvent déclencher une nouvelle requête mais ne prouvent jamais un changement d'autorité de la plateforme sans la vérité de la projection fixe.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuditExpectation" xml:space="preserve">
+    <value>Attente d'audit</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>Une preuve d'audit de portée système est attendue après l'acceptation de la commande et la confirmation de l'état prévu par la projection fixe.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath" xml:space="preserve">
+    <value>Chemin de récupération</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.AlreadyGranted" xml:space="preserve">
+    <value>La projection courante d'autorité de la plateforme montre déjà cet utilisateur comme administrateur global.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.AlreadyRemoved" xml:space="preserve">
+    <value>La projection courante d'autorité de la plateforme montre déjà que cet utilisateur n'est pas administrateur global.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.LastAdministrator" xml:space="preserve">
+    <value>Le dernier administrateur global ne peut pas être retiré. Gardez la projection courante visible et ajoutez un autre administrateur global avant de démarrer cette correction.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.State.AlreadyApplied" xml:space="preserve">
+    <value>La projection fixe reflète déjà l'état d'autorité de la plateforme prévu ; aucune réussite de correction n'est affirmée.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.State.UnableToVerify" xml:space="preserve">
+    <value>La correction d'autorité de la plateforme ne peut pas être vérifiée à partir des preuves actuelles.</value>
+  </data>
   <data name="Tenants.Correction.Unavailable.AlreadyApplied" xml:space="preserve">
     <value>La projection courante correspond déjà à l'état prévu.</value>
   </data>

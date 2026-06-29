@@ -200,6 +200,7 @@
     private string? _validationMessage;
     private bool _isOpen;
     private bool _isSubmitting;
+    private bool _hasRaisedCommandActivity;
     private ElementReference _openElement;
     private FluentTextInput _namespaceElement = default!;
     private FluentTextInput _keyElement = default!;
@@ -269,13 +270,12 @@
         => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool IsOwnedCommandInFlight
-        => _isSubmitting
-        || _snapshot.State is TenantCommandLifecycleState.RequestSent
-            or TenantCommandLifecycleState.Accepted
-            or TenantCommandLifecycleState.ProjectionPending;
+        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool IsSubmitDisabled
-        => !IsPreviewComplete || !string.IsNullOrWhiteSpace(UnavailableReason);
+        => IsOwnedCommandInFlight
+        || !IsPreviewComplete
+        || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
         => _snapshot.Intent is not null
@@ -425,6 +425,20 @@
         }
     }
 
+    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    {
+        if (_hasRaisedCommandActivity == isActive)
+        {
+            return;
+        }
+
+        _hasRaisedCommandActivity = isActive;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    private async Task UpdateCommandActivityForSnapshotAsync()
+        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
@@ -503,6 +517,11 @@
             return;
         }
 
+        if (IsOwnedCommandInFlight)
+        {
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
             SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
@@ -527,7 +546,7 @@
 
         _snapshot = _snapshot.RequestSent();
         _isSubmitting = true;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
+        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -565,7 +584,7 @@
         finally
         {
             _isSubmitting = false;
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
         }
     }
 
@@ -582,6 +601,7 @@
             if (gateway is null)
             {
                 SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Configuration.Set.Unavailable.CommandSurface"].Value)));
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -597,6 +617,8 @@
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
             SetSnapshot(_snapshot.ConfirmProjection(evidence));
         }
+
+        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
     private bool TryBuildRequest(

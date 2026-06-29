@@ -140,6 +140,7 @@
     private string _roleValue = string.Empty;
     private string? _validationMessage;
     private bool _isSubmitting;
+    private bool _hasRaisedCommandActivity;
     private FluentTextInput _userIdElement = default!;
     private ElementReference _roleElement;
     private ElementReference _lifecycleElement;
@@ -183,13 +184,18 @@
                 ? Localizer["Tenants.AddMember.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.AddMember.Unavailable.TenantLifecycle"].Value
-                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
                         ? Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value
                         : _isSubmitting
                             ? Localizer["Tenants.AddMember.Unavailable.InFlight"].Value
                             : null;
 
-    private bool IsSubmitDisabled => !string.IsNullOrWhiteSpace(UnavailableReason);
+    private bool IsSubmitDisabled
+        => IsOwnedCommandInFlight
+        || !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool IsOwnedCommandInFlight
+        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool CanRefresh
         => _snapshot.CorrelationId is not null
@@ -266,6 +272,20 @@
         }
     }
 
+    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    {
+        if (_hasRaisedCommandActivity == isActive)
+        {
+            return;
+        }
+
+        _hasRaisedCommandActivity = isActive;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    private async Task UpdateCommandActivityForSnapshotAsync()
+        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
@@ -284,6 +304,11 @@
     private async Task SubmitAsync()
     {
         _validationMessage = null;
+
+        if (!_isSubmitting && IsOwnedCommandInFlight)
+        {
+            return;
+        }
 
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
@@ -308,7 +333,7 @@
         var request = new AddUserToTenant(Detail.TenantId, _userId, role);
         _snapshot = _snapshot.RequestSent(request);
         _isSubmitting = true;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
+        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -346,7 +371,7 @@
         finally
         {
             _isSubmitting = false;
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
         }
     }
 
@@ -361,6 +386,7 @@
         if (gateway is null)
         {
             SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value)));
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
             return;
         }
 
@@ -375,6 +401,8 @@
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
             SetSnapshot(_snapshot.ConfirmProjection(evidence));
         }
+
+        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
     private static bool TryParseAssignableRole(string value, out TenantRole role)

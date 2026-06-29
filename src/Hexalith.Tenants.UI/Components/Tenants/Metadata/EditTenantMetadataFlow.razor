@@ -165,6 +165,7 @@
     private string? _validationMessage;
     private bool _isOpen;
     private bool _isSubmitting;
+    private bool _hasRaisedCommandActivity;
     private ElementReference _openElement;
     private FluentTextInput _nameElement = default!;
     private FluentTextArea _descriptionElement = default!;
@@ -229,7 +230,7 @@
                 ? Localizer["Tenants.EditMetadata.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value
-                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
                         ? Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value
                         : _isSubmitting
                             ? Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value
@@ -240,8 +241,12 @@
     private bool CanOpen
         => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
 
+    private bool IsOwnedCommandInFlight
+        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
+
     private bool IsSubmitDisabled
-        => !string.IsNullOrWhiteSpace(UnavailableReason);
+        => IsOwnedCommandInFlight
+        || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
         => _snapshot.MessageId is not null
@@ -346,6 +351,20 @@
         }
     }
 
+    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    {
+        if (_hasRaisedCommandActivity == isActive)
+        {
+            return;
+        }
+
+        _hasRaisedCommandActivity = isActive;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    private async Task UpdateCommandActivityForSnapshotAsync()
+        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+
     private void SetSnapshot(TenantUpdateMetadataCommandSnapshot snapshot)
     {
         _snapshot = snapshot;
@@ -390,6 +409,11 @@
     {
         _validationMessage = null;
 
+        if (!_isSubmitting && IsOwnedCommandInFlight)
+        {
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
             SetSnapshot(TenantUpdateMetadataCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
@@ -410,7 +434,7 @@
             string.IsNullOrWhiteSpace(_description) ? null : _description);
         _snapshot = _snapshot.RequestSent(request);
         _isSubmitting = true;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
+        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -448,7 +472,7 @@
         finally
         {
             _isSubmitting = false;
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
         }
     }
 
@@ -463,6 +487,7 @@
         if (gateway is null)
         {
             SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value)));
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
             return;
         }
 
@@ -477,6 +502,8 @@
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
             SetSnapshot(_snapshot.ConfirmProjection(evidence));
         }
+
+        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)

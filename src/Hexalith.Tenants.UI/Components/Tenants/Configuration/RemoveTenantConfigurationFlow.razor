@@ -234,13 +234,11 @@
                                         : null;
 
     private bool IsOwnedCommandInFlight
-        => _isSubmitting
-        || _snapshot.State is TenantCommandLifecycleState.RequestSent
-            or TenantCommandLifecycleState.Accepted
-            or TenantCommandLifecycleState.ProjectionPending;
+        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool IsSubmitDisabled
-        => !IsPreviewComplete
+        => IsOwnedCommandInFlight
+        || !IsPreviewComplete
         || !string.IsNullOrWhiteSpace(UnavailableReason)
         || !string.Equals(_confirmationText, TargetKey, StringComparison.Ordinal);
 
@@ -401,7 +399,7 @@
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
-        => await SetCommandActivityRaisedAsync(IsOwnedCommandInFlight).ConfigureAwait(false);
+        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
 
     private void SetSnapshot(TenantRemoveConfigurationCommandSnapshot snapshot)
     {
@@ -429,6 +427,11 @@
         if (_isSubmitting)
         {
             SetSnapshot(_snapshot.DuplicatePrevented(Localizer["Tenants.Configuration.Remove.DuplicatePrevented.Message"].Value));
+            return;
+        }
+
+        if (IsOwnedCommandInFlight)
+        {
             return;
         }
 

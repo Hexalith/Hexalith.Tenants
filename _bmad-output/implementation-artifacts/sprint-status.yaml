@@ -95,8 +95,8 @@ development_status:
   5-4-audit-availability-state-recovery: done
   5-5-start-forward-correction-from-audit-evidence: done
   5-6-preview-and-confirm-correction-with-linked-proof: done
-  5-7-global-administrator-correction-verification: ready-for-dev
-  5-8-correction-projection-refresh-cleanup: ready-for-dev
+  5-7-global-administrator-correction-verification: done
+  5-8-correction-projection-refresh-cleanup: in-progress
   epic-5-retrospective: done
 
 action_items:
@@ -116,19 +116,19 @@ action_items:
     epic: 5
     action: "Remove redundant correction projection refresh while preserving projection-confirmed success and proof lookup."
     owner: "Amelia (Developer)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-5-retro-2026-06-29-doc-drift
     epic: 5
     action: "Audit historical audit/recovery and UI evidence specs for stale blocked/readiness or identifier wording."
     owner: "Paige (Technical Writer)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-5-retro-2026-06-29-support-safety
     epic: 5
     action: "Keep support-safety and prohibited recovery terminology guards on every audit or correction change."
     owner: "Murat (Test Architect)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-story-35-tracking
     epic: 3
@@ -164,5 +164,5 @@ action_items:
     epic: 3
     action: "Audit Epic 3 planning and evidence docs for retired projection-actor and FR15 hard-delete drift."
     owner: "Paige (Technical Writer) and Winston (System Architect)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"

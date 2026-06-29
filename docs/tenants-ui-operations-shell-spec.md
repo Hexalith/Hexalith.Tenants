@@ -29,7 +29,7 @@ No shell/IA specification existed in `docs/` before this story (no `*shell*` or 
 
 The full truth-state vocabulary — freshness (`current`, `refreshing`, `aging`, `stale`, `unknown`), command lifecycle (`eligible`, `previewed`, `submitted`, `accepted`, `rejected`, `already applied`, `failed`, `duplicate`, `timeout`, `unknown`), projection confirmation (pending confirmation vs. last-confirmed projection data), and audit evidence (`audit pending`, `audit available`, `delayed`, `unavailable`, `approved fallback`) — and freshness gating are owned by Story 9.3 and the UX spec Truth State Model. This spec references that shared model and does not redefine its states. Freshness markers on the tenant list and detail must use timestamp / projection version / ETag evidence available from the read model; if freshness cannot be measured, the state is `unknown`. [Source: `_bmad-output/planning-artifacts/ux-design-specification.md#Truth State Model`]
 
-The freshness primitive for every read surface in this spec is the `If-None-Match` → `304 Not Modified` ETag pre-check served by `CachingProjectionActor`. [Source: `_bmad-output/project-context.md#API Surface`]
+The freshness primitive for every read surface in this spec is the `If-None-Match` → `304 Not Modified` ETag pre-check served by the Tenants REST read endpoints through `TenantsQueryController` and in-process query handlers, using read-model ETag/freshness metadata. [Source: `_bmad-output/project-context.md#API Surface`; `_bmad-output/implementation-artifacts/3-5-tenant-query-gateway-rest-routing.md`]
 
 ## 1. Operations Shell Information Architecture and Navigation (AC1, AC3, AC4)
 

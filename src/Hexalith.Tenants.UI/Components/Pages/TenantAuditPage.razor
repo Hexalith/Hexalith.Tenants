@@ -7,6 +7,7 @@
 @implements IAsyncDisposable
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
+@inject ITenantsBffComposition BffComposition
 @inject IJSRuntime JS
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
@@ -129,10 +130,20 @@
             }
             @if (_activeCorrectionIntent is not null)
             {
-                <CorrectionStartPanel Intent="@_activeCorrectionIntent"
-                                      CurrentProjection="@_tenantDetailSnapshot?.Detail"
-                                      OnProjectionRefreshRequested="RefreshTenantProjectionAsync"
-                                      OnClose="CloseCorrectionAsync" />
+                @if (_activeCorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
+                {
+                    <GlobalAdministratorCorrectionPanel Intent="@_activeCorrectionIntent"
+                                                        CurrentProjection="@_globalAdministratorsSnapshot"
+                                                        ProjectionRefreshProvider="RefreshGlobalAdministratorsProjectionAsync"
+                                                        OnClose="CloseCorrectionAsync" />
+                }
+                else
+                {
+                    <CorrectionStartPanel Intent="@_activeCorrectionIntent"
+                                          CurrentProjection="@_tenantDetailSnapshot?.Detail"
+                                          ProjectionRefreshProvider="RefreshTenantProjectionAsync"
+                                          OnClose="CloseCorrectionAsync" />
+                }
             }
             <nav class="tenant-audit__pager" aria-label="@Localizer["Tenants.Audit.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8px" Wrap="true">
@@ -162,6 +173,7 @@
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
+    private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
@@ -319,6 +331,10 @@
             .GetTenantAuditAsync(request, previous, CancellationToken.None)
             .ConfigureAwait(false);
         await RefreshTenantProjectionAsync().ConfigureAwait(false);
+        if (_snapshot.Rows.Any(IsGlobalAdministratorRow))
+        {
+            await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+        }
 
         if (_snapshot.Kind is TenantAuditSurfaceKind.ListRefreshed)
         {
@@ -415,7 +431,19 @@
 
     private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
     {
-        await RefreshTenantProjectionAsync().ConfigureAwait(false);
+        // Refresh the projection that actually governs this correction so the panel's preview,
+        // last-administrator hard stop, and present/absent evaluation run against current evidence:
+        // the fixed global-administrator projection for platform-authority corrections, tenant detail
+        // otherwise. The panel re-derives its preview from this refreshed CurrentProjection (AC6/AC8).
+        if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
+        {
+            await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            await RefreshTenantProjectionAsync().ConfigureAwait(false);
+        }
+
         _activeCorrectionIntent = intent;
         _activeCorrectionFocusReference = intent.OriginalAuditReference;
     }
@@ -465,6 +493,11 @@
 
     private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)
     {
+        if (IsGlobalAdministratorRow(row))
+        {
+            return CreateGlobalAdministratorCorrectionIntent(row);
+        }
+
         Hexalith.Tenants.Contracts.Queries.TenantDetail? detail = _tenantDetailSnapshot?.Detail;
         TenantMember? member = detail?.Members.FirstOrDefault(member =>
             string.Equals(member.UserId, ReferenceValue(row, "userId") ?? row.Target, StringComparison.Ordinal));
@@ -487,6 +520,37 @@
             HasGlobalAdministratorCommandSupport: false));
     }
 
+    // Build the fixed-scope global-administrator correction intent. Command support is enabled only
+    // when authorization reflection, both BFF surfaces, and a current fixed global-administrator
+    // projection are all present; any missing evidence leaves the intent fail-closed (AC1/AC2/AC8).
+    // Tenant detail, tenant members, and tenant roles are never consulted for platform authority.
+    private TenantCorrectionStartIntent CreateGlobalAdministratorCorrectionIntent(TenantAuditRow row)
+    {
+        bool projectionReady = _globalAdministratorsSnapshot is
+            {
+                Kind: GlobalAdministratorsSurfaceKind.Ready
+                    or GlobalAdministratorsSurfaceKind.Stale
+                    or GlobalAdministratorsSurfaceKind.Empty,
+            }
+            && _globalAdministratorsSnapshot.Freshness is ReadModelFreshnessState.Current;
+        bool commandSupport = IsGlobalAdministratorAuthorized
+            && BffComposition.IsReadSurfaceConnected
+            && BffComposition.IsCommandSurfaceConnected
+            && projectionReady;
+
+        return TenantCorrectionStartIntent.Evaluate(new(
+            TenantAuditReceipt.FromRow(row, SupportSafeCommandReference, _snapshot.Kind),
+            row,
+            IsAuthorized: IsGlobalAdministratorAuthorized,
+            HasCurrentProjectionSnapshot: projectionReady,
+            CurrentProjectionSnapshotReference: projectionReady
+                ? "global-administrators:current"
+                : "global-administrators:unavailable",
+            TenantStatus: TenantStatus.Active,
+            HasTenantCommandSupport: false,
+            HasGlobalAdministratorCommandSupport: commandSupport));
+    }
+
     private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
     {
         if (selection.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader)
@@ -498,12 +562,39 @@
         return Task.CompletedTask;
     }
 
-    private async Task RefreshTenantProjectionAsync()
+    private async Task<Hexalith.Tenants.Contracts.Queries.TenantDetail?> RefreshTenantProjectionAsync()
     {
-        _tenantDetailSnapshot = await QueryGateway
+        TenantDetailSnapshot? snapshot = await QueryGateway
             .GetTenantAsync(new TenantDetailRequest(TenantId, _tenantDetailSnapshot?.ETag), _tenantDetailSnapshot, CancellationToken.None)
             .ConfigureAwait(false);
+        // Assign on the renderer's dispatcher: this also runs as a correction panel
+        // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
+        await InvokeAsync(() => _tenantDetailSnapshot = snapshot).ConfigureAwait(false);
+        return snapshot?.Detail;
     }
+
+    // Always re-read the fixed platform-authority projection. This is also the correction panel's
+    // confirm-time ProjectionRefreshProvider, so it must never short-circuit on the current audit
+    // page contents: a correction can be open while the page has paged to rows without a
+    // global-administrator entry, and the confirmation must still observe the applied change.
+    // The page-load path applies its own "only when global-administrator rows are present" guard at
+    // the call site so a tenant audit page with no such rows never pays for an extra query.
+    private async Task<GlobalAdministratorsSnapshot?> RefreshGlobalAdministratorsProjectionAsync()
+    {
+        GlobalAdministratorsSnapshot snapshot = await QueryGateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), _globalAdministratorsSnapshot, CancellationToken.None)
+            .ConfigureAwait(false);
+        // Assign on the renderer's dispatcher: this also runs as the correction panel's confirm-time
+        // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
+        await InvokeAsync(() => _globalAdministratorsSnapshot = snapshot).ConfigureAwait(false);
+        return snapshot;
+    }
+
+    private static bool IsGlobalAdministratorRow(TenantAuditRow row)
+        => row.EventType is "GlobalAdministratorRemoved" or "GlobalAdministratorSet";
+
+    private bool IsGlobalAdministratorAuthorized
+        => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
 
     private static TenantRole? IntendedRoleFromNarrative(TenantAuditRow row)
         => row.EventType switch

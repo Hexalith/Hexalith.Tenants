@@ -7,6 +7,7 @@ trigger: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
 mode: "Batch"
 scope_classification: "Moderate"
 status: "APPROVED"
+implementation_status: "Story 3.5 tracking reconciliation applied"
 approval:
   approved_by: "Administrator"
   approved_at: "2026-06-29T15:58:30+02:00"
@@ -32,9 +33,8 @@ follow-up items:
 
 Concrete evidence:
 
-- `sprint-status.yaml` lists Epic 3 Stories 3.1 through 3.4 as done and marks the Epic 3
-  retrospective done, but does not list `3-5-tenant-query-gateway-rest-routing` in the Epic 3
-  development-status block.
+- `sprint-status.yaml` lists Epic 3 Stories 3.1 through 3.5 as done, including
+  `3-5-tenant-query-gateway-rest-routing`, and marks the Epic 3 retrospective done.
 - `3-5-tenant-query-gateway-rest-routing.md` is complete and materially changed Epic 3 readiness by
   retiring the failed `TenantsProjectionActor` read path and restoring REST-backed tenant reads.
 - The retro records repeated review fixes around command-lock retention, focus containment, and
@@ -47,8 +47,8 @@ Concrete evidence:
 
 ### Epic Impact
 
-- **Epic 3:** Feature scope remains complete. The epic needs ledger reconciliation and explicit
-  follow-through on reusable safety gates. No Epic 3 feature should be reopened.
+- **Epic 3:** Feature scope remains complete. Ledger reconciliation is applied; the remaining work is
+  explicit follow-through on reusable safety gates. No Epic 3 feature should be reopened.
 - **Epic 4 and Epic 5:** Both consume the same command-flow invariants. Future global-administrator
   and correction work should reuse the command-lock, focus, and reason-honesty gates instead of
   rediscovering them in review.
@@ -57,16 +57,16 @@ Concrete evidence:
 
 ### Story Impact
 
-- Story 3.5 should be visible in sprint tracking as a completed Epic 3 defect-fix story.
+- Story 3.5 is visible in sprint tracking as a completed Epic 3 defect-fix story.
 - Completed Stories 3.1 through 3.4 should not be rewritten as if their original scopes were wrong.
   Their review lessons should be promoted into shared gates and future-story acceptance evidence.
 
 ### Artifact Conflicts
 
-- `sprint-status.yaml`: Missing Story 3.5 in the Epic 3 development-status block, while the story
-  record exists and is done.
-- `epics.md`: Epic 3 canonical feature list includes Stories 3.1 through 3.4, but does not name the
-  completed Story 3.5 defect-fix record.
+- `sprint-status.yaml`: Story 3.5 is present in the Epic 3 development-status block as done, matching
+  the completed story record.
+- `epics.md`: Epic 3 keeps the canonical FR15/FR16/FR17 feature list at Stories 3.1 through 3.4 and
+  now names Story 3.5 as a completed defect-fix readiness record.
 - PRD: Accessibility evidence already covers focus return and hover-free explanations, but it does
   not explicitly call out command-lock retention through accepted/projection-pending states or
   reason-honesty for data-availability failures.
@@ -144,7 +144,7 @@ NEW:
 Rationale: Story 3.5 is a completed Epic 3 defect-fix record and materially affects readiness. The
 tracking ledger should not require future retrospectives to rediscover it from loose artifacts.
 
-Follow-up after applying this edit:
+Follow-up after applying this edit is complete:
 
 ```yaml
   - id: epic-3-retro-2026-06-29-story-35-tracking
@@ -324,9 +324,9 @@ belong in shared gates and future-story evidence, not as retroactive acceptance 
 | 5.5 Handoff plan | Done | See section 6. |
 | 6.1 Checklist completion | Done | All applicable sections addressed. |
 | 6.2 Proposal accuracy | Done | Drafted from current artifacts. |
-| 6.3 User approval | Action-needed | Pending Administrator review. |
-| 6.4 sprint-status update | Action-needed | Apply only after approval. |
-| 6.5 Handoff confirmation | Action-needed | Confirm after approval. |
+| 6.3 User approval | Done | Approved by Administrator on 2026-06-29T15:58:30+02:00. |
+| 6.4 sprint-status update | Done | Story 3.5 is tracked under Epic 3 and the tracking action item is done. |
+| 6.5 Handoff confirmation | Done | Tracking reconciliation routed to Developer/Tech Writer; remaining non-tracking follow-ups stay in action items. |
 
 ## 6. Implementation Handoff
 
@@ -334,9 +334,9 @@ Scope classification: **Moderate**.
 
 Handoff recipients:
 
-- **Amelia (Developer):** apply sprint-status tracking, add or update focused command-flow guards, and
-  keep Story 3.5 visible in Epic 3 evidence.
-- **Paige (Technical Writer):** apply docs drift corrections for Story 3.5, retired projection actor
+- **Amelia (Developer):** preserve sprint-status tracking, add or update focused command-flow guards,
+  and keep Story 3.5 visible in Epic 3 evidence.
+- **Paige (Technical Writer):** continue docs drift corrections for Story 3.5, retired projection actor
   language, and FR15 hard-deletion wording.
 - **Murat (Test Architect):** define regression coverage for command-lock retention and reason-honesty.
 - **Sally (UX Designer):** ensure high-impact/destructive-flow checklist explicitly covers focus loop,
@@ -346,8 +346,8 @@ Handoff recipients:
 
 Success criteria:
 
-- `sprint-status.yaml` names Story 3.5 under Epic 3 or carries an explicit equivalent note.
-- The Story 3.5 tracking action item is closed only after that visibility is present.
+- `sprint-status.yaml` names Story 3.5 under Epic 3.
+- The Story 3.5 tracking action item is closed with that visibility present.
 - PRD/architecture/docs no longer imply Tenants UI reads require a retired projection actor path.
 - Command-flow test guidance explicitly verifies command-lock retention during accepted/projection
   pending states.
@@ -359,9 +359,6 @@ Success criteria:
 
 ## 7. Approval Request
 
-Review this proposal and choose one:
-
-- `continue`: approve the proposal for implementation.
-- `edit`: request changes to the proposal before implementation.
-
-Approved changes were applied to sprint tracking, planning, architecture, and documentation artifacts.
+Administrator approved this proposal on 2026-06-29T15:58:30+02:00. The Story 3.5 tracking
+reconciliation has been applied to sprint tracking and planning artifacts. Remaining non-tracking
+follow-ups continue through their recorded action items.

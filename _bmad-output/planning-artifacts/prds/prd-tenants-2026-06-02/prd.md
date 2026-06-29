@@ -2,7 +2,7 @@
 title: Tenants Management UI
 status: final
 created: 2026-06-02
-updated: 2026-06-05
+updated: 2026-06-29
 ---
 
 # PRD: Tenants Management UI
@@ -278,12 +278,12 @@ An authorized operator (**global administrator only**) can disable or enable a t
 **Description:** Set and remove namespaced configuration. Inherits §6.
 
 #### FR-16: Set a configuration value *(Phase 2c)*
-An authorized user can set a namespaced configuration key/value, with Consequence Preview for high-impact keys.
-- **Consequences:** identical key+value is a **NoOp** (`already applied`); values exceeding domain limits are rejected with safe text (`ConfigurationLimitExceeded`); `[ASSUMPTION]` whether every config edit needs a preview or only a high-risk subset is an open question that is also a phasing lever (§16).
+An authorized user can set a namespaced configuration key/value, with Consequence Preview required for every eligible configuration mutation in v1.
+- **Consequences:** identical key+value is a **NoOp** (`already applied`); values exceeding domain limits are rejected with safe text (`ConfigurationLimitExceeded`); no low-risk-key bypass exists in v1, and any future narrowing to a high-risk subset requires a Product/UX/Architecture decision that defines key classification, user-facing reasons, tests, and phasing impact (§16).
 
 #### FR-17: Remove a configuration key *(Phase 2c)*
-An authorized user can remove a configuration key.
-- **Consequences:** removing a missing key surfaces a safe `ConfigurationKeyNotFound` rejection; removal shows success only after projection confirmation.
+An authorized user can remove a configuration key, with Consequence Preview required for every eligible configuration removal in v1.
+- **Consequences:** removing a missing key surfaces a safe `ConfigurationKeyNotFound` rejection; removal shows success only after projection confirmation; no low-risk-key bypass exists in v1.
 
 ### 7.7 Global Administrator Governance *(ui-06 read — Phase 2a / MVP; ui-15 commands — Phase 2c)*
 **Description:** Review and manage platform-level global administrators, kept distinct from tenant membership.
@@ -435,7 +435,7 @@ Targets are `[ASSUMPTION]` pending your numbers; methods noted. SMs cross-refere
 5. **WCAG 2.2 AA** — confirm what the pinned Fluent UI Blazor version actually supports; the 2.2 target is conditional.
 6. **RTL support** — in or out for v1? (none of the specs commit.)
 7. **Cursor durability across replicas/restarts** — deferred backend epic; until then, what is the UI's expected behavior on cursor invalidation?
-8. **Consequence Preview scope for config edits (FR-16)** — default remains preview for all configuration mutations until Product/UX/Architecture records a narrower high-risk-key policy. Any narrowed policy must define the key classification rule, user-facing reason copy, test coverage for low-risk and high-risk keys, and the phasing impact. (Also a phasing lever.)
+8. **Consequence Preview scope for config edits (FR-16/FR-17) - RESOLVED 2026-06-29.** All eligible set/remove configuration mutations require Consequence Preview in v1. No high-risk-subset bypass is defined. Any future narrowing requires a Product/UX/Architecture decision that defines the key classification rule, user-facing reason copy, test coverage for low-risk and high-risk keys, and the phasing impact.
 9. **Audit area in MVP (Phase 2a)** — hide it, or show a "not yet available" placeholder?
 10. **Freshness thresholds** — the numeric `current`/`aging`/`stale` cutoffs (deferred to implementation) need product input.
 11. **Sensitive configuration values** — if/when the UI should ever display them, and under what authorization.
@@ -450,7 +450,6 @@ Targets are `[ASSUMPTION]` pending your numbers; methods noted. SMs cross-refere
 - §5.2 — Fluent UI semantic theme roles (no separate branded palette) are the visual authority.
 - §5.3 — Mobile is read-only; no high-impact commands on mobile.
 - §7.2 (FR-6) / §13 — Sensitive configuration-value display is out of read MVP.
-- §7.6 (FR-16) — Whether every config edit needs a Consequence Preview, or only a high-risk subset, is unresolved.
 - §8 (NFR-1) — Read-surface performance budgets (~1s warm) are placeholders pending confirmation.
 - §9 — WCAG 2.2 AA is a conditional target dependent on Fluent stack support; RTL undecided; localization resource ownership undecided.
 - §14.2 — Audit nav area present-but-not-yet-available in MVP (hide vs. stub to be confirmed).

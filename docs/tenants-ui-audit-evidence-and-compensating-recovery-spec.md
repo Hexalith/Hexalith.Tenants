@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact; Epic 5 implementation complete for the Tenants-owned flat audit, receipt, availability, and tenant-domain correction slice
-Last reviewed: 2026-06-06
+Last reviewed: 2026-06-29
 Story: 9.5 — Specify Audit Evidence and Compensating Recovery UI Patterns
 
 This document supplies the **audit-evidence and compensating-recovery UI patterns** that the Story 9.4 `RemoveUserFromTenant` journey explicitly deferred: the audit entry-point contract, the flat audit DataGrid fallback, the Audit Evidence Receipt content + copy-safety, the delayed/unavailable/missing-support proof distinctions, and the compensating-command recovery language and flow. It **composes — and never redefines** — the truth-state/feedback contract (Story 9.3, `docs/tenants-ui-truth-state-and-action-availability-spec.md`), the operations shell / information architecture (Story 9.2, `docs/tenants-ui-operations-shell-spec.md`), and the FrontComposer/Fluent UI dependency map (Story 9.1, `docs/tenants-ui-frontcomposer-dependency-map.md`). Its purpose is to make access changes **provable after the fact** and corrections **explicit, auditable forward commands** — never a hidden undo.
@@ -16,7 +16,7 @@ This document supplies the **audit-evidence and compensating-recovery UI pattern
 
 ### Post-Epic 5 implementation status
 
-Epic 5 implemented this pattern set as Tenants-owned UI under `src/Hexalith.Tenants.UI`: `TenantAuditPage`, `Components/Tenants/Audit/AuditDataGrid`, `AuditEvidenceReceipt`, `AuditAvailabilityState`, `CorrectionStartPanel`, and the `State/TenantAudit/TenantCorrection*` models. The implementation keeps the reusable FrontComposer `<AuditTimeline>` dependency visible as deferred, uses the approved flat DataGrid fallback, composes receipts from `TenantAuditEntry`, submits tenant-domain corrections through the existing command gateway, confirms success by projection re-query, and links original/corrective proof from support-safe audit rows. Global-administrator correction stays fail-closed until Epic 4 command support exists.
+Epic 5 implemented this pattern set as Tenants-owned UI under `src/Hexalith.Tenants.UI`: `TenantAuditPage`, `Components/Tenants/Audit/AuditDataGrid`, `AuditEvidenceReceipt`, `AuditAvailabilityState`, `CorrectionStartPanel`, and the `State/TenantAudit/TenantCorrection*` models. The implementation keeps the reusable FrontComposer `<AuditTimeline>` dependency visible as deferred, uses the approved flat DataGrid fallback, composes receipts from `TenantAuditEntry`, submits tenant-domain corrections through the existing command gateway, confirms success by projection re-query, and links original/corrective proof from support-safe audit rows. Epic 4 now supplies global-administrator grant/remove command support; Story 5.7 is the current verification gate before audit-based global-administrator correction may enable. Until that gate is complete, the live global-administrator correction path must fail closed unless fixed-scope read evidence, command support, authorization, freshness, target visibility, projection confirmation, and proof lookup are all available.
 
 ### Why a new artifact
 
@@ -89,7 +89,7 @@ The audit list/fallback is sourced **only** from the existing read endpoint `GET
 
 - **Cursor-based pagination only** — signed, opaque, scope-bound cursors. **Never offset/limit.**
 - **500-event evidence target** (or an approved bounded-rendering fallback — virtualization/windowing is expected unless component-test/benchmark evidence proves a simple flat render meets the target).
-- ETag `If-None-Match` → `304 Not Modified` is the freshness primitive, served by `CachingProjectionActor`.
+- ETag `If-None-Match` → `304 Not Modified` is the freshness primitive served by the Tenants REST read endpoints through `TenantsQueryController` and in-process query handlers, using read-model ETag/freshness metadata.
 - **No new audit/read endpoint** is introduced.
 
 [Source: `_bmad-output/project-context.md#API Surface`; `src/Hexalith.Tenants.Contracts/Queries/GetTenantAuditQuery.cs`; `docs/tenants-ui-phase-2-story-backlog.md` (`ui-11`); `docs/tenants-ui-frontcomposer-dependency-map.md` (500-event target)]
@@ -130,7 +130,7 @@ The projection marker and support-safe command reference come from the read-mode
 
 ### 3.3 Copy-safety rule
 
-Copyable references must **never expose** raw command/event payloads, bearer tokens, stack traces, internal correlation IDs, internal exception text, raw EventStore metadata, or PII. Reference content is limited to **support-safe tokens**: a support-safe command reference, a tenant/user reference, the projection version/freshness marker, the accepted timestamp, and the audit event reference or fallback state. `NarrativePayload` is a structured, **support-safe** narrative — not the raw persisted event payload — but the copy-safety rule still holds for everything surfaced in a copyable reference. [Source: `docs/tenants-ui-operations-shell-spec.md#5.3 Support-safe references`; `docs/tenants-ui-truth-state-and-action-availability-spec.md` §9.1; `_bmad-output/project-context.md#Logging & Telemetry`; `#Rejection Event Payloads`; AC3]
+Copyable references must **never expose** raw command/event payloads, bearer tokens, stack traces, internal correlation/message ids, internal exception text, raw EventStore metadata, or PII. Reference content is limited to **support-safe tokens**: a support-safe command reference, a tenant/user reference, the projection version/freshness marker, the accepted timestamp, and the audit event reference or fallback state. `NarrativePayload` is a structured, **support-safe** narrative — not the raw persisted event payload — but the copy-safety rule still holds for everything surfaced in a copyable reference. [Source: `docs/tenants-ui-operations-shell-spec.md#5.3 Support-safe references`; `docs/tenants-ui-truth-state-and-action-availability-spec.md` §9.1; `_bmad-output/project-context.md#Logging & Telemetry`; `#Rejection Event Payloads`; AC3]
 
 ### 3.4 Partial-completion case
 
@@ -199,7 +199,7 @@ Tenant-membership corrections target the **`tenants`** domain (`AddUserToTenant`
 
 ## 6. Per-Pattern Consumption Mapping (planning-only / blocked)
 
-Each pattern names the consuming backlog rows and copies the relevant `blockedBy`/`backendEvidence` dependency arrays **verbatim** from `docs/tenants-ui-phase-2-story-backlog.md`. No pattern becomes implementation-ready in this story; every consuming row stays `blocked`. No new dependency IDs, column names, or `ui-NN` keys are introduced. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
+Each pattern names the consuming backlog rows and copies the relevant `blockedBy`/`backendEvidence` dependency arrays **verbatim** from `docs/tenants-ui-phase-2-story-backlog.md`. This historical Story 9.5 specification does not promote rows by itself; current implementation evidence may supersede row-level readiness while reusable FrontComposer component work remains blocked. No new dependency IDs, column names, or `ui-NN` keys are introduced. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
 
 ### 6.1 Audit-surface consuming rows (`ui-11`, `ui-12`)
 
@@ -210,22 +210,24 @@ Each pattern names the consuming backlog rows and copies the relevant `blockedBy
   - `blockedBy` (verbatim): `[FC-LYT, FC-AUD, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]`
   - `backendEvidence` (verbatim): `[post-epic-5-r5a3-tenant-audit-projection-query, 10-2-audit-projection-write-safety, 10-4-projection-write-conformance-and-recovery-tests, endpoint:GET /api/tenants/{tenantId}/audit]`
 
+Epic 5 Stories 5.1 through 5.4 supersede those historical blocked rows for the delivered Tenants-owned flat audit, scoped entry-point, receipt, and availability-state slices. The rows stay blocked only for reusable FrontComposer `<AuditTimeline>` / grouped-mode work and future tenant-detail audit-tab reuse.
+
 ### 6.2 Cross-cutting consuming rows (receipt + compensating recovery)
 
-The Audit Evidence Receipt and compensating-recovery patterns are **cross-cutting** and are also consumed by the command rows `ui-13-disable-or-enable-tenant`, `ui-14-user-management-remove-user`, and `ui-15-global-admin-command-management`. Epic 3 implementation evidence now supersedes the older blocked status for `ui-13`: FR15 lifecycle disable/enable uses the approved inline consequence-preview fallback and honest audit handoff states until Epic 5 evidence sources exist. `ui-14` remains owned by Story 9.4/Epic 2 implementation evidence, and Epic 4 Stories 4.3 and 4.4 now supersede the older blocked status for `ui-15` global-administrator grant/remove command management. Reference the current Phase 2 backlog before copying row arrays. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`]
+The Audit Evidence Receipt and compensating-recovery patterns are **cross-cutting** and are also consumed by the command rows `ui-13-disable-or-enable-tenant`, `ui-14-user-management-remove-user`, and `ui-15-global-admin-command-management`. Epic 3 implementation evidence now supersedes the older blocked status for `ui-13`: FR15 lifecycle disable/enable uses the approved inline consequence-preview fallback and honest audit handoff states. Story 2.4 implementation evidence supersedes the older blocked status for the delivered `ui-14` remove-member flow, while the reusable consequence-preview / batching row remains blocked for FrontComposer work. Epic 4 Stories 4.3 and 4.4 supersede the older blocked status for `ui-15` global-administrator grant/remove command management; Story 5.7 is the separate verification gate for audit-based global-administrator correction. Reference the current Phase 2 backlog before copying row arrays. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `_bmad-output/implementation-artifacts/sprint-status.yaml`]
 
 ### 6.3 Pattern → dependency map
 
 | Pattern | Custom component (used, not implemented) | Dependency tie | Readiness |
 | --- | --- | --- | --- |
 | Audit entry points + missing-capability fallback (§1) | (navigation; shell-owned) | `FC-AUD` (`missing`) / `missing audit proof` reason | blocks audit rows via `FC-AUD` |
-| Flat audit DataGrid fallback (§2) | Flat Audit List Fallback (DataGrid via `FC-TBL`) | `FC-AUD` (`missing`), `FC-TOK` (`missing` for timeline), `FC-LYT`, `FC-A11Y`, `FC-L10N`, `FC-DOC` | **blocks `ui-11`/`ui-12`** |
-| Audit Evidence Receipt content + copy-safety (§3) | Audit Evidence Receipt | `FC-AUD`, `FC-CMD` (where produced from a command outcome), `FC-TOK` | cross-cutting; blocks command rows |
+| Flat audit DataGrid fallback (§2) | Flat Audit List Fallback (DataGrid via `FC-TBL`) | `FC-AUD` (`missing`), `FC-TOK` (`missing` for timeline), `FC-LYT`, `FC-A11Y`, `FC-L10N`, `FC-DOC` | Delivered for the Tenants-owned first slice by Epic 5; reusable timeline/grouped-mode rows still block through `ui-11`/`ui-12` |
+| Audit Evidence Receipt content + copy-safety (§3) | Audit Evidence Receipt | `FC-AUD`, `FC-CMD` (where produced from a command outcome), `FC-TOK` | Delivered for Tenants-owned audit evidence by Epic 5; future command rows must cite that story evidence or equivalent proof |
 | Delayed/unavailable/missing-support proof (§4) | Truth State Badge / Command Lifecycle Panel audit states (9.3) | `FC-AUD`, `FC-TOK`, `FC-A11Y`, `FC-L10N` | referenced from 9.3, not redefined |
-| Compensating-recovery language + flow (§5) | (forward command via `FC-CMD`; preview via `FC-CNS`) | `FC-CMD`, `FC-CNS` (`missing`), `FC-CNC` | blocks command rows |
+| Compensating-recovery language + flow (§5) | (forward command via `FC-CMD`; preview via `FC-CNS`) | `FC-CMD`, `FC-CNS` (`missing`), `FC-CNC` | Delivered for tenant-domain correction by Epic 5; global-administrator correction remains gated by Story 5.7 verification |
 | Accessibility / localization / docs (§7) | (cross-cutting) | `FC-A11Y`, `FC-L10N`, `FC-DOC` | blocks all rows |
 
-Rows that depend on audit timeline/receipt evidence still stay blocked where `FC-AUD` is missing. Epic 3 command stories deliberately stop at honest audit handoff states (`audit pending`, `audit delayed`, `audit unavailable`, or `missing implementation support`) and do not fabricate receipts before Epic 5 evidence sources exist. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `#Blocked`]
+Rows that depend on reusable audit timeline evidence still stay blocked where `FC-AUD` is missing. Older command stories deliberately stopped at honest audit handoff states (`audit pending`, `audit delayed`, `audit unavailable`, or `missing implementation support`) before Epic 5 evidence sources existed; current and future stories must cite Epic 5 receipt/proof evidence before rendering receipts, and must never fabricate proof from command acceptance or SignalR. [Source: `docs/tenants-ui-phase-2-story-backlog.md#Candidate UI Stories`; `#Blocked`; `_bmad-output/implementation-artifacts/tests/test-summary.md`]
 
 ### 6.4 Implementation Story Rules (what a future UI story must satisfy)
 
@@ -238,7 +240,7 @@ A future Phase 2 UI story may implement these audit/recovery patterns only when 
 5. **Audit Evidence Receipt content + copy-safety** — the §3 content set composed from `TenantAuditEntry` + read-model freshness + client `FC-CMD` lifecycle; copy-safe.
 6. **Distinct delayed/unavailable/missing-support states** — the four §4 states, with the no-false-success rule.
 7. **Compensating-recovery language** — explicit compensating-command terms; never undo; forward command with its own preview and proof.
-8. **Support-safe observability references** — no raw payloads, tokens, stack traces, internal correlation IDs, or PII.
+8. **Support-safe observability references** — no raw payloads, tokens, stack traces, internal correlation/message ids, or PII.
 9. **Accessibility behavior** — focus, keyboard scan/expand/copy/start-exit-correction, live status, disabled explanations, no-color-only treatment.
 10. **Localization responsibility** — state labels, timestamps, outcomes, audit-state words, and recovery actions localizable; no runtime sentence-fragment assembly.
 
@@ -252,7 +254,7 @@ Shared with the other Epic 9 stories; required by every pattern in this spec.
 
 ### 7.1 Support-safe references
 
-Support-safe references for audit/command troubleshooting must **never expose** raw payloads, bearer tokens, stack traces, internal correlation IDs, or PII. Reference content is limited to non-sensitive, support-safe tokens (a support-safe command reference, tenant/user reference, projection version/freshness marker, accepted timestamp, audit event reference or fallback state). [Source: `docs/tenants-ui-operations-shell-spec.md#5.3`; `docs/tenants-ui-truth-state-and-action-availability-spec.md` §9.1; `_bmad-output/project-context.md#Logging & Telemetry`]
+Support-safe references for audit/command troubleshooting must **never expose** raw payloads, bearer tokens, stack traces, internal correlation/message ids, or PII. Reference content is limited to non-sensitive, support-safe tokens (a support-safe command reference, tenant/user reference, projection version/freshness marker, accepted timestamp, audit event reference or fallback state). [Source: `docs/tenants-ui-operations-shell-spec.md#5.3`; `docs/tenants-ui-truth-state-and-action-availability-spec.md` §9.1; `_bmad-output/project-context.md#Logging & Telemetry`]
 
 ### 7.2 Accessibility (ties to `FC-A11Y`)
 
@@ -271,7 +273,7 @@ All state labels, timestamps, outcomes, audit-state words, and recovery actions 
 - Audit evidence comes only from the existing read endpoint `GET /api/tenants/{tenantId}/audit` (`GetTenantAuditQuery`, rows = `TenantAuditEntry`). Cursor-based pagination only; cursors are signed, opaque, and scope-bound, never offset/limit. ETag `If-None-Match` → `304` is the freshness primitive served by the REST-backed Tenants audit read path and read-model metadata. **No new audit/receipt/consequence endpoint.** [Source: `_bmad-output/project-context.md#Domain, Eventing & Framework Rules`; `_bmad-output/planning-artifacts/architecture.md#API & Communication Patterns`]
 - The Audit Evidence Receipt composes from `TenantAuditEntry` + the read-model freshness marker + the client-tracked `FC-CMD` command lifecycle. `NarrativePayload` is a structured, support-safe narrative — not the raw persisted event payload. [Source: `src/Hexalith.Tenants.Contracts/Queries/TenantAuditEntry.cs`; `_bmad-output/planning-artifacts/architecture.md#Frontend Architecture`]
 - Compensating commands dispatch to `POST /api/v1/commands` (e.g. `command:AddUserToTenant` for "restore intended access"). Command lifecycle is tracked client-side through the Tenants BFF command gateway and command feedback state; SignalR notifications are refresh nudges only, never proof. There is no undo/rollback API. [Source: `_bmad-output/planning-artifacts/architecture.md#Frontend Architecture`; `_bmad-output/project-context.md#API Surface`]
-- Rejection events carry structured data only; user-facing text is composed at the HTTP boundary by EventStore's domain-rejection ProblemDetails handling/catalog (RFC 7807: 404 not-found, 409 conflict, 422 other). Audit/recovery copy must map rejections to safe localized text — never raw payloads, stack traces, tokens, internal correlation IDs, or internal exception text. [Source: `_bmad-output/project-context.md#API Surface`; `#Rejection Event Payloads`]
+- Rejection events carry structured data only; user-facing text is composed at the HTTP boundary by EventStore's domain-rejection ProblemDetails handling/catalog (RFC 7807: 404 not-found, 409 conflict, 422 other). Audit/recovery copy must map rejections to safe localized text — never raw payloads, stack traces, tokens, internal correlation/message ids, or internal exception text. [Source: `_bmad-output/project-context.md#API Surface`; `#Rejection Event Payloads`]
 - Identity: use JWT `sub` (`envelope.UserId`) for actor identity, never `name`/`email`. Tenant ids and user ids are meaningful caller-supplied strings, not GUIDs or ULIDs; EventStore message/event references may be ULID-like and remain support-safe only when explicitly classified. Authorization is enforced server-side (L1 API gate + L2 domain RBAC); the UI reflects authorization state and unavailable-action reasons but is not the authorization boundary. [Source: `_bmad-output/project-context.md#Identity Scheme`; `#Authorization (RBAC)`]
 - Last-owner removal is allowed by design (`TenantAggregate` enforces no "≥1 owner" invariant); the empty-tenant bootstrap path (`AddUserToTenant` skips owner-only RBAC when `state.HasMembershipHistory == false`) is the relevant boundary for restore-after-last-owner-removal. Do NOT invent a "≥1 owner" invariant. [Source: `_bmad-output/project-context.md#Aggregates`; `#Domain Correctness`]
 - Preserve root-declared submodule under `references/` policy. Reading `Hexalith.FrontComposer` is allowed; never initialize nested submodules or run recursive submodule commands. [Source: `CLAUDE.md#Submodule Policy`]

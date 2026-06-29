@@ -229,6 +229,13 @@ public sealed record TenantCorrectionStartIntent(
         previewInputs["aggregateId"] = "global-administrators";
         previewInputs["userId"] = targetUserId;
 
+        // Fail closed when the system-scope audit evidence does not yield the target user id a
+        // global-administrator correction command requires; an empty user id must never be treated
+        // as a startable correction (AC8). The original evidence stays visible via the reason.
+        if (string.IsNullOrWhiteSpace(targetUserId)) {
+            reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
+        }
+
         if (!context.HasGlobalAdministratorCommandSupport) {
             reasons.Add(TenantCorrectionUnavailableReason.GlobalAdministratorCommandSupportUnavailable);
         }

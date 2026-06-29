@@ -1,7 +1,7 @@
 ---
 project_name: 'Hexalith.Tenants'
 user_name: 'Administrator'
-date: '2026-06-02'
+date: '2026-06-29'
 sections_completed:
   [
     'technology_stack',
@@ -17,7 +17,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 61
+rule_count: 118
 optimized_for_llm: true
 ---
 
@@ -139,27 +139,40 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Development Workflow Rules
 
-- **Conventional Commits required** (semantic-release): `feat`→minor, `fix`→patch, `feat!`/`BREAKING CHANGE:`→major; `docs`/`refactor`/`test`/`chore`/`perf`→no bump. Don't use `feat` for refactors (false minor bump + NuGet publish of 5 packages)
-- **Branches:** `feat/…`, `fix/…`, `docs/…`. No direct commits to `main`
-- **Release on merge to `main`** (`release.yml` → `npx semantic-release`): runs Tier 1+2 tests, then `scripts/pack-release-packages.py` packs the 5 packages, `validate-nuget-packages.py` + `validate-consumer-package-references.py` validate them → publish to NuGet, GitHub Release, update `CHANGELOG.md`
-- **CI** (`ci.yml`) on push/PR to `main`: restore, build Release `-warnaserror`, package-consumer validation, Tier 1, `dapr init`, Tier 2, coverage gates; separate non-blocking Aspire (Tier 3) job; nightly performance job
-- **Local run (slim/VM mode):** start DAPR `placement` + `scheduler` before `aspire run`, else actors fail ("did not find address for actor"); use `http://localhost:8080`; `EnableKeycloak=false` falls back to symmetric-key JWT
+- Use Conventional Commits. `feat` triggers a minor release, `fix` triggers a patch release, and `feat!` or `BREAKING CHANGE:` triggers a major release. Do not use `feat` for refactors or test-only work.
+- Use branch names like `feat/...`, `fix/...`, or `docs/...`; do not commit directly to `main`.
+- CI runs on push/PR to `main`: restore, Release build with warnings as errors, package metadata/consumer validation, Tier 1 tests, DAPR init, Tier 2 tests, and coverage gates.
+- Release runs after merge to `main` through semantic-release: version from commit history, Tier 1+2 tests, pack exactly five NuGet packages, validate packages and package-only consumers, publish to NuGet, create GitHub Release, and update `CHANGELOG.md`.
+- Run local tests by project in the same shape as CI. Use `.slnx` for restore/build, then targeted `dotnet test <test-project>`.
+- Initialize only the required root-declared submodules under `references/`; never use recursive submodule initialization.
+- For local distributed runs, use Aspire AppHost. Restart `aspire run` after AppHost, DAPR component, topic, or sidecar changes because the app model is built at startup.
+- In slim/VM local mode, start DAPR `placement` and `scheduler` before `aspire run`; actor-backed dependencies can fail without them.
+- The default local Tenants service URL is `http://localhost:8080`; when Keycloak is disabled, local auth falls back to symmetric-key JWT.
+- AppHost topology changes must update DAPR access-control YAML, route/topic wiring, and tests together.
+- Do not edit EventStore, projection, or state-store data during debugging. Reproduce with commands, inspect persisted envelopes/read models, and fix state through compensating commands.
+- Before implementing UI work, read the Hexalith UX instructions and verify FrontComposer/Fluent conformance tests still represent the intended governance.
+- Before changing persistence, projection freshness, or query behavior, read the relevant EventStore state/freshness conventions and preserve cursor opacity.
+- Package or source-reference changes must preserve Release package-only consumer validation; Debug convenience references cannot leak into Release package consumers.
+- Document any validation that cannot be run with the exact command and blocker, not a generic "not tested" note.
 
 ### Critical Don't-Miss Rules
 
-- **Never** add `sealed`/XML docs to command/event/rejection records (plain records) — but **do** use `sealed record` + `<summary>` for query response DTOs
-- **Never** throw for business failures in aggregates — return an `IRejectionEvent` (or `NoOp` for same-state)
-- **Never** register `AddEventStoreServer`/`AggregateActor` or a tenant projection actor in the Tenants host — it is a domain service with in-process tenant query handlers and REST read endpoints
-- **Never** reorder the MediatR pipeline (Validation → Authorization)
-- **Never** treat `TenantId`/`UserId` as ULIDs; **never** treat `SequenceNumber` as global ordering — dedup on `MessageId`
-- **Never** edit/delete events, projections, or the state store to fix data — submit compensating commands
-- **Never** add copyright headers; **never** use `.sln`; **never** run solution-level `dotnet test`; **never** add versions to `.csproj`
-- **Never** `--init --recursive` submodules or modify submodule files unsolicited; **never** hardcode the EventStore path (use `$(HexalithEventStoreRoot)`)
-- **Always** `ConfigureAwait(false)` on awaits in host/Client code
-- **Always** assert persisted state-store end-state in Tier 2/3 tests, not just status codes
-- **Always** keep aggregates pure (events in, state rebuilt via `Apply`, no mutation in `Handle`)
-- **Always** make event consumers idempotent (DAPR is at-least-once)
-- **Don't** put secrets, bearer tokens, decoded JWT payloads, real tenant/user data, full payload dumps, or stack traces in docs, tickets, or logs (support-safety)
+- Never add `sealed` or XML parameter docs to command, success-event, or rejection-event records. Query response DTOs are the exception: use `sealed record` with XML summaries.
+- Never throw exceptions for business failures inside aggregates. Return structured rejection events, or `DomainResult.NoOp()` only for explicitly modeled same-state requests.
+- Never add I/O, async calls, service dependencies, or mutation to aggregate `Handle` methods. State changes come only from events applied through `Apply`.
+- Never register `AddEventStoreServer`, `AggregateActor`, or a tenant projection actor in the Tenants host. Tenants is a domain service with in-process query handlers and REST read endpoints.
+- Never reorder the MediatR pipeline. Validation runs before authorization.
+- Never treat `TenantId` or `UserId` as GUIDs/ULIDs, and never treat `SequenceNumber` as global ordering. Domain identifiers are caller-supplied strings; deduplicate on EventStore `MessageId`.
+- Never parse, expose, or log query cursors, ETags, JWT payloads, bearer tokens, raw EventStore metadata, raw event payload dumps, stack traces, or internal correlation data.
+- Never edit/delete/rewrite events, projections, or state-store data to fix business state. Use compensating commands and verify projection evidence.
+- Never use raw interactive HTML controls, raw forms, raw tables, route-level `PageTitle`, or page-root `<main>` wrappers in Tenants UI. Use FrontComposer and Fluent UI Blazor V5.
+- Never treat SignalR notifications, HTTP 202/201, or command acceptance as proof of user-visible success. UI success requires projection-confirmed evidence.
+- Never let stale Memories search data become tenant row truth. Search returns match candidates; hydrate rows through Tenants query endpoints.
+- Never use `.sln`, solution-level `dotnet test`, package versions in `.csproj`, Dockerfiles for the Tenants container, or recursive submodule initialization.
+- Never add cross-domain technical plumbing to Tenants when it belongs in shared Hexalith modules.
+- Always keep DAPR consumers idempotent and topology/access-control YAML aligned with AppHost sidecars, app IDs, and topics.
+- Always preserve Release package-only consumer validation when changing references, packaging, or shared dependency flow.
+- Always run or document the relevant per-project tests before completing implementation work.
 
 ---
 
@@ -178,4 +191,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Update when the technology stack, analyzer policy, MediatR pipeline, test tiers, or coverage gates change
 - Remove rules that become obvious over time
 
-Last Updated: 2026-06-02
+Last Updated: 2026-06-29

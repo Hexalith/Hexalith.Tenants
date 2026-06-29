@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact
-Last reviewed: 2026-06-06
+Last reviewed: 2026-06-29
 
 This backlog turns the reconciled dependency map into copy-forward candidate Tenants Admin UI stories. It is planning output only: it does not create sprint-status entries, implementation story files, UI screens, `Hexalith.FrontComposer` components, backend endpoints, command/query contracts, package changes, submodule pointer changes, or Phase 1 release gates.
 
@@ -14,11 +14,19 @@ This file is retained as a historical Phase 2 planning backlog. The current impl
 
 Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. That spike supersedes older row-level `needs-confirmation` or `missing` statuses in this file for `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC`. Historical row data below is not the current sprint-status source.
 
+Epic 1 later implemented the Tenants-owned workspace, tenant list, tenant detail overview, My Tenants self-audit, user-membership lookup, read-only tenant configuration, member table/action availability, and support-safe identifier copy slices behind historical `ui-01` through `ui-06` read-only rows. Those rows are no longer the implementation-readiness source for delivered Epic 1/Epic 4 read-only flows.
+
+Epic 2 later implemented `ui-07` create tenant, `ui-08` edit tenant metadata, and `ui-09` add/change member role with story-specific command lifecycle, projection confirmation, one-at-a-time command feedback, accessibility/localization evidence, and support-safe copy. The historical planning rows remain for reusable FrontComposer command-feedback extraction only.
+
 Story 2.4 later implemented `ui-14` tenant-member removal with the approved inline structured-text `FC-CNS` fallback, projection-confirmed removal, duplicate/already-applied handling, and honest audit handoff. The historical `blocked` row remains for planning traceability and reusable FrontComposer component work, but it is no longer the implementation-readiness source for the delivered Epic 2 remove-member flow.
 
 The 2026-06-06 Sprint Change Proposal reclassified `ui-13` / FR15 disable-or-enable tenant as reversible lifecycle soft-delete / availability control, not hard destructive tenant deletion. Hard tenant deletion is future independent administrators-only CLI tooling and is out of scope for this UI backlog.
 
 Epic 3 later implemented `ui-13` lifecycle disable/enable and `ui-10` tenant configuration set/remove through the approved inline structured-text `FC-CNS` fallback, the `FC-CNC` one-at-a-time policy, server-side BFF command gateways, projection re-query confirmation, exact destructive confirmation where applicable, focus-loop/focus-return evidence, EN/FR resource parity, and support-safe rejection/audit handoff states. The historical rows remain for planning traceability and reusable FrontComposer component work, but they are no longer the implementation-readiness source for the delivered Epic 3 lifecycle and configuration flows.
+
+Epic 4 later implemented `ui-06` fixed-scope global-administrator review and `ui-15` global-administrator grant/remove command management with platform-governance copy, one-at-a-time command feedback, projection-confirmed success, last-admin hard-stop behavior, EN/FR resource parity, and support-safe evidence. Those rows are now implementation evidence rows, not blocked planning rows.
+
+Epic 5 later implemented the Tenants-owned flat audit, entry-point, receipt, availability-state, and tenant-domain correction slices. Historical `ui-11` and `ui-12` rows remain blocked only for reusable FrontComposer `<AuditTimeline>` / grouped-mode work; they are no longer the implementation-readiness source for the delivered Tenants-owned flat audit and receipt flows.
 
 ## Scope Boundary
 
@@ -101,19 +109,27 @@ No rows currently qualify. A future row may move here only when `blockedBy: []` 
 
 ### Ready With Approved Fallback
 
-No rows currently qualify. Product/UX and `Hexalith.FrontComposer` have not approved a row-specific fallback for layout, command feedback, audit timeline, consequence preview, tokens, accessibility, localization, or documentation evidence.
+Current order: `ui-10`, `ui-13`.
+
+These rows have story-specific approved fallback evidence and `blockedBy: []` in the historical row table. Their current implementation evidence is in the Epic 3 story records cited by each row.
 
 ### Planning Only
 
-Current order: `ui-01`, `ui-02`, `ui-03`, `ui-04`, `ui-05`, `ui-06`, `ui-07`, `ui-08`, `ui-09`.
+Current order: none for delivered Tenants-owned flows.
 
-These rows have completed backend evidence or available table evidence, but they still carry unresolved FrontComposer, accessibility, localization, documentation, command, or token dependencies. They may be refined into implementation stories only after the row's `blockedBy` array shrinks to `[]` or a named approved fallback moves the row to `ready-with-approved-fallback`.
+Historical `ui-01` through `ui-05` and `ui-07` through `ui-09` cells may still be used as copy-forward templates for reusable FrontComposer extraction or future extensions, but current implementation handoff must cite the delivered Epic 1/Epic 2 story records instead of treating those rows as active planning-only work.
+
+### Implemented / Superseded by Story Evidence
+
+Current order: `ui-01`, `ui-02`, `ui-03`, `ui-04`, `ui-05`, `ui-06`, `ui-07`, `ui-08`, `ui-09`, `ui-15`.
+
+These rows are implemented by Epic 1, Epic 2, and Epic 4 story evidence. `ui-14` tenant-member removal is also delivered by Story 2.4, but its historical reusable FrontComposer row remains blocked below for `FC-CNS`/batching/component-work traceability.
 
 ### Blocked
 
-Current order: `ui-11`, `ui-12`, `ui-14`, `ui-15`.
+Current order: `ui-11`, `ui-12`, `ui-14`.
 
-A row is `blocked` (not just `planning-only`) when at least one of the following holds: (a) `blockedBy` includes `FC-AUD` or `FC-CNS` with the dependency's readiness recorded as `missing`; or (b) the row carries a `deferred` `fallbackDecision` for a high-impact or destructive workflow with no approved alternative. `ui-11`/`ui-12` qualify on (a); `ui-14`/`ui-15` qualify on (a) and (b). `ui-10` and `ui-13` no longer qualify after the approved fallback and Epic 3 implementation evidence. Do not assign blocked rows as implementation-ready until the missing deliverables or approved fallbacks are recorded with owners and evidence.
+A row is `blocked` (not just `planning-only`) when at least one of the following holds: (a) `blockedBy` includes `FC-AUD` or `FC-CNS` with the dependency's readiness recorded as `missing`; or (b) the row carries a `deferred` `fallbackDecision` for a high-impact or destructive workflow with no approved alternative. `ui-11`/`ui-12` qualify only for reusable audit timeline / grouped-mode work after Epic 5's delivered flat-audit evidence; `ui-14` qualifies only for reusable consequence-preview / batching work after Story 2.4's delivered remove-member flow. `ui-10`, `ui-13`, and `ui-15` no longer qualify after the approved fallback and Epic 3/Epic 4 implementation evidence. Do not assign blocked reusable-component rows as implementation-ready until the missing deliverables or approved fallbacks are recorded with owners and evidence.
 
 ## Future Story Checklist
 
@@ -127,7 +143,7 @@ Every future Phase 2 Tenants UI story must populate the same 12 mandatory candid
 - `decisionOwner`: accountable role or group for every unresolved dependency in this row. When multiple owners apply (e.g., layout vs. command), prefer naming the dominant owner here and disambiguating per-dependency in the Deferred Decisions table.
 - `evidenceSource`: literal array of repo-relative paths. No local absolute paths, secrets, bearer tokens, raw production tenant/user data, generated build artifacts, or transient logs.
 - `readiness`: enum value, never set to `ready` or `ready-with-approved-fallback` while any of: `blockedBy` is non-empty, `fallbackDecision` is `proposed` or `deferred`, `decisionOwner` is missing, or `evidenceSource` is empty.
-- `workflow`: must preserve role-aware UX, tenant/user context, source-of-truth projection re-query behavior, no-color-only status behavior where applicable, deployment-auth assumptions from Epic 11, and bounded copy. Stories must not expose command payloads, bearer tokens, serialized command bodies, stack traces, raw EventStore metadata, internal correlation IDs, or PII.
+- `workflow`: must preserve role-aware UX, tenant/user context, source-of-truth projection re-query behavior, no-color-only status behavior where applicable, deployment-auth assumptions from Epic 11, and bounded copy. Stories must not expose command payloads, bearer tokens, serialized command bodies, stack traces, raw EventStore metadata, internal correlation/message ids, or PII.
 - `sequencingPriority`: stable `P##` identifier for backlog ordering; rebuild the sort after any row is promoted or downgraded so dependency-ready rows precede blocked rows unless product accepts the sequencing risk explicitly.
 
 When recording a future story row, do not invent new column names. The 12 fields above are the complete row schema; story-level cross-cutting concerns (accessibility, localization, documentation, Phase 1 release safety, tenant/user boundary) are tracked through the existing fields rather than parallel columns.

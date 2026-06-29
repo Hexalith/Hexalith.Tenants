@@ -453,6 +453,43 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Command_activity_lock_is_held_until_configuration_projection_confirms()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        string projectedValue = "trial";
+        List<bool> activity = [];
+        RegisterServices(gateway);
+
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnCommandActivityChanged, active => activity.Add(active))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
+                Detail(request.TenantId, new Dictionary<string, string> { [request.Key] = projectedValue }))));
+
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-namespace']").Change("billing");
+        cut.Find("[data-testid='tenants-config-set-key']").Change("mode");
+        cut.Find("[data-testid='tenants-config-set-value']").Change("enterprise");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
+        activity.ShouldBe([true]);
+        cut.Find("[data-testid='tenants-config-set-submit']").GetAttribute("disabled").ShouldNotBeNull();
+
+        projectedValue = "enterprise";
+        cut.Find("[data-testid='tenants-config-set-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        activity.ShouldBe([true, false]);
+    }
+
+    [Fact]
     public void Owned_in_flight_command_keeps_visible_reason_specific_when_parent_lock_updates()
     {
         TaskCompletionSource<TenantCommandSubmissionResult> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);

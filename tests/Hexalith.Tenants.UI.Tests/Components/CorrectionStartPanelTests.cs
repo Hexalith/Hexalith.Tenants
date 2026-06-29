@@ -117,6 +117,79 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Panel_uses_projection_refresh_provider_without_second_tenant_query_and_still_links_proof()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new();
+        StubTenantQueryGateway queryGateway = new(
+            Detail(new TenantMember("unused-user", TenantRole.TenantOwner)),
+            Audit("event-corrective", "UserAddedToTenant"));
+        int projectionRefreshCount = 0;
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail())
+            .Add(component => component.ProjectionRefreshProvider, () =>
+            {
+                projectionRefreshCount++;
+                return Task.FromResult<TenantDetail?>(Detail(new TenantMember("target-user", TenantRole.TenantReader)));
+            }));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        projectionRefreshCount.ShouldBe(1);
+        queryGateway.DetailRequests.ShouldBeEmpty();
+        queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        cut.Instance.Snapshot!.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirmed");
+        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
+    }
+
+    [Fact]
+    public void Panel_provider_confirmed_correction_reports_audit_delayed_when_no_corrective_row_exists()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new();
+        // The audit surfaces only the original removal, never the corrective UserAddedToTenant row,
+        // so proof lookup must run after projection confirmation and honestly report it as delayed
+        // rather than linking unrelated evidence or collapsing the confirmed state into failure.
+        StubTenantQueryGateway queryGateway = new(
+            Detail(new TenantMember("unused-user", TenantRole.TenantOwner)),
+            Audit("event-original", "UserRemovedFromTenant"));
+        int projectionRefreshCount = 0;
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail())
+            .Add(component => component.ProjectionRefreshProvider, () =>
+            {
+                projectionRefreshCount++;
+                return Task.FromResult<TenantDetail?>(Detail(new TenantMember("target-user", TenantRole.TenantReader)));
+            }));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        projectionRefreshCount.ShouldBe(1);
+        queryGateway.DetailRequests.ShouldBeEmpty();
+        queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirmed");
+    }
+
+    [Fact]
     public void Panel_change_role_workflow_sends_change_role_command_and_requeries_projection()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -224,6 +297,38 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commandGateway.StatusHandles.ShouldBeEmpty();
         cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
             invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
+    }
+
+    [Fact]
+    public void Failed_correction_survives_a_parent_re_render_without_re_arming_submit()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new()
+        {
+            AddUserResultTask = Task.FromResult(TenantCommandSubmissionResult.Failed("Correction command failed before verification.")),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed));
+
+        // A parent re-render (for example an audit pager navigation or projection refresh that keeps this
+        // panel open) re-passes the same intent with a refreshed projection. The terminal failure must not
+        // reset to a fresh, re-armed preview and must not discard the failure evidence (AC4).
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail(new TenantMember("target-user", TenantRole.TenantReader))));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("failed");
+        cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
     }
 
     private static TenantCorrectionStartContext Context(

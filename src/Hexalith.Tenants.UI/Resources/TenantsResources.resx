@@ -3258,6 +3258,72 @@
   <data name="Tenants.Correction.Title" xml:space="preserve">
     <value>Start correction</value>
   </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Scope" xml:space="preserve">
+    <value>Platform authority scope</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Scope.Value" xml:space="preserve">
+    <value>system / global-administrators / global-administrators</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AdminCount" xml:space="preserve">
+    <value>Current global administrator count</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.CurrentState" xml:space="preserve">
+    <value>Target in current projection</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present" xml:space="preserve">
+    <value>Present in the current platform authority projection.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent" xml:space="preserve">
+    <value>Absent from the current platform authority projection.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact" xml:space="preserve">
+    <value>Last-administrator impact</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value" xml:space="preserve">
+    <value>The last global administrator cannot be removed; at least one global administrator must remain.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Consequences" xml:space="preserve">
+    <value>Known consequences</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Consequence.Restore" xml:space="preserve">
+    <value>A new platform authority grant event may be appended when the fixed projection confirms the target is absent.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Consequence.Revoke" xml:space="preserve">
+    <value>A new platform authority removal event may be appended when the fixed projection confirms the target is present.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Unknowns" xml:space="preserve">
+    <value>Known unknowns</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value" xml:space="preserve">
+    <value>Status lookup and live notifications can prompt a re-query but never prove a platform authority change without fixed projection truth.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuditExpectation" xml:space="preserve">
+    <value>Audit expectation</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value" xml:space="preserve">
+    <value>Corrective system-scope audit evidence is expected after the command is accepted and the fixed projection confirms the intended state.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath" xml:space="preserve">
+    <value>Recovery path</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value" xml:space="preserve">
+    <value>Retry status lookup, inspect audit, continue read-only, or escalate using support-safe references.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.AlreadyGranted" xml:space="preserve">
+    <value>The current platform authority projection already shows this user as a global administrator.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.AlreadyRemoved" xml:space="preserve">
+    <value>The current platform authority projection already shows this user is not a global administrator.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.LastAdministrator" xml:space="preserve">
+    <value>The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before starting this correction.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.State.AlreadyApplied" xml:space="preserve">
+    <value>The fixed projection already reflects the intended platform authority state; no correction success is asserted.</value>
+  </data>
+  <data name="Tenants.Correction.GlobalAdmin.State.UnableToVerify" xml:space="preserve">
+    <value>The platform authority correction cannot be verified from current evidence.</value>
+  </data>
   <data name="Tenants.Correction.Unavailable.AlreadyApplied" xml:space="preserve">
     <value>The current projection already matches the intended state.</value>
   </data>

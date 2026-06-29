@@ -157,6 +157,39 @@ public sealed class TenantCorrectionStartIntentTests
     }
 
     [Fact]
+    public void Global_admin_outcome_fails_closed_when_audit_evidence_lacks_target_user_id()
+    {
+        // A global-administrator row whose system-scope evidence carries no target user id must block
+        // correction start rather than prepare a command against an empty user (AC8 fail-closed),
+        // even when command support is otherwise present.
+        TenantAuditRow row = new(
+            "event-safe-reference",
+            "GlobalAdministratorRemoved",
+            AuditEventCategory.Administrative,
+            "actor-user",
+            DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture),
+            TenantId: "system",
+            Target: string.Empty,
+            Scope: "global-administrators",
+            "GlobalAdministratorRemoved",
+            ReferenceContext: string.Empty,
+            ReadModelFreshnessState.Current);
+
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(new(
+            TenantAuditReceipt.FromRow(row),
+            row,
+            IsAuthorized: true,
+            HasCurrentProjectionSnapshot: true,
+            CurrentProjectionSnapshotReference: "global-administrators@current",
+            HasTenantCommandSupport: false,
+            HasGlobalAdministratorCommandSupport: true));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.IntendedCommandDomain.ShouldBe(TenantCorrectionCommandDomain.GlobalAdministrators);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
+    }
+
+    [Fact]
     public void Unsupported_outcome_fails_closed_without_command_selection()
     {
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(

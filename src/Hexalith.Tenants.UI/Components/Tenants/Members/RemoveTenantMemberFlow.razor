@@ -162,6 +162,7 @@
     private string? _confirmationText;
     private string? _validationMessage;
     private bool _isSubmitting;
+    private bool _hasRaisedCommandActivity;
     private FluentTextInput _confirmationElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusConfirmationPending;
@@ -226,7 +227,7 @@
                 ? Localizer["Tenants.RemoveMember.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value
-                    : !IsCommandSurfaceAvailable || CommandGateway is null
+                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
                         ? Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value
                         : _isSubmitting
                             ? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value
@@ -239,7 +240,12 @@
                                         : null;
 
     private bool IsSubmitDisabled
-        => !IsPreviewComplete || !string.IsNullOrWhiteSpace(UnavailableReason);
+        => IsOwnedCommandInFlight
+        || !IsPreviewComplete
+        || !string.IsNullOrWhiteSpace(UnavailableReason);
+
+    private bool IsOwnedCommandInFlight
+        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool CanRefresh
         => _snapshot.Intent is not null
@@ -375,6 +381,20 @@
         }
     }
 
+    private async Task SetCommandActivityRaisedAsync(bool isActive)
+    {
+        if (_hasRaisedCommandActivity == isActive)
+        {
+            return;
+        }
+
+        _hasRaisedCommandActivity = isActive;
+        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+    }
+
+    private async Task UpdateCommandActivityForSnapshotAsync()
+        => await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
@@ -394,6 +414,11 @@
         if (_isSubmitting)
         {
             SetSnapshot(_snapshot.DuplicatePrevented(Localizer["Tenants.RemoveMember.DuplicatePrevented.Message"].Value));
+            return;
+        }
+
+        if (IsOwnedCommandInFlight)
+        {
             return;
         }
 
@@ -428,7 +453,7 @@
 
         _snapshot = _snapshot.RequestSent();
         _isSubmitting = true;
-        await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
+        await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
 
         try
         {
@@ -466,7 +491,7 @@
         finally
         {
             _isSubmitting = false;
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
+            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
         }
     }
 
@@ -488,6 +513,7 @@
             if (gateway is null)
             {
                 SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value)));
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -503,6 +529,8 @@
             TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
             SetSnapshot(_snapshot.ConfirmProjection(evidence));
         }
+
+        await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)

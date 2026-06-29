@@ -202,7 +202,7 @@
     public EventCallback OnClose { get; set; }
 
     [Parameter]
-    public EventCallback OnProjectionRefreshRequested { get; set; }
+    public Func<Task<TenantDetail?>>? ProjectionRefreshProvider { get; set; }
 
     internal TenantCorrectionPreviewSnapshot? Snapshot => _snapshot;
 
@@ -292,20 +292,20 @@
             return;
         }
 
-        if (!string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal))
-        {
-            _intentReference = Intent.OriginalAuditReference;
-            _roleValue = Intent.IntendedRole?.ToString() ?? string.Empty;
-        }
-
-        if (_snapshot?.LifecycleState is TenantCommandLifecycleState.RequestSent
-            or TenantCommandLifecycleState.Accepted
-            or TenantCommandLifecycleState.ProjectionPending
-            or TenantCommandLifecycleState.Confirmed)
+        // Rebuild the preview only when a different audit-evidence intent is supplied (or on first
+        // set). An unchanged intent must never reset an existing snapshot on an unrelated parent
+        // re-render (for example an audit pager navigation or projection refresh that keeps this panel
+        // open): doing so would discard a terminal Rejected/Failed/Degraded/UnableToVerify/AlreadyApplied
+        // correction and silently re-arm submission (AC4). Role re-selection re-evaluates the preview
+        // directly through OnRoleChanged, so it does not depend on this method.
+        bool intentChanged = !string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal);
+        if (_snapshot is not null && !intentChanged)
         {
             return;
         }
 
+        _intentReference = Intent.OriginalAuditReference;
+        _roleValue = Intent.IntendedRole?.ToString() ?? string.Empty;
         SetSnapshotFromIntent();
     }
 
@@ -455,8 +455,7 @@
             .ConfigureAwait(false);
         _snapshot = _snapshot.ApplyStatus(status);
 
-        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-        TenantDetail? projection = await QueryProjectionAsync().ConfigureAwait(false);
+        TenantDetail? projection = await RefreshProjectionAsync().ConfigureAwait(false);
         SetSnapshot(_snapshot.ConfirmProjection(projection), focusTerminalState: true);
         if (_snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
         {
@@ -464,6 +463,11 @@
             _snapshot = _snapshot.WithCorrectiveProof(proof);
         }
     }
+
+    private async Task<TenantDetail?> RefreshProjectionAsync()
+        => ProjectionRefreshProvider is null
+            ? await QueryProjectionAsync().ConfigureAwait(false)
+            : await ProjectionRefreshProvider().ConfigureAwait(false);
 
     private async Task<TenantDetail?> QueryProjectionAsync()
     {

@@ -781,7 +781,7 @@ Idempotency records are written only after a terminal command result is known. R
 
 ## Query API Reference
 
-Tenant query endpoints are protected REST adapters over EventStore `SubmitQuery`. Controllers validate route/query input, derive the authenticated user from JWT `sub`, validate signed opaque cursors, then dispatch to the projection actor. Query authorization and row filtering are handled by the projection/query path.
+Tenant query endpoints are protected REST read adapters over in-process domain query handlers. Controllers validate route/query input, derive the authenticated user from JWT `sub`, validate signed opaque cursors, then dispatch through the Tenants query dispatcher to the relevant `IDomainQueryHandler`. Query authorization and row filtering are handled by the query handler path.
 
 | Endpoint | Query contract | Response |
 | --- | --- | --- |

@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact (planning-only)
-Last reviewed: 2026-06-06
+Last reviewed: 2026-06-29
 Story: 9.7 - Define Accessibility, Localization, and UI Acceptance Evidence
 
 This document defines the cross-cutting accessibility, localization, and UI acceptance evidence requirements that future Phase 2 Tenants Admin UI implementation stories must cite before they can be marked `ready` or `ready-with-approved-fallback`. It composes the existing Epic 9 planning artifacts and does not implement screens, components, tests, resources, tokens, routes, endpoints, commands, queries, or generated UI files.
@@ -14,6 +14,8 @@ Story 1.0 completed FrontComposer shell-integration verification on 2026-06-05; 
 This does not waive the evidence gate. Every UI implementation story still must cite or produce the applicable keyboard, focus, screen-reader, live-region, forced-colors, localization, responsive, and documentation/reference evidence before it is marked ready or complete.
 
 Epic 3 implementation evidence now supersedes the older blocked/planning-only row status for FR15/FR16/FR17. Story 3.2 delivered lifecycle disable/enable with focus-loop sentinels, focus return, typed confirmation, live-region politeness, forced-colors hooks, responsive fail-closed behavior, and EN/FR parity. Stories 3.3 and 3.4 delivered configuration set/remove with field-specific validation focus, exact-key destructive confirmation for removal, support-safe copy, resource parity, and projection-confirmation evidence. The evidence gate remains active for future stories, but these delivered flows should cite their Epic 3 story records rather than the older row-level blocked status.
+
+Story 2.4 implemented the delivered tenant-member removal flow behind historical `ui-14`, Epic 4 implemented `ui-06` and `ui-15`, and Epic 5 implemented the Tenants-owned flat audit, scoped entry-point, receipt, availability-state, and tenant-domain correction slices behind historical audit/recovery planning rows. Historical reusable FrontComposer rows may still show `blocked` where reusable `<AuditTimeline>`, `<ConsequencePreview>`, token, batching, or grouped-mode contracts are unresolved; those cells are no longer the implementation-readiness source for delivered Tenants-owned flows.
 
 ## Scope and Boundary
 
@@ -51,7 +53,7 @@ The in-scope surfaces are exactly: **Operations Shell, tenant list, member table
 | Command lifecycle feedback | Story 9.3 truth-state spec and Story 9.4 journey spec | Live-region politeness, no false success, exact lifecycle labels, reduced motion, and command-state selectors. |
 | Audit evidence surfaces | Story 9.5 audit/recovery spec | Audit unavailable/delayed states, exact timestamps, accessible audit rows, support-safe copy, and flat audit fallback evidence. |
 
-This baseline ties primarily to `FC-A11Y` (`needs-confirmation`). Exact Fluent UI Blazor v5 accessibility, ARIA, and focus-management behavior must be verified against the pinned package `Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` at implementation time. This planning story does not assert specific component-level accessibility conformance as ready.
+This baseline ties primarily to `FC-A11Y`. The historical `needs-confirmation` label for shell capability is superseded by Story 1.0 evidence, but exact story-level Fluent UI Blazor v5 accessibility, ARIA, and focus-management behavior must still be verified against the pinned package `Microsoft.FluentUI.AspNetCore.Components 5.0.0-rc.3-26138.1` at implementation time. This planning story does not assert new component-level accessibility conformance as ready.
 
 ## 2. Keyboard and Focus Requirements
 
@@ -96,9 +98,9 @@ Future UI implementation stories must require that these text categories are loc
 
 Timestamps, dates, numbers, and culture-sensitive labels must use culture-aware formatting. Confirmation and warning messages must not rely on concatenated sentence fragments assembled at runtime. They must use whole localizable resource strings with named placeholders.
 
-`FC-L10N` remains `needs-confirmation`. Resource ownership is not decided here: Shell-owned `FcShellResources` versus Tenants-owned copy keys and adopter terminology remain an implementation-time `FC-L10N` confirmation item.
+Story 1.0 confirms reusable shell localization capability for `FC-L10N`; resource ownership remains a per-story evidence gate. Shell-owned `FcShellResources` versus Tenants-owned copy keys and adopter terminology must still be named by each implementation story.
 
-Visible and announced labels must remain support-safe. The UI must never render raw payloads, bearer tokens, stack traces, internal correlation IDs, internal exception text, raw EventStore metadata, or PII. User-facing rejection text is composed at the HTTP boundary by EventStore's `RejectionToHttpStatusMapper` and domain-rejection ProblemDetails handling/catalog using RFC 7807 Problem Details.
+Visible and announced labels must remain support-safe. The UI must never render raw payloads, bearer tokens, stack traces, internal correlation/message ids, internal exception text, raw EventStore metadata, or PII. User-facing rejection text is composed at the HTTP boundary by EventStore's `RejectionToHttpStatusMapper` and domain-rejection ProblemDetails handling/catalog using RFC 7807 Problem Details.
 
 ## 5. Reduced Motion and Visual Accessibility Requirements
 
@@ -127,9 +129,11 @@ These are the testing widths. They are distinct from the Story 9.6 layout rule b
 
 Accessibility testing must cover keyboard-only navigation, screen reader review with **NVDA** and at least one browser/screen-reader pairing, automated accessibility checks, forced-colors/high-contrast mode, reduced motion, color contrast, live-region announcements, focus return, and disabled action explanations without mouse hover.
 
+For every high-impact or destructive flow, the evidence must explicitly prove focus containment while the preview or confirmation surface is open, Escape/cancel no-commit behavior, and focus return to the exact launching control after close, cancel, submit, failure, or blocked completion.
+
 ### 6.3 Required acceptance scenarios
 
-Acceptance checks for UI stories must include **stale projection, rejected command, unknown confirmation, audit unavailable, last-owner warning, and permission-missing cases**.
+Acceptance checks for UI stories must include **stale projection, rejected command, unknown confirmation, audit unavailable, last-owner warning, permission-missing, and high-impact/destructive-flow focus-and-cancel cases**.
 
 | Scenario | Owning source | Evidence expectation |
 | --- | --- | --- |
@@ -139,6 +143,7 @@ Acceptance checks for UI stories must include **stale projection, rejected comma
 | audit unavailable | Story 9.5 audit/recovery spec | Delayed, unavailable, and missing-support proof states remain distinct and support-safe. |
 | last-owner warning | Story 9.4 remove-user journey spec | Last-owner removal is elevated-friction UI warning, not a backend prohibition, with safe focus and localized warning copy. |
 | permission-missing | Story 9.3 unavailable-action reason pattern | Missing permission is distinct from stale data, blocked risk, and missing implementation dependency, with visible reason not hover-only. |
+| high-impact/destructive-flow focus and cancel | Story 9.4 remove-user journey spec; Story 9.7 accessibility evidence gate | Preview and confirmation surfaces contain focus while open, Escape/cancel never commit, and focus returns to the exact launcher after close, cancel, submit, failure, or blocked completion. |
 
 ### 6.4 Ready-gate rule
 
@@ -160,7 +165,7 @@ This planning story does not create those sub-stories.
 
 ## 8. Per-Row Consumption Mapping
 
-`FC-A11Y`, `FC-L10N`, and `FC-DOC` are cross-cutting across all rows `ui-01` through `ui-15`. Each literal `blockedBy` array below is copied verbatim from `docs/tenants-ui-phase-2-story-backlog.md`. No row becomes implementation-ready in this story.
+`FC-A11Y`, `FC-L10N`, and `FC-DOC` are cross-cutting across all rows `ui-01` through `ui-15`. The literal `blockedBy` arrays below preserve the historical copy-forward source from `docs/tenants-ui-phase-2-story-backlog.md`; current implementation handoff may be superseded by the delivered story evidence named in the 2026-06-05/2026-06-29 status notes. No row becomes implementation-ready from this planning story alone.
 
 | Backlog row | Readiness | `blockedBy` (verbatim) |
 | --- | --- | --- |
@@ -180,14 +185,14 @@ This planning story does not create those sub-stories.
 | `ui-14-user-management-remove-user` | `blocked` | `[FC-LYT, FC-CMD, FC-CNC, FC-CNS, FC-TOK, FC-A11Y, FC-L10N, FC-DOC]` |
 | `ui-15-global-admin-command-management` | `implemented` | `[]` |
 
-Rows `ui-01` through `ui-09` remain `planning-only`. Rows `ui-11`, `ui-12`, and `ui-14` remain `blocked` in this evidence table. Rows `ui-10` and `ui-13` now have story-specific approved fallback evidence from Epic 3, and `ui-15` has Epic 4 Story 4.3/4.4 evidence for grant/remove command management; future documentation should cite the delivered story files for their accessibility, localization, responsive, and reference evidence.
+Historical `ui-01` through `ui-05` and `ui-07` through `ui-09` cells are superseded for delivered Tenants-owned flows by Epic 1 and Epic 2 story evidence. Rows `ui-11` and `ui-12` remain blocked only for reusable FrontComposer audit timeline / grouped-mode work after Epic 5's delivered flat-audit evidence. Row `ui-14` remains blocked only for reusable consequence-preview / batching work after Story 2.4's delivered remove-member flow. Rows `ui-10` and `ui-13` now have story-specific approved fallback evidence from Epic 3, and `ui-06`/`ui-15` have Epic 4 evidence; future documentation should cite the delivered story files for accessibility, localization, responsive, and reference evidence.
 
 ## 9. Future Implementation Story Rules
 
 A future Phase 2 UI story may apply these patterns only when it can cite all applicable evidence:
 
 1. WCAG 2.1 AA baseline and WCAG 2.2 AA target where supported by the selected Fluent UI Blazor and FrontComposer stack.
-2. Keyboard reachability, task-order focus, visible focus in normal/high-contrast/forced-colors modes, modal focus trap, safe escape, and focus return.
+2. Keyboard reachability, task-order focus, visible focus in normal/high-contrast/forced-colors modes, tested focus containment, Escape/cancel no-commit behavior, and exact launcher focus return for high-impact/destructive flows.
 3. Accessible names, exact timestamp labels, table headers, row relationships, sort state, row actions, and stable selectors/component contracts.
 4. Live regions with appropriate politeness and assertive announcements reserved for rejection, failure, destructive blockers, or unable-to-verify states.
 5. Localizable copy for state labels, role names, timestamps, warnings, disabled reasons, recovery actions, confirmation copy, and empty/error/loading/degraded states.
@@ -195,7 +200,7 @@ A future Phase 2 UI story may apply these patterns only when it can cite all app
 7. Reduced-motion-independent lifecycle progression.
 8. Verified contrast, high-contrast, forced-colors, and no-color-only behavior.
 9. Full responsive testing widths and narrow-width behavior evidence.
-10. Required acceptance scenarios: stale projection, rejected command, unknown confirmation, audit unavailable, last-owner warning, and permission-missing.
+10. Required acceptance scenarios: stale projection, rejected command, unknown confirmation, audit unavailable, last-owner warning, permission-missing, and high-impact/destructive-flow focus-and-cancel behavior.
 11. Documentation/reference evidence through `FC-DOC` or an approved equivalent reference path.
 
 ## 10. Backend and Data Boundaries

@@ -67,9 +67,9 @@ The spec's specific guardrail is stronger than the PRD's generic "does not add b
 
 **Severity:** Low
 
-The receipt's **projection marker** is defined by the spec as the read-model freshness marker — timestamp / projection version / **ETag → `304`** served by `CachingProjectionActor`. The PRD lists "projection marker" as a receipt field (FR-22, glossary) and separately describes the ETag/304 freshness primitive (addendum §D), but never connects the two: the receipt's projection marker IS that freshness marker. A reader may treat the receipt projection marker as a distinct/new datum.
+The receipt's **projection marker** is defined by the spec as the read-model freshness marker — timestamp / projection version / **ETag → `304`** served by the Tenants REST read endpoints through `TenantsQueryController` and in-process query handlers. The PRD lists "projection marker" as a receipt field (FR-22, glossary) and separately describes the ETag/304 freshness primitive (addendum §D), but never connects the two: the receipt's projection marker IS that freshness marker. A reader may treat the receipt projection marker as a distinct/new datum.
 
-**Suggested PRD fix:** In addendum §D (or the receipt source table from Gap 1) note the receipt's projection marker is the same read-model freshness marker (ETag → 304 via the caching projection actor), not a separate value.
+**Suggested PRD fix:** In addendum §D (or the receipt source table from Gap 1) note the receipt's projection marker is the same read-model freshness marker (ETag → 304 via the Tenants REST read endpoints and in-process query handlers), not a separate value.
 
 ---
 

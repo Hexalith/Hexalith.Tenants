@@ -249,9 +249,17 @@ FR25: Epic 5 - Preview correction against current state and link original/correc
 
 Every epic inherits the shared quality bar from the requirements inventory: projection truth is authoritative, Success is reserved for projection-proven or audit-proven states, command and audit lifecycle states do not collapse into each other, authorization and support-safety are server-enforced, copy is Tenants-owned and localized through `.resx`, accessibility/responsive evidence is required for readiness, and stable `data-testid` selectors are used for all interactive controls and statuses.
 
+Every audit or correction change also carries a mandatory guard: static or rendered tests must prove support-safe output and prohibited recovery terminology protection for visible copy, accessible names, tooltips, announcements, resources, copied references, audit rows, receipts, correction previews, lifecycle panels, proof links, and error/unavailable states.
+
 ### Story Creation Guardrails
 
 Every story created from these epics must make the safety contract explicit in acceptance criteria and test expectations. Each story states the actor and job, names the projection truth source and staleness behavior, names the permission boundary and server-side authorization result, preserves pending/failed/denied/unknown states without false Success, consumes existing backend endpoints without adding local Tenants infrastructure, includes Tenants-owned `.resx` copy, and identifies the required accessibility, responsive, live-region, forced-colors, and stable `data-testid` evidence. Every command story also includes audit/evidence behavior, including delayed or unavailable audit states, and every story includes a test contract naming the fixture, observable state, and automation level such as unit, component, API, or Playwright.
+
+Any story or correction request that touches audit evidence, audit rows, audit availability, receipts, correction start, correction preview, correction lifecycle, proof linking, support-safe copy, or audit/correction localization must include tests or static guards for:
+
+- no raw payloads, command payloads, decoded JWT contents, bearer tokens, raw EventStore metadata, protected cursors, ETags, internal correlation ids, message ids, stack traces, or unsafe PII in rendered or copied output;
+- no prohibited recovery terminology in visible copy, accessible names, tooltips, announcements, resource values, or rendered snapshots;
+- forward-only correction language that uses the approved recovery verbs and never implies event, projection, or state-store mutation.
 
 ### Command Story Sizing Guardrail
 
@@ -285,7 +293,7 @@ Authorized users can safely control tenant lifecycle and tenant configuration wh
 
 **FRs covered:** FR15, FR16, FR17
 
-**Implementation notes:** Depends on command confirmation from Epic 2; platform-wide destructive lifecycle work remains gated by FrontComposer/governance confirmation, while tenant-scoped configuration flows are fallback-eligible.
+**Implementation notes:** Depends on command confirmation from Epic 2; platform-wide destructive lifecycle work remains gated by FrontComposer/governance confirmation, while tenant-scoped configuration flows are fallback-eligible. Completed defect-fix Story 3.5 is tracked as an Epic 3 readiness record outside the original FR15/FR16/FR17 feature list, because it restored REST-backed Tenants reads and retired the failed projection-actor read path.
 
 ### Epic 4: Global Administrator Governance
 

@@ -6,7 +6,7 @@ source_change: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-29
 
 # Story 5.7: Global Administrator Correction Verification
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Created by the BMAD correct-course and create-story workflows for the global-administrator correction gate. -->
 
@@ -31,58 +31,58 @@ so that platform authority recovery cannot be inferred from tenant-domain correc
 
 ## Tasks / Subtasks
 
-- [ ] Replace the hard global-administrator correction gate with a verified enablement gate (AC: 1, 2, 8, 9)
-  - [ ] Update the live audit correction-intent path so global-administrator audit rows can be eligible only when fixed global-administrator read evidence, command support, authorization reflection, current freshness, and required audit fields are all present.
-  - [ ] Keep `GlobalAdministratorRemoved` mapped to `SetGlobalAdministrator` and `GlobalAdministratorSet` mapped to `RemoveGlobalAdministrator`.
-  - [ ] Remove `GlobalAdministratorCommandSupportUnavailable` only for the verified eligible path; stale, unauthorized, missing read support, missing command support, or unknown evidence must still fail closed.
-  - [ ] Do not infer platform authority from tenant detail, tenant members, user lookup rows, claims-only state, or tenant role selection.
+- [x] Replace the hard global-administrator correction gate with a verified enablement gate (AC: 1, 2, 8, 9)
+  - [x] Update the live audit correction-intent path so global-administrator audit rows can be eligible only when fixed global-administrator read evidence, command support, authorization reflection, current freshness, and required audit fields are all present.
+  - [x] Keep `GlobalAdministratorRemoved` mapped to `SetGlobalAdministrator` and `GlobalAdministratorSet` mapped to `RemoveGlobalAdministrator`.
+  - [x] Remove `GlobalAdministratorCommandSupportUnavailable` only for the verified eligible path; stale, unauthorized, missing read support, missing command support, or unknown evidence must still fail closed.
+  - [x] Do not infer platform authority from tenant detail, tenant members, user lookup rows, claims-only state, or tenant role selection.
 
-- [ ] Add global-administrator preview data without tenant-role coupling (AC: 1, 2, 6, 8)
-  - [ ] Show fixed scope (`system`, `global-administrators`, `global-administrators`), target user id, intended command, current global-administrator projection state, current admin count for remove, last-admin impact, known consequences, known unknowns, audit expectation, and recovery path.
-  - [ ] Do not render tenant role controls, tenant member current-role fields, tenant lifecycle blockers, or tenant detail projection labels for global-administrator correction.
-  - [ ] Preserve the original audit receipt/row while the correction preview is open.
-  - [ ] Disable submission when preview data cannot be shown honestly.
+- [x] Add global-administrator preview data without tenant-role coupling (AC: 1, 2, 6, 8)
+  - [x] Show fixed scope (`system`, `global-administrators`, `global-administrators`), target user id, intended command, current global-administrator projection state, current admin count for remove, last-admin impact, known consequences, known unknowns, audit expectation, and recovery path.
+  - [x] Do not render tenant role controls, tenant member current-role fields, tenant lifecycle blockers, or tenant detail projection labels for global-administrator correction.
+  - [x] Preserve the original audit receipt/row while the correction preview is open.
+  - [x] Disable submission when preview data cannot be shown honestly.
 
-- [ ] Submit global-administrator corrections through existing command gateway methods (AC: 3, 4, 5, 6, 9, 10)
-  - [ ] Use `ITenantCommandGateway.SetGlobalAdministratorAsync(new SetGlobalAdministrator(targetUserId))` for restore/grant correction.
-  - [ ] Use `ITenantCommandGateway.RemoveGlobalAdministratorAsync(new RemoveGlobalAdministrator(targetUserId))` for remove correction.
-  - [ ] Reuse `GetStatusAsync` for command status and one-at-a-time command locking; prevent duplicate submit, browser refresh resubmit, and simultaneous grant/remove correction.
-  - [ ] Do not add backend endpoints, EventStore registrations, projection actors, generic recovery APIs, command request DTO duplicates, or direct DAPR/state-store reads.
+- [x] Submit global-administrator corrections through existing command gateway methods (AC: 3, 4, 5, 6, 9, 10)
+  - [x] Use `ITenantCommandGateway.SetGlobalAdministratorAsync(new SetGlobalAdministrator(targetUserId))` for restore/grant correction.
+  - [x] Use `ITenantCommandGateway.RemoveGlobalAdministratorAsync(new RemoveGlobalAdministrator(targetUserId))` for remove correction.
+  - [x] Reuse `GetStatusAsync` for command status and one-at-a-time command locking; prevent duplicate submit, browser refresh resubmit, and simultaneous grant/remove correction.
+  - [x] Do not add backend endpoints, EventStore registrations, projection actors, generic recovery APIs, command request DTO duplicates, or direct DAPR/state-store reads.
 
-- [ ] Confirm correction only from the fixed global-administrator projection (AC: 4, 5, 6, 8, 9)
-  - [ ] Query `GetGlobalAdministratorsAsync` after command acceptance/status updates; SignalR may only trigger re-query.
-  - [ ] For `SetGlobalAdministrator`, mark confirmed only when the target user appears in the fixed projection.
-  - [ ] For `RemoveGlobalAdministrator`, mark confirmed only when the target user is absent from the fixed projection.
-  - [ ] Keep last-confirmed projection rows visible while accepted, projection pending, rejected, failed, degraded, or unable to verify.
-  - [ ] Treat `GlobalAdministratorAlreadyExists`, `GlobalAdministratorNotFound`, `InsufficientPermissions`, and `LastGlobalAdministrator` as safe localized states, never as tenant-member copy or false success.
+- [x] Confirm correction only from the fixed global-administrator projection (AC: 4, 5, 6, 8, 9)
+  - [x] Query `GetGlobalAdministratorsAsync` after command acceptance/status updates; SignalR may only trigger re-query.
+  - [x] For `SetGlobalAdministrator`, mark confirmed only when the target user appears in the fixed projection.
+  - [x] For `RemoveGlobalAdministrator`, mark confirmed only when the target user is absent from the fixed projection.
+  - [x] Keep last-confirmed projection rows visible while accepted, projection pending, rejected, failed, degraded, or unable to verify.
+  - [x] Treat `GlobalAdministratorAlreadyExists`, `GlobalAdministratorNotFound`, `InsufficientPermissions`, and `LastGlobalAdministrator` as safe localized states, never as tenant-member copy or false success.
 
-- [ ] Preserve last-admin safety for correction remove (AC: 6, 8, 9)
-  - [ ] Block a remove correction before submit when the current fixed projection has one global administrator.
-  - [ ] Surface `LastGlobalAdministrator` as a hard-blocked rejection if a race reaches the backend.
-  - [ ] Do not render an override, elevated friction bypass, tenant-membership retry, or completable destructive confirmation for last-admin removal.
+- [x] Preserve last-admin safety for correction remove (AC: 6, 8, 9)
+  - [x] Block a remove correction before submit when the current fixed projection has one global administrator.
+  - [x] Surface `LastGlobalAdministrator` as a hard-blocked rejection if a race reaches the backend.
+  - [x] Do not render an override, elevated friction bypass, tenant-membership retry, or completable destructive confirmation for last-admin removal.
 
-- [ ] Link global-administrator corrective proof from system-scope audit evidence (AC: 7, 8, 9)
-  - [ ] Query system-scope audit evidence for corrective `GlobalAdministratorSet` or `GlobalAdministratorRemoved` rows after projection confirmation.
-  - [ ] Link original and corrective evidence with support-safe event references and absolute timestamps.
-  - [ ] Keep `audit pending`, `audit delayed`, `audit unavailable`, and `missing support` distinct; do not show audit proof from command status alone.
-  - [ ] Build proof links from `TenantAuditRow`, `TenantAuditReceipt`, and structured `NarrativePayload` fields only.
+- [x] Link global-administrator corrective proof from system-scope audit evidence (AC: 7, 8, 9)
+  - [x] Query system-scope audit evidence for corrective `GlobalAdministratorSet` or `GlobalAdministratorRemoved` rows after projection confirmation.
+  - [x] Link original and corrective evidence with support-safe event references and absolute timestamps.
+  - [x] Keep `audit pending`, `audit delayed`, `audit unavailable`, and `missing support` distinct; do not show audit proof from command status alone.
+  - [x] Build proof links from `TenantAuditRow`, `TenantAuditReceipt`, and structured `NarrativePayload` fields only.
 
-- [ ] Add localization, support-safety, accessibility, and responsive evidence (AC: 1-10)
-  - [ ] Add or update EN/FR whole-string resource keys under `Tenants.Correction.*` for global-administrator domain labels, preview fields, unavailable reasons, lifecycle states, rejection copy, audit states, proof links, and recovery actions.
-  - [ ] Keep all visible and accessible copy platform-governance-specific; no tenant-owner/member wording for global-administrator correction.
-  - [ ] Add static/rendered copy guards for prohibited recovery terminology and unsafe support markers.
-  - [ ] Preserve keyboard complete-or-exit, safe cancel/Escape, focus return to the launching receipt/row, terminal-state focus for this correction path, live-region politeness by state, visible focus, forced-colors support, stable dimensions, and narrow-viewport fail-closed behavior.
-  - [ ] Keep stable selectors, including `data-testid="tenants-correction-start"`, `data-testid="tenants-correction-preview"`, `data-testid="tenants-correction-confirm"`, `data-testid="tenants-correction-lifecycle"`, and `data-testid="tenants-correction-proof-link"`.
+- [x] Add localization, support-safety, accessibility, and responsive evidence (AC: 1-10)
+  - [x] Add or update EN/FR whole-string resource keys under `Tenants.Correction.*` for global-administrator domain labels, preview fields, unavailable reasons, lifecycle states, rejection copy, audit states, proof links, and recovery actions.
+  - [x] Keep all visible and accessible copy platform-governance-specific; no tenant-owner/member wording for global-administrator correction.
+  - [x] Add static/rendered copy guards for prohibited recovery terminology and unsafe support markers.
+  - [x] Preserve keyboard complete-or-exit, safe cancel/Escape, focus return to the launching receipt/row, terminal-state focus for this correction path, live-region politeness by state, visible focus, forced-colors support, stable dimensions, and narrow-viewport fail-closed behavior.
+  - [x] Keep stable selectors, including `data-testid="tenants-correction-start"`, `data-testid="tenants-correction-preview"`, `data-testid="tenants-correction-confirm"`, `data-testid="tenants-correction-lifecycle"`, and `data-testid="tenants-correction-proof-link"`.
 
-- [ ] Add focused tests and validation (AC: 1-10)
-  - [ ] State tests: eligible global-admin start intent with command support, missing evidence fail-closed, fixed-scope preview data, no tenant-role requirement, grant/remove lifecycle, presence/absence projection confirmation, last-admin block, and proof-link state.
-  - [ ] Component tests: system-scope audit row and receipt can open eligible global-admin correction; stale/unavailable/unauthorized paths remain fail-closed; no tenant role selector appears; confirm calls the correct gateway method; duplicate submit is blocked; original evidence remains visible.
-  - [ ] Gateway/status tests: existing `SetGlobalAdministratorAsync` and `RemoveGlobalAdministratorAsync` routing remains fixed to `system/global-administrators/global-administrators`, and rejection mapping stays platform-governance-specific.
-  - [ ] Audit/proof tests: corrective proof lookup uses system-scope audit rows and never raw payloads or internal correlation/message ids.
-  - [ ] Resource parity/static tests: EN/FR correction keys stay aligned; rendered correction copy contains no unsafe support markers or prohibited recovery wording.
-  - [ ] Run focused validation first: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`.
-  - [ ] If `dotnet test` hits the known .NET 10 Microsoft.Testing.Platform/VSTest issue, run the xUnit v3 executable fallback for the UI test assembly.
-  - [ ] Run focused integration/API tests for global-administrator command routing if the implementation touches gateway/status behavior.
+- [x] Add focused tests and validation (AC: 1-10)
+  - [x] State tests: eligible global-admin start intent with command support, missing evidence fail-closed, fixed-scope preview data, no tenant-role requirement, grant/remove lifecycle, presence/absence projection confirmation, last-admin block, and proof-link state.
+  - [x] Component tests: system-scope audit row and receipt can open eligible global-admin correction; stale/unavailable/unauthorized paths remain fail-closed; no tenant role selector appears; confirm calls the correct gateway method; duplicate submit is blocked; original evidence remains visible.
+  - [x] Gateway/status tests: existing `SetGlobalAdministratorAsync` and `RemoveGlobalAdministratorAsync` routing remains fixed to `system/global-administrators/global-administrators`, and rejection mapping stays platform-governance-specific.
+  - [x] Audit/proof tests: corrective proof lookup uses system-scope audit rows and never raw payloads or internal correlation/message ids.
+  - [x] Resource parity/static tests: EN/FR correction keys stay aligned; rendered correction copy contains no unsafe support markers or prohibited recovery wording.
+  - [x] Run focused validation first: `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release -m:1 --no-restore`.
+  - [x] If `dotnet test` hits the known .NET 10 Microsoft.Testing.Platform/VSTest issue, run the xUnit v3 executable fallback for the UI test assembly.
+  - [x] Run focused integration/API tests for global-administrator command routing if the implementation touches gateway/status behavior.
 
 ## Dev Notes
 
@@ -160,16 +160,80 @@ so that platform authority recovery cannot be inferred from tenant-domain correc
 
 ### Agent Model Used
 
+claude-opus-4-8[1m] (Dev Story workflow)
+
+### Implementation Plan
+
+1. `TenantCorrectionStartIntent` — fail closed when a global-administrator row carries no target user id (AC8); keep the existing `HasGlobalAdministratorCommandSupport` gate.
+2. NEW `GlobalAdministratorCorrectionSnapshot` (State/TenantAudit) — focused, tenant-role-free correction state modeled on `TenantCorrectionPreviewSnapshot`: `FromIntent`, `EvaluateCurrentProjection` (present/absent/already-applied/last-admin), `RequestSent`, `Accepted`, `ApplySubmissionFailure`, `ApplyStatus`, `ConfirmProjection` (restore→present, revoke→absent) against the fixed global-administrator projection, `WithCorrectiveProof`.
+3. NEW `GlobalAdministratorCorrectionPanel.razor`(+ `.razor.css`) — zero raw div/span (budget 219/220); submits via `ITenantCommandGateway.Set/RemoveGlobalAdministratorAsync`, confirms via `GetGlobalAdministratorsAsync`, links proof from system-scope `GetTenantAuditAsync`. Shared selectors `tenants-correction-panel/preview/confirm/lifecycle/proof-link`.
+4. `TenantAuditPage` — inject `ITenantsBffComposition`; load fixed global-administrator projection when global-admin rows are present; evidence-based command-support gate; render the focused panel for global-administrator intents, existing `CorrectionStartPanel` otherwise.
+5. EN/FR `Tenants.Correction.GlobalAdmin.*` resource keys.
+6. Tests: state, panel component, audit-page integration, start-intent fail-closed, support-safety/parity guards, css a11y guard.
+
 ### Debug Log References
+
+- Local validation runs in **Debug** with the **xUnit v3 executable** fallback. The repo's Release configuration forces package references for Hexalith platform libraries, and the pinned `3.19.0` packages are not on the public feed locally (`NU1102`); the dual-mode setup builds from the present `references/` submodules in Debug, which compiles the exact same source. CI restores the private feed and builds Release with `-warnaserror`.
+- `dotnet build src/Hexalith.Tenants.UI -c Debug -m:1` → 0 warnings / 0 errors.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests -c Debug -m:1` → 0 warnings / 0 errors.
+- `./Hexalith.Tenants.UI.Tests` (full assembly) → Total **807**, Failed 0 (was 757 before this story).
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
 - Story context scopes the work to verifying and enabling global-administrator correction from audit evidence; it does not authorize broad audit/recovery refactoring.
 - Main implementation risks identified: flipping command support without fixed projection confirmation, using tenant detail/member roles for global-admin correction, false success from command status or SignalR, weakening last-admin safety, unsafe platform-governance copy, proof lookup against the wrong tenant scope, duplicate submission, and hidden history mutation language.
+- **Enablement gate (AC1/AC2/AC8):** `TenantAuditPage.CreateGlobalAdministratorCorrectionIntent` enables `HasGlobalAdministratorCommandSupport` only when authorization reflection, both BFF surfaces, and a current fixed global-administrator projection are all present; the start-intent now also fails closed on a missing target user id. Tenant detail, members, and roles are never consulted.
+- **Focused, role-free flow (AC1):** new `GlobalAdministratorCorrectionSnapshot` + `GlobalAdministratorCorrectionPanel` model the preview/submit/confirm/proof lifecycle with no tenant role selector. The panel renders **zero raw `<div>`/`<span>`** (FluentStack + semantic `<section>/<dl>/<p>/<a>`) so the governance div+span budget stays at 219/220.
+- **Fixed routing + one-at-a-time (AC3):** submits reuse the existing `ITenantCommandGateway.Set/RemoveGlobalAdministratorAsync` (fixed `system/global-administrators/global-administrators`); `_isSubmitting` + lifecycle gating prevent duplicate submit.
+- **Projection-confirmed truth (AC4/AC5/AC6):** confirmation requires `GetGlobalAdministratorsAsync` (present for restore, absent for revoke); last-administrator removal is unavailable before submit and `LastGlobalAdministrator`/`GlobalAdministratorAlreadyExists`/`GlobalAdministratorNotFound` stay safe rejections, never false success.
+- **System-scope proof (AC7):** corrective proof is read from `GetTenantAuditAsync("system")` for `GlobalAdministratorSet`/`GlobalAdministratorRemoved` rows; no raw payloads, tokens, or internal ids are rendered.
+- **Accessibility/support-safety (AC10):** terminal-state focus moves to the lifecycle region on Confirmed/Failed, Escape closes (no-commit), live regions are assertive on blocking states, and the panel CSS carries `:focus-visible` + forced-colors + reduced-motion. EN/FR `Tenants.Correction.GlobalAdmin.*` keys added with parity.
+- **Linter/pairing refactor adopted:** the projection refresh was converted from an `OnProjectionRefreshRequested` EventCallback to a `ProjectionRefreshProvider` `Func<Task<T?>>` on both correction panels, so the panel reuses the page's single refreshed projection instead of issuing a duplicate `GetGlobalAdministratorsAsync` query (this also satisfies the Epic 5 projection-refresh cleanup action item).
 
 ### File List
+
+- `src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs` (modified — fail closed on empty global-admin target user id)
+- `src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs` (new — focused global-admin correction state)
+- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor` (new — role-free correction panel)
+- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.css` (new — a11y/forced-colors/reduced-motion)
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` (modified — BFF composition inject, fixed projection load, evidence gate, panel branch, ProjectionRefreshProvider)
+- `src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor` (modified — ProjectionRefreshProvider refactor)
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx` (modified — `Tenants.Correction.GlobalAdmin.*` EN keys)
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx` (modified — `Tenants.Correction.GlobalAdmin.*` FR keys)
+- `tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs` (new)
+- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs` (new)
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionStartIntentTests.cs` (modified — empty-target fail-closed test)
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs` (modified — BFF stub, global-admin gateway stub, two integration tests, extended guard file lists/CSS check)
 
 ### Change Log
 
 - 2026-06-29T15:01:29+02:00 - Created Story 5.7 context and marked it ready for development.
+- 2026-06-29 - Implemented global-administrator correction verification: evidence-based enablement gate, focused role-free correction state + panel, fixed-routing submission, projection-confirmed presence/absence, last-admin hard stop, system-scope corrective proof, EN/FR resources, and focused state/component/integration tests. UI.Tests 807/807 green (Debug, xUnit v3 executable). Status → review.
+
+### Review Findings — BMAD Code Review (2026-06-29)
+
+_Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor, Opus 4.8) of the story 5.7 working-tree delta vs HEAD. All 10 ACs verified substantively satisfied; all 37 literal + dynamic + 14 reason localizer keys verified present with EN/FR parity. Two HIGH security-relevant defects found in the confirm/state-preservation paths._
+
+**Patch (open):**
+
+- [x] [Review][Patch] HIGH — Terminal/blocking correction states are silently reset to a submittable preview on any parent re-render (audit pager Next/Prev keeps the panel open and re-fires `OnParametersSet`). Preserve-guard omits `Rejected/Failed/Degraded/UnableToVerify/AlreadyApplied`; `_intentReference` is computed but unused. Re-arms a rejected platform-authority command (incl. `LastGlobalAdministrator`) and discards the rejection. Fix: rebuild `FromIntent` only when the intent reference changes or the snapshot is null. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:219-244] (trigger: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:357-371) (blind+edge+reviewer)
+- [x] [Review][Patch] HIGH — Confirm-time projection gate is too permissive: `ProjectionIsReadable` accepts `Empty` (incl. `IsAuthorizationScopedEmpty`) and `Stale` with no freshness check, so a revoke is falsely `Confirmed` when the re-queried fixed projection returns empty/auth-scoped-empty (or stale). A successful revoke can never legitimately empty the projection (last-admin is blocked), so `Empty` at confirm is always anomalous. Fix: at confirm, reject `Empty`/auth-scoped-empty for revoke and require `Freshness is Current` (mirror the start gate). [src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:263-294,327-328] (edge+blind)
+- [x] [Review][Patch] MED — `OpenCorrectionAsync` refreshes the tenant projection, never the global-administrator projection, for global-admin intents; the preview/last-admin/freshness decision uses the page-load GA snapshot. Fix: refresh the GA projection (and re-evaluate the enablement gate) when opening a global-admin correction. [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:429-433] (edge+reviewer)
+- [x] [Review][Patch] LOW — `FromIntent` defaults a null `IntendedCommandType` to `SetGlobalAdministrator` (grant) — fail-open toward the authority-granting branch. Fix: fail closed (no command / `UnableToVerify`) on a null command type. [src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:56-57] (blind)
+- [x] [Review][Patch] LOW — Corrective-proof lookup uses `FirstOrDefault` with no recency/uniqueness filter and only page 1 of the system audit — can link an older historical row for the same user, or never find a corrective event beyond page 1. Fix: prefer the most-recent corrective row at/after the correction time; consider paging. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:369-387] (blind+edge)
+- [x] [Review][Patch] LOW — `RefreshStatusAsync` (also the Refresh button handler) has no re-entrancy guard; double-clicking Refresh can interleave two status+projection round-trips on `_snapshot`. Fix: guard with an in-flight flag. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:319-345] (blind)
+- [x] [Review][Patch] LOW — Terminal-state focus only fires on `Confirmed`/`Failed`, not on `Rejected`/`Degraded`/`UnableToVerify`. AC10 + Dev Notes explicitly require terminal-state focus for THIS path (not deferred). Fix: include terminal rejection/degraded states in the focus set. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:255-263] (auditor)
+- [x] [Review][Patch] LOW — Projection refresh now mutates parent page fields off the Blazor dispatcher; the `ProjectionRefreshProvider` refactor dropped the prior `InvokeAsync(...)` marshaling. No crash trigger (no off-dispatcher EventCallback/StateHasChanged), but a dispatcher-hygiene regression in a UI with documented off-dispatcher crash history. Fix: marshal the parent write onto the dispatcher. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:347-350] (blind)
+- [x] [Review][Patch] NIT — `ProofTimestampLabel` formats with `CultureInfo.CurrentCulture`; digit-shaping cultures could diverge from the ASCII timestamp. Use `InvariantCulture`. [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:216-217] (blind)
+- [x] [Review][Patch] NIT — Hard-coded English `CurrentProjectionSnapshotReference` literals in a localized app (latent — not currently rendered). [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:520-523] (blind)
+- [x] [Review][Patch] NIT — Last-admin block counts `projection.Rows.Count`, not distinct user ids; duplicate rows would over-count and bypass the `<= 1` block (defensive; backend backstops). [src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:138,324-325] (edge)
+
+**Deferred (pre-existing / out-of-scope):**
+
+- [x] [Review][Defer] MED — Global-administrator projection pagination ignored (`GlobalAdministratorsRequest` PageSize=20; `HasMore`/cursor never read). For >20 global admins, presence/count are wrong beyond page 1 (restore of 21st+ can stick in ProjectionPending; revoke of 21st+ blocked as "already removed"). Pre-existing query-shape limitation reused by this story; needs a projection-paging design. [src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs] — deferred, pre-existing (edge)
+- [x] [Review][Defer] LOW — No new gateway-routing test added for this story; routing verification leans on the unchanged 4.3/4.4 tests (gateway is unchanged). [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs] — deferred, pre-existing (auditor)
+
+**Dismissed as noise (5):** missing-localization-keys (FALSE POSITIVE — all keys verified present with EN/FR parity; Blind Hunter saw only the diff); `Received`/`Processing` confirm-without-causation (by-design "projection truth, not causation"); dead `Stale` branch in the start gate (unreachable but fail-closed-correct); count+presence shown instead of full admin rows (by-design; full rows on the governance surface); `CorrectionStartPanelTests.cs` modified outside the diff (process artifact; UI.Tests 807/807 green confirms it compiles).
+
+**Resolution (2026-06-29):** All 11 patch findings applied to `GlobalAdministratorCorrectionSnapshot.cs` (P2 confirm-gate hardening, P4 fail-closed command-type, P11 distinct-count), `GlobalAdministratorCorrectionPanel.razor` (P1 intent-keyed rebuild, P5 most-recent-proof ordering, P6 refresh re-entrancy guard, P7 terminal-state focus, P9 invariant timestamp) and `TenantAuditPage.razor` (P3 governing-projection refresh on open, P8 dispatcher-marshalled projection writes, P10 locale-neutral reference tokens). Added 3 regression tests: `Revoke_is_not_confirmed_when_fixed_projection_returns_empty`, `Confirmation_requires_a_current_non_stale_projection`, `Rejected_correction_survives_a_parent_re_render_without_re_arming_submit`. Validation (Debug, xUnit v3 executable per repo convention): UI build 0/0; **UI.Tests 837/837 green** (Release `-warnaserror` is CI-only — local Release fails on `NU1102` private-feed packages, per Dev Notes). The 2 deferred items remain logged in `deferred-work.md`.

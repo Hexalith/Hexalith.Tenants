@@ -1,0 +1,427 @@
+@using Hexalith.Tenants.Contracts.Commands
+@using Hexalith.Tenants.Contracts.Queries
+@using Hexalith.Tenants.UI.Services.Gateways
+@using Hexalith.Tenants.UI.State.GlobalAdministrators
+@using Hexalith.Tenants.UI.State.TenantCommands
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.DependencyInjection
+@inject IStringLocalizer<TenantsResources> Localizer
+@inject IServiceProvider Services
+
+@if (_snapshot is not null)
+{
+    <section class="ga-correction-panel ga-correction-panel--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
+             role="region"
+             aria-labelledby="tenants-correction-title"
+             data-testid="tenants-correction-panel"
+             @onkeydown="HandleKeyDownAsync">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" data-testid="tenants-correction-preview">
+            <header class="ga-correction-panel__header">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem">
+                    <h3 id="tenants-correction-title">@Localizer["Tenants.Correction.Title"]</h3>
+                    <p class="ga-correction-panel__live"
+                       data-testid="tenants-correction-live-region"
+                       aria-live="@LiveRegionMode"
+                       aria-atomic="true">
+                        @StateText
+                    </p>
+                </FluentStack>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-correction-close"
+                              OnClick="CloseAsync">
+                    @Localizer["Tenants.Correction.Close"]
+                </FluentButton>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                <p class="ga-correction-panel__reason"
+                   id="tenants-correction-unavailable"
+                   data-testid="tenants-correction-unavailable-reason"
+                   role="alert">
+                    @UnavailableReason
+                </p>
+            }
+
+            <dl class="ga-correction-panel__fields">
+                <dt>@Localizer["Tenants.Correction.Field.OriginalEvidence"]</dt>
+                <dd data-testid="tenants-correction-original-evidence">@FieldValue(_snapshot.OriginalAuditReference)</dd>
+
+                <dt>@Localizer["Tenants.Correction.Field.Domain"]</dt>
+                <dd data-testid="tenants-correction-domain">@Localizer["Tenants.Correction.Domain.GlobalAdministrators"]</dd>
+
+                <dt>@Localizer["Tenants.Correction.Field.Command"]</dt>
+                <dd data-testid="tenants-correction-command">@Localizer[$"Tenants.Correction.Command.{_snapshot.CommandType}"]</dd>
+
+                <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Scope"]</dt>
+                <dd data-testid="tenants-correction-scope">@Localizer["Tenants.Correction.GlobalAdmin.Preview.Scope.Value"]</dd>
+
+                <dt>@Localizer["Tenants.Correction.PreviewInput.userId"]</dt>
+                <dd data-testid="tenants-correction-target-user">@FieldValue(_snapshot.TargetUserId)</dd>
+
+                <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AdminCount"]</dt>
+                <dd data-testid="tenants-correction-admin-count">@_snapshot.CurrentAdministratorCount</dd>
+
+                <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState"]</dt>
+                <dd data-testid="tenants-correction-current-state">@CurrentStateLabel</dd>
+            </dl>
+
+            <section class="ga-correction-panel__preview" aria-labelledby="tenants-correction-preview-data-heading">
+                <h4 id="tenants-correction-preview-data-heading">@Localizer["Tenants.Correction.Field.PreviewData"]</h4>
+                <dl data-testid="tenants-correction-preview-data">
+                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Consequences"]</dt>
+                    <dd>@ConsequencesText</dd>
+
+                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact"]</dt>
+                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"]</dd>
+
+                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns"]</dt>
+                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value"]</dd>
+
+                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation"]</dt>
+                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value"]</dd>
+
+                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath"]</dt>
+                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value"]</dd>
+                </dl>
+            </section>
+
+            <section class="ga-correction-panel__lifecycle"
+                     @ref="_lifecycleElement"
+                     tabindex="-1"
+                     data-testid="tenants-correction-lifecycle"
+                     aria-labelledby="tenants-correction-state-label">
+                <h4 id="tenants-correction-state-label">@Localizer["Tenants.Correction.Lifecycle.Title"]</h4>
+                <p class="ga-correction-panel__state ga-correction-panel__state--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
+                   data-testid="tenants-correction-state">
+                    @StateText
+                </p>
+                @if (!string.IsNullOrWhiteSpace(SafeMessageText))
+                {
+                    <p data-testid="tenants-correction-safe-message">@SafeMessageText</p>
+                }
+                @if (_snapshot.ProofLink is not null)
+                {
+                    <a href="@ProofHref" data-testid="tenants-correction-proof-link">
+                        @Localizer["Tenants.Correction.Proof.Link", ProofTimestampLabel]
+                    </a>
+                }
+                else if (_snapshot.AuditState is not TenantCommandAuditState.NotStarted)
+                {
+                    <p data-testid="tenants-correction-audit-state">
+                        @Localizer[$"Tenants.Correction.Audit.{_snapshot.AuditState}"]
+                    </p>
+                }
+            </section>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="ga-correction-panel__actions">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-correction-confirm"
+                              Disabled="@IsConfirmDisabled"
+                              OnClick="SubmitAsync">
+                    @Localizer["Tenants.Correction.Confirm.Submit"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-correction-refresh"
+                              Disabled="@(!CanRefresh)"
+                              OnClick="RefreshStatusAsync">
+                    @Localizer["Tenants.Correction.Confirm.Refresh"]
+                </FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-correction-cancel"
+                              OnClick="CloseAsync">
+                    @Localizer["Tenants.Correction.Confirm.Cancel"]
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </section>
+}
+
+@code {
+    private GlobalAdministratorCorrectionSnapshot? _snapshot;
+    private bool _isSubmitting;
+    private bool _isRefreshing;
+    private string? _intentReference;
+    private ElementReference _lifecycleElement;
+    private bool _focusLifecyclePending;
+
+    [Parameter]
+    public TenantCorrectionStartIntent? Intent { get; set; }
+
+    [Parameter]
+    public GlobalAdministratorsSnapshot? CurrentProjection { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public Func<Task<GlobalAdministratorsSnapshot?>>? ProjectionRefreshProvider { get; set; }
+
+    internal GlobalAdministratorCorrectionSnapshot? Snapshot => _snapshot;
+
+    private ITenantCommandGateway? CommandGateway
+        => Services.GetService<ITenantCommandGateway>();
+
+    private ITenantQueryGateway? QueryGateway
+        => Services.GetService<ITenantQueryGateway>();
+
+    // Resolve a localized key first so client-derived blocking copy stays support-safe and localized
+    // (EN/FR); fall back to the gateway-provided SafeMessage, which is already user-facing text.
+    private string? SafeMessageText
+        => _snapshot is null
+            ? null
+            : _snapshot.SafeMessageKey is { } key
+                ? Localizer[key].Value
+                : _snapshot.SafeMessage;
+
+    private string? UnavailableReason
+        => _snapshot is null
+            ? null
+            : SafeMessageText ?? (_snapshot.Intent.UnavailableReasons.Count == 0
+                ? null
+                : string.Join(
+                    " ",
+                    _snapshot.Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value)));
+
+    private bool IsConfirmDisabled
+        => _isSubmitting || _snapshot?.CanSubmit is not true || CommandGateway is null;
+
+    private bool CanRefresh
+        => _snapshot?.HasCommandTracking is true
+        && _snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
+            or TenantCommandLifecycleState.ProjectionPending
+            or TenantCommandLifecycleState.UnableToVerify
+            or TenantCommandLifecycleState.Degraded;
+
+    private string StateText
+        => _snapshot is null ? string.Empty : Localizer[$"Tenants.Correction.State.{_snapshot.LifecycleState}"];
+
+    private string LiveRegionMode
+        => _snapshot?.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
+
+    private string CurrentStateLabel
+        => _snapshot?.TargetCurrentlyPresent is true
+            ? Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present"]
+            : Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent"];
+
+    private string ConsequencesText
+        => _snapshot?.IsRestoreAccessAction is true
+            ? Localizer["Tenants.Correction.GlobalAdmin.Preview.Consequence.Restore"]
+            : Localizer["Tenants.Correction.GlobalAdmin.Preview.Consequence.Revoke"];
+
+    private string ProofHref
+        => _snapshot?.ProofLink is null
+            ? "#"
+            : $"#audit-{Uri.EscapeDataString(_snapshot.ProofLink.CorrectiveAuditReference)}";
+
+    private string ProofTimestampLabel
+        => _snapshot?.ProofLink?.CorrectiveTimestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (Intent is null)
+        {
+            _snapshot = null;
+            _intentReference = null;
+            return;
+        }
+
+        // Rebuild the preview only when a different audit-evidence intent is supplied (or on first
+        // set). An unchanged intent must never reset an existing snapshot on an unrelated parent
+        // re-render (for example an audit pager navigation that keeps this panel open): doing so
+        // would discard a terminal Rejected/Failed/Degraded/UnableToVerify/AlreadyApplied correction
+        // and silently re-arm submission (AC4/AC8).
+        bool intentChanged = !string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal);
+        if (_snapshot is not null && !intentChanged)
+        {
+            return;
+        }
+
+        _intentReference = Intent.OriginalAuditReference;
+        _snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusLifecyclePending)
+        {
+            _focusLifecyclePending = false;
+            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+        }
+    }
+
+    private void SetSnapshot(GlobalAdministratorCorrectionSnapshot snapshot, bool focusTerminalState = false)
+    {
+        _snapshot = snapshot;
+        if (focusTerminalState
+            && _snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
+                or TenantCommandLifecycleState.Failed
+                or TenantCommandLifecycleState.Rejected
+                or TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify
+                or TenantCommandLifecycleState.AlreadyApplied)
+        {
+            _focusLifecyclePending = true;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_snapshot is null || IsConfirmDisabled)
+        {
+            return;
+        }
+
+        _snapshot = _snapshot.RequestSent();
+        _isSubmitting = true;
+
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                _snapshot = _snapshot with
+                {
+                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"],
+                    SafeMessageKey = null,
+                    AuditState = TenantCommandAuditState.MissingSupport,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                };
+                return;
+            }
+
+            TenantCommandSubmissionResult result = _snapshot.CommandType switch
+            {
+                TenantCorrectionCommandType.SetGlobalAdministrator => await gateway
+                    .SetGlobalAdministratorAsync(new SetGlobalAdministrator(_snapshot.TargetUserId), CancellationToken.None)
+                    .ConfigureAwait(false),
+                TenantCorrectionCommandType.RemoveGlobalAdministrator => await gateway
+                    .RemoveGlobalAdministratorAsync(new RemoveGlobalAdministrator(_snapshot.TargetUserId), CancellationToken.None)
+                    .ConfigureAwait(false),
+                _ => TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"]),
+            };
+
+            SetSnapshot(
+                result.State is TenantCommandLifecycleState.Accepted
+                    ? _snapshot.Accepted(result)
+                    : _snapshot.ApplySubmissionFailure(result),
+                focusTerminalState: true);
+
+            if (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        if (_isRefreshing)
+        {
+            return;
+        }
+
+        if (_snapshot?.TryGetTrackingHandle(out TenantCommandTrackingHandle handle) is not true)
+        {
+            return;
+        }
+
+        // Guard against an interleaved second refresh (double-click of the Refresh button, or a refresh
+        // arriving while the submit-driven refresh is still running) writing _snapshot concurrently.
+        _isRefreshing = true;
+        try
+        {
+            ITenantCommandGateway? gateway = CommandGateway;
+            if (gateway is null)
+            {
+                _snapshot = _snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"]));
+                return;
+            }
+
+            TenantCommandStatusResult status = await gateway
+                .GetStatusAsync(handle, CancellationToken.None)
+                .ConfigureAwait(false);
+            _snapshot = _snapshot.ApplyStatus(status);
+
+            GlobalAdministratorsSnapshot? projection = await RefreshProjectionAsync().ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(projection), focusTerminalState: true);
+            if (_snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
+            {
+                TenantAuditRow? proof = await QueryCorrectiveProofAsync().ConfigureAwait(false);
+                _snapshot = _snapshot.WithCorrectiveProof(proof);
+            }
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+    }
+
+    private async Task<GlobalAdministratorsSnapshot?> RefreshProjectionAsync()
+        => ProjectionRefreshProvider is null
+            ? await QueryProjectionAsync().ConfigureAwait(false)
+            : await ProjectionRefreshProvider().ConfigureAwait(false);
+
+    private async Task<GlobalAdministratorsSnapshot?> QueryProjectionAsync()
+    {
+        if (_snapshot is null)
+        {
+            return null;
+        }
+
+        if (QueryGateway is null)
+        {
+            return CurrentProjection;
+        }
+
+        return await QueryGateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<TenantAuditRow?> QueryCorrectiveProofAsync()
+    {
+        if (_snapshot is null || QueryGateway is null)
+        {
+            return null;
+        }
+
+        // The corrective proof lives in the fixed system-scope audit, never tenant-domain audit.
+        TenantAuditSnapshot audit = await QueryGateway
+            .GetTenantAuditAsync(new TenantAuditRequest("system"), null, CancellationToken.None)
+            .ConfigureAwait(false);
+
+        string correctiveEventType = _snapshot.CorrectiveEventType;
+
+        // Prefer the most-recent matching corrective row. The system-scope audit naturally accumulates
+        // historical grant/remove rows for a user, so an unordered FirstOrDefault could link an older,
+        // unrelated event; the correction's own corrective event is the newest of its type for the target.
+        return audit.Rows
+            .Where(row =>
+                string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
+                && !string.Equals(row.EventReference, _snapshot.OriginalAuditReference, StringComparison.Ordinal)
+                && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
+                && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal))
+            .OrderByDescending(row => row.Timestamp)
+            .FirstOrDefault();
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (string.Equals(args.Key, "Escape", StringComparison.Ordinal))
+        {
+            await CloseAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task CloseAsync()
+        => await InvokeAsync(() => OnClose.InvokeAsync()).ConfigureAwait(false);
+
+    private static string FieldValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "-" : value;
+}
