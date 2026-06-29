@@ -2,6 +2,11 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <!-- Versions for the package-only fallback path (when a Hexalith dependency submodule is not checked out).
+         Keep these aligned with the checked-out submodule revision so source builds and package builds agree:
+         currently Hexalith.EventStore v3.19.0 and Hexalith.Memories v1.31.1. -->
+    <HexalithEventStoreVersion>3.19.0</HexalithEventStoreVersion>
+    <HexalithMemoriesVersion>1.31.1</HexalithMemoriesVersion>
   </PropertyGroup>
   <ItemGroup Label="Dapr">
     <PackageVersion Include="Dapr.Client" Version="1.18.4" />
@@ -54,6 +59,16 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+  </ItemGroup>
+  <ItemGroup Label="Hexalith platform (package-only fallback; ProjectReference is used when the submodule is present)">
+    <PackageVersion Include="Hexalith.EventStore.Contracts" Version="$(HexalithEventStoreVersion)" />
+    <PackageVersion Include="Hexalith.EventStore.DomainService" Version="$(HexalithEventStoreVersion)" />
+    <PackageVersion Include="Hexalith.EventStore.Aspire" Version="$(HexalithEventStoreVersion)" />
+    <PackageVersion Include="Hexalith.EventStore.Testing" Version="$(HexalithEventStoreVersion)" />
+    <PackageVersion Include="Hexalith.EventStore.Testing.Integration" Version="$(HexalithEventStoreVersion)" />
+    <PackageVersion Include="Hexalith.Memories.Contracts" Version="$(HexalithMemoriesVersion)" />
+    <PackageVersion Include="Hexalith.Memories.Client.Rest" Version="$(HexalithMemoriesVersion)" />
+    <PackageVersion Include="Hexalith.Memories.Aspire" Version="$(HexalithMemoriesVersion)" />
   </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="bunit" Version="2.8.4-preview" />
