@@ -95,7 +95,7 @@ When an access-impacting action is considered, the UI must show all four of:
 
 ### 3.2 Freshness measurement is read-model evidence only
 
-Freshness is bound to read-model evidence only: a timestamp, a projection version, or an ETag. The freshness primitive is `If-None-Match` → `304 Not Modified`, served by `CachingProjectionActor`. If none of these can be measured, the freshness state is `unknown`. [Source: `_bmad-output/project-context.md#API Surface`; `docs/tenants-ui-operations-shell-spec.md#Truth-State Vocabulary (referenced, not redefined)`]
+Freshness is bound to read-model evidence only: a timestamp, a projection version, or an ETag. The freshness primitive is `If-None-Match` → `304 Not Modified`, served by the REST-backed Tenants read endpoints through in-process query handlers and read-model metadata. If none of these can be measured, the freshness state is `unknown`. [Source: `_bmad-output/project-context.md#Domain, Eventing & Framework Rules`; `_bmad-output/planning-artifacts/architecture.md#API & Communication Patterns`; `docs/tenants-ui-operations-shell-spec.md#Truth-State Vocabulary (referenced, not redefined)`]
 
 The Freshness Gate introduces **no backend "freshness" or "command status" endpoint**; it reads only the existing read endpoints (§8).
 

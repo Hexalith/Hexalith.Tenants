@@ -580,9 +580,12 @@ E2E in its own tier.
   shared patterns.
 
 **Pattern Enforcement:** bUnit asserts non-collapse + the six states + no-color-only; Playwright
-asserts the six required acceptance scenarios (stale projection, rejected command, unknown
-confirmation, audit unavailable, last-owner warning, permission-missing) keyed on `data-testid`; a
-guard test fails any surface that references a raw state literal instead of the Vocabulary library.
+asserts the required acceptance scenarios (stale projection, rejected command, unknown
+confirmation, audit unavailable, last-owner warning, permission-missing, command accepted but still
+projection-pending, focus escape/cancel no-commit, and data unavailable but not authorization-denied)
+keyed on `data-testid`; a guard test fails any surface that references a raw state literal instead of
+the Vocabulary library. Command-flow tests must prove sibling command surfaces stay unavailable
+through `accepted` and `projection_pending` until projection truth or a terminal non-pending state.
 Pattern changes are recorded here + in `project-context.md`.
 
 ### Pattern Examples

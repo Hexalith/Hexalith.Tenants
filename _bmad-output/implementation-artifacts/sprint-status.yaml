@@ -76,6 +76,7 @@ development_status:
   3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
   3-3-set-tenant-configuration-key-value-with-consequence-preview: done
   3-4-remove-tenant-configuration-key-with-consequence-preview: done
+  3-5-tenant-query-gateway-rest-routing: done
   epic-3-retrospective: done
 
   # --- Epic 4: Global Administrator Governance ---
@@ -95,6 +96,7 @@ development_status:
   5-5-start-forward-correction-from-audit-evidence: done
   5-6-preview-and-confirm-correction-with-linked-proof: done
   5-7-global-administrator-correction-verification: ready-for-dev
+  5-8-correction-projection-refresh-cleanup: ready-for-dev
   epic-5-retrospective: done
 
 action_items:
@@ -132,7 +134,7 @@ action_items:
     epic: 3
     action: "Reconcile Epic 3 story tracking with the completed Story 3.5 defect-fix artifact."
     owner: "Amelia (Developer) and Paige (Technical Writer)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-command-lock-retention
     epic: 3

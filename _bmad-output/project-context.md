@@ -103,14 +103,21 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Testing Rules
 
-- xUnit **v3** + **Shouldly** (`ShouldBe`, `ShouldThrow`) — **never raw `Assert.*`**. NSubstitute for mocks
-- Test classes/files are **`{Class}Tests.cs` (plural)** — differs from Commons' singular `{Class}Test.cs`; methods use BDD names like `CreateTenant_with_no_prior_state_produces_TenantCreated`
-- Use **`InMemoryTenantService`** (`Hexalith.Tenants.Testing`/Fakes) to test domain logic in isolation — it wraps `TenantAggregate.Handle` + `TenantState.Apply` with no infrastructure; `TenantTestHelpers` builds command envelopes; `InMemoryTenantProjection` is the read-model double. Reused across `Server.Tests`/`Testing.Tests`
-- **Test tiers (from CI):** Tier 1 unit — `Contracts.Tests`, `Client.Tests`, `Testing.Tests`, `Sample.Tests` (no infra); **Tier 2 — `Server.Tests`** (needs `dapr init`, **blocking**); **Tier 3 — `IntegrationTests` (`Category!=Performance`)** (Aspire + Testcontainers, separate **non-blocking** `aspire-tests` job, `continue-on-error`); **Performance (`Category=Performance`)** — nightly schedule only
-- **Run test projects individually** (CI invokes `dotnet test <project>` per project); use `.slnx` for restore/build only
-- **Integration tests must assert state-store end-state** — e.g. `AssertPersistedOnceAsync<TenantCreated>(...)` checks the persisted `EventEnvelope` (`AggregateId`, sequence) after the DAPR round-trip. HTTP 201/202 alone is a smoke test, not an integration test
-- **Coverage gates (`scripts/validate-coverage.py`):** line coverage **> 80%** (union across reports, scoped to the **5 package projects only** — host/AppHost/ServiceDefaults/samples excluded); **100% branch coverage** on isolation/auth files: `TenantAggregate.cs`, `GlobalAdministratorsAggregate.cs`, `ChangeUserRoleValidator.cs`. Add new isolation/auth logic to the gate
-- All configured tests must pass before a story is complete
+- Use xUnit v3 and Shouldly (`ShouldBe`, `ShouldThrow`, `Should.ThrowAsync`); do not use raw `Assert.*` in new tests. A few old scaffolding smoke tests still exist and should not be copied.
+- Use NSubstitute for mocks and bUnit for Blazor/Fluent components. Fluent component tests should derive from the local Fluent bUnit setup and use loose JS interop when rendering Fluent UI.
+- Test classes/files use plural `{Class}Tests.cs`; behavior names should stay descriptive and scenario-focused.
+- Run tests per project, matching CI. Use `.slnx` for restore/build only; do not make solution-level `dotnet test` the default.
+- CI Tier 1 blocking tests: `Contracts.Tests`, `Client.Tests`, `Testing.Tests`, `UI.Tests`, and `Sample.Tests`.
+- CI Tier 2 blocking tests: `Server.Tests` after `dapr init`.
+- CI Tier 3 Aspire tests: `IntegrationTests` with `Category!=Performance`, non-blocking `continue-on-error`; `Category=Performance` runs only on nightly schedule.
+- Integration tests must assert persisted state-store/read-model end state, headers, projection metadata, or topology behavior. HTTP status alone is only a smoke signal.
+- Coverage gate uses unioned Cobertura reports. Overall line coverage is `>80%` scoped to four package projects: `Contracts`, `Client`, `Server`, `Testing`. The published `.Aspire` helper is not in the current line-coverage scope.
+- Branch coverage gate is `100%` for isolation/auth files: `TenantAggregate.cs`, `GlobalAdministratorsAggregate.cs`, and `ChangeUserRoleValidator.cs`. Add new isolation/auth logic to the gate.
+- Domain logic tests should prefer `Hexalith.Tenants.Testing`: `InMemoryTenantService`, `TenantTestHelpers`, `TenantIsolationTestHelpers`, and `InMemoryTenantProjection`.
+- UI command tests must cover validation before submit, fail-closed availability, projection-confirmed success, non-collapse lifecycle states, SignalR nudge-only behavior, support-safe copy, EN/FR resource parity, and focus/live-region behavior where relevant.
+- Query/freshness tests must cover `X-Hexalith-Is-Stale`, `X-Hexalith-Served-At`, `X-Hexalith-Projection-Version`, `304` with freshness headers, unknown freshness, stale freshness, and conservative threshold behavior.
+- If `dotnet test` hits the known .NET 10 Microsoft.Testing.Platform/VSTest incompatibility locally, use the built xUnit v3 executable fallback for that test assembly and record the fallback.
+- All configured tests relevant to a story must pass before completion; document any blocked validation with the exact blocker.
 
 ### Code Quality & Style Rules
 

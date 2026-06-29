@@ -1002,6 +1002,11 @@ So that tenant records can be maintained without hiding validation errors or pro
 
 Authorized users can safely control tenant lifecycle and tenant configuration while preserving high-impact safety rules and projection truth.
 
+**Completed defect-fix record:** Story 3.5, `Tenant Query Gateway REST Routing`, is a completed Epic 3
+defect-fix story created by Correct Course. It is not part of the original FR15/FR16/FR17 feature
+list, but it is part of Epic 3 readiness because it retired the failed projection-actor read path and
+restored REST-backed Tenants reads with freshness/ETag behavior.
+
 ### Story 3.1: Tenant Lifecycle Command Availability and Blocked-State Guardrail
 
 As an authorized global administrator,
@@ -1703,3 +1708,43 @@ So that platform authority recovery cannot be inferred from tenant-domain correc
 **When** verification is run
 **Then** unit/component tests cover global-administrator correction start enablement, fixed-scope command selection, no tenant-role UI, grant/remove submission, projection-confirmed presence/absence, last-admin pre-submit blocking, `LastGlobalAdministrator`, `GlobalAdministratorAlreadyExists`, `GlobalAdministratorNotFound`, proof linking, fail-closed incomplete evidence, forbidden terminology, and no history mutation
 **And** focused UI or integration tests verify keyboard complete-or-exit, focus return and terminal-state focus for this correction path, live-region politeness, forced-colors rendering, responsive safety, support-safe copy, stable selectors, and fixed command gateway routing.
+
+### Story 5.8: Correction Projection Refresh Cleanup
+
+As an authorized operator,
+I want correction status refresh to use a single authoritative projection refresh,
+So that correction flows stay efficient without weakening projection-confirmed success or proof lookup.
+
+**Requirements:** FR24, FR25; NFR1, NFR3, NFR5, NFR8; Additional correction status refresh efficiency and non-collapse requirements; UX-DR3, UX-DR25, UX-DR28.
+
+**Acceptance Criteria:**
+
+**Given** a correction status refresh runs after accepted or projection-pending command status
+**When** projection confirmation is required
+**Then** the component uses one authoritative refreshed projection snapshot for confirmation
+**And** it does not issue both a parent page projection refresh and a second direct tenant projection query for the same status refresh.
+
+**Given** the refreshed projection confirms the intended correction
+**When** proof lookup runs
+**Then** support-safe corrective audit proof lookup still executes after projection confirmation
+**And** command status or SignalR alone still cannot prove correction success.
+
+**Given** projection evidence is missing, stale, degraded, or unavailable
+**When** the correction lifecycle renders
+**Then** the UI preserves last-confirmed projection evidence, fails closed where required, and does not show success.
+
+**Given** correction status reaches confirmed or failed terminal lifecycle states
+**When** the panel updates
+**Then** terminal focus behavior remains directed to the correction lifecycle region
+**And** close/cancel launcher focus behavior remains unchanged.
+
+**Given** the cleanup is implemented
+**When** tests run
+**Then** focused component/state tests prove projection refresh call count, projection-confirmed success, delayed proof behavior, terminal focus, and no raw payload/token/correlation leakage.
+
+**Test Contract:**
+
+**Given** this story is complete
+**When** verification is run
+**Then** unit/component tests cover single authoritative projection refresh use, no duplicate tenant projection query during one status refresh, projection-confirmed correction, delayed proof behavior, missing/degraded projection evidence, terminal lifecycle focus, and no history rewrite
+**And** focused UI tests verify support-safe copy, prohibited recovery terminology, stable selectors, live-region politeness, and no false Success.
