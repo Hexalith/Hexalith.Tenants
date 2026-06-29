@@ -23,7 +23,7 @@
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\.gitmodules') and Exists('$(MSBuildThisFileDirectory)..\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\..\src\Hexalith.FrontComposer.Shell')">$(MSBuildThisFileDirectory)..\..</HexalithFrontComposerRoot>
         <HexalithFrontComposerRoot Condition="'$(HexalithFrontComposerRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.FrontComposer</HexalithFrontComposerRoot>
-        <!-- Auto-detect Hexalith.Memories location (consumed via source for the tenant search index):
+        <!-- Auto-detect Hexalith.Memories location for tenant search index integration:
              1. Memories is a references/ submodule inside Tenants (standalone)
              2. Memories and Tenants are sibling submodules in a references/ folder or app repo
              3. Fallback: assume submodule inside Tenants references/ -->
@@ -31,13 +31,13 @@
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\references\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.Memories</HexalithMemoriesRoot>
-        <!-- Submodule-presence flags: 'true' when the dependency is checked out as source, so cross-repo
-             references build from the project (ProjectReference); otherwise they fall back to the published
-             NuGet package (PackageReference) pinned in Directory.Packages.props. The $(Hexalith*Root) properties
-             above ALWAYS resolve to a path (note the fallback on the last line of each block), so presence must be
-             detected via Exists of a canonical project file, NOT '$(Hexalith*Root)' != ''. -->
-        <HexalithEventStoreFromSource Condition="Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
-        <HexalithMemoriesFromSource Condition="Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
+        <!-- Debug source flags: Debug builds use ProjectReference when dependency source is present;
+             Release builds use the published NuGet packages pinned in Directory.Packages.props. The
+             $(Hexalith*Root) properties above ALWAYS resolve to a path (note the fallback on the last
+             line of each block), so source availability must be detected via Exists of a canonical
+             project file, NOT '$(Hexalith*Root)' != ''. -->
+        <HexalithEventStoreFromSource Condition="'$(Configuration)' == 'Debug' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
+        <HexalithMemoriesFromSource Condition="'$(Configuration)' == 'Debug' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
     </PropertyGroup>
 
     <PropertyGroup>

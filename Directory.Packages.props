@@ -2,9 +2,10 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <!-- Versions for the package-only fallback path (when a Hexalith dependency submodule is not checked out).
-         Keep these aligned with the checked-out submodule revision so source builds and package builds agree:
-         currently Hexalith.EventStore v3.19.0 and Hexalith.Memories v1.31.1. -->
+    <!-- Versions for the package path. Debug builds use ProjectReference when dependency source is present;
+         Release builds use these packages. Keep them aligned with the checked-out submodule revision so
+         source builds and package builds agree: currently Hexalith.EventStore v3.19.0 and
+         Hexalith.Memories v1.31.1. -->
     <HexalithEventStoreVersion>3.19.0</HexalithEventStoreVersion>
     <HexalithMemoriesVersion>1.31.1</HexalithMemoriesVersion>
   </PropertyGroup>
@@ -60,9 +61,11 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
-  <ItemGroup Label="Hexalith platform (package-only fallback; ProjectReference is used when the submodule is present)">
+  <ItemGroup Label="Hexalith platform (Debug source; Release package)">
+    <PackageVersion Include="Hexalith.EventStore.Client" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.Contracts" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.DomainService" Version="$(HexalithEventStoreVersion)" />
+    <PackageVersion Include="Hexalith.EventStore.Server" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.Aspire" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.Testing" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.Testing.Integration" Version="$(HexalithEventStoreVersion)" />

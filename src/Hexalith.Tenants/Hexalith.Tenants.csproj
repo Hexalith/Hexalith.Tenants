@@ -24,7 +24,7 @@
          package fallback: building this host requires the EventStore submodule. This host is itself an app
          (a container image), not one of the published Tenants library packages, so that is acceptable. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj" />
-    <!-- Source when the EventStore submodule is checked out; published NuGet package otherwise. -->
+    <!-- Debug source when available; Release uses the published EventStore DomainService package. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.DomainService\Hexalith.EventStore.DomainService.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.DomainService" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
   </ItemGroup>

@@ -7,7 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants\Hexalith.Tenants.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.AppHost\Hexalith.Tenants.AppHost.csproj" />
-    <!-- Source when the EventStore submodule is checked out; published NuGet package otherwise. -->
+    <!-- Debug source when available; Release uses the published EventStore Testing packages. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing\Hexalith.EventStore.Testing.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Testing" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
     <!-- Reusable DAPR/Aspire integration-test harness (sidecar bootstrap, endpoint resolution,

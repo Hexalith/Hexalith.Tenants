@@ -8,10 +8,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Client\Hexalith.Tenants.Client.csproj" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
-    <ProjectReference
-      Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.DomainService\Hexalith.EventStore.DomainService.csproj" />
-    <!-- SearchIndexEntryChanged contract for the Memories search-index publisher: source when the Memories
-         submodule is checked out, published NuGet package otherwise. -->
+    <!-- Debug source when available; Release uses the published EventStore DomainService package. -->
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.DomainService\Hexalith.EventStore.DomainService.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.EventStore.DomainService" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+    <!-- SearchIndexEntryChanged contract for the Memories search-index publisher: Debug source when
+         available; Release uses the published Memories Contracts package. -->
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj" Condition="'$(HexalithMemoriesFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.Memories.Contracts" Condition="'$(HexalithMemoriesFromSource)' != 'true'" />
   </ItemGroup>

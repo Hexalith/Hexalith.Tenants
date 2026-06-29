@@ -17,7 +17,7 @@
          image, not a published package) requires the FrontComposer submodule to build. -->
     <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj" />
     <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj" />
-    <!-- Memories search index (consumed via submodule source, like EventStore/FrontComposer). The BFF
+    <!-- Memories search index (Debug source when available; Release uses published Memories packages). The BFF
          search read path calls MemoriesClient.SearchAsync; rows are still hydrated via the ETag-fresh
          tenant detail path. Never reference the [Experimental] ingestion APIs from product code. -->
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj" Condition="'$(HexalithMemoriesFromSource)' == 'true'" />
