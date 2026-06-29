@@ -121,13 +121,21 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Code Quality & Style Rules
 
-- **`.slnx` only** (`Hexalith.Tenants.slnx`) — never create/use `.sln`; never run solution-level `dotnet test`
-- `.editorconfig` sets `CA1062`/`CA1822`/`CA2007` to **warning** ("for scaffolding phase"); `TreatWarningsAsErrors` + CI `-warnaserror` promote them to build-breakers; `CA1014` disabled. **No SonarAnalyzer/StyleCop/Roslynator packages** (EventStore model, unlike Commons)
-- `RestoreBuildInParallel=false` (`Directory.Solution.props`) — builds are intentionally serialized; don't "fix" it
-- Containers via **.NET SDK container support — no Dockerfiles**. Only the host (`src/Hexalith.Tenants`) opts in (`EnableContainer=true`, `ContainerRepository=tenants` → `registry.hexalith.com/tenants`); defaults (alpine, non-root `app`, port 8080, OCI labels) in `Directory.Build.targets`. The 5 libraries ship as NuGet packages, not images
-- The host references the EventStore **web host** project (known TODO) → `ErrorOnDuplicatePublishOutputFiles=false` is intentional; Tenants' own `appsettings` win
-- **Never add package versions to `.csproj`** — all in `Directory.Packages.props`; `.csproj` uses `<PackageReference Include="…" />` without `Version`
-- **Submodules: root-declared under `references/` only** (`references/Hexalith.EventStore`, `references/Hexalith.Commons`, `references/Hexalith.AI.Tools`, `references/Hexalith.FrontComposer`, `references/Hexalith.Builds`, `references/Hexalith.Memories`, `references/Hexalith.PolymorphicSerializations`). Never `--init --recursive` or initialize nested submodules; never modify submodule files without explicit approval (shared across Hexalith repos). **`Hexalith.Memories`** is consumed via source by `Hexalith.Tenants.UI` (`Hexalith.Memories.Contracts` + `Hexalith.Memories.Client.Rest`, for the Memories-backed tenant search) and by `samples/Hexalith.Tenants.Sample` + the AppHost; `$(HexalithMemoriesRoot)` is auto-detected in `Directory.Build.props`. `Hexalith.PolymorphicSerializations` may be pulled transitively. **Only ever call non-`[Experimental]` `MemoriesClient` APIs** (`SearchAsync` is safe; `IngestAsync`/`CreateTenantAsync` are `[Experimental("HXL001")]` and break the build)
+- Use `Hexalith.Tenants.slnx` only. Do not create `.sln` files, and do not run solution-level `dotnet test` as the default validation path.
+- Keep package versions centralized in `Directory.Packages.props`; `.csproj` files should use `<PackageReference Include="..." />` without `Version`.
+- Respect intentional serialized builds from `MSBuild.rsp` and `Directory.Solution.*` (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`). Do not "fix" this into parallel restore/build.
+- Root defaults make warnings build-breaking: `TreatWarningsAsErrors=true`, CI `-warnaserror`, nullable enabled, implicit usings enabled, latest language version. Fix analyzer findings instead of suppressing them casually.
+- Analyzer policy is intentionally lightweight. Do not add SonarAnalyzer, StyleCop, Roslynator, or formatting packages unless explicitly requested.
+- Containers use .NET SDK container support, not Dockerfiles. Only `src/Hexalith.Tenants` is the container app (`EnableContainer=true`, `ContainerRepository=tenants`); libraries ship as NuGet packages.
+- Published package surface is exactly five packages: `Contracts`, `Client`, `Server`, `Testing`, and `Aspire`. `Hexalith.Tenants` and `Hexalith.Tenants.UI` are container/application projects, not NuGet packages.
+- Debug builds may use source `ProjectReference`s for available Hexalith libraries; Release builds should consume package-capable shared libraries through NuGet package references.
+- Source-only shared references are intentional where packages are not yet available, such as EventStore web host and FrontComposer Contracts/Shell. Do not convert them blindly.
+- The host's `ErrorOnDuplicatePublishOutputFiles=false` is intentional while it references the EventStore web host; Tenants appsettings should win.
+- Keep Tenants domain-focused. Do not add reusable hosting, serialization, persistence, UI scaffolding, test harness, or cross-domain boilerplate here when it belongs in `Hexalith.EventStore`, `Hexalith.FrontComposer`, `Hexalith.Commons`, `Hexalith.Builds`, or another shared module.
+- Submodules are root-declared under `references/` only. Never use recursive submodule init, and do not modify submodule files without explicit approval.
+- Use MSBuild root properties such as `$(HexalithEventStoreRoot)`, `$(HexalithFrontComposerRoot)`, and `$(HexalithMemoriesRoot)`; do not hardcode local absolute paths.
+- Only call non-experimental Memories APIs from Tenants. `SearchAsync` is safe; experimental ingestion/tenant creation APIs should not be used from this repo.
+- Do not add copyright/license headers to new files.
 
 ### Development Workflow Rules
 
