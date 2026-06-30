@@ -267,3 +267,10 @@ action_items:
     status: done
     source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
     resolution_source: "_bmad-output/project-context.md"
+  - id: deferred-work-2026-06-30-tenants-owned-actionable
+    epic: 5
+    action: "Bring the tenant-domain correction path (5.6/5.8) and audit-page lifecycle to parity with the shipped global-administrator hardening: JSDisconnectedException focus guards on both correction panels, page-load global-admin enrichment guard, tenant terminal-state focus parity, concurrent-open generation guard, tenant confirm fail-closed on non-Current freshness, and tenant corrective-proof time-tie-back + invariant culture. Closed the 5.7 gateway-routing-test item (already covered) and the create freshness-gate item (restored to Current-or-Unknown). UI.Tests 871/871; Debug TreatWarningsAsErrors 0/0; Release -warnaserror blocked locally by NU1102 (unpublished pinned package). Pagination >20, EventCallback->Func watch-item, ETag special-char, IA-blocked trio, and cross-submodule handoffs kept deferred."
+    owner: "Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/deferred-work.md"
+    resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-deferred-work-tenants-owned.md"

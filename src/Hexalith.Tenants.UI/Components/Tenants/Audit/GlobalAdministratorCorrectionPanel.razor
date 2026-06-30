@@ -5,6 +5,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
@@ -280,7 +281,14 @@
         if (_focusLifecyclePending)
         {
             _focusLifecyclePending = false;
-            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            try
+            {
+                await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit dropped between the terminal SetSnapshot and this render; focus is no longer observable.
+            }
         }
     }
 

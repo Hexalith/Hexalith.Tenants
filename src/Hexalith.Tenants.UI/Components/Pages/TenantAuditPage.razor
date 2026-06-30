@@ -2,8 +2,10 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantDetail
+@using Hexalith.EventStore.Client.Gateway
 @using Microsoft.JSInterop
 @using System.Globalization
+@using System.Text.Json
 @implements IAsyncDisposable
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
@@ -172,6 +174,7 @@
     private TenantAuditReceipt? _selectedReceipt;
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
+    private int _correctionOpenGeneration;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private readonly Dictionary<string, TenantRole> _selectedCorrectionRoles = new(StringComparer.Ordinal);
@@ -333,7 +336,19 @@
         await RefreshTenantProjectionAsync().ConfigureAwait(false);
         if (_snapshot.Rows.Any(IsGlobalAdministratorRow))
         {
-            await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+            // Page-load enrichment only: the audit list already rendered. A transport/parse fault that
+            // escapes the gateway's EventStoreGatewayException mapping must degrade this supplementary
+            // global-administrator evidence, not tear down the audit page. The confirm-time path
+            // (OpenCorrectionAsync / the panel ProjectionRefreshProvider) keeps propagating so a correction
+            // never silently confirms on a failed read.
+            try
+            {
+                await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is EventStoreGatewayException or HttpRequestException or JsonException)
+            {
+                // Supplementary evidence unavailable; the audit page stays usable.
+            }
         }
 
         if (_snapshot.Kind is TenantAuditSurfaceKind.ListRefreshed)
@@ -431,6 +446,11 @@
 
     private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
     {
+        // Guard against out-of-order completion: two rapid opens each await a projection refresh, and the
+        // earlier one can resolve last. Capturing a generation synchronously (before the first await, on the
+        // renderer dispatcher) lets only the newest open apply its intent.
+        int generation = ++_correctionOpenGeneration;
+
         // Refresh the projection that actually governs this correction so the panel's preview,
         // last-administrator hard stop, and present/absent evaluation run against current evidence:
         // the fixed global-administrator projection for platform-authority corrections, tenant detail
@@ -449,6 +469,11 @@
         // context (dispatcher hygiene — this UI has documented off-dispatcher circuit-crash history).
         await InvokeAsync(() =>
         {
+            if (generation != _correctionOpenGeneration)
+            {
+                return; // A newer correction open superseded this one while its projection refreshed.
+            }
+
             _activeCorrectionIntent = intent;
             _activeCorrectionFocusReference = intent.OriginalAuditReference;
         }).ConfigureAwait(false);
@@ -576,7 +601,12 @@
         // Assign on the renderer's dispatcher: this also runs as a correction panel
         // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
         await InvokeAsync(() => _tenantDetailSnapshot = snapshot).ConfigureAwait(false);
-        return snapshot?.Detail;
+
+        // Confirm-time provider contract: only a Current (fresh, Ready) projection is admissible as
+        // correction proof. A Stale/Degraded/Unknown snapshot returns null so the panel's
+        // ConfirmProjection(null) fails closed instead of confirming a tenant correction off stale evidence
+        // (parity with the global-administrator panel's Freshness=Current confirm gate).
+        return snapshot?.Freshness is ReadModelFreshnessState.Current ? snapshot.Detail : null;
     }
 
     // Always re-read the fixed platform-authority projection. This is also the correction panel's

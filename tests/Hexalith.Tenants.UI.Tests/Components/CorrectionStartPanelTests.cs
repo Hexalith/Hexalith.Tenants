@@ -414,6 +414,97 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
     }
 
+    [Fact]
+    public void Panel_rejected_terminal_state_moves_focus_to_lifecycle()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        // Submission is accepted, but the command status comes back Rejected. Before the terminal-focus
+        // parity fix the panel moved focus to the lifecycle region only for Confirmed/Failed; every other
+        // terminal state (Rejected here) silently left focus where it was. Now all terminal states move it,
+        // matching the global-administrator correction panel.
+        StubTenantCommandGateway commandGateway = new()
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Rejected, EventCount: 0),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+        int focusInvocationCount = JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Rejected));
+        cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
+            invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
+    }
+
+    [Fact]
+    public void Panel_does_not_confirm_when_projection_refresh_provider_returns_no_fresh_projection()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new();
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+
+        // The audit page provider returns null whenever the refreshed tenant projection is not Current
+        // (Stale/Degraded/Unknown). A null provider result must fail closed: the correction stays
+        // projection-pending, never confirming off stale evidence, focuses Refresh, and links no proof.
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail())
+            .Add(component => component.ProjectionRefreshProvider, () => Task.FromResult<TenantDetail?>(null)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => commandGateway.StatusHandles.ShouldHaveSingleItem());
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending));
+        cut.Instance.Snapshot!.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Panel_proof_lookup_ignores_audit_row_not_newer_than_the_original_event()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new();
+
+        // The only candidate corrective row shares the original event's timestamp (10:00:00); it is not
+        // strictly newer, so it cannot be causal proof of THIS correction. The time-tie-back lookup must
+        // reject it and report audit evidence as delayed rather than linking an unrelated historical row.
+        StubTenantQueryGateway queryGateway = new(
+            Detail(new TenantMember("target-user", TenantRole.TenantReader)),
+            Audit("event-not-newer", "UserAddedToTenant"));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+
+        // The corrective-proof audit query is now lower-bounded by the original event timestamp.
+        queryGateway.AuditRequests.ShouldHaveSingleItem().From.ShouldBe(
+            DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture));
+    }
+
     private static TenantCorrectionStartContext Context(
         TenantAuditRow row,
         TenantRole? intendedRole = null,

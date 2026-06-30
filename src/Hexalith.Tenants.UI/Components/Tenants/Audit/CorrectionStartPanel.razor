@@ -4,6 +4,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
@@ -281,7 +282,7 @@
             : $"#audit-{Uri.EscapeDataString(_snapshot.ProofLink.CorrectiveAuditReference)}";
 
     private string ProofTimestampLabel
-        => _snapshot?.ProofLink?.CorrectiveTimestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+        => _snapshot?.ProofLink?.CorrectiveTimestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
 
     protected override void OnParametersSet()
     {
@@ -323,7 +324,14 @@
         if (_focusLifecyclePending)
         {
             _focusLifecyclePending = false;
-            await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            try
+            {
+                await _lifecycleElement.FocusAsync().ConfigureAwait(false);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit dropped between the terminal SetSnapshot and this render; focus is no longer observable.
+            }
         }
     }
 
@@ -354,7 +362,12 @@
     {
         _snapshot = snapshot;
         if (focusTerminalState
-            && _snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Failed)
+            && _snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
+                or TenantCommandLifecycleState.Failed
+                or TenantCommandLifecycleState.Rejected
+                or TenantCommandLifecycleState.Degraded
+                or TenantCommandLifecycleState.UnableToVerify
+                or TenantCommandLifecycleState.AlreadyApplied)
         {
             _focusLifecyclePending = true;
         }
@@ -515,8 +528,15 @@
             return null;
         }
 
+        // Do not infer proof from merely-similar historical rows. Without a parseable original timestamp,
+        // the UI cannot establish even a weak causal lower bound, so it reports audit evidence as delayed.
+        if (!TryParseOriginalTimestamp(_snapshot.Intent, out DateTimeOffset originalTimestamp))
+        {
+            return null;
+        }
+
         TenantAuditSnapshot audit = await QueryGateway
-            .GetTenantAuditAsync(new TenantAuditRequest(_snapshot.TenantId), null, CancellationToken.None)
+            .GetTenantAuditAsync(new TenantAuditRequest(_snapshot.TenantId, From: originalTimestamp), null, CancellationToken.None)
             .ConfigureAwait(false);
         string correctiveEventType = _snapshot.Intent.IntendedCommandType switch
         {
@@ -525,11 +545,34 @@
             _ => string.Empty,
         };
 
-        return audit.Rows.FirstOrDefault(row =>
-            string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
-            && !string.Equals(row.EventReference, _snapshot.OriginalAuditReference, StringComparison.Ordinal)
-            && string.Equals(row.TenantId, _snapshot.TenantId, StringComparison.Ordinal)
-            && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal));
+        // The corrective event must be NEWER than the original audit evidence being corrected, so an older
+        // or same-instant historical row with the same type/tenant/target is never linked as proof.
+        return audit.Rows
+            .Where(row =>
+                string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
+                && !string.Equals(row.EventReference, _snapshot.OriginalAuditReference, StringComparison.Ordinal)
+                && string.Equals(row.TenantId, _snapshot.TenantId, StringComparison.Ordinal)
+                && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal)
+                && row.Timestamp > originalTimestamp)
+            .OrderByDescending(row => row.Timestamp)
+            .FirstOrDefault();
+    }
+
+    private static bool TryParseOriginalTimestamp(
+        TenantCorrectionStartIntent intent,
+        out DateTimeOffset originalTimestamp)
+    {
+        if (!intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? value))
+        {
+            originalTimestamp = default;
+            return false;
+        }
+
+        return DateTimeOffset.TryParse(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind,
+            out originalTimestamp);
     }
 
     private async Task CloseAsync()

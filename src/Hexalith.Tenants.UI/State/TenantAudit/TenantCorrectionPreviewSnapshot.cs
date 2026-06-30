@@ -317,7 +317,11 @@ public sealed record TenantCorrectionPreviewSnapshot(
                 OriginalAuditReference,
                 row.EventReference,
                 Intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? originalTimestamp)
-                    && DateTimeOffset.TryParse(originalTimestamp, out DateTimeOffset parsed)
+                    && DateTimeOffset.TryParse(
+                        originalTimestamp,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.RoundtripKind,
+                        out DateTimeOffset parsed)
                         ? parsed
                         : row.Timestamp,
                 row.Timestamp,

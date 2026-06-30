@@ -489,6 +489,30 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Markup.ShouldNotContain("Audit trail for <", Case.Insensitive);
     }
 
+    [Fact]
+    public void Tenant_audit_page_survives_global_administrator_projection_fault_during_load()
+    {
+        // A global-administrator audit row triggers a supplementary global-administrator projection read
+        // during page load. If that read faults with anything the gateway does not map to a degraded
+        // snapshot (here an HttpRequestException), the audit page must still render — the supplementary
+        // evidence is best-effort and must not tear down the whole page.
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        StubTenantQueryGateway gateway = new(GlobalAdminAuditSnapshot("GlobalAdministratorSet", "admin-user"))
+        {
+            GlobalAdminFault = new HttpRequestException("projection read failed"),
+        };
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition(authorized: true));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        gateway.GlobalAdminRequests.ShouldNotBeEmpty();
+    }
+
     private StubTenantQueryGateway RegisterServices(params TenantAuditSnapshot[] snapshots)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -659,13 +683,17 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public List<GlobalAdministratorsRequest> GlobalAdminRequests { get; } = [];
 
+        public Exception? GlobalAdminFault { get; init; }
+
         public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
             GlobalAdministratorsRequest request,
             GlobalAdministratorsSnapshot? previous,
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            return Task.FromResult(GlobalAdministrators);
+            return GlobalAdminFault is not null
+                ? throw GlobalAdminFault
+                : Task.FromResult(GlobalAdministrators);
         }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(
