@@ -1015,6 +1015,10 @@ defect-fix story created by Correct Course. It is not part of the original FR15/
 list, but it is part of Epic 3 readiness because it retired the failed projection-actor read path and
 restored REST-backed Tenants reads with freshness/ETag behavior.
 
+Implementation and evidence live in `_bmad-output/implementation-artifacts/3-5-tenant-query-gateway-rest-routing.md`
+and `_bmad-output/implementation-artifacts/tests/test-summary.md`; sprint tracking records
+`3-5-tenant-query-gateway-rest-routing: done` in `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+
 ### Story 3.1: Tenant Lifecycle Command Availability and Blocked-State Guardrail
 
 As an authorized global administrator,

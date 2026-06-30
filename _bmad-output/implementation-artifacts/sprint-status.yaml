@@ -88,7 +88,7 @@ development_status:
   epic-4-retrospective: done
 
   # --- Epic 5: Audit Evidence and Forward Recovery ---
-  epic-5: in-progress
+  epic-5: done
   5-1-tenant-audit-trail-datagrid: done
   5-2-scoped-audit-evidence-entry-points: done
   5-3-support-safe-audit-evidence-receipt: done
@@ -167,3 +167,9 @@ action_items:
     owner: "Paige (Technical Writer) and Winston (System Architect)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
+  - id: implementation-readiness-2026-06-30-document-control
+    epic: cross-cutting
+    action: "Apply approved implementation-readiness document-control edits for Story 3.5 evidence links and completed Story 5.7 gate wording."
+    owner: "Paige (Technical Writer), Amelia (Developer), Murat (Test Architect), and Winston (System Architect)"
+    status: done
+    source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-implementation-readiness-conditions.md"
