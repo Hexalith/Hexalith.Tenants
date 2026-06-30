@@ -301,6 +301,17 @@
         bool intentChanged = !string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal);
         if (_snapshot is not null && !intentChanged)
         {
+            // Live-update the pre-submit preview against a projection the parent refreshed while the panel
+            // stayed open (preserving the user's role selection in _roleValue). ONLY pre-submit preview
+            // states are re-derived; submitted/terminal states are preserved so submission is never
+            // re-armed (AC4, preserves the P1 guard).
+            if (CurrentProjection is not null
+                && _snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
+                    or TenantCommandLifecycleState.AlreadyApplied)
+            {
+                SetSnapshotFromIntent();
+            }
+
             return;
         }
 

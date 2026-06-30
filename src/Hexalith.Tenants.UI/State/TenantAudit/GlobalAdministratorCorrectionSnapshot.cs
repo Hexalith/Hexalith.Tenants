@@ -89,6 +89,13 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     public GlobalAdministratorCorrectionSnapshot EvaluateCurrentProjection(GlobalAdministratorsSnapshot projection) {
         ArgumentNullException.ThrowIfNull(projection);
 
+        // An unavailable intent must keep its fail-closed lifecycle: never let an already-applied
+        // projection state overwrite the real unavailability reason. The command is unsubmittable
+        // regardless (CanSubmit gates on Intent.IsAvailable), but the copy must explain WHY it cannot run.
+        if (!Intent.IsAvailable) {
+            return this;
+        }
+
         // The start gate already requires a current fixed projection, but the panel must still fail
         // closed if the projection it is handed cannot prove platform authority state honestly.
         if (!ProjectionIsReadable(projection)) {
@@ -285,7 +292,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         if (!projectionProvesCorrection) {
             return this with {
                 LastConfirmedProjectionEvidence = projection,
-                CurrentAdministratorCount = projection.Rows.Count,
+                CurrentAdministratorCount = DistinctAdministratorCount(projection),
                 TargetCurrentlyPresent = present,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
             };
@@ -294,7 +301,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         return this with {
             LifecycleState = TenantCommandLifecycleState.Confirmed,
             LastConfirmedProjectionEvidence = projection,
-            CurrentAdministratorCount = projection.Rows.Count,
+            CurrentAdministratorCount = DistinctAdministratorCount(projection),
             TargetCurrentlyPresent = present,
             SafeMessage = null,
             SafeMessageKey = null,
@@ -320,7 +327,11 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 OriginalAuditReference,
                 row.EventReference,
                 Intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? originalTimestamp)
-                    && DateTimeOffset.TryParse(originalTimestamp, out DateTimeOffset parsed)
+                    && DateTimeOffset.TryParse(
+                        originalTimestamp,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.RoundtripKind,
+                        out DateTimeOffset parsed)
                         ? parsed
                         : row.Timestamp,
                 row.Timestamp,
@@ -341,6 +352,11 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     private static int DistinctAdministratorCount(GlobalAdministratorsSnapshot projection)
         => projection.Rows.Select(row => row.UserId).Distinct(StringComparer.Ordinal).Count();
 
+    // Fail closed for a SUBMITTABLE preview exactly the way the confirm gate does: a Stale or non-current
+    // fixed projection is never honest evidence for a platform-authority mutation. Only a genuinely
+    // current Ready/Empty read can drive a submittable correction; Empty-current is kept so the
+    // first-administrator restore path stays reachable (start gate + ConfirmProjection require Current too).
     private static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
-        => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Stale or GlobalAdministratorsSurfaceKind.Empty;
+        => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
+        && projection.Freshness is ReadModelFreshnessState.Current;
 }

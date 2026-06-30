@@ -442,6 +442,9 @@
             if (gateway is null)
             {
                 SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Lifecycle.Unavailable.CommandSurface"].Value)));
+                // Release the parent command-activity lock before returning: the status is now terminal
+                // (UnableToVerify), so the sibling command surfaces must not stay locked (matches siblings).
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
                 return;
             }
 

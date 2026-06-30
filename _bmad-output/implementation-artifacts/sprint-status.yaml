@@ -1,5 +1,5 @@
 # generated: 2026-06-29T14:27:50+02:00
-# last_updated: 2026-06-29
+# last_updated: 2026-06-30
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-06-29T14:27:50+02:00
-last_updated: 2026-06-29
+last_updated: 2026-06-30
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -140,7 +140,7 @@ action_items:
     epic: 3
     action: "Promote command-lock retention through accepted/projection-pending states into a shared command-flow guard."
     owner: "Amelia (Developer) and Murat (Test Architect)"
-    status: open
+    status: done
     source: "_bmad-output/implementation-artifacts/epic-3-retro-2026-06-29.md"
   - id: epic-3-retro-2026-06-29-focus-containment
     epic: 3

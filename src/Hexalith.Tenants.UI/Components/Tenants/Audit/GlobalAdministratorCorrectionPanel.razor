@@ -60,7 +60,7 @@
                 <dd data-testid="tenants-correction-target-user">@FieldValue(_snapshot.TargetUserId)</dd>
 
                 <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AdminCount"]</dt>
-                <dd data-testid="tenants-correction-admin-count">@_snapshot.CurrentAdministratorCount</dd>
+                <dd data-testid="tenants-correction-admin-count">@AdminCountLabel</dd>
 
                 <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState"]</dt>
                 <dd data-testid="tenants-correction-current-state">@CurrentStateLabel</dd>
@@ -199,10 +199,24 @@
     private string LiveRegionMode
         => _snapshot?.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
 
+    // When the fixed projection could not be read honestly (UnableToVerify with the
+    // current-projection-unavailable marker), the admin count and present/absent are not verifiable
+    // truth, so render a neutral placeholder instead of an authoritative "0"/"Absent".
+    private bool IsProjectionStateVerifiable
+        => _snapshot is not null
+        && _snapshot.SafeMessageKey != "Tenants.Correction.Unavailable.CurrentProjectionUnavailable";
+
+    private string AdminCountLabel
+        => IsProjectionStateVerifiable && _snapshot is not null
+            ? _snapshot.CurrentAdministratorCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : FieldValue(null);
+
     private string CurrentStateLabel
-        => _snapshot?.TargetCurrentlyPresent is true
-            ? Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present"]
-            : Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent"];
+        => !IsProjectionStateVerifiable
+            ? FieldValue(null)
+            : _snapshot?.TargetCurrentlyPresent is true
+                ? Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present"]
+                : Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent"];
 
     private string ConsequencesText
         => _snapshot?.IsRestoreAccessAction is true
@@ -234,6 +248,17 @@
         bool intentChanged = !string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal);
         if (_snapshot is not null && !intentChanged)
         {
+            // Live-update the pre-submit preview (last-administrator hard stop / present-absent) against a
+            // projection the parent refreshed while this panel stayed open. ONLY the pre-submit preview
+            // states are re-evaluated; RequestSent/Accepted/ProjectionPending and every terminal state are
+            // preserved so a submitted or finished correction is never re-armed (AC4/AC8, preserves P1).
+            if (CurrentProjection is not null
+                && _snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
+                    or TenantCommandLifecycleState.AlreadyApplied)
+            {
+                _snapshot = _snapshot.EvaluateCurrentProjection(CurrentProjection);
+            }
+
             return;
         }
 
@@ -398,15 +423,29 @@
 
         string correctiveEventType = _snapshot.CorrectiveEventType;
 
-        // Prefer the most-recent matching corrective row. The system-scope audit naturally accumulates
-        // historical grant/remove rows for a user, so an unordered FirstOrDefault could link an older,
-        // unrelated event; the correction's own corrective event is the newest of its type for the target.
+        // The corrective event must be NEWER than the original audit evidence being corrected. The
+        // system-scope audit accumulates the user's historical grant/remove rows AND the audit read model
+        // can lag the projection, so without a lower time bound an OrderByDescending FirstOrDefault could
+        // link an older historical row (predating the original) as "proof". Require the corrective row
+        // at/after the original event time; if the original timestamp cannot be parsed, fall back to the
+        // most-recent matching row.
+        DateTimeOffset? minimumCorrectiveTime =
+            _snapshot.Intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? originalTimestamp)
+            && DateTimeOffset.TryParse(
+                originalTimestamp,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind,
+                out DateTimeOffset parsedOriginal)
+                ? parsedOriginal
+                : null;
+
         return audit.Rows
             .Where(row =>
                 string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
                 && !string.Equals(row.EventReference, _snapshot.OriginalAuditReference, StringComparison.Ordinal)
                 && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
-                && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal))
+                && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal)
+                && (minimumCorrectiveTime is null || row.Timestamp >= minimumCorrectiveTime.Value))
             .OrderByDescending(row => row.Timestamp)
             .FirstOrDefault();
     }

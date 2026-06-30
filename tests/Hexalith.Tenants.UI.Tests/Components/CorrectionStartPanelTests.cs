@@ -320,15 +320,16 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed));
 
         // A parent re-render (for example an audit pager navigation or projection refresh that keeps this
-        // panel open) re-passes the same intent with a refreshed projection. The terminal failure must not
-        // reset to a fresh, re-armed preview and must not discard the failure evidence (AC4).
+        // panel open) re-passes the same intent with a refreshed projection that still shows the user
+        // absent. The terminal failure must not reset to a fresh, re-armed preview (which would re-enable
+        // Submit) and must not discard the failure evidence (AC4).
         cut.Render(parameters => parameters
             .Add(component => component.Intent, intent)
-            .Add(component => component.CurrentProjection, Detail(new TenantMember("target-user", TenantRole.TenantReader))));
+            .Add(component => component.CurrentProjection, Detail()));
 
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
         cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("failed");
-        cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
     }
 
     private static TenantCorrectionStartContext Context(

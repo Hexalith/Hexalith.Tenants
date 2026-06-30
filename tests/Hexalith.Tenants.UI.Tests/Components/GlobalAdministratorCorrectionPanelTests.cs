@@ -130,6 +130,33 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Pre_submit_preview_live_updates_last_admin_hard_stop_when_projection_refreshes_while_open()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RevokeIntent();
+
+        // Open a revoke preview against a two-admin projection: submittable.
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+
+        // While the panel stays open (same audit intent), the parent passes a refreshed projection in which
+        // only the target remains. The last-administrator hard stop must re-engage instead of staying frozen
+        // at open-time (the pre-submit preview lives; a submitted/terminal state would be preserved).
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("admin-user")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot!.SafeMessageKey.ShouldBe("Tenants.Correction.GlobalAdmin.LastAdministrator");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
     public void Revoke_submits_remove_command_and_confirms_only_on_absent_projection()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());

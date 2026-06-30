@@ -5,7 +5,7 @@ source_proposal: _bmad-output/planning-artifacts/sprint-change-proposal-2026-06-
 
 # Story 5.8: Correction Projection Refresh Cleanup
 
-Status: in-progress
+Status: review
 
 <!-- Created by the BMAD correct-course workflow after Administrator approval. -->
 
@@ -106,6 +106,7 @@ GPT-5 / Codex
 - Tenant-domain and global-administrator correction panels still run projection confirmation through their snapshot truth gates before corrective proof lookup.
 - Added component regressions proving provider-backed correction refresh uses one projection read while still linking corrective proof.
 - Standard local Release restore without source flags remains blocked by `Hexalith.Commons.UniqueIds` `3.19.0` package availability on public NuGet; Release validation passed with explicit source-reference flags.
+- 2026-06-30 (dev-story resume): Independently re-verified the in-progress state. The projection-refresh-provider cleanup and the HIGH terminal-failure-survives-re-render guard are already committed (`939bebc`); the remaining working-tree delta was doc bookkeeping plus a strengthened tenant-panel regression test (`Failed_correction_survives_a_parent_re_render_without_re_arming_submit` now re-renders with a consistent user-absent projection and asserts Submit stays present-but-disabled rather than conflating the rebuild with the correction applying). Debug build 0/0 and `Hexalith.Tenants.UI.Tests` 838/838 green confirmed live; added the missing `deferred-work.md` to the File List and moved the story to review.
 
 ### File List
 
@@ -115,12 +116,14 @@ GPT-5 / Codex
 - `tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs`
 - `_bmad-output/implementation-artifacts/5-8-correction-projection-refresh-cleanup.md`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ### Change Log
 
 - 2026-06-29 - Created Story 5.8 context and marked it ready for development.
 - 2026-06-29 - Removed duplicate correction projection refresh pattern, preserved projection-confirmed success and proof lookup, and moved story to review.
+- 2026-06-30 - Resolved the HIGH deferred review finding (terminal-failure snapshot now survives parent re-render in both correction panels) and strengthened the tenant-panel regression test; re-verified the full UI suite 838/838 green; added `deferred-work.md` to the File List and moved story to review.
 
 ## Review Findings (Adversarial Code Review 2026-06-29)
 
@@ -138,7 +141,7 @@ Scope reviewed: story 5.8 File List (the projection-refresh-provider cleanup) �
 
 ### Deferred (pre-existing relative to the 5.8 cleanup — belong to story 5.7 / 5.6 panel logic)
 
-- [x] [Review][Defer] Terminal failure states (Failed/Rejected/UnableToVerify/Degraded) reset to a fresh submittable preview on parent re-render [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:235; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:301] — deferred, pre-existing. HIGH. The `OnParametersSet` preservation guard lists in-flight + Confirmed but omits terminal failure states, so any parent re-render rebuilds the snapshot from `FromIntent`, discarding the rejection/`RejectionCode`, re-enabling Submit, and (for UnableToVerify/Degraded) destroying the tracking handle so the operator loses the Refresh affordance. Shared by BOTH panels (tenant panel is unchanged 5.6 code); contradicts the non-collapse truth-state model. Fix in both: add Failed/Rejected/UnableToVerify/Degraded to the preservation guard. [blind]
+- [x] [Review][Defer→FIXED] Terminal failure states (Failed/Rejected/UnableToVerify/Degraded) reset to a fresh submittable preview on parent re-render [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:220; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:286] — HIGH. RESOLVED 2026-06-30. The `OnParametersSet` preservation guard listed only in-flight + Confirmed and omitted terminal failure states, so any parent re-render rebuilt the snapshot from `FromIntent`, discarding the rejection/`RejectionCode`, re-enabling Submit, and (for UnableToVerify/Degraded) destroying the tracking handle. **Both panels now preserve any existing snapshot when the intent is unchanged** (`_snapshot is not null && !intentChanged → return`), rebuilding only on a different intent or first set — which keeps every post-submission state (incl. UnableToVerify/AlreadyApplied) intact without freezing the pre-submission preview (role re-selection re-evaluates directly via `OnRoleChanged`). The GA panel carried this fix already (with regression test `Rejected_correction_survives_a_parent_re_render_without_re_arming_submit`); the tenant panel was fixed in this review and a matching `Failed_correction_survives_a_parent_re_render_without_re_arming_submit` test added. Full UI suite 838/838 green. [blind]
 - [x] [Review][Defer] `ConfirmProjection` can confirm off a known-Stale projection (`ProjectionIsReadable` ignores `Freshness`) [src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs:327] — deferred, pre-existing. Start gate requires `Freshness=Current` but the confirm gate accepts `Kind ∈ {Ready,Stale,Empty}` regardless of freshness; possibly an intentional start-vs-confirm asymmetry, but verify it does not contradict the "Stale generally fails closed for mutation actions" rule. 5.7 snapshot logic. [edge]
 - [x] [Review][Defer] Corrective-proof lookup may link the wrong historical audit row as proof [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:382; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:507] — deferred, pre-existing. `FirstOrDefault` matches by event-type + target + tenant and excludes only `OriginalAuditReference`; with no recency tie-back a prior historical grant/role-change for the same user can be linked as "proof." Shared pattern (tenant panel since 5.6). Fix: order by recency / match the just-submitted command's timestamp. [blind]
 - [x] [Review][Defer] Focus call lacks `JSDisconnectedException` guard [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:246; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:312] — deferred, pre-existing. `OnAfterRenderAsync` → `await _lifecycleElement.FocusAsync()` has no try/catch; if the circuit drops/panel disposes between the terminal `SetSnapshot` and render, it throws unhandled. The page's own `OnAfterRenderAsync` already guards this. Pre-existing in the tenant panel (5.6). [edge]

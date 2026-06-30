@@ -444,8 +444,14 @@
             await RefreshTenantProjectionAsync().ConfigureAwait(false);
         }
 
-        _activeCorrectionIntent = intent;
-        _activeCorrectionFocusReference = intent.OriginalAuditReference;
+        // Marshal the parent field writes back onto the renderer's dispatcher: this method awaited a
+        // projection refresh with ConfigureAwait(false), so the continuation runs off the Blazor sync
+        // context (dispatcher hygiene — this UI has documented off-dispatcher circuit-crash history).
+        await InvokeAsync(() =>
+        {
+            _activeCorrectionIntent = intent;
+            _activeCorrectionFocusReference = intent.OriginalAuditReference;
+        }).ConfigureAwait(false);
     }
 
     private Task CloseCorrectionAsync()

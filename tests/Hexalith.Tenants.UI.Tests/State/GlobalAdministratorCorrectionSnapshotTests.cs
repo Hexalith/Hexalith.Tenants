@@ -104,6 +104,43 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void Preview_fails_closed_when_the_fixed_projection_is_stale_at_open()
+    {
+        // The pre-submit gate must fail closed on a Stale read exactly as the start gate and ConfirmProjection
+        // do: a platform-authority correction can never be SUBMITTED against stale evidence, even though the
+        // target is present with two admins in the stale read (which would otherwise be a submittable revoke).
+        GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            RevokeIntent(),
+            GlobalAdministratorsSnapshot.Stale(
+                [
+                    new GlobalAdministratorRow("admin-user", ReadModelFreshnessState.Stale),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Stale),
+                ],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"ga-etag\""));
+
+        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        snapshot.CanSubmit.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Unavailable_intent_is_not_masked_as_already_applied_by_the_projection()
+    {
+        // An unavailable intent must keep its fail-closed unavailability reason even when the current
+        // projection shows the target already in the desired state; the AlreadyApplied copy must not hide
+        // WHY the correction cannot run.
+        GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            RestoreIntent(hasCommandSupport: false),
+            ProjectionReady("admin-user", "other-admin"));
+
+        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        snapshot.CanSubmit.ShouldBeFalse();
+    }
+
+    [Fact]
     public void Restore_is_confirmed_only_when_target_appears_in_fixed_projection()
     {
         GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
