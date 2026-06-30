@@ -173,3 +173,34 @@ action_items:
     owner: "Paige (Technical Writer), Amelia (Developer), Murat (Test Architect), and Winston (System Architect)"
     status: done
     source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-implementation-readiness-conditions.md"
+  - id: epic-1-retro-2026-06-06-doc-drift
+    epic: 1
+    action: "Update verified documentation drift from Epic 1 implementation so architecture, README, and UI planning specs no longer contradict InteractiveServer, contextual Users, literal IDs, or resolved FC-LYT/FC-TBL decisions."
+    owner: "Paige (Technical Writer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
+    resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-epic-1-retro-follow-through.md"
+  - id: epic-1-retro-2026-06-06-command-foundation-readiness
+    epic: 1
+    action: "Add an Epic 2 command-foundation readiness check before Story 2.1 (command gateway, lifecycle states, one-at-a-time admission, projection re-query confirmation, safe rejection mapping, audit handoff)."
+    owner: "Amelia (Developer) and Winston (System Architect)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
+  - id: epic-1-retro-2026-06-06-ui-pre-review-checklist
+    epic: 1
+    action: "Promote repeated review findings into a pre-review checklist for UI stories (row headers, aria-describedby, resource parity, surface-specific selectors, false-success fallthroughs, support-safe source checks, File List vs git reality)."
+    owner: "Murat (Test Architect)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
+  - id: epic-1-retro-2026-06-06-test-env-blockers
+    epic: 1
+    action: "Track pre-existing test-environment blockers separately from Epic 1 UI quality (.NET 10 MTP/VSTest behavior, NuGet audit network access, AppHost DAPR component evidence, Server/Integration prerequisite failures)."
+    owner: "Winston (System Architect)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
+  - id: epic-1-retro-2026-06-06-support-safe-copy-reuse
+    epic: 1
+    action: "Keep support-safe copy and redaction patterns (classifier-first) available for Epic 2 command/audit references."
+    owner: "Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
