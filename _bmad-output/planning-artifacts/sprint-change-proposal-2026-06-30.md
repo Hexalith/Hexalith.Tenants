@@ -1,0 +1,108 @@
+# Sprint Change Proposal — CI Build Mutualization (Phase 1)
+
+- **Date:** 2026-06-30
+- **Author:** Administrator
+- **Trigger type:** Technical limitation / maintainability (CI gap analysis)
+- **Scope classification:** Moderate (cross-repo: edits the shared `Hexalith.Builds` submodule)
+- **Change mode:** Batch
+- **Path forward:** Option 1 — Direct Adjustment (low effort, low risk)
+
+## 1. Issue Summary
+
+A gap analysis compared the CI build of `Hexalith.Builds` (the shared build template,
+exposing reusable GitHub *composite actions* under `Github/`) with the CI build of this
+repository (`Hexalith.Tenants`).
+
+`Hexalith.Tenants` implements its CI entirely hand-rolled in two monolithic workflows
+(`.github/workflows/ci.yml` and `release.yml`) and consumes **none** of the
+`Hexalith.Builds` composite actions. This produces:
+
+- **Duplication**: the Dapr install + `dapr init` block is copy-pasted **4 times**
+  (`ci.yml` ×3 across the `build-and-test`, `aspire-tests`, `performance-tests` jobs;
+  `release.yml` ×1).
+- **No reuse** of the shared `Hexalith.Builds` tooling, contradicting the repository
+  policy in `CLAUDE.md` ("Factor technical concerns into the relevant shared Hexalith
+  modules… Hexalith.Builds").
+
+Phase 1 addresses the clearest, lowest-risk duplication (the Dapr block) by factoring it
+into a new shared composite action, and prepares `Hexalith.Builds` for broader reuse by
+generalizing `initialize-dotnet` to support `global.json`.
+
+## 2. Impact Analysis
+
+- **Epic impact:** None. No product epic or story is affected.
+- **Story impact:** None.
+- **Artifact conflicts:**
+  - PRD — none.
+  - Architecture (product) — none.
+  - UI/UX — none.
+  - **CI/CD pipelines — primary target.** `Hexalith.Builds` (shared submodule),
+    `ci.yml`, `release.yml`.
+  - `project-context.md` — optional doc note (Development Workflow Rules) once adopted.
+- **Technical impact:** Removes 4 duplicated Dapr blocks; introduces a cross-repo
+  dependency on a `Hexalith.Builds` composite action (must be pushed before Tenants can
+  pin it). Supply-chain posture preserved: the new action reuses the exact same pinned
+  third-party action SHAs already used by Tenants.
+
+## 3. Recommended Approach
+
+**Option 1 — Direct Adjustment.** Modify the CI artifacts in place; no rollback, no MVP
+review. Effort: **Low**. Risk: **Low**. Timeline impact: negligible.
+
+Deliberately **out of Phase 1 scope** (kept for a later "Full" phase):
+
+- Adopting `initialize-dotnet` inside Tenants (would swap Tenants' SHA-pinned
+  `actions/setup-dotnet@v4.3.1` for the action's floating `@v5` — a posture regression).
+- A parameterized `workflow_call` reusable workflow in `Hexalith.Builds` consumed by all
+  domain modules (the real, larger mutualization — Phase 2).
+
+## 4. Detailed Change Proposals
+
+### A. `Hexalith.Builds` (shared submodule)
+
+**A1 — NEW `Github/dapr-init/action.yml`** — composite action factoring the Dapr block,
+reusing the same pinned SHAs (`dapr/setup-dapr@8d98091…` / `nick-fields/retry@ad98453…`),
+`version` input defaulting to `1.17.0`. (+ `Github/dapr-init/README.md`.)
+
+**A2 — EDIT `Github/initialize-dotnet/action.yml`** — add an optional
+`global-json-file` input (backward compatible: unchanged `10.0.300` default behavior when
+omitted). Enables future adoption by Tenants and other modules.
+
+### B. `Hexalith.Tenants`
+
+**B1 — EDIT `ci.yml`** — replace the 3 identical Dapr install+init blocks with a single
+call each:
+
+```yaml
+      - name: Install and initialize Dapr
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@main # TODO: pin to Builds commit SHA once pushed
+        with:
+          version: ${{ env.DAPR_VERSION }}
+```
+
+**B2 — EDIT `release.yml`** — same replacement for the single Dapr block.
+
+## 5. Implementation Handoff
+
+- **Scope:** Moderate (cross-repo).
+- **Sequencing (critical):**
+  1. Commit + push `Hexalith.Builds` with `dapr-init` (and generalized
+     `initialize-dotnet`) → obtain commit SHA `X`.
+  2. In Tenants `ci.yml` / `release.yml`, replace `@main` with `@X` (pin to SHA to match
+     Tenants' supply-chain posture).
+  3. Commit Tenants workflow changes.
+  4. Verify on a CI run / PR that all tiers still install Dapr correctly.
+- **Owner:** Developer (Jérôme Piquot to push the `Hexalith.Builds` submodule, per the
+  repo's cross-submodule push policy — the assistant does not push).
+- **Success criteria:** `ci.yml` + `release.yml` contain zero inline Dapr blocks; all CI
+  tiers green; the `dapr-init` ref is pinned to a pushed Builds SHA.
+
+## 6. Checklist Status
+
+- §1 Trigger & context — Done
+- §2 Epic impact — N/A
+- §3.1 PRD / §3.2 Architecture / §3.3 UI/UX — N/A
+- §3.4 Other artifacts (CI/CD) — Action-needed (this proposal)
+- §4 Path forward — Option 1 selected (Done)
+- §5 Proposal components — Done
+- §6 Final review & handoff — pending user approval

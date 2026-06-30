@@ -60,18 +60,10 @@ jobs:
           dotnet test tests/Hexalith.Tenants.UI.Tests/ --no-build --configuration Release --logger "trx;LogFileName=ui-results.trx" --results-directory TestResults/ui --collect:"XPlat Code Coverage"
           dotnet test samples/Hexalith.Tenants.Sample.Tests/ --no-build --configuration Release --logger "trx;LogFileName=sample-results.trx" --results-directory TestResults/sample --collect:"XPlat Code Coverage"
 
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
+      - name: Install and initialize Dapr
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@main # TODO: pin to Builds commit SHA once pushed
         with:
           version: ${{ env.DAPR_VERSION }}
-
-      - name: Initialize Dapr
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: dapr init
 
       - name: Integration Tests (Tier 2)
         run: dotnet test tests/Hexalith.Tenants.Server.Tests/ --no-build --configuration Release --logger "trx;LogFileName=integration-results.trx" --results-directory TestResults/server --collect:"XPlat Code Coverage"
@@ -124,18 +116,10 @@ jobs:
           dotnet restore Hexalith.Tenants.slnx
           dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror
 
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
+      - name: Install and initialize Dapr
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@main # TODO: pin to Builds commit SHA once pushed
         with:
           version: ${{ env.DAPR_VERSION }}
-
-      - name: Initialize Dapr
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: dapr init
 
       - name: Aspire Contract Tests (Tier 3, non-Performance)
         run: >
@@ -190,18 +174,10 @@ jobs:
           dotnet restore Hexalith.Tenants.slnx
           dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror
 
-      - name: Install Dapr CLI
-        uses: dapr/setup-dapr@8d980918fd43a2765c143ce7f687665b2d46a6b9 # v2
+      - name: Install and initialize Dapr
+        uses: Hexalith/Hexalith.Builds/Github/dapr-init@main # TODO: pin to Builds commit SHA once pushed
         with:
           version: ${{ env.DAPR_VERSION }}
-
-      - name: Initialize Dapr
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: dapr init
 
       - name: Performance Tests (Tier 3, nightly only)
         run: >
