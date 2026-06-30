@@ -106,3 +106,72 @@ call each:
 - §4 Path forward — Option 1 selected (Done)
 - §5 Proposal components — Done
 - §6 Final review & handoff — pending user approval
+
+---
+
+# Phase 2 — Reusable `workflow_call` CI (applied 2026-06-30)
+
+Phase 2 promotes the entire Tenants CI pipeline into a single parameterized reusable
+workflow in `Hexalith.Builds`, consumed by Tenants and reusable by other domain modules
+(Memories / EventStore / FrontComposer).
+
+## Changes applied
+
+- **NEW `Hexalith.Builds/.github/workflows/domain-ci.yml`** — reusable (`workflow_call`)
+  pipeline reproducing the 3 jobs (`build-and-test` incl. consumer validation + Tier 1 +
+  Tier 2 + coverage gate; `aspire-tests`; nightly `performance-tests`). Fully
+  parameterized via inputs (solution, per-tier test project lists, Dapr version, coverage
+  thresholds + isolation targets, toggles). Same third-party action SHAs as Tenants.
+- **NEW `Hexalith.Builds/.github/workflows/domain-ci.md`** — usage doc.
+- **REWRITE `Hexalith.Tenants/.github/workflows/ci.yml`** — 198 → 40 lines; now a thin
+  caller of `domain-ci.yml@main` (TODO: pin to SHA).
+
+## Design decisions
+
+- **D1** All 3 jobs generic; module-specific values are inputs.
+- **D2** Multiline lists (`workflow_call` has no array type) passed via `env:` and split
+  in bash (`<<< "$VAR"`) — avoids heredoc indentation fragility.
+- **D3** Python scripts stay in the consumer repo (reusable workflow checks out the
+  caller). Convention: consumers provide `scripts/`. Moving scripts into Builds = future
+  work, out of scope.
+- **D4** Test result folders derived from each project basename under `TestResults/`
+  (artifact label change only; coverage gate globs `TestResults/**`, unaffected).
+- **D5** Supply-chain posture preserved (pinned SHAs); caller pins `@main` → SHA after the
+  Builds push.
+
+## Validation
+
+- YAML parse OK (ci.yml + domain-ci.yml).
+- `actionlint` 1.7.7: **0 issues** on ci.yml, domain-ci.yml, release.yml (incl. shellcheck
+  of the bash run-steps).
+- **Live CI run still required** end-to-end (cannot execute GitHub Actions locally).
+
+## Handoff (updated — Phase 1 already landed)
+
+State discovered at end of session:
+
+- **Phase 1 (Builds): DONE** — committed + pushed as
+  `2e238ebe5ce1a8a633a8481f05c821500b02ed4b` on `Hexalith.Builds@main`; Tenants parent
+  gitlink already records it. `dapr-init` + generalized `initialize-dotnet` are live.
+- **Phase 2 (Builds): pending** — `.github/workflows/domain-ci.yml` + `domain-ci.md`
+  untracked, need commit + push.
+- **Tenants workflows: pending** — `ci.yml` + `release.yml` modified, uncommitted, still
+  reference `@main`.
+
+Remaining steps:
+
+1. Commit + push `Hexalith.Builds` Phase 2 files (domain-ci.yml + domain-ci.md) → SHA `Y`
+   (descendant of `2e238eb`, so `Y` contains both phases).
+2. Pin `@main` → `@Y` in Tenants `ci.yml` (caller → domain-ci.yml) and `release.yml`
+   (dapr-init), and inside Builds `domain-ci.yml` (internal dapr-init reference). The
+   already-published dapr-init refs may instead be pinned to `2e238eb` now if preferred
+   (mixed per-action SHAs are idiomatic).
+3. Bump the Tenants parent gitlink to record `Y`; commit Tenants.
+4. Verify a real CI run (PR) is green across all tiers (could not run Actions locally).
+
+## Deferred (Phase 3 candidates)
+
+- Genericize `release.yml` the same way (semantic-release reusable workflow).
+- Move `scripts/*.py` into `Hexalith.Builds` for true cross-module reuse.
+- Adopt the generalized `initialize-dotnet` action inside the reusable workflow (currently
+  inlines pinned `setup-dotnet`).
