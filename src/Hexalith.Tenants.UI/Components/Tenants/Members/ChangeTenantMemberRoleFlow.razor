@@ -209,9 +209,13 @@
         };
 
     private string? UnavailableReason
-        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.ChangeRole.Unavailable.Authorization"].Value
-            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
+            : SurfaceKind is TenantDetailSurfaceKind.Stale
+                or TenantDetailSurfaceKind.Unavailable
+                or TenantDetailSurfaceKind.Unknown
+                or TenantDetailSurfaceKind.Degraded
+                || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.ChangeRole.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.ChangeRole.Unavailable.TenantLifecycle"].Value

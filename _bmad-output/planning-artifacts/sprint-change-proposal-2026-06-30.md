@@ -169,9 +169,47 @@ Remaining steps:
 3. Bump the Tenants parent gitlink to record `Y`; commit Tenants.
 4. Verify a real CI run (PR) is green across all tiers (could not run Actions locally).
 
-## Deferred (Phase 3 candidates)
+---
 
-- Genericize `release.yml` the same way (semantic-release reusable workflow).
-- Move `scripts/*.py` into `Hexalith.Builds` for true cross-module reuse.
-- Adopt the generalized `initialize-dotnet` action inside the reusable workflow (currently
-  inlines pinned `setup-dotnet`).
+# Phase 3 — Release mutualization + initialize-dotnet adoption (applied 2026-06-30)
+
+Scope chosen: **3a + 3c** (3b — moving scripts into Builds — rejected: the scripts are
+heavily domain-specific, e.g. `pack-release-packages.py` hardcodes the 5 Tenants csproj;
+moving them would leak domain knowledge into the shared build repo).
+
+## Changes applied
+
+- **NEW `Hexalith.Builds/.github/workflows/domain-release.yml`** — reusable
+  (`workflow_call`) release pipeline (checkout, .NET via initialize-dotnet, node, npm ci,
+  restore, `Release -warnaserror` build, Dapr, Tier 1+2 tests, `npx semantic-release`).
+  `secrets.NUGET_API_KEY` required; `GITHUB_TOKEN` auto-available. Parameterized
+  (solution, test-projects, node-version, dapr-version, timeouts).
+- **EDIT `Hexalith.Builds/Github/initialize-dotnet/action.yml`** — pin `actions/setup-dotnet`
+  `@v5` → `@67a3573…` (v4.3.1) on both steps (matches Tenants' pinned SHA; preserves
+  supply-chain posture). Side effect: Builds' own `build-packages` action now also uses
+  the pinned v4.3.1 setup-dotnet (minor alignment).
+- **EDIT `Hexalith.Builds/.github/workflows/domain-ci.yml`** — 3 inlined `setup-dotnet`
+  steps → `uses: Hexalith/Hexalith.Builds/Github/initialize-dotnet@main` (DRY).
+- **REWRITE `Hexalith.Tenants/.github/workflows/release.yml`** — 77 → 26 lines; thin caller
+  of `domain-release.yml@main` (TODO: pin to SHA).
+
+## Validation
+
+- YAML parse OK (release.yml, domain-release.yml, domain-ci.yml, initialize-dotnet).
+- `actionlint` 1.7.7: **0 issues** on ci.yml, release.yml, domain-ci.yml, domain-release.yml.
+- **Live CI/release run still required** end-to-end.
+
+## Remaining handoff
+
+1. Commit + push `Hexalith.Builds` Phase 2 + Phase 3 files (domain-ci.yml, domain-ci.md,
+   domain-release.yml, initialize-dotnet edit) → SHA `Y` (descendant of `2e238eb`).
+2. Pin every `@main` → `@Y`: Tenants `ci.yml` (→ domain-ci) and `release.yml`
+   (→ domain-release); inside Builds `domain-ci.yml` and `domain-release.yml` the internal
+   `dapr-init@main` / `initialize-dotnet@main` references.
+3. Bump the Tenants parent gitlink to `Y`; commit Tenants.
+4. Verify a real CI run (PR) **and** a real release run (merge to main) are green.
+
+## Still deferred (future)
+
+- Move/genericize `scripts/*.py` into Builds (rejected for now — domain-specific).
+- Adopt the same reusable workflows in Memories / EventStore / FrontComposer.

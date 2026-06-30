@@ -71,6 +71,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
     [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, TenantStatus.Active, "Refresh current")]
     [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, TenantStatus.Disabled, "lifecycle state")]
     [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Current, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Unavailable, ReadModelFreshnessState.Current, TenantStatus.Active, "Refresh current")]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ReadModelFreshnessState.Current, TenantStatus.Active, "Refresh current")]
     public void Edit_metadata_fails_closed_for_stale_unknown_or_disabled_projection(
         TenantDetailSurfaceKind surfaceKind,
         ReadModelFreshnessState freshness,
@@ -84,7 +87,13 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, surfaceKind)
             .Add(p => p.Freshness, freshness));
 
-        cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
+        string reason = cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent;
+        reason.ShouldContain(expectedReason, Case.Insensitive);
+        if (surfaceKind is not TenantDetailSurfaceKind.Ready || freshness is not ReadModelFreshnessState.Current)
+        {
+            reason.ShouldNotContain("not authorized", Case.Insensitive);
+        }
+
         cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
     }
 

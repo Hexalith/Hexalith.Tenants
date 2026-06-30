@@ -221,9 +221,13 @@
         && TargetIsVisibleMember;
 
     private string? UnavailableReason
-        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded
+        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.RemoveMember.Unavailable.Authorization"].Value
-            : SurfaceKind is TenantDetailSurfaceKind.Stale || Freshness is not ReadModelFreshnessState.Current
+            : SurfaceKind is TenantDetailSurfaceKind.Stale
+                or TenantDetailSurfaceKind.Unavailable
+                or TenantDetailSurfaceKind.Unknown
+                or TenantDetailSurfaceKind.Degraded
+                || Freshness is not ReadModelFreshnessState.Current
                 ? Localizer["Tenants.RemoveMember.Unavailable.Freshness"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value

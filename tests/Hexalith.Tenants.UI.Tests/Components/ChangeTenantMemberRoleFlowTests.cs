@@ -162,6 +162,54 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-change-role-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
     }
 
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale)]
+    [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Current)]
+    [InlineData(TenantDetailSurfaceKind.Unavailable, ReadModelFreshnessState.Current)]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ReadModelFreshnessState.Current)]
+    public void Change_role_fails_closed_for_stale_unknown_degraded_or_unavailable_projection_without_permission_copy(
+        TenantDetailSurfaceKind surfaceKind,
+        ReadModelFreshnessState freshness)
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, surfaceKind)
+            .Add(p => p.Freshness, freshness));
+
+        cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("disabled").ShouldNotBeNull();
+        string reason = cut.Find("[data-testid='tenants-change-role-unavailable-reason']").TextContent;
+        reason.ShouldContain("Refresh current tenant detail", Case.Insensitive);
+        reason.ShouldNotContain("not authorized", Case.Insensitive);
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+
+        gateway.ChangeRoleCallCount.ShouldBe(0);
+        cut.Find("[data-testid='tenants-change-role-state']").TextContent.ShouldContain("Unable to verify");
+    }
+
+    [Fact]
+    public void Change_role_true_authorization_failure_still_renders_permission_reason()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsAuthorized, false));
+
+        cut.Find("[data-testid='tenants-change-role-submit']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-change-role-unavailable-reason']").TextContent
+            .ShouldContain("not authorized", Case.Insensitive);
+    }
+
     [Fact]
     public void Owner_count_risk_is_visible_but_does_not_block_last_owner_role_loss()
     {

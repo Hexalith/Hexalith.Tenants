@@ -367,9 +367,14 @@
 
     private IReadOnlyList<UnavailableReason> ResolveFailClosedReasons(TenantRole role)
     {
-        if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded)
+        if (SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
         {
             return [UnavailableReason.MissingPermission];
+        }
+
+        if (SurfaceKind is TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown or TenantDetailSurfaceKind.Degraded)
+        {
+            return [UnavailableReason.StaleData];
         }
 
         if (Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown)

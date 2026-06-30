@@ -2,7 +2,7 @@
 
 Owner: Hexalith.Tenants product and UX planning
 Status: Phase 2 planning/readiness artifact
-Last reviewed: 2026-06-29
+Last reviewed: 2026-06-30
 
 This backlog turns the reconciled dependency map into copy-forward candidate Tenants Admin UI stories. It is planning output only: it does not create sprint-status entries, implementation story files, UI screens, `Hexalith.FrontComposer` components, backend endpoints, command/query contracts, package changes, submodule pointer changes, or Phase 1 release gates.
 
@@ -22,7 +22,7 @@ Story 2.4 later implemented `ui-14` tenant-member removal with the approved inli
 
 The 2026-06-06 Sprint Change Proposal reclassified `ui-13` / FR15 disable-or-enable tenant as reversible lifecycle soft-delete / availability control, not hard destructive tenant deletion. Hard tenant deletion is future independent administrators-only CLI tooling and is out of scope for this UI backlog.
 
-Epic 3 later implemented `ui-13` lifecycle disable/enable and `ui-10` tenant configuration set/remove through the approved inline structured-text `FC-CNS` fallback, the `FC-CNC` one-at-a-time policy, server-side BFF command gateways, projection re-query confirmation, exact destructive confirmation where applicable, focus-loop/focus-return evidence, EN/FR resource parity, and support-safe rejection/audit handoff states. The historical rows remain for planning traceability and reusable FrontComposer component work, but they are no longer the implementation-readiness source for the delivered Epic 3 lifecycle and configuration flows.
+Epic 3 later implemented `ui-13` lifecycle disable/enable and `ui-10` tenant configuration set/remove through the approved inline structured-text `FC-CNS` fallback, the `FC-CNC` one-at-a-time policy, server-side BFF command gateways, projection re-query confirmation, exact destructive confirmation where applicable, focus-loop/focus-return evidence, EN/FR resource parity, and support-safe rejection/audit handoff states. The current `ui-10` policy is that every eligible configuration set/remove command requires Consequence Preview in v1; no high-risk-subset bypass is defined. The historical rows remain for planning traceability and reusable FrontComposer component work, but they are no longer the implementation-readiness source for the delivered Epic 3 lifecycle and configuration flows.
 
 Epic 4 later implemented `ui-06` fixed-scope global-administrator review and `ui-15` global-administrator grant/remove command management with platform-governance copy, one-at-a-time command feedback, projection-confirmed success, last-admin hard-stop behavior, EN/FR resource parity, and support-safe evidence. Those rows are now implementation evidence rows, not blocked planning rows.
 
@@ -150,6 +150,8 @@ When recording a future story row, do not invent new column names. The 12 fields
 
 ## Deferred Decisions
 
+The previous `ui-10` deferred question about all configuration edits versus a high-risk key subset is resolved. The policy is recorded in `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-29-configuration-preview-scope.md` and closed by `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-configuration-preview-scope-closure.md`: all eligible configuration set/remove mutations require Consequence Preview in v1, and any future narrowing requires a new Product/UX/Architecture decision with key classification, user-facing reason copy, low-risk/high-risk test coverage, and phasing impact.
+
 | Decision | Owner | Affected rows | Unblock condition |
 | --- | --- | --- | --- |
 | Approve full-width/constrained screen layout contract or row-specific current-shell fallback. | Tenants Product/UX + `Hexalith.FrontComposer` | `ui-01` through `ui-15` | `FC-LYT` evidence is marked `available` or a row-specific fallback is `approved` with replacement path and docs. |
@@ -159,7 +161,6 @@ When recording a future story row, do not invent new column names. The 12 fields
 | Provide consequence preview component or approve inline consequence fallback. | `Hexalith.FrontComposer` + Tenants Product/UX | `ui-10`, `ui-13`, `ui-14`, `ui-15` | `FC-CNS` evidence is available, or row-specific fallback is approved without adding backend consequence endpoints. |
 | Confirm semantic role/status/timeline/consequence token usage. | `Hexalith.FrontComposer` + Tenants Product/UX | `ui-02`, `ui-03`, `ui-04`, `ui-06`, `ui-07`, `ui-09`, `ui-10`, `ui-11`, `ui-12`, `ui-13`, `ui-14`, `ui-15` | `FC-TOK` evidence is available or the row scopes to existing Fluent/FrontComposer badge semantics with owner approval. |
 | Provide story-specific accessibility, localization, and documentation/reference evidence. | Tenants story author + `Hexalith.FrontComposer` | All rows | `FC-A11Y`, `FC-L10N`, and `FC-DOC` evidence is cited or a row-specific approved fallback includes keyboard/focus/live-region, localizable copy, and documentation evidence. |
-| Decide whether high-impact configuration changes always require consequence preview or can be split by key risk class. | Tenants Product/UX + Tenants module owner | `ui-10` | Configuration edit story is split into low-impact and high-impact rows, or Product/UX records a single consequence-preview policy. |
 
 ## Validation Notes
 

@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   ci:
-    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main # TODO: pin to Builds commit SHA once pushed
+    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main
     with:
       solution: Hexalith.Tenants.slnx
       dapr-version: '1.17.0'

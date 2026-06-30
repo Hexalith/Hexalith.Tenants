@@ -268,7 +268,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     [Theory]
     [InlineData(TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "Refresh current tenant detail")]
     [InlineData(TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "Refresh current tenant detail")]
-    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "not authorized")]
+    [InlineData(TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Current, "Refresh current tenant detail")]
+    [InlineData(TenantDetailSurfaceKind.Unavailable, ReadModelFreshnessState.Current, "Refresh current tenant detail")]
+    [InlineData(TenantDetailSurfaceKind.Unknown, ReadModelFreshnessState.Current, "Refresh current tenant detail")]
     public void Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(
         TenantDetailSurfaceKind surfaceKind,
         ReadModelFreshnessState freshness,
@@ -284,7 +286,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Freshness, freshness));
 
         cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent.ShouldContain(expectedReason, Case.Insensitive);
+        string reason = cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent;
+        reason.ShouldContain(expectedReason, Case.Insensitive);
+        reason.ShouldNotContain("not authorized", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-remove-member-preview-item']").ShouldBeEmpty();
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
@@ -292,6 +296,23 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         gateway.RemoveMemberCallCount.ShouldBe(0);
         cut.Find("[data-testid='tenants-remove-member-state']").TextContent.ShouldContain("Unable to verify");
+    }
+
+    [Fact]
+    public void Remove_member_true_authorization_failure_still_renders_permission_reason()
+    {
+        RegisterServices(new StubTenantCommandGateway());
+
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsAuthorized, false));
+
+        cut.Find("[data-testid='tenants-remove-member-confirm']").GetAttribute("disabled").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent
+            .ShouldContain("not authorized", Case.Insensitive);
     }
 
     [Fact]

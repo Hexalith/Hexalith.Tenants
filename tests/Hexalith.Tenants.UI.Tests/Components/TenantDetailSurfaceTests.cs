@@ -621,7 +621,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [InlineData(TenantStatus.Disabled, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, "missing lifecycle support")]
     [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale, "stale data")]
     [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown, "stale data")]
-    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Unknown, "missing permission")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Degraded, ReadModelFreshnessState.Current, "stale data")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Unavailable, ReadModelFreshnessState.Current, "stale data")]
+    [InlineData(TenantStatus.Active, TenantDetailSurfaceKind.Unknown, ReadModelFreshnessState.Current, "stale data")]
     [InlineData(TenantStatus.Unknown, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current, "missing lifecycle support")]
     public void Member_access_review_fails_closed_for_disabled_stale_unknown_and_degraded_states(
         TenantStatus status,
@@ -640,22 +642,25 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.Freshness, freshness));
 
         cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain(expectedReason);
+        if (surfaceKind is TenantDetailSurfaceKind.Degraded or TenantDetailSurfaceKind.Unavailable or TenantDetailSurfaceKind.Unknown)
+        {
+            cut.FindAll("[data-testid='tenants-member-unavailable-reason']")
+                .ShouldAllBe(static reason => !reason.TextContent.Contains("missing permission", StringComparison.OrdinalIgnoreCase));
+        }
+
         cut.FindAll("[data-testid='tenants-member-action-slot']")
             .ShouldAllBe(static slot => slot.TextContent.Contains("Unavailable", StringComparison.OrdinalIgnoreCase));
         // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
         cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
 
-    [Theory]
-    [InlineData(TenantDetailSurfaceKind.Unauthorized)]
-    [InlineData(TenantDetailSurfaceKind.Unavailable)]
-    [InlineData(TenantDetailSurfaceKind.Unknown)]
-    public void Member_access_review_fails_closed_for_unsafe_detail_authorization_states(TenantDetailSurfaceKind surfaceKind)
+    [Fact]
+    public void Member_access_review_true_authorization_failure_still_renders_missing_permission()
     {
         RegisterComponentServices();
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(view => view.Detail, Detail("tenant.alpha"))
-            .Add(view => view.SurfaceKind, surfaceKind)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("missing permission");
