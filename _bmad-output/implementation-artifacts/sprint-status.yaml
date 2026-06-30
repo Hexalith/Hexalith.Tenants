@@ -239,3 +239,31 @@ action_items:
     status: done
     source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-command-lock-retention-guard-closure.md"
+  - id: epic-4-retro-2026-06-07-fr19-planning-sync
+    epic: 4
+    action: "Synchronize FR19 planning status with implementation evidence so architecture, PRD/addendum, and backlog docs no longer say FR19 is blocked/deferred as current state after Stories 4.3 and 4.4."
+    owner: "Paige (Technical Writer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
+    resolution_source: "_bmad-output/implementation-artifacts/epic-5-retro-2026-06-29.md"
+  - id: epic-4-retro-2026-06-07-global-admin-correction-gate
+    epic: 4
+    action: "Keep global-admin correction blocked until a story verifies the new command dependency; any enabled global-admin correction path must cite Story 4.3 and 4.4 command support and test fixed-scope command selection."
+    owner: "Winston (System Architect) and Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
+    resolution_source: "_bmad-output/implementation-artifacts/5-7-global-administrator-correction-verification.md"
+  - id: epic-4-retro-2026-06-07-platform-rejection-copy
+    epic: 4
+    action: "Preserve platform-governance-specific rejection copy; command/status tests prove GlobalAdministratorAlreadyExists, LastGlobalAdministrator, and GlobalAdministratorNotFound do not use tenant-membership wording."
+    owner: "Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
+    resolution_source: "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs"
+  - id: epic-4-retro-2026-06-07-validation-env-blockers
+    epic: 4
+    action: "Track validation environment blockers separately from story acceptance; future stories keep focused acceptance evidence distinct from pre-existing Server/AppHost/DAPR failures."
+    owner: "Murat (Test Architect)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-4-retro-2026-06-07.md"
+    resolution_source: "_bmad-output/project-context.md"
