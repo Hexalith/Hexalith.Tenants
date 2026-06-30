@@ -305,9 +305,7 @@
             // stayed open (preserving the user's role selection in _roleValue). ONLY pre-submit preview
             // states are re-derived; submitted/terminal states are preserved so submission is never
             // re-armed (AC4, preserves the P1 guard).
-            if (CurrentProjection is not null
-                && _snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
-                    or TenantCommandLifecycleState.AlreadyApplied)
+            if (CurrentProjection is not null && ShouldLiveUpdatePreview(_snapshot))
             {
                 SetSnapshotFromIntent();
             }
@@ -339,6 +337,18 @@
         TenantCorrectionStartIntent resolvedIntent = ResolvedIntent();
         _snapshot = TenantCorrectionPreviewSnapshot.FromIntent(resolvedIntent, CurrentProjection);
     }
+
+    private static bool ShouldLiveUpdatePreview(TenantCorrectionPreviewSnapshot snapshot)
+        => !snapshot.HasCommandTracking
+        && (snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
+            or TenantCommandLifecycleState.AlreadyApplied
+            || (snapshot.LifecycleState is TenantCommandLifecycleState.UnableToVerify
+                && IsProjectionDrivenBlock(snapshot.SafeMessageKey)));
+
+    private static bool IsProjectionDrivenBlock(string? safeMessageKey)
+        => safeMessageKey is "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"
+            or "Tenants.Correction.Unavailable.CurrentStateIndeterminate"
+            or "Tenants.Correction.Unavailable.CurrentRoleConflict";
 
     private void SetSnapshot(TenantCorrectionPreviewSnapshot snapshot, bool focusTerminalState = false)
     {

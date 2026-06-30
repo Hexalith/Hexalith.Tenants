@@ -126,6 +126,26 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void Preview_fails_closed_when_ready_projection_has_stale_freshness_at_open()
+    {
+        GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            RevokeIntent(),
+            GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("admin-user", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                ],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"ga-etag\"",
+                freshness: ReadModelFreshnessState.Stale));
+
+        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        snapshot.CanSubmit.ShouldBeFalse();
+    }
+
+    [Fact]
     public void Unavailable_intent_is_not_masked_as_already_applied_by_the_projection()
     {
         // An unavailable intent must keep its fail-closed unavailability reason even when the current
@@ -269,6 +289,23 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void Corrective_proof_requires_parseable_original_timestamp()
+    {
+        GlobalAdministratorCorrectionSnapshot confirmed = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(MalformedTimestampIntent(), ProjectionReady("other-admin"))
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ConfirmProjection(ProjectionReady("admin-user", "other-admin"));
+
+        GlobalAdministratorCorrectionSnapshot delayed = confirmed.WithCorrectiveProof(
+            CorrectiveRow("event-corrective", "GlobalAdministratorSet"));
+
+        delayed.ProofLink.ShouldBeNull();
+        delayed.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+    }
+
+    [Fact]
     public void Accepted_exposes_command_tracking_handle()
     {
         GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot
@@ -286,6 +323,17 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
 
     private static TenantCorrectionStartIntent RevokeIntent(bool hasCommandSupport = true)
         => TenantCorrectionStartIntent.Evaluate(Context("GlobalAdministratorSet", hasCommandSupport));
+
+    private static TenantCorrectionStartIntent MalformedTimestampIntent()
+    {
+        TenantCorrectionStartIntent intent = RestoreIntent();
+        Dictionary<string, string> inputs = new(intent.RequiredPreviewInputs, StringComparer.Ordinal)
+        {
+            ["originalTimestamp"] = "not-a-timestamp",
+        };
+
+        return intent with { RequiredPreviewInputs = inputs };
+    }
 
     private static TenantCorrectionStartContext Context(string eventType, bool hasCommandSupport)
         => new(

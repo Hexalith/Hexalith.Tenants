@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 
 using Bunit;
 
@@ -334,6 +335,41 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Fact]
+    public void Gateway_unavailable_status_refresh_releases_lifecycle_command_activity_lock()
+    {
+        RegisterServices();
+        List<bool> activity = [];
+        TenantDetail detail = Detail("tenant.alpha", TenantStatus.Active);
+        TenantLifecycleAvailability availability = AvailableLifecycle(TenantStatus.Active, TenantLifecycleOperation.DisableTenant);
+
+        IRenderedComponent<TenantLifecycleCommandFlow> cut = Render<TenantLifecycleCommandFlow>(parameters => parameters
+            .Add(component => component.Detail, detail)
+            .Add(component => component.Availability, availability)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active)));
+
+        TenantLifecycleCommandSnapshot tracked = TenantLifecycleCommandSnapshot
+            .Idle(detail)
+            .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), detail)
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-life", "correlation-life"));
+        SetPrivateField(cut.Instance, "_snapshot", tracked);
+        SetPrivateField(cut.Instance, "_hasRaisedCommandActivity", true);
+        cut.Render(parameters => parameters
+            .Add(component => component.Detail, detail)
+            .Add(component => component.Availability, availability)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
+            .Add(component => component.OnCommandActivityChanged, active => activity.Add(active)));
+
+        cut.Find("[data-testid='tenants-lifecycle-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        activity.ShouldBe([false]);
+    }
+
+    [Fact]
     public void Lifecycle_rejection_displays_safe_non_success_state_without_projection_success_or_raw_details()
     {
         var gateway = new StubTenantCommandGateway
@@ -401,6 +437,17 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                 TenantLifecycleGovernanceReadiness.Ready,
                 TenantLifecycleAuthorizationReflectionState.Authorized)
             .Evaluate(operation);
+
+    private static void SetPrivateField<TComponent, TValue>(
+        TComponent component,
+        string fieldName,
+        TValue value)
+        where TComponent : class
+    {
+        FieldInfo field = typeof(TComponent).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(TComponent).FullName, fieldName);
+        field.SetValue(component, value);
+    }
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {

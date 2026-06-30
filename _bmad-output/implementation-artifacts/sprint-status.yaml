@@ -96,7 +96,7 @@ development_status:
   5-5-start-forward-correction-from-audit-evidence: done
   5-6-preview-and-confirm-correction-with-linked-proof: done
   5-7-global-administrator-correction-verification: done
-  5-8-correction-projection-refresh-cleanup: in-progress
+  5-8-correction-projection-refresh-cleanup: done
   epic-5-retrospective: done
 
 action_items:

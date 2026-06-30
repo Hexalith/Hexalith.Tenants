@@ -157,6 +157,53 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Pre_submit_already_applied_live_updates_to_submittable_when_projection_refreshes_while_open()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RestoreIntent();
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Pre_submit_blocked_last_administrator_live_updates_to_submittable_when_projection_refreshes_while_open()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RevokeIntent();
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("admin-user")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot!.SafeMessageKey.ShouldBe("Tenants.Correction.GlobalAdmin.LastAdministrator");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
     public void Revoke_submits_remove_command_and_confirms_only_on_absent_projection()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -202,6 +249,59 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Instance.Snapshot!.RejectionCode.ShouldBe("LastGlobalAdministrator");
         cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
         cut.VisibleText().ShouldNotContain("Projection confirmed", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tracked_already_applied_status_survives_parent_re_render_without_re_arming_submit()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new()
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        TenantCorrectionStartIntent intent = RestoreIntent();
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied));
+        cut.Instance.Snapshot!.HasCommandTracking.ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot!.HasCommandTracking.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        commandGateway.SetRequests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Malformed_original_timestamp_confirms_projection_but_does_not_link_corrective_proof()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new();
+        StubTenantQueryGateway queryGateway = new(
+            Projection("admin-user", "other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet"));
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, WithOriginalTimestamp(RestoreIntent(), "not-a-timestamp"))
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        cut.Instance.Snapshot!.ProofLink.ShouldBeNull();
+        queryGateway.AuditRequests.ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -299,6 +399,16 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     private static TenantCorrectionStartIntent RevokeIntent(bool hasCommandSupport = true)
         => TenantCorrectionStartIntent.Evaluate(Context("GlobalAdministratorSet", hasCommandSupport));
 
+    private static TenantCorrectionStartIntent WithOriginalTimestamp(TenantCorrectionStartIntent intent, string value)
+    {
+        Dictionary<string, string> inputs = new(intent.RequiredPreviewInputs, StringComparer.Ordinal)
+        {
+            ["originalTimestamp"] = value,
+        };
+
+        return intent with { RequiredPreviewInputs = inputs };
+    }
+
     private static TenantCorrectionStartContext Context(string eventType, bool hasCommandSupport)
         => new(
             TenantAuditReceipt.FromRow(Row(eventType)),
@@ -366,6 +476,9 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult>? RemoveResultTask { get; init; }
 
+        public TenantCommandStatusResult Status { get; init; }
+            = new(CommandStatus.Completed, EventCount: 1);
+
         public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
             SetGlobalAdministrator request,
             CancellationToken cancellationToken = default)
@@ -387,7 +500,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             StatusHandles.Add(handle);
-            return Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            return Task.FromResult(Status);
         }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, CancellationToken cancellationToken = default)

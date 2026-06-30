@@ -241,6 +241,88 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Panel_pre_submit_already_applied_live_updates_to_submittable_when_projection_refreshes_while_open()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail(new TenantMember("target-user", TenantRole.TenantReader))));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Panel_pre_submit_role_conflict_live_updates_to_submittable_when_projection_refreshes_while_open()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail(new TenantMember("target-user", TenantRole.TenantContributor))));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot!.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentRoleConflict");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Panel_tracked_already_applied_status_survives_parent_re_render_without_re_arming_submit()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commandGateway = new()
+        {
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"),
+            intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied));
+        cut.Instance.Snapshot!.HasCommandTracking.ShouldBeTrue();
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Detail()));
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot!.HasCommandTracking.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        commandGateway.AddUserRequests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public void Panel_prevents_duplicate_submission_while_command_is_in_flight()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -395,6 +477,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public Task<TenantCommandSubmissionResult>? AddUserResultTask { get; init; }
 
+        public TenantCommandStatusResult Status { get; init; }
+            = new(CommandStatus.Completed, EventCount: 1);
+
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
             AddUserToTenant request,
             CancellationToken cancellationToken = default)
@@ -416,7 +501,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             StatusHandles.Add(handle);
-            return Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            return Task.FromResult(Status);
         }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(

@@ -317,7 +317,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             return this;
         }
 
-        if (row is null) {
+        if (row is null
+            || !TryParseOriginalTimestamp(Intent, out DateTimeOffset originalTimestamp)
+            || row.Timestamp <= originalTimestamp) {
             return this with { AuditState = TenantCommandAuditState.AuditDelayed };
         }
 
@@ -326,14 +328,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             ProofLink = new(
                 OriginalAuditReference,
                 row.EventReference,
-                Intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? originalTimestamp)
-                    && DateTimeOffset.TryParse(
-                        originalTimestamp,
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        System.Globalization.DateTimeStyles.RoundtripKind,
-                        out DateTimeOffset parsed)
-                        ? parsed
-                        : row.Timestamp,
+                originalTimestamp,
                 row.Timestamp,
                 row.ReferenceContext),
         };
@@ -359,4 +354,21 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     private static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
         => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
         && projection.Freshness is ReadModelFreshnessState.Current;
+
+    private static bool TryParseOriginalTimestamp(
+        TenantCorrectionStartIntent intent,
+        out DateTimeOffset originalTimestamp)
+    {
+        if (!intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? value))
+        {
+            originalTimestamp = default;
+            return false;
+        }
+
+        return DateTimeOffset.TryParse(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind,
+            out originalTimestamp);
+    }
 }

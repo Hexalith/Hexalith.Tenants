@@ -252,11 +252,9 @@
             // projection the parent refreshed while this panel stayed open. ONLY the pre-submit preview
             // states are re-evaluated; RequestSent/Accepted/ProjectionPending and every terminal state are
             // preserved so a submitted or finished correction is never re-armed (AC4/AC8, preserves P1).
-            if (CurrentProjection is not null
-                && _snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
-                    or TenantCommandLifecycleState.AlreadyApplied)
+            if (CurrentProjection is not null && ShouldLiveUpdatePreview(_snapshot))
             {
-                _snapshot = _snapshot.EvaluateCurrentProjection(CurrentProjection);
+                _snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
             }
 
             return;
@@ -265,6 +263,17 @@
         _intentReference = Intent.OriginalAuditReference;
         _snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
     }
+
+    private static bool ShouldLiveUpdatePreview(GlobalAdministratorCorrectionSnapshot snapshot)
+        => !snapshot.HasCommandTracking
+        && (snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
+            or TenantCommandLifecycleState.AlreadyApplied
+            || (snapshot.LifecycleState is TenantCommandLifecycleState.UnableToVerify
+                && IsProjectionDrivenBlock(snapshot.SafeMessageKey)));
+
+    private static bool IsProjectionDrivenBlock(string? safeMessageKey)
+        => safeMessageKey is "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"
+            or "Tenants.Correction.GlobalAdmin.LastAdministrator";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -416,38 +425,49 @@
             return null;
         }
 
+        // Do not infer proof from merely-similar historical rows. Without a parseable original timestamp,
+        // the UI cannot establish even a weak causal lower bound, so it reports audit evidence as delayed.
+        if (!TryParseOriginalTimestamp(_snapshot.Intent, out DateTimeOffset originalTimestamp))
+        {
+            return null;
+        }
+
         // The corrective proof lives in the fixed system-scope audit, never tenant-domain audit.
         TenantAuditSnapshot audit = await QueryGateway
-            .GetTenantAuditAsync(new TenantAuditRequest("system"), null, CancellationToken.None)
+            .GetTenantAuditAsync(new TenantAuditRequest("system", From: originalTimestamp), null, CancellationToken.None)
             .ConfigureAwait(false);
 
         string correctiveEventType = _snapshot.CorrectiveEventType;
 
         // The corrective event must be NEWER than the original audit evidence being corrected. The
-        // system-scope audit accumulates the user's historical grant/remove rows AND the audit read model
-        // can lag the projection, so without a lower time bound an OrderByDescending FirstOrDefault could
-        // link an older historical row (predating the original) as "proof". Require the corrective row
-        // at/after the original event time; if the original timestamp cannot be parsed, fall back to the
-        // most-recent matching row.
-        DateTimeOffset? minimumCorrectiveTime =
-            _snapshot.Intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? originalTimestamp)
-            && DateTimeOffset.TryParse(
-                originalTimestamp,
-                System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.RoundtripKind,
-                out DateTimeOffset parsedOriginal)
-                ? parsedOriginal
-                : null;
-
+        // system-scope audit accumulates historical grant/remove rows and may lag the projection; requiring
+        // a strict lower time bound prevents older or same-instant audit rows from being linked as proof.
         return audit.Rows
             .Where(row =>
                 string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
                 && !string.Equals(row.EventReference, _snapshot.OriginalAuditReference, StringComparison.Ordinal)
                 && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
                 && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal)
-                && (minimumCorrectiveTime is null || row.Timestamp >= minimumCorrectiveTime.Value))
+                && row.Timestamp > originalTimestamp)
             .OrderByDescending(row => row.Timestamp)
             .FirstOrDefault();
+    }
+
+    private static bool TryParseOriginalTimestamp(
+        TenantCorrectionStartIntent intent,
+        out DateTimeOffset originalTimestamp)
+    {
+        if (!intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? value))
+        {
+            originalTimestamp = default;
+            return false;
+        }
+
+        return DateTimeOffset.TryParse(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind,
+            out originalTimestamp);
     }
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 
 using Bunit;
 
@@ -164,6 +165,40 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Gateway_unavailable_status_refresh_releases_configuration_command_activity_lock()
+    {
+        RegisterServices();
+        List<bool> commandActivity = [];
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" });
+
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Detail, detail)
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnCommandActivityChanged, active => commandActivity.Add(active)));
+
+        TenantRemoveConfigurationCommandSnapshot tracked = TenantRemoveConfigurationCommandSnapshot
+            .Idle(detail)
+            .Previewed(new RemoveTenantConfiguration("tenant.alpha", "billing.mode"), detail)
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-config-remove"));
+        SetPrivateField(cut.Instance, "_snapshot", tracked);
+        SetPrivateField(cut.Instance, "_hasRaisedCommandActivity", true);
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, detail)
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnCommandActivityChanged, active => commandActivity.Add(active)));
+
+        cut.Find("[data-testid='tenants-config-remove-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        commandActivity.ShouldBe([false]);
+    }
+
+    [Fact]
     public void Configuration_key_not_found_rejection_renders_safe_rejected_state()
     {
         StubTenantCommandGateway gateway = new()
@@ -233,10 +268,25 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         styles.ShouldContain("tenants-config-remove__narrow");
     }
 
-    private void RegisterServices(ITenantCommandGateway gateway)
+    private void RegisterServices(ITenantCommandGateway? gateway = null)
     {
-        Services.AddSingleton(gateway);
+        if (gateway is not null)
+        {
+            Services.AddSingleton(gateway);
+        }
+
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+    }
+
+    private static void SetPrivateField<TComponent, TValue>(
+        TComponent component,
+        string fieldName,
+        TValue value)
+        where TComponent : class
+    {
+        FieldInfo field = typeof(TComponent).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(TComponent).FullName, fieldName);
+        field.SetValue(component, value);
     }
 
     private static TenantDetail Detail(string tenantId, Dictionary<string, string> configuration)
