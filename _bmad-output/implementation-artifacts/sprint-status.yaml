@@ -204,3 +204,38 @@ action_items:
     owner: "Amelia (Developer)"
     status: done
     source: "_bmad-output/implementation-artifacts/epic-1-retro-2026-06-06.md"
+  - id: epic-2-retro-2026-06-06-doc-drift
+    epic: 2
+    action: "Update verified documentation drift from Epic 2 implementation so docs no longer claim Story 2.4's inline consequence fallback is deferred, and local test guidance documents the xUnit v3 executable fallback."
+    owner: "Paige (Technical Writer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
+    resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-epic-2-retro-follow-through.md"
+  - id: epic-2-retro-2026-06-06-epic-3-command-readiness-guardrail
+    epic: 2
+    action: "Add an Epic 3 command-readiness guardrail before Story 3.1 so lifecycle/configuration stories name how authorization reflection, command-surface availability, consequence-preview policy, and one-at-a-time locking are wired before implementation."
+    owner: "Amelia (Developer) and Winston (System Architect)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
+    resolution_source: "_bmad-output/implementation-artifacts/3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail.md"
+  - id: epic-2-retro-2026-06-06-command-neutral-status
+    epic: 2
+    action: "Keep shared command status mapping command-neutral; new command stories add regression tests proving shared status lookup does not surface another command's copy."
+    owner: "Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
+    resolution_source: "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs"
+  - id: epic-2-retro-2026-06-06-durable-lifecycle-feedback
+    epic: 2
+    action: "Decide durable lifecycle feedback behavior for row-removal happy paths; Epic 3 story files either preserve row-disappears-on-confirm intentionally or specify a stable post-confirmation feedback area."
+    owner: "Alice (Product Owner) and Sally (UX Designer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
+    resolution_source: "_bmad-output/implementation-artifacts/3-4-remove-tenant-configuration-key-with-consequence-preview.md"
+  - id: epic-2-retro-2026-06-06-command-locking-symmetry
+    epic: 2
+    action: "Track command-locking symmetry as a shared UI follow-up so member/metadata/lifecycle/configuration flows can drive a common availability signal, or each story records why one-direction locking is sufficient."
+    owner: "Winston (System Architect)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/epic-2-retro-2026-06-06.md"
+    resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-command-lock-retention-guard-closure.md"
