@@ -81,6 +81,57 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void Revoke_with_absent_target_on_incomplete_page_fails_closed_instead_of_already_removed()
+    {
+        // The fixed projection is cursor-paged (PageSize=20). A target that is not on the loaded page
+        // may still exist on a later page, so "absent from this page" must never collapse to
+        // "already removed"; the correction fails closed until the full projection can be verified.
+        GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            RevokeIntent(),
+            PagedProjectionReady("other-admin", "second-admin"));
+
+        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        snapshot.CanSubmit.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Restore_with_absent_target_on_incomplete_page_fails_closed()
+    {
+        // A restore arms a grant when the target is absent; but on a paged read the target may already
+        // be present on a later page, so the restore must fail closed rather than submit a grant against
+        // unverified authority state.
+        GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
+            RestoreIntent(),
+            PagedProjectionReady("other-admin", "second-admin"));
+
+        snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        snapshot.CanSubmit.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Revoke_is_not_confirmed_from_an_incomplete_projection_page()
+    {
+        GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+
+        // The re-query returns a page that does NOT contain the target, but HasMore is true, so the
+        // target could still be present on a later page. Absent-from-one-page is not proof of removal:
+        // confirming here would be a fail-open, so the correction stays pending rather than collapse to
+        // a false Confirmed.
+        GlobalAdministratorCorrectionSnapshot notConfirmed = accepted.ConfirmProjection(
+            PagedProjectionReady("other-admin", "second-admin"));
+
+        notConfirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        notConfirmed.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        notConfirmed.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+    }
+
+    [Fact]
     public void Unavailable_intent_fails_closed_without_submit()
     {
         GlobalAdministratorCorrectionSnapshot snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(
@@ -378,6 +429,16 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
             userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray(),
             nextCursor: null,
             hasMore: false,
+            eTag: "\"ga-etag\"",
+            freshness: ReadModelFreshnessState.Current);
+
+    // A current, readable, but INCOMPLETE (paged) fixed projection: the loaded page is authoritative
+    // for the rows it contains, but HasMore signals that more administrators exist beyond this page.
+    private static GlobalAdministratorsSnapshot PagedProjectionReady(params string[] userIds)
+        => GlobalAdministratorsSnapshot.Ready(
+            userIds.Select(userId => new GlobalAdministratorRow(userId, ReadModelFreshnessState.Current)).ToArray(),
+            nextCursor: "ga-cursor-2",
+            hasMore: true,
             eTag: "\"ga-etag\"",
             freshness: ReadModelFreshnessState.Current);
 }

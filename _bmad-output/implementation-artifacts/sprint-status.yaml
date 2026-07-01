@@ -1,5 +1,5 @@
 # generated: 2026-06-29T14:27:50+02:00
-# last_updated: 2026-06-30
+# last_updated: 2026-07-01
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-06-29T14:27:50+02:00
-last_updated: 2026-06-30
+last_updated: 2026-07-01
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -274,3 +274,10 @@ action_items:
     status: done
     source: "_bmad-output/implementation-artifacts/deferred-work.md"
     resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-deferred-work-tenants-owned.md"
+  - id: deferred-work-2026-07-01-pagination-and-submodule-docs
+    epic: 5
+    action: "Close the global-administrator correction pagination fail-OPEN (>20 admins): GlobalAdministratorCorrectionSnapshot now treats absence as conclusive only when the fixed projection is fully loaded (!HasMore) — ConfirmProjection proves a revoke on !present && !HasMore (killing the page-2 false-Confirmed), and EvaluateCurrentProjection fails closed to UnableToVerify for an incomplete-page restore/revoke; +3 tests + PagedProjectionReady helper. Landed the three cross-submodule doc handoffs (FrontComposer FcContentLabel dispose-clobber + first-paint XML remarks + FcPageHeader.FocusHeadingAsync no-op->throw remarks; EventStore StorageTreemap SVG tabindex browser-matrix Razor comment). UI.Tests 874/874; all Tenants library + Tier-1/Tier-2 test projects, FrontComposer Shell, and EventStore Admin.UI build 0/0. Kept deferred: full projection paging (dedicated story), the IA/Product-blocked trio, and the benign EventCallback->Func / latent ETag watch-items. Pre-existing/environmental: AppHost + IntegrationTests Debug build blocked by drifted Hexalith.Commons submodule (external git pull, not this change); Release -warnaserror blocked by NU1102. UNCOMMITTED (Tenants + FrontComposer + EventStore submodules)."
+    owner: "Amelia (Developer)"
+    status: done
+    source: "_bmad-output/implementation-artifacts/deferred-work.md"
+    resolution_source: "_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-01-deferred-work-pagination-and-submodule-docs.md"

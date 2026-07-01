@@ -7,6 +7,52 @@ Source proposals:
 
 This file is now a routing index. Original review detail remains in the source story/spec artifacts; open items here must point to a Tenants story, a FrontComposer owner handoff, an EventStore owner handoff, or a stale/resolved record.
 
+## 2026-07-01 Correct Course — Deferred Work (pagination fail-closed + submodule doc handoffs)
+
+Proposal: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-01-deferred-work-pagination-and-submodule-docs.md`
+(scope = the global-administrator pagination correctness fix + the three cross-submodule doc handoffs;
+incremental review; Administrator-approved, incl. explicit approval to edit the FrontComposer and
+EventStore submodules for the doc-only handoffs). Classified **Minor** (Developer-executable). This run
+picked up the highest-severity remaining Tenants-owned item — the >20-admin false-`Confirmed` fail-OPEN —
+plus the documentation-only cross-submodule follow-ups; the rest of the open items are design-level (full
+projection paging), IA/Product-blocked (the trio), or benign watch-items, and stay routed.
+
+Resolved / documented this run:
+
+- **Global-administrator pagination >20 admins — fail-OPEN CLOSED (full paging redesign still routed).**
+  `GlobalAdministratorCorrectionSnapshot` now treats absence as conclusive only when the whole fixed
+  projection is loaded (`!HasMore`): `EvaluateCurrentProjection` fails closed to `UnableToVerify`
+  (`Tenants.Correction.Unavailable.CurrentProjectionUnavailable`) for a restore/revoke whose target is
+  absent from an incomplete page, and `ConfirmProjection` proves a revoke only on `!present && !HasMore`,
+  killing the false-`Confirmed` on a revoke of a page-2 administrator. Presence-found stays conclusive, so
+  page-1 corrections at scale are unaffected. +3 tests + `PagedProjectionReady` helper. The multi-page
+  load/aggregation that would let a page-2 correction actually RUN (rather than be conservatively blocked)
+  stays routed to a dedicated projection-paging story.
+  (`src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs`)
+- **FrontComposer `FcContentLabel` single-writer dispose-clobber + server first-paint — DOCUMENTED.**
+  XML `<remarks>` on `FcContentLabel` (plus a matching sentence on `FcContentLabelCoordinator`) now record
+  the last-writer-wins dispose-clobber and the `OnAfterRender`-only first-paint limitation, naming the
+  shell-parameter path (`ContentLabel`/`ContentLabelledBy`) as the first-paint-correct alternative. Doc-only.
+- **FrontComposer `FcPageHeader.FocusHeadingAsync` no-op→throw — DOCUMENTED.** An adopter-facing
+  behavior-change note was added to the method `<remarks>` (there is no FrontComposer CHANGELOG), incl. the
+  caveat that the `FcAggregateListPage` wrapper's `?? ValueTask.CompletedTask` guards only the null-`@ref`
+  window, not the throw.
+- **EventStore `StorageTreemap` SVG `<g tabindex>` cross-browser — DOCUMENTED.** A Razor comment above the
+  focusable cell records the Chromium/Edge/Firefox-vs-Safari/WebKit tab-order caveat and the
+  `<a>`/`<foreignObject>` remedy if WebKit support is required.
+
+Verification: `UI.Tests` **874/874** (871 + 3); all Tenants library + Tier-1/Tier-2 test projects build 0/0;
+FrontComposer Shell 0/0; EventStore Admin.UI 0/0. **Pre-existing/environmental (NOT this change):** the
+`Hexalith.Tenants.AppHost` + `IntegrationTests` Debug build fails because the `Hexalith.Commons` submodule was
+fast-forwarded to `3666203` by an external `git pull --tags origin main` (per its reflog; not run this session)
+and `Hexalith.Commons.Aspire` no longer resolves for the AppHost — confirmed the AppHost fails in isolation too.
+Release `-warnaserror` remains blocked locally by `NU1102` (`Hexalith.Commons.UniqueIds 3.19.0` unpublished; CI has it).
+
+**UNCOMMITTED** — Tenants repo (`GlobalAdministratorCorrectionSnapshot.cs` + its test) and the FrontComposer +
+EventStore submodules (doc-only). Kept deferred: full projection paging (dedicated story), the IA/Product-blocked
+trio (GA/Audit discoverability, unconsumed `GlobalAdministratorPolicy`, page-local empty tabpanels), and the
+benign `EventCallback→Func` + latent ETag watch-items.
+
 ## 2026-06-30 Correct Course — Deferred Work (Tenants-Owned, Actionable) Implemented
 
 Proposal: `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-30-deferred-work-tenants-owned.md`
@@ -223,15 +269,15 @@ Records about intermediate non-building commits, co-mingled story diffs, and bun
 
 _Reviewed FrontComposer commit `c6c3c39` (already merged to FrontComposer `main`). Both items live in the `Hexalith.FrontComposer` submodule; any fix is a new follow-up commit, not an amendment._
 
-- **`<FcContentLabel>` single-writer dispose-clobber** — when two `<FcContentLabel>` markers render on one page, disposing one calls `FcContentLabelCoordinator.Reset()` (→ `Set(null, null)`), wiping a still-live sibling's accessible name on `#fc-main-content` until the survivor happens to re-render (`references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcContentLabelCoordinator.cs:159` + `FcContentLabel.razor.cs:80-84`). Real but silent a11y edge case; it faithfully mirrors the accepted, documented `FcPageLayoutCoordinator` "single-writer, last-writer-wins" pattern (identical latent limitation by design) and no current consumer renders two markers. Fix path if multi-writer support is ever needed: add a writer-identity/token guard so only the current writer's dispose resets — apply to BOTH coordinators together for consistency.
-- **Page-driven `<FcContentLabel>` accessible name absent on server first paint** — registration is `OnAfterRender`-only (`FcContentLabel.razor.cs:67-77`), so on a static-SSR/prerender pass `#fc-main-content` emits no `aria-label`/`aria-labelledby` from the page-marker path; the name appears only after interactive hydration. The shell-parameter path (`ContentLabel`/`ContentLabelledBy`) is correct on first paint. Mirrors the established `FcPageLayout` coordinator pattern and is acceptable for this InteractiveServer library; recommend documenting the limitation in the `FcContentLabel` XML remarks.
-- **`FocusHeadingAsync()` no-op → throw is an undisclosed API behavior change** (resolved `decision-needed` → defer by Administrator on 2026-06-25). Keep the diagnostic throw: it is the intended hardening (Requested outcome 5) and no live consumer regresses (`TenantsWorkspace` → `FcAggregateListPage` passes `HeadingTabIndex="-1"`, verified). Follow-up: document the no-op→throw change for external FrontComposer adopters in the changelog / `FcPageHeader.FocusHeadingAsync` remarks, and note that the `FcAggregateListPage` wrapper's `… ?? ValueTask.CompletedTask` only guards the pre-first-render null `@ref` window, not the new throw. `FcPageHeader.razor.cs:104-117`, `FcAggregateListPage.razor.cs:83-84`. FrontComposer submodule.
+- **`<FcContentLabel>` single-writer dispose-clobber** — when two `<FcContentLabel>` markers render on one page, disposing one calls `FcContentLabelCoordinator.Reset()` (→ `Set(null, null)`), wiping a still-live sibling's accessible name on `#fc-main-content` until the survivor happens to re-render (`references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcContentLabelCoordinator.cs:159` + `FcContentLabel.razor.cs:80-84`). Real but silent a11y edge case; it faithfully mirrors the accepted, documented `FcPageLayoutCoordinator` "single-writer, last-writer-wins" pattern (identical latent limitation by design) and no current consumer renders two markers. Fix path if multi-writer support is ever needed: add a writer-identity/token guard so only the current writer's dispose resets — apply to BOTH coordinators together for consistency. — **DOCUMENTED 2026-07-01 (CC deferred-work):** the dispose-clobber + single-writer last-writer-wins limitation is now recorded in the `FcContentLabel` XML `<remarks>` and a matching sentence on `FcContentLabelCoordinator`; the writer-identity guard remains the routed follow-up if multi-writer support is ever needed.
+- **Page-driven `<FcContentLabel>` accessible name absent on server first paint** — registration is `OnAfterRender`-only (`FcContentLabel.razor.cs:67-77`), so on a static-SSR/prerender pass `#fc-main-content` emits no `aria-label`/`aria-labelledby` from the page-marker path; the name appears only after interactive hydration. The shell-parameter path (`ContentLabel`/`ContentLabelledBy`) is correct on first paint. Mirrors the established `FcPageLayout` coordinator pattern and is acceptable for this InteractiveServer library; recommend documenting the limitation in the `FcContentLabel` XML remarks. — **DOCUMENTED 2026-07-01 (CC deferred-work):** the `OnAfterRender`-only first-paint limitation is now in the `FcContentLabel` XML `<remarks>`, naming the shell-parameter path as the first-paint-correct alternative.
+- **`FocusHeadingAsync()` no-op → throw is an undisclosed API behavior change** (resolved `decision-needed` → defer by Administrator on 2026-06-25). Keep the diagnostic throw: it is the intended hardening (Requested outcome 5) and no live consumer regresses (`TenantsWorkspace` → `FcAggregateListPage` passes `HeadingTabIndex="-1"`, verified). Follow-up: document the no-op→throw change for external FrontComposer adopters in the changelog / `FcPageHeader.FocusHeadingAsync` remarks, and note that the `FcAggregateListPage` wrapper's `… ?? ValueTask.CompletedTask` only guards the pre-first-render null `@ref` window, not the new throw. `FcPageHeader.razor.cs:104-117`, `FcAggregateListPage.razor.cs:83-84`. FrontComposer submodule. — **DOCUMENTED 2026-07-01 (CC deferred-work):** FrontComposer has no CHANGELOG, so the adopter-facing no-op→throw behavior-change note (incl. the `FcAggregateListPage` `?? ValueTask.CompletedTask` caveat) was added to the `FcPageHeader.FocusHeadingAsync` XML `<remarks>`.
 
 ## Deferred from: code review of cc-2026-06-21-eventstore-admin-ui-a11y-remediation (2026-06-25)
 
 _Reviewed EventStore commit `d6d3ea69` (`feat(admin-ui): keyboard-accessible interactive semantics across Admin.UI`, already on EventStore `main`). The item lives in the `Hexalith.EventStore` submodule; any fix is a new follow-up commit, not an amendment._
 
-- **SVG `<g tabindex="0">` focusability not guaranteed cross-browser** (`references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/StorageTreemap.razor:72`) — the treemap cells became focusable via `tabindex="0"` on an SVG `<g>` group. Modern Chromium/Edge/Firefox include tabindex'd SVG container elements in the tab order; Safari/older WebKit historically do not, which would leave the treemap cells (and their `role="button"` keyboard activation) unreachable by Tab there. For an internal EventStore Admin.UI targeting Chromium/Edge the practical risk is low. Follow-up: validate against the actual supported browser matrix; if Safari/WebKit must be supported, make the focusable element an SVG `<a>` or wrap an HTML control in `<foreignObject>`. The bUnit test only asserts the attribute is present, not that the browser focuses it.
+- **SVG `<g tabindex="0">` focusability not guaranteed cross-browser** (`references/Hexalith.EventStore/src/Hexalith.EventStore.Admin.UI/Components/StorageTreemap.razor:72`) — the treemap cells became focusable via `tabindex="0"` on an SVG `<g>` group. Modern Chromium/Edge/Firefox include tabindex'd SVG container elements in the tab order; Safari/older WebKit historically do not, which would leave the treemap cells (and their `role="button"` keyboard activation) unreachable by Tab there. For an internal EventStore Admin.UI targeting Chromium/Edge the practical risk is low. Follow-up: validate against the actual supported browser matrix; if Safari/WebKit must be supported, make the focusable element an SVG `<a>` or wrap an HTML control in `<foreignObject>`. The bUnit test only asserts the attribute is present, not that the browser focuses it. — **DOCUMENTED 2026-07-01 (CC deferred-work):** the cross-browser caveat + `<a>`/`<foreignObject>` remedy is now recorded as a Razor comment above the focusable `<g role="button" tabindex="0">` in `StorageTreemap.razor`. Validation against the actual supported browser matrix remains the routed follow-up.
 
 ## Deferred from: code review of cc-2026-06-27-tenants-module-tabbed-workspace (2026-06-27)
 
@@ -257,7 +303,7 @@ _Full review (`ba14356..HEAD`, Blind Hunter + Edge Case Hunter + Acceptance Audi
 
 _Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). The patch and HIGH findings are in the story file's `Review Findings — BMAD Code Review (2026-06-29)` section; these are the deferred follow-ups._
 
-- **Global-administrator projection pagination ignored (>20 admins)** — `GlobalAdministratorsRequest` defaults to PageSize=20 and `HasMore`/cursor are never read; the correction snapshot only inspects page 1's `Rows` for presence and admin count. For more than 20 global administrators: a restore of a 21st+ target is treated as not-applied and can never reach `present=true` (stuck `ProjectionPending`), and a revoke of a 21st+ target is blocked as "already removed". Pre-existing query-shape limitation reused by this story; unusual scale and most failure modes fail closed. Follow-up: design projection paging/aggregation for the fixed global-administrator projection. (`src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs`)
+- **Global-administrator projection pagination ignored (>20 admins)** — `GlobalAdministratorsRequest` defaults to PageSize=20 and `HasMore`/cursor are never read; the correction snapshot only inspects page 1's `Rows` for presence and admin count. For more than 20 global administrators: a restore of a 21st+ target is treated as not-applied and can never reach `present=true` (stuck `ProjectionPending`), and a revoke of a 21st+ target is blocked as "already removed". Pre-existing query-shape limitation reused by this story; unusual scale and most failure modes fail closed. Follow-up: design projection paging/aggregation for the fixed global-administrator projection. (`src/Hexalith.Tenants.UI/State/TenantAudit/GlobalAdministratorCorrectionSnapshot.cs`) — **UPDATE 2026-07-01 (CC deferred-work): the fail-OPEN is CLOSED.** The snapshot now reads `HasMore` and treats absence as conclusive only on a fully-loaded page: `ConfirmProjection` proves a revoke only on `!present && !HasMore` (killing the page-2 false-`Confirmed`), and `EvaluateCurrentProjection` fails closed to `UnableToVerify` (`…CurrentProjectionUnavailable`) rather than the false `AlreadyRemoved` (revoke) or a mis-armed grant (restore). Presence-found stays conclusive so page-1 corrections at scale are unaffected. The residual is now narrowed to the full multi-page load/aggregation that would let a page-2 correction actually RUN instead of being conservatively blocked — still a dedicated projection-paging story.
 - **~~No story-specific gateway-routing test~~ — CLOSED 2026-06-30 (CC deferred-work) as already-covered** — verification showed `TenantCommandGatewayTests` already pins the full `system / global-administrators / global-administrators` triple + CommandType + literal payload for both `SetGlobalAdministratorAsync` and `RemoveGlobalAdministratorAsync`. The item was explicitly conditional on the gateway being touched; it was not, so no new (near-duplicate) test was added. (`tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs`)
 
 ## Deferred from: code review of 5-8-correction-projection-refresh-cleanup (2026-06-29)
@@ -277,7 +323,7 @@ Adversarial code review of the story 5.8 projection-refresh-provider cleanup. Th
 _Second adversarial review (Blind + Edge + Acceptance) of the **committed** commit `939bebc` (`671c282..939bebc`), which bundles 5.7 + 5.8 + the `TenantCommandFlowGuard`. The decision-needed + patch findings (incl. a HIGH stale-projection-submit gate and a command-flow lock-leak) are in the 5.7 story file's `Review Findings — BMAD Code Review (2026-06-30 …)` section. Only the genuinely-new defer is recorded here; the other two are already logged above (2026-06-29)._
 
 - **~~`CorrectionStartPanel` terminal-state focus parity (story 5.6)~~ — RESOLVED 2026-06-30 (CC deferred-work, Edit C)** — `CorrectionStartPanel.SetSnapshot` now moves keyboard focus on all six terminal states (`Confirmed`/`Failed`/`Rejected`/`Degraded`/`UnableToVerify`/`AlreadyApplied`), mirroring `GlobalAdministratorCorrectionPanel.SetSnapshot`. Test `Panel_rejected_terminal_state_moves_focus_to_lifecycle`. (`src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor`)
-- **Already-logged (2026-06-29), re-confirmed:** global-administrator projection pagination ignored (>20 admins) — re-confirmed, and the **confirm-time false-`Confirmed`** path (revoke of a page-2 admin reads `!present` ⇒ "proven") makes the real severity higher than the original "most failure modes fail closed" framing; consider re-rating. No new entry created. (`GlobalAdministratorCorrectionSnapshot.cs`)
+- **~~Already-logged (2026-06-29), re-confirmed:~~ RESOLVED 2026-07-01 (CC deferred-work):** global-administrator projection pagination ignored (>20 admins) — the **confirm-time false-`Confirmed`** path (revoke of a page-2 admin reads `!present` ⇒ "proven"), whose raised severity was flagged here, is now closed: `ConfirmProjection` requires `!present && !HasMore` to prove a revoke, and the preview gate fails closed on an incomplete page. Only the full projection-paging redesign remains routed. (`GlobalAdministratorCorrectionSnapshot.cs`)
 - **Already-logged (2026-06-29), re-confirmed:** no story-owned gateway-routing test. No new entry created.
 - **~~Ledger-hygiene (see 5.7 patch P-9)~~ — CLOSED 2026-06-30:** the stale "ConfirmProjection confirms off a known-Stale projection" and "Corrective-proof timestamp uses CurrentCulture" entries were rewritten/closed after the follow-up patches landed. Global-admin stale projection and proof timestamp/parse paths are resolved; tenant-domain residuals are tracked separately below.
 

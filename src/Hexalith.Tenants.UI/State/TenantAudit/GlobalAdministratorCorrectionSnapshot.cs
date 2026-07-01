@@ -123,29 +123,38 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         if (CommandType is TenantCorrectionCommandType.SetGlobalAdministrator) {
             // Restore: success is the target appearing in the fixed projection, so a target that is
             // already present is already applied and must not become a second grant command.
-            return present
-                ? withEvidence with {
+            if (present) {
+                return withEvidence with {
                     LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Lifecycle,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                     SafeMessage = null,
                     SafeMessageKey = "Tenants.Correction.GlobalAdmin.AlreadyGranted",
-                }
-                : withEvidence;
+                };
+            }
+
+            // Absence is only conclusive when the whole fixed projection is loaded. A paged read
+            // (HasMore) may hide the target on a later page, so arming a restore from "not on this
+            // page" would submit a grant against unverified authority state — fail closed instead.
+            return projection.HasMore ? IncompleteProjectionFailClosed(withEvidence) : withEvidence;
         }
 
         // Revoke: a target that is already absent is already applied; otherwise the last
         // global administrator is a hard stop before submit (AC6) and must not be submittable.
         if (!present) {
-            return withEvidence with {
-                LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
-                AuditState = TenantCommandAuditState.MissingSupport,
-                FocusTarget = TenantCommandFocusTarget.Lifecycle,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
-                SafeMessage = null,
-                SafeMessageKey = "Tenants.Correction.GlobalAdmin.AlreadyRemoved",
-            };
+            // A paged read cannot prove the target is absent (it may be on a later page); only a
+            // fully-loaded projection conclusively shows "already removed". Fail closed otherwise.
+            return projection.HasMore
+                ? IncompleteProjectionFailClosed(withEvidence)
+                : withEvidence with {
+                    LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
+                    AuditState = TenantCommandAuditState.MissingSupport,
+                    FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.Correction.GlobalAdmin.AlreadyRemoved",
+                };
         }
 
         if (count <= 1) {
@@ -287,7 +296,13 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         }
 
         bool present = TargetPresent(projection);
-        bool projectionProvesCorrection = IsRestoreAccessAction ? present : !present;
+
+        // A revoke is proven only by a CONCLUSIVE absence: a paged read (HasMore) may hide the target
+        // on a later page, so "absent from this page" is not proof of removal. A restore is proven by
+        // presence, which is always conclusive (the target IS in the loaded rows).
+        bool projectionProvesCorrection = IsRestoreAccessAction
+            ? present
+            : !present && !projection.HasMore;
 
         if (!projectionProvesCorrection) {
             return this with {
@@ -354,6 +369,22 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     private static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
         => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
         && projection.Freshness is ReadModelFreshnessState.Current;
+
+    // Fail-closed state for an incomplete (paged) fixed projection: absence cannot be proven from a
+    // single page, so a presence-based correction must not preview or confirm from it. Mirrors the
+    // ProjectionIsReadable fail-closed shape and reuses the current-projection-unavailable copy. The
+    // full multi-page load/aggregation that would let a page-2 correction actually run is out of scope
+    // here (routed to a dedicated projection-paging story); until then this stays conservatively closed.
+    private static GlobalAdministratorCorrectionSnapshot IncompleteProjectionFailClosed(
+        GlobalAdministratorCorrectionSnapshot withEvidence)
+        => withEvidence with {
+            LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+            AuditState = TenantCommandAuditState.MissingSupport,
+            FocusTarget = TenantCommandFocusTarget.Refresh,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            SafeMessage = null,
+            SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
+        };
 
     private static bool TryParseOriginalTimestamp(
         TenantCorrectionStartIntent intent,
