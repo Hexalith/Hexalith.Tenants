@@ -4,10 +4,11 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <!-- Versions for the package path. Debug builds use ProjectReference when dependency source is present;
          Release builds use these packages. Keep them aligned with the checked-out submodule revision so
-         source builds and package builds agree: currently Hexalith.EventStore v3.19.0 and
-         Hexalith.Memories v1.31.1. -->
-    <HexalithEventStoreVersion>3.19.0</HexalithEventStoreVersion>
-    <HexalithMemoriesVersion>1.31.1</HexalithMemoriesVersion>
+         source builds and package builds agree: currently Hexalith.EventStore v3.20.0,
+         Hexalith.Memories v1.34.0, and Hexalith.Commons v2.24.2. -->
+    <HexalithEventStoreVersion>3.20.0</HexalithEventStoreVersion>
+    <HexalithMemoriesVersion>1.34.0</HexalithMemoriesVersion>
+    <HexalithCommonsVersion>2.24.2</HexalithCommonsVersion>
   </PropertyGroup>
   <ItemGroup Label="Dapr">
     <PackageVersion Include="Dapr.Client" Version="1.18.4" />
@@ -62,6 +63,7 @@
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
   <ItemGroup Label="Hexalith platform (Debug source; Release package)">
+    <PackageVersion Include="Hexalith.Commons.UniqueIds" Version="$(HexalithCommonsVersion)" />
     <PackageVersion Include="Hexalith.EventStore.Client" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.Contracts" Version="$(HexalithEventStoreVersion)" />
     <PackageVersion Include="Hexalith.EventStore.DomainService" Version="$(HexalithEventStoreVersion)" />
