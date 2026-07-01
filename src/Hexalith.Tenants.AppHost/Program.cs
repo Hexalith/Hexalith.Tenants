@@ -6,6 +6,8 @@ using Hexalith.Memories.Aspire;
 using Hexalith.Tenants.AppHost;
 using Hexalith.Tenants.Aspire;
 
+using CommonsDaprLocalServiceEndpoints = Hexalith.Commons.Aspire.AspireDaprLocalServiceEndpoints;
+
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
 // Resolve DAPR access control + resiliency configuration paths.
@@ -19,9 +21,9 @@ string pubSubComponentPath = ResolveDaprConfigPath(builder.AppHostDirectory, "pu
 // Optional DAPR placement/scheduler service addresses. Explicit configuration still wins, but local AppHosts
 // auto-detect the common containerized (6050/6060) and slim/native (50005/50006) DAPR service ports so every
 // Aspire-managed sidecar connects to the actual local actor infrastructure.
-(string? daprPlacementHostAddress, string? daprSchedulerHostAddress) = AspireDaprLocalServiceEndpoints.Resolve(
-    builder.Configuration[AspireDaprLocalServiceEndpoints.PlacementHostAddressKey],
-    builder.Configuration[AspireDaprLocalServiceEndpoints.SchedulerHostAddressKey]);
+(string? daprPlacementHostAddress, string? daprSchedulerHostAddress) = CommonsDaprLocalServiceEndpoints.Resolve(
+    builder.Configuration[CommonsDaprLocalServiceEndpoints.PlacementHostAddressKey],
+    builder.Configuration[CommonsDaprLocalServiceEndpoints.SchedulerHostAddressKey]);
 
 // Local security service for JWT/OIDC authentication. Keycloak remains the implementation,
 // but the shared EventStore Aspire helper exposes it as the "security" resource.

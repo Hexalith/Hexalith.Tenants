@@ -12,6 +12,11 @@
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.EventStore</HexalithEventStoreRoot>
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">$(MSBuildThisFileDirectory)..\references\Hexalith.EventStore</HexalithEventStoreRoot>
         <HexalithEventStoreRoot Condition="'$(HexalithEventStoreRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.EventStore</HexalithEventStoreRoot>
+        <!-- Auto-detect Hexalith.Commons location for shared module infrastructure that is source-only in
+             this workspace, such as Hexalith.Commons.ServiceDefaults. -->
+        <HexalithCommonsRoot Condition="'$(HexalithCommonsRoot)' == '' and Exists('$(MSBuildThisFileDirectory)references\Hexalith.Commons\src\libraries\Hexalith.Commons.ServiceDefaults')">$(MSBuildThisFileDirectory)references\Hexalith.Commons</HexalithCommonsRoot>
+        <HexalithCommonsRoot Condition="'$(HexalithCommonsRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Commons\src\libraries\Hexalith.Commons.ServiceDefaults')">$(MSBuildThisFileDirectory)..\Hexalith.Commons</HexalithCommonsRoot>
+        <HexalithCommonsRoot Condition="'$(HexalithCommonsRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.Commons\src\libraries\Hexalith.Commons.ServiceDefaults')">$(MSBuildThisFileDirectory)..\references\Hexalith.Commons</HexalithCommonsRoot>
         <!-- Auto-detect Hexalith.FrontComposer location:
              1. FrontComposer is a references/ submodule inside Tenants (standalone)
              2. FrontComposer and Tenants are sibling submodules in a references/ folder or app repo
@@ -36,8 +41,8 @@
              $(Hexalith*Root) properties above ALWAYS resolve to a path (note the fallback on the last
              line of each block), so source availability must be detected via Exists of a canonical
              project file, NOT '$(Hexalith*Root)' != ''. -->
-        <HexalithEventStoreFromSource Condition="'$(Configuration)' == 'Debug' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
-        <HexalithMemoriesFromSource Condition="'$(Configuration)' == 'Debug' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
+        <HexalithEventStoreFromSource Condition="('$(Configuration)' == '' or '$(Configuration)' == 'Debug') and Exists('$(HexalithEventStoreRoot)/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
+        <HexalithMemoriesFromSource Condition="('$(Configuration)' == '' or '$(Configuration)' == 'Debug') and Exists('$(HexalithMemoriesRoot)/src/Hexalith.Memories.Contracts/Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
     </PropertyGroup>
 
     <PropertyGroup>
