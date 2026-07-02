@@ -14,7 +14,7 @@ jobs:
     uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@e3be295557d7d7d6009ea2dc207084b20384e740
     with:
       solution: Hexalith.Tenants.slnx
-      dapr-version: '1.17.0'
+      dapr-version: '1.18.0'
       test-projects: |
         tests/Hexalith.Tenants.Contracts.Tests
         tests/Hexalith.Tenants.Client.Tests
