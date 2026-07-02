@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   ci:
-    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@e3be295557d7d7d6009ea2dc207084b20384e740
+    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main
     with:
       solution: Hexalith.Tenants.slnx
       dapr-version: '1.18.0'
