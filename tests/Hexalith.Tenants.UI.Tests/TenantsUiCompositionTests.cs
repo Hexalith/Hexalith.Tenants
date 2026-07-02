@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Resources;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Xml.Linq;
 
 using Hexalith.FrontComposer.Contracts.Registration;
@@ -230,10 +231,17 @@ public sealed class TenantsUiCompositionTests
         string layout = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "Layout", "MainLayout.razor"));
 
-        // The shell now carries an explicit AppTitle so the header names this module
-        // ("Hexalith.Tenants") instead of the framework fallback ("Hexalith FrontComposer").
-        layout.ShouldContain("<FrontComposerShell AppTitle=\"Hexalith.Tenants\">");
+        // The shell title is configured through FcShellOptions so deployments can override it
+        // without changing layout markup.
+        layout.ShouldContain("<FrontComposerShell>@Body</FrontComposerShell>");
+        layout.ShouldNotContain("AppTitle=");
         layout.ShouldContain("@Body");
+
+        using JsonDocument settings = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "appsettings.json")));
+        JsonElement shellSettings = settings.RootElement.GetProperty("Hexalith").GetProperty("Shell");
+        shellSettings.GetProperty("AppTitle").GetString().ShouldBe("Hexalith Tenants");
+
         // Sign in / out is now the framework header's FcAccountMenu (avatar) — the bespoke
         // content-area auth bar has been removed.
         layout.ShouldNotContain("tenants-auth-bar");
