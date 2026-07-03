@@ -66,6 +66,13 @@ public class EventPublicationConfigurationTests {
         normalizedProgram.ShouldContain("    _ = eventStore.WithJwtBearerSecurity(security);");
         normalizedProgram.ShouldContain(".WithOpenIdConnectSecurity(");
 
+        // The generated external Tenants API is a separate AppHost resource. The UI talks to EventStore directly,
+        // so the old Tenants__BaseAddress BFF hop must not come back.
+        program.ShouldContain("IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenantsApi>(\"tenants-api\")");
+        program.ShouldContain("AppId = \"tenants-api\"");
+        normalizedProgram.ShouldContain("    _ = tenantsApi.WithEventStoreClientCredentials(security);");
+        program.ShouldNotContain("Tenants__BaseAddress");
+
         // Gateway-side domain-service registrations + the global-administrators topic override remain explicit
         // AppHost composition (the helper adds only the service runtime).
         program.ShouldContain("EventStore__DomainServices__Registrations__system|tenants|v1__AppId");
@@ -391,6 +398,14 @@ public class EventPublicationConfigurationTests {
         localContent.ShouldContain("Local development only");
         localContent.ShouldContain("Production MUST use receiver-specific deny-by-default configs");
         Scalar(local, "spec", "accessControl", "defaultAction").ShouldBe("allow");
+        Policies(local).Select(policy => Scalar(policy, "appId")).ShouldBe(["eventstore", "tenants-api"], ignoreOrder: true);
+
+        YamlMappingNode tenantsApiPolicy = SinglePolicy(local, "tenants-api");
+        Scalar(tenantsApiPolicy, "defaultAction").ShouldBe("deny");
+        Sequence(tenantsApiPolicy, "operations")
+            .OfType<YamlMappingNode>()
+            .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
+            .ShouldBe(["allow GET,POST /**"]);
 
         string[] productionAccessControlFiles = Directory
             .GetFiles(RepositoryPath("deploy", "dapr"), "accesscontrol.*.yaml", SearchOption.TopDirectoryOnly)
@@ -619,9 +634,25 @@ public class EventPublicationConfigurationTests {
             return direct;
         }
 
+        if (segments is ["references", "Hexalith.EventStore", ..]) {
+            string parentEventStore = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, "..", ".." }.Concat(segments.Skip(2)).ToArray()));
+            if (File.Exists(parentEventStore) || Directory.Exists(parentEventStore)) {
+                return parentEventStore;
+            }
+        }
+
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
         // that checks the dependency out as a sibling checkout. Fall back to that sibling.
+        if (segments is ["references", not null, ..] && segments[1].StartsWith("Hexalith.", StringComparison.Ordinal)) {
+            string siblingReference = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, ".." }.Concat(segments.Skip(1)).ToArray()));
+            if (File.Exists(siblingReference) || Directory.Exists(siblingReference)) {
+                return siblingReference;
+            }
+        }
+
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

@@ -144,12 +144,15 @@ public sealed class TenantsUiCompositionTests
         queryFiles.Select(Path.GetFileName).ShouldContain("GetGlobalAdministratorsQuery.cs");
         queryFiles.Select(Path.GetFileName).ShouldNotContain("ListGlobalAdministratorsQuery.cs");
 
-        string controller = File.ReadAllText(
-            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants", "Controllers", "TenantsQueryController.cs"));
-        controller.ShouldContain("[HttpGet(\"~/api/global-administrators\")]");
-        controller.ShouldContain("GetGlobalAdministratorsQuery.Domain");
-        controller.ShouldContain("TenantIdentity.GlobalAdministratorsAggregateId");
-        controller.ShouldNotContain("[HttpGet(\"~/api/global-administrators/users\")]");
+        File.Exists(Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants", "Controllers", "TenantsQueryController.cs"))
+            .ShouldBeFalse();
+        string apiAssemblyInfo = File.ReadAllText(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.Api", "RestApiAssemblyInfo.cs"));
+        apiAssemblyInfo.ShouldContain("RestApi(\"api/tenants\", \"tenants\", RestTenantSource.System)");
+        string globalAdministratorsQuery = File.ReadAllText(
+            Path.Combine(contractsQueryRoot, "GetGlobalAdministratorsQuery.cs"));
+        globalAdministratorsQuery.ShouldContain("[RestRoute(RestVerb.Get, \"~/api/global-administrators\")]");
+        globalAdministratorsQuery.ShouldContain("RestQueryBindingSource.Constant, \"global-administrators\"");
     }
 
     [Fact]

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hexalith.Tenants\Hexalith.Tenants.csproj" />
+    <ProjectReference Include="..\..\src\Hexalith.Tenants.Api\Hexalith.Tenants.Api.csproj" Aliases="TenantsApi" />
     <ProjectReference Include="..\..\src\Hexalith.Tenants.AppHost\Hexalith.Tenants.AppHost.csproj" />
     <!-- Debug source when available; Release uses the published EventStore Testing packages. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Testing\Hexalith.EventStore.Testing.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />

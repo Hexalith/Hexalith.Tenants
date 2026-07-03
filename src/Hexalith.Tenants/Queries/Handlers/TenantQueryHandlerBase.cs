@@ -20,8 +20,7 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// <summary>
 /// Base class for the tenant <see cref="IDomainQueryHandler"/> implementations. Holds the read-model
 /// access, RBAC-scoped visibility, pagination, and protected-cursor logic that used to live in the
-/// retired <c>TenantsProjectionActor</c>, dispatched in-process by <c>TenantsQueryController</c> via the
-/// platform <c>DomainQueryDispatcher</c>. Reads go through the platform <see cref="IReadModelStore"/>
+/// retired <c>TenantsProjectionActor</c>. Reads go through the platform <see cref="IReadModelStore"/>
 /// (Epic A8) and cursors through the platform <see cref="IQueryCursorCodec"/> (Epic A9); no DAPR actor
 /// host is involved.
 /// </summary>

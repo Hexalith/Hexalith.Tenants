@@ -13,8 +13,7 @@ using Microsoft.Extensions.Options;
 namespace Hexalith.Tenants.Server.Tests.Support;
 
 /// <summary>
-/// Test seam that mirrors the production in-process query dispatch (<c>DomainQueryDispatcher</c> driven
-/// by <c>TenantsQueryController</c>): it instantiates the six tenant query handlers over a mocked
+/// Test seam that mirrors the production in-process query dispatch: it instantiates the six tenant query handlers over a mocked
 /// <see cref="IReadModelStore"/> + <see cref="IQueryCursorCodec"/> and routes an envelope to the handler
 /// whose domain and query type match, returning a failure result when none does — exactly as the runtime
 /// dispatcher behaves. Replaces the retired direct <c>TenantsProjectionActor</c> instantiation in unit

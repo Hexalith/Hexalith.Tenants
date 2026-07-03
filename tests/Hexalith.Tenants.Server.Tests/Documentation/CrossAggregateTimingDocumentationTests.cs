@@ -50,7 +50,6 @@ public class CrossAggregateTimingDocumentationTests {
     [Fact]
     public void Timing_guide_references_source_backed_files_that_anchor_the_claims() {
         string guide = ReadGuide();
-        string repoRoot = RepositoryPath();
 
         string[] sourcePaths =
         [
@@ -66,7 +65,7 @@ public class CrossAggregateTimingDocumentationTests {
         ];
 
         foreach (string sourcePath in sourcePaths) {
-            File.Exists(Path.Combine(repoRoot, sourcePath)).ShouldBeTrue($"{sourcePath} must exist because the guide cites it.");
+            File.Exists(RepositoryPath(sourcePath.Split('/'))).ShouldBeTrue($"{sourcePath} must exist because the guide cites it.");
             guide.ShouldContain(sourcePath);
         }
     }
@@ -240,9 +239,25 @@ public class CrossAggregateTimingDocumentationTests {
             return direct;
         }
 
+        if (segments is ["references", "Hexalith.EventStore", ..]) {
+            string parentEventStore = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, "..", ".." }.Concat(segments.Skip(2)).ToArray()));
+            if (File.Exists(parentEventStore) || Directory.Exists(parentEventStore)) {
+                return parentEventStore;
+            }
+        }
+
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
         // that checks the dependency out as a sibling checkout. Fall back to that sibling.
+        if (segments is ["references", not null, ..] && segments[1].StartsWith("Hexalith.", StringComparison.Ordinal)) {
+            string siblingReference = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, ".." }.Concat(segments.Skip(1)).ToArray()));
+            if (File.Exists(siblingReference) || Directory.Exists(siblingReference)) {
+                return siblingReference;
+            }
+        }
+
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

@@ -254,9 +254,25 @@ public class DeploymentReadinessDocumentationTests {
             return direct;
         }
 
+        if (segments is ["references", "Hexalith.EventStore", ..]) {
+            string parentEventStore = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, "..", ".." }.Concat(segments.Skip(2)).ToArray()));
+            if (File.Exists(parentEventStore) || Directory.Exists(parentEventStore)) {
+                return parentEventStore;
+            }
+        }
+
         // A dependent module (e.g. Hexalith.EventStore) is a nested submodule of this repository
         // that may be left uninitialized when this repository is itself a submodule of a parent
         // that checks the dependency out as a sibling checkout. Fall back to that sibling.
+        if (segments is ["references", not null, ..] && segments[1].StartsWith("Hexalith.", StringComparison.Ordinal)) {
+            string siblingReference = Path.GetFullPath(Path.Combine(
+                new[] { repoRoot, ".." }.Concat(segments.Skip(1)).ToArray()));
+            if (File.Exists(siblingReference) || Directory.Exists(siblingReference)) {
+                return siblingReference;
+            }
+        }
+
         if (segments.Length > 0 && segments[0].StartsWith("Hexalith.", StringComparison.Ordinal)) {
             string sibling = Path.GetFullPath(Path.Combine(
                 new[] { repoRoot, ".." }.Concat(segments).ToArray()));

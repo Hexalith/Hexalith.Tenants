@@ -60,6 +60,8 @@ All tenant domain events use the following identity components:
 
 The canonical composite identity is `system:tenants:{managedTenantId}` for managed tenant aggregates and `system:global-administrators:global-administrators` for the global administrator aggregate. Both aggregate families publish on the shared `tenants.events` topic; consumers filter by event type rather than by topic.
 
+Command contracts expose REST-generation metadata members: `AggregateId` maps the command payload to the EventStore aggregate identity, `CommandType` provides the stable kebab-case command name, and `Subject` identifies the command subject family. Tenant-scoped commands return `TenantId` for `AggregateId`, while global-administrator commands return `global-administrators`. These members are adapter metadata for generated API hosts; EventStore still persists commands under the canonical composite identity above.
+
 ## Contract Inventory
 
 All public contracts in this reference are owned by package `Hexalith.Tenants.Contracts`. The tables below are the source-backed index for commands, success events, rejections, queries, DTOs, and enums. Detailed field tables appear in the aggregate, rejection, query, and enum sections that follow.
@@ -101,7 +103,7 @@ Every success event below is published to `tenants.events`. The EventStore envel
 
 ### Query and DTO Contracts
 
-All query contracts implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name.
+All query contracts implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query request members are explicit bindable adapter fields: `TenantId` and `UserId` come from route segments where applicable, paged queries accept `Cursor` and `PageSize`, and tenant-audit queries additionally accept `Category`, `From`, and `To` filters. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name.
 
 | Query contract | Package | `QueryType` | `Domain` | `ProjectionType` | Response shape | Intended REST adapter | Intended consumer |
 | --- | --- | --- | --- | --- | --- | --- | --- |

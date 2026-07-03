@@ -75,9 +75,11 @@ if (Uri.TryCreate(builder.Configuration["EventStore:BaseAddress"], UriKind.Absol
     }
 
     builder.Services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
+    builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
 }
 else {
     builder.Services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
+    builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
 }
 
 // Memories-backed cross-set tenant search. TenantQueryGateway calls MemoriesClient.SearchAsync to get
@@ -94,19 +96,6 @@ _ = builder.Services.AddMemoriesClient(o => {
 
     o.ApiToken = builder.Configuration["HEXALITH_MEMORIES_API_TOKEN"];
 });
-
-if (Uri.TryCreate(builder.Configuration["Tenants:BaseAddress"], UriKind.Absolute, out Uri? tenantsBaseAddress)) {
-    IHttpClientBuilder queryClient = builder.Services.AddHttpClient<ITenantsQueryApiClient, TenantsQueryApiClient>(
-        client => client.BaseAddress = tenantsBaseAddress);
-    if (authEnabled) {
-        _ = queryClient.AddFrontComposerGatewayAuthorization();
-    }
-
-    builder.Services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
-}
-else {
-    builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
-}
 
 // IUserContextAccessor is provided by the FrontComposer authentication bridge
 // (ClaimsPrincipalUserContextAccessor), configured above with the eventstore:tenant / sub claim

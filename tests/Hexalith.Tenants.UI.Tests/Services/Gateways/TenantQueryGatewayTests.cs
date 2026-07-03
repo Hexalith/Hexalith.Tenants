@@ -51,12 +51,12 @@ public sealed class TenantQueryGatewayTests
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
+        query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetTenantQuery.Domain);
         query.Request.ProjectionType.ShouldBe(GetTenantQuery.ProjectionType);
         query.Request.AggregateId.ShouldBe("tenant.alpha");
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
-        query.Request.Path.ShouldBe("/api/tenants/tenant.alpha");
         query.IfNoneMatch.ShouldBe("\"known\"");
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
@@ -212,8 +212,8 @@ public sealed class TenantQueryGatewayTests
             .ListTenantsAsync(new TenantListRequest(Cursor: "opaque-cursor", PageSize: 10), null, CancellationToken.None);
 
         SubmittedQuery listQuery = client.SubmittedQueries[0];
+        listQuery.Request.Tenant.ShouldBe("system");
         listQuery.Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
-        listQuery.Request.Path.ShouldBe("/api/tenants?cursor=opaque-cursor&pageSize=10");
         JsonElement payload = listQuery.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
         payload.TryGetProperty("offset", out _).ShouldBeFalse();
@@ -259,7 +259,6 @@ public sealed class TenantQueryGatewayTests
         query.Request.EntityId.ShouldBe("global-administrators");
         query.Request.QueryType.ShouldBe(GetGlobalAdministratorsQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetGlobalAdministratorsQuery.ProjectionType);
-        query.Request.Path.ShouldBe("/api/global-administrators?cursor=opaque-cursor&pageSize=10");
         query.IfNoneMatch.ShouldBe("\"known\"");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
@@ -403,8 +402,6 @@ public sealed class TenantQueryGatewayTests
         query.Request.EntityId.ShouldBe("tenant.alpha");
         query.Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetTenantAuditQuery.ProjectionType);
-        query.Request.Path.ShouldStartWith("/api/tenants/tenant.alpha/audit?");
-        query.Request.Path.ShouldContain("category=Access");
         query.IfNoneMatch.ShouldBe("\"known\"");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("from").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture));
@@ -713,38 +710,6 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
-    public async Task Get_tenant_live_problem_details_path_maps_populated_correlation_and_reason_to_safe_copy()
-    {
-        var client = new TenantsQueryApiClient(new HttpClient(new StaticResponseHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)
-        {
-            Content = new StringContent("""
-                {
-                  "title": "Forbidden",
-                  "detail": "raw payload stack trace bearer-token cursor-secret etag-secret",
-                  "correlationId": "correlation-secret-123",
-                  "reasonCode": "internal-reason-code"
-                }
-                """),
-        }))
-        {
-            BaseAddress = new Uri("https://tenants.example/"),
-        });
-        TenantQueryGateway gateway = CreateGateway(client);
-
-        TenantDetailSnapshot snapshot = await gateway
-            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
-
-        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unauthorized);
-        snapshot.ToString().ShouldNotContain("raw payload", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("stack trace", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("bearer-token", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("cursor-secret", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("etag-secret", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("correlation-secret-123", Case.Insensitive);
-        snapshot.ToString().ShouldNotContain("internal-reason-code", Case.Insensitive);
-    }
-
-    [Fact]
     public async Task List_tenants_uses_previous_snapshot_for_not_modified_response()
     {
         TenantListSnapshot previous = TenantListSnapshot.Ready(
@@ -885,13 +850,12 @@ public sealed class TenantQueryGatewayTests
             .GetMyTenantsAsync(new UserTenantMembershipRequest(Cursor: "signed-cursor", PageSize: 12), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("user.self");
+        query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
         query.Request.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
         query.Request.AggregateId.ShouldBe("index");
         query.Request.EntityId.ShouldBe("user.self");
         query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
-        query.Request.Path.ShouldBe("/api/users/user.self/tenants?cursor=signed-cursor&pageSize=12");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-cursor");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
@@ -912,7 +876,7 @@ public sealed class TenantQueryGatewayTests
             .GetMyTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "user.other"), null, CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("user.self");
+        query.Request.Tenant.ShouldBe("system");
         query.Request.EntityId.ShouldBe("user.self");
         snapshot.TargetUserId.ShouldBe("user.self");
     }
@@ -938,13 +902,12 @@ public sealed class TenantQueryGatewayTests
                 CancellationToken.None);
 
         SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.Tenant.ShouldBe("operator-user");
+        query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetUserTenantsQuery.Domain);
         query.Request.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
         query.Request.AggregateId.ShouldBe("index");
         query.Request.EntityId.ShouldBe("target.user@example");
         query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
-        query.Request.Path.ShouldBe("/api/users/target.user%40example/tenants?cursor=signed-target-cursor&pageSize=12");
         query.IfNoneMatch.ShouldBe("\"known\"");
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("signed-target-cursor");
@@ -1482,9 +1445,9 @@ public sealed class TenantQueryGatewayTests
     }
 
     private static TenantQueryGateway CreateGateway(CapturingGatewayClient client, string? userId = "operator-user", MemoriesClient? memories = null)
-        => CreateGateway((ITenantsQueryApiClient)client, userId, memories);
+        => CreateGateway((IEventStoreGatewayClient)client, userId, memories);
 
-    private static TenantQueryGateway CreateGateway(ITenantsQueryApiClient client, string? userId = "operator-user", MemoriesClient? memories = null)
+    private static TenantQueryGateway CreateGateway(IEventStoreGatewayClient client, string? userId = "operator-user", MemoriesClient? memories = null)
     {
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(userId);
@@ -1526,20 +1489,14 @@ public sealed class TenantQueryGatewayTests
             Query = "term",
         };
 
-    private sealed class StaticResponseHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(responder(request));
-    }
-
-    private sealed class CapturingGatewayClient : ITenantsQueryApiClient
+    private sealed class CapturingGatewayClient : IEventStoreGatewayClient
     {
         private readonly Queue<object> _responses = new();
 
         public List<SubmittedQuery> SubmittedQueries { get; } = [];
 
-        public Task<EventStoreQueryResult<T>> SendAsync<T>(
-            TenantsQueryApiRequest request,
+        public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(
+            SubmitQueryRequest request,
             string? ifNoneMatch = null,
             CancellationToken cancellationToken = default)
         {
@@ -1552,6 +1509,18 @@ public sealed class TenantQueryGatewayTests
 
             return Task.FromResult((EventStoreQueryResult<T>)next);
         }
+
+        public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<EventStoreQueryResult> SubmitQueryAsync(
+            SubmitQueryRequest request,
+            string? ifNoneMatch = null,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
 
         public void EnqueueQueryResult<T>(
             T payload,
@@ -1621,7 +1590,7 @@ public sealed class TenantQueryGatewayTests
             => _responses.Enqueue(exception);
     }
 
-    private sealed record SubmittedQuery(TenantsQueryApiRequest Request, string? IfNoneMatch);
+    private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);
 
     private static bool HasActiveStatusFilter(SearchRequest? request)
         => request?.AttributeFilters is { } filters

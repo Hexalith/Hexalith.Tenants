@@ -23,7 +23,7 @@ using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class TenantQueryGateway(
-    ITenantsQueryApiClient queryClient,
+    IEventStoreGatewayClient queryClient,
     IUserContextAccessor userContextAccessor,
     MemoriesClient memoriesClient) : ITenantQueryGateway {
     private const string SystemTenant = "system";
@@ -48,7 +48,7 @@ internal sealed class TenantQueryGateway(
 
         try {
             EventStoreQueryResult<TenantDetail> result = await queryClient
-                .SendAsync<TenantDetail>(CreateDetailRequest(request.TenantId), request.ETag, cancellationToken)
+                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), request.ETag, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
@@ -132,9 +132,9 @@ internal sealed class TenantQueryGateway(
         UserTenantMembershipSnapshot? previous,
         CancellationToken cancellationToken) {
         try {
-            TenantsQueryApiRequest query = CreateUserTenantsRequest(authenticatedUserId, request);
+            SubmitQueryRequest query = CreateUserTenantsRequest(authenticatedUserId, request);
             EventStoreQueryResult<PaginatedResult<UserTenantMembership>> result = await queryClient
-                .SendAsync<PaginatedResult<UserTenantMembership>>(query, request.ETag, cancellationToken)
+                .SubmitQueryAsync<PaginatedResult<UserTenantMembership>>(query, request.ETag, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
@@ -214,9 +214,9 @@ internal sealed class TenantQueryGateway(
         }
 
         try {
-            TenantsQueryApiRequest query = CreateGlobalAdministratorsRequest(request);
+            SubmitQueryRequest query = CreateGlobalAdministratorsRequest(request);
             EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>> result = await queryClient
-                .SendAsync<PaginatedResult<GlobalAdministratorSummary>>(query, request.ETag, cancellationToken)
+                .SubmitQueryAsync<PaginatedResult<GlobalAdministratorSummary>>(query, request.ETag, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
@@ -325,9 +325,9 @@ internal sealed class TenantQueryGateway(
         TenantAuditSnapshot? previous,
         bool isListRefreshed,
         CancellationToken cancellationToken) {
-        TenantsQueryApiRequest query = CreateTenantAuditRequest(request);
+        SubmitQueryRequest query = CreateTenantAuditRequest(request);
         EventStoreQueryResult<PaginatedResult<TenantAuditEntry>> result = await queryClient
-            .SendAsync<PaginatedResult<TenantAuditEntry>>(query, request.ETag, cancellationToken)
+            .SubmitQueryAsync<PaginatedResult<TenantAuditEntry>>(query, request.ETag, cancellationToken)
             .ConfigureAwait(false);
 
         if (result.IsNotModified) {
@@ -417,9 +417,9 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? previous,
         CancellationToken cancellationToken) {
         try {
-            TenantsQueryApiRequest query = CreateListRequest(request);
+            SubmitQueryRequest query = CreateListRequest(request);
             EventStoreQueryResult<PaginatedResult<TenantSummary>> result = await queryClient
-                .SendAsync<PaginatedResult<TenantSummary>>(query, request.ETag, cancellationToken)
+                .SubmitQueryAsync<PaginatedResult<TenantSummary>>(query, request.ETag, cancellationToken)
                 .ConfigureAwait(false);
 
             if (result.IsNotModified) {
@@ -670,67 +670,52 @@ internal sealed class TenantQueryGateway(
     // (no server-side filter on ListTenantsQuery), so Search/Status are not server query parameters here.
     // A non-empty Search term is handled cross-set by SearchTenantsAsync (above); Status is applied to the
     // hydrated authoritative detail. Filters are therefore never silently dropped — they are routed.
-    private static TenantsQueryApiRequest CreateListRequest(TenantListRequest request)
+    private static SubmitQueryRequest CreateListRequest(TenantListRequest request)
         => new(
-            AppendQuery("/api/tenants", new Dictionary<string, string?>(StringComparer.Ordinal) {
-                ["cursor"] = request.Cursor,
-                ["pageSize"] = request.PageSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            }),
+            SystemTenant,
+            ListTenantsQuery.Domain,
+            TenantIndexAggregateId,
             ListTenantsQuery.QueryType,
+            ListTenantsQuery.ProjectionType,
             JsonSerializer.SerializeToElement(new {
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
             }),
-            Tenant: SystemTenant,
-            Domain: ListTenantsQuery.Domain,
-            AggregateId: TenantIndexAggregateId,
-            EntityId: null,
-            ProjectionType: ListTenantsQuery.ProjectionType);
+            EntityId: null);
 
-    private static TenantsQueryApiRequest CreateUserTenantsRequest(string authenticatedUserId, UserTenantMembershipRequest request)
+    private static SubmitQueryRequest CreateUserTenantsRequest(string authenticatedUserId, UserTenantMembershipRequest request)
         => new(
-            AppendQuery($"/api/users/{EscapePath(request.TargetUserId ?? authenticatedUserId)}/tenants", new Dictionary<string, string?>(StringComparer.Ordinal) {
-                ["cursor"] = request.Cursor,
-                ["pageSize"] = request.PageSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            }),
+            SystemTenant,
+            GetUserTenantsQuery.Domain,
+            TenantIndexAggregateId,
             GetUserTenantsQuery.QueryType,
+            GetUserTenantsQuery.ProjectionType,
             JsonSerializer.SerializeToElement(new {
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
             }),
-            Tenant: authenticatedUserId,
-            Domain: GetUserTenantsQuery.Domain,
-            AggregateId: TenantIndexAggregateId,
-            EntityId: request.TargetUserId,
-            ProjectionType: GetUserTenantsQuery.ProjectionType);
+            EntityId: request.TargetUserId ?? authenticatedUserId);
 
-    private static TenantsQueryApiRequest CreateGlobalAdministratorsRequest(GlobalAdministratorsRequest request)
+    private static SubmitQueryRequest CreateGlobalAdministratorsRequest(GlobalAdministratorsRequest request)
         => new(
-            AppendQuery("/api/global-administrators", new Dictionary<string, string?>(StringComparer.Ordinal) {
-                ["cursor"] = request.Cursor,
-                ["pageSize"] = request.PageSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            }),
+            SystemTenant,
+            GetGlobalAdministratorsQuery.Domain,
+            GlobalAdministratorsAggregateId,
             GetGlobalAdministratorsQuery.QueryType,
+            GetGlobalAdministratorsQuery.ProjectionType,
             JsonSerializer.SerializeToElement(new {
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
             }),
-            Tenant: SystemTenant,
-            Domain: GetGlobalAdministratorsQuery.Domain,
-            AggregateId: GlobalAdministratorsAggregateId,
-            EntityId: GlobalAdministratorsAggregateId,
-            ProjectionType: GetGlobalAdministratorsQuery.ProjectionType);
+            EntityId: GlobalAdministratorsAggregateId);
 
-    private static TenantsQueryApiRequest CreateTenantAuditRequest(TenantAuditRequest request)
+    private static SubmitQueryRequest CreateTenantAuditRequest(TenantAuditRequest request)
         => new(
-            AppendQuery($"/api/tenants/{EscapePath(request.TenantId)}/audit", new Dictionary<string, string?>(StringComparer.Ordinal) {
-                ["from"] = request.From?.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-                ["to"] = request.To?.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-                ["category"] = request.Category?.ToString(),
-                ["cursor"] = request.Cursor,
-                ["pageSize"] = request.PageSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            }),
+            SystemTenant,
+            GetTenantAuditQuery.Domain,
+            request.TenantId,
             GetTenantAuditQuery.QueryType,
+            GetTenantAuditQuery.ProjectionType,
             JsonSerializer.SerializeToElement(new {
                 from = request.From,
                 to = request.To,
@@ -738,11 +723,7 @@ internal sealed class TenantQueryGateway(
                 cursor = request.Cursor,
                 pageSize = request.PageSize,
             }),
-            Tenant: SystemTenant,
-            Domain: GetTenantAuditQuery.Domain,
-            AggregateId: request.TenantId,
-            EntityId: request.TenantId,
-            ProjectionType: GetTenantAuditQuery.ProjectionType);
+            EntityId: request.TenantId);
 
     private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> EnrichRowsAsync(
         IReadOnlyList<TenantSummary> summaries,
@@ -780,33 +761,21 @@ internal sealed class TenantQueryGateway(
 
     private async Task<TenantDetail?> LoadTenantDetailAsync(string tenantId, CancellationToken cancellationToken) {
         EventStoreQueryResult<TenantDetail> result = await queryClient
-            .SendAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
+            .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(tenantId), ifNoneMatch: null, cancellationToken)
             .ConfigureAwait(false);
 
         return result.Payload;
     }
 
-    private static TenantsQueryApiRequest CreateDetailRequest(string tenantId)
+    private static SubmitQueryRequest CreateDetailRequest(string tenantId)
         => new(
-            $"/api/tenants/{EscapePath(tenantId)}",
+            SystemTenant,
+            GetTenantQuery.Domain,
+            tenantId,
             GetTenantQuery.QueryType,
-            JsonSerializer.SerializeToElement(new { }),
-            Tenant: SystemTenant,
-            Domain: GetTenantQuery.Domain,
-            AggregateId: tenantId,
-            EntityId: tenantId,
-            ProjectionType: GetTenantQuery.ProjectionType);
-
-    private static string AppendQuery(string path, IReadOnlyDictionary<string, string?> query) {
-        string[] pairs = query
-            .Where(static kvp => !string.IsNullOrWhiteSpace(kvp.Value))
-            .Select(static kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value!)}")
-            .ToArray();
-        return pairs.Length == 0 ? path : path + "?" + string.Join("&", pairs);
-    }
-
-    private static string EscapePath(string value)
-        => Uri.EscapeDataString(value);
+            GetTenantQuery.ProjectionType,
+            Payload: null,
+            EntityId: tenantId);
 
     private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata) {
         if (metadata?.IsDegraded == true) {

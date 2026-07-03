@@ -1,3 +1,14 @@
+using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Rest;
+using Hexalith.Tenants.Contracts.Identity;
+
 namespace Hexalith.Tenants.Contracts.Commands;
 
-public record EnableTenant(string TenantId);
+[RestRoute(RestVerb.Post, "{tenantId}/enable")]
+public record EnableTenant(string TenantId) : ICommandContract {
+    public static string Domain => TenantIdentity.Domain;
+
+    public static string CommandType => "enable-tenant";
+
+    public string AggregateId => TenantId;
+}

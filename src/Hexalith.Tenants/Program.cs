@@ -109,8 +109,8 @@ builder.Services.TryAddSingleton<IActorProxyFactory>(_ => new ActorProxyFactory(
 // to the retired TenantQueryCursorCodec so cursors issued before this refactor remain decodable.
 builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
 
-// Tenant query handlers (platform A7 seam). Discovered/registered explicitly while the host retains
-// its manual wiring; dispatched in-process by TenantsQueryController via DomainQueryDispatcher.
+// Tenant query handlers (platform A7 seam). The domain-service SDK maps /query and dispatches these
+// in-process through the IDomainQueryHandler contract.
 builder.Services.AddScoped<IDomainQueryHandler, GetTenantQueryHandler>();
 builder.Services.AddScoped<IDomainQueryHandler, GetTenantUsersQueryHandler>();
 builder.Services.AddScoped<IDomainQueryHandler, GetUserTenantsQueryHandler>();

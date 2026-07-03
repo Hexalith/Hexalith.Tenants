@@ -1,3 +1,5 @@
+using CommunityToolkit.Aspire.Hosting.Dapr;
+
 using Aspire.Hosting.ApplicationModel;
 
 using Hexalith.Commons.Aspire;
@@ -87,12 +89,24 @@ IResourceBuilder<ProjectResource> tenants = builder.AddHexalithTenantsServer(
 // Wire Admin.UI to Admin.Server + EventStore SignalR (domain-agnostic composition kept in the AppHost).
 EndpointReference adminServerHttps = adminServer.GetEndpoint("https");
 EndpointReference eventStoreHttps = eventStore.GetEndpoint("https");
-EndpointReference tenantsHttps = tenants.GetEndpoint("https");
 _ = adminUI
     .WithReference(adminServer)
     .WaitFor(adminServer)
     .WithEnvironment("EventStore__SignalR__HubUrl", ReferenceExpression.Create($"{eventStoreHttps}/hubs/projection-changes"))
     .WithExternalHttpEndpoints();
+
+// External-facing generated Tenants REST API host. It owns no state/pubsub components; it forwards caller
+// bearer tokens to EventStore through DAPR service invocation (dapr-app-id: eventstore).
+IResourceBuilder<ProjectResource> tenantsApi = builder.AddProject<HexalithTenantsApi>("tenants-api")
+    .WithReference(eventStore)
+    .WaitFor(eventStore)
+    .WithExternalHttpEndpoints()
+    .WithDaprSidecar(sidecar => sidecar
+        .WithOptions(new DaprSidecarOptions {
+            AppId = "tenants-api",
+            PlacementHostAddress = daprPlacementHostAddress,
+            SchedulerHostAddress = daprSchedulerHostAddress,
+        }));
 
 // Memories search-index server (O4): the Tenants list searches the curated tenants-index. The reusable
 // Memories hosting recipe (memories-vectors Redis Stack store + memories-graphs FalkorDB store + secret store
@@ -119,13 +133,10 @@ IResourceBuilder<ProjectResource> memoriesService = memories.Server
     .WithEnvironment("EventStoreIntegration__Routing__AutoProvisionRoutedTenants", "true");
 
 IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenantsUI>("tenants-ui")
-    .WithReference(tenants)
     .WithReference(eventStore)
     .WithReference(memoriesService)
-    .WaitFor(tenants)
     .WaitFor(eventStore)
     .WaitFor(memoriesService)
-    .WithEnvironment("Tenants__BaseAddress", tenantsHttps)
     .WithEnvironment("EventStore__BaseAddress", eventStoreHttps)
     // Aspire service discovery (not a hardcoded :5000); the BFF reads Memories:BaseAddress and calls
     // AddMemoriesClient. Memories.Server exposes only an http endpoint.
@@ -164,6 +175,10 @@ if (security is not null) {
             security,
             clientId: "hexalith-tenants-ui",
             clientSecret: "tenants-ui-dev-secret");
+
+    // tenants-api validates inbound callers against the same realm and forwards the validated bearer
+    // to EventStore; this mirrors the Sample external API host.
+    _ = tenantsApi.WithEventStoreClientCredentials(security);
 
     _ = sample.WithSecurityDependency(security);
 }

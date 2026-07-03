@@ -18,3 +18,11 @@ spec:
           - name: /**
             httpVerb: ['POST']
             action: allow
+      - appId: tenants-api
+        defaultAction: deny
+        trustDomain: "public"
+        namespace: "default"
+        operations:
+          - name: /**
+            httpVerb: ['GET', 'POST']
+            action: allow

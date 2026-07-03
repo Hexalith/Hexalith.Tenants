@@ -3018,7 +3018,7 @@ public class TenantsProjectionActorTests {
         string Message,
         IReadOnlyDictionary<string, object?> State);
 
-    // Test seam mirroring the in-process query dispatch (TenantsQueryController -> DomainQueryDispatcher).
+    // Test seam mirroring the in-process IDomainQueryHandler dispatch.
     // Exposes the same QueryAsync surface the retired actor had so test bodies are unchanged.
     private sealed class TenantQueryDispatch {
         private readonly IReadOnlyList<TenantQueryHandlerBase> _handlers;

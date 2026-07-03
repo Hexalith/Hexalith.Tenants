@@ -43,6 +43,9 @@
     <ProjectReference Include="..\Hexalith.Tenants\Hexalith.Tenants.csproj"
                       Condition="Exists('..\Hexalith.Tenants\Hexalith.Tenants.csproj')"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\Hexalith.Tenants.Api\Hexalith.Tenants.Api.csproj"
+                      Condition="Exists('..\Hexalith.Tenants.Api\Hexalith.Tenants.Api.csproj')"
+                      ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Hexalith.Tenants.UI\Hexalith.Tenants.UI.csproj"
                       Condition="Exists('..\Hexalith.Tenants.UI\Hexalith.Tenants.UI.csproj')"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />

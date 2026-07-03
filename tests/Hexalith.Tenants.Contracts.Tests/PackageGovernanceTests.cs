@@ -43,6 +43,7 @@ public class PackageGovernanceTests {
     private static readonly string[] ExplicitlyNonPackableProjects =
     [
         "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+        "src/Hexalith.Tenants.Api/Hexalith.Tenants.Api.csproj",
         "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
         "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
         "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
