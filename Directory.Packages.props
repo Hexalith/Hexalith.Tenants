@@ -11,10 +11,4 @@
   <Import Project="$(Hexalith1BuildPackageProps)" Condition="Exists('$(Hexalith1BuildPackageProps)') And '$(HexalithVersionsLoaded)' != 'true'" />
   <Import Project="$(Hexalith2BuildPackageProps)" Condition="Exists('$(Hexalith2BuildPackageProps)') And '$(HexalithVersionsLoaded)' != 'true'" />
   <Import Project="$(Hexalith3BuildPackageProps)" Condition="'$(HexalithVersionsLoaded)' != 'true'" />
-  <ItemGroup Label="Tenants API">
-    <PackageVersion Include="Hexalith.EventStore.Client" Version="3.22.0" Condition="'$(HexalithVersionsLoaded)' != 'true'" />
-    <PackageVersion Include="Hexalith.EventStore.RestApi.Generators" Version="3.22.0" />
-    <PackageVersion Include="Hexalith.EventStore.ServiceDefaults" Version="3.22.0" Condition="'$(HexalithVersionsLoaded)' != 'true'" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" Condition="'$(HexalithVersionsLoaded)' != 'true'" />
-  </ItemGroup>
 </Project>
