@@ -20,7 +20,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
     <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
-    <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj" />
+    <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj" Condition="'$(HexalithCommonsFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.Commons.ServiceDefaults" Condition="'$(HexalithCommonsFromSource)' != 'true'" />
     <!-- The EventStore gateway web host is NOT a published NuGet package (IsPackable=false), so it has no
          package fallback: building this host requires the EventStore submodule. This host is itself an app
          (a container image), not one of the published Tenants library packages, so that is acceptable. -->

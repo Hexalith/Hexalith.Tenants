@@ -9,7 +9,7 @@
     Loaded as .targets (post-project) so EnableContainer set in the project is visible.
   -->
   <PropertyGroup Condition="'$(EnableContainer)' == 'true'">
-    <IsPackable>false</IsPackable>
+    <IsPackable Condition="'$(EnableContainerPackable)' != 'true'">false</IsPackable>
     <IsPublishable>true</IsPublishable>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-alpine</ContainerBaseImage>
     <ContainerFamily>alpine</ContainerFamily>

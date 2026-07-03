@@ -11,7 +11,8 @@
     <!-- Platform Aspire helper libraries consumed for their hosting extensions only (not added to the Aspire
          resource graph). They are added with SuppressBuild via path-only IProjectMetadata; the Debug
          build-forcing references below are what actually compile the launched servers. -->
-    <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.Aspire\Hexalith.Commons.Aspire.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.Aspire\Hexalith.Commons.Aspire.csproj" IsAspireProjectResource="false" Condition="'$(HexalithCommonsFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.Commons.Aspire" Condition="'$(HexalithCommonsFromSource)' != 'true'" />
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Aspire\Hexalith.EventStore.Aspire.csproj" IsAspireProjectResource="false" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Aspire" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
     <ProjectReference Include="..\Hexalith.Tenants.Aspire\Hexalith.Tenants.Aspire.csproj" IsAspireProjectResource="false" />
@@ -29,7 +30,7 @@
        Cross-repo paths use the multi-layout $(Hexalith*Root) properties from Directory.Build.props; each is
        Exists-guarded so a missing dependency submodule never breaks the AppHost build. Debug-only: Release builds
        compile the platform via the solution / consume NuGet packages (Phase 2), and the AppHost is dev-only. -->
-  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+  <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(UseHexalithProjectReferences)' == 'true'">
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj"
                       Condition="Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj')"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />

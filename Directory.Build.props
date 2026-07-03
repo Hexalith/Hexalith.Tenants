@@ -36,14 +36,19 @@
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\references\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.Memories</HexalithMemoriesRoot>
-        <HexalithTenantsSiblingSourceWorkspace Condition="'$(HexalithTenantsSiblingSourceWorkspace)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.EventStore\src\Hexalith.EventStore.Contracts')">true</HexalithTenantsSiblingSourceWorkspace>
-        <!-- Source flags: Debug builds use ProjectReference when dependency source is present. Release
-             builds normally use published NuGet packages, but sibling-source umbrella/app workspaces must
-             stay on source references to avoid mixing package assemblies with source-built assemblies.
-             The $(Hexalith*Root) properties above ALWAYS resolve to a path, so source availability must
-             be detected via Exists of a canonical project file, NOT '$(Hexalith*Root)' != ''. -->
-        <HexalithEventStoreFromSource Condition="'$(HexalithEventStoreFromSource)' == '' and (('$(Configuration)' == '' or '$(Configuration)' == 'Debug') or '$(HexalithTenantsSiblingSourceWorkspace)' == 'true') and Exists('$(HexalithEventStoreRoot)/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
-        <HexalithMemoriesFromSource Condition="'$(HexalithMemoriesFromSource)' == '' and (('$(Configuration)' == '' or '$(Configuration)' == 'Debug') or '$(HexalithTenantsSiblingSourceWorkspace)' == 'true') and Exists('$(HexalithMemoriesRoot)/src/Hexalith.Memories.Contracts/Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
+        <!-- Cross-repo Hexalith dependencies use source by default only for Debug builds.
+             Release/package builds consume centrally pinned NuGet packages. Override
+             UseHexalithProjectReferences only for intentional source-debug sessions. -->
+        <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == '' and '$(UseNuGetDeps)' == 'true'">false</UseHexalithProjectReferences>
+        <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == '' and '$(UseNuGetDeps)' == 'false'">true</UseHexalithProjectReferences>
+        <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == '' and '$(Configuration)' == 'Debug'">true</UseHexalithProjectReferences>
+        <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == ''">false</UseHexalithProjectReferences>
+        <UseNuGetDeps Condition="'$(UseNuGetDeps)' == '' and '$(UseHexalithProjectReferences)' == 'true'">false</UseNuGetDeps>
+        <UseNuGetDeps Condition="'$(UseNuGetDeps)' == ''">true</UseNuGetDeps>
+        <HexalithCommonsFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj')">true</HexalithCommonsFromSource>
+        <HexalithEventStoreFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
+        <HexalithFrontComposerFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj')">true</HexalithFrontComposerFromSource>
+        <HexalithMemoriesFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
     </PropertyGroup>
 
     <PropertyGroup>

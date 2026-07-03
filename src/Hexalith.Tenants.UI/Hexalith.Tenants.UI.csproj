@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <EnableContainerPackable>true</EnableContainerPackable>
     <IsPublishable>true</IsPublishable>
     <EnableContainer>true</EnableContainer>
     <ContainerRepository>tenants-ui</ContainerRepository>
+    <PackageId>Hexalith.Tenants.UI</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +15,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hexalith.Tenants.Client\Hexalith.Tenants.Client.csproj" />
-    <!-- FrontComposer is not published to NuGet, so it has no package fallback: this UI host (an app/container
-         image, not a published package) requires the FrontComposer submodule to build. -->
-    <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj" />
-    <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj" />
+    <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj" Condition="'$(HexalithFrontComposerFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.FrontComposer.Contracts" Condition="'$(HexalithFrontComposerFromSource)' != 'true'" />
+    <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj" Condition="'$(HexalithFrontComposerFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.FrontComposer.Shell" Condition="'$(HexalithFrontComposerFromSource)' != 'true'" />
     <!-- Memories search index (Debug source when available; Release uses published Memories packages). The BFF
          search read path calls MemoriesClient.SearchAsync; rows are still hydrated via the ETag-fresh
          tenant detail path. Never reference the [Experimental] ingestion APIs from product code. -->
