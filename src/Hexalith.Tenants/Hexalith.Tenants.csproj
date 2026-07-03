@@ -5,11 +5,6 @@
     <IsPublishable>true</IsPublishable>
     <EnableContainer>true</EnableContainer>
     <ContainerRepository>tenants</ContainerRepository>
-    <!-- Tenants.csproj references Hexalith.EventStore.csproj (web host) which causes
-         duplicate appsettings.json during publish. Tenants' own appsettings take
-         precedence. TODO: refactor to reference only Hexalith.EventStore library
-         projects, not the web host. -->
-    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,12 +15,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Hexalith.Tenants.Server\Hexalith.Tenants.Server.csproj" />
     <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
-    <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj" Condition="'$(HexalithCommonsFromSource)' == 'true'" />
-    <PackageReference Include="Hexalith.Commons.ServiceDefaults" Condition="'$(HexalithCommonsFromSource)' != 'true'" />
-    <!-- The EventStore gateway web host is NOT a published NuGet package (IsPackable=false), so it has no
-         package fallback: building this host requires the EventStore submodule. This host is itself an app
-         (a container image), not one of the published Tenants library packages, so that is acceptable. -->
-    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj" />
+    <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.ServiceDefaults\Hexalith.Commons.ServiceDefaults.csproj" />
+    <!-- Reuse the EventStore HTTP gateway library. The EventStore web/container host stays separate and
+         non-packable; this app composes the shared gateway controllers, auth, middleware, and OpenAPI wiring. -->
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Gateway\Hexalith.EventStore.Gateway.csproj" />
     <!-- Debug source when available; Release uses the published EventStore DomainService package. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.DomainService\Hexalith.EventStore.DomainService.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.DomainService" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />

@@ -24,12 +24,27 @@ REPO_ROOT = SCRIPT_PATH.parents[1]
 
 
 def central_package_versions() -> dict[str, str]:
-    document = ElementTree.parse(REPO_ROOT / "Directory.Packages.props")
-    return {
-        element.attrib["Include"]: element.attrib["Version"]
-        for element in document.getroot().iter()
-        if element.tag.endswith("PackageVersion") and "Include" in element.attrib and "Version" in element.attrib
-    }
+    package_props_files = [
+        REPO_ROOT / "Directory.Packages.props",
+        REPO_ROOT / "references" / "Hexalith.Builds" / "Props" / "Directory.Packages.props",
+        REPO_ROOT.parent / "Hexalith.Builds" / "Props" / "Directory.Packages.props",
+        REPO_ROOT.parent.parent / "Hexalith.Builds" / "Props" / "Directory.Packages.props",
+    ]
+    versions: dict[str, str] = {}
+    for props_file in package_props_files:
+        if not props_file.exists():
+            continue
+
+        document = ElementTree.parse(props_file)
+        versions.update(
+            {
+                element.attrib["Include"]: element.attrib["Version"]
+                for element in document.getroot().iter()
+                if element.tag.endswith("PackageVersion") and "Include" in element.attrib and "Version" in element.attrib
+            }
+        )
+
+    return versions
 
 
 def package_versions(package_directory: Path) -> dict[str, str]:
@@ -66,6 +81,7 @@ def run_dotnet(args: list[str], working_directory: Path) -> None:
     env = os.environ.copy()
     env.setdefault("DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER", "1")
     env.setdefault("MSBUILDDISABLENODEREUSE", "1")
+    env["NUGET_PACKAGES"] = str(working_directory.parent / ".nuget" / "packages")
     full_args = ["dotnet", *args[:1], *args[1:]]
     subprocess.run(full_args, cwd=working_directory, check=True, env=env)
 
@@ -74,6 +90,7 @@ def run_xunit_assembly(test_assembly: Path, working_directory: Path) -> None:
     env = os.environ.copy()
     env.setdefault("DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER", "1")
     env.setdefault("MSBUILDDISABLENODEREUSE", "1")
+    env["NUGET_PACKAGES"] = str(working_directory.parent / ".nuget" / "packages")
     subprocess.run(["dotnet", str(test_assembly), "-parallel", "none", "-noLogo"], cwd=working_directory, check=True, env=env)
 
 

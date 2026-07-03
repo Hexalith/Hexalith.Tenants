@@ -21,18 +21,17 @@ EXPECTED_PACKAGE_IDS = frozenset({
 
 EXPECTED_DEPENDENCIES = {
     "Hexalith.Tenants.Contracts": frozenset({
-        # ByteAether.Ulid flows transitively from Hexalith.EventStore.Contracts (ULID identifiers).
         "ByteAether.Ulid",
+        "Hexalith.Commons.UniqueIds",
         "Hexalith.EventStore.Contracts",
     }),
     "Hexalith.Tenants.Client": frozenset({
-        # The client integrates the EventStore platform client for tenant event handling
-        # (ea20e58), so its published dependency surface includes Hexalith.EventStore.Client
-        # and that package's transitive Dapr.Client / ByteAether.Ulid dependencies.
         "ByteAether.Ulid",
         "Dapr.AspNetCore",
         "Dapr.Client",
+        "Hexalith.Commons.UniqueIds",
         "Hexalith.EventStore.Client",
+        "Hexalith.EventStore.Contracts",
         "Hexalith.Tenants.Contracts",
     }),
     "Hexalith.Tenants.Server": frozenset({
@@ -41,31 +40,50 @@ EXPECTED_DEPENDENCIES = {
         "Dapr.Actors.AspNetCore",
         "Dapr.Client",
         "FluentValidation",
+        "Hexalith.Commons.UniqueIds",
+        "Hexalith.EventStore.Client",
+        "Hexalith.EventStore.Contracts",
         "Hexalith.EventStore.Server",
         "Hexalith.Tenants.Contracts",
         "MediatR",
-        # JWT bearer authentication wiring (commit 04a321b) + configuration/hosting binders.
+        "Microsoft.Extensions.Configuration",
+        "Microsoft.Extensions.Configuration.Abstractions",
         "Microsoft.Extensions.Configuration.Binder",
+        "Microsoft.Extensions.DependencyInjection",
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
         "Microsoft.Extensions.Hosting.Abstractions",
+        "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Logging.Abstractions",
+        "Microsoft.Extensions.Options",
+        "Microsoft.Extensions.Options.ConfigurationExtensions",
         "Microsoft.IdentityModel.Abstractions",
         "Microsoft.IdentityModel.JsonWebTokens",
         "Microsoft.IdentityModel.Logging",
         "Microsoft.IdentityModel.Tokens",
     }),
     "Hexalith.Tenants.Testing": frozenset({
-        # The testing helpers reference Hexalith.Tenants.Server, so its full dependency surface
-        # (Dapr.*, FluentValidation, MediatR, ByteAether.Ulid, Microsoft.IdentityModel/Extensions.*)
-        # flows through transitively in addition to the test frameworks.
         "ByteAether.Ulid",
         "Dapr.Actors",
         "Dapr.Actors.AspNetCore",
         "Dapr.Client",
         "FluentValidation",
+        "Hexalith.Commons.UniqueIds",
+        "Hexalith.EventStore.Client",
+        "Hexalith.EventStore.Contracts",
+        "Hexalith.EventStore.Server",
         "Hexalith.Tenants.Contracts",
         "Hexalith.Tenants.Server",
         "MediatR",
+        "Microsoft.Extensions.Configuration",
+        "Microsoft.Extensions.Configuration.Abstractions",
         "Microsoft.Extensions.Configuration.Binder",
+        "Microsoft.Extensions.DependencyInjection",
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
         "Microsoft.Extensions.Hosting.Abstractions",
+        "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Logging.Abstractions",
+        "Microsoft.Extensions.Options",
+        "Microsoft.Extensions.Options.ConfigurationExtensions",
         "Microsoft.IdentityModel.Abstractions",
         "Microsoft.IdentityModel.JsonWebTokens",
         "Microsoft.IdentityModel.Logging",
@@ -74,17 +92,27 @@ EXPECTED_DEPENDENCIES = {
         "xunit.v3.assert",
     }),
     "Hexalith.Tenants.Aspire": frozenset({
-        # AppHost-orchestration helper: depends on the EventStore platform Aspire library plus the Aspire/DAPR
-        # hosting surface. The transitive Aspire/OpenTelemetry/Redis/YamlDotNet/Microsoft.Extensions closure is
-        # promoted to direct package dependencies by CentralPackageTransitivePinningEnabled.
         "Aspire.Hosting",
+        "Aspire.Hosting.Keycloak",
         "Aspire.Hosting.Redis",
         "CommunityToolkit.Aspire.Hosting.Dapr",
+        "Grpc.Net.ClientFactory",
         "Hexalith.EventStore.Aspire",
         "MessagePack",
+        "Microsoft.Extensions.Configuration",
+        "Microsoft.Extensions.Configuration.Abstractions",
         "Microsoft.Extensions.Configuration.Binder",
+        "Microsoft.Extensions.Configuration.FileExtensions",
+        "Microsoft.Extensions.Configuration.UserSecrets",
+        "Microsoft.Extensions.DependencyInjection",
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
         "Microsoft.Extensions.Hosting",
         "Microsoft.Extensions.Hosting.Abstractions",
+        "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Logging.Abstractions",
+        "Microsoft.Extensions.Options",
+        "Microsoft.Extensions.Options.ConfigurationExtensions",
+        "Newtonsoft.Json",
         "OpenTelemetry.Exporter.OpenTelemetryProtocol",
         "OpenTelemetry.Extensions.Hosting",
         "StackExchange.Redis",

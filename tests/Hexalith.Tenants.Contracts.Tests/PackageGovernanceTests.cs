@@ -52,12 +52,12 @@ public class PackageGovernanceTests {
 
     private static readonly string[] BlockingTestProjects =
     [
-        "tests/Hexalith.Tenants.Contracts.Tests/",
-        "tests/Hexalith.Tenants.Client.Tests/",
-        "tests/Hexalith.Tenants.Testing.Tests/",
-        "tests/Hexalith.Tenants.UI.Tests/",
-        "samples/Hexalith.Tenants.Sample.Tests/",
-        "tests/Hexalith.Tenants.Server.Tests/",
+        "tests/Hexalith.Tenants.Contracts.Tests",
+        "tests/Hexalith.Tenants.Client.Tests",
+        "tests/Hexalith.Tenants.Testing.Tests",
+        "tests/Hexalith.Tenants.UI.Tests",
+        "samples/Hexalith.Tenants.Sample.Tests",
+        "tests/Hexalith.Tenants.Server.Tests",
     ];
 
     private static readonly string[] ExpectedPackageIds =
@@ -96,13 +96,7 @@ public class PackageGovernanceTests {
         XDocument centralPackages = XDocument.Load(Path.Combine(repoRoot, "Directory.Packages.props"));
 
         centralPackages.Descendants("ManagePackageVersionsCentrally").Single().Value.ShouldBe("true");
-
-        HashSet<string> centralPackageIds = centralPackages
-            .Descendants("PackageVersion")
-            .Select(package => package.Attribute("Include")?.Value)
-            .Where(packageId => !string.IsNullOrWhiteSpace(packageId))
-            .Select(packageId => packageId!)
-            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> centralPackageIds = GetCentralPackageIds(repoRoot);
 
         List<string> violations = [];
         foreach (string projectPath in GetPackageReferenceGovernanceFiles(repoRoot)) {
@@ -249,36 +243,30 @@ public class PackageGovernanceTests {
         string workflow = File.ReadAllText(workflowPath);
 
         workflow.ShouldContain("permissions:\n  contents: read");
-        workflow.ShouldContain("DAPR_VERSION: '1.17.");
-        workflow.ShouldContain("global-json-file: global.json");
-        workflow.ShouldContain("dotnet restore Hexalith.Tenants.slnx");
-        workflow.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
-        workflow.ShouldContain("fetch-depth: 0");
-        workflow.ShouldContain("submodules: true");
+        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
+        workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
+        workflow.ShouldContain("dapr-version: '1.18.0'");
+        workflow.ShouldContain("run-consumer-validation: true");
+        workflow.ShouldContain("run-coverage-gate: true");
         workflow.ShouldNotContain("recursive");
 
         foreach (string testProject in BlockingTestProjects) {
             workflow.ShouldContain(testProject);
-            workflow.ShouldContain($"{testProject} --no-build --configuration Release");
         }
 
-        workflow.ShouldContain("scripts/validate-coverage.py");
-        workflow.ShouldContain("--minimum-line-coverage 80");
-        workflow.ShouldContain("--required-branch-coverage 100");
+        workflow.ShouldContain("coverage-minimum-line: 80");
+        workflow.ShouldContain("coverage-required-branch: 100");
+        workflow.ShouldContain("coverage-isolation-targets:");
         workflow.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
-        workflow.ShouldContain("$GITHUB_STEP_SUMMARY");
-
-        foreach (string artifactGlob in BoundedArtifactGlobs.Take(2)) {
-            workflow.ShouldContain(artifactGlob);
-        }
+        workflow.ShouldContain("aspire-test-project: tests/Hexalith.Tenants.IntegrationTests");
 
         foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
             workflow.ShouldNotContain(forbiddenFragment);
         }
 
         GetWorkflowActionReferences(workflow).ShouldAllBe(
-            action => IsFullCommitSha(action.Reference),
-            "GitHub Actions references must stay pinned to full commit SHAs.");
+            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && action.Reference == "main",
+            "The local workflow delegates to the shared Hexalith.Builds workflow; action pinning is enforced there.");
     }
 
     [Fact]
@@ -288,11 +276,10 @@ public class PackageGovernanceTests {
         string releaseConfig = File.ReadAllText(Path.Combine(repoRoot, "release.config.cjs"));
         string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
-        workflow.ShouldContain("DAPR_VERSION: '1.17.");
-        workflow.ShouldContain("global-json-file: global.json");
-        workflow.ShouldContain("dotnet restore Hexalith.Tenants.slnx");
-        workflow.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
-        workflow.ShouldContain("npx semantic-release");
+        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
+        workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
+        workflow.ShouldContain("dapr-version: '1.18.0'");
+        workflow.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
         workflow.ShouldNotContain("dotnet nuget push **");
         workflow.ShouldNotContain("recursive");
 
@@ -325,8 +312,8 @@ public class PackageGovernanceTests {
         }
 
         GetWorkflowActionReferences(workflow).ShouldAllBe(
-            action => IsFullCommitSha(action.Reference),
-            "GitHub Actions references must stay pinned to full commit SHAs.");
+            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && action.Reference == "main",
+            "The local workflow delegates to the shared Hexalith.Builds workflow; action pinning is enforced there.");
     }
 
     [Fact]
@@ -334,11 +321,9 @@ public class PackageGovernanceTests {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/ci.yml"));
 
-        workflow.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs 0.0.0-ci-test");
-        workflow.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
-        workflow.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
-        workflow.IndexOf("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror", StringComparison.Ordinal)
-            .ShouldBeLessThan(workflow.IndexOf("python3 scripts/pack-release-packages.py ./nupkgs 0.0.0-ci-test", StringComparison.Ordinal));
+        workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
+        workflow.ShouldContain("run-consumer-validation: true");
+        workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
     }
 
     [Fact]
@@ -364,6 +349,7 @@ public class PackageGovernanceTests {
         script.ShouldContain("NuGet.Config");
         script.ShouldContain("local-tenants-packages");
         script.ShouldContain("inherited NuGet.Config sources are preserved");
+        script.ShouldContain("NUGET_PACKAGES");
         script.ShouldContain("run_xunit_assembly");
         script.ShouldNotContain("[\"test\"");
     }
@@ -467,6 +453,25 @@ public class PackageGovernanceTests {
             .ToArray();
 
         return [.. ownedProjectFiles.Concat(sharedBuildFiles).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+    }
+
+    private static HashSet<string> GetCentralPackageIds(string repoRoot) {
+        string[] packagePropsFiles =
+        [
+            Path.Combine(repoRoot, "Directory.Packages.props"),
+            Path.Combine(repoRoot, "references", "Hexalith.Builds", "Props", "Directory.Packages.props"),
+            Path.Combine(repoRoot, "..", "Hexalith.Builds", "Props", "Directory.Packages.props"),
+            Path.Combine(repoRoot, "..", "..", "Hexalith.Builds", "Props", "Directory.Packages.props"),
+        ];
+
+        return packagePropsFiles
+            .Where(File.Exists)
+            .Select(XDocument.Load)
+            .SelectMany(document => document.Descendants("PackageVersion"))
+            .Select(package => package.Attribute("Include")?.Value)
+            .Where(packageId => !string.IsNullOrWhiteSpace(packageId))
+            .Select(packageId => packageId!)
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     private static bool IsAdHocContainerFile(string path) {
