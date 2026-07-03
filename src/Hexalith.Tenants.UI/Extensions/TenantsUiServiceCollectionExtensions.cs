@@ -51,10 +51,12 @@ public static class TenantsUiServiceCollectionExtensions
             }
 
             services.TryAddScoped<ITenantCommandGateway>(sp => sp.GetRequiredService<TenantCommandGateway>());
+            services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
         }
         else
         {
             services.TryAddScoped<ITenantCommandGateway, UnavailableTenantCommandGateway>();
+            services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
         }
 
         _ = services.AddMemoriesClient(o =>
@@ -66,22 +68,6 @@ public static class TenantsUiServiceCollectionExtensions
 
             o.ApiToken = configuration["HEXALITH_MEMORIES_API_TOKEN"];
         });
-
-        if (Uri.TryCreate(configuration["Tenants:BaseAddress"], UriKind.Absolute, out Uri? tenantsBaseAddress))
-        {
-            IHttpClientBuilder queryClient = services.AddHttpClient<ITenantsQueryApiClient, TenantsQueryApiClient>(
-                client => client.BaseAddress = tenantsBaseAddress);
-            if (enableGatewayAuthorization)
-            {
-                _ = queryClient.AddFrontComposerGatewayAuthorization();
-            }
-
-            services.TryAddScoped<ITenantQueryGateway, TenantQueryGateway>();
-        }
-        else
-        {
-            services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
-        }
 
         services.TryAddScoped<ITenantsBffComposition, TenantsBffComposition>();
         services.Configure<FcShellOptions>(configuration.GetSection("Hexalith:Shell"));
