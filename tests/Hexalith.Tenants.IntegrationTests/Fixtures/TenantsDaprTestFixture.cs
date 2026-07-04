@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
@@ -10,6 +12,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -40,9 +43,24 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
     /// <summary>Gets the in-memory command status store for tracking command lifecycle.</summary>
     public InMemoryCommandStatusStore CommandStatusStore { get; } = new();
 
+    /// <summary>Gets the isolated aggregate actor type name registered by this fixture run.</summary>
+    public string AggregateActorTypeName { get; } = $"TenantsAggregateActorTests{Guid.NewGuid():N}";
+
+    private readonly ConcurrentQueue<string> _supportDiagnostics = new();
+
+    /// <summary>Formats recent support-safe warning/error diagnostics emitted by the test host.</summary>
+    public string FormatRecentDiagnostics() {
+        string[] diagnostics = [.. _supportDiagnostics.TakeLast(12)];
+        return diagnostics.Length == 0
+            ? "<none>"
+            : string.Join(" | ", diagnostics);
+    }
+
     /// <inheritdoc/>
     protected override void ConfigureDomain(WebApplicationBuilder builder) {
         ArgumentNullException.ThrowIfNull(builder);
+
+        _ = builder.Logging.AddProvider(new SupportSafeDiagnosticLogProvider(_supportDiagnostics));
 
         // Configure domain service registration: system|tenants|v1 → self (commandapi)
         builder.Configuration["EventStore:DomainServices:Registrations:system|tenants|v1:AppId"] = AppId;
@@ -55,6 +73,7 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
         builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:TenantId"] = "system";
         builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Domain"] = TenantIdentity.GlobalAdministratorsDomain;
         builder.Configuration["EventStore:DomainServices:Registrations:system|global-administrators|v1:Version"] = "v1";
+        builder.Configuration["EventStore:Actors:AggregateActorTypeName"] = AggregateActorTypeName;
 
         // Configure pub/sub name for event publisher
         builder.Configuration["EventStore:Publisher:PubSubName"] = "pubsub";
@@ -84,5 +103,69 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
         _ = builder.Services.AddDataProtection()
             .SetApplicationName("Hexalith.Tenants.IntegrationTests");
         builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+    }
+
+    private sealed class SupportSafeDiagnosticLogProvider(ConcurrentQueue<string> sink) : ILoggerProvider {
+        public ILogger CreateLogger(string categoryName) => new SupportSafeDiagnosticLogger(categoryName, sink);
+
+        public void Dispose() {
+        }
+    }
+
+    private sealed class SupportSafeDiagnosticLogger(string categoryName, ConcurrentQueue<string> sink) : ILogger {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) {
+            if (!IsEnabled(logLevel)) {
+                return;
+            }
+
+            string diagnostic = BuildDiagnostic(logLevel, eventId, state, exception);
+            sink.Enqueue(diagnostic);
+            while (sink.Count > 64) {
+                _ = sink.TryDequeue(out _);
+            }
+        }
+
+        private string BuildDiagnostic<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception) {
+            var parts = new List<string> {
+                $"{logLevel}:{categoryName}:{eventId.Id}:{eventId.Name ?? "<unnamed>"}",
+            };
+
+            if (exception is not null) {
+                parts.Add($"ExceptionType={exception.GetType().FullName}");
+            }
+
+            if (state is IEnumerable<KeyValuePair<string, object?>> structured) {
+                foreach (KeyValuePair<string, object?> item in structured) {
+                    if (IsSafeDiagnosticKey(item.Key) && item.Value is not null) {
+                        parts.Add($"{item.Key}={item.Value}");
+                    }
+                }
+            }
+
+            return string.Join(";", parts);
+        }
+
+        private static bool IsSafeDiagnosticKey(string key)
+            => key is "Stage"
+                or "FailureStage"
+                or "ExceptionType"
+                or "ErrorMessage"
+                or "SafeDiagnostic"
+                or "ReasonCode"
+                or "Status"
+                or "CommandType";
     }
 }

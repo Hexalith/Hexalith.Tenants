@@ -56,7 +56,7 @@ public class GracefulDegradationTests : IDisposable {
 
             IAggregateActor proxy = actorProxyFactory.CreateActorProxy<IAggregateActor>(
                 new ActorId(command.AggregateIdentity.ActorId),
-                nameof(AggregateActor));
+                _fixture.AggregateActorTypeName);
 
             // Act — send command while pub/sub is "down"
             CommandProcessingResult result = await proxy.ProcessCommandAsync(command);
@@ -91,7 +91,7 @@ public class GracefulDegradationTests : IDisposable {
 
             IAggregateActor proxy = actorProxyFactory.CreateActorProxy<IAggregateActor>(
                 new ActorId(command.AggregateIdentity.ActorId),
-                nameof(AggregateActor));
+                _fixture.AggregateActorTypeName);
 
             // Act — send command during outage
             CommandProcessingResult result = await proxy.ProcessCommandAsync(command);

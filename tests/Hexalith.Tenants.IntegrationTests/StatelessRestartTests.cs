@@ -55,7 +55,7 @@ public class StatelessRestartTests : IDisposable {
 
         IAggregateActor proxy1 = actorProxyFactory.CreateActorProxy<IAggregateActor>(
             new ActorId(createCmd.AggregateIdentity.ActorId),
-            nameof(AggregateActor));
+            _fixture.AggregateActorTypeName);
 
         CommandProcessingResult createResult = await proxy1.ProcessCommandAsync(createCmd);
         createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
@@ -69,7 +69,7 @@ public class StatelessRestartTests : IDisposable {
 
         IAggregateActor proxy2 = actorProxyFactory.CreateActorProxy<IAggregateActor>(
             new ActorId(createCmd.AggregateIdentity.ActorId),
-            nameof(AggregateActor));
+            _fixture.AggregateActorTypeName);
 
         CommandEnvelope disableCmd = CreateTenantCommand(new DisableTenant(tenantId));
         CommandProcessingResult disableResult = await proxy2.ProcessCommandAsync(disableCmd);
@@ -89,7 +89,7 @@ public class StatelessRestartTests : IDisposable {
     /// from the in-process actor manager so the next invocation triggers fresh state load.
     /// </summary>
     private Task DeactivateActorAsync(string actorId)
-        => DeactivateActorAsync(nameof(AggregateActor), actorId);
+        => DeactivateActorAsync(_fixture.AggregateActorTypeName, actorId);
 
     private async Task DeactivateActorAsync(string actorTypeName, string actorId) {
         using var httpClient = new HttpClient();

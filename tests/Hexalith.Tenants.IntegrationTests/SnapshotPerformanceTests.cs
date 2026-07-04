@@ -72,7 +72,7 @@ public class SnapshotPerformanceTests : IDisposable {
 
             seedTasks.Add(Task.Run(async () => {
                 try {
-                    await SeedTenantEventsAsync(actorProxyFactory, tenantId, EventsPerTenant);
+                    await SeedTenantEventsAsync(actorProxyFactory, _fixture.AggregateActorTypeName, tenantId, EventsPerTenant);
                 }
                 finally {
                     _ = semaphore.Release();
@@ -101,7 +101,7 @@ public class SnapshotPerformanceTests : IDisposable {
 
         IAggregateActor proxy = actorProxyFactory.CreateActorProxy<IAggregateActor>(
             new ActorId(rehydrationCmd.AggregateIdentity.ActorId),
-            nameof(AggregateActor));
+            _fixture.AggregateActorTypeName);
 
         var stopwatch = Stopwatch.StartNew();
         CommandProcessingResult result = await proxy.ProcessCommandAsync(rehydrationCmd);
@@ -120,6 +120,7 @@ public class SnapshotPerformanceTests : IDisposable {
 
     private static async Task SeedTenantEventsAsync(
         ActorProxyFactory actorProxyFactory,
+        string actorTypeName,
         string tenantId,
         int eventCount) {
         // Event 1: CreateTenant
@@ -128,7 +129,7 @@ public class SnapshotPerformanceTests : IDisposable {
 
         IAggregateActor proxy = actorProxyFactory.CreateActorProxy<IAggregateActor>(
             new ActorId(createCmd.AggregateIdentity.ActorId),
-            nameof(AggregateActor));
+            actorTypeName);
 
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
         if (!createResult.Accepted) {
@@ -162,7 +163,7 @@ public class SnapshotPerformanceTests : IDisposable {
 
     private async Task DeactivateActorAsync(string actorId) {
         using var httpClient = new HttpClient();
-        string url = $"{_fixture.AppEndpoint}/actors/{nameof(AggregateActor)}/{actorId}";
+        string url = $"{_fixture.AppEndpoint}/actors/{_fixture.AggregateActorTypeName}/{actorId}";
         HttpResponseMessage response = await httpClient.DeleteAsync(url);
         if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound) {
             string body = await response.Content.ReadAsStringAsync();

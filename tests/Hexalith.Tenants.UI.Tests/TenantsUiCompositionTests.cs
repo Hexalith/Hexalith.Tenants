@@ -151,7 +151,7 @@ public sealed class TenantsUiCompositionTests
         apiAssemblyInfo.ShouldContain("RestApi(\"api/tenants\", \"tenants\", RestTenantSource.System)");
         string globalAdministratorsQuery = File.ReadAllText(
             Path.Combine(contractsQueryRoot, "GetGlobalAdministratorsQuery.cs"));
-        globalAdministratorsQuery.ShouldContain("[RestRoute(RestVerb.Get, \"~/api/global-administrators\")]");
+        globalAdministratorsQuery.ShouldContain("[RestRoute(RestVerb.Get, \"~/api/global-administrators\", ApiScope = \"tenants\")]");
         globalAdministratorsQuery.ShouldContain("RestQueryBindingSource.Constant, \"global-administrators\"");
     }
 

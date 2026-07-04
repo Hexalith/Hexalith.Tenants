@@ -62,7 +62,7 @@ public class DaprEndToEndTests : IDisposable {
 
         // Assert
         _ = result.ShouldNotBeNull();
-        result.Accepted.ShouldBeTrue("CreateTenant should be accepted");
+        AssertAccepted(result, command, "CreateTenant should be accepted");
         result.EventCount.ShouldBe(1, "CreateTenant should produce 1 TenantCreated event");
         result.CorrelationId.ShouldBe(command.CorrelationId);
 
@@ -85,7 +85,7 @@ public class DaprEndToEndTests : IDisposable {
         CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Membership Target", "Add user E2E"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         // Act
         CommandEnvelope addUserCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantContributor));
@@ -117,7 +117,7 @@ public class DaprEndToEndTests : IDisposable {
         CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Membership Target", "Add user once"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         CommandEnvelope firstAddCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantReader));
         CommandProcessingResult firstAddResult = await proxy.ProcessCommandAsync(firstAddCmd);
@@ -154,7 +154,7 @@ public class DaprEndToEndTests : IDisposable {
         CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Remove Target", "Remove user once"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         CommandEnvelope addUserCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantReader));
         CommandProcessingResult addUserResult = await proxy.ProcessCommandAsync(addUserCmd);
@@ -196,7 +196,7 @@ public class DaprEndToEndTests : IDisposable {
         CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Duplicate Role Target", "Change role once"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         CommandEnvelope addUserCmd = CreateTenantCommand(new AddUserToTenant(tenantId, "alice", TenantRole.TenantReader));
         CommandProcessingResult addUserResult = await proxy.ProcessCommandAsync(addUserCmd);
@@ -235,7 +235,7 @@ public class DaprEndToEndTests : IDisposable {
         CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Configuration Target", "Ordered config E2E"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         CommandEnvelope firstSetCmd = CreateTenantCommand(new SetTenantConfiguration(tenantId, "billing.plan", "pro"));
         CommandEnvelope secondSetCmd = CreateTenantCommand(new SetTenantConfiguration(tenantId, "billing.plan", "enterprise"));
@@ -281,7 +281,7 @@ public class DaprEndToEndTests : IDisposable {
         CommandEnvelope createCmd = CreateTenantCommand(new CreateTenant(tenantId, "Configuration Remove Target", "Remove config E2E"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         CommandEnvelope setCmd = CreateTenantCommand(new SetTenantConfiguration(tenantId, "billing.plan", "pro"));
         CommandProcessingResult setResult = await proxy.ProcessCommandAsync(setCmd);
@@ -328,7 +328,7 @@ public class DaprEndToEndTests : IDisposable {
             new CreateTenant(tenantId, "Update Target", "Original metadata"));
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, createCmd);
         CommandProcessingResult createResult = await proxy.ProcessCommandAsync(createCmd);
-        createResult.Accepted.ShouldBeTrue("Setup: CreateTenant must succeed");
+        AssertAccepted(createResult, createCmd, "Setup: CreateTenant must succeed");
 
         // Act
         CommandEnvelope updateCmd = CreateTenantCommand(
@@ -656,10 +656,10 @@ public class DaprEndToEndTests : IDisposable {
     private ActorProxyFactory CreateActorProxyFactory()
         => new(new ActorProxyOptions { HttpEndpoint = _fixture.DaprHttpEndpoint });
 
-    private static IAggregateActor CreateActorProxy(ActorProxyFactory factory, CommandEnvelope command)
+    private IAggregateActor CreateActorProxy(ActorProxyFactory factory, CommandEnvelope command)
         => factory.CreateActorProxy<IAggregateActor>(
             new ActorId(command.AggregateIdentity.ActorId),
-            nameof(AggregateActor));
+            _fixture.AggregateActorTypeName);
 
     private async Task AssertPublishFailurePreservesSourceOfTruthAsync<TEvent>(
         string tenantId,
@@ -673,18 +673,18 @@ public class DaprEndToEndTests : IDisposable {
 
         foreach (CommandEnvelope setupCommand in setupCommandsFactory(tenantId)) {
             CommandProcessingResult setupResult = await proxy.ProcessCommandAsync(setupCommand);
-            setupResult.Accepted.ShouldBeTrue($"Setup command {setupCommand.CommandType} must succeed before publish-failure assertion.");
+            AssertAccepted(setupResult, setupCommand, $"Setup command {setupCommand.CommandType} must succeed before publish-failure assertion.");
         }
 
         _fixture.EventPublisher.Reset();
         _fixture.EventPublisher.SetupFailureForCorrelation(failingCommand.CorrelationId, "Pub/sub unavailable");
+        string topic = failingCommand.AggregateIdentity.PubSubTopic;
 
         try {
             long sequenceBeforeFailure = await proxy.GetCurrentSequenceAsync();
             CommandProcessingResult result = await proxy.ProcessCommandAsync(failingCommand);
-            string topic = failingCommand.AggregateIdentity.PubSubTopic;
 
-            result.Accepted.ShouldBeTrue($"{failingCommand.CommandType} should remain accepted after the event is persisted.");
+            AssertAccepted(result, failingCommand, $"{failingCommand.CommandType} should remain accepted after the event is persisted");
             result.EventCount.ShouldBe(1);
             result.ErrorMessage.ShouldBeNull();
             _fixture.EventPublisher.GetEventsForTopic(topic)
@@ -714,6 +714,56 @@ public class DaprEndToEndTests : IDisposable {
         finally {
             _fixture.EventPublisher.ClearFailureForCorrelation(failingCommand.CorrelationId);
         }
+
+        await WaitForDrainRecoveryAsync(failingCommand, topic);
+    }
+
+    private async Task WaitForDrainRecoveryAsync(CommandEnvelope command, string topic) {
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(20);
+        while (DateTimeOffset.UtcNow < deadline) {
+            bool published = _fixture.EventPublisher
+                .GetEventsForTopic(topic)
+                .Any(e => e.CorrelationId == command.CorrelationId);
+            bool completed = _fixture.CommandStatusStore
+                .GetStatusHistory(command.TenantId, command.CorrelationId)
+                .Any(static x => x.Status is CommandStatus.Completed or CommandStatus.Rejected);
+
+            if (published && completed) {
+                return;
+            }
+
+            await Task.Delay(250);
+        }
+
+        throw new TimeoutException(
+            $"Drain recovery did not complete for {command.CommandType} within the test timeout."
+            + $"\nCommand ids: correlation={command.CorrelationId}; actor={command.AggregateIdentity.ActorId}"
+            + $"\nStatus history: {FormatStatusHistory(command)}"
+            + $"\nRecent diagnostics: {_fixture.FormatRecentDiagnostics()}");
+    }
+
+    private string FormatStatusHistory(CommandEnvelope command)
+        => string.Join(
+            " -> ",
+            _fixture.CommandStatusStore
+                .GetStatusHistory(command.TenantId, command.CorrelationId)
+                .Select(static x => $"{x.Status}:{x.FailureReason ?? "ok"}"));
+
+    private void AssertAccepted(CommandProcessingResult result, CommandEnvelope command, string reason)
+        => result.Accepted.ShouldBeTrue(
+            $"{reason}. Error: {result.ErrorMessage}"
+            + $"\nCommand ids: correlation={command.CorrelationId}; causation={command.CausationId ?? "<null>"}; message={command.MessageId}; actor={command.AggregateIdentity.ActorId}"
+            + $"\nStatus history: {FormatStatusHistory(command)}"
+            + $"\nDead letter: {FormatDeadLetter(command.CorrelationId)}"
+            + $"\nRecent diagnostics: {_fixture.FormatRecentDiagnostics()}"
+            + (_fixture.LastProcessDiagnostic is not null ? $"\nProcess diagnostic: {_fixture.LastProcessDiagnostic}" : ""));
+
+    private string FormatDeadLetter(string correlationId) {
+        (Hexalith.EventStore.Contracts.Identity.AggregateIdentity Identity, Hexalith.EventStore.Server.Events.DeadLetterMessage Message)? deadLetter = _fixture.DeadLetterPublisher
+            .GetDeadLetterMessageByCorrelationId(correlationId);
+        return deadLetter is null
+            ? "<none>"
+            : $"{deadLetter.Value.Message.FailureStage}:{deadLetter.Value.Message.ExceptionType}:{deadLetter.Value.Message.ErrorMessage}";
     }
 
     private static async Task<EventEnvelope> AssertPersistedOnceAsync<TEvent>(
