@@ -117,7 +117,7 @@ public class TenantsProjectionActorTests {
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
-        result.ErrorMessage.ShouldNotBe("Invalid cursor.");
+        result.ErrorMessage.ShouldNotBe("invalid-cursor");
         await AssertNoProjectionStateReadAsync(store, "list-tenants", "index");
     }
 
@@ -872,7 +872,7 @@ public class TenantsProjectionActorTests {
         QueryResult result = await actor.QueryAsync(CreateEnvelope("get-tenant-audit", userId: "admin-1", payload: payload));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage!.ShouldContain("Invalid cursor");
+        result.ErrorMessage!.ShouldContain("invalid-cursor");
     }
 
     [Fact]
@@ -887,7 +887,7 @@ public class TenantsProjectionActorTests {
             payload: CreateAuditPayload(cursor: "not-a-valid-cursor")));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
         result.PayloadBytes.ShouldBeNull();
         _ = await store.Received(1).GetAsync<GlobalAdministratorReadModel>(
             TenantQueryHandlerBase.StateStoreName,
@@ -923,7 +923,7 @@ public class TenantsProjectionActorTests {
             payload: CreateAuditPayload(from: from, to: to, category: "administrative", cursor: cursor)));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
         _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
             TenantQueryHandlerBase.StateStoreName,
             TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1",
@@ -942,7 +942,7 @@ public class TenantsProjectionActorTests {
             payload: "{ not json"u8.ToArray()));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid audit query payload.");
+        result.ErrorMessage.ShouldBe("invalid-envelope");
         _ = await store.DidNotReceive().GetAsync<TenantAuditReadModel>(
             TenantQueryHandlerBase.StateStoreName,
             TenantQueryHandlerBase.TenantAuditProjectionKeyPrefix + "tenant-1");
@@ -1241,7 +1241,7 @@ public class TenantsProjectionActorTests {
             payload: CreatePaginationPayload(cursor: wrongTenantCursor)));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
         result.PayloadBytes.ShouldBeNull();
         _ = await store.DidNotReceive().GetAsync<TenantReadModel>(
             TenantQueryHandlerBase.StateStoreName,
@@ -1850,7 +1850,7 @@ public class TenantsProjectionActorTests {
             payload: CreatePaginationPayload(cursor: foreignRequesterCursor)));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
         result.PayloadBytes.ShouldBeNull();
     }
 
@@ -1878,7 +1878,7 @@ public class TenantsProjectionActorTests {
             payload: CreatePaginationPayload(cursor: wrongTargetCursor)));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
         result.PayloadBytes.ShouldBeNull();
     }
 
@@ -2367,7 +2367,7 @@ public class TenantsProjectionActorTests {
             payload: CreatePaginationPayload(cursor: wrongUserCursor)));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
         result.PayloadBytes.ShouldBeNull();
         _ = await store.DidNotReceive().GetAsync<TenantIndexReadModel>(
             TenantQueryHandlerBase.StateStoreName,
@@ -2505,7 +2505,7 @@ public class TenantsProjectionActorTests {
         QueryResult result = await actor.QueryAsync(CreateEnvelope("list-tenants", userId: "admin-1", aggregateId: "index", payload: payload));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
     }
 
     [Fact]

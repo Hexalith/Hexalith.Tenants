@@ -4,7 +4,7 @@ using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Contracts.Commands;
 
-[RestRoute(RestVerb.Post, "{tenantId}/users/{userId}/remove")]
+[RestRoute(RestVerb.Post, "{tenantId}/users/{userId}/remove", ApiScope = "tenants")]
 public record RemoveUserFromTenant(string TenantId, string UserId) : ICommandContract {
     public static string Domain => TenantIdentity.Domain;
 

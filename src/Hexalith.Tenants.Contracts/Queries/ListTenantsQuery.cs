@@ -6,7 +6,7 @@ namespace Hexalith.Tenants.Contracts.Queries;
 /// <summary>
 /// Query contract for listing tenants with cursor-based pagination.
 /// </summary>
-[RestRoute(RestVerb.Get, "")]
+[RestRoute(RestVerb.Get, "", ApiScope = "tenants")]
 [RestQueryBinding(RestQueryBindingSource.Constant, "index")]
 public sealed class ListTenantsQuery : IQueryContract {
     public string? Cursor { get; init; }

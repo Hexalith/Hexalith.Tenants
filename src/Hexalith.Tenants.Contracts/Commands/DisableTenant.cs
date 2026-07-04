@@ -4,7 +4,7 @@ using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Contracts.Commands;
 
-[RestRoute(RestVerb.Post, "{tenantId}/disable")]
+[RestRoute(RestVerb.Post, "{tenantId}/disable", ApiScope = "tenants")]
 public record DisableTenant(string TenantId) : ICommandContract {
     public static string Domain => TenantIdentity.Domain;
 

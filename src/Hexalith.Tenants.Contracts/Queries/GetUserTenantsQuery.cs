@@ -6,7 +6,7 @@ namespace Hexalith.Tenants.Contracts.Queries;
 /// <summary>
 /// Query contract for retrieving tenants a specific user belongs to.
 /// </summary>
-[RestRoute(RestVerb.Get, "~/api/users/{userId}/tenants")]
+[RestRoute(RestVerb.Get, "~/api/users/{userId}/tenants", ApiScope = "tenants")]
 [RestQueryBinding(RestQueryBindingSource.Constant, "index", RestQueryBindingSource.Route, "userId")]
 public sealed class GetUserTenantsQuery : IQueryContract {
     public string UserId { get; init; } = string.Empty;

@@ -125,7 +125,7 @@ public sealed class GetGlobalAdministratorsQueryHandlerTests {
             CreateEnvelope(userId: "admin-1", cursor: cursor));
 
         result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Invalid cursor.");
+        result.ErrorMessage.ShouldBe("invalid-cursor");
     }
 
     private static QueryEnvelope CreateEnvelope(

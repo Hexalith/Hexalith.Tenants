@@ -60,7 +60,7 @@ All tenant domain events use the following identity components:
 
 The canonical composite identity is `system:tenants:{managedTenantId}` for managed tenant aggregates and `system:global-administrators:global-administrators` for the global administrator aggregate. Both aggregate families publish on the shared `tenants.events` topic; consumers filter by event type rather than by topic.
 
-Command contracts expose REST-generation metadata members: `AggregateId` maps the command payload to the EventStore aggregate identity, `CommandType` provides the stable kebab-case command name, and `Subject` identifies the command subject family. Tenant-scoped commands return `TenantId` for `AggregateId`, while global-administrator commands return `global-administrators`. These members are adapter metadata for generated API hosts; EventStore still persists commands under the canonical composite identity above.
+Command contracts expose REST-generation metadata members: `AggregateId` maps the command payload to the EventStore aggregate identity, `CommandType` provides the stable kebab-case command name, and `Domain` identifies the command aggregate family (`tenants` or `global-administrators`). Tenant-scoped commands return `TenantId` for `AggregateId`, while global-administrator commands return `global-administrators`. These members are adapter metadata for generated API hosts; EventStore still persists commands under the canonical composite identity above.
 
 ## Contract Inventory
 

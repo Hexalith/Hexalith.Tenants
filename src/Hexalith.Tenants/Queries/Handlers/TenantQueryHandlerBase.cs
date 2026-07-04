@@ -295,7 +295,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             JsonElement root = doc.RootElement;
 
             if (root.ValueKind != JsonValueKind.Object) {
-                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, "Invalid audit query payload.");
+                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, QueryAdapterFailureReason.InvalidEnvelope);
             }
 
             DateTimeOffset? from = TryGetDateTimeOffset(root, "from");
@@ -322,18 +322,18 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
                     category = parsed;
                 }
                 else {
-                    errorMessage = $"Invalid audit category: {categoryValue}";
+                    errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
                 }
             }
 
             if (errorMessage is null && from is not null && to is not null && from > to) {
-                errorMessage = "Invalid audit query payload: 'from' must not be after 'to'.";
+                errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit query payload: 'from' must not be after 'to'.";
             }
 
             return new(from, to, category, cursor, pageSize, errorMessage);
         }
         catch (JsonException) {
-            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, "Invalid audit query payload.");
+            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, QueryAdapterFailureReason.InvalidEnvelope);
         }
     }
 
@@ -367,7 +367,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             tenantId,
             userId,
             failureReason ?? "unknown");
-        return new(false, default, ErrorMessage: "Invalid cursor.");
+        return new(false, default, ErrorMessage: QueryAdapterFailureReason.InvalidCursor);
     }
 
     private protected void LogOrphanUserTenantMembershipFiltered(

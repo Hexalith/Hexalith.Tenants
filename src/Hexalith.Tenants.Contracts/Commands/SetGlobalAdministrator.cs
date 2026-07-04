@@ -4,7 +4,7 @@ using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Contracts.Commands;
 
-[RestRoute(RestVerb.Post, "~/api/global-administrators/{userId}/set")]
+[RestRoute(RestVerb.Post, "~/api/global-administrators/{userId}/set", ApiScope = "tenants")]
 public record SetGlobalAdministrator(string UserId) : ICommandContract {
     public static string Domain => TenantIdentity.GlobalAdministratorsDomain;
 

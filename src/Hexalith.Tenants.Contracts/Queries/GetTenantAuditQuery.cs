@@ -7,7 +7,7 @@ namespace Hexalith.Tenants.Contracts.Queries;
 /// <summary>
 /// Query contract for tenant audit entry queries.
 /// </summary>
-[RestRoute(RestVerb.Get, "{tenantId}/audit")]
+[RestRoute(RestVerb.Get, "{tenantId}/audit", ApiScope = "tenants")]
 [RestQueryBinding(RestQueryBindingSource.Route, "tenantId", RestQueryBindingSource.Route, "tenantId")]
 public sealed class GetTenantAuditQuery : IQueryContract {
     public string TenantId { get; init; } = string.Empty;

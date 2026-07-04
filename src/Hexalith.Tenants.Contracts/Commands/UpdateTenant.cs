@@ -4,7 +4,7 @@ using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Contracts.Commands;
 
-[RestRoute(RestVerb.Put, "{tenantId}")]
+[RestRoute(RestVerb.Put, "{tenantId}", ApiScope = "tenants")]
 public record UpdateTenant(string TenantId, string Name, string? Description) : ICommandContract {
     public static string Domain => TenantIdentity.Domain;
 

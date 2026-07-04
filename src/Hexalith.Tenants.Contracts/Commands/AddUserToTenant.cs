@@ -5,7 +5,7 @@ using Hexalith.Tenants.Contracts.Identity;
 
 namespace Hexalith.Tenants.Contracts.Commands;
 
-[RestRoute(RestVerb.Post, "{tenantId}/users/{userId}/add")]
+[RestRoute(RestVerb.Post, "{tenantId}/users/{userId}/add", ApiScope = "tenants")]
 public record AddUserToTenant(string TenantId, string UserId, TenantRole Role) : ICommandContract {
     public static string Domain => TenantIdentity.Domain;
 
