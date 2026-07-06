@@ -2,7 +2,20 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
+using Hexalith.EventStore.Client.Discovery;
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Queries;
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.DomainService;
+using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Queries.Handlers;
+using Hexalith.Tenants.Server.Aggregates;
+using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.Telemetry;
+
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 using Shouldly;
 
@@ -85,24 +98,94 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
-    public void TenantsHost_ExposesDomainProcessorAndProjectionRoutes() {
+    public void TenantsHost_ExposesSdkOwnedDomainRoutesAndBespokeProjectionRoute() {
         string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants", "Program.cs"));
 
         // /process (keyed domain processor), /replay-state, /query, and /admin/operational-index-metadata
-        // are now provided by the platform domain-service SDK rather than a hand-rolled handler (Epic B3).
-        program.ShouldContain("app.MapEventStoreDomainService();");
+        // are provided by the platform domain-service SDK rather than direct host route mapping.
+        program.ShouldContain("builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);");
+        program.ShouldContain("builder.Services.Configure<EventStoreServiceDefaultsOptions>(");
+        program.ShouldContain("WriteSupportSafeDevelopmentHealthResponseAsync");
+        program.ShouldContain("app.UseEventStoreDomainService();");
+        program.ShouldNotContain("builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);");
+        program.ShouldNotContain("builder.Services.AddScoped<IDomainQueryHandler");
+        program.ShouldNotContain("app.MapEventStoreDomainService();");
+        program.ShouldNotContain("app.MapHexalithDefaultEndpoints");
         // The bespoke multi-read-model projection build path stays Tenants-mapped (the SDK yields /project).
         program.ShouldContain("app.MapPost(\"/project\"");
         program.ShouldContain("ProjectionRequest request");
         program.ShouldContain("ProjectionDispatcher");
-        ShouldOccurBefore(program, "app.UseMiddleware<CorrelationIdMiddleware>();", "app.MapEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseExceptionHandler();", "app.MapEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseCloudEvents();", "app.MapEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseAuthentication();", "app.MapEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseAuthorization();", "app.MapEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseMiddleware<CorrelationIdMiddleware>();", "app.UseEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseExceptionHandler();", "app.UseEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseCloudEvents();", "app.UseEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseAuthentication();", "app.UseEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.UseAuthorization();", "app.UseEventStoreDomainService();");
         // The bespoke /project must be mapped before the SDK call so the SDK yields the route.
         ShouldOccurBefore(program, "app.UseAuthorization();", "app.MapPost(\"/project\"");
-        ShouldOccurBefore(program, "app.MapPost(\"/project\"", "app.MapEventStoreDomainService();");
+        ShouldOccurBefore(program, "app.MapPost(\"/project\"", "app.UseEventStoreDomainService();");
+    }
+
+    [Fact]
+    public async Task TenantsDomainServiceSdkRegistration_ReportsHandlerServedQueryTypesAndDispatchesQuery() {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);
+        builder.Services.AddSingleton<IReadModelStore, EmptyReadModelStore>();
+        builder.Services.AddSingleton<IQueryCursorCodec, EmptyQueryCursorCodec>();
+        builder.Services.AddSingleton<TenantTelemetry>(serviceProvider => new TenantTelemetry(
+            serviceProvider.GetRequiredKeyedService<EventStoreDomainDiagnostics>("tenants")));
+        builder.Services.AddLogging();
+
+        using ServiceProvider provider = builder.Services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+
+        IDomainQueryHandler[] handlers = [.. scope.ServiceProvider.GetServices<IDomainQueryHandler>()];
+        handlers.Select(handler => handler.QueryType).ShouldBe(
+            [
+                GetGlobalAdministratorsQuery.QueryType,
+                GetTenantAuditQuery.QueryType,
+                GetTenantQuery.QueryType,
+                GetTenantUsersQuery.QueryType,
+                GetUserTenantsQuery.QueryType,
+                ListTenantsQuery.QueryType,
+            ],
+            ignoreOrder: true);
+
+        DiscoveryResult discovery = provider.GetRequiredService<DiscoveryResult>();
+        AdminOperationalIndexMetadata.Response metadata = AdminOperationalIndexMetadata.Create(
+            discovery,
+            [GetTenantQuery.Domain, GetGlobalAdministratorsQuery.Domain],
+            handlers);
+
+        AdminOperationalIndexMetadata.DomainMetadata tenants = metadata.Domains
+            .Single(domain => domain.Domain == GetTenantQuery.Domain);
+        tenants.QueryTypes.ShouldBe(
+            [
+                GetTenantAuditQuery.QueryType,
+                GetTenantQuery.QueryType,
+                GetTenantUsersQuery.QueryType,
+                GetUserTenantsQuery.QueryType,
+                ListTenantsQuery.QueryType,
+            ],
+            ignoreOrder: true);
+
+        AdminOperationalIndexMetadata.DomainMetadata globalAdministrators = metadata.Domains
+            .Single(domain => domain.Domain == GetGlobalAdministratorsQuery.Domain);
+        globalAdministrators.QueryTypes.ShouldBe([GetGlobalAdministratorsQuery.QueryType]);
+
+        QueryEnvelope query = new(
+            tenantId: "system",
+            domain: ListTenantsQuery.Domain,
+            aggregateId: "tenant-index",
+            queryType: ListTenantsQuery.QueryType,
+            payload: [],
+            correlationId: "corr-sdk-query-dispatch",
+            userId: "user-1");
+        QueryResult result = await DomainQueryDispatcher
+            .ExecuteAsync(scope.ServiceProvider, query)
+            .ConfigureAwait(true);
+
+        result.Success.ShouldBeTrue();
+        result.ProjectionType.ShouldBe("tenant-index");
     }
 
     [Fact]
@@ -623,6 +706,47 @@ public class EventPublicationConfigurationTests {
         earlierIndex.ShouldBeGreaterThanOrEqualTo(0, $"{earlier} should exist.");
         laterIndex.ShouldBeGreaterThanOrEqualTo(0, $"{later} should exist.");
         earlierIndex.ShouldBeLessThan(laterIndex, $"{earlier} should occur before {later}.");
+    }
+
+    private sealed class EmptyReadModelStore : IReadModelStore {
+        public Task<ReadModelEntry<TValue>> GetAsync<TValue>(
+            string storeName,
+            string key,
+            CancellationToken cancellationToken = default)
+            where TValue : class
+            => Task.FromResult(new ReadModelEntry<TValue>(null, null));
+
+        public Task SaveAsync<TValue>(
+            string storeName,
+            string key,
+            TValue value,
+            CancellationToken cancellationToken = default)
+            where TValue : class
+            => Task.CompletedTask;
+
+        public Task<bool> TrySaveAsync<TValue>(
+            string storeName,
+            string key,
+            TValue value,
+            string etag,
+            CancellationToken cancellationToken = default)
+            where TValue : class
+            => Task.FromResult(true);
+    }
+
+    private sealed class EmptyQueryCursorCodec : IQueryCursorCodec {
+        public string Encode(string queryType, string scope, string position) => position;
+
+        public bool TryDecode(
+            string? cursor,
+            string queryType,
+            string scope,
+            out string? position,
+            out string? failureReason) {
+            position = null;
+            failureReason = null;
+            return true;
+        }
     }
 
     private static string RepositoryPath(params string[] segments) {

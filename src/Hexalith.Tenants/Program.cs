@@ -4,7 +4,6 @@ using Dapr.Actors.Client;
 
 using FluentValidation;
 
-using Hexalith.Commons.ServiceDefaults;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Projections;
@@ -37,11 +36,13 @@ using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Platform Aspire service defaults (observability, health, resilience) — the domain no longer ships
-// its own ServiceDefaults copy (Epic B2). Convention-named OpenTelemetry source/meter for the tenants
-// domain (Epic A5) replace the per-domain ActivitySource/Meter declarations.
-builder.AddServiceDefaults();
-builder.AddEventStoreDomainTelemetry("tenants");
+// Domain service only — do NOT register AddEventStoreServer or server-side EventStore extensions here.
+// AggregateActor must only be hosted by the EventStore, not domain services. The domain-service SDK owns
+// ServiceDefaults, aggregate discovery/activation, query-handler discovery, telemetry, and the canonical
+// DAPR-invoked endpoints. The bootstrap service sends commands to EventStore via DAPR HTTP.
+builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);
+builder.Services.Configure<EventStoreServiceDefaultsOptions>(
+    options => options.DevelopmentHealthResponseWriter = WriteSupportSafeDevelopmentHealthResponseAsync);
 builder.Services.AddDaprClient();
 // Readiness dependency: a Tenants instance is only "ready" for traffic once its DAPR state
 // store is reachable. The platform DAPR state-store health check (Epic A5) self-reports Unhealthy
@@ -53,10 +54,6 @@ builder.Services.AddHealthChecks()
         "tenants",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready"]);
-// Domain service only — do NOT register AddEventStoreServer or server-side EventStore extensions here.
-// AggregateActor must only be hosted by the EventStore, not domain services.
-// The bootstrap service sends commands to EventStore via DAPR HTTP.
-builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 // Persisted multi-read-model store for the tenant /project build path (platform A8 abstraction,
 // replacing the hand-rolled DaprTenantProjectionStateStore + TenantProjectionWritePolicy).
 builder.Services.AddEventStoreReadModelStore();
@@ -65,8 +62,10 @@ builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
 // Domain telemetry instruments (query/projection duration histograms), sourced from the platform
-// convention-named diagnostics registered by AddEventStoreDomainTelemetry above (Epic A5 rehome).
-builder.Services.AddSingleton<TenantTelemetry>();
+// convention-named diagnostics registered by AddEventStoreDomainService. Tenants hosts more than one
+// domain, so resolve the keyed tenants diagnostics instead of the single-domain unkeyed shortcut.
+builder.Services.AddSingleton<TenantTelemetry>(serviceProvider => new TenantTelemetry(
+    serviceProvider.GetRequiredKeyedService<EventStoreDomainDiagnostics>("tenants")));
 builder.Services.Configure<TenantBootstrapOptions>(
     builder.Configuration.GetSection("Tenants"));
 builder.Services.AddOptions<ReadModelFreshnessOptions>()
@@ -108,15 +107,6 @@ builder.Services.TryAddSingleton<IActorProxyFactory>(_ => new ActorProxyFactory(
 // Protected pagination cursor codec (platform A9 abstraction). The purpose string is kept identical
 // to the retired TenantQueryCursorCodec so cursors issued before this refactor remain decodable.
 builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
-
-// Tenant query handlers (platform A7 seam). The domain-service SDK maps /query and dispatches these
-// in-process through the IDomainQueryHandler contract.
-builder.Services.AddScoped<IDomainQueryHandler, GetTenantQueryHandler>();
-builder.Services.AddScoped<IDomainQueryHandler, GetTenantUsersQueryHandler>();
-builder.Services.AddScoped<IDomainQueryHandler, GetUserTenantsQueryHandler>();
-builder.Services.AddScoped<IDomainQueryHandler, ListTenantsQueryHandler>();
-builder.Services.AddScoped<IDomainQueryHandler, GetTenantAuditQueryHandler>();
-builder.Services.AddScoped<IDomainQueryHandler, GetGlobalAdministratorsQueryHandler>();
 
 // Command status and archive stores required by SubmitCommandHandler
 builder.Services.Configure<CommandStatusOptions>(
@@ -162,7 +152,6 @@ WebApplication app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
-app.MapHexalithDefaultEndpoints(ConfigureTenantsHealthEndpoints);
 app.UseCloudEvents();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -181,17 +170,10 @@ app.MapPost("/project", async (
 // /replay-state, /query (in-process IDomainQueryHandler dispatch), and /admin/operational-index-metadata
 // (now reporting handler-served query types). Replaces the hand-rolled DomainServiceRequestHandler and
 // the host AdminOperationalIndexMetadata copy.
-app.MapEventStoreDomainService();
+app.UseEventStoreDomainService();
 app.MapSubscribeHandler();
 
 await app.RunAsync().ConfigureAwait(false);
-
-static void ConfigureTenantsHealthEndpoints(HexalithServiceDefaultsOptions options) {
-    options.HealthEndpointPath = "/health";
-    options.LivenessEndpointPath = "/alive";
-    options.ReadinessEndpointPath = "/ready";
-    options.DevelopmentHealthResponseWriter = WriteSupportSafeDevelopmentHealthResponseAsync;
-}
 
 static bool IsValidReadModelFreshnessOptions(ReadModelFreshnessOptions options) {
     ArgumentNullException.ThrowIfNull(options);
