@@ -9,8 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="Dapr.Client" />
-    <PackageReference Include="Dapr.Actors" />
-    <PackageReference Include="Dapr.Actors.AspNetCore" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="MediatR" />
   </ItemGroup>
