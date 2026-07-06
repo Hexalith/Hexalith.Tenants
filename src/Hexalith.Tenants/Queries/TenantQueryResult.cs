@@ -12,9 +12,8 @@ internal sealed record TenantQueryResult : QueryResult {
         string? errorMessage = null,
         string? projectionType = null,
         QueryResponseMetadata? metadata = null)
-        : base(success, payloadBytes, errorMessage, projectionType) => Metadata = metadata;
-
-    public QueryResponseMetadata? Metadata { get; init; }
+        : base(success, payloadBytes, errorMessage, projectionType, metadata) {
+    }
 
     public static TenantQueryResult FromPayload(JsonElement payload, string? projectionType, string? eTag) {
         if (payload.ValueKind == JsonValueKind.Undefined) {

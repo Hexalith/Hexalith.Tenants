@@ -14,11 +14,7 @@ public sealed class QueryRestMetadataTests
     public void TenantQueries_DefineRoutesAndBindablePayloadProperties()
     {
         AssertRoute<ListTenantsQuery>("");
-        AssertBinding<ListTenantsQuery>(
-            RestQueryBindingSource.Constant,
-            "index",
-            RestQueryBindingSource.None,
-            null);
+        AssertNoBinding<ListTenantsQuery>();
         AssertProperty<ListTenantsQuery>("Cursor", typeof(string));
         AssertProperty<ListTenantsQuery>("PageSize", typeof(int));
         ListTenantsQuery.QueryType.ShouldBe("list-tenants");
@@ -115,6 +111,12 @@ public sealed class QueryRestMetadataTests
         binding.AggregateValue.ShouldBe(aggregateValue);
         binding.EntitySource.ShouldBe(entitySource);
         binding.EntityValue.ShouldBe(entityValue);
+    }
+
+    private static void AssertNoBinding<TQuery>()
+    {
+        RestQueryBindingAttribute? binding = typeof(TQuery).GetCustomAttribute<RestQueryBindingAttribute>();
+        binding.ShouldBeNull();
     }
 
     private static void AssertProperty<TQuery>(string name, Type expectedType)

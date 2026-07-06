@@ -50,6 +50,9 @@
         <HexalithEventStoreFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj')">true</HexalithEventStoreFromSource>
         <HexalithFrontComposerFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj')">true</HexalithFrontComposerFromSource>
         <HexalithMemoriesFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
+        <!-- Hexalith.EventStore.Gateway is source-only today. In default NuGet mode, build that
+             source graph with the same assembly version as the packaged EventStore dependencies. -->
+        <HexalithEventStoreSourceGatewayVersion Condition="'$(HexalithEventStoreSourceGatewayVersion)' == ''">3.41.0</HexalithEventStoreSourceGatewayVersion>
     </PropertyGroup>
 
     <PropertyGroup>
