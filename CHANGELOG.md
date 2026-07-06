@@ -1,3 +1,12 @@
+# [2.3.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.2.0...v2.3.0) (2026-07-06)
+
+
+### Features
+
+* add ApiScope to command and query routes for tenant management ([b7ae7bd](https://github.com/Hexalith/Hexalith.Tenants/commit/b7ae7bdb15947b82f031503618e08ffe10b0e4cc))
+* enhance Dapr end-to-end tests with AssertAccepted method for command acceptance checks ([3aaf2cf](https://github.com/Hexalith/Hexalith.Tenants/commit/3aaf2cf188ffa4aee68098255769d69f2710837e))
+* update query metadata and align EventStore gateway version for compatibility ([a7fa6bd](https://github.com/Hexalith/Hexalith.Tenants/commit/a7fa6bd9cc473aaa1338c01e857e6e74e7715aa1))
+
 # [2.2.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.1.2...v2.2.0) (2026-07-03)
 
 
