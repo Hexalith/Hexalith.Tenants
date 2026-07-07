@@ -256,8 +256,37 @@ public sealed class TenantsApiGeneratedControllerTests
     [Fact]
     public async Task Generated_query_route_returns_safe_problem_when_not_modified_has_no_strong_etag()
     {
+        await AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync(null);
+    }
+
+    [Fact]
+    public async Task Generated_query_route_returns_safe_problem_when_not_modified_has_weak_etag()
+    {
+        await AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync("W/\"index-etag-2\"");
+    }
+
+    [Theory]
+    [InlineData("wrong-issuer", JwtAudience)]
+    [InlineData(JwtIssuer, "wrong-audience")]
+    public async Task ListTenants_rejects_token_with_untrusted_issuer_or_audience(string issuer, string audience)
+    {
         CapturingEventStoreGatewayClient gateway = new();
-        gateway.EnqueueNotModified(null, new QueryResponseMetadata(IsNotModified: true));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            CreateJwt("test-user", "queries:*", issuer, audience));
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        gateway.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    private static async Task AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync(string? eTag)
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueNotModified(eTag, new QueryResponseMetadata(ETag: eTag, IsNotModified: true));
         await using var factory = new TenantsApiWebApplicationFactory(gateway);
         using HttpClient client = CreateAuthenticatedClient(factory);
 
@@ -408,19 +437,23 @@ public sealed class TenantsApiGeneratedControllerTests
         return client;
     }
 
-    private static string CreateJwt(string subject, string permission)
+    private static string CreateJwt(
+        string subject,
+        string permission,
+        string issuer = JwtIssuer,
+        string audience = JwtAudience)
     {
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
             SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
-            issuer: JwtIssuer,
-            audience: JwtAudience,
+            issuer: issuer,
+            audience: audience,
             claims:
             [
                 new Claim("sub", subject),
-                new Claim("permissions", $"[\"{permission}\"]"),
-                new Claim("tenants", "[\"system\",\"tenant.alpha\"]"),
+                new Claim("permissions", JsonSerializer.Serialize(new[] { permission }), JsonClaimValueTypes.JsonArray),
+                new Claim("tenants", JsonSerializer.Serialize(new[] { "system", "tenant.alpha" }), JsonClaimValueTypes.JsonArray),
             ],
             notBefore: DateTime.UtcNow.AddMinutes(-1),
             expires: DateTime.UtcNow.AddMinutes(10),
@@ -562,10 +595,20 @@ public sealed class TenantsApiGeneratedControllerTests
                 "/api/tenants/tenant.alpha/enable",
                 new EnableTenant("tenant.beta")),
             new(
-                "user id route mismatch",
+                "tenant-user tenant id route mismatch",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/users/user.alpha/add",
+                new AddUserToTenant("tenant.beta", "user.alpha", TenantRole.TenantReader)),
+            new(
+                "tenant-user user id route mismatch",
                 HttpMethod.Post,
                 "/api/tenants/tenant.alpha/users/user.alpha/add",
                 new AddUserToTenant("tenant.alpha", "user.beta", TenantRole.TenantReader)),
+            new(
+                "configuration tenant id route mismatch",
+                HttpMethod.Put,
+                "/api/tenants/tenant.alpha/configuration/billing.plan",
+                new SetTenantConfiguration("tenant.beta", "billing.plan", "pro")),
             new(
                 "configuration key route mismatch",
                 HttpMethod.Put,
