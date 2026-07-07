@@ -488,7 +488,12 @@ public class EventPublicationConfigurationTests {
         Sequence(tenantsApiPolicy, "operations")
             .OfType<YamlMappingNode>()
             .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
-            .ShouldBe(["allow GET,POST /**"]);
+            .ShouldBe(
+                [
+                    "allow POST /api/v1/commands",
+                    "allow POST /api/v1/queries",
+                ],
+                ignoreOrder: true);
 
         string[] productionAccessControlFiles = Directory
             .GetFiles(RepositoryPath("deploy", "dapr"), "accesscontrol.*.yaml", SearchOption.TopDirectoryOnly)

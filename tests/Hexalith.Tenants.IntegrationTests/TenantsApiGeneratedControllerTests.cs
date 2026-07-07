@@ -12,15 +12,19 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.Tenants.Contracts;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
@@ -95,6 +99,7 @@ public sealed class TenantsApiGeneratedControllerTests
         query.Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(ListTenantsQuery.ProjectionType);
         query.IfNoneMatch.ShouldBeNull();
+        query.CancellationToken.CanBeCanceled.ShouldBeTrue();
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("cursor").GetString().ShouldBe("opaque");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(25);
@@ -119,6 +124,60 @@ public sealed class TenantsApiGeneratedControllerTests
         query.Request.QueryType.ShouldBe(GetUserTenantsQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetUserTenantsQuery.ProjectionType);
         query.Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(12);
+    }
+
+    [Fact]
+    public async Task TenantDetail_generated_route_submits_tenant_scoped_query_for_route_tenant()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryResult(new TenantDetail(
+            "tenant.alpha",
+            "Alpha",
+            "Tenant Alpha",
+            TenantStatus.Active,
+            [],
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            DateTimeOffset.Parse("2026-07-03T05:20:00Z", CultureInfo.InvariantCulture)));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant.alpha");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmittedQuery query = gateway.SubmittedQueries.ShouldHaveSingleItem();
+        query.Request.Tenant.ShouldBe("system");
+        query.Request.Domain.ShouldBe(GetTenantQuery.Domain);
+        query.Request.AggregateId.ShouldBe("tenant.alpha");
+        query.Request.EntityId.ShouldBe("tenant.alpha");
+        query.Request.QueryType.ShouldBe(GetTenantQuery.QueryType);
+        query.Request.ProjectionType.ShouldBe(GetTenantQuery.ProjectionType);
+        query.Request.Payload.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task TenantUsers_generated_route_submits_tenant_scoped_query_with_paging_payload()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryResult(new PaginatedResult<TenantMember>(
+            [new TenantMember("user.alpha", TenantRole.TenantReader)],
+            "users-next",
+            true));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants/tenant.alpha/users?cursor=user-cursor&pageSize=20");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        SubmittedQuery query = gateway.SubmittedQueries.ShouldHaveSingleItem();
+        query.Request.Tenant.ShouldBe("system");
+        query.Request.Domain.ShouldBe(GetTenantUsersQuery.Domain);
+        query.Request.AggregateId.ShouldBe("tenant.alpha");
+        query.Request.EntityId.ShouldBe("tenant.alpha");
+        query.Request.QueryType.ShouldBe(GetTenantUsersQuery.QueryType);
+        query.Request.ProjectionType.ShouldBe(GetTenantUsersQuery.ProjectionType);
+        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
+        payload.GetProperty("cursor").GetString().ShouldBe("user-cursor");
+        payload.GetProperty("pageSize").GetInt32().ShouldBe(20);
     }
 
     [Fact]
@@ -194,14 +253,162 @@ public sealed class TenantsApiGeneratedControllerTests
         gateway.SubmittedQueries.ShouldHaveSingleItem().IfNoneMatch.ShouldBe("\"index-etag-1\"");
     }
 
-    private static HttpClient CreateAuthenticatedClient(TenantsApiWebApplicationFactory factory)
+    [Fact]
+    public async Task Generated_query_route_returns_safe_problem_when_not_modified_has_no_strong_etag()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueNotModified(null, new QueryResponseMetadata(IsNotModified: true));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadGateway);
+        response.Headers.Contains("ETag").ShouldBeFalse();
+        JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        problem.GetProperty("title").GetString().ShouldBe("Bad Gateway");
+    }
+
+    [Fact]
+    public async Task Generated_query_route_maps_gateway_failure_to_safe_problem_details()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryFailure(new EventStoreGatewayException(
+            StatusCodes.Status403Forbidden,
+            "Forbidden",
+            detail: "Access denied.",
+            correlationId: "01KTESTCORRELATION00000",
+            tenantId: TenantIdentity.DefaultTenantId,
+            reasonCode: "tenant-forbidden"));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/api/tenants", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        problem.GetProperty("title").GetString().ShouldBe("Forbidden");
+        problem.GetProperty("correlationId").GetString().ShouldBe("01KTESTCORRELATION00000");
+        problem.GetProperty("tenantId").GetString().ShouldBe(TenantIdentity.DefaultTenantId);
+        problem.GetProperty("reasonCode").GetString().ShouldBe("tenant-forbidden");
+    }
+
+    [Fact]
+    public async Task Generated_command_routes_submit_all_external_command_families_through_gateway()
+    {
+        foreach (CommandRouteCase commandCase in CommandRouteCases())
+        {
+            string statusId = UniqueIdHelper.GenerateSortableUniqueStringId();
+            CapturingEventStoreGatewayClient gateway = new();
+            gateway.EnqueueCommandResult(statusId);
+            await using var factory = new TenantsApiWebApplicationFactory(gateway);
+            using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+
+            HttpResponseMessage response = await SendJsonAsync(client, commandCase);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.Accepted, commandCase.Name);
+            response.Headers.RetryAfter.ShouldNotBeNull().Delta.ShouldBe(TimeSpan.FromSeconds(1));
+            response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe($"/api/v1/commands/status/{statusId}");
+            SubmitCommandResponse? body = await response.Content.ReadFromJsonAsync<SubmitCommandResponse>(
+                cancellationToken: TestContext.Current.CancellationToken);
+            body.ShouldNotBeNull().CorrelationId.ShouldBe(statusId);
+
+            SubmittedCommand command = gateway.SubmittedCommands.ShouldHaveSingleItem();
+            command.Request.Tenant.ShouldBe(TenantIdentity.DefaultTenantId, commandCase.Name);
+            command.Request.Domain.ShouldBe(commandCase.ExpectedDomain, commandCase.Name);
+            command.Request.AggregateId.ShouldBe(commandCase.ExpectedAggregateId, commandCase.Name);
+            command.Request.CommandType.ShouldBe(commandCase.ExpectedCommandType, commandCase.Name);
+            command.Request.MessageId.ShouldNotBeNullOrWhiteSpace();
+            _ = UniqueIdHelper.ExtractTimestamp(command.Request.MessageId);
+            command.Request.Payload.GetProperty(commandCase.IdentityPropertyName).GetString().ShouldBe(commandCase.ExpectedIdentityValue);
+            command.Request.Payload.GetRawText().ShouldBe(
+                JsonSerializer.SerializeToElement(commandCase.Body, JsonOptions).GetRawText(),
+                commandCase.Name);
+            command.CancellationToken.CanBeCanceled.ShouldBeTrue(commandCase.Name);
+        }
+    }
+
+    [Fact]
+    public async Task Generated_command_route_rejects_null_body_before_gateway_call()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+        using var content = new StringContent("null", Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(
+            "/api/tenants/tenant.alpha/enable",
+            content,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        problem.GetProperty("detail").GetString().ShouldBe("Request body is required.");
+        gateway.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Generated_command_route_rejects_route_body_mismatch_before_gateway_call()
+    {
+        foreach (CommandMismatchCase mismatchCase in CommandMismatchCases())
+        {
+            CapturingEventStoreGatewayClient gateway = new();
+            await using var factory = new TenantsApiWebApplicationFactory(gateway);
+            using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+
+            using var request = new HttpRequestMessage(mismatchCase.Method, mismatchCase.Route)
+            {
+                Content = JsonContent.Create(mismatchCase.Body, options: JsonOptions),
+            };
+
+            HttpResponseMessage response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest, mismatchCase.Name);
+            JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+            problem.GetProperty("detail").GetString().ShouldNotBeNull().ShouldContain("does not match");
+            gateway.SubmittedCommands.ShouldBeEmpty();
+        }
+    }
+
+    [Fact]
+    public async Task Generated_command_route_maps_gateway_failure_to_safe_problem_details()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueCommandFailure(new EventStoreGatewayException(
+            StatusCodes.Status403Forbidden,
+            "Forbidden",
+            detail: "Access denied.",
+            correlationId: "01KTESTCORRELATION00000",
+            tenantId: TenantIdentity.DefaultTenantId,
+            reasonCode: "tenant-forbidden"));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/tenants/tenant.alpha/enable",
+            new EnableTenant("tenant.alpha"),
+            JsonOptions,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
+        problem.GetProperty("title").GetString().ShouldBe("Forbidden");
+        problem.GetProperty("correlationId").GetString().ShouldBe("01KTESTCORRELATION00000");
+        problem.GetProperty("tenantId").GetString().ShouldBe(TenantIdentity.DefaultTenantId);
+        problem.GetProperty("reasonCode").GetString().ShouldBe("tenant-forbidden");
+        gateway.SubmittedCommands.ShouldHaveSingleItem();
+    }
+
+    private static HttpClient CreateAuthenticatedClient(
+        TenantsApiWebApplicationFactory factory,
+        string permission = "queries:*")
     {
         HttpClient client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user"));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt("test-user", permission));
         return client;
     }
 
-    private static string CreateJwt(string subject)
+    private static string CreateJwt(string subject, string permission)
     {
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
@@ -209,12 +416,167 @@ public sealed class TenantsApiGeneratedControllerTests
         var token = new JwtSecurityToken(
             issuer: JwtIssuer,
             audience: JwtAudience,
-            claims: [new Claim("sub", subject), new Claim("permissions", "queries:*")],
+            claims:
+            [
+                new Claim("sub", subject),
+                new Claim("permissions", $"[\"{permission}\"]"),
+                new Claim("tenants", "[\"system\",\"tenant.alpha\"]"),
+            ],
             notBefore: DateTime.UtcNow.AddMinutes(-1),
             expires: DateTime.UtcNow.AddMinutes(10),
             signingCredentials: credentials);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private static async Task<HttpResponseMessage> SendJsonAsync(HttpClient client, CommandRouteCase commandCase)
+    {
+        using var request = new HttpRequestMessage(commandCase.Method, commandCase.Route)
+        {
+            Content = JsonContent.Create(commandCase.Body, options: JsonOptions),
+        };
+
+        return await client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
+    private static CommandRouteCase[] CommandRouteCases()
+        =>
+        [
+            new(
+                "create tenant",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha",
+                new CreateTenant("tenant.alpha", "Alpha", "Tenant Alpha"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                CreateTenant.CommandType,
+                "tenantId",
+                "tenant.alpha"),
+            new(
+                "update tenant",
+                HttpMethod.Put,
+                "/api/tenants/tenant.alpha",
+                new UpdateTenant("tenant.alpha", "Alpha Updated", "Updated tenant"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                UpdateTenant.CommandType,
+                "tenantId",
+                "tenant.alpha"),
+            new(
+                "enable tenant",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/enable",
+                new EnableTenant("tenant.alpha"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                EnableTenant.CommandType,
+                "tenantId",
+                "tenant.alpha"),
+            new(
+                "disable tenant",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/disable",
+                new DisableTenant("tenant.alpha"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                DisableTenant.CommandType,
+                "tenantId",
+                "tenant.alpha"),
+            new(
+                "add tenant user",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/users/user.alpha/add",
+                new AddUserToTenant("tenant.alpha", "user.alpha", TenantRole.TenantReader),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                AddUserToTenant.CommandType,
+                "userId",
+                "user.alpha"),
+            new(
+                "remove tenant user",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/users/user.alpha/remove",
+                new RemoveUserFromTenant("tenant.alpha", "user.alpha"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                RemoveUserFromTenant.CommandType,
+                "userId",
+                "user.alpha"),
+            new(
+                "change tenant user role",
+                HttpMethod.Patch,
+                "/api/tenants/tenant.alpha/users/user.alpha/role",
+                new ChangeUserRole("tenant.alpha", "user.alpha", TenantRole.TenantContributor),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                ChangeUserRole.CommandType,
+                "userId",
+                "user.alpha"),
+            new(
+                "set tenant configuration",
+                HttpMethod.Put,
+                "/api/tenants/tenant.alpha/configuration/billing.plan",
+                new SetTenantConfiguration("tenant.alpha", "billing.plan", "pro"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                SetTenantConfiguration.CommandType,
+                "key",
+                "billing.plan"),
+            new(
+                "remove tenant configuration",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/configuration/billing.plan/remove",
+                new RemoveTenantConfiguration("tenant.alpha", "billing.plan"),
+                TenantIdentity.Domain,
+                "tenant.alpha",
+                RemoveTenantConfiguration.CommandType,
+                "key",
+                "billing.plan"),
+            new(
+                "set global administrator",
+                HttpMethod.Post,
+                "/api/global-administrators/user.alpha/set",
+                new SetGlobalAdministrator("user.alpha"),
+                TenantIdentity.GlobalAdministratorsDomain,
+                TenantIdentity.GlobalAdministratorsAggregateId,
+                SetGlobalAdministrator.CommandType,
+                "userId",
+                "user.alpha"),
+            new(
+                "remove global administrator",
+                HttpMethod.Post,
+                "/api/global-administrators/user.alpha/remove",
+                new RemoveGlobalAdministrator("user.alpha"),
+                TenantIdentity.GlobalAdministratorsDomain,
+                TenantIdentity.GlobalAdministratorsAggregateId,
+                RemoveGlobalAdministrator.CommandType,
+                "userId",
+                "user.alpha"),
+        ];
+
+    private static CommandMismatchCase[] CommandMismatchCases()
+        =>
+        [
+            new(
+                "tenant id route mismatch",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/enable",
+                new EnableTenant("tenant.beta")),
+            new(
+                "user id route mismatch",
+                HttpMethod.Post,
+                "/api/tenants/tenant.alpha/users/user.alpha/add",
+                new AddUserToTenant("tenant.alpha", "user.beta", TenantRole.TenantReader)),
+            new(
+                "configuration key route mismatch",
+                HttpMethod.Put,
+                "/api/tenants/tenant.alpha/configuration/billing.plan",
+                new SetTenantConfiguration("tenant.alpha", "billing.mode", "pro")),
+            new(
+                "global administrator user id route mismatch",
+                HttpMethod.Post,
+                "/api/global-administrators/user.alpha/set",
+                new SetGlobalAdministrator("user.beta")),
+        ];
 
     private sealed class TenantsApiWebApplicationFactory(CapturingEventStoreGatewayClient gateway)
         : WebApplicationFactory<TenantsApi::Program>
@@ -243,17 +605,28 @@ public sealed class TenantsApiGeneratedControllerTests
     {
         private readonly Queue<object> _responses = new();
 
+        public List<SubmittedCommand> SubmittedCommands { get; } = [];
+
         public List<SubmittedQuery> SubmittedQueries { get; } = [];
 
         public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        {
+            SubmittedCommands.Add(new SubmittedCommand(request, cancellationToken));
+            object next = _responses.Dequeue();
+            if (next is Exception exception)
+            {
+                throw exception;
+            }
+
+            return Task.FromResult((SubmitCommandResponse)next);
+        }
 
         public Task<EventStoreQueryResult> SubmitQueryAsync(
             SubmitQueryRequest request,
             string? ifNoneMatch = null,
             CancellationToken cancellationToken = default)
         {
-            SubmittedQueries.Add(new SubmittedQuery(request, ifNoneMatch));
+            SubmittedQueries.Add(new SubmittedQuery(request, ifNoneMatch, cancellationToken));
             object next = _responses.Dequeue();
             if (next is Exception exception)
             {
@@ -271,6 +644,12 @@ public sealed class TenantsApiGeneratedControllerTests
 
         public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+
+        public void EnqueueCommandResult(string correlationId)
+            => _responses.Enqueue(new SubmitCommandResponse(correlationId));
+
+        public void EnqueueCommandFailure(Exception exception)
+            => _responses.Enqueue(exception);
 
         public void EnqueueQueryResult<T>(
             T payload,
@@ -290,7 +669,29 @@ public sealed class TenantsApiGeneratedControllerTests
             {
                 Metadata = metadata ?? new QueryResponseMetadata(ETag: eTag, IsNotModified: true),
             });
+
+        public void EnqueueQueryFailure(Exception exception)
+            => _responses.Enqueue(exception);
     }
 
-    private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);
+    private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch, CancellationToken CancellationToken);
+
+    private sealed record SubmittedCommand(SubmitCommandRequest Request, CancellationToken CancellationToken);
+
+    private sealed record CommandRouteCase(
+        string Name,
+        HttpMethod Method,
+        string Route,
+        object Body,
+        string ExpectedDomain,
+        string ExpectedAggregateId,
+        string ExpectedCommandType,
+        string IdentityPropertyName,
+        string ExpectedIdentityValue);
+
+    private sealed record CommandMismatchCase(
+        string Name,
+        HttpMethod Method,
+        string Route,
+        object Body);
 }

@@ -156,6 +156,58 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost()
+    {
+        string uiRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI");
+        string uiProjectPath = Path.Combine(uiRoot, "Hexalith.Tenants.UI.csproj");
+        XDocument project = XDocument.Load(uiProjectPath);
+
+        string[] dependencies = project
+            .Descendants()
+            .Where(static element => string.Equals(element.Name.LocalName, "ProjectReference", StringComparison.Ordinal)
+                || string.Equals(element.Name.LocalName, "PackageReference", StringComparison.Ordinal)
+                || string.Equals(element.Name.LocalName, "Reference", StringComparison.Ordinal)
+                || string.Equals(element.Name.LocalName, "Analyzer", StringComparison.Ordinal))
+            .Select(static element => ((string?)element.Attribute("Include"))?.Replace('\\', '/') ?? string.Empty)
+            .ToArray();
+
+        dependencies.Any(static dependency => dependency.Contains("Hexalith.Tenants.Api", StringComparison.Ordinal))
+            .ShouldBeFalse("Interactive Tenants UI must not reference the external generated API host.");
+        dependencies.Any(static dependency => dependency.Contains("Hexalith.EventStore.RestApi.Generators", StringComparison.Ordinal))
+            .ShouldBeFalse("Generated REST analyzers belong only in Hexalith.Tenants.Api.");
+        dependencies.Any(static dependency => dependency.EndsWith("/Hexalith.Tenants/Hexalith.Tenants.csproj", StringComparison.Ordinal)
+            || string.Equals(Path.GetFileName(dependency), "Hexalith.Tenants.csproj", StringComparison.Ordinal))
+            .ShouldBeFalse("Interactive Tenants UI must not reference the Tenants domain-service host.");
+
+        string source = string.Join(
+            Environment.NewLine,
+            Directory.EnumerateFiles(uiRoot, "*.*", SearchOption.AllDirectories)
+                .Where(static file => (file.EndsWith(".cs", StringComparison.Ordinal)
+                    || file.EndsWith(".csproj", StringComparison.Ordinal)
+                    || file.EndsWith(".razor", StringComparison.Ordinal))
+                    && !IsBuildArtifact(file))
+                .Select(File.ReadAllText));
+
+        string[] forbiddenMarkers =
+        [
+            "[assembly: RestApi(",
+            "[assembly: RestApiAttribute(",
+            "AddControllers(",
+            "AddControllersWithViews(",
+            "MapControllers(",
+            "MapControllerRoute(",
+            "MapDefaultControllerRoute(",
+            "Hexalith.EventStore.RestApi.Generators",
+            "[ApiController]",
+            "ControllerBase",
+        ];
+
+        forbiddenMarkers
+            .Where(marker => source.Contains(marker, StringComparison.Ordinal))
+            .ShouldBeEmpty("Tenants UI must consume EventStore/Tenants client seams, not host generated or hand-written REST controllers.");
+    }
+
+    [Fact]
     public void Localization_resources_resolve_english_and_french_workspace_copy()
     {
         ResourceManager manager = new(typeof(TenantsResources));
@@ -272,6 +324,10 @@ public sealed class TenantsUiCompositionTests
 
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+
+    private static bool IsBuildArtifact(string path)
+        => path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+        || path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 
     private static HashSet<string> ReadResourceKeys(string path, string[] prefixes)
         => XDocument

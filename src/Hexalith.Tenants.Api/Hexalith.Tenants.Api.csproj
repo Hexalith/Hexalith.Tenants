@@ -5,6 +5,7 @@
     <IsPublishable>true</IsPublishable>
     <EnableContainer>true</EnableContainer>
     <ContainerRepository>tenants-api</ContainerRepository>
+    <UseLocalEventStoreRestApiGenerator Condition="'$(Configuration)' != 'Release' and Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.RestApi.Generators\Hexalith.EventStore.RestApi.Generators.csproj')">true</UseLocalEventStoreRestApiGenerator>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,10 +15,10 @@
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.RestApi.Generators\Hexalith.EventStore.RestApi.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
-                      Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+                      Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(UseLocalEventStoreRestApiGenerator)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.RestApi.Generators"
                       PrivateAssets="all"
-                      Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+                      Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(UseLocalEventStoreRestApiGenerator)' != 'true'" />
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.ServiceDefaults\Hexalith.EventStore.ServiceDefaults.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.ServiceDefaults" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
   </ItemGroup>

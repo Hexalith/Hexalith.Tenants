@@ -21,6 +21,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
+
+        string? issuer = builder.Configuration["EventStore:Authentication:Issuer"];
+        string? audience = builder.Configuration["EventStore:Authentication:Audience"];
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -28,8 +32,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
-            ValidIssuer = builder.Configuration["EventStore:Authentication:Issuer"] ?? "hexalith-dev",
-            ValidAudience = builder.Configuration["EventStore:Authentication:Audience"] ?? "hexalith-eventstore",
+            ValidAudience = string.IsNullOrWhiteSpace(audience) ? "hexalith-eventstore" : audience,
         };
 
         string? authority = builder.Configuration["EventStore:Authentication:Authority"];
@@ -37,18 +40,32 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             options.Authority = authority;
             options.RequireHttpsMetadata = builder.Configuration.GetValue("EventStore:Authentication:RequireHttpsMetadata", true);
+            if (!string.IsNullOrWhiteSpace(issuer))
+            {
+                options.TokenValidationParameters.ValidIssuer = issuer;
+            }
         }
         else
         {
-            string signingKey = builder.Configuration["EventStore:Authentication:SigningKey"]
-                ?? throw new InvalidOperationException("EventStore:Authentication:SigningKey is required when Authority is not configured.");
+            options.TokenValidationParameters.ValidIssuer = string.IsNullOrWhiteSpace(issuer) ? "hexalith-dev" : issuer;
+
+            string? signingKey = builder.Configuration["EventStore:Authentication:SigningKey"];
+            if (string.IsNullOrWhiteSpace(signingKey))
+            {
+                throw new InvalidOperationException("EventStore:Authentication:SigningKey is required when Authority is not configured.");
+            }
+
+            if (Encoding.UTF8.GetByteCount(signingKey) < 32)
+            {
+                throw new InvalidOperationException("EventStore:Authentication:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.");
+            }
+
             options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         }
     });
 builder.Services.AddAuthorization();
 
-string daprHttpEndpoint = builder.Configuration["DAPR_HTTP_ENDPOINT"]
-    ?? $"http://localhost:{builder.Configuration["DAPR_HTTP_PORT"] ?? "3500"}";
+string daprHttpEndpoint = DaprHttpEndpointResolver.Resolve(builder.Configuration);
 string? daprApiToken = builder.Configuration["DAPR_API_TOKEN"];
 
 builder.Services.AddTransient<InboundBearerForwardingHandler>();
