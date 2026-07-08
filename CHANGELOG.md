@@ -1,3 +1,10 @@
+## [2.4.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.4.1...v2.4.2) (2026-07-08)
+
+
+### Bug Fixes
+
+* align RestApi generator dependency for consistent CI restore/build behavior ([7a3eb34](https://github.com/Hexalith/Hexalith.Tenants/commit/7a3eb34e35bb955471a3be588ceec2b18f03f015))
+
 ## [2.4.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.4.0...v2.4.1) (2026-07-08)
 
 
