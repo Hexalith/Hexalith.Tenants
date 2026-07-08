@@ -1,3 +1,19 @@
+# [2.4.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.3.0...v2.4.0) (2026-07-08)
+
+
+### Bug Fixes
+
+* **ci:** resolve package and sample test failures ([7850647](https://github.com/Hexalith/Hexalith.Tenants/commit/78506475fda4d34f0a1250ab8ad9e77ddced857b))
+* update EventStore project references to use the latest version ([e2a197d](https://github.com/Hexalith/Hexalith.Tenants/commit/e2a197dc4129f59acb5745b96f0353f70b979eeb))
+
+
+### Features
+
+* **api:** harden generated tenants api host ([f3844d3](https://github.com/Hexalith/Hexalith.Tenants/commit/f3844d34e314b96b7e5caf63aee2c5a5f2cbcf6a))
+* update AI assistant instructions and improve submodule handling ([c016842](https://github.com/Hexalith/Hexalith.Tenants/commit/c016842b36f333cf70edd7d7c15711731c72f8b9))
+* update project reference conditions for Debug configuration ([e9cbe82](https://github.com/Hexalith/Hexalith.Tenants/commit/e9cbe824ce2033faef7ca666ca65018a2184e070))
+* update UseHexalithProjectReferences condition and increment EventStore source gateway version to 3.42.0 ([dde9c45](https://github.com/Hexalith/Hexalith.Tenants/commit/dde9c45c782efd90e80c000019c3c3759d596e58))
+
 # [2.3.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.2.0...v2.3.0) (2026-07-06)
 
 
