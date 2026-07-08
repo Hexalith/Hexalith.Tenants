@@ -275,6 +275,7 @@ public class PackageGovernanceTests {
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
         string releaseConfig = File.ReadAllText(Path.Combine(repoRoot, "release.config.cjs"));
         string activeReleaseConfig = File.ReadAllText(Path.Combine(repoRoot, ".releaserc.json"));
+        string releaseSecretsValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-release-secrets.sh"));
         string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
@@ -292,6 +293,7 @@ public class PackageGovernanceTests {
         }
 
         releaseConfig.ShouldContain("@semantic-release/exec");
+        releaseConfig.ShouldContain("bash scripts/validate-release-secrets.sh");
         releaseConfig.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version}");
         releaseConfig.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
         releaseConfig.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
@@ -303,11 +305,20 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldNotContain(".snupkg");
         releaseConfig.ShouldNotContain("**/*.nupkg");
         activeReleaseConfig.ShouldContain("@semantic-release/exec");
+        activeReleaseConfig.ShouldContain("bash scripts/validate-release-secrets.sh");
         activeReleaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
         activeReleaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
         activeReleaseConfig.ShouldContain("--skip-duplicate");
         activeReleaseConfig.ShouldContain("NUGET_API_KEY");
         activeReleaseConfig.ShouldNotContain("--verbosity");
+        releaseSecretsValidator.ShouldContain("NUGET_API_KEY");
+        releaseSecretsValidator.ShouldContain("HEXALITH_CONTAINER_PROJECTS");
+        releaseSecretsValidator.ShouldContain("HEXALITH_ZOT_USERNAME");
+        releaseSecretsValidator.ShouldContain("HEXALITH_ZOT_API_KEY");
+        releaseSecretsValidator.ShouldContain("tr -d '[:space:]'");
+        releaseSecretsValidator.ShouldContain("before publishing NuGet packages");
+        releaseSecretsValidator.ShouldContain("before publishing containers");
+        releaseSecretsValidator.ShouldNotContain("set -x");
         packageValidator.ShouldContain("not path.name.endswith(\".snupkg\")");
         packageValidator.ShouldContain("\".symbols.\" not in path.name");
         packageValidator.ShouldContain("EXPECTED_DEPENDENCIES");
