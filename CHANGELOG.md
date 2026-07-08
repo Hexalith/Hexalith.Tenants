@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.1.0...v3.1.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **ci:** finish Dapr init bootstrap remediation ([fd84cfd](https://github.com/Hexalith/Hexalith.Tenants/commit/fd84cfdaecc55e7ab2817880bf87b57324a82470))
+
 # [3.1.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.0.0...v3.1.0) (2026-07-08)
 
 
