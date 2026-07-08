@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.1.1...v3.2.0) (2026-07-08)
+
+
+### Features
+
+* add preflight script to validate release secrets before publishing ([08b8201](https://github.com/Hexalith/Hexalith.Tenants/commit/08b82017e26d8f73c9bfc5416930d6387e3c4865))
+
 ## [3.1.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.1.0...v3.1.1) (2026-07-08)
 
 
