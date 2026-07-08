@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.4.0...v2.4.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **ci:** normalize coverage paths and release publish ([432f9f8](https://github.com/Hexalith/Hexalith.Tenants/commit/432f9f807620f7478ee3cd4bae6ca993f826215e))
+
 # [2.4.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.3.0...v2.4.0) (2026-07-08)
 
 
