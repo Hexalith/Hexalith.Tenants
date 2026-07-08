@@ -99,6 +99,7 @@ EXPECTED_DEPENDENCIES = {
         "Grpc.Net.ClientFactory",
         "Hexalith.EventStore.Aspire",
         "MessagePack",
+        "ModelContextProtocol",
         "Microsoft.Extensions.Configuration",
         "Microsoft.Extensions.Configuration.Abstractions",
         "Microsoft.Extensions.Configuration.Binder",

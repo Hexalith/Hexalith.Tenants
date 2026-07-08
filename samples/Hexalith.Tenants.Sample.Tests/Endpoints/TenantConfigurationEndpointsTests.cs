@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 
+using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Client.Subscriptions;
 using Hexalith.EventStore.Contracts.Events;
 using Hexalith.Tenants.Client.Handlers;
@@ -22,9 +23,9 @@ public class TenantConfigurationEndpointsTests {
             .Where(t => t.IsClass && !t.IsAbstract && typeof(IEventPayload).IsAssignableFrom(t))
             .ToDictionary(t => t.FullName!, t => t);
 
-    private static EventStoreDomainEventEnvelope CreateEnvelope<TEvent>(string messageId, TEvent @event)
+    private static EventStoreDomainEventEnvelope CreateEnvelope<TEvent>(string messageIdLabel, TEvent @event)
         where TEvent : IEventPayload => new(
-            messageId,
+            CreateMessageId(messageIdLabel),
             "acme",
             "system",
             typeof(TEvent).FullName!,
@@ -33,6 +34,11 @@ public class TenantConfigurationEndpointsTests {
             "corr-1",
             "json",
             JsonSerializer.SerializeToUtf8Bytes(@event));
+
+    private static string CreateMessageId(string messageIdLabel) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(messageIdLabel);
+        return UniqueIdHelper.GenerateSortableUniqueStringId();
+    }
 
     private static (EventStoreDomainEventProcessor Processor, InMemoryTenantProjectionStore Store, ServiceProvider Provider) CreateProcessor() {
         var store = new InMemoryTenantProjectionStore();
