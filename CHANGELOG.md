@@ -26,7 +26,7 @@
 * **api:** harden generated tenants api host ([f3844d3](https://github.com/Hexalith/Hexalith.Tenants/commit/f3844d34e314b96b7e5caf63aee2c5a5f2cbcf6a))
 * update AI assistant instructions and improve submodule handling ([c016842](https://github.com/Hexalith/Hexalith.Tenants/commit/c016842b36f333cf70edd7d7c15711731c72f8b9))
 * update project reference conditions for Debug configuration ([e9cbe82](https://github.com/Hexalith/Hexalith.Tenants/commit/e9cbe824ce2033faef7ca666ca65018a2184e070))
-* update UseHexalithProjectReferences condition and increment EventStore source gateway version to 3.42.0 ([dde9c45](https://github.com/Hexalith/Hexalith.Tenants/commit/dde9c45c782efd90e80c000019c3c3759d596e58))
+* update UseHexalithProjectReferences condition and increment EventStore source gateway version ([dde9c45](https://github.com/Hexalith/Hexalith.Tenants/commit/dde9c45c782efd90e80c000019c3c3759d596e58))
 
 # [2.3.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.2.0...v2.3.0) (2026-07-06)
 
