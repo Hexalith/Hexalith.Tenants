@@ -274,6 +274,7 @@ public class PackageGovernanceTests {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
         string releaseConfig = File.ReadAllText(Path.Combine(repoRoot, "release.config.cjs"));
+        string activeReleaseConfig = File.ReadAllText(Path.Combine(repoRoot, ".releaserc.json"));
         string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
@@ -297,6 +298,11 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldContain("assets: ['nupkgs/*.nupkg']");
         releaseConfig.ShouldNotContain(".snupkg");
         releaseConfig.ShouldNotContain("**/*.nupkg");
+        activeReleaseConfig.ShouldContain("@semantic-release/exec");
+        activeReleaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
+        activeReleaseConfig.ShouldContain("--skip-duplicate");
+        activeReleaseConfig.ShouldContain("NUGET_API_KEY");
+        activeReleaseConfig.ShouldNotContain("--verbosity");
         packageValidator.ShouldContain("not path.name.endswith(\".snupkg\")");
         packageValidator.ShouldContain("\".symbols.\" not in path.name");
         packageValidator.ShouldContain("EXPECTED_DEPENDENCIES");

@@ -9,7 +9,7 @@
       "@semantic-release/exec",
       {
         "prepareCmd": "dotnet build --configuration Release -p:Version=${nextRelease.version} && python scripts/pack-release-packages.py ./nupkgs ${nextRelease.version} && python scripts/validate-nuget-packages.py ./nupkgs",
-        "publishCmd": "dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_API_KEY --skip-duplicate --verbosity quiet"
+        "publishCmd": "dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_API_KEY --skip-duplicate"
       }
     ],
     [

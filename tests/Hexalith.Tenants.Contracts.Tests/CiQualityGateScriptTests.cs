@@ -45,6 +45,55 @@ public class CiQualityGateScriptTests {
     }
 
     [Fact]
+    public async Task Coverage_gate_script_merges_paths_with_and_without_src_prefix() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        string coverageRoot = Path.Combine(temp.Path, "coverage");
+        Directory.CreateDirectory(coverageRoot);
+
+        WriteCoverageReport(
+            Path.Combine(coverageRoot, "dependency-closure", "coverage.cobertura.xml"),
+            [
+                CoverageClass(
+                    "src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs",
+                    [
+                        Line(1, 0),
+                        Line(2, 0),
+                        Line(3, 0),
+                        Line(4, 0),
+                        Line(5, 0),
+                    ]),
+            ]);
+        WriteCoverageReport(
+            Path.Combine(coverageRoot, "project", "coverage.cobertura.xml"),
+            [
+                CoverageClass(
+                    "Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs",
+                    [
+                        Line(1, 1),
+                        Line(2, 1),
+                        Line(3, 1),
+                        Line(4, 1),
+                        Line(5, 1),
+                    ]),
+                CoverageClass(
+                    "Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs",
+                    [
+                        BranchLine(10, 1, 2, 2),
+                    ]),
+            ]);
+
+        CommandResult result = await RunAsync(
+            repoRoot,
+            "python3",
+            $"scripts/validate-coverage.py --coverage-root {Quote(coverageRoot)} --minimum-line-coverage 80 --required-branch-coverage 100 --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
+
+        result.ExitCode.ShouldBe(0, result.Output);
+        result.Output.ShouldContain("Overall line coverage (publishable packages): 100.00%");
+        result.Output.ShouldContain("Isolation/auth branch coverage: 100.00%");
+    }
+
+    [Fact]
     public async Task Coverage_gate_script_fails_when_line_coverage_is_not_above_threshold() {
         string repoRoot = FindRepoRoot();
         using TemporaryDirectory temp = new();
@@ -342,6 +391,7 @@ public class CiQualityGateScriptTests {
         => $"""        <line number="{number}" hits="{hits}" branch="True" condition-coverage="{covered * 100 / total}% ({covered}/{total})" />""";
 
     private static void WriteCoverageReport(string path, string[] classes) {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(
             path,
             $"""

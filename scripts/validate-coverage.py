@@ -251,7 +251,20 @@ def write_summary(summary_file: Path | None, summary: str) -> None:
 
 
 def normalize_path(path: str) -> str:
-    return path.replace("\\", "/").lstrip("./")
+    normalized = path.replace("\\", "/").lstrip("./")
+    if normalized.startswith("src/"):
+        return normalized
+
+    # Coverlet emits filenames with and without the repository "src/" prefix depending on
+    # which test lane loaded the assembly. Canonicalize Tenants package paths before unioning
+    # coverage so a covered project report is not treated as a different file than an
+    # uncovered dependency-closure report.
+    for prefix in PACKAGE_LINE_SCOPE:
+        package_prefix = prefix.removeprefix("src/")
+        if normalized.startswith(package_prefix):
+            return f"src/{normalized}"
+
+    return normalized
 
 
 if __name__ == "__main__":
