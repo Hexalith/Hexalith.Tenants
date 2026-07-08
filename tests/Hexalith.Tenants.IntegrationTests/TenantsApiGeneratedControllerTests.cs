@@ -337,7 +337,7 @@ public sealed class TenantsApiGeneratedControllerTests
 
             response.StatusCode.ShouldBe(HttpStatusCode.Accepted, commandCase.Name);
             response.Headers.RetryAfter.ShouldNotBeNull().Delta.ShouldBe(TimeSpan.FromSeconds(1));
-            response.Headers.Location.ShouldNotBeNull().OriginalString.ShouldBe($"/api/v1/commands/status/{statusId}");
+            response.Headers.Location.ShouldBeNull(commandCase.Name);
             SubmitCommandResponse? body = await response.Content.ReadFromJsonAsync<SubmitCommandResponse>(
                 cancellationToken: TestContext.Current.CancellationToken);
             body.ShouldNotBeNull().CorrelationId.ShouldBe(statusId);

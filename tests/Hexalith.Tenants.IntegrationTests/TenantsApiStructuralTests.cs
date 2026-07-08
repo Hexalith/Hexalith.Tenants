@@ -30,6 +30,10 @@ public sealed class TenantsApiStructuralTests
             .Descendants()
             .Where(static element => string.Equals(element.Name.LocalName, "ProjectReference", StringComparison.Ordinal))
             .ToArray();
+        XElement[] packageReferences = project
+            .Descendants()
+            .Where(static element => string.Equals(element.Name.LocalName, "PackageReference", StringComparison.Ordinal))
+            .ToArray();
 
         ProjectReferenceFileNames(projectReferences).ShouldBe(
             [
@@ -46,6 +50,12 @@ public sealed class TenantsApiStructuralTests
                 StringComparison.Ordinal) == true);
         ((string?)generatorReference.Attribute("OutputItemType")).ShouldBe("Analyzer");
         ((string?)generatorReference.Attribute("ReferenceOutputAssembly")).ShouldBe("false");
+        ((string?)generatorReference.Attribute("Condition")).ShouldBe("'$(HexalithEventStoreFromSource)' == 'true'");
+
+        XElement generatorPackage = packageReferences.Single(static reference =>
+            string.Equals((string?)reference.Attribute("Include"), "Hexalith.EventStore.RestApi.Generators", StringComparison.Ordinal));
+        ((string?)generatorPackage.Attribute("PrivateAssets")).ShouldBe("all");
+        ((string?)generatorPackage.Attribute("Condition")).ShouldBe("'$(HexalithEventStoreFromSource)' != 'true'");
 
         string[] forbiddenDependencies = project
             .Descendants()
@@ -136,7 +146,13 @@ public sealed class TenantsApiStructuralTests
         controller.GetCustomAttribute<RouteAttribute>().ShouldNotBeNull().Template.ShouldBe("api/tenants");
 
         ConstructorInfo constructor = controller.GetConstructors().Single();
-        constructor.GetParameters().Single().ParameterType.ShouldBe(typeof(IEventStoreGatewayClient));
+        constructor.GetParameters()
+            .Select(static parameter => parameter.ParameterType)
+            .ShouldBe(
+                [
+                    typeof(IEventStoreGatewayClient),
+                    typeof(ICommandStatusLocationBuilder),
+                ]);
 
         AssertAction(controller, "ListTenantsQueryQueryAsync", typeof(HttpGetAttribute), "");
         AssertAction(controller, "GetTenantQueryQueryAsync", typeof(HttpGetAttribute), "{tenantId}");
