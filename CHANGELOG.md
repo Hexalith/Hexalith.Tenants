@@ -1,3 +1,10 @@
+## [3.2.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.0...v3.2.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **ci:** preflight release publish secrets ([a1e8cc5](https://github.com/Hexalith/Hexalith.Tenants/commit/a1e8cc5e14fb461299eb426d4bcf1a4b0ba2bd95))
+
 # [3.2.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.1.1...v3.2.0) (2026-07-08)
 
 
