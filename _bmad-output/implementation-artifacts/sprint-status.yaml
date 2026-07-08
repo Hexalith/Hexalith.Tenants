@@ -87,7 +87,7 @@ development_status:
   4-4-remove-global-administrator-with-last-admin-hard-stop: done
   epic-4-retrospective: done
 
-  # --- Epic 5: Audit Evidence and Forward Recovery ---
+  # --- Epic 5: Audit Evidence and Forward Recovery 2 ---
   epic-5: done
   5-1-tenant-audit-trail-datagrid: done
   5-2-scoped-audit-evidence-entry-points: done
