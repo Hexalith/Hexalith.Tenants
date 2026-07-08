@@ -1,3 +1,24 @@
+# [3.0.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.4.2...v3.0.0) (2026-07-08)
+
+
+* feat!: release tenants container on zot ([09699ca](https://github.com/Hexalith/Hexalith.Tenants/commit/09699ca352a169318f283b88dc5312860aaeccd4))
+
+
+### Bug Fixes
+
+* **deps:** update Hexalith.Builds and Hexalith.EventStore submodule references ([d054581](https://github.com/Hexalith/Hexalith.Tenants/commit/d0545811d025eb3d81c1a47f479f16b46015db5e))
+* **deps:** update Hexalith.Builds submodule reference ([08659c4](https://github.com/Hexalith/Hexalith.Tenants/commit/08659c426f3a665950a643292751baa7a92ec31c))
+
+
+### Features
+
+* enhance project reference handling and update EventStore version ([7c461c9](https://github.com/Hexalith/Hexalith.Tenants/commit/7c461c9afcbc52194b1580b351ad967480bc3668))
+
+
+### BREAKING CHANGES
+
+* publish the Tenants container image through the semantic-release pipeline.
+
 ## [2.4.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.4.1...v2.4.2) (2026-07-08)
 
 
