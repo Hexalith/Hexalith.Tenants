@@ -280,7 +280,10 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
         workflow.ShouldContain("dapr-version: '1.18.0'");
-        workflow.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
+        workflow.ShouldContain("publish-containers: true");
+        workflow.ShouldContain("container-projects:");
+        workflow.ShouldContain("src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants");
+        workflow.ShouldContain("secrets: inherit");
         workflow.ShouldNotContain("dotnet nuget push **");
         workflow.ShouldNotContain("recursive");
 
@@ -293,6 +296,7 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
         releaseConfig.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
         releaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
+        releaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
         releaseConfig.ShouldContain("--skip-duplicate");
         releaseConfig.ShouldContain("NUGET_API_KEY");
         releaseConfig.ShouldContain("assets: ['nupkgs/*.nupkg']");
@@ -300,6 +304,7 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldNotContain("**/*.nupkg");
         activeReleaseConfig.ShouldContain("@semantic-release/exec");
         activeReleaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
+        activeReleaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
         activeReleaseConfig.ShouldContain("--skip-duplicate");
         activeReleaseConfig.ShouldContain("NUGET_API_KEY");
         activeReleaseConfig.ShouldNotContain("--verbosity");

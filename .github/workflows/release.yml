@@ -15,6 +15,9 @@ jobs:
     with:
       solution: Hexalith.Tenants.slnx
       dapr-version: '1.18.0'
+      publish-containers: true
+      container-projects: |
+        src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
       test-projects: |
         tests/Hexalith.Tenants.Contracts.Tests
         tests/Hexalith.Tenants.Client.Tests
@@ -22,5 +25,4 @@ jobs:
         tests/Hexalith.Tenants.UI.Tests
         samples/Hexalith.Tenants.Sample.Tests
         tests/Hexalith.Tenants.Server.Tests
-    secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    secrets: inherit
