@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.0.0...v3.1.0) (2026-07-08)
+
+
+### Features
+
+* add acceptance auditor, blind hunter, edge case hunter prompts and spec for Dapr init bootstrap fix ([d0cecb2](https://github.com/Hexalith/Hexalith.Tenants/commit/d0cecb24868dfcc9e8582bdac5607c3090826e43))
+
 # [3.0.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v2.4.2...v3.0.0) (2026-07-08)
 
 
