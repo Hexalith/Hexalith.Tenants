@@ -12,7 +12,7 @@
          resource graph). They are added with SuppressBuild via path-only IProjectMetadata; the Debug
          build-forcing references below are what actually compile the launched servers. -->
     <ProjectReference Include="$(HexalithCommonsRoot)\src\libraries\Hexalith.Commons.Aspire\Hexalith.Commons.Aspire.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Aspire\Hexalith.EventStore.Aspire.csproj" IsAspireProjectResource="false" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Aspire\Hexalith.EventStore.Aspire.csproj" AdditionalProperties="Version=$(HexalithEventStoreVersion)" IsAspireProjectResource="false" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Aspire" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
     <ProjectReference Include="..\Hexalith.Tenants.Aspire\Hexalith.Tenants.Aspire.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Aspire\Hexalith.Memories.Aspire.csproj" IsAspireProjectResource="false" Condition="'$(HexalithMemoriesFromSource)' == 'true'" />
@@ -32,12 +32,15 @@
   <ItemGroup Condition="'$(Configuration)' == 'Debug' and '$(UseHexalithProjectReferences)' == 'true'">
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj"
                       Condition="Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore\Hexalith.EventStore.csproj')"
+                      AdditionalProperties="Version=$(HexalithEventStoreVersion)"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Admin.Server.Host\Hexalith.EventStore.Admin.Server.Host.csproj"
                       Condition="Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Admin.Server.Host\Hexalith.EventStore.Admin.Server.Host.csproj')"
+                      AdditionalProperties="Version=$(HexalithEventStoreVersion)"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Admin.UI\Hexalith.EventStore.Admin.UI.csproj"
                       Condition="Exists('$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Admin.UI\Hexalith.EventStore.Admin.UI.csproj')"
+                      AdditionalProperties="Version=$(HexalithEventStoreVersion)"
                       ReferenceOutputAssembly="false" Private="false" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Hexalith.Tenants\Hexalith.Tenants.csproj"
                       Condition="Exists('..\Hexalith.Tenants\Hexalith.Tenants.csproj')"

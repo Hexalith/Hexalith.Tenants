@@ -10,16 +10,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hexalith.Tenants.Contracts\Hexalith.Tenants.Contracts.csproj" />
-    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Client\Hexalith.EventStore.Client.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Client\Hexalith.EventStore.Client.csproj" AdditionalProperties="Version=$(HexalithEventStoreVersion)" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Client" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.RestApi.Generators\Hexalith.EventStore.RestApi.Generators.csproj"
+                      AdditionalProperties="Version=$(HexalithEventStoreVersion)"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       Condition="'$(HexalithEventStoreFromSource)' == 'true' or '$(UseLocalEventStoreRestApiGenerator)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.RestApi.Generators"
                       PrivateAssets="all"
                       Condition="'$(HexalithEventStoreFromSource)' != 'true' and '$(UseLocalEventStoreRestApiGenerator)' != 'true'" />
-    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.ServiceDefaults\Hexalith.EventStore.ServiceDefaults.csproj" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
+    <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.ServiceDefaults\Hexalith.EventStore.ServiceDefaults.csproj" AdditionalProperties="Version=$(HexalithEventStoreVersion)" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.ServiceDefaults" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
   </ItemGroup>
 
