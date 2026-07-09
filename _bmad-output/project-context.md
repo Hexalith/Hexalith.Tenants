@@ -32,7 +32,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **.NET 10 / C#** — SDK pinned to `10.0.301` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
 - **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.19.0`; `Hexalith.Memories` packages pinned to `1.31.1`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
-- **DAPR** — DAPR SDK packages `1.18.4`; CI installs DAPR CLI/runtime `1.17.0`.
+- **DAPR** — DAPR SDK packages `1.18.4`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default).
 - **Aspire** — Aspire packages `13.4.6`; Keycloak/Kubernetes packages use `13.4.6-preview.1.26319.6`; DAPR hosting via `CommunityToolkit.Aspire.Hosting.Dapr` `13.4.0-preview.1.260602-0230`.
 - **Backend stack** — MediatR `14.1.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.19.1`, OpenAPI `10.0.9`, Swagger UI `10.2.3`, OpenTelemetry `1.16.0` with Runtime instrumentation `1.15.1`.
 - **UI stack** — Blazor InteractiveServer, FrontComposer Shell/Contracts source references, Fluent UI Blazor V5 `5.0.0-rc.3-26138.1`, bUnit `2.8.4-preview`.
@@ -142,7 +142,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Use Conventional Commits. `feat` triggers a minor release, `fix` triggers a patch release, and `feat!` or `BREAKING CHANGE:` triggers a major release. Do not use `feat` for refactors or test-only work.
 - Use branch names like `feat/...`, `fix/...`, or `docs/...`; do not commit directly to `main`.
 - CI runs on push/PR to `main`: restore, Release build with warnings as errors, package metadata/consumer validation, Tier 1 tests, DAPR init, Tier 2 tests, and coverage gates.
-- Release runs after merge to `main` through semantic-release: version from commit history, Tier 1+2 tests, pack exactly five NuGet packages, validate packages and package-only consumers, publish to NuGet, create GitHub Release, and update `CHANGELOG.md`.
+- Release is gated on CI: the Release workflow triggers via `workflow_run` only after a successful push-event CI run on `main` (it does not re-run the test tiers), then semantic-release derives the version from commit history, packs exactly five NuGet packages, validates packages and package-only consumers, publishes to NuGet, publishes the tenants container, creates the GitHub Release, and updates `CHANGELOG.md`.
 - Run local tests by project in the same shape as CI. Use `.slnx` for restore/build, then targeted `dotnet test <test-project>`.
 - Initialize only the required root-declared submodules under `references/`; never use recursive submodule initialization.
 - For local distributed runs, use Aspire AppHost. Restart `aspire run` after AppHost, DAPR component, topic, or sidecar changes because the app model is built at startup.

@@ -1,28 +1,39 @@
 name: Release
 
+# Runs after CI succeeds on main (workflow_run) so the release never duplicates
+# the CI gate and can never publish from a commit whose CI failed. The
+# event == 'push' guard keeps nightly scheduled CI runs from starting releases.
+# semantic-release still decides from the commit history whether a release is
+# warranted.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main
     with:
       solution: Hexalith.Tenants.slnx
-      dapr-version: '1.18.0'
       publish-containers: true
       container-projects: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
-      test-projects: |
-        tests/Hexalith.Tenants.Contracts.Tests
-        tests/Hexalith.Tenants.Client.Tests
-        tests/Hexalith.Tenants.Testing.Tests
-        tests/Hexalith.Tenants.UI.Tests
-        samples/Hexalith.Tenants.Sample.Tests
-        tests/Hexalith.Tenants.Server.Tests
-    secrets: inherit
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
+      HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}

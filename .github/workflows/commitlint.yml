@@ -1,6 +1,11 @@
 name: Commitlint
+# Runs on PRs and on direct pushes to main: semantic-release derives versions
+# solely from commit messages, and this repository pushes to main directly, so
+# a PR-only gate can be bypassed.
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 concurrency:
   group: commitlint-${{ github.ref }}

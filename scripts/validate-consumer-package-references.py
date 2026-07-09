@@ -13,6 +13,9 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 
+# Hexalith.Tenants.Aspire is deliberately absent: it is AppHost composition tooling whose
+# consumer shape is an Aspire AppHost project, not a plain library consumer, so it is
+# validated by pack/metadata checks (validate-nuget-packages.py) but not by this harness.
 PACKAGE_IDS = [
     "Hexalith.Tenants.Contracts",
     "Hexalith.Tenants.Client",

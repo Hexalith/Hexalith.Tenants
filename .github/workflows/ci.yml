@@ -20,7 +20,6 @@ jobs:
     uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main
     with:
       solution: Hexalith.Tenants.slnx
-      dapr-version: '1.18.0'
       run-consumer-validation: true
       run-coverage-gate: true
       unit-test-projects: |
@@ -34,6 +33,11 @@ jobs:
       aspire-test-project: tests/Hexalith.Tenants.IntegrationTests
       coverage-minimum-line: 80
       coverage-required-branch: 100
+      coverage-line-scope: |
+        src/Hexalith.Tenants.Contracts/
+        src/Hexalith.Tenants.Client/
+        src/Hexalith.Tenants.Server/
+        src/Hexalith.Tenants.Testing/
       coverage-isolation-targets: |
         src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs
         src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs

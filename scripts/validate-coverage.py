@@ -10,8 +10,9 @@ lanes. This script therefore *merges by union* and *scopes* the gates to Hexalit
 production code so the thresholds reflect reality:
 
   * Overall line coverage gate: union of covered lines across all reports, scoped to the
-    five publishable package projects under ``src/`` (the platform deliverables). Must be
-    strictly greater than ``--minimum-line-coverage``.
+    ``--line-scope`` path prefixes (by default the four publishable package projects under
+    ``src/`` — the platform deliverables). Must be strictly greater than
+    ``--minimum-line-coverage``.
   * Isolation/auth branch gate: union (best-per-line) of covered branch conditions for the
     named tenant isolation/authorization production files. Must be at least
     ``--required-branch-coverage`` (100%).
@@ -37,6 +38,10 @@ from xml.etree import ElementTree
 # application/composition infrastructure, not the library surface the >80% line gate is meant to
 # protect. The per-domain Aspire/AppHost/ServiceDefaults projects were removed (domain-centric
 # refactor); orchestration is provided by the EventStore platform.
+#
+# CI passes the scope explicitly via repeatable --line-scope arguments (the domain-ci
+# `coverage-line-scope` input is the source of truth there); this constant is the fallback for
+# local runs invoked without arguments.
 PACKAGE_LINE_SCOPE = [
     "src/Hexalith.Tenants.Contracts/",
     "src/Hexalith.Tenants.Client/",
@@ -70,6 +75,13 @@ def main() -> int:
         default=[],
         help="Named production file included in the isolation/auth branch coverage gate.",
     )
+    parser.add_argument(
+        "--line-scope",
+        action="append",
+        dest="line_scope",
+        default=[],
+        help="Source path prefix included in the line coverage gate (repeatable).",
+    )
     parser.add_argument("--summary-file", type=Path)
     args = parser.parse_args()
 
@@ -77,16 +89,17 @@ def main() -> int:
     if not coverage_files:
         raise CoverageGateError(f"No coverage.cobertura.xml files found under {args.coverage_root}.")
 
-    classes = list(iter_classes(coverage_files))
+    line_scope = args.line_scope or PACKAGE_LINE_SCOPE
+    classes = list(iter_classes(coverage_files, line_scope))
     targets = args.isolation_auth_targets or DEFAULT_ISOLATION_AUTH_TARGETS
 
-    line = measure_line_coverage(classes, PACKAGE_LINE_SCOPE)
+    line = measure_line_coverage(classes, line_scope)
     branch = measure_named_branch_coverage(classes, targets)
 
     if line.valid == 0:
         raise CoverageGateError(
             "No publishable-package line coverage data found. Check that coverage filenames are "
-            f"under one of: {', '.join(PACKAGE_LINE_SCOPE)}."
+            f"under one of: {', '.join(line_scope)}."
         )
 
     if branch.valid == 0:
@@ -135,12 +148,12 @@ class BranchCoverage:
         return percentage(self.covered, self.valid)
 
 
-def iter_classes(coverage_files: list[Path]):
+def iter_classes(coverage_files: list[Path], line_scope: list[str] | None = None):
     """Yield (filename, class_element) pairs from every report, filenames normalized."""
     for coverage_file in coverage_files:
         root = ElementTree.parse(coverage_file).getroot()
         for class_element in root.findall(".//class"):
-            yield normalize_path(class_element.attrib.get("filename", "")), class_element
+            yield normalize_path(class_element.attrib.get("filename", ""), line_scope), class_element
 
 
 def measure_line_coverage(classes, scope_prefixes: list[str]) -> LineCoverage:
@@ -250,16 +263,16 @@ def write_summary(summary_file: Path | None, summary: str) -> None:
         handle.write("\n")
 
 
-def normalize_path(path: str) -> str:
+def normalize_path(path: str, line_scope: list[str] | None = None) -> str:
     normalized = path.replace("\\", "/").lstrip("./")
     if normalized.startswith("src/"):
         return normalized
 
     # Coverlet emits filenames with and without the repository "src/" prefix depending on
-    # which test lane loaded the assembly. Canonicalize Tenants package paths before unioning
+    # which test lane loaded the assembly. Canonicalize package paths before unioning
     # coverage so a covered project report is not treated as a different file than an
     # uncovered dependency-closure report.
-    for prefix in PACKAGE_LINE_SCOPE:
+    for prefix in line_scope or PACKAGE_LINE_SCOPE:
         package_prefix = prefix.removeprefix("src/")
         if normalized.startswith(package_prefix):
             return f"src/{normalized}"
