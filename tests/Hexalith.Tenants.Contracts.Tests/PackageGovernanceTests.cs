@@ -153,9 +153,8 @@ public class PackageGovernanceTests {
         buildProps.Descendants("HexalithEventStoreRoot").Count().ShouldBe(6);
         buildPropsText.ShouldContain("references\\Hexalith.EventStore\\src\\Hexalith.EventStore.Contracts");
         buildPropsText.ShouldNotContain("GenerateDocumentationFile");
-        buildPropsText.ShouldNotContain("StyleCop");
-        buildPropsText.ShouldNotContain("SonarAnalyzer");
-        buildPropsText.ShouldNotContain("Roslynator");
+        GetForbiddenPackageReferenceViolations(repoRoot, ["StyleCop", "SonarAnalyzer", "Roslynator"])
+            .ShouldBeEmpty("Analyzer names may appear in explanatory comments, but Tenants-owned PackageReference nodes must not import analyzer packages.");
         buildOverrideViolations.ShouldBeEmpty("Per-project build property overrides must not duplicate or weaken shared build defaults.");
     }
 
@@ -245,7 +244,7 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("permissions:\n  contents: read");
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
-        workflow.ShouldContain("dapr-version: '1.18.0'");
+        workflow.ShouldNotContain("dapr-version:");
         workflow.ShouldContain("run-consumer-validation: true");
         workflow.ShouldContain("run-coverage-gate: true");
         workflow.ShouldNotContain("recursive");
@@ -256,6 +255,11 @@ public class PackageGovernanceTests {
 
         workflow.ShouldContain("coverage-minimum-line: 80");
         workflow.ShouldContain("coverage-required-branch: 100");
+        workflow.ShouldContain("coverage-line-scope:");
+        workflow.ShouldContain("src/Hexalith.Tenants.Contracts/");
+        workflow.ShouldContain("src/Hexalith.Tenants.Client/");
+        workflow.ShouldContain("src/Hexalith.Tenants.Server/");
+        workflow.ShouldContain("src/Hexalith.Tenants.Testing/");
         workflow.ShouldContain("coverage-isolation-targets:");
         workflow.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
         workflow.ShouldContain("aspire-test-project: tests/Hexalith.Tenants.IntegrationTests");
@@ -273,26 +277,37 @@ public class PackageGovernanceTests {
     public void Release_workflow_packs_validates_and_publishes_only_expected_packages() {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
-        string releaseConfig = File.ReadAllText(Path.Combine(repoRoot, "release.config.cjs"));
-        string activeReleaseConfig = File.ReadAllText(Path.Combine(repoRoot, ".releaserc.json"));
+        string releaseConfig = File.ReadAllText(Path.Combine(repoRoot, ".releaserc.json"));
         string releaseSecretsValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-release-secrets.sh"));
         string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
+        File.Exists(Path.Combine(repoRoot, "release.config.cjs")).ShouldBeFalse(".releaserc.json is the only live semantic-release config.");
+        workflow.ShouldContain("on:\n  workflow_run:");
+        workflow.ShouldContain("workflows: [CI]");
+        workflow.ShouldContain("types: [completed]");
+        workflow.ShouldContain("branches: [main]");
+        workflow.ShouldContain("github.event.workflow_run.conclusion == 'success'");
+        workflow.ShouldContain("github.event.workflow_run.event == 'push'");
+        workflow.ShouldContain("cancel-in-progress: false");
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
-        workflow.ShouldContain("dapr-version: '1.18.0'");
+        workflow.ShouldNotContain("dapr-version:");
         workflow.ShouldContain("publish-containers: true");
         workflow.ShouldContain("container-projects:");
         workflow.ShouldContain("src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants");
-        workflow.ShouldContain("secrets: inherit");
+        workflow.ShouldContain("secrets:");
+        workflow.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
+        workflow.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");
+        workflow.ShouldContain("HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}");
+        workflow.ShouldNotContain("secrets: inherit");
+        workflow.ShouldNotContain("test-projects:");
+        workflow.ShouldNotContain("unit-test-projects:");
+        workflow.ShouldNotContain("integration-test-projects:");
         workflow.ShouldNotContain("dotnet nuget push **");
         workflow.ShouldNotContain("recursive");
 
-        foreach (string testProject in BlockingTestProjects) {
-            workflow.ShouldContain(testProject);
-        }
-
         releaseConfig.ShouldContain("@semantic-release/exec");
+        releaseConfig.ShouldContain("dotnet build Hexalith.Tenants.slnx --configuration Release");
         releaseConfig.ShouldContain("HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true");
         releaseConfig.ShouldContain("bash scripts/validate-release-secrets.sh");
         releaseConfig.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version}");
@@ -302,22 +317,19 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
         releaseConfig.ShouldContain("--skip-duplicate");
         releaseConfig.ShouldContain("NUGET_API_KEY");
-        releaseConfig.ShouldContain("assets: ['nupkgs/*.nupkg']");
+        releaseConfig.ShouldContain("--api-key \\\"$NUGET_API_KEY\\\"");
+        releaseConfig.ShouldContain("\"assets\": [\"nupkgs/*.nupkg\"]");
         releaseConfig.ShouldNotContain(".snupkg");
         releaseConfig.ShouldNotContain("**/*.nupkg");
+        releaseConfig.ShouldNotContain("--verbosity");
+        releaseConfig.IndexOf("dotnet build Hexalith.Tenants.slnx", StringComparison.Ordinal)
+            .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/pack-release-packages.py", StringComparison.Ordinal));
+        releaseConfig.IndexOf("python3 scripts/pack-release-packages.py", StringComparison.Ordinal)
+            .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/validate-nuget-packages.py", StringComparison.Ordinal));
+        releaseConfig.IndexOf("python3 scripts/validate-nuget-packages.py", StringComparison.Ordinal)
+            .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/validate-consumer-package-references.py", StringComparison.Ordinal));
         releaseConfig.IndexOf("bash scripts/validate-release-secrets.sh", StringComparison.Ordinal)
             .ShouldBeLessThan(releaseConfig.IndexOf("dotnet nuget push ./nupkgs/*.nupkg", StringComparison.Ordinal));
-        activeReleaseConfig.ShouldContain("@semantic-release/exec");
-        activeReleaseConfig.ShouldContain("HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true");
-        activeReleaseConfig.ShouldContain("bash scripts/validate-release-secrets.sh");
-        activeReleaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
-        activeReleaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
-        activeReleaseConfig.ShouldContain("--skip-duplicate");
-        activeReleaseConfig.ShouldContain("NUGET_API_KEY");
-        activeReleaseConfig.ShouldContain("--api-key \\\"$NUGET_API_KEY\\\"");
-        activeReleaseConfig.IndexOf("bash scripts/validate-release-secrets.sh", StringComparison.Ordinal)
-            .ShouldBeLessThan(activeReleaseConfig.IndexOf("dotnet nuget push ./nupkgs/*.nupkg", StringComparison.Ordinal));
-        activeReleaseConfig.ShouldNotContain("--verbosity");
         releaseSecretsValidator.ShouldContain("NUGET_API_KEY");
         releaseSecretsValidator.ShouldContain("HEXALITH_REQUIRE_CONTAINER_PUBLISHER");
         releaseSecretsValidator.ShouldContain("HEXALITH_CONTAINER_PROJECTS");
@@ -336,7 +348,7 @@ public class PackageGovernanceTests {
         packageValidator.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
 
         foreach (string packageId in ExpectedPackageIds) {
-            releaseConfig.ShouldContain(packageId);
+            packageValidator.ShouldContain(packageId);
         }
 
         foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
@@ -367,10 +379,13 @@ public class PackageGovernanceTests {
         script.ShouldContain("Hexalith.Tenants.Contracts");
         script.ShouldContain("Hexalith.Tenants.Client");
         script.ShouldContain("Hexalith.Tenants.Testing");
-        // Hexalith.Tenants.Aspire is a published AppHost-orchestration helper (AddHexalithTenantsServer), not a
-        // domain consumer surface, so it is intentionally NOT exercised by the package-only consumer build that
-        // validates domain consumption of Contracts/Client/Testing.
-        script.ShouldNotContain("Hexalith.Tenants.Aspire");
+        GetPythonStringListEntries(script, "PACKAGE_IDS").ShouldBe([
+            "Hexalith.Tenants.Contracts",
+            "Hexalith.Tenants.Client",
+            "Hexalith.Tenants.Server",
+            "Hexalith.Tenants.Testing",
+        ]);
+        GetPythonStringListEntries(script, "PACKAGE_IDS").ShouldNotContain("Hexalith.Tenants.Aspire");
         script.ShouldContain("CreateTenant");
         script.ShouldContain("TenantCreated");
         script.ShouldContain("ListTenantsQuery");
@@ -488,6 +503,25 @@ public class PackageGovernanceTests {
         return [.. ownedProjectFiles.Concat(sharedBuildFiles).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
     }
 
+    private static string[] GetForbiddenPackageReferenceViolations(string repoRoot, string[] forbiddenPackageNameFragments) {
+        List<string> violations = [];
+        foreach (string projectPath in GetPackageReferenceGovernanceFiles(repoRoot)) {
+            XDocument project = XDocument.Load(Path.Combine(repoRoot, projectPath));
+            foreach (XElement packageReference in project.Descendants("PackageReference")) {
+                string? packageId = packageReference.Attribute("Include")?.Value ?? packageReference.Attribute("Update")?.Value;
+                if (packageId is null) {
+                    continue;
+                }
+
+                if (forbiddenPackageNameFragments.Any(fragment => packageId.Contains(fragment, StringComparison.Ordinal))) {
+                    violations.Add($"{projectPath}: analyzer package imports are not allowed: {FormatNode(packageReference)}");
+                }
+            }
+        }
+
+        return [.. violations];
+    }
+
     private static HashSet<string> GetCentralPackageIds(string repoRoot) {
         string[] packagePropsFiles =
         [
@@ -505,6 +539,27 @@ public class PackageGovernanceTests {
             .Where(packageId => !string.IsNullOrWhiteSpace(packageId))
             .Select(packageId => packageId!)
             .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static string[] GetPythonStringListEntries(string script, string variableName) {
+        string marker = $"{variableName} = [";
+        int start = script.IndexOf(marker, StringComparison.Ordinal);
+        if (start < 0) {
+            throw new InvalidOperationException($"Could not find Python list {variableName}.");
+        }
+
+        start += marker.Length;
+        int end = script.IndexOf(']', start);
+        if (end < 0) {
+            throw new InvalidOperationException($"Could not find end of Python list {variableName}.");
+        }
+
+        return [.. script[start..end]
+            .Split('\n')
+            .Select(line => line.Trim().TrimEnd(',').Trim())
+            .Where(line => line.Length > 1 && (line[0] == '"' || line[0] == '\''))
+            .Select(line => line.Trim('"', '\''))
+            .Where(value => !string.IsNullOrWhiteSpace(value))];
     }
 
     private static bool IsAdHocContainerFile(string path) {
