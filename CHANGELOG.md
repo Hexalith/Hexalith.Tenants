@@ -1,3 +1,10 @@
+## [3.2.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.1...v3.2.2) (2026-07-09)
+
+
+### Bug Fixes
+
+* update subproject reference for Hexalith.FrontComposer ([c506c97](https://github.com/Hexalith/Hexalith.Tenants/commit/c506c97cfba7cb28c9f5a5b700abc4a3b9cb21db))
+
 ## [3.2.1](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.0...v3.2.1) (2026-07-08)
 
 
