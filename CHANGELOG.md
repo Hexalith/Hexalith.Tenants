@@ -1,3 +1,14 @@
+## [3.2.3](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.2...v3.2.3) (2026-07-09)
+
+
+### Bug Fixes
+
+* align CI/CD workflows with standards, enhance release gating, and improve validation scripts ([5738721](https://github.com/Hexalith/Hexalith.Tenants/commit/57387211738a85d8cd542de2332647c7cc70b182))
+* remove obsolete release configuration and status files ([05d29f1](https://github.com/Hexalith/Hexalith.Tenants/commit/05d29f16c73464303eb601344621f211e9efbbbd))
+* **tests:** harden package governance assertions ([69708aa](https://github.com/Hexalith/Hexalith.Tenants/commit/69708aaabb196f0875a741296a62c479aca58fd2))
+* update PackageGovernanceTests to align with current CI/CD standards and remove obsolete configurations ([b2f190a](https://github.com/Hexalith/Hexalith.Tenants/commit/b2f190ac74239312437064960e6bb2b2a4180d01))
+* update subproject reference for Hexalith.Builds ([d7e8cfe](https://github.com/Hexalith/Hexalith.Tenants/commit/d7e8cfef5fb650f632ff2055dae7a25acc41e993))
+
 ## [3.2.2](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.1...v3.2.2) (2026-07-09)
 
 
