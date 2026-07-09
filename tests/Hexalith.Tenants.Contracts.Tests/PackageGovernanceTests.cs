@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 using Shouldly;
@@ -244,7 +245,8 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("permissions:\n  contents: read");
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
-        workflow.ShouldNotContain("dapr-version:");
+        string ciJob = GetYamlJobBlock(workflow, "ci");
+        YamlBlockContainsKey(ciJob, "dapr-version").ShouldBeFalse("CI uses the shared domain-ci Dapr default instead of overriding it locally.");
         workflow.ShouldContain("run-consumer-validation: true");
         workflow.ShouldContain("run-coverage-gate: true");
         workflow.ShouldNotContain("recursive");
@@ -256,10 +258,17 @@ public class PackageGovernanceTests {
         workflow.ShouldContain("coverage-minimum-line: 80");
         workflow.ShouldContain("coverage-required-branch: 100");
         workflow.ShouldContain("coverage-line-scope:");
-        workflow.ShouldContain("src/Hexalith.Tenants.Contracts/");
-        workflow.ShouldContain("src/Hexalith.Tenants.Client/");
-        workflow.ShouldContain("src/Hexalith.Tenants.Server/");
-        workflow.ShouldContain("src/Hexalith.Tenants.Testing/");
+        string[] coverageLineScope = GetYamlLiteralBlockLines(ciJob, "coverage-line-scope");
+        foreach (string coverageScope in new string[]
+        {
+            "src/Hexalith.Tenants.Contracts/",
+            "src/Hexalith.Tenants.Client/",
+            "src/Hexalith.Tenants.Server/",
+            "src/Hexalith.Tenants.Testing/",
+        }) {
+            coverageLineScope.ShouldContain(coverageScope);
+        }
+
         workflow.ShouldContain("coverage-isolation-targets:");
         workflow.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
         workflow.ShouldContain("aspire-test-project: tests/Hexalith.Tenants.IntegrationTests");
@@ -281,28 +290,30 @@ public class PackageGovernanceTests {
         string releaseSecretsValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-release-secrets.sh"));
         string packageValidator = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-nuget-packages.py"));
 
-        File.Exists(Path.Combine(repoRoot, "release.config.cjs")).ShouldBeFalse(".releaserc.json is the only live semantic-release config.");
+        GetRootSemanticReleaseConfigFiles(repoRoot).ShouldBe([".releaserc.json"], ".releaserc.json is the only live semantic-release config.");
         workflow.ShouldContain("on:\n  workflow_run:");
         workflow.ShouldContain("workflows: [CI]");
         workflow.ShouldContain("types: [completed]");
         workflow.ShouldContain("branches: [main]");
-        workflow.ShouldContain("github.event.workflow_run.conclusion == 'success'");
-        workflow.ShouldContain("github.event.workflow_run.event == 'push'");
+        string releaseJob = GetYamlJobBlock(workflow, "release");
+        releaseJob.ShouldContain("github.event.workflow_run.conclusion == 'success'");
+        releaseJob.ShouldContain("github.event.workflow_run.event == 'push'");
         workflow.ShouldContain("cancel-in-progress: false");
         workflow.ShouldContain("uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@main");
         workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
-        workflow.ShouldNotContain("dapr-version:");
+        YamlBlockContainsKey(releaseJob, "dapr-version").ShouldBeFalse("Release uses the shared domain-release Dapr default instead of overriding it locally.");
         workflow.ShouldContain("publish-containers: true");
         workflow.ShouldContain("container-projects:");
         workflow.ShouldContain("src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants");
-        workflow.ShouldContain("secrets:");
-        workflow.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
-        workflow.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");
-        workflow.ShouldContain("HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}");
+        releaseJob.ShouldContain("secrets:");
+        releaseJob.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
+        releaseJob.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");
+        releaseJob.ShouldContain("HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}");
         workflow.ShouldNotContain("secrets: inherit");
-        workflow.ShouldNotContain("test-projects:");
-        workflow.ShouldNotContain("unit-test-projects:");
-        workflow.ShouldNotContain("integration-test-projects:");
+        foreach (string forbiddenReleaseInput in new string[] { "test-projects", "unit-test-projects", "integration-test-projects" }) {
+            YamlBlockContainsKey(releaseJob, forbiddenReleaseInput).ShouldBeFalse("Release is gated by CI and must not rerun test tiers.");
+        }
+
         workflow.ShouldNotContain("dotnet nuget push **");
         workflow.ShouldNotContain("recursive");
 
@@ -330,6 +341,8 @@ public class PackageGovernanceTests {
             .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/validate-consumer-package-references.py", StringComparison.Ordinal));
         releaseConfig.IndexOf("bash scripts/validate-release-secrets.sh", StringComparison.Ordinal)
             .ShouldBeLessThan(releaseConfig.IndexOf("dotnet nuget push ./nupkgs/*.nupkg", StringComparison.Ordinal));
+        releaseConfig.IndexOf("bash scripts/validate-release-secrets.sh", StringComparison.Ordinal)
+            .ShouldBeLessThan(releaseConfig.IndexOf("./.hexalith/release/publish-containers.sh", StringComparison.Ordinal));
         releaseSecretsValidator.ShouldContain("NUGET_API_KEY");
         releaseSecretsValidator.ShouldContain("HEXALITH_REQUIRE_CONTAINER_PUBLISHER");
         releaseSecretsValidator.ShouldContain("HEXALITH_CONTAINER_PROJECTS");
@@ -347,9 +360,10 @@ public class PackageGovernanceTests {
         packageValidator.ShouldContain("EXPECTED_DEPENDENCIES");
         packageValidator.ShouldContain("FORBIDDEN_DEPENDENCY_IDS");
 
-        foreach (string packageId in ExpectedPackageIds) {
-            packageValidator.ShouldContain(packageId);
-        }
+        GetPythonStringCollectionEntries(packageValidator, "EXPECTED_PACKAGE_IDS")
+            .ToHashSet(StringComparer.Ordinal)
+            .SetEquals(ExpectedPackageIds)
+            .ShouldBeTrue("The release validator must enumerate exactly the expected package ids.");
 
         foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
             workflow.ShouldNotContain(forbiddenFragment);
@@ -379,13 +393,16 @@ public class PackageGovernanceTests {
         script.ShouldContain("Hexalith.Tenants.Contracts");
         script.ShouldContain("Hexalith.Tenants.Client");
         script.ShouldContain("Hexalith.Tenants.Testing");
-        GetPythonStringListEntries(script, "PACKAGE_IDS").ShouldBe([
+        GetPythonStringCollectionEntries(script, "PACKAGE_IDS")
+            .ToHashSet(StringComparer.Ordinal)
+            .SetEquals([
             "Hexalith.Tenants.Contracts",
             "Hexalith.Tenants.Client",
             "Hexalith.Tenants.Server",
             "Hexalith.Tenants.Testing",
-        ]);
-        GetPythonStringListEntries(script, "PACKAGE_IDS").ShouldNotContain("Hexalith.Tenants.Aspire");
+        ])
+            .ShouldBeTrue("The package-only consumer harness must enumerate exactly the domain consumer package ids.");
+        GetPythonStringCollectionEntries(script, "PACKAGE_IDS").ShouldNotContain("Hexalith.Tenants.Aspire");
         script.ShouldContain("CreateTenant");
         script.ShouldContain("TenantCreated");
         script.ShouldContain("ListTenantsQuery");
@@ -507,13 +524,13 @@ public class PackageGovernanceTests {
         List<string> violations = [];
         foreach (string projectPath in GetPackageReferenceGovernanceFiles(repoRoot)) {
             XDocument project = XDocument.Load(Path.Combine(repoRoot, projectPath));
-            foreach (XElement packageReference in project.Descendants("PackageReference")) {
+            foreach (XElement packageReference in project.Descendants().Where(element => element.Name.LocalName is "PackageReference" or "GlobalPackageReference")) {
                 string? packageId = packageReference.Attribute("Include")?.Value ?? packageReference.Attribute("Update")?.Value;
                 if (packageId is null) {
                     continue;
                 }
 
-                if (forbiddenPackageNameFragments.Any(fragment => packageId.Contains(fragment, StringComparison.Ordinal))) {
+                if (forbiddenPackageNameFragments.Any(fragment => packageId.Contains(fragment, StringComparison.OrdinalIgnoreCase))) {
                     violations.Add($"{projectPath}: analyzer package imports are not allowed: {FormatNode(packageReference)}");
                 }
             }
@@ -541,26 +558,135 @@ public class PackageGovernanceTests {
             .ToHashSet(StringComparer.Ordinal);
     }
 
-    private static string[] GetPythonStringListEntries(string script, string variableName) {
-        string marker = $"{variableName} = [";
-        int start = script.IndexOf(marker, StringComparison.Ordinal);
+    private static string[] GetPythonStringCollectionEntries(string script, string variableName) {
+        Match assignment = Regex.Match(script, $@"(?m)^\s*{Regex.Escape(variableName)}\s*=");
+        if (!assignment.Success) {
+            throw new InvalidOperationException($"Could not find Python assignment {variableName}.");
+        }
+
+        int start = IndexOfFirstCollectionOpening(script, assignment.Index + assignment.Length);
         if (start < 0) {
-            throw new InvalidOperationException($"Could not find Python list {variableName}.");
+            throw new InvalidOperationException($"Could not find Python collection {variableName}.");
         }
 
-        start += marker.Length;
-        int end = script.IndexOf(']', start);
-        if (end < 0) {
-            throw new InvalidOperationException($"Could not find end of Python list {variableName}.");
-        }
-
-        return [.. script[start..end]
-            .Split('\n')
-            .Select(line => line.Trim().TrimEnd(',').Trim())
-            .Where(line => line.Length > 1 && (line[0] == '"' || line[0] == '\''))
-            .Select(line => line.Trim('"', '\''))
+        int end = FindMatchingCollectionEnd(script, start);
+        string collectionBody = script[start..(end + 1)];
+        return [.. Regex.Matches(collectionBody, "['\"](?<value>(?:\\\\.|[^'\"\\\\])*)['\"]")
+            .Select(match => match.Groups["value"].Value)
             .Where(value => !string.IsNullOrWhiteSpace(value))];
     }
+
+    private static string[] GetRootSemanticReleaseConfigFiles(string repoRoot) {
+        string[] configFileNames =
+        [
+            ".releaserc",
+            ".releaserc.json",
+            ".releaserc.yaml",
+            ".releaserc.yml",
+            ".releaserc.js",
+            ".releaserc.cjs",
+            "release.config.js",
+            "release.config.cjs",
+        ];
+
+        return [.. configFileNames.Where(fileName => File.Exists(Path.Combine(repoRoot, fileName)))];
+    }
+
+    private static string GetYamlJobBlock(string workflow, string jobName) {
+        string[] lines = workflow.Replace("\r\n", "\n").Split('\n');
+        int start = Array.FindIndex(lines, line => Regex.IsMatch(line, $@"^  ['""]?{Regex.Escape(jobName)}['""]?\s*:\s*$"));
+        if (start < 0) {
+            throw new InvalidOperationException($"Could not find workflow job {jobName}.");
+        }
+
+        int end = lines.Length;
+        for (int index = start + 1; index < lines.Length; index++) {
+            if (Regex.IsMatch(lines[index], @"^  ['""]?[A-Za-z0-9_-]+['""]?\s*:\s*$")) {
+                end = index;
+                break;
+            }
+        }
+
+        return string.Join('\n', lines[start..end]);
+    }
+
+    private static bool YamlBlockContainsKey(string yamlBlock, string key)
+        => Regex.IsMatch(yamlBlock, $@"(?m)^\s*['""]?{Regex.Escape(key)}['""]?\s*:");
+
+    private static string[] GetYamlLiteralBlockLines(string yamlBlock, string key) {
+        string[] lines = yamlBlock.Replace("\r\n", "\n").Split('\n');
+        int start = Array.FindIndex(lines, line => Regex.IsMatch(line, $@"^\s*['""]?{Regex.Escape(key)}['""]?\s*:\s*\|\s*$"));
+        if (start < 0) {
+            throw new InvalidOperationException($"Could not find literal YAML block {key}.");
+        }
+
+        int baseIndent = CountLeadingSpaces(lines[start]);
+        List<string> values = [];
+        for (int index = start + 1; index < lines.Length; index++) {
+            string line = lines[index];
+            if (!string.IsNullOrWhiteSpace(line) && CountLeadingSpaces(line) <= baseIndent) {
+                break;
+            }
+
+            string value = line.Trim();
+            if (!string.IsNullOrWhiteSpace(value)) {
+                values.Add(value);
+            }
+        }
+
+        return [.. values];
+    }
+
+    private static int IndexOfFirstCollectionOpening(string text, int startIndex) {
+        for (int index = startIndex; index < text.Length; index++) {
+            if (text[index] is '[' or '{') {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindMatchingCollectionEnd(string text, int openingIndex) {
+        char opening = text[openingIndex];
+        char closing = opening == '[' ? ']' : '}';
+        int depth = 0;
+        char? quotedBy = null;
+        bool escaped = false;
+        for (int index = openingIndex; index < text.Length; index++) {
+            char current = text[index];
+            if (quotedBy is not null) {
+                if (escaped) {
+                    escaped = false;
+                }
+                else if (current == '\\') {
+                    escaped = true;
+                }
+                else if (current == quotedBy) {
+                    quotedBy = null;
+                }
+
+                continue;
+            }
+
+            if (current is '\'' or '"') {
+                quotedBy = current;
+                continue;
+            }
+
+            if (current == opening) {
+                depth++;
+            }
+            else if (current == closing && --depth == 0) {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find matching Python collection delimiter.");
+    }
+
+    private static int CountLeadingSpaces(string line)
+        => line.TakeWhile(character => character == ' ').Count();
 
     private static bool IsAdHocContainerFile(string path) {
         string fileName = Path.GetFileName(path);
