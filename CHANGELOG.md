@@ -1,3 +1,11 @@
+## [3.2.4](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.3...v3.2.4) (2026-07-12)
+
+
+### Bug Fixes
+
+* resolve CI restore submodule version drift ([#26](https://github.com/Hexalith/Hexalith.Tenants/issues/26)) ([0415f1d](https://github.com/Hexalith/Hexalith.Tenants/commit/0415f1d97f61d49098c5fe05d70c6343a7cf5abc))
+* update subproject references for Hexalith components ([1c72beb](https://github.com/Hexalith/Hexalith.Tenants/commit/1c72beb39b51c1cecc96f5f93829bdf7d38435ad))
+
 ## [3.2.3](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.2...v3.2.3) (2026-07-09)
 
 
