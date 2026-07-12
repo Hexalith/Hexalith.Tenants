@@ -165,6 +165,8 @@ internal sealed class ScriptedTenantProjectionStateStore : IReadModelStore
 
     public List<SaveAttempt> PlainSaveAttempts { get; } = [];
 
+    public List<EraseAttempt> TryEraseAttempts { get; } = [];
+
     public void EnqueueRead<TValue>(string key, TValue? value, string? etag)
         where TValue : class
     {
@@ -261,6 +263,23 @@ internal sealed class ScriptedTenantProjectionStateStore : IReadModelStore
 
         return Task.FromResult(queue.Dequeue());
     }
+
+    public Task<bool> TryEraseAsync(
+        string storeName,
+        string key,
+        string etag,
+        System.Threading.CancellationToken cancellationToken = default)
+    {
+        if (_terminalFailureKeys.Contains(key))
+        {
+            throw new InvalidOperationException(
+                $"AC10 violation: production code attempted to erase key '{key}' after the retry budget was exhausted. " +
+                "ReadModelWritePolicy must throw without further state-store traffic on retry exhaustion.");
+        }
+
+        TryEraseAttempts.Add(new EraseAttempt(storeName, key, etag));
+        return Task.FromResult(true);
+    }
 }
 
 internal sealed record ReadCall(string StoreName, string Key, System.Type ValueType);
@@ -271,6 +290,8 @@ internal sealed record SaveAttempt(
     object Value,
     string ETag,
     System.Type ValueType);
+
+internal sealed record EraseAttempt(string StoreName, string Key, string ETag);
 
 /// <summary>
 /// Capturing <see cref="ILogger{TCategoryName}"/> that records the full structured-state

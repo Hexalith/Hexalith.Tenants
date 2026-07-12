@@ -709,6 +709,8 @@ public class TenantProjectionHandlerTests {
 
         public List<SaveAttempt> TrySaveAttempts { get; } = [];
 
+        public List<EraseAttempt> TryEraseAttempts { get; } = [];
+
         public void EnqueueRead<TValue>(string key, TValue? value, string? etag)
             where TValue : class {
             if (!_reads.TryGetValue(key, out Queue<object>? queue)) {
@@ -772,6 +774,15 @@ public class TenantProjectionHandlerTests {
 
             return Task.FromResult(result);
         }
+
+        public Task<bool> TryEraseAsync(
+            string storeName,
+            string key,
+            string etag,
+            CancellationToken cancellationToken = default) {
+            TryEraseAttempts.Add(new EraseAttempt(storeName, key, etag, cancellationToken));
+            return Task.FromResult(true);
+        }
     }
 
     private sealed record ReadCall(string StoreName, string Key, Type ValueType, CancellationToken CancellationToken);
@@ -782,6 +793,12 @@ public class TenantProjectionHandlerTests {
         object Value,
         string ETag,
         Type ValueType,
+        CancellationToken CancellationToken);
+
+    private sealed record EraseAttempt(
+        string StoreName,
+        string Key,
+        string ETag,
         CancellationToken CancellationToken);
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider {
