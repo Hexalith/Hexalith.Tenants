@@ -1,3 +1,10 @@
+## [3.2.5](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.4...v3.2.5) (2026-07-12)
+
+
+### Bug Fixes
+
+* update Hexalith.Memories subproject reference ([49f23a3](https://github.com/Hexalith/Hexalith.Tenants/commit/49f23a30809de9085c8263edaa1cd56d69b7ba81))
+
 ## [3.2.4](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.3...v3.2.4) (2026-07-12)
 
 
