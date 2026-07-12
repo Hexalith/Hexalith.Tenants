@@ -1,6 +1,7 @@
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.FrontComposer.Contracts;
 using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.Options;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
