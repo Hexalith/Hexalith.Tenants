@@ -1,3 +1,10 @@
+## [3.2.8](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.7...v3.2.8) (2026-07-14)
+
+
+### Bug Fixes
+
+* **ui:** fail closed before anonymous tenant queries ([3657203](https://github.com/Hexalith/Hexalith.Tenants/commit/36572031f640ce0a33f0ceeaf7e1148518a14951))
+
 ## [3.2.7](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.6...v3.2.7) (2026-07-14)
 
 
