@@ -22,6 +22,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
 
 using CommandApiResponse = Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse;
@@ -2408,7 +2409,8 @@ public class CommandApiRuntimeIntegrationTests {
 
             if (statusStore is not null) {
                 _ = services.RemoveAll<ICommandStatusStore>();
-                _ = services.AddSingleton(statusStore);
+                _ = services.AddSingleton<ICommandStatusStore>(
+                    new MessageIdentifyingCommandStatusStore(statusStore));
             }
 
             if (archiveStore is not null) {

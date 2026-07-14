@@ -738,12 +738,6 @@ public class EventPublicationConfigurationTests {
             where TValue : class
             => Task.FromResult(true);
 
-        public Task<bool> TryEraseAsync(
-            string storeName,
-            string key,
-            string etag,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(true);
     }
 
     private sealed class EmptyQueryCursorCodec : IQueryCursorCodec {

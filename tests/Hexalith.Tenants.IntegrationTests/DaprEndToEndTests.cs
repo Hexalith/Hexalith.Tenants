@@ -698,7 +698,7 @@ public class DaprEndToEndTests : IDisposable {
 
             IReadOnlyList<CommandStatusRecord> historyBeforeDrain = _fixture.CommandStatusStore.GetStatusHistory(
                 failingCommand.TenantId,
-                failingCommand.CorrelationId);
+                failingCommand.MessageId);
             if (historyBeforeDrain.Count > 0) {
                 AssertEventsStoredThenPublishFailed(historyBeforeDrain);
                 historyBeforeDrain.Select(x => x.Status).ShouldNotContain(
@@ -725,7 +725,7 @@ public class DaprEndToEndTests : IDisposable {
                 .GetEventsForTopic(topic)
                 .Any(e => e.CorrelationId == command.CorrelationId);
             bool completed = _fixture.CommandStatusStore
-                .GetStatusHistory(command.TenantId, command.CorrelationId)
+                .GetStatusHistory(command.TenantId, command.MessageId)
                 .Any(static x => x.Status is CommandStatus.Completed or CommandStatus.Rejected);
 
             if (published && completed) {
@@ -746,7 +746,7 @@ public class DaprEndToEndTests : IDisposable {
         => string.Join(
             " -> ",
             _fixture.CommandStatusStore
-                .GetStatusHistory(command.TenantId, command.CorrelationId)
+                .GetStatusHistory(command.TenantId, command.MessageId)
                 .Select(static x => $"{x.Status}:{x.FailureReason ?? "ok"}"));
 
     private void AssertAccepted(CommandProcessingResult result, CommandEnvelope command, string reason)

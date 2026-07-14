@@ -2,7 +2,7 @@
 title: 'Run all tests and fix failures'
 type: 'bugfix'
 created: '2026-07-14'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '9624741d70abc15be19ff98736678a8da2806a8a'
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -47,13 +47,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `Hexalith.Tenants.slnx` -- restore/build Release with warnings as errors; repair compilation failures first.
-- [ ] `tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj`, `tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj`, `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj`, `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`, `samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj` -- run Tier 1 individually with coverage; fix every failure.
-- [ ] `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` -- verify full DAPR, run Tier 2 with coverage, and fix failures.
-- [ ] `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` -- run Aspire non-performance and opted-in performance lanes; treat prerequisite skips as missing evidence.
-- [ ] `src/**`, `tests/**`, `samples/**`, `deploy/**`, `docs/**`, `.github/workflows/**`, `*.props`, `*.targets`, `*.json`, `*.yaml` -- change only failure-implicated paths and add focused regression assertions.
-- [ ] `scripts/validate-coverage.py` -- require greater than 80% scoped lines and 100% branches for configured isolation/auth targets.
-- [ ] `_bmad-output/implementation-artifacts/spec-run-all-tests-and-fix-failures.md` -- record changes, totals, skips, and blockers before review.
+- [x] `Hexalith.Tenants.slnx` -- restore/build Release with warnings as errors; repair compilation failures first.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj`, `tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj`, `tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj`, `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`, `samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj` -- run Tier 1 individually with coverage; fix every failure.
+- [x] `tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj` -- verify full DAPR, run Tier 2 with coverage, and fix failures.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj` -- run Aspire non-performance and opted-in performance lanes; treat prerequisite skips as missing evidence.
+- [x] `src/**`, `tests/**`, `samples/**`, `deploy/**`, `docs/**`, `.github/workflows/**`, `*.props`, `*.targets`, `*.json`, `*.yaml` -- change only failure-implicated paths and add focused regression assertions.
+- [x] `scripts/validate-coverage.py` -- require greater than 80% scoped lines and 100% branches for configured isolation/auth targets.
+- [x] `_bmad-output/implementation-artifacts/spec-run-all-tests-and-fix-failures.md` -- record changes, totals, skips, and blockers before review.
 
 **Acceptance Criteria:**
 - Given pinned dependencies, when Release builds, then it has zero warnings/errors.
@@ -63,9 +63,18 @@ context:
 
 ## Spec Change Log
 
+- 2026-07-14: Removed an obsolete unused server-test fake method after the split conditional-erasure contract made it fail warning-as-error compilation.
+- 2026-07-14: Completed identities returned by focused command-status test doubles so the HTTP integration harness honors the EventStore message/correlation identity contract.
+- 2026-07-14: Marked projection-backed generated-query fixtures explicitly and added a regression assertion that unknown provenance cannot emit a trusted 304 response.
+- 2026-07-14: Corrected DAPR drain-recovery status assertions to read the command-status store by message ID, matching its key contract.
+- 2026-07-14 review patch: Narrowed the legacy status adapter to supply only the keyed message ID; it no longer fabricates a correlation ID that may legitimately differ.
+- 2026-07-14 review patch: Added a matching `If-None-Match` request header so unknown provenance is the isolated reason the conditional query test fails closed.
+
 ## Design Notes
 
 The performance comment names a Tenants opt-in, but the shared harness gates on `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS=1`. Use the harness contract; do not change the benchmark unless the mismatch causes a verified failure.
+
+All fixes are confined to failure-implicated root-repository test code and this evidence record. This work did not intentionally change `references/` content, production contracts, architecture, deployment, generated files, test intent, or coverage thresholds. Concurrent EventStore/FrontComposer worktree pointer drift is unrelated, remains untouched, and is excluded from this change's file list.
 
 ## Verification
 
@@ -75,3 +84,13 @@ The performance comment names a Tenants opt-in, but the shared harness gates on 
 - `DiffEngine_Disabled=true dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --no-build -c Release --filter "Category!=Performance"` -- non-performance passes live.
 - `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS=1 DiffEngine_Disabled=true dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --no-build -c Release --filter "Category=Performance"` -- performance executes and passes.
 - `python3 scripts/validate-coverage.py --coverage-root TestResults --minimum-line-coverage 80 --required-branch-coverage 100 --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs --isolation-auth-target src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs --line-scope src/Hexalith.Tenants.Contracts/ --line-scope src/Hexalith.Tenants.Client/ --line-scope src/Hexalith.Tenants.Server/ --line-scope src/Hexalith.Tenants.Testing/` -- coverage gates pass.
+
+**Results:**
+- Restore passed. Final Release warning-as-error build passed with 0 warnings and 0 errors.
+- Tier 1 projects passed individually with fresh coverage: Contracts 112, Client 48, Testing 181, UI 865, Sample 39; 1,245 passed, 0 failed, 0 skipped.
+- Tier 2 Server passed individually with fresh coverage: 739 passed, 0 failed, 0 skipped.
+- Live DAPR/Aspire non-performance integration lane passed: 152 passed, 0 failed, 0 skipped.
+- Opted-in performance lane executed the 500,000-event benchmark and passed: 1 passed, 0 failed, 0 skipped in 21m 6s.
+- Total executable evidence: 2,137 passed, 0 failed, 0 skipped across seven owned projects.
+- Coverage gates passed: 94.33% scoped line coverage (1,165/1,235) and 100% configured isolation/auth branch coverage (132/132).
+- No blockers remain.

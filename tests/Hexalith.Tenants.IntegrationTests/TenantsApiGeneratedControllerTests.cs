@@ -75,7 +75,10 @@ public sealed class TenantsApiGeneratedControllerTests
                 ETag: "index-etag-2",
                 IsStale: true,
                 ProjectionVersion: "index-v2",
-                ServedAt: servedAt));
+                ServedAt: servedAt)
+            {
+                Provenance = QueryResponseProvenance.ProjectionBacked,
+            });
         await using var factory = new TenantsApiWebApplicationFactory(gateway);
         using HttpClient client = CreateAuthenticatedClient(factory);
 
@@ -237,7 +240,10 @@ public sealed class TenantsApiGeneratedControllerTests
                 IsNotModified: true,
                 IsStale: false,
                 ProjectionVersion: "index-v2",
-                ServedAt: servedAt));
+                ServedAt: servedAt)
+            {
+                Provenance = QueryResponseProvenance.ProjectionBacked,
+            });
         await using var factory = new TenantsApiWebApplicationFactory(gateway);
         using HttpClient client = CreateAuthenticatedClient(factory);
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants?pageSize=25");
@@ -265,6 +271,29 @@ public sealed class TenantsApiGeneratedControllerTests
         await AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync("W/\"index-etag-2\"");
     }
 
+    [Fact]
+    public async Task Generated_query_route_returns_safe_problem_when_not_modified_is_not_projection_backed()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueNotModified(
+            "index-etag-2",
+            new QueryResponseMetadata(ETag: "index-etag-2", IsNotModified: true));
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/tenants");
+        request.Headers.IfNoneMatch.ParseAdd("\"index-etag-2\"");
+
+        HttpResponseMessage response = await client.SendAsync(
+            request,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadGateway);
+        response.Headers.Contains("ETag").ShouldBeFalse();
+        JsonElement problem = await response.Content.ReadFromJsonAsync<JsonElement>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        problem.GetProperty("title").GetString().ShouldBe("Bad Gateway");
+    }
+
     [Theory]
     [InlineData("wrong-issuer", JwtAudience)]
     [InlineData(JwtIssuer, "wrong-audience")]
@@ -286,7 +315,14 @@ public sealed class TenantsApiGeneratedControllerTests
     private static async Task AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync(string? eTag)
     {
         CapturingEventStoreGatewayClient gateway = new();
-        gateway.EnqueueNotModified(eTag, new QueryResponseMetadata(ETag: eTag, IsNotModified: true));
+        gateway.EnqueueNotModified(
+            eTag,
+            new QueryResponseMetadata(
+                ETag: eTag,
+                IsNotModified: true)
+            {
+                Provenance = QueryResponseProvenance.ProjectionBacked,
+            });
         await using var factory = new TenantsApiWebApplicationFactory(gateway);
         using HttpClient client = CreateAuthenticatedClient(factory);
 
