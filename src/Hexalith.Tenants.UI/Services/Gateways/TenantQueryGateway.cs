@@ -46,6 +46,10 @@ internal sealed class TenantQueryGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
+        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+            return TenantDetailSnapshot.Unauthorized(request.TenantId);
+        }
+
         try {
             EventStoreQueryResult<TenantDetail> result = await queryClient
                 .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(request.TenantId), request.ETag, cancellationToken)
@@ -293,6 +297,10 @@ internal sealed class TenantQueryGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
+        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+            return TenantAuditSnapshot.Unauthorized(request);
+        }
+
         if (string.IsNullOrWhiteSpace(request.TenantId)) {
             return TenantAuditSnapshot.Degraded([], TenantAuditReason.MissingTenantId, request);
         }
@@ -403,6 +411,10 @@ internal sealed class TenantQueryGateway(
         TenantListSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+            return TenantListSnapshot.Unauthorized();
+        }
 
         // Empty/whitespace term -> the unchanged cursor-list path (no Memories call). A non-empty term is
         // a cross-set search served by the Memories tenants-index; rows are still hydrated through the
