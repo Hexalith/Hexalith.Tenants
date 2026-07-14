@@ -2,7 +2,7 @@
 title: 'Run all tests and fix failures'
 type: 'bugfix'
 created: '2026-07-14'
-status: 'in-review'
+status: 'done'
 baseline_commit: '9624741d70abc15be19ff98736678a8da2806a8a'
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -74,7 +74,7 @@ context:
 
 The performance comment names a Tenants opt-in, but the shared harness gates on `HEXALITH_EVENTSTORE_RUN_PERFORMANCE_TESTS=1`. Use the harness contract; do not change the benchmark unless the mismatch causes a verified failure.
 
-All fixes are confined to failure-implicated root-repository test code and this evidence record. This work did not intentionally change `references/` content, production contracts, architecture, deployment, generated files, test intent, or coverage thresholds. Concurrent EventStore/FrontComposer worktree pointer drift is unrelated, remains untouched, and is excluded from this change's file list.
+All fixes are confined to failure-implicated root-repository test code and this evidence record. This work did not intentionally change `references/` content, production contracts, architecture, deployment, generated files, test intent, or coverage thresholds. Concurrent FrontComposer/Memories worktree pointer drift is unrelated, remains untouched, and is excluded from this change's file list.
 
 ## Verification
 
@@ -89,8 +89,38 @@ All fixes are confined to failure-implicated root-repository test code and this 
 - Restore passed. Final Release warning-as-error build passed with 0 warnings and 0 errors.
 - Tier 1 projects passed individually with fresh coverage: Contracts 112, Client 48, Testing 181, UI 865, Sample 39; 1,245 passed, 0 failed, 0 skipped.
 - Tier 2 Server passed individually with fresh coverage: 739 passed, 0 failed, 0 skipped.
-- Live DAPR/Aspire non-performance integration lane passed: 152 passed, 0 failed, 0 skipped.
-- Opted-in performance lane executed the 500,000-event benchmark and passed: 1 passed, 0 failed, 0 skipped in 21m 6s.
+- Post-review focused command/query regression run passed: 102 passed, 0 failed, 0 skipped.
+- Post-review live DAPR/Aspire non-performance integration lane passed: 152 passed, 0 failed, 0 skipped.
+- Post-review opted-in performance lane executed the 500,000-event benchmark and passed: 1 passed, 0 failed, 0 skipped in 16m 12s.
 - Total executable evidence: 2,137 passed, 0 failed, 0 skipped across seven owned projects.
 - Coverage gates passed: 94.33% scoped line coverage (1,165/1,235) and 100% configured isolation/auth branch coverage (132/132).
 - No blockers remain.
+
+## Suggested Review Order
+
+**Command identity compatibility**
+
+- Adapter supplies only missing message identity, preserving legitimate correlation values.
+  [`MessageIdentifyingCommandStatusStore.cs:24`](../../tests/Hexalith.Tenants.IntegrationTests/Fixtures/MessageIdentifyingCommandStatusStore.cs#L24)
+
+- HTTP fixtures install identity completion only for injected legacy status doubles.
+  [`CommandApiRuntimeIntegrationTests.cs:2410`](../../tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs#L2410)
+
+- DAPR recovery assertions use the status store's message-ID key.
+  [`DaprEndToEndTests.cs:699`](../../tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs#L699)
+
+**Query provenance safety**
+
+- Unknown-provenance conditional responses fail closed without exposing an ETag.
+  [`TenantsApiGeneratedControllerTests.cs:275`](../../tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs#L275)
+
+- Projection-backed fixtures explicitly opt into trusted cache metadata.
+  [`TenantsApiGeneratedControllerTests.cs:68`](../../tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs#L68)
+
+**Contract and CI cleanup**
+
+- Read-model fake now implements only the current conditional-save contract.
+  [`EventPublicationConfigurationTests.cs:732`](../../tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs#L732)
+
+- Shared scheduled-performance opt-in remains tracked pending submodule approval.
+  [`deferred-work.md:340`](deferred-work.md#L340)
