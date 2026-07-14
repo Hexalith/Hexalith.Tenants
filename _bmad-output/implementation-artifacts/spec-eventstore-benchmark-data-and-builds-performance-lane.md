@@ -2,7 +2,7 @@
 title: 'EventStore benchmark data and strict scheduled performance lane'
 type: 'feature'
 created: '2026-07-14'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '968a993f15c23dcfb1b4735e846599b9248d04af'
 baseline_eventstore_commit: 'df06eceaee781b2ba0d991cf80a60e06eb25e3f6'
 baseline_builds_commit: 'f83df11d8b324211fd913ff08880fcfeef04c45c'
@@ -51,8 +51,8 @@ context:
 **Execution:**
 - [x] `references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/*.cs` -- implement validation, one range allocation, bounded actor transactions, metadata-last visibility, overwrite guard, read-back validation, cleanup and receipt.
 - [x] `references/Hexalith.EventStore/tests/Hexalith.EventStore.Testing.Integration.Tests/Benchmarking/*.cs` and `tests/Hexalith.EventStore.Server.LiveSidecar.Tests/Benchmarking/*.cs` -- cover the matrix; seed a small Sample stream and prove production reads, snapshot+tail state, and next sequence `N+1`.
-- [ ] `references/Hexalith.Builds/.github/workflows/domain-ci.yml` -- set EventStore/Tenants opt-ins only on the scheduled performance step; always parse TRX into `performance-test-summary.json`; reject missing/no-match/all-skip; upload the entire performance directory with missing files treated as errors.
-- [ ] `references/Hexalith.Builds/.github/workflows/domain-ci.md` -- document strict execution and evidence ownership.
+- [x] `references/Hexalith.Builds/.github/workflows/domain-ci.yml` -- set EventStore/Tenants opt-ins only on the scheduled performance step; always parse TRX into `performance-test-summary.json`; reject missing/no-match/all-skip; upload the entire performance directory with missing files treated as errors.
+- [x] `references/Hexalith.Builds/.github/workflows/domain-ci.md` -- document strict execution and evidence ownership.
 
 **Acceptance Criteria:**
 - Given a valid fresh plan, when seeding completes, then one range covers production-format streams and a real actor rehydrates the expected snapshot, tail, and sequence.
