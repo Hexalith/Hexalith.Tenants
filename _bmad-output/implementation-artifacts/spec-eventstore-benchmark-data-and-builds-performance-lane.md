@@ -2,7 +2,7 @@
 title: 'EventStore benchmark data and strict scheduled performance lane'
 type: 'feature'
 created: '2026-07-14'
-status: 'in-review'
+status: 'done'
 baseline_commit: '968a993f15c23dcfb1b4735e846599b9248d04af'
 baseline_eventstore_commit: 'df06eceaee781b2ba0d991cf80a60e06eb25e3f6'
 baseline_builds_commit: 'f83df11d8b324211fd913ff08880fcfeef04c45c'
@@ -77,3 +77,46 @@ The Builds guard reads TRX `Counters.executed`; xUnit v3 can emit `NotExecuted` 
 - Focused helper and live-sidecar test projects -- contract and production-reader proofs pass, or the exact DAPR blocker is recorded.
 - `actionlint .github/workflows/domain-ci.yml` and `git diff --check` -- workflow and repository diffs are clean.
 - Positive, all-skipped, and no-match probes -- positive emits TRX/JSON; negative probes fail distinctly.
+
+## Suggested Review Order
+
+**Dataset orchestration and actor lifecycle**
+
+- Start with validation, allocation, per-actor writes, deactivation, and receipt assembly.
+  [`BenchmarkDatasetBuilder.cs:122`](../../references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/BenchmarkDatasetBuilder.cs#L122)
+
+- Separate freshness validation from immediate write-phase reactivation to prevent idle expiry.
+  [`BenchmarkDatasetBuilder.cs:682`](../../references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/BenchmarkDatasetBuilder.cs#L682)
+
+- Adapt DAPR’s required activation and strict app-endpoint deactivation behind a test abstraction.
+  [`DaprBenchmarkActorLifecycle.cs:12`](../../references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/DaprBenchmarkActorLifecycle.cs#L12)
+
+**Persistence, visibility, and recovery**
+
+- Batch events first, then atomically expose snapshot and metadata as the final barrier.
+  [`BenchmarkDatasetBuilder.cs:940`](../../references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/BenchmarkDatasetBuilder.cs#L940)
+
+- Validate production metadata, boundary events, snapshot timestamp, identity, state, and protection.
+  [`BenchmarkDatasetBuilder.cs:839`](../../references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/BenchmarkDatasetBuilder.cs#L839)
+
+- Hide metadata before bounded idempotent cleanup of event and snapshot keys.
+  [`BenchmarkDatasetBuilder.cs:613`](../../references/Hexalith.EventStore/src/Hexalith.EventStore.Testing.Integration/Benchmarking/BenchmarkDatasetBuilder.cs#L613)
+
+**Strict scheduled performance evidence**
+
+- Scope both opt-ins and recreate the evidence directory only for scheduled performance execution.
+  [`domain-ci.yml:291`](../../references/Hexalith.Builds/.github/workflows/domain-ci.yml#L291)
+
+- Convert TRX into strict machine evidence for missing, skipped, failed, and successful outcomes.
+  [`domain-ci.yml:306`](../../references/Hexalith.Builds/.github/workflows/domain-ci.yml#L306)
+
+- Explain shared execution proof versus consumer-owned benchmark and NFR evidence.
+  [`domain-ci.md:24`](../../references/Hexalith.Builds/.github/workflows/domain-ci.md#L24)
+
+**Regression and production-reader proofs**
+
+- Cover transaction bounds, failure cleanup, lifecycle reactivation, and timestamp drift.
+  [`BenchmarkDatasetBuilderTests.cs:17`](../../references/Hexalith.EventStore/tests/Hexalith.EventStore.Testing.Integration.Tests/Benchmarking/BenchmarkDatasetBuilderTests.cs#L17)
+
+- Prove a real actor rehydrates snapshot plus tail and appends sequence `N+1`.
+  [`BenchmarkDatasetBuilderLiveSidecarTests.cs:45`](../../references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.LiveSidecar.Tests/Benchmarking/BenchmarkDatasetBuilderLiveSidecarTests.cs#L45)
