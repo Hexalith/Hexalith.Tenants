@@ -37,6 +37,22 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantQueryGatewayTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Get_tenant_without_authenticated_user_fails_closed_without_querying_event_store(string? userId)
+    {
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(client, userId);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unauthorized);
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
     [Fact]
     public async Task Get_tenant_submits_literal_detail_query_and_maps_counts_source()
     {
@@ -184,6 +200,26 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(expectedKind);
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task List_tenants_without_authenticated_user_fails_closed_without_querying_dependencies(string? userId)
+    {
+        CapturingGatewayClient client = new();
+        MemoriesClient memories = CreateMemoriesClient();
+        TenantQueryGateway gateway = CreateGateway(client, userId, memories);
+
+        TenantListSnapshot snapshot = await gateway
+            .ListTenantsAsync(new TenantListRequest(Search: "term"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Unauthorized);
+        client.SubmittedQueries.ShouldBeEmpty();
+        await memories.DidNotReceive().SearchAsync(
+            Arg.Any<SearchRequest>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -370,6 +406,22 @@ public sealed class TenantQueryGatewayTests
         client.SubmittedQueries
             .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
             .ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Get_tenant_audit_without_authenticated_user_fails_closed_without_querying_event_store(string? userId)
+    {
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(client, userId);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Unauthorized);
+        client.SubmittedQueries.ShouldBeEmpty();
     }
 
     [Fact]
