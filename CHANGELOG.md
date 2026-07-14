@@ -1,3 +1,10 @@
+## [3.2.9](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.8...v3.2.9) (2026-07-14)
+
+
+### Bug Fixes
+
+* refactor code structure for improved readability and maintainability ([5a155d0](https://github.com/Hexalith/Hexalith.Tenants/commit/5a155d0072e9003f8a42027130c5efac82ab9268))
+
 ## [3.2.8](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.7...v3.2.8) (2026-07-14)
 
 
