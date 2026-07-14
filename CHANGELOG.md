@@ -1,3 +1,11 @@
+## [3.2.6](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.5...v3.2.6) (2026-07-14)
+
+
+### Bug Fixes
+
+* update subproject references for Hexalith components ([9624741](https://github.com/Hexalith/Hexalith.Tenants/commit/9624741d70abc15be19ff98736678a8da2806a8a))
+* update subproject references for Hexalith.EventStore and Hexalith.FrontComposer ([8caa19b](https://github.com/Hexalith/Hexalith.Tenants/commit/8caa19bbccfabb237654c8a81bc00e0a886cbce9))
+
 ## [3.2.5](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.4...v3.2.5) (2026-07-12)
 
 
