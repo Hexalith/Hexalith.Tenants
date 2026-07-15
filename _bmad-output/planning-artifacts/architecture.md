@@ -53,6 +53,9 @@ workflowType: 'architecture'
 lastStep: 8
 status: 'complete'
 completedAt: '2026-06-03'
+updatedAt: '2026-07-15'
+architectureSpineMerged: true
+architectureSpineArchive: '_bmad-output/archive/planning-artifacts/architecture-tenants-2026-06-25'
 project_name: 'Hexalith.Tenants'
 user_name: 'Administrator'
 date: '2026-06-02'
@@ -61,6 +64,120 @@ date: '2026-06-02'
 # Architecture Decision Document
 
 _This document builds collaboratively through step-by-step discovery. Sections are appended as we work through each architectural decision together._
+
+## Canonical Architecture Spine
+
+This section merges the finalized feature-level architecture spine into the canonical architecture document. **AD-1 through AD-14 are the precedence layer for Tenants UI composition.** Earlier descriptive sections remain useful context and implementation history, but where their navigation, state-management, ownership, host, or operations wording conflicts with these ADs, the ADs govern.
+
+### Design Paradigm
+
+Tenants Management UI is a **FrontComposer-composed domain UI**: FrontComposer owns shell, page chrome, domain registration, and reusable UI primitives; Tenants owns tenant-domain surfaces, domain state vocabulary, server-side gateway composition, and support-safe user-facing domain copy. The event-sourced backend is inherited context rather than a second UI architecture.
+
+### AD-1 - Tenants Is One FrontComposer Module Entry [ADOPTED]
+
+- **Binds:** FR-1..FR-4, FR-18..FR-21, Operations Shell IA.
+- **Prevents:** independently-built surfaces registering separate shell entries for All Tenants, My Tenants, Users, Global Administrators, or Audit.
+- **Rule:** Tenants contributes exactly one shell navigation entry at `/tenants`; Tenants-domain sub-surfaces live as page-local tabs, scope modes, aliases, or contextual links inside the module workspace.
+
+### AD-2 - Page-Local Tabs Own Tenants Sub-Surface Switching [ADOPTED]
+
+- **Binds:** `/tenants`, `/tenants/my`, `/tenants/users`, tenant detail, global-administrator, and audit return flows.
+- **Prevents:** shell navigation, route aliases, and return links from encoding incompatible information architecture.
+- **Rule:** `/tenants` plus `tab=tenants|users`, `scope=all|mine`, `userId`, `search`, `status`, `sort`, `desc`, and `cursor` is canonical workspace state. Invalid values normalize fail-safe; changing any tab/scope/filter/sort field resets cursor. `/tenants/my` and `/tenants/users` remain renderable compatibility routes, while generated navigation and return URLs use canonical `/tenants` state. `/tenants/{tenantId}`, `/tenants/{tenantId}/audit`, and `/global-administrators` are contextual routes and none registers another shell entry.
+
+### AD-3 - FrontComposer And Fluent Are The First UI Composition Surface [ADOPTED]
+
+- **Binds:** all Razor components, UX-DR1..UX-DR33, and Fluent conformance tests.
+- **Prevents:** raw interactive controls, duplicate page chrome, theme redefinition, and Tenants-owned generic UI infrastructure.
+- **Rule:** use FrontComposer or Fluent UI Blazor V5 components before custom markup; custom CSS or raw semantic markup is allowed only for documented gaps not covered by FrontComposer or Fluent.
+
+### AD-4 - Tenants Owns Domain Composition, Not Generic UI Infrastructure [ADOPTED]
+
+- **Binds:** `Components/Tenants`, `Components/Users`, `State`, `Services`, and `Resources`.
+- **Prevents:** generic grids, tabs, shell layout, theme primitives, or reusable command chrome being implemented inside Tenants.
+- **Rule:** Tenants-specific components may encode tenant safety, freshness, audit, support-safety, and command behavior; reusable UI capability is a FrontComposer change or an approved fallback.
+
+### AD-5 - Server-Side Gateways Are The Only Backend Egress [ADOPTED]
+
+- **Binds:** query surfaces, command flows, auth token relay, and Memories search hydration.
+- **Prevents:** browser-side backend calls, token exposure, component-to-HTTP coupling, and multiple transport paths for the same data.
+- **Rule:** UI components never call Tenants, EventStore, or Memories directly; backend egress goes through `ITenantQueryGateway`, `ITenantCommandGateway`, and their server-side collaborators.
+
+### AD-6 - Direct Tenants REST Reads Are The Read Transport [ADOPTED]
+
+- **Binds:** FR-1..FR-9, FR-18, FR-20..FR-23, NFR-1, and NFR-3.
+- **Prevents:** routing tenant reads through the EventStore generic query gateway or retired projection-actor paths that drop projection metadata.
+- **Rule:** read composition calls direct Tenants REST endpoints through the BFF and preserves ETag, cursor, authorization, and read-model freshness metadata.
+
+### AD-7 - Projection-Confirmed Truth Is Shared Composition State [ADOPTED]
+
+- **Binds:** truth badges, command lifecycle panels, list/detail/member/audit/global-administrator surfaces, and command flows.
+- **Prevents:** optimistic success, per-surface state vocabularies, and collapsing `accepted`, `confirmed`, and `audit available`.
+- **Rule:** every actionable surface renders from typed shared truth, freshness, lifecycle, audit, and authorization state; SignalR and command status are nudges until an authoritative projection re-query confirms.
+
+### AD-8 - Freshness Comes From EventStore Read-Model Metadata [ADOPTED]
+
+- **Binds:** action availability, list states, badges, and stale/degraded behavior.
+- **Prevents:** duplicate Tenants freshness enums, `ServedAt` as projection age, search results as freshness proof, or 304 responses being treated as recovery without metadata.
+- **Rule:** Tenants UI uses `ReadModelFreshnessState`; `Refreshing` is client-transient; stale or unknown data fails closed where the safety contract requires it.
+
+### AD-9 - Domain Copy And Support Safety Stay Tenants-Owned [ADOPTED]
+
+- **Binds:** receipts, consequence previews, rejection text, copy actions, and resource files.
+- **Prevents:** shell-owned domain wording, fragment-assembled localization, and unsafe data leaking into rendered output.
+- **Rule:** domain-facing text uses Tenants-owned whole-string resources; the BFF assembles and redacts receipts, previews, and rejection text before anything reaches the DOM.
+
+### AD-10 - Memories Is Search-As-Index-Only [ADOPTED]
+
+- **Binds:** FR-1 cross-set tenant search and tenant-list search states.
+- **Prevents:** adding a Tenants/EventStore list-filter endpoint, rendering row truth from Memories, or blocking the tenant list on search outage.
+- **Rule:** Memories defines an offset result window and returns tenant ids from `tenants-index`; the BFF deduplicates ids in returned order, hydrates and authorization-filters them through the authoritative Tenants read path, and applies the requested deterministic visible sort within the page. The next offset advances by raw Memories hits consumed, including malformed, duplicate, unauthorized, or unhydrated hits; dropped hits are not backfilled and partial hydration is degraded. The search cursor is opaque and bound to the authenticated user plus normalized query/status/sort/page-size scope; mismatch resets page 1 with an honest notice. Memories outage degrades to the cursor list.
+
+### AD-11 - UI Conformance Tests Are Architectural Guardrails [ADOPTED]
+
+- **Binds:** UI tests, route smoke tests, localization parity, selector stability, and support safety.
+- **Prevents:** accidental drift from FrontComposer/Fluent composition, raw controls, unsupported routes, or unsafe rendered output.
+- **Rule:** every UI surface change updates focused bUnit/conformance coverage; guards are not loosened without an explicit approved story.
+
+### AD-12 - Command Flows Share One FrontComposer Command Posture [ADOPTED]
+
+- **Binds:** FR-10..FR-17, FR-19, FR-24..FR-25, and CP-2..CP-8.
+- **Prevents:** independent command flows choosing optimistic success, concurrent submits, bulk action, toast batching, or bypassing preview and gating.
+- **Rule:** command UX composes the shared gateway/lifecycle pattern and consequence preview where required. Lock scope is `(interactive circuit, AggregateIdentity)`: one command for that aggregate remains active from submit through accepted/projection-pending until terminal evidence, while unrelated aggregates may proceed. `confirmed` requires the expected postcondition plus projection-version advancement or safe command-specific audit evidence beyond the pre-submit baseline. A pre-existing expected state or NoOp is `already applied`, never `confirmed`; unavailable provenance is `unable to verify`. Unrelated projection data, command status, and SignalR nudges never confirm.
+
+### AD-13 - The UI Host Is Domain-Owned; Orchestration Is Platform-Owned [ADOPTED]
+
+- **Binds:** deployment, local orchestration, auth/service references, and containerization.
+- **Prevents:** moving Tenants domain UI into FrontComposer, shipping it as a NuGet package, adding Dockerfiles, expanding a repository-owned AppHost/Aspire surface, or duplicating shared hosting and ServiceDefaults infrastructure.
+- **Rule:** `src/Hexalith.Tenants.UI` is a publishable app/container owned by this repository; distributed orchestration belongs to a platform/composing host. The existing `src/Hexalith.Tenants.AppHost` is transitional legacy to migrate or remove and must not gain shared hosting plumbing.
+
+### AD-14 - Production Operations And Scaling Are Platform-Governed [ADOPTED]
+
+- **Binds:** NFR-1..NFR-5, container deployment, configuration, secrets, health, telemetry, and replica count.
+- **Prevents:** embedding secrets, treating UI memory as durable truth, shipping bespoke observability, or scaling InteractiveServer with incompatible key/session/cursor assumptions.
+- **Rule:** externalize configuration and secrets; consume shared health, telemetry, and non-root SDK-container defaults; keep persistent truth outside the UI host; and do not scale InteractiveServer beyond one replica until shared DataProtection, circuit/session routing, and cursor durability are verified.
+
+### Architecture Conformance Finding - 2026-07-15
+
+The 2026-07-15 reality check found four active implementation divergences:
+
+- **AD-6 / AD-8:** `TenantQueryGateway` currently calls `IEventStoreGatewayClient.SubmitQueryAsync`, and the configured generic handler route normalizes freshness provenance to `Unknown`. Before switching the BFF, the direct Tenants REST surface must propagate ETag/read-model freshness headers and metadata; a composing host must expose distinct Tenants-query and EventStore-command service references; then the UI BFF must split those clients.
+- **AD-13:** `src/Hexalith.Tenants.AppHost` remains repository-owned transitional orchestration and must migrate to a platform/composing host rather than expand.
+- **AD-14:** the UI host lacks shared health endpoint mapping and OpenTelemetry/ServiceDefaults integration; multi-replica InteractiveServer is not approved until those controls plus shared DataProtection, session routing, and cursor durability are verified.
+- **AD-10:** the implemented Memories cursor is a plaintext offset without authenticated-user/query scope binding; replace it with the opaque scoped cursor required by AD-10.
+
+These are remediation items; they do not amend or weaken the ADs.
+
+### Deferred Decisions
+
+- Complete all-users inventory only after an authorization-scoped backend query exists.
+- Replace approved fallbacks when FrontComposer ships reusable equivalents.
+- Expose freshness `aging` only when EventStore provides the necessary projection metadata on the wire.
+- Revisit multi-replica cursor durability when shared DataProtection/cursor durability lands.
+- Remove the repository-owned AppHost when a platform/composing host owns the full Tenants topology.
+- Reconcile `_bmad-output/project-context.md` with AD-13 and the governing domain-module boundary in a separately authorized project-context update.
+- Claim RTL/WCAG 2.2 only after the pinned Fluent/FrontComposer behavior is verified.
+- Define sensitive-configuration masking, reveal, and audit policy before exposing it.
 
 ## Project Context Analysis
 
@@ -71,12 +188,12 @@ The PRD defines FR-1..FR-25 as **UI composition over an already-built event-sour
 backend** (no backend endpoints, no contract reshaping). They collapse into two
 construction patterns:
 - **Read/projection surfaces** (FR-1..FR-9, FR-18; audit-read FR-20..FR-23) — compose
-  5 REST projection queries through the FrontComposer DataGrid (FC-TBL): cursor
+  6 REST projection queries through the FrontComposer/DataGrid composition: cursor
   pagination (never offset/limit), ETag→304 freshness, authorization-scoped results.
   This is the entire MVP.
 - **Custom command flows** (FR-10..FR-17, FR-19, FR-24..FR-25) — *not generated CRUD*;
   each dispatches `POST /api/v1/commands` and tracks an async
-  `accepted → projection-confirmed → audit-available` lifecycle, with client-assembled
+  `accepted → projection-confirmed → audit-available` lifecycle, with server-side BFF-assembled
   Consequence Previews and Audit Evidence Receipts (no new backend endpoints).
 Phasing: **2a/MVP** (read: FR-1..9, FR-18) → **2b** (first commands: FR-10/11/13/14)
 → **2c** (high-impact + audit + recovery: FR-12/15/16/17/19/20–25). Epic 5 now provides
@@ -101,30 +218,29 @@ fixed `global-administrators` scope.
 On top sits the **CP-1..CP-10 interaction contract** (five truth dimensions, fail-closed
 gating, non-collapse invariant, SignalR-nudge-only, consequence-preview-before-
 destruction, asymmetric high-risk, correct-forward-never-undo, canonical-vocabulary-
-verbatim) — translating directly into a **shared client-side truth-state model**.
+verbatim) — translating directly into a **shared typed UI truth-state model**.
 
 **Scale & Complexity:**
 - Primary domain: **Web frontend** — a Blazor InteractiveServer domain UI composed on the
   **Hexalith.FrontComposer** shell, consuming an event-sourced CQRS backend over
-  REST + DAPR/SignalR. .NET 10; Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`.
+  REST + DAPR/SignalR. .NET 10; Fluent UI Blazor v5 pinned `5.0.0-rc.4-26180.1`.
 - Complexity level: **HIGH.** Drivers: eventual-consistency correctness as the core
   thesis; a 5-dimension truth-state model with casing-significant canonical vocabularies
   (13 badge / 10 lifecycle / 10 feedback / 6 reasons / 5 freshness / 4 audit) and a strict
   non-collapse invariant; role-scoped multi-tenant authorization reflection; a heavy,
   partly-missing external dependency (FrontComposer) gating even the MVP; first-class
   a11y/l10n/responsive-fail-closed; hard support-safety rules.
-- Estimated architectural surface: a **new Blazor UI host** + ~6 client layers (shell
-  composition, query/API client, command-lifecycle client, truth-state model,
-  authorization-reflection, localization) composing the domain UI components over the
-  FrontComposer shell and Tenants-specific read components where required.
+- Implemented architectural surface: the **Blazor InteractiveServer UI host** plus shell
+  composition, query and command gateways, typed lifecycle/truth snapshots,
+  authorization reflection, localization, and domain UI components over FrontComposer.
 
 ### Technical Constraints & Dependencies
 
-- **Consume-only backend (fixed):** 5 read endpoints (`GET /api/tenants`,
+- **Consume-only backend (fixed):** 6 read endpoints (`GET /api/tenants`,
   `/api/tenants/{id}`, `/api/tenants/{id}/users`, `/api/users/{id}/tenants`,
-  `/api/tenants/{id}/audit`) + `POST /api/v1/commands` +
+  `/api/tenants/{id}/audit`, `/api/global-administrators`) + `POST /api/v1/commands` +
   `GET /api/v1/commands/status/{correlationId}`. No new endpoints; receipts/previews/
-  status assembled client-side from already-loaded read-model fields.
+  status, receipts, and previews assembled server-side in the BFF from safe read-model fields.
 - **FrontComposer is the mandated UI framework AND the critical path.** Per repo domain-
   boundary policy, missing shared UI capability belongs in FrontComposer, not Tenants.
   Readiness updated by Story 1.0 spike note (2026-06-05): `FC-LYT`, `FC-CMD`,
@@ -138,8 +254,11 @@ verbatim) — translating directly into a **shared client-side truth-state model
   states required by Tenants by itself. Story 1.2 resolved the Epic 1 path by composing a Tenants-specific
   `TenantDataGrid` from Fluent/FrontComposer primitives while keeping generic reusable
   cursor/pinning/list-state capability as a FrontComposer concern.
-- **Fluent UI Blazor v5 pinned `5.0.0-rc.3-26138.1`** — exact token/component/ARIA names
+- **Fluent UI Blazor v5 pinned `5.0.0-rc.4-26180.1`** — exact token/component/ARIA names
   verified against the pinned package at build; none asserted available without check.
+- **Current centralized platform package baselines (2026-07-15):** Hexalith.FrontComposer `3.1.1`,
+  Hexalith.EventStore `3.64.1`, and Hexalith.Memories `2.5.0`. Debug may consume source
+  references, but submodule revisions are implementation state rather than architecture invariants.
 - **Identity:** TenantId/UserId are meaningful caller-supplied strings, case-sensitive
   (Ordinal), **NOT ULIDs** — never `Guid`/`Ulid.TryParse`; copy-full-id is literal.
 - **Async, eventually-consistent integration:** commands return `202` + correlationId;
@@ -152,10 +271,10 @@ verbatim) — translating directly into a **shared client-side truth-state model
 - **Repo/build conventions:** `.slnx` only; central package versions; no copyright headers;
   `ConfigureAwait(false)`; xUnit v3 + Shouldly (+ bunit/Playwright); SDK containers (no
   Dockerfiles); Conventional Commits.
-- **Open architectural question — UI host placement:** EventStore's domain-module policy
-  forbids domain modules shipping their own AppHost/Aspire/ServiceDefaults; a Blazor UI
-  host is a new artifact whose location (Tenants vs. FrontComposer vs. a composing host)
-  and Aspire/DAPR wiring is itself a decision for this architecture.
+- **UI host placement — resolved by AD-13:** `src/Hexalith.Tenants.UI` is a domain
+  presentation host owned by this repository. Distributed orchestration belongs to a
+  platform/composing host; the existing repository AppHost is transitional and must not
+  accumulate shared AppHost, Aspire, ServiceDefaults, or generic hosting capability.
 
 ### Cross-Cutting Concerns Identified
 
@@ -189,8 +308,8 @@ verbatim) — translating directly into a **shared client-side truth-state model
 
 .NET 10 Blazor web application (interactive, server-rendered) — a domain UI composed on the
 **Hexalith.FrontComposer** shell with **Microsoft Fluent UI Blazor v5**, consuming the existing
-Tenants/EventStore REST + DAPR/SignalR backend. **No UI host exists today** (only AppHost,
-Client, Contracts, Server, Testing) — one must be created as the first implementation story.
+Tenants/EventStore REST + DAPR/SignalR backend. The implemented host is
+`src/Hexalith.Tenants.UI`; the starter evaluation below is retained as decision history.
 
 ### Starter Options Considered
 
@@ -200,8 +319,8 @@ foundations were evaluated, grounded in the initialized submodules:
 1. **New Blazor host composing the FrontComposer Shell** *(recommended)* — satisfies the PRD/UX
    "Operations Shell = FrontComposer shell" mandate and the repo domain-boundary policy (shared
    UI lives in FrontComposer, not Tenants). The Shell provides shell layout (FC-LYT), navigation
-   from registered domain manifests, the projection DataGrid (FC-TBL), command dispatch, theming,
-   and Fluxor-based state. Gated by FC-LYT readiness.
+   from registered domain manifests, the projection DataGrid (FC-TBL), command dispatch, and
+   theming. Typed Tenants state remains domain-owned under AD-4 and AD-7. FC-LYT readiness is closed.
 2. **Standalone Fluent UI Blazor app, no FrontComposer Shell** (the `EventStore.Admin.UI`
    pattern) — technically viable, but contradicts the Operations-Shell requirement and the
    boundary policy; retained only as the **constrained fallback** if FC-LYT never resolves.
@@ -213,10 +332,10 @@ Verified ecosystem facts:
   **not a project scaffolder** — the host is created manually from the reference pattern.
 - Reference hosts `Hexalith.EventStore.Admin.UI` and `Hexalith.EventStore.Sample.BlazorUI` use
   **Blazor Server / `InteractiveServer`** (no separate WASM `.Client` project).
-- FrontComposer.Shell + both reference UIs pin **Fluent UI Blazor `5.0.0-rc.3-26138.1`** (still
+- FrontComposer.Shell + both reference UIs pin **Fluent UI Blazor `5.0.0-rc.4-26180.1`** (still
   RC; no GA as of 2026-06).
 
-### Selected Starter: new `src/Hexalith.Tenants.UI` Blazor host composing the FrontComposer Shell
+### Selected Starter: `src/Hexalith.Tenants.UI` Blazor host composing the FrontComposer Shell
 
 **Rationale for Selection:**
 It is the only foundation that satisfies the "Operations Shell within a FrontComposer shell"
@@ -226,8 +345,7 @@ inheriting Fluent v5 + theming + manifest-driven navigation instead of rebuildin
 The implementation mirrors the proven EventStore reference UIs for host bootstrap, auth, and
 backend access. (Option 2 remains a historical fallback path.)
 
-**Initialization Command** *(no scaffolder exists — manual recipe; this is the first
-implementation story):*
+**Historical initialization command** *(the host is now implemented):*
 
 ```bash
 # from repo root: create the Blazor Web App host, then wire FrontComposer + Fluent
@@ -244,10 +362,10 @@ dotnet new blazor -n Hexalith.Tenants.UI -o src/Hexalith.Tenants.UI \
 
 **Architectural Decisions Provided by Starter:**
 
-**Language & Runtime:** C# / .NET 10 (`net10.0`, SDK `10.0.300` pinned), `Microsoft.NET.Sdk.Web`;
+**Language & Runtime:** C# / .NET 10 (`net10.0`, SDK `10.0.301` pinned), `Microsoft.NET.Sdk.Web`;
 Nullable + ImplicitUsings + `TreatWarningsAsErrors` + `ConfigureAwait(false)` per repo props.
 
-**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.0-rc.3-26138.1`, RC — no GA yet), inherited
+**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.0-rc.4-26180.1`, RC — no GA yet), inherited
 through the FrontComposer shell; semantic theme roles, no bespoke palette; Fluent type ramp /
 shapes / elevation. Tenants tracks FrontComposer's transitive Fluent pin; tokens/ARIA verified
 against the pinned package at build. UI uses FrontComposer or Fluent v5 components, never raw
@@ -264,8 +382,8 @@ via the Shell's registration extensions + a Tenants domain manifest + projection
 `AddHexalithFrontComposer*` / registry / route API names to be confirmed against the Shell source
 in the integration spec).
 
-**State Management:** Fluxor (the Shell's state substrate) — the natural home for the shared
-client-side truth-state model.
+**State Management:** typed immutable Tenants snapshots and lifecycle models under `State/`;
+FrontComposer owns shell state, while Tenants owns domain truth state under AD-4 and AD-7.
 
 **Backend Access:** REST to the existing query API + `POST /api/v1/commands` (+ status poll),
 over DAPR service invocation (EventStore pattern) or HttpClient + Aspire service discovery
@@ -274,9 +392,10 @@ over DAPR service invocation (EventStore pattern) or HttpClient + Aspire service
 **Testing:** bunit (component) + Playwright (E2E) + xUnit v3 + Shouldly; NFR-4 stable automation
 selectors are first-class.
 
-**Hosting:** new project added to `Hexalith.Tenants.slnx`; orchestrated by the existing
-`Hexalith.Tenants.AppHost` (Aspire) with references to tenants/eventstore/keycloak; SDK container
-support (`EnableContainer`, `ContainerRepository=tenants-ui`), no Dockerfile.
+**Hosting:** project added to `Hexalith.Tenants.slnx`; the current repository AppHost remains
+transitional local wiring while a platform/composing host becomes the owner of tenants,
+eventstore, memories, identity, and UI references. SDK container support
+(`EnableContainer`, `ContainerRepository=tenants-ui`), no Dockerfile.
 
 **Foundation decisions (resolved in step-4 — Decisions):**
 - **Render mode** — resolved to **InteractiveServer**. Earlier UX material assumed Blazor Auto
@@ -298,15 +417,15 @@ per the implementation-readiness report's recommendation.
 - **D2 Command confirmation:** on dispatch, run **status-poll and SignalR concurrently**;
   the first terminal/projection-change signal triggers the **authoritative projection
   re-query**; lifecycle flips to `confirmed` only on the re-queried projection.
-- **D3 FrontComposer posture:** **hybrid** — FC-LYT/FC-CMD/FC-CNC treated as contracts to
-  confirm with the FrontComposer team; FC-AUD/FC-CNS delivered via the **approved fallbacks**
+- **D3 FrontComposer posture:** **hybrid** — FC-LYT/FC-CMD/FC-CNC are confirmed contracts;
+  FC-AUD/FC-CNS are delivered via the **approved fallbacks**
   (flat audit DataGrid, inline consequence text).
 - **D4 Localization ownership:** **Tenants-owned** whole-string `.resx` keys; inherit only
   shell-chrome strings from `FcShellResources`.
 
 **Important Decisions (made — cascade from D1–D4):**
-- **D5 Truth-state model:** one shared **Fluxor "truth-state" feature** + a typed,
-  casing-faithful **canonical-vocabulary library**.
+- **D5 Truth-state model:** shared typed immutable truth/lifecycle snapshots plus a
+  casing-faithful **canonical-vocabulary library**; no specific state framework is required.
 - **D6 Freshness:** **server-side** conditional reads (`If-None-Match`→`304`); freshness is
   classified **server-side** from a **persisted projection timestamp** (`IReadModelFreshness.ProjectedAt`,
   EventStore Client) against **configurable thresholds**; the wire (`QueryResponseMetadata`) carries
@@ -317,7 +436,7 @@ per the implementation-readiness report's recommendation.
 - **D7 Authorization reflection:** **server-side** claims→action-availability service.
 - **D8 Support-safety:** **server-side** receipt/preview/redaction assembly.
 - **D9 Cursors:** opaque, **server-held** pass-through; page-1 re-query on invalidation.
-- **D10 UI host placement:** new **`src/Hexalith.Tenants.UI`** in the Tenants repo.
+- **D10 UI host placement:** **`src/Hexalith.Tenants.UI`** in the Tenants repo, governed by AD-13.
 
 **Deferred Decisions (post-MVP, with rationale):**
 - NFR performance budgets (set against the real projection at implementation).
@@ -329,7 +448,7 @@ per the implementation-readiness report's recommendation.
 
 No database decision — the UI **owns no datastore** and never writes one (NFR-5); it consumes
 existing projections only.
-- **Read access:** a typed query gateway in the BFF wrapping the 5 REST endpoints, using the
+- **Read access:** a typed query gateway in the BFF wrapping the 6 REST endpoints, using the
   `Hexalith.Tenants.Client`/`.Contracts` DTOs (`PaginatedResult<T>`, `TenantSummary`,
   `TenantDetail`, `TenantMember`, `UserTenantMembership`, `TenantAuditEntry`).
   - **Transport (regression guard, added 2026-06-06):** the BFF calls these `GET /api/tenants*`
@@ -348,9 +467,9 @@ existing projections only.
 - **Cursors (D9):** opaque, signed, scope-bound; held server-side, never surfaced as user-facing
   ids; on invalidation re-query page 1 with an honest "list refreshed" notice; multi-replica
   durability treated as **not-yet-guaranteed** (backend Epic 11).
-- **Client read-model:** the Fluxor store is the runtime cache; the re-queried projection is
-  authoritative; **last-confirmed projection is retained separately from in-flight intent**
-  (non-collapse, CP-3).
+- **Client read-model:** typed server-side UI snapshots are the runtime cache; the re-queried
+  projection is authoritative; **last-confirmed projection is retained separately from
+  in-flight intent** (non-collapse, CP-3).
 
 ### Authentication & Security
 
@@ -368,9 +487,9 @@ existing projections only.
 
 ### API & Communication Patterns
 
-- **Backend transport:** server-to-server from the BFF to the query API + command endpoint via
-  **DAPR service invocation** (Aspire service discovery), mirroring the EventStore reference UIs.
-  **No new backend endpoints.**
+- **Backend transport:** server-to-server from the BFF to direct Tenants REST query endpoints
+  and the EventStore command endpoint, with AppHost/DAPR service discovery. **No new backend
+  endpoints.** Query reads must not use the generic EventStore query gateway (AD-6).
 - **Command dispatch:** `POST /api/v1/commands` with a client-generated **`messageId` (ULID)**
   idempotency key; envelope `tenant=system`, `domain ∈ {tenants, global-administrators}`,
   `aggregateId`; returns `202` + `correlationId`.
@@ -378,8 +497,9 @@ existing projections only.
   nudge → authoritative projection re-query; `confirmed` only from the re-query; SignalR never
   advances lifecycle/audit (CP-4); duplicate submit/refresh dedups by `correlationId`. NoOp →
   `already applied`; rejection → safe text; unverifiable → `unable to verify` (never success).
-- **Concurrency policy:** **one-at-a-time** commands (FC-CNC fallback) until FC-CNC lands — no
-  concurrent submission, bulk, or toast-batching. `409 ConcurrencyConflict` (+`Retry-After`) →
+- **Concurrency policy:** the confirmed FC-CNC posture is one active command per
+  `(interactive circuit, AggregateIdentity)` until terminal evidence; no bulk or toast-batching.
+  A stronger shared concurrency contract may replace it later. `409 ConcurrencyConflict` (+`Retry-After`) →
   `retry status lookup`.
 - **Tenant search (Memories-backed, index-only; cc-2026-06-21):** cross-set list search is served by
   `Hexalith.Memories`, **not** a new EventStore endpoint (the read backend stays consume-only — no
@@ -402,13 +522,13 @@ existing projections only.
 - **Render mode:** Blazor **InteractiveServer**; components kept render-mode-agnostic where
   practical to preserve a future Auto option. Root composes `FluentProviders` + the FrontComposer
   shell. *(Reconcile the UX `EXPERIENCE.md` "Auto" assumption to InteractiveServer.)*
-- **Shell composition:** compose `Hexalith.FrontComposer.Shell` — Operations Shell IA (**Tenants**
-  default / **Global Administrators** / **Audit** primary; **Users contextual**, per the UX
-  decision); register a Tenants domain manifest. Story 1.0 confirmed FC-LYT, and Story 1.2
-  resolved the FC-TBL caveat by using Tenants-specific grid/table components for Epic 1 read
-  surfaces while leaving generic reusable grid capability in FrontComposer.
-- **Truth-state model (D5):** a single Fluxor **truth-state feature** is the one source for the 5
-  truth dimensions and the canonical vocabularies (13 badge / 10 lifecycle / 10 feedback / 6
+- **Shell composition:** compose `Hexalith.FrontComposer.Shell` and register exactly one
+  `/tenants` shell entry. The workspace owns Tenants and Users tabs/scope modes; tenant detail,
+  Global Administrators, and Audit remain contextual or policy-gated routes (AD-1 and AD-2).
+  Story 1.2 resolved the FC-TBL caveat with Tenants-specific grid/table components while generic
+  reusable grid capability remains FrontComposer-owned.
+- **Truth-state model (D5):** shared typed immutable state is the one source for the 5 truth
+  dimensions and the canonical vocabularies (13 badge / 10 lifecycle / 10 feedback / 6
   reasons / 5 freshness / 4 audit), exposed as a typed, **casing-faithful** library used verbatim
   by every component (CP-10); **non-collapse enforced in the model** (`accepted`≠`confirmed`≠
   `audit available`; `degraded`/`unable to verify` success-prohibited). The 10 DESIGN.md
@@ -420,12 +540,10 @@ existing projections only.
 
 ### Infrastructure & Deployment
 
-- **UI host (D10):** new `src/Hexalith.Tenants.UI` (`Microsoft.NET.Sdk.Web`, `net10.0`) in the
-  Tenants repo; added to `Hexalith.Tenants.slnx`; orchestrated by the existing
-  `Hexalith.Tenants.AppHost` with references to tenants + eventstore + keycloak; SignalR client to
-  the EventStore hub. *(Reconcile with the EventStore domain-module boundary policy — the policy
-  constrains domain-**service** modules from shipping AppHost/Aspire/ServiceDefaults; a presentation
-  host is distinct, but consume platform `ServiceDefaults` rather than re-implement it.)*
+- **UI host (D10/AD-13):** `src/Hexalith.Tenants.UI` (`Microsoft.NET.Sdk.Web`, `net10.0`) in the
+  Tenants repo and added to `Hexalith.Tenants.slnx`. It consumes platform ServiceDefaults and is
+  wired by a platform/composing host. The existing repository AppHost is transitional migration
+  debt, not an architecture pattern to expand.
 - **Auth wiring:** AppHost wires the Keycloak realm + `Authentication:JwtBearer:*`;
   `EnableKeycloak=false` → symmetric-key JWT locally.
 - **Containers:** SDK container support, `EnableContainer=true`,
@@ -437,16 +555,18 @@ existing projections only.
 
 ### Decision Impact Analysis
 
-**Implementation Sequence:**
-1. **Bootstrap** `Hexalith.Tenants.UI` — shell composition, auth, BFF query gateway, Fluxor
-   truth-state foundation + canonical-vocabulary library (the "Epic 1 / Story 1" bootstrap).
-2. **Read surfaces (MVP — FR-1..9, FR-18)** using the confirmed **FC-LYT** contract.
-3. **First command flows (FR-10/11/13/14)** using the confirmed **FC-CMD + FC-CNC** contracts.
-4. **High-impact + audit + recovery (FR-12/15-17/19/20-25)** on the approved **FC-AUD/FC-CNS**
-   fallbacks.
+**Implementation Sequence (historical build order):**
+1. Bootstrap the UI host, shell composition, auth, BFF gateways, typed truth-state foundation,
+   and canonical vocabulary.
+2. Add read surfaces for FR-1..FR-9 and FR-18.
+3. Add initial command flows for FR-10/11/13/14.
+4. Add high-impact, audit, and recovery flows for FR-12/15-17/19/20-25.
+
+The current architecture remediation priority is to bring `TenantQueryGateway` into AD-6
+conformance by routing reads directly to the Tenants REST query endpoints.
 
 **Cross-Component Dependencies:**
-The **Fluxor truth-state model**, **canonical-vocabulary library**, **BFF query/command gateway**,
+The **typed truth-state model**, **canonical-vocabulary library**, **BFF query/command gateway**,
 **authorization-reflection service**, and **support-safety/redaction layer** are shared foundations
 every surface depends on → built first. FrontComposer contract confirmations (FC-LYT/FC-CMD/FC-CNC)
 are closed by Story 1.0 (2026-06-05); the FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured**
@@ -484,15 +604,15 @@ re-stated** here — it is governed by `project-context.md` (file-scoped namespa
 Agents bind to `Hexalith.Tenants.Client`/`.Contracts` types — never re-declare a DTO, re-case a
 wire field (PascalCase on the wire), or `Guid`/`Ulid.TryParse` a `TenantId`/`UserId`.
 
-**Razor components:** `PascalCase.razor`, one per file; the 10 DESIGN.md components keep exact names
-(`TruthStateBadge`, `ConsequencePreview`, `CommandLifecyclePanel`, `UnavailableActionReason`,
-`AuditEvidenceReceipt`, `TenantDataGrid`, `MemberTable`, `AuditDataGrid`, `PrimaryCommandButton`,
-`DestructiveControl`). Folders organized **by surface/feature** (`Components/Tenants/`,
-`Components/Audit/`, `Components/Shared/`), not by type.
+**Razor components:** `PascalCase.razor`, one per file. Implemented shared/domain primitives include
+`TruthStateBadge`, `AuditEvidenceReceipt`, `TenantDataGrid`, and `AuditDataGrid`; command flows are
+named by domain intent. Folders are organized by actual surface: route components under
+`Components/Pages/`, tenant surfaces under `Components/Tenants/`, user lookup/self-audit under
+`Components/Users/`, and domain reusable views under `Components/Shared/`.
 
-**Fluxor:** `{Area}State` (immutable record); `{Verb}{Noun}Action` intent (`LoadTenantListAction`);
-`{Noun}{Outcome}Action` result (`TenantListLoadedAction`, `TenantListLoadFailedAction`); reducers
-`On{Action}`; effects `Async`-suffixed. One feature per surface + one shared `TruthStateFeature`.
+**State models:** `{Area}Snapshot` or `{Area}State` immutable records with explicit transition
+methods; request and result models remain surface-specific while shared truth, freshness,
+lifecycle, and audit vocabularies remain canonical across surfaces.
 
 **Localization keys (D4 — Tenants-owned):** dotted `PascalCase` under a `Tenants.` root mirroring
 the concept — `Tenants.Freshness.Stale`, `Tenants.UnavailableReason.MissingPermission`,
@@ -508,13 +628,14 @@ named placeholders (`{userName}`, `{tenantName}`) — **never** concatenate loca
 ```
 src/Hexalith.Tenants.UI/
 ├── Components/            # Razor — by surface
-│   ├── Shared/            # the 10 domain components + truth-state primitives
-│   ├── Tenants/ Audit/ GlobalAdministrators/ Users/
-│   └── Layout/ App.razor Routes.razor
-├── State/                # Fluxor features (one per surface) + TruthState feature
+│   ├── Pages/             # workspace, detail, audit, global-admin, and compatibility routes
+│   ├── Tenants/           # tenant, member, configuration, lifecycle, and audit flows
+│   ├── Users/             # my-tenants and user-membership lookup panels
+│   ├── Shared/            # domain reusable views and truth-state primitives
+│   └── Layout/            # FrontComposer shell composition
+├── State/                # typed immutable snapshots and lifecycle/truth models by surface
 ├── Services/             # BFF gateways (query/command), authorization-reflection,
 │                         #   support-safety/redaction, freshness, SignalR client
-├── Vocabulary/           # the typed, casing-faithful canonical-state library (CP-10)
 ├── Resources/            # Tenants-owned .resx (D4)
 └── Program.cs _Imports.razor wwwroot/css/
 tests/Hexalith.Tenants.UI.Tests/   # bUnit + xUnit v3; {Class}Tests.cs (plural)
@@ -525,7 +646,8 @@ E2E in its own tier.
 
 ### Format Patterns
 
-- **Canonical state tokens (CP-10):** consumed **verbatim** from `Vocabulary/`, never hand-typed.
+- **Canonical state tokens (CP-10):** consumed from typed enums/records under `State/` and localized
+  through `Resources/`, never hand-typed at call sites.
   Casing is significant — badge `audit pending` vs state-machine `audit_pending` stay distinct; **no
   agent unifies them**. The library is the single source.
 - **Timestamps:** absolute, culture-formatted, monospace; **never relative-only**.
@@ -536,14 +658,15 @@ E2E in its own tier.
 
 ### Communication Patterns
 
-- **Fluxor discipline:** immutable state; **pure reducers** (no I/O); all I/O in **effects** calling
-  the BFF gateways; UI dispatches **intent**, never mutates state. The **non-collapse invariant is
-  enforced in the reducer** — `accepted`/`confirmed`/`audit available` are distinct fields and never
-  overwrite last-confirmed projection with in-flight intent.
-- **Command confirmation (D2) — the ONE pattern:** dispatch → effect runs status-poll **+** SignalR
-  concurrently → first terminal/projection-change → **authoritative re-query action** → reducer flips
-  `confirmed`. A SignalR nudge dispatches **only** a re-query action, never a state-advancing one
-  (CP-4). No surface implements an alternative or optimistic path.
+- **State discipline:** immutable snapshots and pure transition methods; I/O stays in server-side
+  BFF gateways/composition services. The **non-collapse invariant is enforced by the state model** —
+  `accepted`, `confirmed`, and `audit available` are distinct fields and never overwrite the last
+  confirmed projection with in-flight intent.
+- **Command confirmation (D2) — the ONE pattern:** submit → status-poll and SignalR nudge →
+  **authoritative projection re-query** → state transition. `confirmed` requires expected
+  postcondition plus new projection version or safe command-specific audit evidence beyond the
+  baseline; NoOp/pre-existing state is `already applied`, and missing provenance is `unable to verify`.
+  A SignalR nudge requests re-query only and never advances lifecycle state directly (CP-4).
 - **Idempotency:** one client `messageId` (ULID) per attempt; resubmit/refresh reuses it; dedup by
   `correlationId`.
 
@@ -569,7 +692,7 @@ E2E in its own tier.
 ### Enforcement Guidelines
 
 **All AI agents MUST:**
-- Use the `Vocabulary/` canonical-state library verbatim (casing-significant) — never hand-type a
+- Use the typed canonical state enums/records verbatim (casing-significant) — never hand-type a
   token or unify badge vs state-machine forms.
 - Route every backend call through a **BFF gateway**; never call the API from the browser or place
   tokens/payloads client-side.
@@ -602,102 +725,54 @@ Pattern changes are recorded here + in `project-context.md`.
 
 ### Complete Project Directory Structure
 
-```
-tenants/                                      # repo root (existing)
-├── Hexalith.Tenants.slnx                     # + add the two new projects
-├── Directory.Packages.props                  # + FluentUI, FrontComposer.Shell, SignalR.Client, JwtBearer
+```text
+tenants/
+├── Hexalith.Tenants.slnx
 ├── src/
-│   ├── Hexalith.Tenants.AppHost/             # (existing) + AddProject<HexalithTenantsUI> + Keycloak wiring
-│   ├── Hexalith.Tenants.Client/              # (existing) consumed by the BFF gateways
-│   ├── Hexalith.Tenants.Contracts/           # (existing) DTOs/enums consumed verbatim
-│   ├── Hexalith.Tenants.Server/              # (existing) domain service — untouched
-│   └── Hexalith.Tenants.UI/                  # NEW Blazor InteractiveServer host (D1, D10)
-│       ├── Hexalith.Tenants.UI.csproj        # Microsoft.NET.Sdk.Web, net10.0, EnableContainer
-│       ├── Program.cs                        # AddRazorComponents().AddInteractiveServerComponents();
-│       │                                     #   AddFluentUIComponents(); AddHexalithFrontComposer();
-│       │                                     #   AddTenantsDomainManifest(); JwtBearer; BFF services
-│       ├── _Imports.razor  appsettings*.json  Properties/launchSettings.json
+│   ├── Hexalith.Tenants.AppHost/             # transitional local wiring; migrate to composing host
+│   ├── Hexalith.Tenants.Client/              # domain client contracts
+│   ├── Hexalith.Tenants.Contracts/           # DTOs, enums, commands, and events
+│   ├── Hexalith.Tenants.Server/              # domain-service and query handlers
+│   └── Hexalith.Tenants.UI/                  # InteractiveServer domain presentation host
+│       ├── Composition/                      # one FrontComposer domain registration and /tenants entry
 │       ├── Components/
-│       │   ├── App.razor  Routes.razor       # InteractiveServer root + FluentProviders
-│       │   ├── Layout/
-│       │   │   ├── MainLayout.razor          # composes <FrontComposerShell> (FC-LYT)
-│       │   │   └── TenantsShellManifest.cs   # nav areas, surfaces, columns, routes, command policies
-│       │   ├── Pages/
-│       │   │   └── TenantAuditPage.razor      # FR-20..FR-25 (UJ-4)
-│       │   ├── Shared/                        # the 10 DESIGN.md components + primitives
-│       │   │   ├── TruthStateBadge.razor  ConsequencePreview.razor  CommandLifecyclePanel.razor
-│       │   │   ├── UnavailableActionReason.razor  AuditEvidenceReceipt.razor
-│       │   │   ├── TenantDataGrid.razor  MemberTable.razor  AuditDataGrid.razor
-│       │   │   ├── PrimaryCommandButton.razor  DestructiveControl.razor
-│       │   │   └── ListSurfaceStates.razor   # the six non-collapsible states
-│       │   ├── Tenants/                       # nav area: Tenants (default)
-│       │   │   ├── TenantListPage.razor       # FR-1, FR-2  (UJ-1)
-│       │   │   ├── TenantDetailPage.razor     # FR-5, FR-7  (UJ-1)
-│       │   │   ├── TenantConfigurationView.razor   # FR-6 (read) · FR-16/17 (edit)
-│       │   │   ├── CreateTenantFlow.razor     # FR-13      (UJ-6)
-│       │   │   ├── EditTenantMetadataFlow.razor    # FR-14
-│       │   │   ├── DisableEnableTenantFlow.razor   # FR-15
-│       │   │   ├── Audit/                    # Tenants-owned audit/recovery components
-│       │   │   │   ├── AuditDataGrid.razor        # FR-20, FR-21
-│       │   │   │   ├── AuditEvidenceReceipt.razor # FR-22, FR-23
-│       │   │   │   ├── AuditAvailabilityState.razor
-│       │   │   │   └── CorrectionStartPanel.razor # FR-24, FR-25 tenant-domain correction
-│       │   │   └── Members/
-│       │   │       ├── MemberAccessReview.razor    # FR-8, FR-9 (UJ-2)
-│       │   │       ├── AddUserFlow.razor           # FR-10     (UJ-6)
-│       │   │       ├── ChangeRoleFlow.razor        # FR-11     (UJ-5)
-│       │   │       └── RemoveUserFlow.razor        # FR-12     (UJ-3 flagship)
-│       │   ├── Users/                         # nav area: Users (contextual)
-│       │   │   ├── MyTenantsPage.razor        # FR-3       (UJ-5 / Marc)
-│       │   │   └── UserMembershipsLookup.razor     # FR-4
-│       │   ├── GlobalAdministrators/          # nav area: Global Administrators
-│       │   │   ├── GlobalAdminReview.razor    # FR-18      (UJ-2)
-│       │   │   └── GlobalAdminCommandFlow.razor    # FR-19
-│       ├── State/                            # Fluxor features (immutable state, pure reducers, effects)
-│       │   ├── TruthState/                   # the shared 5-dimension model (D5)
-│       │   ├── CommandLifecycle/             # the D2 confirm state machine
-│       │   ├── TenantList/  TenantDetail/  Members/  Audit/  GlobalAdministrators/
-│       ├── Services/                         # the server-side BFF + cross-cutting (D6–D8)
-│       │   ├── Gateways/  TenantQueryGateway.cs  CommandGateway.cs   # the ONLY backend egress
-│       │   ├── Authorization/  AuthorizationReflectionService.cs     # claims→availability (D7)
-│       │   ├── SupportSafety/  NarrativePayloadAssembler.cs  Redactor.cs  ReceiptBuilder.cs (D8)
-│       │   ├── Freshness/  FreshnessEvaluator.cs                     # ETag/304→freshness (D6)
-│       │   ├── Realtime/  ProjectionNotificationClient.cs           # SignalR, nudge-only
-│       │   └── Rejections/  RejectionTextCatalog.cs                 # rejection code→safe text
-│       ├── Vocabulary/                       # CP-10 canonical-state library (single source)
-│       │   ├── TruthStateBadge.cs (13)  Freshness.cs (5)  CommandLifecycle.cs (10 + machine tokens)
-│       │   ├── LayeredFeedback.cs (10)  UnavailableActionReason.cs (6)  AuditAvailability.cs (4)
-│       │   └── RecoveryVerbs.cs
-│       ├── Resources/  TenantsResources.resx  TenantsResources.fr.resx   # D4, Tenants-owned
-│       └── wwwroot/css/app.css
-├── tests/
-│   ├── Hexalith.Tenants.UI.Tests/            # NEW bUnit + xUnit v3 (Tier 1); {Class}Tests.cs
-│   │   ├── Components/  State/  Services/  Vocabulary/   # mirrors src
-│   └── Hexalith.Tenants.UI.E2E/              # NEW Playwright (Tier 3); the 6 acceptance scenarios
-└── (existing) src/Hexalith.Tenants/ … Server/Testing as-is
+│       │   ├── Pages/                        # workspace and contextual routes
+│       │   ├── Tenants/                      # tenant-domain surfaces and command flows
+│       │   ├── Users/                        # my-tenants and user lookup panels
+│       │   ├── Shared/                       # tenant-domain reusable view components
+│       │   └── Layout/                       # FrontComposer shell composition only
+│       ├── Services/
+│       │   ├── Gateways/                     # only backend egress from the UI host
+│       │   └── SupportSafety/                # rendered/copy safety classification
+│       ├── State/                            # typed snapshots and lifecycle/truth models
+│       ├── Resources/                        # Tenants-owned EN/FR domain copy
+│       └── Program.cs                        # InteractiveServer, FrontComposer, Fluent, auth, BFF wiring
+└── tests/
+    └── Hexalith.Tenants.UI.Tests/            # bUnit, conformance, gateway, and state coverage
 ```
 
 ### Architectural Boundaries
 
 **API boundary (the trust edge):** the `Services/Gateways/` are the **only** egress to the backend
-— `GET /api/tenants*`, `POST /api/v1/commands`, `GET /api/v1/commands/status/{id}` over DAPR service
-invocation; `ProjectionNotificationClient` connects to the EventStore SignalR hub (nudge-only). The
+— direct Tenants `GET /api/tenants*` reads plus EventStore `POST /api/v1/commands` and
+`GET /api/v1/commands/status/{id}`; projection notification is a nudge only. The
 **browser never calls the backend** and never holds a token (InteractiveServer, D1). No new backend
 endpoints (NFR-5).
 
-**Component boundary:** components are presentation-only — they subscribe to Fluxor state and
-dispatch **intent** actions; **no component calls a gateway directly** (only effects do). The 10
-Shared components are pure-view bound to the `TruthState` model.
+**Component boundary:** components render typed snapshots and may call the injected BFF
+composition/gateway contracts; they never create backend clients or call Tenants, EventStore, or
+Memories directly. Shared components remain pure views over typed state.
 
 **Service boundary:** gateways, authorization-reflection, freshness, support-safety/redaction, and
 rejection-text all run **server-side** in the circuit; this is where redaction happens, so nothing
 unsafe (tokens, payloads, correlation-ids, PII, stack traces) can cross into the rendered DOM (D8/§10).
 
 **Data boundary:** the UI owns **no datastore**; the re-queried projection is the source of truth;
-the Fluxor store is an ephemeral cache; **last-confirmed projection is held separately from in-flight
-intent** (non-collapse). Cursors are opaque and server-held (D9).
+typed UI snapshots are an ephemeral cache; **last-confirmed projection is held separately from
+in-flight intent** (non-collapse). Cursors are opaque and server-held (D9).
 
-**FrontComposer boundary:** Tenants composes the Shell (layout, manifest nav, FC-TBL DataGrid) and
+**FrontComposer boundary:** Tenants composes the Shell with one `/tenants` entry and page-local
+workspace navigation. It consumes FrontComposer layout, registration, and reusable primitives and
 **never re-implements** a missing FC capability — those are contracts (FC-LYT/FC-CMD/FC-CNC) or
 approved fallbacks (FC-AUD/FC-CNS), per the domain-boundary policy.
 
@@ -705,29 +780,27 @@ approved fallbacks (FC-AUD/FC-CNS), per the domain-boundary policy.
 
 | Feature group (FRs) | Lives in | Phase |
 |---|---|---|
-| 7.1 Discovery & Triage (FR-1..4) | `Components/Tenants/TenantList*`, `Components/Users/*` | 2a |
-| 7.2 Detail & Config view (FR-5..7) | `Components/Tenants/TenantDetail*`, `TenantConfigurationView` | 2a |
+| 7.1 Discovery & Triage (FR-1..4) | `Components/Pages/TenantsWorkspace`, `Components/Users/*` | 2a |
+| 7.2 Detail & Config view (FR-5..7) | `Components/Pages/TenantDetailPage`, `Components/Tenants/TenantConfigurationView` | 2a |
 | 7.3 Member & Access review (FR-8..9) | `Components/Tenants/Members/MemberAccessReview` | 2a |
 | 7.4 Member & Role mgmt (FR-10..12) | `Components/Tenants/Members/{AddUser,ChangeRole,RemoveUser}Flow` | 2b/2c |
 | 7.5 Lifecycle (FR-13..15) | `Components/Tenants/{CreateTenant,EditTenantMetadata,DisableEnableTenant}Flow` | 2b/2c |
 | 7.6 Configuration mgmt (FR-16..17) | `Components/Tenants/TenantConfigurationView` (edit) | 2c |
-| 7.7 Global-admin governance (FR-18..19) | `Components/GlobalAdministrators/*` | 2a/2c |
+| 7.7 Global-admin governance (FR-18..19) | `Components/Pages/GlobalAdministratorsPage`, `State/GlobalAdministrators/*` | 2a/2c |
 | 7.8 Audit trail & evidence (FR-20..23) | `Components/Pages/TenantAuditPage` and `Components/Tenants/Audit/{AuditDataGrid,AuditEvidenceReceipt,AuditAvailabilityState}` | 2c |
 | 7.9 Compensating recovery (FR-24..25) | `Components/Tenants/Audit/CorrectionStartPanel` plus `State/TenantAudit/TenantCorrection*` models | 2c |
 
-**Cross-cutting concerns → location:** truth-state model → `State/TruthState` + `Vocabulary/`;
-command confirm → `State/CommandLifecycle` + `Services/Gateways/CommandGateway`; authorization
-reflection → `Services/Authorization`; support-safety → `Services/SupportSafety`; freshness →
-`Services/Freshness`; localization → `Resources/`; live-region/focus a11y → `Components/Shared`.
+**Cross-cutting concerns → location:** truth/lifecycle/audit models → `State/`; query and command
+egress → `Services/Gateways/`; support safety → `Services/SupportSafety`; localization →
+`Resources/`; live-region/focus accessibility → `Components/Shared` and the focused flow components.
 
 ### Integration Points
 
-**Internal communication:** Component → `dispatch(intent action)` → Reducer (pure) + Effect (I/O via
-gateway) → `re-query action` → Reducer → Component re-renders from state. SignalR nudge → re-query
-action only.
+**Internal communication:** component/panel → server-side BFF gateway or composition service →
+immutable snapshot transition → component re-render. SignalR remains a re-query nudge only.
 
-**External integrations:** Tenants/EventStore query+command API (DAPR), EventStore SignalR hub,
-Keycloak/OIDC (or symmetric-key JWT dev) — all reached server-side via the AppHost-wired references.
+**External integrations:** direct Tenants REST query API, EventStore command API and SignalR hub,
+Memories search index, and Keycloak/OIDC — all reached server-side through AppHost-wired references.
 
 **Data flow (command):** UI intent → `CommandGateway` (`POST /commands`, `messageId`) → 202 →
 parallel status-poll **+** SignalR → authoritative projection re-query → `confirmed` → audit re-query
@@ -738,16 +811,16 @@ parallel status-poll **+** SignalR → authoritative projection re-query → `co
 - **Configuration:** `appsettings*.json` (UI host); AppHost supplies `Authentication:JwtBearer:*` +
   service references; no secrets in the repo.
 - **Source:** by surface under `Components/`; shared view in `Components/Shared/`; logic split across
-  `State/` (Fluxor), `Services/` (server-side BFF), `Vocabulary/` (canonical tokens).
+  `State/` (typed snapshots/lifecycle) and `Services/` (server-side BFF and safety concerns).
 - **Test:** separate `*.UI.Tests` (bUnit, Tier 1) mirroring src + `*.UI.E2E` (Playwright, Tier 3);
   `{Class}Tests.cs` plural; never co-located.
 - **Assets:** `wwwroot/css/app.css`; Fluent bundle via the package's static web assets; no bespoke palette.
 
 ### Development Workflow Integration
 
-- **Dev server:** launched by `Hexalith.Tenants.AppHost` (`aspire run`) alongside tenants/eventstore/
-  keycloak; placement+scheduler started first (slim mode); `http://localhost:8080`; `EnableKeycloak=false`
-  → symmetric-key JWT.
+- **Dev server:** currently launched by the transitional `Hexalith.Tenants.AppHost` (`aspire run`)
+  alongside tenants/eventstore/keycloak; the target is an external platform/composing host.
+  Placement+scheduler start first in slim mode; `EnableKeycloak=false` enables local symmetric-key JWT.
 - **Build:** `.slnx` restore/build (`-warnaserror`); per-project `dotnet test`; coverage gates as configured.
 - **Deployment:** SDK container (`ContainerRepository=tenants-ui` → `registry.hexalith.com/tenants-ui`),
   no Dockerfile; ships as an **image, not a NuGet package** (unlike the 5 libraries).
@@ -762,15 +835,16 @@ redaction, and D9 cursors, so tokens/payloads never reach the browser and reconn
 server state. No contradictory decisions. One **recorded divergence** (not a contradiction): D1
 InteractiveServer vs. the UX `EXPERIENCE.md` "Auto" assumption — logged as a reconciliation action
 item (the UX named an assumption, not a hard requirement; NFR-3 holds either way, more simply under
-InteractiveServer). Versions consistent: .NET 10 (10.0.300) + Fluent v5 RC pin inherited from
+InteractiveServer). Versions consistent: .NET 10 (10.0.301) + Fluent v5 RC pin inherited from
 FrontComposer.
 
 **Pattern Consistency:** patterns enforce the decisions — Vocabulary-verbatim (CP-10), BFF-only
 egress (D1/D8), the single D2 confirm path, the six list states, l10n keys (D4), stable selectors
 (NFR-4). No pattern contradicts a decision.
 
-**Structure Alignment:** the tree realizes the decisions — `Services/` (BFF, D6–D9), `State/` (Fluxor,
-D5), `Vocabulary/` (CP-10), `Resources/` (D4) — and the five boundaries make the trust edge explicit.
+**Structure Alignment:** the tree realizes the decisions — `Services/` (BFF, D6–D9), `State/`
+(typed truth and lifecycle models, D5), and `Resources/` (D4) — and the boundaries make the trust
+edge explicit.
 
 ### Requirements Coverage Validation ✅
 
@@ -778,25 +852,40 @@ D5), `Vocabulary/` (CP-10), `Resources/` (D4) — and the five boundaries make t
 (UJ-1..6) land on them.
 
 **Functional Requirements:** all **25 FRs** have an architectural home, including the previously
-story-less FR-22/24/25 (now structurally homed in `Components/Audit/` and covered by Epic 5 stories).
+story-less FR-22/24/25 (now structurally homed in `Components/Tenants/Audit/` and covered by Epic 5 stories).
 
 **Non-Functional Requirements:** NFR-1 (cursor + 304 + freshness; numeric budgets deferred), NFR-2
 (server-enforced + reflection, tokens server-side), NFR-3 (D2 confirm + InteractiveServer + non-
 collapse), NFR-4 (selectors + test tiers), NFR-5 (no datastore; compensating commands). CP-1..CP-10
 encoded in the truth-state model + Vocabulary + process patterns.
 
-### Implementation Readiness Validation ✅ design / ⛔ build-start (externally gated)
+### Implementation Readiness Validation ⚠️ design complete / implementation remediation required
 
 **Decision Completeness:** D1–D10 documented with the version posture. **Structure Completeness:**
 complete tree + boundaries + FR mapping. **Pattern Completeness:** naming/structure/format/
 communication/process + examples + anti-patterns; all conflict points addressed.
 
-> The architecture is implementation-ready **as a design**. Build-start remains **externally gated**
-> (see Gap Analysis), exactly as the PRD (§14) and the readiness report predicted.
+> The architecture is complete as a decision set. FrontComposer dependencies are closed, but
+> AD-6/AD-8 query provenance, AD-10 search-cursor scope, AD-13 orchestration ownership, and AD-14
+> health/telemetry/scaling controls must be remediated before architecture conformance can be claimed.
 
 ### Gap Analysis Results
 
-**Critical (block BUILD-START — external/downstream, not architecture deficiencies):**
+**Critical implementation conformance issues:**
+- **AD-6 / AD-8 query provenance - OPEN 2026-07-15.** `TenantQueryGateway` currently uses
+  `IEventStoreGatewayClient.SubmitQueryAsync`, and the configured handler route normalizes
+  freshness to `Unknown`. The platform REST surface must first propagate ETag and freshness
+  provenance; the composing host must then expose separate Tenants-query and EventStore-command
+  references; finally the UI BFF can split clients without losing metadata.
+- **AD-13 orchestration ownership - OPEN 2026-07-15.** The repository-owned AppHost is
+  transitional and must migrate to a platform/composing host rather than expand.
+- **AD-10 search cursor - OPEN 2026-07-15.** The current Memories cursor is a plaintext offset;
+  replace it with an opaque cursor bound to authenticated user and normalized search scope.
+- **AD-14 production operations - OPEN 2026-07-15.** Add shared health endpoint mapping and
+  OpenTelemetry/ServiceDefaults integration. InteractiveServer remains single-replica until shared
+  DataProtection, circuit/session routing, and cursor durability are verified.
+
+**Closed external/downstream gates:**
 - **FrontComposer readiness - CLOSED 2026-06-05 for FC-LYT/FC-CMD/FC-CNC.** D3 commits to a
   hybrid posture. The FC-AUD/FC-CNS/FC-CNC fallback **approvals are secured** (2026-06-03 - see
   `fallback-approval-record-2026-06-03.md`), and Story 1.0 confirms the shell/layout/command/
@@ -815,15 +904,14 @@ communication/process + examples + anti-patterns; all conflict points addressed.
 - Fluent v5 **RC→GA** risk — track FrontComposer's pin; verify tokens at build.
 
 **Nice-to-have:**
-- Decide whether `Vocabulary/` becomes a shared project (so Server/Testing assert the same tokens).
+- Consider extracting canonical state contracts only if another package genuinely needs to consume them.
 - Deepen observability/telemetry + NFR test-design specifics.
 
 ### Validation Issues Addressed
 
-No architecture-internal contradictions surfaced. The single decision↔source divergence (render mode
-vs. the UX "Auto" assumption) is recorded as a reconciliation action item with rationale (trust/
-support-safety + ecosystem alignment), for UX sign-off. All build-blocking items are external/
-downstream and captured as explicit action items, not silent gaps.
+No contradiction remains in the decision set after merging AD-1..AD-14. The render-mode source
+divergence is resolved in favor of InteractiveServer. The open AD-6/AD-8, AD-10, AD-13, and AD-14
+implementation divergences are recorded explicitly rather than weakening the architecture rules.
 
 ### Architecture Completeness Checklist
 
@@ -853,18 +941,17 @@ downstream and captured as explicit action items, not silent gaps.
 
 ### Architecture Readiness Assessment
 
-**Overall Status:** READY WITH MINOR GAPS *(architecture design)* — **build-start remains externally
-gated** by FrontComposer **contract** readiness (FC-LYT/FC-CMD/FC-CNC). The FC-AUD/FC-CNS/FC-CNC fallback
-approvals are secured (2026-06-03 — see `fallback-approval-record-2026-06-03.md`); the epics/stories layer
-now exists (`epics.md`). This is the documented external/downstream dependency chain (PRD §14, readiness
-report), not an architecture deficiency.
+**Overall Status:** READY WITH REMEDIATION *(architecture design)* — AD-1..AD-14 are canonical,
+FrontComposer contract readiness and fallback approvals are closed, and the epics/stories layer
+exists. AD-6/AD-8 query provenance, AD-10 search cursor scope, AD-13 orchestration ownership, and
+AD-14 health/telemetry/scaling controls remain open in the platform/implementation.
 
-**Confidence Level:** HIGH — coherent, full coverage of the 25 FRs + NFRs + CP contract, and
-unambiguous decisions/patterns/structure for AI agents.
+**Confidence Level:** MEDIUM-HIGH — the decision set is coherent and covers the 25 FRs, NFRs, and
+CP contract, while the explicitly listed platform and implementation remediations remain open.
 
 **Key Strengths:**
 - The honesty/trust thesis is enforced **structurally** (server-side BFF + the D2 confirm path +
-  Vocabulary-verbatim + non-collapse in the reducer), not left to per-surface discipline.
+  typed canonical state + non-collapse transitions), not left to per-surface discipline.
 - Tight alignment with the existing ecosystem (FrontComposer Shell, reference UIs, repo conventions,
   fixed backend contract) — minimal new surface area, maximal reuse.
 - Every FR has a home; every cross-cutting concern has a single owner.
@@ -877,12 +964,18 @@ unambiguous decisions/patterns/structure for AI agents.
 ### Implementation Handoff
 
 **AI Agent Guidelines:**
-- Follow D1–D10 and the patterns exactly; never optimistic success; Vocabulary verbatim; BFF-only
-  egress; localize via Tenants `.resx`; tag `data-testid`.
+- Follow AD-1..AD-14, D1–D10 where complementary, and the patterns exactly; never optimistic
+  success; use canonical typed state; keep BFF-only egress; localize via Tenants `.resx`; tag
+  `data-testid`.
 - Respect the five boundaries; the projection re-query is the only source of truth.
 - Refer to this document for all architectural questions; record any change here + in `project-context.md`.
 
-**First Implementation Priority:**
-The "Epic 1 / Story 1 bootstrap" — create `src/Hexalith.Tenants.UI` (the step-3 recipe), compose the
-FrontComposer Shell, wire JWT + the BFF query gateway, stand up the Fluxor `TruthState` feature + the
-`Vocabulary/` library — **after** FC-LYT is confirmed and the Shell integration spike is done.
+**Current Implementation Priority:**
+
+1. Extend the platform REST path to preserve ETag and read-model freshness provenance.
+2. Move topology ownership to a platform/composing host with separate Tenants-query and
+   EventStore-command references.
+3. Split the UI BFF query and command clients, then route all six reads directly to Tenants.
+4. Replace the plaintext Memories search offset with an opaque, user/query-scoped cursor.
+5. Add shared health and OpenTelemetry/ServiceDefaults integration; keep InteractiveServer
+   single-replica until the remaining AD-14 operational prerequisites are proven.

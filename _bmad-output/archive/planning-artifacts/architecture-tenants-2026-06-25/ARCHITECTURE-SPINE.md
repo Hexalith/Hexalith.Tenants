@@ -7,10 +7,10 @@ paradigm: FrontComposer-composed domain UI
 scope: Tenants Management UI composition inside Hexalith.Tenants
 status: final
 created: 2026-06-25
-updated: 2026-06-29
+updated: 2026-07-15
 binds:
   - FR-1..FR-25
-  - NFR-1..NFR-10
+  - NFR-1..NFR-5
   - UX-DR1..UX-DR33
 sources:
   - _bmad-output/planning-artifacts/architecture.md
@@ -39,7 +39,7 @@ The event-sourced Tenants backend is inherited context. The composition spine go
 | --- | --- | --- |
 | Event-sourced Tenants domain with immutable corrections and projection reads | Tenants project context, contracts, and server code | Query, command, audit, and recovery surfaces |
 | Blazor InteractiveServer plus server-side BFF | `src/Hexalith.Tenants.UI/Program.cs` | Browser/backend boundary, token handling, gateway composition |
-| Direct Tenants REST reads with projection freshness metadata | `src/Hexalith.Tenants/Queries`, `src/Hexalith.Tenants.UI/Services/Gateways` | List, detail, member, user, audit, global-administrator surfaces |
+| Required direct Tenants REST reads with projection freshness metadata | Tenants query contracts and AD-6/AD-8 remediation | List, detail, member, user, audit, global-administrator surfaces |
 | FrontComposer and Fluent UI V5 are mandatory UI sources | Hexalith UX instructions and FrontComposer project context | All module UI components, layout, styling, conformance tests |
 
 ## Invariants & Rules
@@ -54,7 +54,7 @@ The event-sourced Tenants backend is inherited context. The composition spine go
 
 - **Binds:** `/tenants`, `/tenants/my`, `/tenants/users`, tenant detail and audit return flows.
 - **Prevents:** shell navigation, route aliases, and return links from encoding incompatible information architecture.
-- **Rule:** `/tenants` defaults to the Tenants tab; the Users tab is lookup-backed by `GET /api/users/{userId}/tenants` and must not claim complete all-users inventory; old routes remain aliases or canonical links into the workspace.
+- **Rule:** `/tenants` plus `tab=tenants|users`, `scope=all|mine`, `userId`, `search`, `status`, `sort`, `desc`, and `cursor` is canonical workspace state. Invalid values normalize fail-safe; changing any tab/scope/filter/sort field resets cursor. `/tenants/my` and `/tenants/users` remain renderable compatibility routes, while generated navigation and return URLs use canonical `/tenants` state. `/tenants/{tenantId}`, `/tenants/{tenantId}/audit`, and `/global-administrators` are contextual routes and none registers another shell entry.
 
 ### AD-3 - FrontComposer And Fluent Are The First UI Composition Surface [ADOPTED]
 
@@ -102,7 +102,7 @@ The event-sourced Tenants backend is inherited context. The composition spine go
 
 - **Binds:** FR-1 cross-set tenant search and tenant list search states.
 - **Prevents:** adding a Tenants/EventStore list-filter endpoint, rendering row truth from Memories, or blocking the tenant list on search outage.
-- **Rule:** Memories returns tenant ids from `tenants-index`; the BFF hydrates rows through the authoritative Tenants read path and degrades to the cursor list when Memories is unavailable.
+- **Rule:** Memories defines an offset result window and returns tenant ids from `tenants-index`; the BFF deduplicates ids in returned order, hydrates and authorization-filters them through the authoritative Tenants read path, and applies the requested deterministic visible sort within the page. The next offset advances by raw Memories hits consumed, including malformed, duplicate, unauthorized, or unhydrated hits; dropped hits are not backfilled and partial hydration is degraded. The search cursor is opaque and bound to the authenticated user plus normalized query/status/sort/page-size scope; mismatch resets page 1 with an honest notice. Memories outage degrades to the cursor list.
 
 ### AD-11 - UI Conformance Tests Are Architectural Guardrails [ADOPTED]
 
@@ -114,13 +114,19 @@ The event-sourced Tenants backend is inherited context. The composition spine go
 
 - **Binds:** FR-10..FR-17, FR-19, FR-24..FR-25, CP-2..CP-8.
 - **Prevents:** independent command flows choosing optimistic success, concurrent submits, bulk action, toast batching, or bypassing preview/gating.
-- **Rule:** command UX composes the shared gateway/lifecycle pattern, consequence preview where required, projection re-query confirmation, and the approved one-at-a-time concurrency fallback until a stronger FrontComposer command contract replaces it.
+- **Rule:** command UX composes the shared gateway/lifecycle pattern and consequence preview where required. Lock scope is `(interactive circuit, AggregateIdentity)`: one command for that aggregate remains active from submit through accepted/projection-pending until terminal evidence, while unrelated aggregates may proceed. `confirmed` requires the expected postcondition plus projection-version advancement or safe command-specific audit evidence beyond the pre-submit baseline. A pre-existing expected state or NoOp is `already applied`, never `confirmed`; unavailable provenance is `unable to verify`. Unrelated projection data, command status, and SignalR nudges never confirm.
 
-### AD-13 - The UI Host Is A Domain Presentation Host [ADOPTED]
+### AD-13 - The UI Host Is Domain-Owned; Orchestration Is Platform-Owned [ADOPTED]
 
-- **Binds:** deployment, local orchestration, auth/service references, containerization.
-- **Prevents:** moving Tenants domain UI into FrontComposer, shipping it as a NuGet package, adding Dockerfiles, or duplicating shared hosting/ServiceDefaults infrastructure.
-- **Rule:** `src/Hexalith.Tenants.UI` is a publishable app/container owned by this repository and wired by `src/Hexalith.Tenants.AppHost`; shared platform hosting capability stays in shared Hexalith modules.
+- **Binds:** deployment, local orchestration, auth/service references, and containerization.
+- **Prevents:** moving Tenants domain UI into FrontComposer, shipping it as a NuGet package, adding Dockerfiles, expanding a repository-owned AppHost/Aspire surface, or duplicating shared hosting/ServiceDefaults infrastructure.
+- **Rule:** `src/Hexalith.Tenants.UI` is a publishable app/container owned by this repository; distributed orchestration belongs to a platform/composing host. The existing `src/Hexalith.Tenants.AppHost` is transitional legacy to migrate or remove and must not gain shared hosting plumbing.
+
+### AD-14 - Production Operations And Scaling Are Platform-Governed [ADOPTED]
+
+- **Binds:** NFR-1..NFR-5, container deployment, configuration, secrets, health, telemetry, and replica count.
+- **Prevents:** embedding secrets, treating UI memory as durable truth, shipping bespoke observability, or scaling InteractiveServer with incompatible key/session/cursor assumptions.
+- **Rule:** externalize configuration and secrets; consume shared health, telemetry, and non-root SDK-container defaults; keep persistent truth outside the UI host; and do not scale InteractiveServer beyond one replica until shared DataProtection, circuit/session routing, and cursor durability are verified.
 
 ```mermaid
 flowchart LR
@@ -129,7 +135,7 @@ flowchart LR
   UI[Hexalith.Tenants.UI Components]
   State[Typed Tenant UI State]
   BFF[Server-side BFF Gateways]
-  AppHost[Tenants AppHost]
+  Host[Platform or composing host]
   Container[tenants-ui container]
   Tenants[Tenants REST Query API]
   EventStore[EventStore Command API and SignalR]
@@ -143,7 +149,7 @@ flowchart LR
   BFF --> Tenants
   BFF --> EventStore
   BFF --> Memories
-  AppHost --> Container
+  Host --> Container
   Container --> UI
   Memories -. tenant ids only .-> BFF
   EventStore -. freshness nudge only .-> BFF
@@ -164,7 +170,7 @@ flowchart LR
 | Support safety | Rendered output and copy actions never expose payloads, bearer tokens, decoded JWTs, raw metadata, ETags, cursors, correlation ids, stack traces, or PII. |
 | Testing | bUnit and conformance tests lock navigation, Fluent usage, resource parity, selectors, support safety, and route aliases. |
 | Commands | Command flows use one-at-a-time submission, shared lifecycle wording, preview where required, status polling plus projection re-query, and no optimistic success. |
-| Deployment | The UI host is an app/container wired by the repo AppHost; it is not a NuGet package and does not own generic hosting infrastructure. |
+| Deployment | The UI host is an app/container wired by a platform/composing host; it is not a NuGet package and does not own generic hosting infrastructure. |
 
 ## Stack
 
@@ -172,12 +178,10 @@ flowchart LR
 | --- | --- |
 | .NET SDK | 10.0.301 |
 | Blazor render mode | InteractiveServer on ASP.NET Core 10 |
-| Microsoft.FluentUI.AspNetCore.Components | 5.0.0-rc.3-26138.1 |
-| Hexalith.FrontComposer | source submodule e2ac85aac67d |
-| Hexalith.EventStore source | source submodule 60e63a95bed8 |
-| Hexalith.EventStore package fallback | 3.19.0 |
-| Hexalith.Memories source | source submodule 24757db93c90 |
-| Hexalith.Memories package fallback | 1.31.1 |
+| Microsoft.FluentUI.AspNetCore.Components | 5.0.0-rc.4-26180.1 |
+| Hexalith.FrontComposer package baseline | 3.1.1 |
+| Hexalith.EventStore | 3.64.1 |
+| Hexalith.Memories | 2.5.0 |
 | Dapr packages | 1.18.4 |
 | Aspire packages | 13.4.6 |
 | xUnit v3 | 3.2.2 |
@@ -196,8 +200,8 @@ src/Hexalith.Tenants.UI/
   Services/SupportSafety/      # redaction and safe-copy classification
   State/                       # typed runtime UI state per surface
   Resources/                   # Tenants-owned localized domain copy
-src/Hexalith.Tenants.AppHost/
-  HexalithTenantsUI.cs          # local orchestration metadata for the UI host
+platform/composing-host/
+  Tenants UI + service refs     # orchestration lives outside the domain module
 tests/Hexalith.Tenants.UI.Tests/
   Components/                  # bUnit surface coverage
   Services/                    # gateway/support-safety coverage
@@ -237,8 +241,19 @@ flowchart TB
 | FR-18..FR-19 global administrators | `GlobalAdministratorsPage`, global-admin state/models | AD-1, AD-5, AD-7, AD-9, AD-12 |
 | FR-20..FR-23 audit evidence | `TenantAuditPage`, `AuditDataGrid`, `AuditEvidenceReceipt` | AD-1, AD-3, AD-5, AD-7, AD-9 |
 | FR-24..FR-25 compensating recovery | audit correction components and command gateway | AD-5, AD-7, AD-9, AD-12 |
-| NFR-6, NFR-7, NFR-8, NFR-9 evidence | UI conformance tests and route smoke tests | AD-3, AD-9, AD-11 |
-| UI host deployment and local orchestration | `Hexalith.Tenants.UI`, `Hexalith.Tenants.AppHost` | AD-13 |
+| NFR-1..NFR-5 evidence | UI conformance, gateway, state, route, health, and telemetry tests | AD-3, AD-7, AD-8, AD-9, AD-11, AD-14 |
+| UI host deployment and orchestration | `Hexalith.Tenants.UI` plus a platform/composing host | AD-13, AD-14 |
+
+## Implementation Conformance
+
+The 2026-07-15 merge reality check found four active implementation divergences:
+
+- **AD-6 / AD-8:** `TenantQueryGateway` currently calls `IEventStoreGatewayClient.SubmitQueryAsync`, and the configured generic handler route normalizes freshness provenance to `Unknown`. Before switching the BFF, the direct Tenants REST surface must propagate ETag/read-model freshness headers and metadata; a composing host must expose distinct Tenants-query and EventStore-command service references; then the UI BFF must split those clients.
+- **AD-13:** `src/Hexalith.Tenants.AppHost` remains repository-owned transitional orchestration and must migrate to a platform/composing host rather than expand.
+- **AD-14:** the UI host lacks shared health endpoint mapping and OpenTelemetry/ServiceDefaults integration; multi-replica InteractiveServer is not approved until those controls plus shared DataProtection, session routing, and cursor durability are verified.
+- **AD-10:** the implemented Memories cursor is a plaintext offset without authenticated-user/query scope binding; replace it with the opaque scoped cursor required by AD-10.
+
+These are remediation items; they do not amend or weaken the ADs.
 
 ## Deferred
 
@@ -248,5 +263,7 @@ flowchart TB
 | Shared FrontComposer replacements for approved fallbacks | FrontComposer ships reusable equivalents for audit timeline, consequence preview, or command concurrency contracts. |
 | Freshness `aging` over the wire | EventStore exposes `ProjectedAt` or equivalent metadata in `QueryResponseMetadata`. |
 | Multi-replica cursor durability | Backend shared DataProtection key-ring or cursor durability work lands. |
+| Repository-owned AppHost removal | A platform/composing host owns Tenants UI, Tenants service, EventStore, Memories, identity, and DAPR topology. |
+| Project-context AppHost exception | Separately authorize reconciliation of `_bmad-output/project-context.md` with the governing domain-module boundary and AD-13. |
 | RTL verification and WCAG 2.2 claim | Product promotes it into release scope and pinned Fluent/FrontComposer behavior is verified. |
 | Sensitive configuration display | Product/security defines the masking, reveal, and audit policy. |
