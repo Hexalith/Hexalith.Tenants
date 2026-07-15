@@ -106,6 +106,32 @@ public sealed class TenantQueryGatewayTests
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Current, true, ReadModelFreshnessState.Current)]
+    [InlineData(ProjectionLifecycleState.Stale, false, ReadModelFreshnessState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding, false, ReadModelFreshnessState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Degraded, false, ReadModelFreshnessState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Unavailable, false, ReadModelFreshnessState.Unknown)]
+    [InlineData(ProjectionLifecycleState.LocalOnly, false, ReadModelFreshnessState.Unknown)]
+    [InlineData((ProjectionLifecycleState)999, false, ReadModelFreshnessState.Unknown)]
+    public async Task Get_tenant_projection_lifecycle_precedes_legacy_stale_evidence(
+        ProjectionLifecycleState lifecycle,
+        bool isStale,
+        ReadModelFreshnessState expectedFreshness)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle));
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Freshness.ShouldBe(expectedFreshness);
+    }
+
     [Fact]
     public async Task Get_tenant_uses_previous_snapshot_for_not_modified_response()
     {
@@ -144,6 +170,36 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Stale);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Stale);
+    }
+
+    [Theory]
+    [InlineData(ProjectionLifecycleState.Current, true, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Current)]
+    [InlineData(ProjectionLifecycleState.Stale, false, TenantDetailSurfaceKind.Stale, ReadModelFreshnessState.Stale)]
+    [InlineData(ProjectionLifecycleState.Rebuilding, false, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Degraded, false, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
+    [InlineData(ProjectionLifecycleState.Unavailable, false, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
+    [InlineData(ProjectionLifecycleState.LocalOnly, false, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
+    [InlineData((ProjectionLifecycleState)999, false, TenantDetailSurfaceKind.Ready, ReadModelFreshnessState.Unknown)]
+    public async Task Get_tenant_not_modified_applies_authoritative_lifecycle_evidence(
+        ProjectionLifecycleState lifecycle,
+        bool isStale,
+        TenantDetailSurfaceKind expectedKind,
+        ReadModelFreshnessState expectedFreshness)
+    {
+        TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
+            Detail("tenant.alpha"),
+            eTag: "\"known\"",
+            freshness: ReadModelFreshnessState.Current);
+        CapturingGatewayClient client = new();
+        client.EnqueueDetailNotModified("\"known\"", isStale, lifecycle);
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "\"known\""), previous, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Freshness.ShouldBe(expectedFreshness);
     }
 
     [Fact]
@@ -402,6 +458,31 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
+    [InlineData(QueryResponseProvenance.Unknown)]
+    [InlineData(QueryResponseProvenance.HandlerComputed)]
+    [InlineData((QueryResponseProvenance)999)]
+    public async Task Get_global_administrators_non_projection_stale_evidence_remains_unknown(
+        QueryResponseProvenance provenance)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
+            metadata: new QueryResponseMetadata(IsStale: true)
+            {
+                Provenance = provenance,
+            });
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        GlobalAdministratorsSnapshot snapshot = await gateway
+            .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+    }
+
+    [Theory]
     [InlineData(401, GlobalAdministratorsSurfaceKind.Unauthorized)]
     [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized)]
     [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid)]
@@ -553,6 +634,30 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(expectedKind);
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(expectedFreshness);
+    }
+
+    [Theory]
+    [InlineData(QueryResponseProvenance.Unknown)]
+    [InlineData(QueryResponseProvenance.HandlerComputed)]
+    [InlineData((QueryResponseProvenance)999)]
+    public async Task Get_tenant_audit_non_projection_stale_evidence_remains_unknown(
+        QueryResponseProvenance provenance)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<TenantAuditEntry>([AuditEntry("event-3", AuditEventCategory.Access)], null, false),
+            metadata: new QueryResponseMetadata(IsStale: true)
+            {
+                Provenance = provenance,
+            });
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantAuditSnapshot snapshot = await gateway
+            .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Fact]
@@ -1111,6 +1216,34 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
+    [InlineData(QueryResponseProvenance.Unknown)]
+    [InlineData(QueryResponseProvenance.HandlerComputed)]
+    [InlineData((QueryResponseProvenance)999)]
+    public async Task Get_user_tenants_non_projection_stale_evidence_remains_unknown(
+        QueryResponseProvenance provenance)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            new PaginatedResult<UserTenantMembership>(
+                [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
+                "next",
+                true),
+            metadata: new QueryResponseMetadata(IsStale: true)
+            {
+                Provenance = provenance,
+            });
+        TenantQueryGateway gateway = CreateGateway(client, "operator-user");
+
+        UserTenantMembershipSnapshot snapshot = await gateway
+            .GetUserTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "target.user", PageSize: 10), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        snapshot.Reason.ShouldBe(UserTenantMembershipReason.None);
+        snapshot.Rows.ShouldHaveSingleItem().Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+    }
+
+    [Theory]
     [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized)]
     [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
     [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
@@ -1540,10 +1673,12 @@ public sealed class TenantQueryGatewayTests
         bool? isDegraded = null,
         DateTimeOffset? servedAt = null,
         string? eTag = null,
-        bool? isNotModified = null)
+        bool? isNotModified = null,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
         => new(eTag, isNotModified, isStale, isDegraded, ServedAt: servedAt)
         {
             Provenance = QueryResponseProvenance.ProjectionBacked,
+            Lifecycle = lifecycle,
         };
 
     // A substituted MemoriesClient (SearchAsync is virtual). Cursor-path tests never call SearchAsync;
@@ -1638,14 +1773,21 @@ public sealed class TenantQueryGatewayTests
                 Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
             });
 
-        public void EnqueueDetailNotModified(string? eTag, bool? isStale = null)
+        public void EnqueueDetailNotModified(
+            string? eTag,
+            bool? isStale = null,
+            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Unknown)
             => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
                 null,
                 null,
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
+                Metadata = ProjectionBackedMetadata(
+                    eTag: eTag,
+                    isNotModified: true,
+                    isStale: isStale,
+                    lifecycle: lifecycle),
             });
 
         public void EnqueueUserTenantsNotModified(string? eTag, bool? isStale = null)
