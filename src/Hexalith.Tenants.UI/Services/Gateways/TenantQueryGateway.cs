@@ -79,7 +79,7 @@ internal sealed class TenantQueryGateway(
                 return TenantDetailSnapshot.Degraded(result.Payload, "Tenant detail projection is degraded.", result.ETag);
             }
 
-            if (result.Metadata?.IsStale == true) {
+            if (freshness is ReadModelFreshnessState.Stale) {
                 return TenantDetailSnapshot.Stale(result.Payload, result.ETag);
             }
 
@@ -179,7 +179,7 @@ internal sealed class TenantQueryGateway(
                     request.TargetUserId);
             }
 
-            if (result.Metadata?.IsStale == true) {
+            if (freshness is ReadModelFreshnessState.Stale) {
                 rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
                 return UserTenantMembershipSnapshot.Stale(
                     rows,
@@ -270,7 +270,7 @@ internal sealed class TenantQueryGateway(
                     payload.HasMore);
             }
 
-            if (result.Metadata?.IsStale == true) {
+            if (freshness is ReadModelFreshnessState.Stale) {
                 rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
                 return GlobalAdministratorsSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag);
             }
@@ -384,7 +384,7 @@ internal sealed class TenantQueryGateway(
                 payload.HasMore);
         }
 
-        if (result.Metadata?.IsStale == true) {
+        if (freshness is ReadModelFreshnessState.Stale) {
             rows = rows.Select(static row => row with { Freshness = ReadModelFreshnessState.Stale }).ToArray();
             return TenantAuditSnapshot.Stale(rows, payload.Cursor, payload.HasMore, result.ETag, request);
         }
@@ -790,11 +790,21 @@ internal sealed class TenantQueryGateway(
             EntityId: tenantId);
 
     private static ReadModelFreshnessState ResolveFreshness(QueryResponseMetadata? metadata) {
-        if (metadata?.IsDegraded == true) {
+        if (metadata is null
+            || metadata.Provenance is not QueryResponseProvenance.ProjectionBacked
+            || metadata.IsDegraded == true) {
             return ReadModelFreshnessState.Unknown;
         }
 
-        return metadata?.IsStale switch {
+        if (metadata.Lifecycle is not ProjectionLifecycleState.Unknown) {
+            return ProjectionLifecyclePolicy.Normalize(metadata.Lifecycle, metadata.Provenance) switch {
+                ProjectionLifecycleState.Current => ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Stale => ReadModelFreshnessState.Stale,
+                _ => ReadModelFreshnessState.Unknown,
+            };
+        }
+
+        return metadata.IsStale switch {
             true => ReadModelFreshnessState.Stale,
             false => ReadModelFreshnessState.Current,
             _ => ReadModelFreshnessState.Unknown,
@@ -804,7 +814,12 @@ internal sealed class TenantQueryGateway(
     private static ReadModelFreshnessState ResolveNotModifiedFreshness(
         QueryResponseMetadata? metadata,
         ReadModelFreshnessState previous)
-        => metadata?.IsDegraded == true || metadata?.IsStale is not null
+        => metadata is null
+            || metadata.Provenance is not QueryResponseProvenance.ProjectionBacked
+            ? ReadModelFreshnessState.Unknown
+            : metadata.IsDegraded == true
+                || metadata.IsStale is not null
+                || metadata.Lifecycle is not ProjectionLifecycleState.Unknown
             ? ResolveFreshness(metadata)
             : previous;
 

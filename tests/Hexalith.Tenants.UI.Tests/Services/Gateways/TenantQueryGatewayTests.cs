@@ -59,7 +59,7 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
-            metadata: new QueryResponseMetadata(IsStale: false, ServedAt: DateTimeOffset.UtcNow));
+            metadata: ProjectionBackedMetadata(isStale: false, servedAt: DateTimeOffset.UtcNow));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -77,6 +77,33 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+    }
+
+    [Theory]
+    [InlineData(QueryResponseProvenance.Unknown, false)]
+    [InlineData(QueryResponseProvenance.Unknown, true)]
+    [InlineData(QueryResponseProvenance.HandlerComputed, false)]
+    [InlineData(QueryResponseProvenance.HandlerComputed, true)]
+    [InlineData((QueryResponseProvenance)999, false)]
+    public async Task Get_tenant_non_projection_backed_freshness_evidence_remains_unknown(
+        QueryResponseProvenance provenance,
+        bool isStale)
+    {
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(
+            Detail("tenant.alpha"),
+            metadata: new QueryResponseMetadata(IsStale: isStale)
+            {
+                Provenance = provenance,
+            });
+
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        TenantDetailSnapshot snapshot = await gateway
+            .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
     }
 
     [Fact]
@@ -190,7 +217,7 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             Detail("tenant.alpha"),
-            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+            metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -362,7 +389,7 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
-            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+            metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -517,7 +544,7 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             new PaginatedResult<TenantAuditEntry>([AuditEntry("event-3", AuditEventCategory.Access)], null, false),
-            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+            metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -836,7 +863,7 @@ public sealed class TenantQueryGatewayTests
         CapturingGatewayClient client = new();
         client.EnqueueQueryResult(
             new PaginatedResult<TenantSummary>([], null, false),
-            metadata: new QueryResponseMetadata(IsStale: true));
+            metadata: ProjectionBackedMetadata(isStale: true));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -1068,7 +1095,7 @@ public sealed class TenantQueryGatewayTests
                 [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
                 "next",
                 true),
-            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+            metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
         TenantQueryGateway gateway = CreateGateway(client, "operator-user");
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -1197,7 +1224,7 @@ public sealed class TenantQueryGatewayTests
                 [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
                 "next",
                 true),
-            metadata: new QueryResponseMetadata(IsStale: isStale, IsDegraded: isDegraded));
+            metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -1276,7 +1303,7 @@ public sealed class TenantQueryGatewayTests
     public async Task List_search_marks_snapshot_stale_when_hydrated_detail_is_stale()
     {
         CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"), metadata: new QueryResponseMetadata(IsStale: true));
+        client.EnqueueQueryResult(Detail("alpha"), metadata: ProjectionBackedMetadata(isStale: true));
         MemoriesClient memories = CreateSearchingMemoriesClient(SearchHits("alpha"));
         TenantQueryGateway gateway = CreateGateway(client, memories: memories);
 
@@ -1508,6 +1535,17 @@ public sealed class TenantQueryGatewayTests
         return new TenantQueryGateway(client, userContext, memories ?? CreateMemoriesClient());
     }
 
+    private static QueryResponseMetadata ProjectionBackedMetadata(
+        bool? isStale = null,
+        bool? isDegraded = null,
+        DateTimeOffset? servedAt = null,
+        string? eTag = null,
+        bool? isNotModified = null)
+        => new(eTag, isNotModified, isStale, isDegraded, ServedAt: servedAt)
+        {
+            Provenance = QueryResponseProvenance.ProjectionBacked,
+        };
+
     // A substituted MemoriesClient (SearchAsync is virtual). Cursor-path tests never call SearchAsync;
     // search-path tests pass one with SearchAsync stubbed.
     private static MemoriesClient CreateMemoriesClient()
@@ -1585,7 +1623,9 @@ public sealed class TenantQueryGatewayTests
                 IsNotModified: false,
                 eTag)
             {
-                Metadata = metadata ?? (emitDefaultMetadata ? new QueryResponseMetadata(ETag: eTag, IsStale: false) : null),
+                Metadata = metadata ?? (emitDefaultMetadata
+                    ? ProjectionBackedMetadata(eTag: eTag, isStale: false)
+                    : null),
             });
 
         public void EnqueueNotModified(string? eTag, bool? isStale = null)
@@ -1595,7 +1635,7 @@ public sealed class TenantQueryGatewayTests
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
+                Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
             });
 
         public void EnqueueDetailNotModified(string? eTag, bool? isStale = null)
@@ -1605,7 +1645,7 @@ public sealed class TenantQueryGatewayTests
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
+                Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
             });
 
         public void EnqueueUserTenantsNotModified(string? eTag, bool? isStale = null)
@@ -1615,7 +1655,7 @@ public sealed class TenantQueryGatewayTests
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
+                Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
             });
 
         public void EnqueueGlobalAdministratorsNotModified(string? eTag, bool? isStale = null)
@@ -1625,7 +1665,7 @@ public sealed class TenantQueryGatewayTests
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
+                Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
             });
 
         public void EnqueueAuditNotModified(string? eTag, bool? isStale = null)
@@ -1635,7 +1675,7 @@ public sealed class TenantQueryGatewayTests
                 IsNotModified: true,
                 eTag)
             {
-                Metadata = new QueryResponseMetadata(ETag: eTag, IsNotModified: true, IsStale: isStale),
+                Metadata = ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale),
             });
 
         public void EnqueueException(Exception exception)

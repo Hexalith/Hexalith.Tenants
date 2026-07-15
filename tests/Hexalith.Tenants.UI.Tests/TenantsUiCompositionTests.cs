@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Resources;
 using System.Security.Claims;
@@ -8,12 +9,18 @@ using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.FrontComposer.Shell.Components.Icons;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.UI.Composition;
+using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 using Shouldly;
@@ -156,55 +163,57 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
-    public void TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost()
+    public async Task TenantsUiProject_DoesNotHostGeneratedRestApiOrReferenceExternalApiHost()
     {
         string uiRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI");
         string uiProjectPath = Path.Combine(uiRoot, "Hexalith.Tenants.UI.csproj");
-        XDocument project = XDocument.Load(uiProjectPath);
+        List<string> dependencies = [];
+        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences: true));
+        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(uiProjectPath, useProjectReferences: false));
 
-        string[] dependencies = project
-            .Descendants()
-            .Where(static element => string.Equals(element.Name.LocalName, "ProjectReference", StringComparison.Ordinal)
-                || string.Equals(element.Name.LocalName, "PackageReference", StringComparison.Ordinal)
-                || string.Equals(element.Name.LocalName, "Reference", StringComparison.Ordinal)
-                || string.Equals(element.Name.LocalName, "Analyzer", StringComparison.Ordinal))
-            .Select(static element => ((string?)element.Attribute("Include"))?.Replace('\\', '/') ?? string.Empty)
+        dependencies.ShouldContain(
+            static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants.Client"),
+            "Interactive Tenants UI must consume the approved typed Tenants client seam.");
+        dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants.Api"))
+            .ShouldBeEmpty("Interactive Tenants UI must not reference the external generated API host.");
+        dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.EventStore.RestApi.Generators"))
+            .ShouldBeEmpty("Generated REST analyzers belong only in Hexalith.Tenants.Api.");
+        dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants"))
+            .ShouldBeEmpty("Interactive Tenants UI must not reference the Tenants domain-service host.");
+    }
+
+    [Fact]
+    public void TenantsUiAssembly_DoesNotContainMvcControllers()
+    {
+        Type[] controllers = typeof(TenantsUiServiceCollectionExtensions)
+            .Assembly
+            .GetTypes()
+            .Where(static type => !type.IsAbstract
+                && (typeof(Controller).IsAssignableFrom(type)
+                    || typeof(ControllerBase).IsAssignableFrom(type)
+                    || type.Name.EndsWith("Controller", StringComparison.Ordinal)))
             .ToArray();
 
-        dependencies.Any(static dependency => dependency.Contains("Hexalith.Tenants.Api", StringComparison.Ordinal))
-            .ShouldBeFalse("Interactive Tenants UI must not reference the external generated API host.");
-        dependencies.Any(static dependency => dependency.Contains("Hexalith.EventStore.RestApi.Generators", StringComparison.Ordinal))
-            .ShouldBeFalse("Generated REST analyzers belong only in Hexalith.Tenants.Api.");
-        dependencies.Any(static dependency => dependency.EndsWith("/Hexalith.Tenants/Hexalith.Tenants.csproj", StringComparison.Ordinal)
-            || string.Equals(Path.GetFileName(dependency), "Hexalith.Tenants.csproj", StringComparison.Ordinal))
-            .ShouldBeFalse("Interactive Tenants UI must not reference the Tenants domain-service host.");
+        controllers.ShouldBeEmpty("Interactive Tenants UI must not compile generated or hand-written MVC controllers.");
+    }
 
-        string source = string.Join(
-            Environment.NewLine,
-            Directory.EnumerateFiles(uiRoot, "*.*", SearchOption.AllDirectories)
-                .Where(static file => (file.EndsWith(".cs", StringComparison.Ordinal)
-                    || file.EndsWith(".csproj", StringComparison.Ordinal)
-                    || file.EndsWith(".razor", StringComparison.Ordinal))
-                    && !IsBuildArtifact(file))
-                .Select(File.ReadAllText));
+    [Fact]
+    public async Task TenantsUiHost_DoesNotExposeTenantManagementApiEndpoints()
+    {
+        await using var factory = new WebApplicationFactory<global::Program>();
+        Endpoint[] endpoints = factory.Services
+            .GetServices<EndpointDataSource>()
+            .SelectMany(static source => source.Endpoints)
+            .ToArray();
 
-        string[] forbiddenMarkers =
-        [
-            "[assembly: RestApi(",
-            "[assembly: RestApiAttribute(",
-            "AddControllers(",
-            "AddControllersWithViews(",
-            "MapControllers(",
-            "MapControllerRoute(",
-            "MapDefaultControllerRoute(",
-            "Hexalith.EventStore.RestApi.Generators",
-            "[ApiController]",
-            "ControllerBase",
-        ];
+        string[] forbiddenEndpoints = endpoints
+            .Where(static endpoint => endpoint.Metadata.GetMetadata<ControllerActionDescriptor>() is not null
+                || endpoint is RouteEndpoint route && IsTenantManagementApiRoute(route.RoutePattern.RawText))
+            .Select(static endpoint => endpoint.DisplayName ?? "<unnamed endpoint>")
+            .ToArray();
 
-        forbiddenMarkers
-            .Where(marker => source.Contains(marker, StringComparison.Ordinal))
-            .ShouldBeEmpty("Tenants UI must consume EventStore/Tenants client seams, not host generated or hand-written REST controllers.");
+        forbiddenEndpoints.ShouldBeEmpty(
+            "Interactive Tenants UI must not expose MVC controllers or tenant-management API routes.");
     }
 
     [Fact]
@@ -325,9 +334,75 @@ public sealed class TenantsUiCompositionTests
     private static string ProjectRoot()
         => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
-    private static bool IsBuildArtifact(string path)
-        => path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-        || path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+    private static async Task<string[]> ReadEvaluatedDependencyValuesAsync(
+        string projectPath,
+        bool useProjectReferences)
+    {
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = ProjectRoot(),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add("msbuild");
+        startInfo.ArgumentList.Add(projectPath);
+        startInfo.ArgumentList.Add("-nologo");
+        startInfo.ArgumentList.Add("-verbosity:quiet");
+        startInfo.ArgumentList.Add("-getItem:ProjectReference,PackageReference,Reference,Analyzer");
+        startInfo.ArgumentList.Add($"-property:UseHexalithProjectReferences={useProjectReferences.ToString().ToLowerInvariant()}");
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start dotnet msbuild for UI dependency evaluation.");
+        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
+        Task<string> standardError = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync().ConfigureAwait(false);
+        string output = await standardOutput.ConfigureAwait(false);
+        string error = await standardError.ConfigureAwait(false);
+
+        process.ExitCode.ShouldBe(0, $"dotnet msbuild dependency evaluation failed: {error}");
+
+        using JsonDocument document = JsonDocument.Parse(output);
+        var values = new List<string>();
+        foreach (JsonProperty itemType in document.RootElement.GetProperty("Items").EnumerateObject())
+        {
+            foreach (JsonElement item in itemType.Value.EnumerateArray())
+            {
+                foreach (string propertyName in new[] { "Identity", "FullPath", "HintPath", "NuGetPackageId", "Filename" })
+                {
+                    if (item.TryGetProperty(propertyName, out JsonElement value)
+                        && value.ValueKind == JsonValueKind.String
+                        && !string.IsNullOrWhiteSpace(value.GetString()))
+                    {
+                        values.Add(value.GetString()!);
+                    }
+                }
+            }
+        }
+
+        return values.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static bool MatchesDependencyIdentity(string value, string expectedIdentity)
+    {
+        string normalized = value.Replace('\\', '/').Trim();
+        return string.Equals(normalized, expectedIdentity, StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith($"{expectedIdentity},", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith($"/{expectedIdentity}", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith($"/{expectedIdentity}.csproj", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith($"/{expectedIdentity}.dll", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTenantManagementApiRoute(string? routePattern)
+    {
+        string normalized = routePattern?.Trim().TrimStart('/') ?? string.Empty;
+        return normalized.Equals("api/tenants", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("api/tenants/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("api/users", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("api/users/", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("api/global-administrators", StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith("api/global-administrators/", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static HashSet<string> ReadResourceKeys(string path, string[] prefixes)
         => XDocument
