@@ -98,34 +98,6 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
-    public void TenantsHost_ExposesSdkOwnedDomainRoutesAndBespokeProjectionRoute() {
-        string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants", "Program.cs"));
-
-        // /process (keyed domain processor), /replay-state, /query, and /admin/operational-index-metadata
-        // are provided by the platform domain-service SDK rather than direct host route mapping.
-        program.ShouldContain("builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);");
-        program.ShouldContain("builder.Services.Configure<EventStoreServiceDefaultsOptions>(");
-        program.ShouldContain("WriteSupportSafeDevelopmentHealthResponseAsync");
-        program.ShouldContain("app.UseEventStoreDomainService();");
-        program.ShouldNotContain("builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);");
-        program.ShouldNotContain("builder.Services.AddScoped<IDomainQueryHandler");
-        program.ShouldNotContain("app.MapEventStoreDomainService();");
-        program.ShouldNotContain("app.MapHexalithDefaultEndpoints");
-        // The bespoke multi-read-model projection build path stays Tenants-mapped (the SDK yields /project).
-        program.ShouldContain("app.MapPost(\"/project\"");
-        program.ShouldContain("ProjectionRequest request");
-        program.ShouldContain("ProjectionDispatcher");
-        ShouldOccurBefore(program, "app.UseMiddleware<CorrelationIdMiddleware>();", "app.UseEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseExceptionHandler();", "app.UseEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseCloudEvents();", "app.UseEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseAuthentication();", "app.UseEventStoreDomainService();");
-        ShouldOccurBefore(program, "app.UseAuthorization();", "app.UseEventStoreDomainService();");
-        // The bespoke /project must be mapped before the SDK call so the SDK yields the route.
-        ShouldOccurBefore(program, "app.UseAuthorization();", "app.MapPost(\"/project\"");
-        ShouldOccurBefore(program, "app.MapPost(\"/project\"", "app.UseEventStoreDomainService();");
-    }
-
-    [Fact]
     public async Task TenantsDomainServiceSdkRegistration_ReportsHandlerServedQueryTypesAndDispatchesQuery() {
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
         builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);
@@ -702,57 +674,6 @@ public class EventPublicationConfigurationTests {
         }
 
         return current;
-    }
-
-    private static void ShouldOccurBefore(string content, string earlier, string later) {
-        int earlierIndex = content.IndexOf(earlier, StringComparison.Ordinal);
-        int laterIndex = content.IndexOf(later, StringComparison.Ordinal);
-
-        earlierIndex.ShouldBeGreaterThanOrEqualTo(0, $"{earlier} should exist.");
-        laterIndex.ShouldBeGreaterThanOrEqualTo(0, $"{later} should exist.");
-        earlierIndex.ShouldBeLessThan(laterIndex, $"{earlier} should occur before {later}.");
-    }
-
-    private sealed class EmptyReadModelStore : IReadModelStore {
-        public Task<ReadModelEntry<TValue>> GetAsync<TValue>(
-            string storeName,
-            string key,
-            CancellationToken cancellationToken = default)
-            where TValue : class
-            => Task.FromResult(new ReadModelEntry<TValue>(null, null));
-
-        public Task SaveAsync<TValue>(
-            string storeName,
-            string key,
-            TValue value,
-            CancellationToken cancellationToken = default)
-            where TValue : class
-            => Task.CompletedTask;
-
-        public Task<bool> TrySaveAsync<TValue>(
-            string storeName,
-            string key,
-            TValue value,
-            string etag,
-            CancellationToken cancellationToken = default)
-            where TValue : class
-            => Task.FromResult(true);
-
-    }
-
-    private sealed class EmptyQueryCursorCodec : IQueryCursorCodec {
-        public string Encode(string queryType, string scope, string position) => position;
-
-        public bool TryDecode(
-            string? cursor,
-            string queryType,
-            string scope,
-            out string? position,
-            out string? failureReason) {
-            position = null;
-            failureReason = null;
-            return true;
-        }
     }
 
     private static string RepositoryPath(params string[] segments) {

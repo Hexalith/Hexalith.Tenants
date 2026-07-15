@@ -1,5 +1,3 @@
-#pragma warning disable CA2007
-
 using System.Net;
 
 using Hexalith.Tenants.Configuration;
@@ -56,7 +54,7 @@ public class HealthEndpointsTests {
         await using var factory = new HealthWebApplicationFactory(HealthStatus.Unhealthy);
         using HttpClient client = factory.CreateClient();
 
-        using HttpResponseMessage response = await client.GetAsync("/ready");
+        using HttpResponseMessage response = await client.GetAsync("/ready").ConfigureAwait(true);
 
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
     }
@@ -66,7 +64,7 @@ public class HealthEndpointsTests {
         await using var factory = new HealthWebApplicationFactory(HealthStatus.Healthy);
         using HttpClient client = factory.CreateClient();
 
-        using HttpResponseMessage response = await client.GetAsync("/ready");
+        using HttpResponseMessage response = await client.GetAsync("/ready").ConfigureAwait(true);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -76,8 +74,8 @@ public class HealthEndpointsTests {
         await using var factory = new HealthWebApplicationFactory(HealthStatus.Unhealthy);
         using HttpClient client = factory.CreateClient();
 
-        using HttpResponseMessage aliveResponse = await client.GetAsync("/alive");
-        using HttpResponseMessage readyResponse = await client.GetAsync("/ready");
+        using HttpResponseMessage aliveResponse = await client.GetAsync("/alive").ConfigureAwait(true);
+        using HttpResponseMessage readyResponse = await client.GetAsync("/ready").ConfigureAwait(true);
 
         // Liveness must not depend on DAPR/EventStore — the process is up even when a dependency is down,
         // so an orchestrator restarts on liveness failure but only withholds traffic on readiness failure.
@@ -124,8 +122,8 @@ public class HealthEndpointsTests {
             data: unsafeData);
         using HttpClient client = factory.CreateClient();
 
-        using HttpResponseMessage response = await client.GetAsync("/ready");
-        string body = await response.Content.ReadAsStringAsync();
+        using HttpResponseMessage response = await client.GetAsync("/ready").ConfigureAwait(true);
+        string body = await response.Content.ReadAsStringAsync().ConfigureAwait(true);
 
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
@@ -136,6 +134,7 @@ public class HealthEndpointsTests {
         body.ShouldNotContain(rawExceptionMarker);
         body.ShouldNotContain("StackTrace", Case.Insensitive);
         body.ShouldNotContain("InvalidOperationException");
+        body.ShouldNotContain("Synthetic readiness failure");
         body.ShouldNotContain(compactJwtShape);
         body.ShouldNotContain(bearerTokenShape);
         body.ShouldNotContain(connectionStringMarker);
