@@ -1,3 +1,10 @@
+## [3.2.10](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.9...v3.2.10) (2026-07-15)
+
+
+### Bug Fixes
+
+* add Sprint Change Proposal and Workflow Execution Log for 2026-07-15 ([e0fcc6a](https://github.com/Hexalith/Hexalith.Tenants/commit/e0fcc6aa99faeb3254a51b9fd881f9f01d925294))
+
 ## [3.2.9](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.8...v3.2.9) (2026-07-14)
 
 
