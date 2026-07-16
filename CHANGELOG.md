@@ -1,3 +1,10 @@
+## [3.2.13](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.12...v3.2.13) (2026-07-16)
+
+
+### Bug Fixes
+
+* update .NET SDK version to 10.0.302 across documentation and implementation artifacts ([b94c083](https://github.com/Hexalith/Hexalith.Tenants/commit/b94c083fd7d77d75c3ff3752c932c2b37bee6891))
+
 ## [3.2.12](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.11...v3.2.12) (2026-07-16)
 
 
