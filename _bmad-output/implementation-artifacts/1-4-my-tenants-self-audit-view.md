@@ -120,7 +120,7 @@ Story 1.4 delivers the signed-in user's read-only My Tenants self-audit surface 
 
 Network research was not performed because the story can rely on repo-pinned local versions and source. Use local pinned packages and submodule source as authority.
 
-- .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
+- .NET SDK `10.0.302`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
 - Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. Verify exact DataGrid/table/badge APIs locally before using new component features. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/1-3-tenant-detail-navigation-and-overview.md#Technology And Framework Requirements`]
 - Tests use xUnit v3, Shouldly, NSubstitute, and bUnit. Test classes/files use plural `{Class}Tests.cs`; avoid raw `Assert.*`. [Source: `_bmad-output/project-context.md#Testing Rules`; `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`]
 

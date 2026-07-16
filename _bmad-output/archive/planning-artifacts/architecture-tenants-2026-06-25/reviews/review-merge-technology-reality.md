@@ -58,7 +58,7 @@ The spine and merged architecture name several pins that no longer match the che
 
 The dependency-mode wording is also reversed for EventStore and Memories: root `Directory.Build.props` uses NuGet dependencies by default and enables source references only when `UseHexalithProjectReferences=true` (or the inverse legacy switch is explicitly set). FrontComposer is directly source-referenced by the UI project. Current submodules are useful source evidence but are not the default build closure for every dependency.
 
-The following named pins still match local reality: .NET SDK `10.0.301`, Dapr packages `1.18.4`, Aspire `13.4.6`, xUnit v3 `3.2.2`, and bUnit `2.8.4-preview`.
+The following named pins still match local reality: .NET SDK `10.0.302`, Dapr packages `1.18.4`, Aspire `13.4.6`, xUnit v3 `3.2.2`, and bUnit `2.8.4-preview`.
 
 **Required correction:** refresh every version/hash claim from central package files and root submodule state, state the default package-versus-source mode accurately, and remove the repeated claim that Fluent RC3 is the current inherited pin.
 

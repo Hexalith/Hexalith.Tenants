@@ -495,7 +495,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 
 ### Features
 
-* Upgrade .NET SDK to 10.0.300 and refactor pagination handling ([8960a91](https://github.com/Hexalith/Hexalith.Tenants/commit/8960a91be61f0e288aab26e76138870eadd9d5dc))
+* Upgrade .NET SDK to 10.0.302 and refactor pagination handling ([8960a91](https://github.com/Hexalith/Hexalith.Tenants/commit/8960a91be61f0e288aab26e76138870eadd9d5dc))
 
 # [1.11.0](https://github.com/Hexalith/Hexalith.Tenants/compare/v1.10.0...v1.11.0) (2026-05-17)
 

@@ -29,7 +29,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ## Technology Stack & Versions
 
-- **.NET 10 / C#** — SDK pinned to `10.0.301` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
+- **.NET 10 / C#** — SDK pinned to `10.0.302` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
 - **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.19.0`; `Hexalith.Memories` packages pinned to `1.31.1`. Debug uses source `ProjectReference` when available; Release uses NuGet packages for package-capable libraries.
 - **DAPR** — DAPR SDK packages `1.18.4`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default).

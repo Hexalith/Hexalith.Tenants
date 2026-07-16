@@ -124,7 +124,7 @@ Story 1.5 delivers FR4: an operator-facing, read-only user membership lookup. It
 
 Network research was not performed because this story relies on repo-pinned local versions, existing source, and already implemented backend contracts.
 
-- .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
+- .NET SDK `10.0.302`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
 - Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. Verify exact DataGrid/table/form APIs locally before using new component features. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/planning-artifacts/architecture.md#Starter Template Evaluation`]
 - Tests use xUnit v3, Shouldly, NSubstitute, and bUnit. Test classes/files use plural `{Class}Tests.cs`; avoid raw `Assert.*`. [Source: `_bmad-output/project-context.md#Testing Rules`; `tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj`]
 

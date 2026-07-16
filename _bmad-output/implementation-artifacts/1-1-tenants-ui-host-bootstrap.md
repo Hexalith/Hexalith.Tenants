@@ -124,7 +124,7 @@ This story is the UI host bootstrap only. It may add the host, shell composition
 
 Use the repo-pinned versions and APIs as the implementation authority:
 
-- .NET SDK `10.0.300`, target `net10.0`, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`]
+- .NET SDK `10.0.302`, target `net10.0`, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`]
 - Aspire AppHost SDK `13.4.2` in this repo. [Source: `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`; `Directory.Packages.props`]
 - FrontComposer Shell package/project depends on Fluent UI Blazor `5.0.0-rc.3-26138.1`, Fluxor `6.9.0`, SignalR client `10.0.8`, and OIDC auth `10.0.8`. Do not upgrade these as part of Story 1.1; verify exact component/API names against the local source and pinned packages. [Source: `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Hexalith.FrontComposer.Shell.csproj`; `references/Hexalith.FrontComposer/Directory.Packages.props`]
 - If adding bUnit, align the central package version with the FrontComposer test stack unless a Tenants-specific reason is documented. FrontComposer currently pins `bunit` `2.8.1-preview`. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`]

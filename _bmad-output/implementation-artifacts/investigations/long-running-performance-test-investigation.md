@@ -13,7 +13,7 @@
 | Ticket           | N/A |
 | Date opened      | 2026-07-14 |
 | Status           | Concluded |
-| System           | Linux 6.6.87.2 WSL2 x86_64; .NET SDK 10.0.301; test runtime .NET 10.0.9 |
+| System           | Linux 6.6.87.2 WSL2 x86_64; .NET SDK 10.0.302; test runtime .NET 10.0.9 |
 | Evidence sources | User observation; running-process inspection; TRX result; benchmark and DAPR test-gate source |
 
 ## Problem Statement

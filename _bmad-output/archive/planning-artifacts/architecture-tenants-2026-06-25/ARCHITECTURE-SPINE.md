@@ -176,7 +176,7 @@ flowchart LR
 
 | Name | Version |
 | --- | --- |
-| .NET SDK | 10.0.301 |
+| .NET SDK | 10.0.302 |
 | Blazor render mode | InteractiveServer on ASP.NET Core 10 |
 | Microsoft.FluentUI.AspNetCore.Components | 5.0.0-rc.4-26180.1 |
 | Hexalith.FrontComposer package baseline | 3.1.1 |

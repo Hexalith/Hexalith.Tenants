@@ -103,7 +103,7 @@ Story 1.3 delivers the read-only tenant detail navigation and overview slice. It
 
 ### Technology And Framework Requirements
 
-- .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
+- .NET SDK `10.0.302`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`; `_bmad-output/project-context.md#Technology Stack & Versions`]
 - Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; do not upgrade Fluent as part of this story. The public Fluent UI Blazor documentation currently emphasizes v4 docs/releases, so verify exact v5 RC APIs against the local pinned source/package before using new DataGrid, badge, button, focus, or token APIs. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/1-2-tenant-list-triage.md#Technology And Framework Requirements`; `https://www.fluentui-blazor.net/`]
 - Use Tenants-owned `.resx` resources with dotted PascalCase keys under `Tenants.` for all tenant-detail copy. Shell chrome strings remain FrontComposer-owned. [Source: `_bmad-output/planning-artifacts/architecture.md#Core Architectural Decisions`; `_bmad-output/implementation-artifacts/1-2-tenant-list-triage.md#UX, Accessibility, And Safety Requirements`]
 - Run test projects individually; do not run solution-level `dotnet test`. Use `.slnx` for restore/build only. [Source: `_bmad-output/project-context.md#Testing Rules`; `_bmad-output/project-context.md#Code Quality & Style Rules`]

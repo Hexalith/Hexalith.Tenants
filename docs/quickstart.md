@@ -14,7 +14,7 @@ Before you begin, verify that the following tools are installed and working. Run
 dotnet --version
 ```
 
-Expected: `10.0.300` or a later `10.0.xxx` patch version. The repository pins SDK `10.0.300` in [`global.json`](../global.json) with `rollForward: latestPatch`.
+Expected: `10.0.302` or a later `10.0.xxx` patch version. The repository pins SDK `10.0.302` in [`global.json`](../global.json) with `rollForward: latestPatch`.
 
 If not installed, download from [https://dot.net](https://dot.net/download).
 

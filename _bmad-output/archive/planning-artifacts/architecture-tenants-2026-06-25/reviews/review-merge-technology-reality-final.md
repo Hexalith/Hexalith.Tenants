@@ -8,7 +8,7 @@ This focused recheck compared the updated spine and canonical architecture with 
 
 | Area | Result | Evidence |
 | --- | --- | --- |
-| Stack pins | Pass with a labeling note | Fluent `5.0.0-rc.4-26180.1`, EventStore `3.64.1`, Memories `2.5.0`, .NET `10.0.301`, Dapr `1.18.4`, Aspire `13.4.6`, xUnit `3.2.2`, and bUnit `2.8.4-preview` match current central pins/assets. |
+| Stack pins | Pass with a labeling note | Fluent `5.0.0-rc.4-26180.1`, EventStore `3.64.1`, Memories `2.5.0`, .NET `10.0.302`, Dapr `1.18.4`, Aspire `13.4.6`, xUnit `3.2.2`, and bUnit `2.8.4-preview` match current central pins/assets. |
 | Read endpoint inventory | Pass | Both documents now list six reads, including `GET /api/global-administrators`. |
 | AD-6 / AD-8 | Pass | Both documents accurately record the generic-gateway divergence, `HandlerComputed`/unknown-freshness consequence, platform REST provenance prerequisite, separate query/command service references, and BFF client split. |
 | AD-13 | Pass | Both documents now assign the domain UI host to Tenants, orchestration to a platform/composing host, and mark the repository AppHost as transitional migration debt. This reconciles the architecture with the authoritative domain-module boundary. |

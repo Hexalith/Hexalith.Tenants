@@ -65,7 +65,7 @@ reusing the same pinned SHAs (`dapr/setup-dapr@8d98091…` / `nick-fields/retry@
 `version` input defaulting to `1.17.0`. (+ `Github/dapr-init/README.md`.)
 
 **A2 — EDIT `Github/initialize-dotnet/action.yml`** — add an optional
-`global-json-file` input (backward compatible: unchanged `10.0.300` default behavior when
+`global-json-file` input (backward compatible: unchanged `10.0.302` default behavior when
 omitted). Enables future adoption by Tenants and other modules.
 
 ### B. `Hexalith.Tenants`

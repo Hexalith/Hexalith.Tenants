@@ -137,7 +137,7 @@ The pre-build decision for this story is: compose a Tenants-specific `TenantData
 
 Use local pinned versions and source as authority; network research was not available in this sandbox.
 
-- .NET SDK `10.0.300`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`]
+- .NET SDK `10.0.302`, target `net10.0`, nullable/implicit usings, `TreatWarningsAsErrors=true`. [Source: `global.json`; `Directory.Build.props`]
 - Fluent UI Blazor remains pinned through FrontComposer at `5.0.0-rc.3-26138.1`; verify exact `FluentDataGrid`/column APIs locally before implementation and do not upgrade Fluent as part of this story. [Source: `references/Hexalith.FrontComposer/Directory.Packages.props`; `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md#4. FC-TBL`]
 - FrontComposer DataGrid helpers exist under `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`, including filter/search/empty/prioritizer helpers, but current generated grid support is not enough for Tenants cursor paging, pinning, and six states. [Source: `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/DataGrid`; `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md#4. FC-TBL`]
 

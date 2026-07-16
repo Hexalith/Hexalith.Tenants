@@ -22,7 +22,7 @@ public class QuickstartDocumentationTests {
         string quickstart = ReadQuickstart();
 
         quickstart.ShouldContain("dotnet --version");
-        quickstart.ShouldContain("10.0.300");
+        quickstart.ShouldContain("10.0.302");
         quickstart.ShouldContain("global.json");
         quickstart.ShouldContain("dapr --version");
         quickstart.ShouldContain("dapr init");
