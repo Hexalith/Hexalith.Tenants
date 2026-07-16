@@ -1,3 +1,10 @@
+## [3.2.11](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.10...v3.2.11) (2026-07-16)
+
+
+### Bug Fixes
+
+* update subproject commits for Hexalith references ([00a2895](https://github.com/Hexalith/Hexalith.Tenants/commit/00a2895cdd85f239f7b330c525c2442aeeb7467e))
+
 ## [3.2.10](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.9...v3.2.10) (2026-07-15)
 
 
