@@ -1,3 +1,10 @@
+## [3.2.12](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.11...v3.2.12) (2026-07-16)
+
+
+### Bug Fixes
+
+* update SDK version to 10.0.302 in global.json ([b84a442](https://github.com/Hexalith/Hexalith.Tenants/commit/b84a4427fdc03b56095ef61ea9ddedc0492e6b58))
+
 ## [3.2.11](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.10...v3.2.11) (2026-07-16)
 
 
