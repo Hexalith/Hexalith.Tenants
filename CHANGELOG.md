@@ -1,3 +1,14 @@
+## [3.2.14](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.13...v3.2.14) (2026-07-17)
+
+
+### Bug Fixes
+
+* update Hexalith.FrontComposer submodule reference and add review prompt for SignalR package version fix ([8fbb4c9](https://github.com/Hexalith/Hexalith.Tenants/commit/8fbb4c96738920ba4141fe5dd171bc2cfb5ef74b))
+* update subproject commit reference for Hexalith.EventStore ([dd0dfab](https://github.com/Hexalith/Hexalith.Tenants/commit/dd0dfab0a044b9d8ff274115371cf741c79ca444))
+* update subproject commit references for Hexalith.Builds and Hexalith.EventStore, and add Microsoft.AspNetCore.DataProtection.Abstractions to expected dependencies ([5707bf5](https://github.com/Hexalith/Hexalith.Tenants/commit/5707bf596611f54477bb6d8ff176a7eba5beebcc))
+* update subproject commits for Hexalith references ([4749928](https://github.com/Hexalith/Hexalith.Tenants/commit/47499281cc889c8c4b98cdeeb4bab385aa056690))
+* update subproject commits for Hexalith.Builds and Hexalith.FrontComposer ([23c0fb1](https://github.com/Hexalith/Hexalith.Tenants/commit/23c0fb123e079a5241cd9dc0fa1eb27108aa0842))
+
 ## [3.2.13](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.12...v3.2.13) (2026-07-16)
 
 
