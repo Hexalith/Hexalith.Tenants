@@ -1,3 +1,10 @@
+## [3.2.16](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.15...v3.2.16) (2026-07-17)
+
+
+### Bug Fixes
+
+* update AI assistant instructions for clarity and consistency across documentation ([62c334b](https://github.com/Hexalith/Hexalith.Tenants/commit/62c334beb03fb8ff799a3c9adc0b04fdd1b21997))
+
 ## [3.2.15](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.14...v3.2.15) (2026-07-17)
 
 
