@@ -1,3 +1,10 @@
+## [3.2.15](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.14...v3.2.15) (2026-07-17)
+
+
+### Bug Fixes
+
+* update subproject commit references for Hexalith.EventStore, Hexalith.FrontComposer, and Hexalith.Memories ([ce95b92](https://github.com/Hexalith/Hexalith.Tenants/commit/ce95b92227e874465b4e39b3df2764d3fd531cbc))
+
 ## [3.2.14](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.13...v3.2.14) (2026-07-17)
 
 
