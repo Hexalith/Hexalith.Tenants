@@ -2,7 +2,7 @@
 title: 'Fix CI package boundary after EventStore upgrade'
 type: 'bugfix'
 created: '2026-07-17'
-status: 'in-progress'
+status: 'done'
 baseline_commit: 'dd0dfab0a044b9d8ff274115371cf741c79ca444'
 context:
   - _bmad-output/project-context.md
@@ -45,9 +45,9 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `scripts/validate-nuget-packages.py` -- add `Microsoft.AspNetCore.DataProtection.Abstractions` to the Server and Testing expected dependency sets, preserving every other boundary entry.
-- [ ] `tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs` -- add the same dependency to the two mirrored fixture sets so synthetic valid packages match the production contract.
-- [ ] `scripts/pack-release-packages.py`, `scripts/validate-nuget-packages.py`, and `scripts/validate-consumer-package-references.py` -- run the complete Release pack → metadata validation → isolated consumer sequence and compare every generated package against its expected set.
+- [x] `scripts/validate-nuget-packages.py` -- add `Microsoft.AspNetCore.DataProtection.Abstractions` to the Server and Testing expected dependency sets, preserving every other boundary entry.
+- [x] `tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs` -- add the same dependency to the two mirrored fixture sets so synthetic valid packages match the production contract.
+- [x] `scripts/pack-release-packages.py`, `scripts/validate-nuget-packages.py`, and `scripts/validate-consumer-package-references.py` -- run the complete Release pack → metadata validation → isolated consumer sequence and compare every generated package against its expected set.
 
 **Acceptance Criteria:**
 - Given all five packages are built in Release mode against current central versions, when `validate-nuget-packages.py` runs, then it validates all five with no missing or unexpected dependencies.
@@ -66,5 +66,31 @@ The shared workflow label is broader than the actual failure. Its shell runs pac
 **Commands:**
 - `dotnet build Hexalith.Tenants.slnx --configuration Release` -- expected: zero warnings and errors.
 - `dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-build` -- expected: all contract and CI-governance tests pass.
-- `ci_fix_dir="$(mktemp -d)"; python3 scripts/pack-release-packages.py "$ci_fix_dir" 0.0.0-ci-test && python3 scripts/validate-nuget-packages.py "$ci_fix_dir" && python3 scripts/validate-consumer-package-references.py "$ci_fix_dir"` -- expected: five packages validate and both isolated consumer projects succeed.
+- `ci_fix_dir="$(mktemp -d)" && python3 scripts/pack-release-packages.py "$ci_fix_dir" 0.0.0-ci-test && python3 scripts/validate-nuget-packages.py "$ci_fix_dir" && python3 scripts/validate-consumer-package-references.py "$ci_fix_dir"` -- expected: five packages validate and both isolated consumer projects succeed.
 - `git submodule status -- references/Hexalith.EventStore` before and after -- expected: unchanged clean gitlink at `dd3040c`.
+
+## Suggested Review Order
+
+**Package boundary correction**
+
+- Server accepts the newly legitimate dependency while every other identifier remains exact.
+  [`validate-nuget-packages.py:49`](../../scripts/validate-nuget-packages.py#L49)
+
+- Testing mirrors Server's promoted dependency so validation continues past the first package.
+  [`validate-nuget-packages.py:78`](../../scripts/validate-nuget-packages.py#L78)
+
+**Fixture parity**
+
+- Server's synthetic package fixture tracks the production boundary contract exactly.
+  [`CiQualityGateScriptTests.cs:301`](../../tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs#L301)
+
+- Testing's fixture prevents the second package from hiding behind Server's earlier failure.
+  [`CiQualityGateScriptTests.cs:331`](../../tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs#L331)
+
+**Concurrent dependency baseline**
+
+- The user-bundled Builds update advances EventStore independently of the CI boundary fix.
+  [`Directory.Packages.props:7`](../../references/Hexalith.Builds/Props/Directory.Packages.props#L7)
+
+- The matching EventStore release record explains the concurrent `3.70.0` submodule advance.
+  [`CHANGELOG.md:1`](../../references/Hexalith.EventStore/CHANGELOG.md#L1)
