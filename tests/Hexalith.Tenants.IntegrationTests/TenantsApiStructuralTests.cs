@@ -65,8 +65,8 @@ public sealed class TenantsApiStructuralTests
         ((string?)generatorPackage.Attribute("Condition")).ShouldBe("'$(HexalithEventStoreFromSource)' != 'true'");
 
         List<string> dependencies = [];
-        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(TenantsApiProjectPath(), useProjectReferences: true).ConfigureAwait(false));
-        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(TenantsApiProjectPath(), useProjectReferences: false).ConfigureAwait(false));
+        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(TenantsApiProjectPath(), useProjectReferences: true));
+        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(TenantsApiProjectPath(), useProjectReferences: false));
 
         dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants"))
             .ShouldBeEmpty("The external Tenants API host must not reference the domain implementation.");

@@ -23,6 +23,7 @@ using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -30,6 +31,9 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
 using Shouldly;
@@ -312,6 +316,104 @@ public sealed class TenantsApiGeneratedControllerTests
         gateway.SubmittedQueries.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task ListTenants_authority_mode_uses_discovery_signing_keys_and_validates_issuer()
+    {
+        const string authority = "https://identity.example.test";
+        var discoveryConfiguration = new OpenIdConnectConfiguration
+        {
+            Issuer = authority,
+        };
+        discoveryConfiguration.SigningKeys.Add(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)));
+
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        await using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:Authority"] = authority,
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+                ["EventStore:Authentication:RequireHttpsMetadata"] = "false",
+            },
+            services => services.PostConfigure<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme,
+                options => options.ConfigurationManager =
+                    new StaticConfigurationManager<OpenIdConnectConfiguration>(discoveryConfiguration)));
+        using HttpClient client = factory.CreateClient();
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            CreateJwt("test-user", "queries:*", authority, JwtAudience));
+        HttpResponseMessage accepted = await client.GetAsync(
+            "/api/tenants",
+            TestContext.Current.CancellationToken);
+
+        accepted.StatusCode.ShouldBe(HttpStatusCode.OK);
+        gateway.SubmittedQueries.Count.ShouldBe(1);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            CreateJwt("test-user", "queries:*", "https://untrusted.example.test", JwtAudience));
+        HttpResponseMessage rejected = await client.GetAsync(
+            "/api/tenants",
+            TestContext.Current.CancellationToken);
+
+        rejected.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        gateway.SubmittedQueries.Count.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(null, "EventStore:Authentication:SigningKey is required when Authority is not configured.")]
+    [InlineData("", "EventStore:Authentication:SigningKey is required when Authority is not configured.")]
+    [InlineData("   ", "EventStore:Authentication:SigningKey is required when Authority is not configured.")]
+    [InlineData("short-key", "EventStore:Authentication:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.")]
+    public void Symmetric_key_mode_rejects_missing_blank_or_short_signing_key(
+        string? signingKey,
+        string expectedMessage)
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:Issuer"] = JwtIssuer,
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+                ["EventStore:Authentication:SigningKey"] = signingKey,
+            });
+
+        InvalidOperationException exception = Should.Throw<InvalidOperationException>(() =>
+            factory.Services
+                .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+                .Get(JwtBearerDefaults.AuthenticationScheme));
+
+        exception.Message.ShouldBe(expectedMessage);
+    }
+
+    [Fact]
+    public void Symmetric_key_mode_accepts_exactly_32_bytes()
+    {
+        string signingKey = new('a', 32);
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:Issuer"] = JwtIssuer,
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+                ["EventStore:Authentication:SigningKey"] = signingKey,
+            });
+
+        JwtBearerOptions options = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        SymmetricSecurityKey key = options.TokenValidationParameters.IssuerSigningKey
+            .ShouldBeOfType<SymmetricSecurityKey>();
+        key.KeySize.ShouldBe(256);
+    }
+
     private static async Task AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync(string? eTag)
     {
         CapturingEventStoreGatewayClient gateway = new();
@@ -356,6 +458,28 @@ public sealed class TenantsApiGeneratedControllerTests
         problem.GetProperty("correlationId").GetString().ShouldBe("01KTESTCORRELATION00000");
         problem.GetProperty("tenantId").GetString().ShouldBe(TenantIdentity.DefaultTenantId);
         problem.GetProperty("reasonCode").GetString().ShouldBe("tenant-forbidden");
+    }
+
+    [Fact]
+    public async Task Generated_query_route_propagates_request_cancellation_to_gateway()
+    {
+        CapturingEventStoreGatewayClient gateway = new()
+        {
+            BlockQueriesUntilCancellation = true,
+        };
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory);
+        using CancellationTokenSource cancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+
+        Task<HttpResponseMessage> request = client.GetAsync("/api/tenants", cancellation.Token);
+        CancellationToken gatewayToken = await gateway.QueryStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => request);
+        gatewayToken.IsCancellationRequested.ShouldBeTrue();
     }
 
     [Fact]
@@ -433,6 +557,32 @@ public sealed class TenantsApiGeneratedControllerTests
             problem.GetProperty("detail").GetString().ShouldNotBeNull().ShouldContain("does not match");
             gateway.SubmittedCommands.ShouldBeEmpty();
         }
+    }
+
+    [Fact]
+    public async Task Generated_command_route_propagates_request_cancellation_to_gateway()
+    {
+        CapturingEventStoreGatewayClient gateway = new()
+        {
+            BlockCommandsUntilCancellation = true,
+        };
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient client = CreateAuthenticatedClient(factory, "commands:*");
+        using CancellationTokenSource cancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+
+        Task<HttpResponseMessage> request = client.PostAsJsonAsync(
+            "/api/tenants/tenant.alpha/enable",
+            new EnableTenant("tenant.alpha"),
+            JsonOptions,
+            cancellation.Token);
+        CancellationToken gatewayToken = await gateway.CommandStarted.Task.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken);
+        cancellation.Cancel();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(() => request);
+        gatewayToken.IsCancellationRequested.ShouldBeTrue();
     }
 
     [Fact]
@@ -657,7 +807,10 @@ public sealed class TenantsApiGeneratedControllerTests
                 new SetGlobalAdministrator("user.beta")),
         ];
 
-    private sealed class TenantsApiWebApplicationFactory(CapturingEventStoreGatewayClient gateway)
+    private sealed class TenantsApiWebApplicationFactory(
+        CapturingEventStoreGatewayClient gateway,
+        IReadOnlyDictionary<string, string?>? authenticationConfiguration = null,
+        Action<IServiceCollection>? configureServices = null)
         : WebApplicationFactory<TenantsApi::Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -665,17 +818,21 @@ public sealed class TenantsApiGeneratedControllerTests
             _ = builder.UseEnvironment("Development");
             _ = builder.ConfigureAppConfiguration((_, configuration) =>
             {
-                configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["EventStore:Authentication:Issuer"] = JwtIssuer,
-                    ["EventStore:Authentication:Audience"] = JwtAudience,
-                    ["EventStore:Authentication:SigningKey"] = JwtSigningKey,
-                });
+                configuration.Sources.Clear();
+                configuration.AddInMemoryCollection(authenticationConfiguration is null
+                    ? new Dictionary<string, string?>
+                    {
+                        ["EventStore:Authentication:Issuer"] = JwtIssuer,
+                        ["EventStore:Authentication:Audience"] = JwtAudience,
+                        ["EventStore:Authentication:SigningKey"] = JwtSigningKey,
+                    }
+                    : authenticationConfiguration);
             });
             _ = builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IEventStoreGatewayClient>();
                 services.AddSingleton<IEventStoreGatewayClient>(gateway);
+                configureServices?.Invoke(services);
             });
         }
     }
@@ -688,31 +845,57 @@ public sealed class TenantsApiGeneratedControllerTests
 
         public List<SubmittedQuery> SubmittedQueries { get; } = [];
 
-        public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
+        public bool BlockCommandsUntilCancellation { get; init; }
+
+        public bool BlockQueriesUntilCancellation { get; init; }
+
+        public TaskCompletionSource<CancellationToken> CommandStarted { get; }
+            = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource<CancellationToken> QueryStarted { get; }
+            = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<SubmitCommandResponse> SubmitCommandAsync(
+            SubmitCommandRequest request,
+            CancellationToken cancellationToken = default)
         {
             SubmittedCommands.Add(new SubmittedCommand(request, cancellationToken));
+            if (BlockCommandsUntilCancellation)
+            {
+                _ = CommandStarted.TrySetResult(cancellationToken);
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                throw new InvalidOperationException("The blocked command completed without cancellation.");
+            }
+
             object next = _responses.Dequeue();
             if (next is Exception exception)
             {
                 throw exception;
             }
 
-            return Task.FromResult((SubmitCommandResponse)next);
+            return (SubmitCommandResponse)next;
         }
 
-        public Task<EventStoreQueryResult> SubmitQueryAsync(
+        public async Task<EventStoreQueryResult> SubmitQueryAsync(
             SubmitQueryRequest request,
             string? ifNoneMatch = null,
             CancellationToken cancellationToken = default)
         {
             SubmittedQueries.Add(new SubmittedQuery(request, ifNoneMatch, cancellationToken));
+            if (BlockQueriesUntilCancellation)
+            {
+                _ = QueryStarted.TrySetResult(cancellationToken);
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                throw new InvalidOperationException("The blocked query completed without cancellation.");
+            }
+
             object next = _responses.Dequeue();
             if (next is Exception exception)
             {
                 throw exception;
             }
 
-            return Task.FromResult((EventStoreQueryResult)next);
+            return (EventStoreQueryResult)next;
         }
 
         public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(
