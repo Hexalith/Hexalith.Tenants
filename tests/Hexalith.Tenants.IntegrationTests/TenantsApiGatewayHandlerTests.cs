@@ -8,7 +8,6 @@ using Hexalith.Commons.UniqueIds;
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Contracts.Commands;
-using TenantsDaprAppIdHandler = TenantsApi::Hexalith.Tenants.Api.Services.DaprAppIdHandler;
 using TenantsDaprHttpEndpointResolver = TenantsApi::Hexalith.Tenants.Api.Services.DaprHttpEndpointResolver;
 using TenantsInboundBearerForwardingHandler = TenantsApi::Hexalith.Tenants.Api.Services.InboundBearerForwardingHandler;
 
@@ -132,18 +131,27 @@ public sealed class TenantsApiGatewayHandlerTests
     }
 
     [Fact]
-    public async Task DaprAppIdHandler_AddsEventStoreRoutingHeaders()
+    public async Task DaprServiceInvocationExtension_ReplacesUntrustedRoutingHeaders()
     {
         var terminal = new CaptureHandler();
-        using var handler = new TenantsDaprAppIdHandler("eventstore", "secret-token")
+        var services = new ServiceCollection();
+        _ = services.AddHttpClient("dapr", client =>
         {
-            InnerHandler = terminal,
-        };
-        using var invoker = new HttpMessageInvoker(handler);
+            client.BaseAddress = new Uri("http://localhost:3500");
+            _ = client.DefaultRequestHeaders.TryAddWithoutValidation("dapr-app-id", "untrusted-app");
+            _ = client.DefaultRequestHeaders.TryAddWithoutValidation("dapr-api-token", "untrusted-token");
+        })
+            .AddEventStoreDaprServiceInvocation("eventstore", "secret-token")
+            .ConfigurePrimaryHttpMessageHandler(() => terminal);
 
-        using HttpResponseMessage response = await invoker.SendAsync(
-            new HttpRequestMessage(HttpMethod.Post, "http://localhost:3500/api/v1/queries"),
-            TestContext.Current.CancellationToken);
+        using ServiceProvider provider = services.BuildServiceProvider();
+        IHttpClientFactory factory = provider.GetRequiredService<IHttpClientFactory>();
+        using HttpClient client = factory.CreateClient("dapr");
+
+        using HttpResponseMessage response = await client.PostAsync(
+            "/api/v1/queries",
+            content: null,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         HttpRequestMessage request = terminal.Request.ShouldNotBeNull();
         request.Headers.GetValues("dapr-app-id").ShouldBe(["eventstore"]);
@@ -171,8 +179,13 @@ public sealed class TenantsApiGatewayHandlerTests
         _ = services.AddSingleton<IHttpContextAccessor>(accessor);
         _ = services.AddTransient<TenantsInboundBearerForwardingHandler>();
         _ = services.AddEventStoreGatewayClient(options => options.BaseAddress = new Uri("http://localhost:3500"))
+            .ConfigureHttpClient(client =>
+            {
+                _ = client.DefaultRequestHeaders.TryAddWithoutValidation("dapr-app-id", "untrusted-app");
+                _ = client.DefaultRequestHeaders.TryAddWithoutValidation("dapr-api-token", "untrusted-token");
+            })
             .AddHttpMessageHandler<TenantsInboundBearerForwardingHandler>()
-            .AddHttpMessageHandler(() => new TenantsDaprAppIdHandler("eventstore", "secret-token"))
+            .AddEventStoreDaprServiceInvocation("eventstore", "secret-token")
             .ConfigurePrimaryHttpMessageHandler(() => terminal);
 
         using ServiceProvider provider = services.BuildServiceProvider();

@@ -71,7 +71,7 @@ string? daprApiToken = builder.Configuration["DAPR_API_TOKEN"];
 builder.Services.AddTransient<InboundBearerForwardingHandler>();
 builder.Services.AddEventStoreGatewayClient(options => options.BaseAddress = new Uri(daprHttpEndpoint))
     .AddHttpMessageHandler<InboundBearerForwardingHandler>()
-    .AddHttpMessageHandler(() => new DaprAppIdHandler("eventstore", daprApiToken));
+    .AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
 
 WebApplication app = builder.Build();
 

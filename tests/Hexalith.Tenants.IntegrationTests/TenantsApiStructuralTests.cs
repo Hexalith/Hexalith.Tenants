@@ -8,7 +8,6 @@ using System.Xml.Linq;
 
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Rest;
-using TenantsDaprAppIdHandler = TenantsApi::Hexalith.Tenants.Api.Services.DaprAppIdHandler;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -77,7 +76,7 @@ public sealed class TenantsApiStructuralTests
     [Fact]
     public void TenantsApiAssembly_OptsIntoSystemTenantRestApiScope()
     {
-        RestApiAttribute attribute = typeof(TenantsDaprAppIdHandler).Assembly
+        RestApiAttribute attribute = typeof(TenantsApi::Program).Assembly
             .GetCustomAttributes<RestApiAttribute>()
             .Single();
 
@@ -110,7 +109,10 @@ public sealed class TenantsApiStructuralTests
         programText.ShouldContain("DaprHttpEndpointResolver.Resolve(builder.Configuration)");
         programText.ShouldContain("options.BaseAddress = new Uri(daprHttpEndpoint)");
         programText.ShouldContain(".AddHttpMessageHandler<InboundBearerForwardingHandler>()");
-        programText.ShouldContain(".AddHttpMessageHandler(() => new DaprAppIdHandler(\"eventstore\", daprApiToken))");
+        programText.ShouldContain(".AddEventStoreDaprServiceInvocation(\"eventstore\", daprApiToken)");
+        sourceText.ShouldNotContain("DaprAppIdHandler");
+        sourceText.ShouldNotContain("TryAddWithoutValidation(\"dapr-app-id\"");
+        sourceText.ShouldNotContain("TryAddWithoutValidation(\"dapr-api-token\"");
         programText.ShouldContain("Encoding.UTF8.GetByteCount(signingKey) < 32");
         programText.ShouldContain("app.UseAuthentication();");
         programText.ShouldContain("app.UseAuthorization();");
@@ -153,7 +155,7 @@ public sealed class TenantsApiStructuralTests
     [Fact]
     public void TenantsRestController_IsOnlyGeneratedControllerAndUsesGatewayBoundary()
     {
-        Type[] controllers = typeof(TenantsDaprAppIdHandler).Assembly
+        Type[] controllers = typeof(TenantsApi::Program).Assembly
             .GetTypes()
             .Where(static type => typeof(ControllerBase).IsAssignableFrom(type)
                 || type.GetCustomAttribute<ApiControllerAttribute>() is not null)
@@ -163,7 +165,7 @@ public sealed class TenantsApiStructuralTests
             ["Hexalith.Tenants.Api.Generated.TenantsRestController"],
             ignoreOrder: true);
 
-        Type controller = typeof(TenantsDaprAppIdHandler).Assembly.GetType(
+        Type controller = typeof(TenantsApi::Program).Assembly.GetType(
             "Hexalith.Tenants.Api.Generated.TenantsRestController",
             throwOnError: true)!;
 
