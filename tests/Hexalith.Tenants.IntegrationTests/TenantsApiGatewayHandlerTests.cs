@@ -30,6 +30,23 @@ public sealed class TenantsApiGatewayHandlerTests
         endpoint.ShouldBe("http://localhost:3500");
     }
 
+    [Theory]
+    [InlineData("", "", "http://localhost:3500")]
+    [InlineData("   ", "   ", "http://localhost:3500")]
+    [InlineData("", " 03600 ", "http://localhost:3600")]
+    [InlineData("   ", "03600", "http://localhost:3600")]
+    public void DaprHttpEndpointResolver_WhenEndpointOrPortIsBlank_UsesTheDocumentedFallback(
+        string endpointValue,
+        string portValue,
+        string expected)
+    {
+        string endpoint = TenantsDaprHttpEndpointResolver.Resolve(Configuration(
+            ("DAPR_HTTP_ENDPOINT", endpointValue),
+            ("DAPR_HTTP_PORT", portValue)));
+
+        endpoint.ShouldBe(expected);
+    }
+
     [Fact]
     public void DaprHttpEndpointResolver_WhenEndpointOriginExists_ReturnsNormalizedOrigin()
     {

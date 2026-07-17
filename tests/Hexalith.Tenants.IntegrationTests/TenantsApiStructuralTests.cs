@@ -1,6 +1,8 @@
 extern alias TenantsApi;
 
+using System.Diagnostics;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -9,8 +11,13 @@ using Hexalith.EventStore.Contracts.Rest;
 using TenantsDaprAppIdHandler = TenantsApi::Hexalith.Tenants.Api.Services.DaprAppIdHandler;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 using Shouldly;
 
@@ -19,11 +26,11 @@ namespace Hexalith.Tenants.IntegrationTests;
 public sealed class TenantsApiStructuralTests
 {
     private static readonly Regex MinimalEndpointMappingPattern = new(
-        @"\bapp\s*\.\s*Map(?:Get|Post|Put|Delete|Patch|Group|Methods)\s*\(",
+        @"\.\s*Map(?:Get|Post|Put|Delete|Patch|Group|Methods|Fallback|FallbackToFile)\s*\(",
         RegexOptions.Compiled);
 
     [Fact]
-    public void TenantsApiProject_UsesContractsClientServiceDefaultsAndGeneratorAnalyzerOnly()
+    public async Task TenantsApiProject_UsesContractsClientServiceDefaultsAndGeneratorAnalyzerOnly()
     {
         XDocument project = XDocument.Load(TenantsApiProjectPath());
         XElement[] projectReferences = project
@@ -57,20 +64,14 @@ public sealed class TenantsApiStructuralTests
         ((string?)generatorPackage.Attribute("PrivateAssets")).ShouldBe("all");
         ((string?)generatorPackage.Attribute("Condition")).ShouldBe("'$(HexalithEventStoreFromSource)' != 'true'");
 
-        string[] forbiddenDependencies = project
-            .Descendants()
-            .Where(static element => string.Equals(element.Name.LocalName, "ProjectReference", StringComparison.Ordinal)
-                || string.Equals(element.Name.LocalName, "PackageReference", StringComparison.Ordinal)
-                || string.Equals(element.Name.LocalName, "Reference", StringComparison.Ordinal))
-            .Select(DependencyIdentity)
-            .Where(static identity => string.Equals(identity, "Hexalith.Tenants", StringComparison.Ordinal)
-                || string.Equals(identity, "Hexalith.Tenants.UI", StringComparison.Ordinal)
-                || string.Equals(identity, "Hexalith.Tenants.csproj", StringComparison.Ordinal)
-                || string.Equals(identity, "Hexalith.Tenants.UI.csproj", StringComparison.Ordinal))
-            .ToArray();
+        List<string> dependencies = [];
+        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(TenantsApiProjectPath(), useProjectReferences: true).ConfigureAwait(false));
+        dependencies.AddRange(await ReadEvaluatedDependencyValuesAsync(TenantsApiProjectPath(), useProjectReferences: false).ConfigureAwait(false));
 
-        forbiddenDependencies.ShouldBeEmpty(
-            "The external Tenants API host must not reference the domain implementation or UI host.");
+        dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants"))
+            .ShouldBeEmpty("The external Tenants API host must not reference the domain implementation.");
+        dependencies.Where(static dependency => MatchesDependencyIdentity(dependency, "Hexalith.Tenants.UI"))
+            .ShouldBeEmpty("The external Tenants API host must not reference the interactive UI host.");
     }
 
     [Fact]
@@ -122,6 +123,31 @@ public sealed class TenantsApiStructuralTests
 
         MinimalEndpointMappingPattern.IsMatch(sourceText)
             .ShouldBeFalse("Tenants.Api must expose typed generated controllers only, not hand-written minimal API endpoints.");
+    }
+
+    [Fact]
+    public void TenantsApiHost_ExposesOnlyGeneratedControllersAndPlatformHealthEndpoints()
+    {
+        using WebApplicationFactory<TenantsApi::Program> factory = new WebApplicationFactory<TenantsApi::Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                _ = builder.UseSetting("EventStore:Authentication:Issuer", "hexalith-dev");
+                _ = builder.UseSetting("EventStore:Authentication:Audience", "hexalith-eventstore");
+                _ = builder.UseSetting(
+                    "EventStore:Authentication:SigningKey",
+                    "this-is-a-structural-test-signing-key-minimum-32-chars");
+            });
+
+        RouteEndpoint[] nonControllerRoutes = factory.Services
+            .GetServices<EndpointDataSource>()
+            .SelectMany(static source => source.Endpoints)
+            .OfType<RouteEndpoint>()
+            .Where(static endpoint => endpoint.Metadata.GetMetadata<ControllerActionDescriptor>() is null)
+            .ToArray();
+
+        nonControllerRoutes
+            .Select(static endpoint => endpoint.RoutePattern.RawText?.Trim().TrimStart('/') ?? string.Empty)
+            .ShouldBe(["alive", "health", "ready"], ignoreOrder: true);
     }
 
     [Fact]
@@ -210,12 +236,63 @@ public sealed class TenantsApiStructuralTests
         method.GetCustomAttribute<AuthorizeAttribute>().ShouldBeNull("Authorization is applied at generated controller level.");
     }
 
-    private static string DependencyIdentity(XElement reference)
+    private static async Task<string[]> ReadEvaluatedDependencyValuesAsync(
+        string projectPath,
+        bool useProjectReferences)
     {
-        string include = ((string?)reference.Attribute("Include"))?.Replace('\\', '/') ?? string.Empty;
-        return string.Equals(reference.Name.LocalName, "ProjectReference", StringComparison.Ordinal)
-            ? Path.GetFileName(include)
-            : include;
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = ProjectRoot(),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add("msbuild");
+        startInfo.ArgumentList.Add(projectPath);
+        startInfo.ArgumentList.Add("-nologo");
+        startInfo.ArgumentList.Add("-verbosity:quiet");
+        startInfo.ArgumentList.Add("-getItem:ProjectReference,PackageReference,Reference,Analyzer");
+        startInfo.ArgumentList.Add($"-property:UseHexalithProjectReferences={useProjectReferences.ToString().ToLowerInvariant()}");
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start dotnet msbuild for Tenants API dependency evaluation.");
+        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
+        Task<string> standardError = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync().ConfigureAwait(false);
+        string output = await standardOutput.ConfigureAwait(false);
+        string error = await standardError.ConfigureAwait(false);
+
+        process.ExitCode.ShouldBe(0, $"dotnet msbuild dependency evaluation failed: {error}");
+
+        using JsonDocument document = JsonDocument.Parse(output);
+        var values = new List<string>();
+        foreach (JsonProperty itemType in document.RootElement.GetProperty("Items").EnumerateObject())
+        {
+            foreach (JsonElement item in itemType.Value.EnumerateArray())
+            {
+                foreach (string propertyName in new[] { "Identity", "FullPath", "HintPath", "NuGetPackageId", "Filename" })
+                {
+                    if (item.TryGetProperty(propertyName, out JsonElement value)
+                        && value.ValueKind == JsonValueKind.String
+                        && !string.IsNullOrWhiteSpace(value.GetString()))
+                    {
+                        values.Add(value.GetString()!);
+                    }
+                }
+            }
+        }
+
+        return values.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static bool MatchesDependencyIdentity(string value, string expectedIdentity)
+    {
+        string normalized = value.Replace('\\', '/').Trim();
+        return string.Equals(normalized, expectedIdentity, StringComparison.OrdinalIgnoreCase)
+            || normalized.StartsWith($"{expectedIdentity},", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith($"/{expectedIdentity}", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith($"/{expectedIdentity}.csproj", StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith($"/{expectedIdentity}.dll", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsBuildArtifact(string path)
