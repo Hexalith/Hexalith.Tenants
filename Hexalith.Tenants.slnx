@@ -44,6 +44,10 @@
   </Folder>
   <Folder Name="/References/" />
   <Folder Name="/References/Hexalith.Builds/" />
+  <Folder Name="/References/Hexalith.Builds/Props/">
+    <File Path="references/Hexalith.Builds/Props/Directory.Packages.props" />
+    <File Path="references/Hexalith.Builds/Props/Environment.Build.props" />
+  </Folder>
   <Folder Name="/References/Hexalith.Commons/">
     <File Path="references/Hexalith.Commons/Directory.Build.props" />
     <Project Path="references/Hexalith.Commons/src/libraries/Hexalith.Commons.Aspire/Hexalith.Commons.Aspire.csproj" />
