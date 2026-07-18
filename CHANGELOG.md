@@ -1,3 +1,14 @@
+## [3.2.17](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.16...v3.2.17) (2026-07-18)
+
+
+### Bug Fixes
+
+* update submodule references and add planning artifacts for PRD reconciliation ([b952a83](https://github.com/Hexalith/Hexalith.Tenants/commit/b952a835c82c1dfb19554cb341c85235ae9411f8))
+* update subproject commit references for Hexalith.Builds and Hexalith.FrontComposer ([fbff464](https://github.com/Hexalith/Hexalith.Tenants/commit/fbff4649191086a43028291b931c561c225b3e35))
+* update subproject commit references for Hexalith.Builds, Hexalith.EventStore, Hexalith.FrontComposer, and Hexalith.Memories ([cac5056](https://github.com/Hexalith/Hexalith.Tenants/commit/cac50564c3f621931b5a0456da62049e0727406d))
+* update subproject commit references for Hexalith.EventStore, Hexalith.FrontComposer, and Hexalith.Memories; add launchSettings.json for API configuration ([2c64ea7](https://github.com/Hexalith/Hexalith.Tenants/commit/2c64ea7554a095b9f10d64494b0ad745e8bcee95))
+* update subproject commit references for Hexalith.Memories, Hexalith.EventStore, and Hexalith.FrontComposer; add Hexalith.Memories.AccessTelemetry.Contracts project ([2d85e35](https://github.com/Hexalith/Hexalith.Tenants/commit/2d85e35a2646df9c0e2ccc2cfae295269bfd166d))
+
 ## [3.2.16](https://github.com/Hexalith/Hexalith.Tenants/compare/v3.2.15...v3.2.16) (2026-07-17)
 
 
