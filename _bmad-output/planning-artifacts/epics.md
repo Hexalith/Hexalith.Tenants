@@ -42,7 +42,7 @@ FR11: An authorized user can change a member's role; changing to the current rol
 
 FR12: An authorized user can remove a user's tenant access through validation, fail-closed freshness and authorization gating, a complete Consequence Preview, elevated friction, aggregate-scoped command locking, projection-confirmed lifecycle tracking, and minimum audit proof. Removing the last owner is allowed with extra friction, a target who is also a global administrator raises platform-level friction without changing command scope, duplicate/already-applied removal does not double-apply, and unverifiable outcomes are never shown as success.
 
-FR13: An authorized operator can create a tenant; an existing tenant id is rejected as `TenantAlreadyExists`, and creation is shown as successful only after authoritative projection confirmation.
+FR13: An authorized operator (domain-enforced as global-administrator-only) can create a tenant; an existing tenant id is rejected as `TenantAlreadyExists`, and creation is shown as successful only after authoritative projection confirmation.
 
 FR14: An authorized tenant contributor or global administrator can edit tenant metadata; each successful request emits `TenantUpdated` without same-state suppression, validation errors use safe localized field messages, and completion is projection-confirmed.
 
@@ -215,7 +215,7 @@ FR11: Epic 2 - Change a tenant member's role with NoOp/rejection honesty and pro
 
 FR12: Epic 2 - Remove tenant access through fail-closed preview, elevated friction, lifecycle tracking, and minimum audit proof.
 
-FR13: Epic 3 - Create a tenant with safe duplicate handling and projection confirmation.
+FR13: Epic 3 - Create a tenant (global-administrator-only) with safe duplicate handling and projection confirmation.
 
 FR14: Epic 3 - Edit tenant metadata with validation and always-emitted, projection-confirmed updates.
 
@@ -575,11 +575,6 @@ So that I can answer access questions without treating the UI as an exhaustive u
 **Then** the literal identifier is safely encoded and sent only through the server-side BFF user-tenants read path
 **And** it is not parsed or validated as a GUID, ULID, email invitation, or other invented identity format.
 
-**Given** the operator is reviewing a tenant member row
-**When** the contextual user-membership link is activated
-**Then** it opens the canonical Users tab with the safely encoded `userId` workspace state
-**And** return navigation preserves the originating tenant, tab, filter, selection, cursor context, and scroll position.
-
 **Given** authorized memberships are returned for the looked-up user
 **When** results render
 **Then** each visible row shows tenant identity, the user's role, tenant status, and authoritative or honestly unknown freshness
@@ -612,7 +607,7 @@ So that I can answer access questions without treating the UI as an exhaustive u
 
 **Given** the completed user-membership lookup
 **When** focused validation, authorization, route, gateway, encoding, bUnit, localization, responsive, accessibility, and support-safety tests run
-**Then** direct entry, member-row entry, hidden membership, empty, error, Unicode identifier, and return-context scenarios pass
+**Then** direct entry, hidden membership, empty, error, Unicode identifier, and return-context scenarios pass
 **And** exact commands, results, and external freshness blockers are recorded.
 
 ### Story 1.6: Read-Only Tenant Configuration
@@ -706,6 +701,11 @@ So that I can understand who has access and what could safely be changed before 
 **Then** the context remains distinct: last-owner and target-also-global-admin derive high risk, disabled/orphan state is named honestly, and global authority is not conflated with tenant membership
 **And** unavailable or unproven platform standing is not guessed.
 
+**Given** the operator is reviewing a tenant member row
+**When** the contextual user-membership link is activated
+**Then** it opens the canonical Users tab with the safely encoded `userId` workspace state
+**And** return navigation preserves the originating tenant, tab, filter, selection, cursor context, and scroll position.
+
 **Given** membership data is loading, empty, unavailable, stale, degraded, or has unknown freshness
 **When** the member region renders
 **Then** the conditions remain distinct and authorization-safe with appropriate refresh, retry, or continue-read-only recovery
@@ -728,7 +728,7 @@ So that I can understand who has access and what could safely be changed before 
 
 **Given** the completed member access-review slice
 **When** focused authorization-reflection, fail-closed, role/risk, bUnit, localization, responsive, keyboard, screen-reader, forced-colors, support-safety, and conformance tests run
-**Then** every canonical unavailable reason and required edge context is covered
+**Then** every canonical unavailable reason, the member-row user-membership entry scenario, and required edge context are covered
 **And** exact commands, results, and any blocked external evidence source are recorded.
 
 ### Story 1.8: Support-Safe Identifier Copy and Read-Experience Evidence
@@ -764,17 +764,17 @@ So that I can communicate about tenant access accurately without leaking interna
 **Then** an honest localized failure and safe recovery are presented without a dead end
 **And** no fallback writes the value into unsafe markup, query strings, logs, or telemetry.
 
-**Given** Epic 1 read surfaces in English and French
+**Given** the read surfaces delivered by Stories 1.2 through 1.8 in English and French
 **When** resource parity and whole-string usage are checked
 **Then** navigation, statuses, roles, timestamps, loading/empty/error/stale/degraded/unknown states, unavailable reasons, copy feedback, and recovery text have parity
 **And** no runtime sentence-fragment assembly or prohibited support-unsafe wording is present.
 
-**Given** Epic 1 read surfaces at desktop, tablet, mobile, high contrast, forced colors, and reduced motion
+**Given** the read surfaces delivered by Stories 1.2 through 1.8 at desktop, tablet, mobile, high contrast, forced colors, and reduced motion
 **When** responsive and accessibility evidence is collected
 **Then** keyboard navigation, visible focus, screen-reader semantics, absolute timestamps, no-color-only status, navigation collapse, horizontal grid overflow, and safe mobile read behavior are demonstrated
 **And** NVDA plus at least one documented browser/screen-reader pairing is included where applicable.
 
-**Given** Epic 1 automation and documentation contracts
+**Given** the automation and documentation contracts of the surfaces delivered by Stories 1.2 through 1.8
 **When** focused evidence is reviewed
 **Then** stable `data-testid` selectors cover every interactive/status surface without localized-text, color, or incidental-markup dependence
 **And** applicable FrontComposer/Fluent reference evidence and any approved row-specific fallback are cited with owner and replacement path.
@@ -787,7 +787,7 @@ So that I can communicate about tenant access accurately without leaking interna
 **Given** the completed Story 1.8 slice
 **When** focused copy, bUnit, localization-parity, responsive, accessibility, support-safety, conformance, and relevant E2E checks run
 **Then** all configured read-surface checks pass or report exact environment blockers
-**And** evidence is recorded without treating historical completion as a readiness waiver for Stories 1.9 through 1.11.
+**And** evidence is recorded for the in-scope surfaces only; Stories 1.9 through 1.11 carry their own equivalent evidence gates, and historical completion never becomes a readiness waiver for them.
 
 ### Story 1.9: Authoritative Memories Search with Protected Paging
 
@@ -1285,7 +1285,7 @@ Authorized users can create and configure tenants, edit metadata, and safely ena
 
 ### Story 3.1: Create Tenant with Projection Confirmation
 
-As an authorized platform operator,
+As an authorized global administrator,
 I want to create a tenant through a projection-confirmed command flow,
 So that the tenant becomes available only after the system proves its creation.
 
@@ -1304,10 +1304,10 @@ So that the tenant becomes available only after the system proves its creation.
 **Given** authorization reflection, command connectivity, lifecycle support, or creation eligibility is missing or indeterminate
 **When** action availability is evaluated
 **Then** the create action fails closed with a canonical inline unavailable reason and named recovery
-**And** server-side API/domain authorization remains the enforcement boundary.
+**And** server-side API/domain authorization remains the enforcement boundary: tenant creation is domain-enforced as global-administrator-only (`GlobalAdminRequired`), reflected for non-global-administrator callers as `missing permission` and surfaced, if dispatched anyway, as safe localized rejection text.
 
 **Given** valid eligible input
-**When** the operator submits a deliberate attempt
+**When** the global administrator submits a deliberate attempt
 **Then** the server-side gateway dispatches `CreateTenant(TenantId, Name, Description)` through fixed `POST /api/v1/commands` using the literal tenant id as aggregate identity and a client-generated ULID `messageId` as the idempotency key
 **And** no browser backend call, invitation/bootstrap alias, new endpoint, reshaped command contract, or optimistic tenant row is introduced.
 
@@ -1916,12 +1916,22 @@ So that the authority change is explicit, fixed-scope, and confirmed by the auth
 **Then** localized field guidance blocks submission and associates the error with the input
 **And** a valid meaningful identifier remains case-sensitive and is never generated, normalized, parsed, or reformatted as a GUID or ULID.
 
-**Given** authorization, direct-read freshness, fixed-scope command support, authoritative re-query support, aggregate admission, or viewport safety is stale, missing, unknown, or indeterminate
+**Given** authorization, direct-read freshness, fixed-scope command support, authoritative re-query support, preview readiness, aggregate admission, or viewport safety is stale, missing, unknown, or indeterminate
 **When** grant availability is evaluated
 **Then** submission fails closed with the applicable canonical localized inline reason and named recovery
 **And** server-side API/domain authorization remains the enforcement boundary without revealing hidden administrator data.
 
-**Given** valid eligible input and an explicit deliberate submit
+**Given** grant eligibility gates pass for a literal target UserId
+**When** the BFF assembles the grant consequence preview
+**Then** it supplies all ten platform-governance items: fixed platform scope, target UserId, current complete administrator count, resulting count impact, the specific platform authority being granted, authoritative freshness, the recovery path (deliberate removal as the forward correction), the audit expectation, caller/target platform context, and known consequences versus known unknowns
+**And** the redacted support-safe preview introduces no new backend endpoint and blocks confirmation while any required item is missing.
+
+**Given** the complete high-impact grant preview is open
+**When** the user reviews, cancels, presses Escape, or explicitly confirms
+**Then** focus is trapped while open, cancel and Escape dispatch nothing, deliberate confirmation friction is required before dispatch, and focus returns to the launching control
+**And** grant is never a primary/casual or bulk action and remains unavailable on layouts that cannot preserve the full safety context.
+
+**Given** the complete preview remains current and deliberate confirmation succeeds
 **When** the server-side gateway dispatches the command
 **Then** it sends `SetGlobalAdministrator(UserId)` through fixed `POST /api/v1/commands` with tenant `system`, domain `global-administrators`, aggregate id `global-administrators`, and a client-generated ULID `messageId` idempotency key
 **And** the payload contains no tenant context and no new endpoint, browser backend call, or reshaped command contract is introduced.
@@ -1987,7 +1997,7 @@ So that the authority change is explicit, fixed-scope, and confirmed by the auth
 **And** historical completion does not waive fixed routing, aggregate locking, duplicate-rejection semantics, provenance-qualified confirmation, reconnect, support-safety, accessibility, or current evidence requirements.
 
 **Given** the completed global-administrator grant flow
-**When** focused fixed-payload, literal-identity, validation, authorization, existing-target rejection, idempotency, aggregate-lock, lifecycle, projection-provenance, audit handoff, reconnect, localization, accessibility, responsive, support-safety, and E2E tests run
+**When** focused fixed-payload, literal-identity, validation, authorization, complete-preview, confirmation-friction, existing-target rejection, idempotency, aggregate-lock, lifecycle, projection-provenance, audit handoff, reconnect, localization, accessibility, responsive, support-safety, and E2E tests run
 **Then** grant, safe refusal, duplicate, degraded, and unconfirmable scenarios pass with exact commands/results recorded
 **And** no test accepts tenant context, command acceptance, optimistic insertion, a pre-existing target, or unrelated projection activity as grant success.
 
@@ -2433,8 +2443,8 @@ So that I know whether to wait, retry, inspect audit, continue read-only, or esc
 ### Story 5.5: Start a Forward Tenant Correction from Audit Evidence
 
 As an authorized tenant operator,
-I want to start a forward membership correction from proven audit evidence,
-So that I can restore intended access without editing or relabeling the original event.
+I want to start a forward membership correction from proven audit evidence with a verified current-state intent,
+So that a mistaken access change can be corrected forward — submission, confirmation, and linked proof completing in Story 5.6 — without editing or relabeling the original event.
 
 **Acceptance Criteria:**
 

@@ -112,8 +112,8 @@ Journeys are numbered globally (UJ-1..UJ-6) and referenced by FRs. Phase labels 
 
 - **UJ-6. Elena onboards a new tenant.** *(Phase 2b/2c)*
   - **Persona + context:** a new customer needs a tenant stood up.
-  - **Entry state:** authenticated operator.
-  - **Path:** creates the tenant → adds the first owner directly by user id → sets initial configuration → confirms each step landed.
+  - **Entry state:** authenticated as a global administrator.
+  - **Path:** creates the tenant → adds the first owner directly by user id → sets the initial configuration → verifies that each step completed.
   - **Climax:** a usable, owned, configured tenant exists.
   - **Resolution:** the owner (Nadia) can now self-serve (UJ-5). **Edge case:** adding a user is a *direct* add by user id — there is no email-invitation step in v1 (§13). `[ASSUMPTION]`
 
@@ -262,8 +262,8 @@ An authorized user can remove a user's tenant access, with Consequence Preview, 
 **Description:** Create, edit, and enable/disable tenants. Realizes UJ-6.
 
 #### FR-13: Create a tenant *(Phase 2b)*
-An authorized operator can create a new tenant. Realizes UJ-6.
-- **Consequences:** creating an existing tenant id is rejected with safe text (`TenantAlreadyExists`); success shown only after projection confirmation.
+Only a global administrator can create a new tenant; the domain enforces this authorization rule. Realizes UJ-6.
+- **Consequences:** callers without global-administrator authority see the action as unavailable with `missing permission`. If an unauthorized creation request is nevertheless dispatched, the domain emits `InsufficientPermissionsRejection`, which the UI maps to safe localized `InsufficientPermissions` text. Creating a tenant with an existing tenant id is rejected with safe text (`TenantAlreadyExists`); success is shown only after projection confirmation.
 
 #### FR-14: Edit tenant metadata *(Phase 2b)*
 An authorized user (tenant **contributor or global administrator**) can edit a tenant's metadata.

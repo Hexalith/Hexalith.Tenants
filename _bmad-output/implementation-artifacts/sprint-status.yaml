@@ -1,5 +1,5 @@
-# generated: 2026-06-29T14:27:50+02:00
-# last_updated: 2026-07-01
+# generated: 2026-07-19T16:57:33+02:00
+# last_updated: 2026-07-19T16:57:33+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -40,63 +40,64 @@
 # - Dev moves story to review, then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
-generated: 2026-06-29T14:27:50+02:00
-last_updated: 2026-07-01
+generated: 2026-07-19T16:57:33+02:00
+last_updated: 2026-07-19T16:57:33+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
 story_location: /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts
 
 development_status:
-  # --- Epic 1: Tenant Workspace Triage and Read-Only Insight ---
+  # --- Epic 1: Trustworthy Tenant Discovery and Access Review ---
   epic-1: done
-  1-0-frontcomposer-shell-integration-spike: done
-  1-1-tenants-ui-host-bootstrap: done
-  1-2-tenant-list-triage: done
+  1-0-reverify-frontcomposer-shell-and-fluent-contracts: backlog
+  1-1-reverify-ui-host-bootstrap-and-canonical-workspace: backlog
+  1-2-tenant-list-triage-and-cursor-foundation: backlog
   1-3-tenant-detail-navigation-and-overview: done
-  1-4-my-tenants-self-audit-view: done
+  1-4-my-tenants-self-audit: backlog
   1-5-user-membership-lookup: done
-  1-6-read-only-tenant-configuration-view: done
+  1-6-read-only-tenant-configuration: backlog
   1-7-tenant-member-table-and-action-availability: done
-  1-8-support-safe-identifier-copy-and-epic-1-readiness-evidence: done
+  1-8-support-safe-identifier-copy-and-read-experience-evidence: backlog
+  1-9-authoritative-memories-search-with-protected-paging: backlog
+  1-10-direct-tenants-reads-and-authoritative-freshness: backlog
+  1-11-authorized-global-administrator-review: backlog
   epic-1-retrospective: done
 
-  # --- Epic 2: Tenant Membership and Tenant Record Management ---
+  # --- Epic 2: Safe Tenant Membership Management ---
   epic-2: done
-  2-1-create-tenant-with-projection-confirmed-command-lifecycle: done
+  2-1-reverify-projection-confirmed-membership-command-foundation: backlog
   2-2-add-user-to-tenant-with-explicit-role: done
   2-3-change-tenant-member-role: done
-  2-4-remove-tenant-member-with-consequence-preview: done
-  2-5-edit-tenant-metadata-with-safe-validation: done
+  2-4-remove-tenant-member-with-complete-preview-and-proof: backlog
   epic-2-retrospective: done
 
-  # --- Epic 3: Tenant Lifecycle and Configuration Control ---
+  # --- Epic 3: Tenant Onboarding, Lifecycle, and Configuration ---
   epic-3: done
-  3-1-tenant-lifecycle-command-availability-and-blocked-state-guardrail: done
-  3-2-disable-or-enable-tenant-with-high-impact-confirmation: done
-  3-3-set-tenant-configuration-key-value-with-consequence-preview: done
-  3-4-remove-tenant-configuration-key-with-consequence-preview: done
-  3-5-tenant-query-gateway-rest-routing: done
+  3-1-create-tenant-with-projection-confirmation: backlog
+  3-2-edit-tenant-metadata-with-recorded-updates: backlog
+  3-3-lifecycle-and-configuration-availability-guardrail: backlog
+  3-4-disable-or-enable-tenant-with-complete-preview: backlog
+  3-5-set-namespaced-configuration-with-complete-preview: backlog
+  3-6-remove-configuration-key-with-complete-preview: backlog
   epic-3-retrospective: done
 
-  # --- Epic 4: Global Administrator Governance ---
+  # --- Epic 4: Global Administrator Control ---
   epic-4: done
-  4-1-global-administrators-navigation-and-read-contract-readiness: done
-  4-2-review-global-administrators-from-fixed-aggregate: done
-  4-3-grant-global-administrator-with-projection-confirmation: done
-  4-4-remove-global-administrator-with-last-admin-hard-stop: done
+  4-1-fixed-scope-global-administrator-action-availability: backlog
+  4-2-grant-global-administrator-with-projection-confirmation: backlog
+  4-3-remove-global-administrator-with-last-administrator-hard-stop: backlog
   epic-4-retrospective: done
 
-  # --- Epic 5: Audit Evidence and Forward Recovery 2 ---
+  # --- Epic 5: Audit Evidence and Corrective Recovery ---
   epic-5: done
-  5-1-tenant-audit-trail-datagrid: done
-  5-2-scoped-audit-evidence-entry-points: done
-  5-3-support-safe-audit-evidence-receipt: done
-  5-4-audit-availability-state-recovery: done
-  5-5-start-forward-correction-from-audit-evidence: done
-  5-6-preview-and-confirm-correction-with-linked-proof: done
-  5-7-global-administrator-correction-verification: done
-  5-8-correction-projection-refresh-cleanup: done
+  5-1-browse-tenant-audit-trail: backlog
+  5-2-reach-scoped-audit-evidence-from-context: backlog
+  5-3-view-a-support-safe-audit-evidence-receipt: backlog
+  5-4-understand-audit-availability-and-recovery: backlog
+  5-5-start-a-forward-tenant-correction-from-audit-evidence: backlog
+  5-6-preview-confirm-and-link-a-tenant-correction: backlog
+  5-7-correct-global-administrator-authority-from-audit-evidence: backlog
   epic-5-retrospective: done
 
 action_items:
