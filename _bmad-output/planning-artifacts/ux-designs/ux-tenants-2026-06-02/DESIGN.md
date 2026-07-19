@@ -4,11 +4,13 @@ description: Trust-first operations console for the Hexalith Tenants domain. Inh
 status: final
 sources:
   - "{planning_artifacts}/prds/prd-tenants-2026-06-02/prd.md"
-updated: 2026-06-02
+  - "{planning_artifacts}/prds/prd-tenants-2026-06-02/addendum.md"
+  - "{planning_artifacts}/sprint-change-proposal-2026-07-15.md"
+updated: 2026-07-19
 colors:
   # No hex. Every status role inherits a Fluent v5 BadgeColor semantic role by NAME.
   # Fluent owns the rendered CSS token value; verify exact values against the pinned
-  # package (5.0.0-rc.3-26138.1 ≈ MCP pkg 5.0.0.26139) at build. NEVER restate a hex
+  # package (5.0.0-rc.4-26180.1, centrally consumed) at build. NEVER restate a hex
   # here, and NEVER assert a token name not in the verified BadgeColor vocabulary
   # (Brand · Danger · Important · Informative · Severe · Subtle · Success · Warning).
   status-success:
@@ -73,7 +75,7 @@ components:
     gap: '{spacing.2}'
   audit-evidence-receipt:
     color: '{colors.status-success} | {colors.status-informative} | {colors.status-warning} | {colors.status-severe} | {colors.status-subtle}'
-    layout: 'Fluent FluentMessageBar · MessageBarLayout.Notification — support-safe; client-assembled from NarrativePayload'
+    layout: 'Fluent FluentMessageBar · MessageBarLayout.Notification — support-safe; BFF-assembled, redacted view model (from NarrativePayload)'
     padding: '{spacing.4}'
     fieldGap: '{spacing.3}'
     idType: '{typography.mono}'
@@ -110,7 +112,7 @@ components:
 
 The Tenants Management UI is a **calm, precise operations console — honesty about state**. It is a workstation for people acting on real tenants, members, and access under incident pressure, in an eventually-consistent, event-sourced system. Its single overriding aesthetic obligation is *trust*: the surface must never look more certain than the system actually is. Success is shown only when something is proven; in-flight work looks in-flight; a thing the UI cannot verify is never dressed up as done. Whitespace groups meaning rather than adding drama; nothing is decorative that could be mistaken for state.
 
-This is a **Fluent-delta / inheritance spec, not a from-scratch visual identity.** Microsoft Fluent UI Blazor v5 (pinned `5.0.0-rc.3-26138.1`, ≈ MCP package `5.0.0.26139`) is the visual authority, reached through the **Hexalith.FrontComposer** shell. There is **no bespoke brand palette to invent.** Exactly as the shadcn-based reference inherits shadcn wholesale and specifies only its brand-layer delta, this document inherits Fluent's components, type ramp, shapes, and elevation as the contract — and specifies only the *delta a trust-first operations console requires*: a fixed mapping of meaning onto Fluent **semantic roles**, a strict no-color-only rule, a compact 4px density, and ten domain components that compose Fluent primitives. Everything not named here inherits Fluent as-is; customizing Fluent's primitives beyond this delta is against the discipline.
+This is a **Fluent-delta / inheritance spec, not a from-scratch visual identity.** Microsoft Fluent UI Blazor v5 (pinned `5.0.0-rc.4-26180.1`, centrally consumed) is the visual authority, reached through the **Hexalith.FrontComposer** shell. There is **no bespoke brand palette to invent.** Exactly as the shadcn-based reference inherits shadcn wholesale and specifies only its brand-layer delta, this document inherits Fluent's components, type ramp, shapes, and elevation as the contract — and specifies only the *delta a trust-first operations console requires*: a fixed mapping of meaning onto Fluent **semantic roles**, a strict no-color-only rule, a compact 4px density, and ten domain components that compose Fluent primitives. Everything not named here inherits Fluent as-is; customizing Fluent's primitives beyond this delta is against the discipline.
 
 Two consequences run through every section below. First, **meaning maps to Fluent semantic roles, never to hard-coded hex** — this file references `BadgeColor` roles *by name* and never restates or invents a color value. Second, the exact CSS token values, component parameters, and ARIA behaviors **must be verified against the pinned package at build**; this document never asserts a Fluent token name outside the verified vocabulary, and any genuine gap is marked `[ASSUMPTION]`.
 
@@ -159,7 +161,7 @@ All labels — state names, role names, timestamps, reasons, recovery verbs — 
 
 **Full-width operational surfaces, with constrained inner regions.** Tables and work areas span the viewport — this is a dense admin workstation, and full width is what best satisfies "safety-critical columns never drop" with the least horizontal-scroll risk. Forms, consequence previews, command-lifecycle panels, and dialogs render inside **constrained, readable inner regions** within that full-width frame, anchored to the row or panel they concern.
 
-> Story 1.0 update (2026-06-05): full-width-with-constrained-inner-regions remains the UX **intent**, and the FrontComposer shell layout contract **FC-LYT** is confirmed by `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. Implementing stories still verify exact shell behavior and responsive evidence at build.
+> Story 1.0 update (2026-06-05, historical evidence — not a readiness waiver): full-width-with-constrained-inner-regions remains the UX **intent**, and the FrontComposer shell layout contract **FC-LYT** is confirmed by `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`. Implementing stories still verify exact shell behavior and responsive evidence at build.
 
 **4px spacing rhythm.** All spacing follows the Fluent-compatible scale: `{spacing.1}` 4px · `{spacing.2}` 8px · `{spacing.3}` 12px · `{spacing.4}` 16px · `{spacing.6}` 24px · `{spacing.8}` 32px. Compact density throughout (tight, scannable rows); the larger steps separate major regions, the smaller steps bind tightly-related elements. The positive layout preference is **tables, split views, tabs, side panels, dialogs, and inline status regions over decorative card grids.**
 
@@ -188,7 +190,7 @@ The atom of the whole system — one component that fuses **color + icon + text*
 - **Appearance / state:** `BadgeAppearance.Tint` is the default for every role (calm). `BadgeAppearance.Filled` for **Danger** and **Severe** only, giving the action-stopping tiers extra non-chromatic weight. Distinct states are **never collapsed** into one badge — `accepted`, `confirmed`, and `audit available` are three different badges, never merged.
 - **Sizing / stability:** occupies a reserved cell footprint so updating the badge never reflows the row.
 
-**Verified status icon set.** Every name below is confirmed present in the pinned package (`5.0.0-rc.3-26138.1` ≈ MCP `5.0.0.26139`) via the Fluent icon catalog. The set is **cross-role distinct by design** — no single glyph is shared by two different role colors, so the meaning survives **forced-colors** (where the OS may drop the badge fill, leaving glyph + text to carry it). **Pin status-badge glyphs to size 20:** several (`ClipboardClock`, `ShieldProhibited`, `DocumentProhibited`, `ClockToolbox`, `ClockDismiss`) ship **no Size16 variant**, so a 16px dense-row badge would silently drop them. The bare `Warning` triangle denotes risk `high` only; the Clock-family glyphs (`Clock` aging · `ClockAlarm` stale · `ClockDismiss` timeout · `ClockWarning` audit-delayed · `ClipboardClock` audit-pending · `ClockToolbox` not-built) are each a distinct glyph. Verify exact size/variant at build — the **names** are checked.
+**Verified status icon set.** Every name below was confirmed present in `5.0.0-rc.3-26138.1` (≈ MCP `5.0.0.26139`) via the Fluent icon catalog; the pin is now **`5.0.0-rc.4-26180.1`, centrally consumed** — re-verify names, sizes, and variants against the rc.4 package at build. The set is **cross-role distinct by design** — no single glyph is shared by two different role colors, so the meaning survives **forced-colors** (where the OS may drop the badge fill, leaving glyph + text to carry it). **Pin status-badge glyphs to size 20:** several (`ClipboardClock`, `ShieldProhibited`, `DocumentProhibited`, `ClockToolbox`, `ClockDismiss`) ship **no Size16 variant**, so a 16px dense-row badge would silently drop them. The bare `Warning` triangle denotes risk `high` only; the Clock-family glyphs (`Clock` aging · `ClockAlarm` stale · `ClockDismiss` timeout · `ClockWarning` audit-delayed · `ClipboardClock` audit-pending · `ClockToolbox` not-built) are each a distinct glyph. Verify exact size/variant at build — the **names** are checked.
 
 | State(s) | Role | Fluent icon (`Icons.Regular.Size20.*`) |
 |---|---|---|
@@ -242,7 +244,7 @@ The plain-language, **inline-visible (never hover-only)** explanation of *why* a
 
 ### audit-evidence-receipt
 
-The **support-safe** receipt for a recorded action — assembled **client-side from a structured `NarrativePayload`** (never raw event payload, tokens, correlation ids, or PII). Rendered as a Fluent `FluentMessageBar` in **`MessageBarLayout.Notification`** so actor / target / outcome / reference stack clearly.
+The **support-safe** receipt for a recorded action — a view model **assembled and redacted by the server-side BFF** from a structured `NarrativePayload`; the rendered component receives only support-safe localized fields (never raw `NarrativePayload`, raw event payload, event bodies, command payloads, tokens, correlation ids, ETags, raw metadata, or PII). Rendered as a Fluent `FluentMessageBar` in **`MessageBarLayout.Notification`** so actor / target / outcome / reference stack clearly.
 
 - **Anatomy (fields at `{spacing.3}` gap, `{spacing.4}` padding):** who acted · on whom · tenant scope · outcome · **absolute timestamp** · projection marker (read-model freshness) · audit/command **reference**. Ids and the reference render in `{typography.mono}`; the timestamp is absolute and culture-formatted.
 - **Color:** outcome carries a `{components.truth-state-badge}` — `{colors.status-success}` only when `audit available` is genuinely proven; otherwise the honest audit state: `{colors.status-informative}` (`audit pending`), `{colors.status-warning}` (`audit delayed`), `{colors.status-severe}` (`audit unavailable`), `{colors.status-subtle}` (`missing implementation support`). **None of the not-yet-proven states is ever shown as success** — partial completion shows the actual lifecycle state, never pre-rendered proof.

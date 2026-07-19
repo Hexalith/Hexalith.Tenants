@@ -2,7 +2,7 @@
 title: Tenants Management UI
 status: final
 created: 2026-06-02
-updated: 2026-07-17
+updated: 2026-07-19
 ---
 
 # PRD: Tenants Management UI
@@ -98,7 +98,7 @@ Journeys are numbered globally (UJ-1..UJ-6) and referenced by FRs. Phase labels 
 
 - **UJ-4. Sofia investigates an incident and recovers.** *(Phase 2c)*
   - **Persona + context:** Sofia, incident & support lead, must understand and undo the *effect* of a mistaken access change.
-  - **Entry state:** opens the audit trail (from nav, a tenant row, or a command result).
+  - **Entry state:** opens the audit trail from a contextual entry point (a tenant row, tenant detail, a user lookup, or a command result — not a nav area; §5.1).
   - **Path:** filters the audit list → reads an **Audit Evidence Receipt** (who acted, on whom, in which tenant, outcome, when, with a support-safe reference) → identifies the wrong change → starts a **compensating command** ("restore intended access") → previews the correction against current state → submits a *new* command; both the original and corrective records are linked.
   - **Climax:** the effect is corrected forward, with the mistake and the fix both permanently on the record.
   - **Resolution:** Sofia cites the support-safe reference to the stakeholder. **Edge case:** if evidence is delayed or unavailable, the UI shows that honestly (`audit pending` / `audit delayed` / `audit unavailable`) and offers retry/wait/escalate — it never fabricates proof.
@@ -304,7 +304,7 @@ A user can browse a tenant's audit entries as a flat, stably ordered list with d
 - **Consequences:** list paginates via cursor; the representative-load target is governed by the audit performance decision record (§16.14) — no numeric budget is claimed here; loading/empty/filtered-empty/error states are distinct and accessible; the flat list uses the Product/UX-approved `FC-AUD` DataGrid fallback (Epic 5 delivery is historical evidence, subject to reverification against the corrected contracts). The reusable FrontComposer timeline remains a deferred replacement path, not a prerequisite for the Tenants slice.
 
 #### FR-21: Reach audit from context
-A user can reach audit evidence from navigation, a tenant row, tenant detail, a user lookup, and a command result.
+A user can reach audit evidence from a tenant row, tenant detail, a user lookup, and a command result — contextual entry points, not a separate nav area (§5.1).
 - **Consequences:** each entry point lands scoped to the relevant tenant/user/command.
 
 #### FR-22: View an Audit Evidence Receipt

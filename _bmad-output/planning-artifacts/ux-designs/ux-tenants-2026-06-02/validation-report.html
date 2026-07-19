@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UX Design Validation: Tenants Management UI — SCP-2026-07-15 UX-slice update</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="report-header">
+      <div class="title">
+        <h1>Tenants Management UI — UX Design Validation Report</h1>
+        <div class="subtitle">_bmad-output/planning-artifacts/ux-designs/ux-tenants-2026-06-02/ · SCP-2026-07-15 UX-slice update (2026-07-19)</div>
+      </div>
+    </header>
+
+    <div class="synthesis">
+      <p>The UX slice of approved SCP-2026-07-15 substantively landed: all 8 items (BFF assembly boundary, AD-12 aggregate-scoped locking, InteractiveServer runtime, rc.4 pin, global-search removal, six-read freshness provenance, SEARCH-CURSOR-1, historical-evidence framing) appear in the correct spine — EXPERIENCE for behavior, DESIGN for visuals — with superseded policies correctly framed as historical evidence subject to reverification. No "client-side assembly", Blazor Auto, global one-at-a-time-as-current, rc.3-as-current, five-read, or plaintext-offset language survives as current intent.</p>
+      <p>The reviewer found 0 critical, 1 high, 3 medium, 3 low findings. <strong>All seven were resolved in-spine the same run</strong>; one companion PRD errata (stale audit-nav wording at prd.md:101/307) is handed off to the next bmad-prd run and recorded in the memlog. This run used a single user-picked lens (SCP cross-artifact consistency); the full rubric + accessibility gate ran at the original 2026-06-02 finalize and those reports persist unchanged.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card">
+        <div class="dim-name">Landed check (8 SCP items)</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong — 8/8 landed</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Stale-language hunt</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate → resolved</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Cross-artifact agreement</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate → resolved</div>
+      </div>
+    </div>
+
+    <section class="reviewer-section">
+      <details open>
+        <summary>
+          <h2>SCP cross-artifact consistency review</h2>
+          <span class="reviewer-source">review-scp-consistency.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Three passes: (A) verify each of the 8 SCP UX-slice items landed in the correct spine — 8/8 landed, behavior/visual ownership intact; (B) hunt surviving stale language presented as current intent; (C) spot-check agreement with prd.md, addendum.md (§B FC-CNC row, §C reads, §I work packages, §10 BFF rule, pinned-stack line), and the SCP. Every finding below shows the fix that was applied before the spines closed.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">UJ-4 opened the audit trail "from nav" — contradicts the one-entry IA and SCP P7.4</h3>
+              <span class="finding-location">EXPERIENCE.md · UJ-4 step 1</span>
+            </header>
+            <div class="finding-note">A developer following UJ-4 could add an Audit left-nav entry, violating the contextual-routes IA the spine itself specifies.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> reworded to "from a contextual entry — a tenant row, tenant detail, user lookup, or command result". Companion PRD errata (prd.md:101 "from nav"; prd.md:307 "from navigation") handed off to bmad-prd via the memlog.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Interim wire-vocabulary clause could license current/stale claims on the unverified transport</h3>
+              <span class="finding-location">EXPERIENCE.md · State Patterns §2</span>
+            </header>
+            <div class="finding-note">Per addendum §C/§D the generic query route normalizes provenance to <code>unknown</code>; the clause read as if <code>current</code>/<code>stale</code> were claimable today.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> split the two regimes — generic route normalizes to <code>unknown</code> (fail-closed); <code>current</code>/<code>stale</code>/<code>unknown</code> becomes the wire vocabulary only once PLAT-FRESH-1 / HOST-REF-1 / UI-READ-1 verify; <code>aging</code> joins later still.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Ready-gate acceptance-scenario list narrower than PRD §9</h3>
+              <span class="finding-location">EXPERIENCE.md · Accessibility Floor</span>
+            </header>
+            <div class="finding-note">Missing accepted-but-projection-pending, data-unavailable-but-not-authorization-denied, and AD-12 command-lock retention evidence — stories could certify against the narrower list.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> list extended to mirror PRD §9, with PRD §9 declared authoritative.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">GA-correction interim gate unstated</h3>
+              <span class="finding-location">EXPERIENCE.md · Readiness severity split</span>
+            </header>
+            <div class="finding-note">Story 5.7's verification was framed as historical evidence but the current unavailability of global-administrator correction was only implied.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> added "Until Story 5.7 is reverified under the corrected contract, global-administrator correction is unavailable with <code>high-impact flow not ready</code>."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Fallback #1 "delivered … by Epic 5" read alone as a current completion claim</h3>
+              <span class="finding-location">EXPERIENCE.md · approved fallbacks</span>
+            </header>
+            <div class="finding-note">The historical-evidence rider only arrived two paragraphs later.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> inline "(historical evidence, subject to reverification)".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">DESIGN receipt forbidden-list omitted raw NarrativePayload itself</h3>
+              <span class="finding-location">DESIGN.md · audit-evidence-receipt</span>
+            </header>
+            <div class="finding-note">PRD §10 and EXPERIENCE both name it explicitly.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> added raw <code>NarrativePayload</code> to the parenthetical list.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Search fallback trigger said "degraded" where SCP P4 / PRD FR-1 say "unavailable"</h3>
+              <span class="finding-location">EXPERIENCE.md · tenant-data-grid</span>
+            </header>
+            <div class="finding-note">Semantically compatible but the vocabulary should match the canonical wording.</div>
+            <div class="finding-fix"><strong>Fix applied:</strong> "when Memories is unavailable or degraded".</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li>Addendum §B FC-CNC row, §C six reads, §I package IDs, §10 BFF rule, the pinned-stack line, the one-entry IA, and all canonical state sets agree with the spines (verified, no findings).</li>
+        <li><code>review-rubric.md</code> and <code>review-accessibility.md</code> are the 2026-06-02 finalize's reports — historical, not re-run this pass.</li>
+        <li>Both spines: <code>status: final</code>, <code>updated: 2026-07-19</code>; sources extended with <code>addendum.md</code> and <code>sprint-change-proposal-2026-07-15.md</code>.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Lens: review-scp-consistency.md (rubric walker not run this pass)</span>
+        <span>Generated: 2026-07-19</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
