@@ -1,0 +1,7 @@
+{
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "file": "references/Hexalith.AI.Tools/hexalith-git-instructions.md"
+        }
+    ]
+}
