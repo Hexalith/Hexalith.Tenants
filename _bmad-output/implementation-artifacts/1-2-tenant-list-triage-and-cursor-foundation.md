@@ -336,6 +336,7 @@ GPT-5 Codex
 - `PLATFORM-OPS-1`: after three topology recovery attempts, EventStore startup still skipped the query-type index because domain metadata was unavailable during startup. The authenticated `list-tenants` request therefore fell back to the generic projection actor and returned 404 despite a completed ephemeral tenant command. Actual grid scrolling/pinning, invalid-cursor recovery, and warm-list timing remain blocked until the platform publishes `admin:query-types:tenants` through its supported startup path.
 - Required final gates passed: Release solution build 0 warnings/0 errors; UI regression 942/942; focused classes 43/43, 117/117, 8/8, 9/9, and 19/19.
 - Additional repository-wide regression audit found an unrelated existing integration-host failure: the isolated `Commands_endpoint_accepts_CreateTenant_and_routes_story_payload` test returns HTTP 500 in both Debug and Release. No backend or integration-test source is changed by this story; the failed full integration run was stopped after reproducing the representative failure in isolation.
+- 2026-07-20 continuation recheck: all required Aspire resources became healthy, but the authenticated list still rendered the typed error state with no grid after an EventStore-only restart. EventStore received HTTP 400 and skipped the operational index while a read-only direct DAPR request with the matching `tenants` / `v1` payload returned HTTP 200 with `list-tenants`. Release build passed 0/0; focused list tests passed 43/43; UI regression passed 942/942; the complete integration project finished with 98 passed, 68 failed, and 1 skipped. No product, topology, state-store, or submodule source was changed.
 
 ### Completion Notes List
 
@@ -346,6 +347,7 @@ GPT-5 Codex
 - Corrected the grid to three logical-start safety pins with stable widths/identity and locked Size20 Fluent badge/icon semantics without resting live-region noise.
 - Completed state semantics, EN/FR parity, current-page disclosure, renderer-context awaits, dead list-sort resources, and support-safety/conformance tests.
 - Story remains in progress: runtime grid/performance evidence is blocked by `PLATFORM-OPS-1`, and the broader integration-host regression prevents the workflow completion gate from being claimed.
+- Continuation validation confirmed both blockers persist on the clean current head; open runtime/performance tasks remain unchecked and the story status remains `in-progress`.
 
 ### File List
 
@@ -377,3 +379,4 @@ GPT-5 Codex
 
 - 2026-07-20: Captured the corrected Story 1.2 baseline and historical-review reconciliation; moved sprint tracking to `in-progress`.
 - 2026-07-20: Implemented and tested the corrected cursor, truth, grid, state, localization, accessibility, and support-safety contracts; recorded `PLATFORM-OPS-1` and the unrelated integration-host regression, leaving the story `in-progress`.
+- 2026-07-20: Rechecked the live Aspire/browser and complete integration gates; refined the external blocker evidence without changing implementation or status.

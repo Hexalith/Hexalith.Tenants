@@ -162,14 +162,29 @@ gap rather than a missing checked-in principal. Owner: EventStore/AppHost platfo
 the supported AppHost startup path reliably publishes the Tenants query-type index before the first list
 request. Until then, no honest tenant-set size or approximately-one-second warm-list timing can be reported.
 
+#### Continuation Recheck
+
+The 2026-07-20 continuation reran the supported topology path from a clean `35f0ec4` worktree. `security`,
+`tenants`, `sample`, `eventstore`, and `tenants-ui` all reached healthy state. The checked-in development
+administrator authenticated successfully, but the stable browser selectors still reported one typed list
+error and no `tenants-list-grid`. Waiting for every metadata-producing domain service and restarting only
+`eventstore` reproduced the same result.
+
+The restarted EventStore received HTTP 400 from the Tenants operational-index metadata invocation and again
+skipped all index writes. A read-only direct DAPR invocation of the same live endpoint with the matching
+`tenants` / `v1` capability-bound payload returned HTTP 200 and included `list-tenants`. This narrows the
+blocker to EventStore startup metadata invocation or capability binding rather than Tenants metadata
+discovery, grid code, authentication, or resource readiness. No state-store data, submodule source, AppHost
+topology, or product source was changed during the recheck.
+
 ### Additional Regression Audit
 
-The story-required full configured UI regression is green. A broader optional repository audit found a
-separate existing integration-host failure outside the UI change set: the isolated
-`Commands_endpoint_accepts_CreateTenant_and_routes_story_payload` test returns HTTP 500 instead of 202 in
-both Debug and Release. The full integration-project run showed the same systemic 500 and was stopped after
-the representative test reproduced independently. This story changes no backend or integration-test source,
-but the failure is recorded because it prevents claiming the workflow's broader all-tests completion gate.
+The story-required full configured UI regression remains green. The continuation also ran the complete
+Release integration project: 98 passed, 68 failed, and 1 performance test was skipped. The failures remain
+outside the UI change set and are dominated by the previously recorded systemic command-host HTTP 500
+pattern; one generated-controller cancellation test timed out. This story changes no backend or
+integration-test source, but the exact full-project result is recorded because it prevents claiming the
+workflow's broader all-tests completion gate.
 
 ### Final Gate Decision
 
