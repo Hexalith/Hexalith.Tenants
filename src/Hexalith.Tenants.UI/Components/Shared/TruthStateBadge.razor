@@ -4,8 +4,9 @@
 <FluentBadge Appearance="BadgeAppearance.Tint"
              Color="@FreshnessBadgeColor"
              IconStart="@StateIcon"
+             IconLabel="@Label"
              Class="@($"truth-state-badge truth-state-badge--{CssClass}")"
-             role="status"
+             role="@(IsRefreshing ? "status" : null)"
              aria-label="@Label"
              data-testid="@TestId">
     @Label
@@ -35,14 +36,14 @@
         ReadModelFreshnessState.Current => BadgeColor.Success,
         ReadModelFreshnessState.Aging => BadgeColor.Warning,
         ReadModelFreshnessState.Stale => BadgeColor.Severe,
-        _ => BadgeColor.Subtle,
+        _ => BadgeColor.Important,
     };
 
-    private Icon StateIcon => IsRefreshing ? FcFluentIcons.ArrowSync16() : Freshness switch
+    private Icon StateIcon => IsRefreshing ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ArrowClockwise() : Freshness switch
     {
-        ReadModelFreshnessState.Current => FcFluentIcons.Checkmark16(),
-        ReadModelFreshnessState.Aging => FcFluentIcons.Warning16(),
-        ReadModelFreshnessState.Stale => FcFluentIcons.Warning16(),
-        _ => FcFluentIcons.QuestionCircle16(),
+        ReadModelFreshnessState.Current => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
+        ReadModelFreshnessState.Aging => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Clock(),
+        ReadModelFreshnessState.Stale => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ClockAlarm(),
+        _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
     };
 }

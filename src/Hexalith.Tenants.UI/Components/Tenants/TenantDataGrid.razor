@@ -59,10 +59,20 @@
                 <FluentBadge Appearance="BadgeAppearance.Tint"
                              Color="@StatusBadgeColor(context.Status)"
                              IconStart="@StatusIcon(context.Status)"
-                             Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")">
+                             IconLabel="@StatusLabel(context.Status)"
+                             Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")"
+                             aria-label="@StatusLabel(context.Status)"
+                             data-testid="tenants-list-status">
                     @StatusLabel(context.Status)
                 </FluentBadge>
             </ChildContent>
+        </TemplateColumn>
+        <TemplateColumn Title="@Localizer["Tenants.List.Column.Freshness"]"
+                        ColumnId="tenant-freshness"
+                        Class="tenants-critical tenants-critical--freshness"
+                        Width="160px"
+                        Pin="DataGridColumnPin.Start">
+            <TruthStateBadge Freshness="@context.Freshness" />
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Members"]" ColumnId="tenant-members" Width="115px">
             @CountLabel(context.MemberCount)
@@ -74,13 +84,15 @@
                         ColumnId="tenant-pending"
                         Class="tenants-critical tenants-critical--pending"
                         Width="175px">
-            @PendingLabel(context.PendingState)
-        </TemplateColumn>
-        <TemplateColumn Title="@Localizer["Tenants.List.Column.Freshness"]"
-                        ColumnId="tenant-freshness"
-                        Class="tenants-critical tenants-critical--freshness"
-                        Width="160px">
-            <TruthStateBadge Freshness="@context.Freshness" />
+            <FluentBadge Appearance="BadgeAppearance.Tint"
+                         Color="@PendingBadgeColor(context.PendingState)"
+                         IconStart="@PendingIcon(context.PendingState)"
+                         IconLabel="@PendingLabel(context.PendingState)"
+                         Class="tenant-data-grid__pending"
+                         aria-label="@PendingLabel(context.PendingState)"
+                         data-testid="tenants-list-pending">
+                @PendingLabel(context.PendingState)
+            </FluentBadge>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
             <AuditEvidenceEntryPoint TenantId="@context.TenantId"
@@ -173,15 +185,23 @@
         => status switch
         {
             TenantStatus.Active => BadgeColor.Success,
-            TenantStatus.Disabled => BadgeColor.Danger,
-            _ => BadgeColor.Subtle,
+            TenantStatus.Disabled => BadgeColor.Severe,
+            _ => BadgeColor.Important,
         };
 
     private static Icon StatusIcon(TenantStatus status)
         => status switch
         {
-            TenantStatus.Active => FcFluentIcons.Checkmark16(),
-            TenantStatus.Disabled => FcFluentIcons.SubtractCircle16(),
-            _ => FcFluentIcons.QuestionCircle16(),
+            TenantStatus.Active => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Checkmark(),
+            TenantStatus.Disabled => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.Power(),
+            _ => new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle(),
         };
+
+    private static BadgeColor PendingBadgeColor(TenantPendingState state)
+        => state == TenantPendingState.None ? BadgeColor.Subtle : BadgeColor.Important;
+
+    private static Icon PendingIcon(TenantPendingState state)
+        => state == TenantPendingState.None
+            ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.SubtractCircle()
+            : new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.QuestionCircle();
 }

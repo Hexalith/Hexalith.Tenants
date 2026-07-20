@@ -17,7 +17,7 @@ internal sealed class UnavailableTenantQueryGateway : ITenantQueryGateway {
         TenantListRequest request,
         TenantListSnapshot? previous,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantListSnapshot.Error("Tenant query gateway configuration is missing."));
+        => Task.FromResult(TenantListSnapshot.Error());
 
     public Task<UserTenantMembershipSnapshot> GetMyTenantsAsync(
         UserTenantMembershipRequest request,

@@ -1,11 +1,9 @@
-using System.Globalization;
 using System.Net;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Contracts.Rendering;
-using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -15,30 +13,14 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
-// Alias the Memories search DTOs: Hexalith.Memories.Contracts.V1 also defines TenantStatus/TenantSummary,
-// which would collide with the tenant domain contracts if imported wholesale.
-using MemoriesScoredResult = Hexalith.Memories.Contracts.V1.ScoredResult;
-using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
-
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class TenantQueryGateway(
     IEventStoreGatewayClient queryClient,
-    IUserContextAccessor userContextAccessor,
-    MemoriesClient memoriesClient) : ITenantQueryGateway {
+    IUserContextAccessor userContextAccessor) : ITenantQueryGateway {
     private const string SystemTenant = "system";
     private const string GlobalAdministratorsAggregateId = "global-administrators";
     private const string TenantIndexAggregateId = "index";
-
-    // Memories-backed cross-set search (search-as-index-only). The dedicated tenants-index holds one
-    // curated doc per tenant; the BFF recovers tenant ids ONLY from ScoredResult.SourceUri ("tenant:{id}")
-    // and hydrates row data through the ETag-fresh detail path, so a stale index never shows wrong data.
-    private const string TenantsSearchIndex = "tenants-index";
-    private const string SearchSourceUriPrefix = "tenant:";
-    private const string SearchAxis = "syntactic";
-    private const string SearchCursorPrefix = "memories-search:";
-    private const string SearchUnavailableMessage = "Tenant search is temporarily unavailable; showing the full tenant list.";
-    private const string SearchHydrationDegradedMessage = "Tenant search results could not be verified; showing a degraded search state.";
 
     public async Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
@@ -416,272 +398,141 @@ internal sealed class TenantQueryGateway(
             return TenantListSnapshot.Unauthorized();
         }
 
-        // Empty/whitespace term -> the unchanged cursor-list path (no Memories call). A non-empty term is
-        // a cross-set search served by the Memories tenants-index; rows are still hydrated through the
-        // ETag-fresh detail path, so a stale index never shows wrong row data (D6).
-        return string.IsNullOrWhiteSpace(request.Search)
-            ? await ListByCursorAsync(request, previous, cancellationToken).ConfigureAwait(false)
-            : await SearchTenantsAsync(request, previous, cancellationToken).ConfigureAwait(false);
+        bool searchRequested = !string.IsNullOrWhiteSpace(request.Search);
+        TenantListSnapshot snapshot = await ListByCursorAsync(
+            searchRequested ? request with { Search = null } : request,
+            previous,
+            cancellationToken).ConfigureAwait(false);
+
+        // SEARCH-CURSOR-1 is not verified. Keep the authorization-safe ordinary cursor list usable and
+        // report a localized, non-blocking notice instead of using the former plaintext offset cursor.
+        return searchRequested
+            && snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized)
+            && snapshot.Notice == TenantListReason.None
+                ? snapshot with { Notice = TenantListReason.SearchUnavailable }
+                : snapshot;
     }
 
     private async Task<TenantListSnapshot> ListByCursorAsync(
         TenantListRequest request,
         TenantListSnapshot? previous,
-        CancellationToken cancellationToken) {
-        try {
-            SubmitQueryRequest query = CreateListRequest(request);
-            EventStoreQueryResult<PaginatedResult<TenantSummary>> result = await queryClient
-                .SubmitQueryAsync<PaginatedResult<TenantSummary>>(query, request.ETag, cancellationToken)
-                .ConfigureAwait(false);
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await ListByCursorCoreAsync(request, previous, cancellationToken).ConfigureAwait(false);
+        }
+        catch (EventStoreGatewayException ex) when (IsInvalidListCursor(ex))
+        {
+            TenantListRequest firstPageRequest = request with
+            {
+                Cursor = null,
+                ETag = null,
+            };
 
-            if (result.IsNotModified) {
-                if (previous is null) {
-                    return TenantListSnapshot.Degraded([], "Tenant list was unchanged, but no cached server snapshot is available.");
-                }
+            try
+            {
+                TenantListSnapshot recovered = await ListByCursorCoreAsync(
+                    firstPageRequest,
+                    previous: null,
+                    cancellationToken).ConfigureAwait(false);
+                return recovered with { Notice = TenantListReason.ListRefreshed };
+            }
+            catch (EventStoreGatewayException retryException)
+            {
+                return MapTenantListException(retryException);
+            }
+        }
+        catch (EventStoreGatewayException ex)
+        {
+            return MapTenantListException(ex);
+        }
+    }
 
-                ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
-                TenantListSurfaceKind kind = ResolveTenantListKindForFreshness(previous, notModifiedFreshness);
-                return previous with {
-                    Kind = kind,
-                    Freshness = notModifiedFreshness,
-                    ETag = result.ETag ?? previous.ETag,
-                    ErrorMessage = ResolveTenantListErrorMessageForNotModified(previous, kind),
-                };
+    private async Task<TenantListSnapshot> ListByCursorCoreAsync(
+        TenantListRequest request,
+        TenantListSnapshot? previous,
+        CancellationToken cancellationToken)
+    {
+        SubmitQueryRequest query = CreateListRequest(request);
+        EventStoreQueryResult<PaginatedResult<TenantSummary>> result = await queryClient
+            .SubmitQueryAsync<PaginatedResult<TenantSummary>>(query, request.ETag, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (result.IsNotModified)
+        {
+            if (previous is null)
+            {
+                return TenantListSnapshot.Degraded([], TenantListReason.NotModifiedWithoutSnapshot);
             }
 
-            PaginatedResult<TenantSummary> payload = result.Payload ?? new PaginatedResult<TenantSummary>([], null, false);
-            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
-            (IReadOnlyList<TenantListRow> rows, bool enrichmentDegraded) = await EnrichRowsAsync(
-                payload.Items,
-                freshness,
-                cancellationToken).ConfigureAwait(false);
-            bool isDegraded = enrichmentDegraded || result.Metadata?.IsDegraded == true;
+            ReadModelFreshnessState notModifiedFreshness = ResolveNotModifiedFreshness(result.Metadata, previous.Freshness);
+            TenantListSurfaceKind kind = ResolveTenantListKindForFreshness(previous, notModifiedFreshness);
+            return previous with
+            {
+                Kind = kind,
+                Freshness = notModifiedFreshness,
+                ETag = result.ETag ?? previous.ETag,
+                Reason = ResolveTenantListReasonForNotModified(previous, kind),
+            };
+        }
 
-            if (isDegraded) {
-                return TenantListSnapshot.Ready(
-                    rows,
-                    payload.Cursor,
-                    payload.HasMore,
-                    result.ETag,
-                    ReadModelFreshnessState.Unknown,
-                    isDegraded: true);
-            }
+        PaginatedResult<TenantSummary> payload = result.Payload ?? new PaginatedResult<TenantSummary>([], null, false);
+        ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
+        (IReadOnlyList<TenantListRow> rows, bool enrichmentDegraded) = await EnrichRowsAsync(
+            payload.Items,
+            freshness,
+            cancellationToken).ConfigureAwait(false);
+        bool projectionDegraded = result.Metadata?.IsDegraded == true;
+        bool isDegraded = enrichmentDegraded || projectionDegraded;
 
-            if (freshness is ReadModelFreshnessState.Stale) {
-                return TenantListSnapshot.Ready(
-                    rows,
-                    payload.Cursor,
-                    payload.HasMore,
-                    result.ETag,
-                    freshness,
-                    isDegraded: false);
-            }
+        if (isDegraded)
+        {
+            return TenantListSnapshot.Ready(
+                rows,
+                payload.Cursor,
+                payload.HasMore,
+                result.ETag,
+                ReadModelFreshnessState.Unknown,
+                isDegraded: true) with
+            {
+                Reason = projectionDegraded
+                    ? TenantListReason.ProjectionDegraded
+                    : TenantListReason.RowEnrichmentUnavailable,
+            };
+        }
 
-            if (rows.Count == 0) {
-                return TenantListSnapshot.Empty(isAuthorizationScoped: true, freshness) with {
-                    ETag = result.ETag,
-                };
-            }
-
+        if (freshness is ReadModelFreshnessState.Stale)
+        {
             return TenantListSnapshot.Ready(
                 rows,
                 payload.Cursor,
                 payload.HasMore,
                 result.ETag,
                 freshness,
-                isDegraded);
-        }
-        catch (EventStoreGatewayException ex) when (IsUnauthorized(ex)) {
-            return TenantListSnapshot.Unauthorized();
-        }
-        catch (EventStoreGatewayException ex) when (IsUnavailableOrInvalid(ex)) {
-            return TenantListSnapshot.Error("Tenant query gateway is unavailable.");
-        }
-    }
-
-    private async Task<TenantListSnapshot> SearchTenantsAsync(
-        TenantListRequest request,
-        TenantListSnapshot? previous,
-        CancellationToken cancellationToken) {
-        MemoriesSearchResult searchResult;
-        int offset = ParseSearchOffset(request.Cursor);
-        try {
-            searchResult = await memoriesClient
-                .SearchAsync(
-                    new SearchRequest(
-                        TenantId: TenantsSearchIndex,
-                        Axis: SearchAxis,
-                        Query: request.Search,
-                        MaxResults: request.PageSize,
-                        Offset: offset,
-                        AttributeFilters: CreateSearchAttributeFilters(request.Status)),
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex) when (IsMemoriesSearchUnavailable(ex, cancellationToken)) {
-            // Memories unavailable (timeout/503/remote error/unconfigured endpoint) -> never let the
-            // exception reach the circuit; degrade to the cursor list with a safe notice (AC9).
-            return await SearchUnavailableFallbackAsync(request, previous, cancellationToken).ConfigureAwait(false);
+                isDegraded: false);
         }
 
-        // Syntactic axis down / partial degradation reported in-band -> same non-blocking fallback.
-        if (searchResult.Degraded
-            || searchResult.UnavailableAxes?.Any(static axis => string.Equals(axis, SearchAxis, StringComparison.OrdinalIgnoreCase)) == true) {
-            return await SearchUnavailableFallbackAsync(request, previous, cancellationToken).ConfigureAwait(false);
+        if (rows.Count == 0)
+        {
+            return TenantListSnapshot.Empty(isAuthorizationScoped: true, freshness) with
+            {
+                ETag = result.ETag,
+            };
         }
 
-        IReadOnlyList<string> tenantIds = ParseTenantIds(searchResult.Results);
-        if (tenantIds.Count == 0) {
-            return TenantListSnapshot.FilteredEmpty();
-        }
-
-        (IReadOnlyList<TenantListRow> rows, bool degraded) =
-            await HydrateSearchRowsAsync(tenantIds, request.Status, cancellationToken).ConfigureAwait(false);
-
-        if (rows.Count == 0) {
-            // A non-empty match-set that cannot hydrate authoritative rows is degraded. A clean exact-filter
-            // match-set with no visible rows remains a filtered-empty state, not an error.
-            return degraded
-                ? TenantListSnapshot.Degraded([], SearchHydrationDegradedMessage)
-                : TenantListSnapshot.FilteredEmpty();
-        }
-
-        int nextOffset = offset + searchResult.Results.Count;
-        bool hasMore = searchResult.TotalCount > nextOffset;
-
-        // BM25 score order from Memories differs from the cursor list's deterministic id/name order; the
-        // visible page is re-sorted client-side (ApplyVisibleRows). Search cursors are opaque offset cursors
-        // over the Memories result window and do not carry a list ETag.
         return TenantListSnapshot.Ready(
             rows,
-            nextCursor: hasMore ? CreateSearchCursor(nextOffset) : null,
-            hasMore,
-            eTag: null,
-            AggregateRowFreshness(rows),
-            degraded);
+            payload.Cursor,
+            payload.HasMore,
+            result.ETag,
+            freshness,
+            isDegraded);
     }
 
-    // Recover tenant ids ONLY from ScoredResult.SourceUri ("tenant:{id}"): never parse ContentSnippet
-    // (200-char truncated) and never depend on cloudevent.subject (not mapped into the hit). Preserves the
-    // BM25 score order Memories returns and dedupes defensively; malformed hits are dropped.
-    private static IReadOnlyList<string> ParseTenantIds(IReadOnlyList<MemoriesScoredResult> results) {
-        List<string> tenantIds = new(results.Count);
-        HashSet<string> seen = new(StringComparer.Ordinal);
-        foreach (MemoriesScoredResult result in results) {
-            string sourceUri = result.SourceUri;
-            if (string.IsNullOrWhiteSpace(sourceUri)
-                || !sourceUri.StartsWith(SearchSourceUriPrefix, StringComparison.Ordinal)) {
-                continue;
-            }
-
-            string tenantId = sourceUri[SearchSourceUriPrefix.Length..];
-            if (!string.IsNullOrWhiteSpace(tenantId) && seen.Add(tenantId)) {
-                tenantIds.Add(tenantId);
-            }
-        }
-
-        return tenantIds;
-    }
-
-    // Hydrate each match-set id through the existing ETag-fresh detail read (GetTenantAsync already maps
-    // 404/403/503 to non-throwing snapshots and resolves freshness via ResolveFreshness — never from
-    // Memories). Member/owner counts mirror EnrichRowsAsync. Status is applied twice by design: a structured
-    // exact AttributeFilter narrows the Memories match-set (see SearchTenantsAsync), and this hydrated
-    // authoritative TenantDetail.Status is the source-of-truth re-check (the index attribute can lag a status
-    // change), never fuzzy BM25 text. Ids that hydrate to not-found/forbidden/unavailable are dropped
-    // (degraded, not error).
-    private async Task<(IReadOnlyList<TenantListRow> Rows, bool IsDegraded)> HydrateSearchRowsAsync(
-        IReadOnlyList<string> tenantIds,
-        TenantStatus? statusFilter,
-        CancellationToken cancellationToken) {
-        List<TenantListRow> rows = new(tenantIds.Count);
-        bool degraded = false;
-
-        foreach (string tenantId in tenantIds) {
-            TenantDetailSnapshot detailSnapshot = await GetTenantAsync(
-                new TenantDetailRequest(tenantId),
-                previous: null,
-                cancellationToken).ConfigureAwait(false);
-
-            if (detailSnapshot.Detail is not { } detail) {
-                // Not-found / forbidden / unavailable id from a stale or cross-tenant index entry.
-                degraded = true;
-                continue;
-            }
-
-            if (statusFilter is { } status && detail.Status != status) {
-                degraded = true;
-                continue;
-            }
-
-            int memberCount = detail.Members.Count;
-            int ownerCount = detail.Members.Count(static m => m.Role == TenantRole.TenantOwner);
-            rows.Add(TenantListRow.FromSummary(new TenantSummary(detail.TenantId, detail.Name, detail.Status)) with {
-                MemberCount = TenantCountValue.Known(memberCount),
-                OwnerCount = TenantCountValue.Known(ownerCount),
-                Freshness = detailSnapshot.Freshness,
-            });
-        }
-
-        return (rows, degraded);
-    }
-
-    private static IReadOnlyDictionary<string, string>? CreateSearchAttributeFilters(TenantStatus? status)
-        => status is { } value
-            ? new Dictionary<string, string>(StringComparer.Ordinal) { ["status"] = value.ToString() }
-            : null;
-
-    private static int ParseSearchOffset(string? cursor)
-    {
-        if (string.IsNullOrWhiteSpace(cursor)
-            || !cursor.StartsWith(SearchCursorPrefix, StringComparison.Ordinal)
-            || !int.TryParse(cursor[SearchCursorPrefix.Length..], out int offset)
-            || offset < 0)
-        {
-            return 0;
-        }
-
-        return offset;
-    }
-
-    private static string CreateSearchCursor(int offset)
-        => SearchCursorPrefix + offset.ToString(CultureInfo.InvariantCulture);
-
-    private async Task<TenantListSnapshot> SearchUnavailableFallbackAsync(
-        TenantListRequest request,
-        TenantListSnapshot? previous,
-        CancellationToken cancellationToken) {
-        // Non-blocking: fall back to the unfiltered cursor list and overlay a support-safe degraded notice
-        // so the operator can keep browsing. Auth/error states from the cursor list are surfaced as-is.
-        TenantListSnapshot cursorSnapshot = await ListByCursorAsync(
-            request with { Search = null },
-            previous,
-            cancellationToken).ConfigureAwait(false);
-
-        return cursorSnapshot.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized
-            ? cursorSnapshot
-            : cursorSnapshot with {
-                Kind = TenantListSurfaceKind.Degraded,
-                IsDegraded = true,
-                ErrorMessage = SearchUnavailableMessage,
-            };
-    }
-
-    private static bool IsMemoriesSearchUnavailable(Exception exception, CancellationToken cancellationToken)
-        => exception switch {
-            MemoriesRemoteException => true,
-            HttpRequestException => true,
-            // MemoriesClient with no configured BaseAddress (Memories:BaseAddress unset) throws this.
-            InvalidOperationException => true,
-            // Timeout from the client's request cancellation, not the caller cancelling the operation.
-            TaskCanceledException or OperationCanceledException => !cancellationToken.IsCancellationRequested,
-            _ => false,
-        };
-
-    // The no-search cursor path carries only cursor + pageSize: the tenant read backend is consume-only
-    // (no server-side filter on ListTenantsQuery), so Search/Status are not server query parameters here.
-    // A non-empty Search term is handled cross-set by SearchTenantsAsync (above); Status is applied to the
-    // hydrated authoritative detail. Filters are therefore never silently dropped — they are routed.
+    // The ordinary cursor path carries only cursor + pageSize. Search, filter, and sort are not server
+    // query fields in the current tenant-list contract; they reset the cursor and affect only the authorized
+    // page already returned. Protected whole-set search remains owned by Story 1.9/SEARCH-CURSOR-1.
     private static SubmitQueryRequest CreateListRequest(TenantListRequest request)
         => new(
             SystemTenant,
@@ -949,10 +800,10 @@ internal sealed class TenantQueryGateway(
         return previous.Rows.Count == 0 ? TenantListSurfaceKind.Empty : TenantListSurfaceKind.Ready;
     }
 
-    private static string? ResolveTenantListErrorMessageForNotModified(
+    private static TenantListReason ResolveTenantListReasonForNotModified(
         TenantListSnapshot previous,
         TenantListSurfaceKind resolvedKind)
-        => resolvedKind == TenantListSurfaceKind.Degraded ? previous.ErrorMessage : null;
+        => resolvedKind == TenantListSurfaceKind.Degraded ? previous.Reason : TenantListReason.None;
 
     private static bool HasAuditFilters(TenantAuditSnapshot snapshot)
         => snapshot.From is not null || snapshot.To is not null || !string.IsNullOrWhiteSpace(snapshot.Category);
@@ -960,8 +811,14 @@ internal sealed class TenantQueryGateway(
     private static bool IsUnauthorized(EventStoreGatewayException exception)
         => exception.StatusCode is (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden;
 
-    private static bool IsUnavailableOrInvalid(EventStoreGatewayException exception)
-        => exception.StatusCode is >= 400;
+    private static TenantListSnapshot MapTenantListException(EventStoreGatewayException exception)
+        => IsUnauthorized(exception)
+            ? TenantListSnapshot.Unauthorized()
+            : TenantListSnapshot.Error();
+
+    private static bool IsInvalidListCursor(EventStoreGatewayException exception)
+        => exception.StatusCode == (int)HttpStatusCode.BadRequest
+        && string.Equals(exception.ReasonCode, "invalid-cursor", StringComparison.OrdinalIgnoreCase);
 
     private static TenantDetailSnapshot MapDetailException(string tenantId, EventStoreGatewayException exception)
         => exception.StatusCode switch {

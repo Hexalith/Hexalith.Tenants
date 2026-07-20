@@ -26,7 +26,7 @@
     public TenantListSurfaceKind Kind { get; set; }
 
     [Parameter]
-    public string? Detail { get; set; }
+    public TenantListReason Reason { get; set; }
 
     [Parameter]
     public EventCallback OnReset { get; set; }
@@ -60,11 +60,11 @@
 
     private string CssClass => ResourceName.ToLowerInvariant();
 
-    private string Role => Kind is TenantListSurfaceKind.Error ? "alert" : "status";
+    private string Role => Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Degraded ? "alert" : "status";
 
-    private string AriaLive => Kind is TenantListSurfaceKind.Error ? "assertive" : "polite";
+    private string AriaLive => Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Degraded ? "assertive" : "polite";
 
-    private string Message => string.IsNullOrWhiteSpace(Detail)
+    private string Message => Reason is TenantListReason.None
         ? Localizer[$"Tenants.List.State.{ResourceName}.Message"]
-        : Detail;
+        : Localizer[$"Tenants.List.Reason.{Reason}"];
 }

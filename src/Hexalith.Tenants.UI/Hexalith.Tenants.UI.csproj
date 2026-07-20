@@ -16,9 +16,8 @@
     <ProjectReference Include="..\Hexalith.Tenants.Client\Hexalith.Tenants.Client.csproj" />
     <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Contracts\Hexalith.FrontComposer.Contracts.csproj" />
     <ProjectReference Include="$(HexalithFrontComposerRoot)\src\Hexalith.FrontComposer.Shell\Hexalith.FrontComposer.Shell.csproj" />
-    <!-- Memories search index (Debug source when available; Release uses published Memories packages). The BFF
-         search read path calls MemoriesClient.SearchAsync; rows are still hydrated via the ETag-fresh
-         tenant detail path. Never reference the [Experimental] ingestion APIs from product code. -->
+    <!-- Reserved Story 1.9 search composition seam (Debug source when available; Release uses packages).
+         Story 1.2 does not call Memories or create a search cursor. -->
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj" Condition="'$(HexalithMemoriesFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.Memories.Contracts" Condition="'$(HexalithMemoriesFromSource)' != 'true'" />
     <ProjectReference Include="$(HexalithMemoriesRoot)\src\Hexalith.Memories.Client.Rest\Hexalith.Memories.Client.Rest.csproj" Condition="'$(HexalithMemoriesFromSource)' == 'true'" />

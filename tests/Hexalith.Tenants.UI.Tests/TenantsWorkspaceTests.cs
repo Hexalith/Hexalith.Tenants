@@ -36,7 +36,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(TenantListSnapshot.Error("Tenant query gateway configuration is missing.")));
+            .Returns(Task.FromResult(TenantListSnapshot.Error()));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
@@ -47,7 +47,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-error']");
 
         cut.Find("[data-testid='tenants-list-error']").GetAttribute("role").ShouldBe("alert");
-        cut.Markup.ShouldContain("Tenant query gateway configuration is missing");
+        cut.Markup.ShouldContain("The authorized tenant list could not be loaded");
         cut.Markup.ShouldNotContain("tenant-1", Case.Insensitive);
         cut.Markup.ShouldNotContain("sample tenant", Case.Insensitive);
         cut.Markup.ShouldNotContain("success", Case.Insensitive);
@@ -299,6 +299,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.List.Refresh"] = "Refresh",
             ["Tenants.List.Reset"] = "Reset filters",
             ["Tenants.List.ReturnContext"] = "Returned from tenant {0}. Filters, sort, cursor, and selection were restored before rendering.",
+            ["Tenants.List.Reason.GatewayUnavailable"] = "The authorized tenant list could not be loaded. Try again later.",
             ["Tenants.List.SearchLabel"] = "Search tenants",
             ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",
             ["Tenants.List.Sort.Name"] = "Name",

@@ -16,7 +16,7 @@ external_gates:
 
 # Story 1.2: Tenant List Triage and Cursor Foundation
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Created for the corrected Story 1.2 contract. Historical completion is evidence to reverify, not a readiness waiver. -->
 
@@ -50,55 +50,55 @@ so that I can identify the tenant requiring attention without acting on hidden o
 
 ## Tasks / Subtasks
 
-- [ ] Establish the corrected Story 1.2 baseline and reconcile historical evidence. (AC: 1-10)
-  - [ ] Preserve the historical `1-2-tenant-list-triage.md` and its review record; create a dated corrected Story 1.2 evidence report rather than rewriting June evidence.
-  - [ ] Record the root, FrontComposer, and Builds SHAs; declared and resolved package versions; pre-existing working-tree changes; exact commands; exit codes; pass counts; and environment blockers.
-  - [ ] Inventory the current tenant-list implementation after the uncommitted Story 1.1 workspace work. For each acceptance criterion, record `verified`, `changed`, or `blocked`; a historical `done` status or broad green suite is not automatic proof.
-  - [ ] Reconcile every historical review follow-up: authenticated operator propagation, localized gateway reasons, page-local search/filter/sort claims, renderer-context awaits, and dead resources/styles. Preserve later valid fixes and record any remaining owner or prerequisite.
-  - [ ] Preserve all user-owned Story 1.1 changes, especially `TenantWorkspaceState`, canonical URL transitions, grid sort propagation, resource changes, and their tests.
+- [x] Establish the corrected Story 1.2 baseline and reconcile historical evidence. (AC: 1-10)
+  - [x] Preserve the historical `1-2-tenant-list-triage.md` and its review record; create a dated corrected Story 1.2 evidence report rather than rewriting June evidence.
+  - [x] Record the root, FrontComposer, and Builds SHAs; declared and resolved package versions; pre-existing working-tree changes; exact commands; exit codes; pass counts; and environment blockers.
+  - [x] Inventory the current tenant-list implementation after the uncommitted Story 1.1 workspace work. For each acceptance criterion, record `verified`, `changed`, or `blocked`; a historical `done` status or broad green suite is not automatic proof.
+  - [x] Reconcile every historical review follow-up: authenticated operator propagation, localized gateway reasons, page-local search/filter/sort claims, renderer-context awaits, and dead resources/styles. Preserve later valid fixes and record any remaining owner or prerequisite.
+  - [x] Preserve all user-owned Story 1.1 changes, especially `TenantWorkspaceState`, canonical URL transitions, grid sort propagation, resource changes, and their tests.
 
-- [ ] Reverify and correct the ordinary tenant-list cursor boundary. (AC: 2, 3, 7)
-  - [ ] Reuse `ListTenantsQueryHandler`, platform `IQueryCursorCodec`, `QueryCursorScope`, authenticated-user scope binding, authorization-before-pagination, ordinal exclusive-anchor paging, and established page-size policy. Do not add a UI cursor codec, offset/limit translation, or backend endpoint.
-  - [ ] Add list-specific invalid-cursor handling by following the existing audit-list recovery pattern: recognize only the safe `invalid-cursor` reason, retry exactly once with a null cursor and no stale ETag, and return a typed page-one recovery outcome.
-  - [ ] On page-one recovery, clear the UI cursor history/current cursor, replace the canonical workspace URL, retain the returned authorized rows, and show a polite localized list-refreshed notice rather than an error.
-  - [ ] Complete the reset matrix for status, sort field, sort direction, scope, and page size. Add an accessible localized Fluent page-size control/state with centralized choices 20, 50, and 100 (default 20; server maximum 100), and keep it circuit/local because AD-2 does not define page size as canonical URL state unless architecture is separately amended.
-  - [ ] Prove that the paging cursor is absent from rendered links and all other DOM attributes, visible/accessible copy, copy payloads, logs, telemetry tags, and exception details. Resolve the current `TenantListNavigationContext` return-link seam without deleting Story 1.3 context preservation; use a server-held or otherwise non-cursor return-state seam if necessary.
-  - [ ] Treat protected whole-set search as unavailable until Story 1.9/`SEARCH-CURSOR-1` is verified. Remove or quarantine the current plaintext `memories-search:{offset}` path from Story 1.2 behavior and keep the ordinary protected cursor list usable with a typed localized notice.
+- [x] Reverify and correct the ordinary tenant-list cursor boundary. (AC: 2, 3, 7)
+  - [x] Reuse `ListTenantsQueryHandler`, platform `IQueryCursorCodec`, `QueryCursorScope`, authenticated-user scope binding, authorization-before-pagination, ordinal exclusive-anchor paging, and established page-size policy. Do not add a UI cursor codec, offset/limit translation, or backend endpoint.
+  - [x] Add list-specific invalid-cursor handling by following the existing audit-list recovery pattern: recognize only the safe `invalid-cursor` reason, retry exactly once with a null cursor and no stale ETag, and return a typed page-one recovery outcome.
+  - [x] On page-one recovery, clear the UI cursor history/current cursor, replace the canonical workspace URL, retain the returned authorized rows, and show a polite localized list-refreshed notice rather than an error.
+  - [x] Complete the reset matrix for status, sort field, sort direction, scope, and page size. Add an accessible localized Fluent page-size control/state with centralized choices 20, 50, and 100 (default 20; server maximum 100), and keep it circuit/local because AD-2 does not define page size as canonical URL state unless architecture is separately amended.
+  - [x] Prove that the paging cursor is absent from rendered links and all other DOM attributes, visible/accessible copy, copy payloads, logs, telemetry tags, and exception details. Resolve the current `TenantListNavigationContext` return-link seam without deleting Story 1.3 context preservation; use a server-held or otherwise non-cursor return-state seam if necessary.
+  - [x] Treat protected whole-set search as unavailable until Story 1.9/`SEARCH-CURSOR-1` is verified. Remove or quarantine the current plaintext `memories-search:{offset}` path from Story 1.2 behavior and keep the ordinary protected cursor list usable with a typed localized notice.
 
-- [ ] Reconcile tenant-list state, truth, and row identity without fabricating data. (AC: 1, 4-7)
-  - [ ] Keep immutable typed request/snapshot/row models. Add a narrow typed reason/notice model for list-refreshed, search-unavailable, gateway-unavailable, and degraded outcomes; do not pass hard-coded gateway prose into the component.
-  - [ ] Bind literal `TenantId` and existing Contracts/Client DTOs. Do not parse caller-supplied tenant or user identifiers as GUID/ULID, redeclare DTOs, re-case wire data, or fabricate member/owner counts.
-  - [ ] Preserve last-confirmed row values separately from in-flight UI state. Keep `TenantId` as the stable row key so pending and freshness markers remain attached to the correct row through sort, filter, page changes, and horizontal scrolling.
-  - [ ] Preserve `unknown` unless metadata is projection-backed and explicitly supports `current` or `stale`. A `304`, ETag, `ServedAt`, request time, or recent refresh does not by itself upgrade truth; `Refreshing` remains UI-transient.
-  - [ ] Do not emit `aging` for this surface without authoritative projection-time provenance and an approved threshold. Preserve any shared enum member for compatibility without presenting an unsupported claim.
-  - [ ] Treat the current server's tenant-id cursor order as the only authoritative cross-page order. Do not present page-local name/status sorting or status filtering as whole-set behavior; record the exact current-page semantics or a prerequisite rather than inventing a new list-filter endpoint.
+- [x] Reconcile tenant-list state, truth, and row identity without fabricating data. (AC: 1, 4-7)
+  - [x] Keep immutable typed request/snapshot/row models. Add a narrow typed reason/notice model for list-refreshed, search-unavailable, gateway-unavailable, and degraded outcomes; do not pass hard-coded gateway prose into the component.
+  - [x] Bind literal `TenantId` and existing Contracts/Client DTOs. Do not parse caller-supplied tenant or user identifiers as GUID/ULID, redeclare DTOs, re-case wire data, or fabricate member/owner counts.
+  - [x] Preserve last-confirmed row values separately from in-flight UI state. Keep `TenantId` as the stable row key so pending and freshness markers remain attached to the correct row through sort, filter, page changes, and horizontal scrolling.
+  - [x] Preserve `unknown` unless metadata is projection-backed and explicitly supports `current` or `stale`. A `304`, ETag, `ServedAt`, request time, or recent refresh does not by itself upgrade truth; `Refreshing` remains UI-transient.
+  - [x] Do not emit `aging` for this surface without authoritative projection-time provenance and an approved threshold. Preserve any shared enum member for compatibility without presenting an unsupported claim.
+  - [x] Treat the current server's tenant-id cursor order as the only authoritative cross-page order. Do not present page-local name/status sorting or status filtering as whole-set behavior; record the exact current-page semantics or a prerequisite rather than inventing a new list-filter endpoint.
 
 - [ ] Correct and reverify the `TenantDataGrid` composition. (AC: 1, 5, 8)
-  - [ ] Preserve the full-width FrontComposer `FcAggregateListPage` and Tenants-specific `TenantDataGrid` boundary; reusable cursor, pinning, or six-state infrastructure remains FrontComposer-owned.
+  - [x] Preserve the full-width FrontComposer `FcAggregateListPage` and Tenants-specific `TenantDataGrid` boundary; reusable cursor, pinning, or six-state infrastructure remains FrontComposer-owned.
   - [ ] Pin identity, status, and freshness to logical start using the exact rc.4 `DataGridColumnPin.Start` API. Reverify actual runtime scrolling/pinning behavior; a compile-valid parameter alone is not evidence.
-  - [ ] Preserve member/owner count, pending, and audit/action footprints with stable widths, `ItemKey` row identity, horizontal overflow, and no safety-column removal at mobile, tablet, desktop, or wide-desktop widths.
-  - [ ] Render pending and freshness with text, a verified Size20 icon, semantic role, accessible label, and no color-only meaning. Reserve Success for proven active/current truth; never use Success for pending, refreshing, unknown, stale, or degraded state.
-  - [ ] Apply the locked UX mappings: unknown uses Important with Size20 `QuestionCircle`; aging, when provenance ever permits it, uses Warning with Size20 `Clock`; stale uses Severe with Size20 `ClockAlarm`; refreshing uses Informative with Size20 `ArrowClockwise`; disabled tenant status uses Severe with Size20 `Power`. Supply `IconLabel` plus visible localized text and do not make every resting row badge a live `role="status"` region.
-  - [ ] Preserve the uncommitted Story 1.1 `OnSortChanged` callback and canonical state transition while preventing duplicate or conflicting page-local Fluent sorting from being described as authoritative whole-set sort.
-  - [ ] Keep row/detail/audit actions keyboard reachable with visible focus and stable `data-testid="tenants-{surface}-{element}"` selectors independent of row text, color, and generated Fluent class names.
+  - [x] Preserve member/owner count, pending, and audit/action footprints with stable widths, `ItemKey` row identity, horizontal overflow, and no safety-column removal at mobile, tablet, desktop, or wide-desktop widths.
+  - [x] Render pending and freshness with text, a verified Size20 icon, semantic role, accessible label, and no color-only meaning. Reserve Success for proven active/current truth; never use Success for pending, refreshing, unknown, stale, or degraded state.
+  - [x] Apply the locked UX mappings: unknown uses Important with Size20 `QuestionCircle`; aging, when provenance ever permits it, uses Warning with Size20 `Clock`; stale uses Severe with Size20 `ClockAlarm`; refreshing uses Informative with Size20 `ArrowClockwise`; disabled tenant status uses Severe with Size20 `Power`. Supply `IconLabel` plus visible localized text and do not make every resting row badge a live `role="status"` region.
+  - [x] Preserve the uncommitted Story 1.1 `OnSortChanged` callback and canonical state transition while preventing duplicate or conflicting page-local Fluent sorting from being described as authoritative whole-set sort.
+  - [x] Keep row/detail/audit actions keyboard reachable with visible focus and stable `data-testid="tenants-{surface}-{element}"` selectors independent of row text, color, and generated Fluent class names.
 
 - [ ] Make list states, notices, localization, and support safety complete. (AC: 3, 4, 7, 8)
-  - [ ] Preserve exactly distinguishable loading, empty, filtered-empty, error, stale, and degraded states; keep authentication failure separately fail-closed without weakening the six-state contract.
-  - [ ] Ensure filtered-empty provides reset, stale provides refresh, and degraded identifies both unavailable capability and still-usable behavior. Render list-refreshed and search-unavailable as non-blocking notices over the usable list.
-  - [ ] Use assertive announcement intent for error/degraded conditions and polite intent for routine loading, refresh, and non-blocking notices; prevent repeated row badges from flooding live-region announcements.
-  - [ ] Replace raw English gateway details with typed reason-to-resource mapping. Add whole-string English/French parity keys, named placeholders where needed, and culture-aware numeric formatting.
-  - [ ] Make empty/error copy authorization-safe: never distinguish hidden, missing, forbidden, or out-of-scope tenants or leak their count/existence.
+  - [x] Preserve exactly distinguishable loading, empty, filtered-empty, error, stale, and degraded states; keep authentication failure separately fail-closed without weakening the six-state contract.
+  - [x] Ensure filtered-empty provides reset, stale provides refresh, and degraded identifies both unavailable capability and still-usable behavior. Render list-refreshed and search-unavailable as non-blocking notices over the usable list.
+  - [x] Use assertive announcement intent for error/degraded conditions and polite intent for routine loading, refresh, and non-blocking notices; prevent repeated row badges from flooding live-region announcements.
+  - [x] Replace raw English gateway details with typed reason-to-resource mapping. Add whole-string English/French parity keys, named placeholders where needed, and culture-aware numeric formatting.
+  - [x] Make empty/error copy authorization-safe: never distinguish hidden, missing, forbidden, or out-of-scope tenants or leak their count/existence.
   - [ ] Verify grid headers, `aria-sort`/sort control meaning, row/cell relationships, live-region politeness, focus entry/return, keyboard horizontal navigation, reduced motion, forced colors, and 320-767/768-1023/1024+/1440+ behavior.
-  - [ ] Keep tokens, JWT contents, raw payloads, cursor values, ETags, EventStore/Memories metadata, correlations, internal failure details, stack traces, and PII out of rendered, copied, announced, logged, serialized, and telemetry-visible state.
+  - [x] Keep tokens, JWT contents, raw payloads, cursor values, ETags, EventStore/Memories metadata, correlations, internal failure details, stack traces, and PII out of rendered, copied, announced, logged, serialized, and telemetry-visible state.
 
 - [ ] Add focused evidence and issue an honest gate decision. (AC: 1-10; NFR10)
-  - [ ] Add/strengthen bUnit and state tests for the reset matrix, page size, exact row association, three pinned safety columns, stable action footprint, six states, list-refreshed and search-unavailable notices, keyboard/focus, responsive overflow, forced colors, and stable selectors.
-  - [ ] Add gateway tests proving opaque cursor pass-through, no offset conversion, exactly-one page-one retry on invalid cursor, safe retry failure, no cursor disclosure, authorization-safe empty/error mapping, and typed localized reasons.
-  - [ ] Add freshness tests proving missing/non-projection provenance, `ServedAt`, ETag, request time, and bare `304` remain `unknown`; test explicit stale/current only with qualifying projection-backed evidence.
-  - [ ] Add conformance/source guards for no browser backend calls/tokens, no raw cursor in row `href`/DOM/copy/log/telemetry, EN/FR parity, Size20 icon and badge role mappings, logical direction, and no incidental Fluent selectors.
-  - [ ] Run an authenticated browser/Aspire lane against discovered endpoints for desktop, tablet, mobile, keyboard, focus, overflow, forced colors, English/French, and invalid-cursor recovery. If the platform test principal or shared harness is unavailable, record the exact `PLATFORM-OPS-1` blocker; bUnit alone is not browser/assistive-technology proof.
+  - [x] Add/strengthen bUnit and state tests for the reset matrix, page size, exact row association, three pinned safety columns, stable action footprint, six states, list-refreshed and search-unavailable notices, keyboard/focus, responsive overflow, forced colors, and stable selectors.
+  - [x] Add gateway tests proving opaque cursor pass-through, no offset conversion, exactly-one page-one retry on invalid cursor, safe retry failure, no cursor disclosure, authorization-safe empty/error mapping, and typed localized reasons.
+  - [x] Add freshness tests proving missing/non-projection provenance, `ServedAt`, ETag, request time, and bare `304` remain `unknown`; test explicit stale/current only with qualifying projection-backed evidence.
+  - [x] Add conformance/source guards for no browser backend calls/tokens, no raw cursor in row `href`/DOM/copy/log/telemetry, EN/FR parity, Size20 icon and badge role mappings, logical direction, and no incidental Fluent selectors.
+  - [x] Run an authenticated browser/Aspire lane against discovered endpoints for desktop, tablet, mobile, keyboard, focus, overflow, forced colors, English/French, and invalid-cursor recovery. If the platform test principal or shared harness is unavailable, record the exact `PLATFORM-OPS-1` blocker; bUnit alone is not browser/assistive-technology proof.
   - [ ] Measure initial and subsequent warm list interactions in a documented reference environment and tenant-set size. Preserve the approximately-one-second target as an assumption; report misses reproducibly without dropping enrichment, truth, authorization, or safety behavior.
-  - [ ] Run focused suites and the full configured UI regression from the Story 1.1 working baseline. Record exact commands/results and do not promote externally gated `UI-READ-1`, `PLAT-FRESH-1`, `HOST-REF-1`, or `SEARCH-CURSOR-1` claims.
+  - [x] Run focused suites and the full configured UI regression from the Story 1.1 working baseline. Record exact commands/results and do not promote externally gated `UI-READ-1`, `PLAT-FRESH-1`, `HOST-REF-1`, or `SEARCH-CURSOR-1` claims.
 
 ## Dev Notes
 
@@ -320,10 +320,60 @@ Follow `_bmad-output/project-context.md`, root `AGENTS.md`, and the Hexalith LLM
 
 GPT-5 Codex
 
+### Implementation Plan
+
+- Preserve the Story 1.1 canonical workspace state while making page size a circuit-local list input and adding an explicit page-one recovery transition.
+- Introduce one typed tenant-list outcome reason, retry an ordinary invalid cursor exactly once, and quarantine unverified Memories search behind the ordinary cursor-list fallback.
+- Correct grid pinning and badge semantics with the pinned Fluent rc.4 APIs, then localize every list state and non-blocking notice through EN/FR resources.
+- Add focused red/green coverage per task, run the individual UI suite and Release solution gate, then attach runtime/performance evidence or an exact external blocker.
+
 ### Debug Log References
+
+- 2026-07-20 baseline: clean `main` at `23943db`; FrontComposer `550cb060`; Builds `ed7cea8`; historical story and review preserved unchanged.
+- Pre-change Release solution build passed with 0 warnings/0 errors; UI regression passed 933/933.
+- Red/green implementation gates passed for invalid-cursor retry, page size/reset/navigation, typed truth reasons, exact rc.4 pin/icon semantics, state announcements, localization, support safety, and conformance guards.
+- Authenticated Aspire/Playwright used discovered UI endpoints. EN/FR, keyboard traversal, error-state live semantics, 320/768/1024/1440 widths, forced colors, reduced motion, and a clean stable console were verified.
+- `PLATFORM-OPS-1`: after three topology recovery attempts, EventStore startup still skipped the query-type index because domain metadata was unavailable during startup. The authenticated `list-tenants` request therefore fell back to the generic projection actor and returned 404 despite a completed ephemeral tenant command. Actual grid scrolling/pinning, invalid-cursor recovery, and warm-list timing remain blocked until the platform publishes `admin:query-types:tenants` through its supported startup path.
+- Required final gates passed: Release solution build 0 warnings/0 errors; UI regression 942/942; focused classes 43/43, 117/117, 8/8, 9/9, and 19/19.
+- Additional repository-wide regression audit found an unrelated existing integration-host failure: the isolated `Commands_endpoint_accepts_CreateTenant_and_routes_story_payload` test returns HTTP 500 in both Debug and Release. No backend or integration-test source is changed by this story; the failed full integration run was stopped after reproducing the representative failure in isolation.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
+- Established the corrected dated evidence baseline, classified every AC, reconciled all historical review findings, and confirmed there were no pre-existing worktree changes to overwrite.
+- Implemented exactly-once safe invalid-cursor recovery, cursor-local page sizing, cursor-free row return links, and the ordinary-list/search-unavailable fallback without offset cursors.
+- Replaced free-form list errors with typed localized reasons, preserved last-confirmed rows, and kept unproven freshness/count/pending evidence unknown.
+- Corrected the grid to three logical-start safety pins with stable widths/identity and locked Size20 Fluent badge/icon semantics without resting live-region noise.
+- Completed state semantics, EN/FR parity, current-page disclosure, renderer-context awaits, dead list-sort resources, and support-safety/conformance tests.
+- Story remains in progress: runtime grid/performance evidence is blocked by `PLATFORM-OPS-1`, and the broader integration-host regression prevents the workflow completion gate from being claimed.
 
 ### File List
+
+- `_bmad-output/implementation-artifacts/1-2-tenant-list-triage-and-cursor-foundation.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/story-1-2-tenant-list-triage-and-cursor-foundation-evidence-2026-07-20.md`
+- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor`
+- `src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor`
+- `src/Hexalith.Tenants.UI/Components/Shared/TruthStateBadge.razor`
+- `src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor`
+- `src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj`
+- `src/Hexalith.Tenants.UI/Program.cs`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx`
+- `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`
+- `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantQueryGateway.cs`
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs`
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantListReason.cs`
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantListSnapshot.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TruthStateBadgeTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/UnavailableTenantQueryGatewayTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantListSnapshotTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+
+### Change Log
+
+- 2026-07-20: Captured the corrected Story 1.2 baseline and historical-review reconciliation; moved sprint tracking to `in-progress`.
+- 2026-07-20: Implemented and tested the corrected cursor, truth, grid, state, localization, accessibility, and support-safety contracts; recorded `PLATFORM-OPS-1` and the unrelated integration-host regression, leaving the story `in-progress`.

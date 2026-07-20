@@ -83,13 +83,9 @@ else {
     builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
 }
 
-// Memories-backed cross-set tenant search. TenantQueryGateway calls MemoriesClient.SearchAsync to get
-// the match-set of tenant ids; rows are still hydrated through the ETag-fresh tenant detail path (D6),
-// so Memories decides which tenants appear, never what each row shows. Registered unconditionally so the
-// gateway always resolves a client; when Memories:BaseAddress is unset the search path degrades to the
-// cursor list (no exception reaches the circuit). The per-user token is intentionally NOT relayed here —
-// per-user visibility is enforced at hydration (forbidden ids dropped), not by the index lookup. Memories
-// uses its own service ApiToken (HEXALITH_MEMORIES_API_TOKEN) via the client's auth handler.
+// Reserved composition seam for Story 1.9/SEARCH-CURSOR-1. Story 1.2 does not resolve this client from
+// TenantQueryGateway and never creates a plaintext search cursor; non-empty search uses the ordinary
+// authorization-safe cursor list with a localized notice.
 _ = builder.Services.AddMemoriesClient(o => {
     if (Uri.TryCreate(builder.Configuration["Memories:BaseAddress"], UriKind.Absolute, out Uri? memoriesBaseAddress)) {
         o.Endpoint = memoriesBaseAddress;

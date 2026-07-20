@@ -1,5 +1,5 @@
 # generated: 2026-07-19T16:57:33+02:00
-# last_updated: 2026-07-20T08:33:25+02:00
+# last_updated: 2026-07-20T09:39:55+02:00
 # project: tenants
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: 2026-07-20T08:33:25+02:00
+last_updated: 2026-07-20T09:39:55+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -52,7 +52,7 @@ development_status:
   epic-1: done
   1-0-reverify-frontcomposer-shell-and-fluent-contracts: done
   1-1-reverify-ui-host-bootstrap-and-canonical-workspace: done
-  1-2-tenant-list-triage-and-cursor-foundation: ready-for-dev
+  1-2-tenant-list-triage-and-cursor-foundation: in-progress
   1-3-tenant-detail-navigation-and-overview: done
   1-4-my-tenants-self-audit: backlog
   1-5-user-membership-lookup: done

@@ -713,7 +713,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Workspace_detail_link_preserves_list_context_in_return_url()
+    public void Workspace_detail_link_preserves_non_cursor_context_in_return_url()
     {
         TenantListSnapshot snapshot = TenantListSnapshot.Ready(
             [
@@ -739,7 +739,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         decoded.ShouldContain("status=Active");
         decoded.ShouldContain("sort=name");
         decoded.ShouldContain("desc=True");
-        decoded.ShouldContain("cursor=cursor-1");
+        decoded.ShouldNotContain("cursor=cursor-1");
         decoded.ShouldContain("selected=tenant.alpha");
         decoded.ShouldContain("anchor=tenant-row-tenant.alpha");
     }

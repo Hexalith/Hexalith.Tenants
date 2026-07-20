@@ -96,6 +96,12 @@
   <data name="Tenants.List.PaginationLabel" xml:space="preserve">
     <value>Pages de la liste des locataires</value>
   </data>
+  <data name="Tenants.List.PageSizeLabel" xml:space="preserve">
+    <value>Locataires par page</value>
+  </data>
+  <data name="Tenants.List.PageSizeOption" xml:space="preserve">
+    <value>{0:N0} locataires</value>
+  </data>
   <data name="Tenants.List.Pending.None" xml:space="preserve">
     <value>Aucun changement en attente</value>
   </data>
@@ -112,34 +118,31 @@
     <value>Réinitialiser les filtres</value>
   </data>
   <data name="Tenants.List.ReturnContext" xml:space="preserve">
-    <value>Retour depuis le locataire {0}. Les filtres, le tri, le curseur et la sélection ont été restaurés avant l'affichage.</value>
+    <value>Retour depuis le locataire {0}. Les filtres, le tri et la sélection ont été restaurés sur la première page autorisée.</value>
+  </data>
+  <data name="Tenants.List.Notice.ListRefreshed" xml:space="preserve">
+    <value>La page demandée n'était plus disponible. La première page autorisée a été actualisée.</value>
+  </data>
+  <data name="Tenants.List.Notice.SearchUnavailable" xml:space="preserve">
+    <value>La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée.</value>
+  </data>
+  <data name="Tenants.List.Reason.GatewayUnavailable" xml:space="preserve">
+    <value>La liste autorisée des locataires n'a pas pu être chargée. Réessayez plus tard.</value>
+  </data>
+  <data name="Tenants.List.Reason.NotModifiedWithoutSnapshot" xml:space="preserve">
+    <value>La liste n'a pas pu être vérifiée, car aucun instantané serveur confirmé n'est disponible. Actualisez pour réessayer.</value>
+  </data>
+  <data name="Tenants.List.Reason.ProjectionDegraded" xml:space="preserve">
+    <value>La fraîcheur de la projection est indisponible. Les lignes de locataire autorisées qui ont pu être vérifiées restent utilisables.</value>
+  </data>
+  <data name="Tenants.List.Reason.RowEnrichmentUnavailable" xml:space="preserve">
+    <value>Le nombre de membres ou de propriétaires est indisponible. L'identité et l'état du cycle de vie des locataires autorisés restent utilisables.</value>
   </data>
   <data name="Tenants.List.SearchLabel" xml:space="preserve">
     <value>Rechercher des locataires</value>
   </data>
   <data name="Tenants.List.SearchPlaceholder" xml:space="preserve">
     <value>Rechercher par identifiant ou nom de locataire</value>
-  </data>
-  <data name="Tenants.List.Sort.Name" xml:space="preserve">
-    <value>Nom</value>
-  </data>
-  <data name="Tenants.List.Sort.Status" xml:space="preserve">
-    <value>Statut</value>
-  </data>
-  <data name="Tenants.List.Sort.TenantId" xml:space="preserve">
-    <value>Identifiant du locataire</value>
-  </data>
-  <data name="Tenants.List.SortDirection.Ascending" xml:space="preserve">
-    <value>Croissant</value>
-  </data>
-  <data name="Tenants.List.SortDirection.Descending" xml:space="preserve">
-    <value>Décroissant</value>
-  </data>
-  <data name="Tenants.List.SortDirectionLabel" xml:space="preserve">
-    <value>Sens du tri</value>
-  </data>
-  <data name="Tenants.List.SortLabel" xml:space="preserve">
-    <value>Tri</value>
   </data>
   <data name="Tenants.List.State.Degraded.Message" xml:space="preserve">
     <value>Certaines preuves de locataire sont indisponibles. Les colonnes d'identité, de cycle de vie, d'attente et d'état de vérité restent visibles.</value>
@@ -166,7 +169,7 @@
     <value>Connexion requise</value>
   </data>
   <data name="Tenants.List.State.FilteredEmpty.Message" xml:space="preserve">
-    <value>Aucun locataire visible ne correspond à la recherche et aux filtres actuels.</value>
+    <value>Aucun locataire visible sur la page autorisée actuelle ne correspond aux filtres actifs.</value>
   </data>
   <data name="Tenants.List.State.FilteredEmpty.Title" xml:space="preserve">
     <value>Aucun locataire ne correspond aux filtres</value>
@@ -205,7 +208,10 @@
     <value>Inconnu</value>
   </data>
   <data name="Tenants.List.StatusFilterLabel" xml:space="preserve">
-    <value>Statut</value>
+    <value>Statut sur la page actuelle</value>
+  </data>
+  <data name="Tenants.List.PageLocalSemantics" xml:space="preserve">
+    <value>Les filtres de statut et le tri des colonnes s'appliquent uniquement à la page autorisée actuelle.</value>
   </data>
   <data name="Tenants.List.Title" xml:space="preserve">
     <value>Locataires</value>

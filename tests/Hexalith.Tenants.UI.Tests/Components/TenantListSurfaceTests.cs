@@ -56,6 +56,51 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Grid_pins_all_three_safety_columns_to_logical_start()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Disabled, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        TemplateColumn<TenantListRow>[] columns = cut.FindComponents<TemplateColumn<TenantListRow>>()
+            .Select(component => component.Instance)
+            .ToArray();
+
+        columns.Single(column => column.ColumnId == "tenant-id").Pin.ShouldBe(DataGridColumnPin.Start);
+        columns.Single(column => column.ColumnId == "tenant-status").Pin.ShouldBe(DataGridColumnPin.Start);
+        columns.Single(column => column.ColumnId == "tenant-freshness").Pin.ShouldBe(DataGridColumnPin.Start);
+        columns.Single(column => column.ColumnId == "tenant-id").Width.ShouldBe("220px");
+        columns.Single(column => column.ColumnId == "tenant-status").Width.ShouldBe("130px");
+        columns.Single(column => column.ColumnId == "tenant-freshness").Width.ShouldBe("160px");
+        columns.Single(column => column.ColumnId == "tenant-audit").Width.ShouldBe("175px");
+
+        FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+        TenantListRow row = Row("customer/West EU:01", "West", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None);
+        grid.ItemKey.ShouldNotBeNull()(row).ShouldBe("customer/West EU:01");
+
+        FluentBadge statusBadge = cut.FindComponents<FluentBadge>()
+            .Select(component => component.Instance)
+            .Single(badge => badge.Class?.Contains("tenant-data-grid__status", StringComparison.Ordinal) == true);
+        statusBadge.Color.ShouldBe(BadgeColor.Severe);
+        statusBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("Power");
+        statusBadge.IconStart.Size.ShouldBe(IconSize.Size20);
+        statusBadge.IconLabel.ShouldBe("Disabled");
+
+        FluentBadge pendingBadge = cut.FindComponents<FluentBadge>()
+            .Select(component => component.Instance)
+            .Single(badge => badge.Class?.Contains("tenant-data-grid__pending", StringComparison.Ordinal) == true);
+        pendingBadge.Color.ShouldBe(BadgeColor.Important);
+        pendingBadge.IconStart.ShouldNotBeNull().GetType().Name.ShouldBe("QuestionCircle");
+        pendingBadge.IconStart.Size.ShouldBe(IconSize.Size20);
+        pendingBadge.IconLabel.ShouldBe("Pending state unknown");
+        cut.Find("[data-testid='tenants-list-status']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-list-pending']").GetAttribute("aria-label").ShouldNotBeNullOrWhiteSpace();
+        cut.FindAll("[data-testid='tenants-list-audit-entrypoint']").Count.ShouldBe(1);
+    }
+
+    [Fact]
     public void Workspace_is_composed_from_the_frontcomposer_aggregate_list_wrapper()
     {
         // cc-2026-06-21 extraction guard: the workspace reuses FcAggregateListPage<TItem> (the shared
@@ -71,26 +116,17 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public async Task Search_filter_and_sort_preserve_safety_markers()
+    public async Task Page_local_filter_and_sort_preserve_row_bound_safety_markers()
     {
         TenantListRow alpha = Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None);
         TenantListRow beta = Row("tenant.beta", "Beta", TenantStatus.Disabled, ReadModelFreshnessState.Stale, TenantPendingState.Unknown);
 
-        // Search is now a server round-trip: a "beta" term returns the beta-only cross-set match-set; an
-        // empty term returns the full cursor list. Status stays a page-local filter applied client-side.
-        RegisterServices(call =>
-        {
-            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
-            IReadOnlyList<TenantListRow> rows = string.Equals(request.Search, "beta", StringComparison.OrdinalIgnoreCase)
-                ? [beta]
-                : [alpha, beta];
-            return Task.FromResult(ReadySnapshot(rows));
-        });
+        RegisterServices(ReadySnapshot([alpha, beta]));
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
 
-        await ChangeSearchAsync(cut, "beta");
+        await ChangeSelectAsync(cut, "tenants-list-status-filter", TenantStatus.Disabled.ToString());
 
         cut.WaitForAssertion(() =>
         {
@@ -100,7 +136,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
         cut.Markup.ShouldContain("Pending state unknown");
 
-        cut.Find("[data-testid='tenants-list-reset']").Click();
+        await ChangeSelectAsync(cut, "tenants-list-status-filter", string.Empty);
         await ChangeSelectAsync(cut, "tenants-list-status-filter", TenantStatus.Active.ToString());
 
         cut.WaitForAssertion(() =>
@@ -238,6 +274,75 @@ public sealed class TenantListSurfaceTests : BunitContext
             requests[^1].Cursor.ShouldBeNull();
             cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
         });
+    }
+
+    [Fact]
+    public async Task Page_size_change_is_local_resets_cursor_history_and_requests_supported_size()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(ReadySnapshot(
+                [Row($"tenant.{requests.Count}", $"Tenant {requests.Count}", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)],
+                nextCursor: requests.Count == 1 ? "opaque-next-cursor" : null,
+                hasMore: requests.Count == 1));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => requests[^1].Cursor.ShouldBe("opaque-next-cursor"));
+
+        await ChangePageSizeAsync(cut, 50);
+
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].PageSize.ShouldBe(50);
+            requests[^1].Cursor.ShouldBeNull();
+            cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+            navigation.Uri.ShouldNotContain("opaque-next-cursor");
+            navigation.Uri.ShouldNotContain("pageSize", Case.Insensitive);
+        });
+    }
+
+    [Fact]
+    public void Page_one_recovery_clears_cursor_url_retains_rows_and_renders_polite_notice()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]) with
+        {
+            Notice = TenantListReason.ListRefreshed,
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?cursor=expired-protected-cursor");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+
+        cut.WaitForElement("[data-testid='tenants-list-refreshed-notice']");
+        cut.Markup.ShouldContain("tenant.alpha");
+        cut.Find("[data-testid='tenants-list-refreshed-notice']").GetAttribute("aria-live").ShouldBe("polite");
+        cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        navigation.Uri.ShouldBe("http://localhost/tenants");
+        cut.Markup.ShouldNotContain("expired-protected-cursor", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Tenant_row_links_never_render_the_current_paging_cursor()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]));
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?search=acme&status=Active&sort=name&cursor=opaque-protected-cursor");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        cut.Markup.ShouldNotContain("opaque-protected-cursor", Case.Insensitive);
+        cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("search%3Dacme");
+        cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("status%3DActive");
     }
 
     [Fact]
@@ -416,17 +521,16 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
-    public async Task Search_unavailable_degraded_snapshot_renders_non_blocking_surface_over_the_list()
+    public async Task Search_unavailable_notice_renders_non_blocking_surface_over_the_list()
     {
-        const string unavailable = "Tenant search is temporarily unavailable; showing the full tenant list.";
         RegisterServices(call =>
         {
             TenantListRequest request = call.ArgAt<TenantListRequest>(0);
             return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
                 ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
-                : TenantListSnapshot.Degraded(
-                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
-                    unavailable));
+                : ReadySnapshot(
+                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]) with
+                    { Notice = TenantListReason.SearchUnavailable });
         });
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
@@ -434,20 +538,21 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         await ChangeSearchAsync(cut, "term");
 
-        // Non-blocking: the degraded surface shows AND the (fallback) list rows remain visible.
-        cut.WaitForElement("[data-testid='tenants-list-degraded']");
+        cut.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
+        cut.FindAll("[data-testid='tenants-list-degraded']").ShouldBeEmpty();
         cut.Markup.ShouldContain("tenant.alpha");
     }
 
     [Fact]
-    public async Task Search_degraded_empty_snapshot_renders_degraded_not_filtered_empty()
+    public async Task Search_unavailable_empty_snapshot_keeps_honest_empty_state_with_notice()
     {
         RegisterServices(call =>
         {
             TenantListRequest request = call.ArgAt<TenantListRequest>(0);
             return Task.FromResult(string.IsNullOrWhiteSpace(request.Search)
                 ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
-                : TenantListSnapshot.Degraded([], "Search results could not be verified."));
+                : TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown) with
+                    { Notice = TenantListReason.SearchUnavailable });
         });
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
@@ -455,7 +560,9 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         await ChangeSearchAsync(cut, "term");
 
-        cut.WaitForElement("[data-testid='tenants-list-degraded']");
+        cut.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
+        cut.WaitForElement("[data-testid='tenants-list-empty']");
+        cut.FindAll("[data-testid='tenants-list-degraded']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-list-filtered-empty']").ShouldBeEmpty();
     }
 
@@ -500,26 +607,30 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Theory]
-    [InlineData(TenantListSurfaceKind.Loading, "tenants-list-loading")]
-    [InlineData(TenantListSurfaceKind.Empty, "tenants-list-empty")]
-    [InlineData(TenantListSurfaceKind.FilteredEmpty, "tenants-list-filtered-empty")]
-    [InlineData(TenantListSurfaceKind.Error, "tenants-list-error")]
-    [InlineData(TenantListSurfaceKind.Stale, "tenants-list-stale")]
-    [InlineData(TenantListSurfaceKind.Degraded, "tenants-list-degraded")]
-    public void Workspace_renders_distinct_six_list_states(TenantListSurfaceKind kind, string selector)
+    [InlineData(TenantListSurfaceKind.Loading, "tenants-list-loading", "status", "polite")]
+    [InlineData(TenantListSurfaceKind.Empty, "tenants-list-empty", "status", "polite")]
+    [InlineData(TenantListSurfaceKind.FilteredEmpty, "tenants-list-filtered-empty", "status", "polite")]
+    [InlineData(TenantListSurfaceKind.Error, "tenants-list-error", "alert", "assertive")]
+    [InlineData(TenantListSurfaceKind.Stale, "tenants-list-stale", "status", "polite")]
+    [InlineData(TenantListSurfaceKind.Degraded, "tenants-list-degraded", "alert", "assertive")]
+    public void Workspace_renders_distinct_six_list_states(
+        TenantListSurfaceKind kind,
+        string selector,
+        string expectedRole,
+        string expectedAriaLive)
     {
         TenantListSnapshot snapshot = kind switch
         {
             TenantListSurfaceKind.Loading => TenantListSnapshot.Loading(),
             TenantListSurfaceKind.Empty => TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown),
             TenantListSurfaceKind.FilteredEmpty => TenantListSnapshot.FilteredEmpty(),
-            TenantListSurfaceKind.Error => TenantListSnapshot.Error("Unavailable"),
+            TenantListSurfaceKind.Error => TenantListSnapshot.Error(),
             TenantListSurfaceKind.Stale => TenantListSnapshot.Stale(
                 [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
                 "\"etag\""),
             TenantListSurfaceKind.Degraded => TenantListSnapshot.Degraded(
                 [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
-                "Partial counts unavailable"),
+                TenantListReason.RowEnrichmentUnavailable),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
         RegisterServices(snapshot);
@@ -527,7 +638,63 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement($"[data-testid='{selector}']");
 
-        cut.Find($"[data-testid='{selector}']").GetAttribute("role").ShouldNotBeNull();
+        var state = cut.Find($"[data-testid='{selector}']");
+        state.GetAttribute("role").ShouldBe(expectedRole);
+        state.GetAttribute("aria-live").ShouldBe(expectedAriaLive);
+
+        if (kind is TenantListSurfaceKind.FilteredEmpty)
+        {
+            cut.Find("[data-testid='tenants-list-state-reset']").ShouldNotBeNull();
+        }
+        else if (kind is TenantListSurfaceKind.Stale)
+        {
+            cut.Find("[data-testid='tenants-list-state-refresh']").ShouldNotBeNull();
+        }
+        else if (kind is TenantListSurfaceKind.Degraded)
+        {
+            cut.Find("[data-testid='tenants-list-grid']").ShouldNotBeNull();
+        }
+    }
+
+    [Fact]
+    public void Typed_error_reason_renders_only_localized_support_safe_copy()
+    {
+        RegisterServices(TenantListSnapshot.Error(TenantListReason.NotModifiedWithoutSnapshot));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-error']");
+        cut.Markup.ShouldContain("No confirmed server snapshot is available.");
+        cut.Markup.ShouldNotContain(nameof(TenantListReason.NotModifiedWithoutSnapshot));
+    }
+
+    [Fact]
+    public void Typed_degraded_reason_renders_only_localized_support_safe_copy()
+    {
+        RegisterServices(TenantListSnapshot.Degraded(
+            [TenantListRow.FromSummary(new TenantSummary("customer/West EU:01", "West", TenantStatus.Active))],
+            TenantListReason.RowEnrichmentUnavailable));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-degraded']");
+        cut.Markup.ShouldContain("Authorized tenant identity and lifecycle state remain usable.");
+        cut.Markup.ShouldNotContain(nameof(TenantListReason.RowEnrichmentUnavailable));
+    }
+
+    [Fact]
+    public void Workspace_exposes_current_page_filter_and_sort_semantics()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None)]));
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-page-local-semantics']");
+
+        cut.Find("[data-testid='tenants-list-status-filter']")
+            .GetAttribute("aria-label")
+            .ShouldBe("Status on current page");
+        cut.Find("[data-testid='tenants-list-page-local-semantics']")
+            .TextContent
+            .ShouldContain("current authorized page");
     }
 
     [Fact]
@@ -548,6 +715,79 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Tenant_row_surface_has_no_cursor_etag_logging_or_telemetry_channel()
+    {
+        string projectRoot = ProjectRoot();
+        string grid = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "TenantDataGrid.razor"));
+        string navigation = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "State",
+            "TenantList",
+            "TenantListNavigationContext.cs"));
+        string gateway = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Services",
+            "Gateways",
+            "TenantQueryGateway.cs"));
+
+        grid.ShouldNotContain("Cursor", Case.Insensitive);
+        grid.ShouldNotContain("ETag", Case.Insensitive);
+        navigation.Split("Cursor = null", StringSplitOptions.None).Length.ShouldBe(3);
+        gateway.ShouldNotContain("ILogger<TenantQueryGateway>");
+        gateway.ShouldNotContain("Activity.Current");
+        gateway.ShouldNotContain("SetTag(");
+    }
+
+    [Fact]
+    public void List_tests_and_styles_avoid_incidental_fluent_implementation_selectors()
+    {
+        string projectRoot = ProjectRoot();
+        string tests = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "tests",
+            "Hexalith.Tenants.UI.Tests",
+            "Components",
+            "TenantListSurfaceTests.cs"));
+        string styles = File.ReadAllText(Path.Combine(
+            projectRoot,
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Tenants",
+            "TenantDataGrid.razor.css"));
+
+        tests.ShouldNotContain("[class" + "*=");
+        tests.ShouldNotContain("[class" + "^=");
+        tests.ShouldNotContain("fluent-data" + "-grid-");
+        styles.ShouldNotContain("::" + "part(");
+        styles.ShouldNotContain(".fui" + "-");
+    }
+
+    [Fact]
+    public void Production_resources_do_not_retain_removed_select_sort_controls()
+    {
+        string resourceRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources");
+        string resources = File.ReadAllText(Path.Combine(resourceRoot, "TenantsResources.resx"))
+            + File.ReadAllText(Path.Combine(resourceRoot, "TenantsResources.fr.resx"));
+
+        resources.ShouldNotContain("Tenants.List.SortLabel");
+        resources.ShouldNotContain("Tenants.List.SortDirection");
+        resources.ShouldNotContain("Tenants.List.Sort.Name");
+        resources.ShouldNotContain("Tenants.List.Sort.Status");
+        resources.ShouldNotContain("Tenants.List.Sort.TenantId");
+    }
+
+    [Fact]
     public void Styles_preserve_critical_columns_and_forced_colors_hooks()
     {
         string projectRoot = ProjectRoot();
@@ -564,6 +804,22 @@ public sealed class TenantListSurfaceTests : BunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+        styles.ShouldNotContain("animation:", Case.Insensitive);
+        styles.ShouldNotContain("transition:", Case.Insensitive);
+    }
+
+    [Fact]
+    public void Renderer_lifecycle_and_event_awaits_stay_on_the_blazor_dispatcher()
+    {
+        string workspace = File.ReadAllText(Path.Combine(
+            ProjectRoot(),
+            "src",
+            "Hexalith.Tenants.UI",
+            "Components",
+            "Pages",
+            "TenantsWorkspace.razor"));
+
+        workspace.ShouldNotContain("ConfigureAwait(false)");
     }
 
     [Fact]
@@ -645,6 +901,16 @@ public sealed class TenantListSurfaceTests : BunitContext
         await cut.InvokeAsync(() => select.ValueChanged.InvokeAsync(value));
     }
 
+    private static async Task ChangePageSizeAsync(IRenderedComponent<TenantsWorkspace> cut, int value)
+    {
+        FluentSelect<int, int> select = cut.FindComponents<FluentSelect<int, int>>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-list-page-size", StringComparison.Ordinal));
+        await cut.InvokeAsync(() => select.ValueChanged.InvokeAsync(value));
+    }
+
     // Drives the FluentTextInput search box by invoking its ValueChanged callback directly. The box uses
     // Immediate/ImmediateDelay (JS-debounced oninput) which bUnit's DOM-event helpers cannot exercise, so
     // the component instance's callback is the stable way to simulate a debounced search term.
@@ -719,11 +985,17 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Title"] = "Tenants",
             ["Tenants.List.SearchLabel"] = "Search tenants",
             ["Tenants.List.SearchPlaceholder"] = "Search by tenant id or name",
-            ["Tenants.List.StatusFilterLabel"] = "Status",
+            ["Tenants.List.PageSizeLabel"] = "Tenants per page",
+            ["Tenants.List.PageSizeOption"] = "{0:N0} tenants",
+            ["Tenants.List.StatusFilterLabel"] = "Status on current page",
+            ["Tenants.List.PageLocalSemantics"] = "Status filters and column sorting apply to the current authorized page only.",
             ["Tenants.List.StatusFilter.All"] = "All statuses",
             ["Tenants.List.StatusFilter.Active"] = "Active",
             ["Tenants.List.StatusFilter.Disabled"] = "Disabled",
             ["Tenants.List.StatusFilter.Unknown"] = "Unknown",
+            ["Tenants.List.Status.Active"] = "Active",
+            ["Tenants.List.Status.Disabled"] = "Disabled",
+            ["Tenants.List.Status.Unknown"] = "Unknown",
             ["Tenants.List.SortLabel"] = "Sort",
             ["Tenants.List.Sort.TenantId"] = "Tenant id",
             ["Tenants.List.Sort.Name"] = "Name",
@@ -750,6 +1022,8 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Freshness.Aging"] = "Aging",
             ["Tenants.List.Freshness.Stale"] = "Stale",
             ["Tenants.List.Freshness.Unknown"] = "Unknown",
+            ["Tenants.List.Notice.ListRefreshed"] = "The requested page was no longer available. The authorized first page has been refreshed.",
+            ["Tenants.List.Notice.SearchUnavailable"] = "Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.",
             ["Tenants.List.State.Loading.Title"] = "Loading tenants",
             ["Tenants.List.State.Loading.Message"] = "Tenant data is loading.",
             ["Tenants.List.State.Empty.Title"] = "No visible tenants",
@@ -762,6 +1036,10 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.State.Stale.Message"] = "Refresh to check the latest projection.",
             ["Tenants.List.State.Degraded.Title"] = "Tenant data is degraded",
             ["Tenants.List.State.Degraded.Message"] = "Some tenant evidence is unavailable.",
+            ["Tenants.List.Reason.GatewayUnavailable"] = "The authorized tenant list could not be loaded. Try again later.",
+            ["Tenants.List.Reason.NotModifiedWithoutSnapshot"] = "No confirmed server snapshot is available. Refresh to try again.",
+            ["Tenants.List.Reason.ProjectionDegraded"] = "Projection freshness is unavailable. Authorized tenant rows remain usable.",
+            ["Tenants.List.Reason.RowEnrichmentUnavailable"] = "Member or owner counts are unavailable. Authorized tenant identity and lifecycle state remain usable.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Label.TenantId"] = "Copy tenant identifier {0}",
             ["Tenants.Copy.Feedback.Copied"] = "Copied.",

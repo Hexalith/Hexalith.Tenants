@@ -70,6 +70,19 @@
                             <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
                             <FluentOption TValue="string" Value="@TenantStatus.Unknown.ToString()">@Localizer["Tenants.List.StatusFilter.Unknown"]</FluentOption>
                         </FluentSelect>
+                        <FluentSelect TOption="int" TValue="int"
+                                      Value="@_pageSize"
+                                      ValueChanged="OnPageSizeChanged"
+                                      Label="@Localizer["Tenants.List.PageSizeLabel"]"
+                                      data-testid="tenants-list-page-size"
+                                      aria-label="@Localizer["Tenants.List.PageSizeLabel"]">
+                            @foreach (int pageSize in _pageSizes)
+                            {
+                                <FluentOption TValue="int" Value="@pageSize">
+                                    @Localizer["Tenants.List.PageSizeOption", pageSize]
+                                </FluentOption>
+                            }
+                        </FluentSelect>
                         <FluentButton Appearance="ButtonAppearance.Primary" data-testid="tenants-list-refresh" OnClick="RefreshAsync">
                             @Localizer["Tenants.List.Refresh"]
                         </FluentButton>
@@ -78,6 +91,15 @@
                         </FluentButton>
                     }
                 </FluentStack>
+                @if (IsTenantListView)
+                {
+                    <FluentText As="TextTag.Paragraph"
+                                Size="TextSize.Size200"
+                                Color="Color.Lightweight"
+                                data-testid="tenants-list-page-local-semantics">
+                        @Localizer["Tenants.List.PageLocalSemantics"]
+                    </FluentText>
+                }
             }
         </FluentStack>
     </Toolbar>
@@ -113,11 +135,18 @@
         }
     </Commands>
     <States>
+        @if (IsTenantListView && _snapshot.Notice is not TenantListReason.None)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Info"
+                              AriaLive="AriaLive.Polite"
+                              Title="@NoticeMessage"
+                              data-testid="@NoticeTestId" />
+        }
         @if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
         }
-        else if (IsTenantListView && _visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
+        else if (IsTenantListView && _visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
         {
             <ListSurfaceStates Kind="TenantListSurfaceKind.FilteredEmpty" OnReset="ResetFiltersAsync" />
         }
@@ -131,7 +160,7 @@
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Error)
         {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Detail="@_snapshot.ErrorMessage" />
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Error" Reason="@_snapshot.Reason" />
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Unauthorized)
         {
@@ -143,7 +172,7 @@
         }
         else if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Degraded)
         {
-            <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Detail="@_snapshot.ErrorMessage" />
+            <ListSurfaceStates Kind="TenantListSurfaceKind.Degraded" Reason="@_snapshot.Reason" />
         }
     </States>
     <Body>
@@ -191,7 +220,9 @@
     private const string UsersTabId = "users";
     private const string AllTenantsScope = "all";
     private const string MyTenantsScope = "mine";
+    private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private TenantListSnapshot? _lastConfirmedSnapshot;
     private TenantWorkspaceState _workspaceState = TenantWorkspaceState.FromQuery(
         tab: null,
         scope: null,
@@ -217,6 +248,7 @@
     private IReadOnlyList<TenantListRow> _visibleRows = [];
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
+    private int _pageSize = 20;
     private string? _search;
     private string? _statusFilter;
     private string _sortColumn = TenantListSortColumns.TenantId;
@@ -288,18 +320,34 @@
     private bool IsMyTenantsView
         => IsTenantsTab && string.Equals(_tenantScope, MyTenantsScope, StringComparison.Ordinal);
 
-    private bool HasActiveFilters
-        => !string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_statusFilter);
+    private bool HasPageLocalFilter
+        => !string.IsNullOrWhiteSpace(_statusFilter);
 
     // The list/grid surface (the former else branch): everything that is not a blocking/empty list state.
     // The Stale/Degraded list-surface banners still render in the States slot above this body.
     private bool ShowList
         => _snapshot.Kind is not TenantListSurfaceKind.Loading
-            && !(_visibleRows.Count == 0 && HasActiveFilters && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
+            && !(_visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not TenantListSurfaceKind.Degraded)
             && _snapshot.Kind is not (TenantListSurfaceKind.FilteredEmpty
                 or TenantListSurfaceKind.Empty
                 or TenantListSurfaceKind.Error
                 or TenantListSurfaceKind.Unauthorized);
+
+    private string NoticeMessage
+        => _snapshot.Notice switch
+        {
+            TenantListReason.ListRefreshed => Localizer["Tenants.List.Notice.ListRefreshed"],
+            TenantListReason.SearchUnavailable => Localizer["Tenants.List.Notice.SearchUnavailable"],
+            _ => string.Empty,
+        };
+
+    private string NoticeTestId
+        => _snapshot.Notice switch
+        {
+            TenantListReason.ListRefreshed => "tenants-list-refreshed-notice",
+            TenantListReason.SearchUnavailable => "tenants-list-search-unavailable-notice",
+            _ => "tenants-list-notice",
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -314,7 +362,7 @@
 
         if (IsTenantListView)
         {
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false);
         }
     }
 
@@ -336,7 +384,7 @@
         NavigateToCanonicalWorkspaceIfNeeded(incoming);
         if (IsTenantListView)
         {
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false);
         }
     }
 
@@ -345,21 +393,21 @@
         if (_focusHeadingPending)
         {
             _focusHeadingPending = false;
-            await _listPage.FocusHeadingAsync().ConfigureAwait(false);
+            await _listPage.FocusHeadingAsync();
         }
     }
 
     private async Task LoadAsync(bool reuseETag)
     {
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
-        TenantListSnapshot previous = _snapshot;
+        TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
         _snapshot = TenantListSnapshot.Loading();
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
         TenantListRequest request = new(
             Cursor: _currentCursor,
-            PageSize: 20,
+            PageSize: _pageSize,
             Search: _search,
             Status: status,
             SortColumn: _sortColumn,
@@ -367,8 +415,7 @@
             ETag: reuseETag ? previous.ETag : null);
 
         TenantListSnapshot snapshot = await QueryGateway
-            .ListTenantsAsync(request, previous, CancellationToken.None)
-            .ConfigureAwait(false);
+            .ListTenantsAsync(request, previous, CancellationToken.None);
 
         await InvokeAsync(() =>
         {
@@ -378,21 +425,38 @@
             }
 
             _snapshot = snapshot;
+            if (snapshot.Kind is TenantListSurfaceKind.Ready
+                or TenantListSurfaceKind.Empty
+                or TenantListSurfaceKind.FilteredEmpty
+                or TenantListSurfaceKind.Stale
+                or TenantListSurfaceKind.Degraded)
+            {
+                _lastConfirmedSnapshot = snapshot;
+            }
+            if (snapshot.Notice == TenantListReason.ListRefreshed)
+            {
+                TenantWorkspaceState recovered = CurrentWorkspaceState() with { Cursor = null };
+                ApplyWorkspaceState(recovered, clearCursorHistory: true);
+                NavigateToCanonicalWorkspaceIfNeeded(recovered);
+            }
+
             ApplyVisibleRows();
-        }).ConfigureAwait(false);
+        });
     }
 
     private async Task RefreshAsync()
-        => await LoadAsync(reuseETag: true).ConfigureAwait(false);
+        => await LoadAsync(reuseETag: true);
 
     private async Task<TenantSummary?> FindTenantProjectionEvidenceAsync(string tenantId)
     {
-        if (!_snapshot.Rows.Any(row => string.Equals(row.TenantId, tenantId, StringComparison.Ordinal)))
+        IReadOnlyList<TenantListRow> confirmedRows = _lastConfirmedSnapshot?.Rows ?? _snapshot.Rows;
+        if (!confirmedRows.Any(row => string.Equals(row.TenantId, tenantId, StringComparison.Ordinal)))
         {
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false);
+            confirmedRows = _lastConfirmedSnapshot?.Rows ?? _snapshot.Rows;
         }
 
-        TenantListRow? row = _snapshot.Rows.FirstOrDefault(r => string.Equals(r.TenantId, tenantId, StringComparison.Ordinal));
+        TenantListRow? row = confirmedRows.FirstOrDefault(r => string.Equals(r.TenantId, tenantId, StringComparison.Ordinal));
         return row is null
             ? null
             : new TenantSummary(row.TenantId, row.Name, row.Status);
@@ -414,7 +478,7 @@
             selectedTenantId: null,
             anchor: null), clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        await LoadAsync(reuseETag: false);
     }
 
     private async Task NextPageAsync()
@@ -422,7 +486,7 @@
         _cursorHistory.Push(_currentCursor);
         ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _snapshot.NextCursor });
         NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        await LoadAsync(reuseETag: false);
     }
 
     private async Task PreviousPageAsync()
@@ -431,35 +495,49 @@
         {
             ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
             NavigateToCanonicalWorkspace();
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false);
         }
     }
 
     private async Task OnSearchChanged(string? value)
     {
-        // Cross-set server search, debounced by FluentTextInput (Immediate/ImmediateDelay) on the
-        // renderer Dispatcher — NOT an in-memory re-filter. A changed term is a fresh query → first page.
+        // Search is intentionally unavailable until SEARCH-CURSOR-1. A changed term still starts a fresh
+        // ordinary server query at page one, which returns a non-blocking notice without page-local search.
         ApplyWorkspaceState(CurrentWorkspaceState().WithSearch(value), clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        await LoadAsync(reuseETag: false);
     }
 
     private async Task OnStatusFilterChanged(string? value)
     {
-        // Status participates in the server query (the search index for a term; the hydrated detail for the
-        // cursor list), so a change reloads from the server rather than filtering only the loaded page.
+        // The current backend has no status field, so this is an explicitly page-local presentation filter.
+        // Reload page one first so the filter never silently retains an older cursor page.
         ApplyWorkspaceState(CurrentWorkspaceState().WithStatus(value), clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        await LoadAsync(reuseETag: false);
+    }
+
+    private async Task OnPageSizeChanged(int value)
+    {
+        int normalized = _pageSizes.Contains(value) ? value : 20;
+        if (normalized == _pageSize)
+        {
+            return;
+        }
+
+        _pageSize = normalized;
+        ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = null }, clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
+        await LoadAsync(reuseETag: false);
     }
 
     private void ApplyVisibleRows()
     {
         IEnumerable<TenantListRow> rows = _snapshot.Rows;
 
-        // Search is performed server-side across the whole tenant set (Memories index), not by filtering
-        // the loaded page. Status stays a page-local filter for the cursor list (the tenant read backend
-        // has no server-side status filter); for a search the gateway already applied it to hydrated rows.
+        // The current tenant-list contract has no whole-set status or sort fields. Keep these controls
+        // honest as page-local presentation over the authorized server page. Search never filters this
+        // page: until SEARCH-CURSOR-1 exists, the gateway returns the ordinary list with a notice.
         if (Enum.TryParse(_statusFilter, out TenantStatus status))
         {
             rows = rows.Where(r => r.Status == status);
@@ -553,7 +631,7 @@
         NavigateToCanonicalWorkspace();
         if (IsTenantListView)
         {
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false);
         }
     }
 
@@ -564,7 +642,7 @@
 
         if (IsTenantListView)
         {
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false);
         }
     }
 
@@ -583,7 +661,7 @@
             CurrentWorkspaceState().WithSort(sortColumn, descending: args.SortByAscending is false),
             clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        await LoadAsync(reuseETag: false);
     }
 
     private TenantWorkspaceState CurrentWorkspaceState()

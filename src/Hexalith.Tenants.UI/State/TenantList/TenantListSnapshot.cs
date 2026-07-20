@@ -11,7 +11,8 @@ public sealed record TenantListSnapshot(
     ReadModelFreshnessState Freshness,
     bool IsDegraded,
     bool IsAuthorizationScopedEmpty,
-    string? ErrorMessage) {
+    TenantListReason Reason = TenantListReason.None,
+    TenantListReason Notice = TenantListReason.None) {
     public static TenantListSnapshot Loading()
         => new(
             TenantListSurfaceKind.Loading,
@@ -21,8 +22,7 @@ public sealed record TenantListSnapshot(
             null,
             ReadModelFreshnessState.Unknown,
             false,
-            false,
-            null);
+            false);
 
     public static TenantListSnapshot Ready(
         IReadOnlyList<TenantListRow> rows,
@@ -40,7 +40,7 @@ public sealed record TenantListSnapshot(
             freshness,
             isDegraded,
             false,
-            null);
+            isDegraded ? TenantListReason.ProjectionDegraded : TenantListReason.None);
 
     public static TenantListSnapshot Empty(bool isAuthorizationScoped, ReadModelFreshnessState freshness)
         => new(
@@ -51,8 +51,7 @@ public sealed record TenantListSnapshot(
             null,
             freshness,
             false,
-            isAuthorizationScoped,
-            null);
+            isAuthorizationScoped);
 
     public static TenantListSnapshot FilteredEmpty()
         => new(
@@ -63,10 +62,9 @@ public sealed record TenantListSnapshot(
             null,
             ReadModelFreshnessState.Unknown,
             false,
-            false,
-            null);
+            false);
 
-    public static TenantListSnapshot Error(string message)
+    public static TenantListSnapshot Error(TenantListReason reason = TenantListReason.GatewayUnavailable)
         => new(
             TenantListSurfaceKind.Error,
             [],
@@ -76,7 +74,7 @@ public sealed record TenantListSnapshot(
             ReadModelFreshnessState.Unknown,
             false,
             false,
-            message);
+            reason);
 
     public static TenantListSnapshot Unauthorized()
         => new(
@@ -87,8 +85,7 @@ public sealed record TenantListSnapshot(
             null,
             ReadModelFreshnessState.Unknown,
             false,
-            false,
-            null);
+            false);
 
     public static TenantListSnapshot Stale(IReadOnlyList<TenantListRow> rows, string? eTag)
         => new(
@@ -99,10 +96,11 @@ public sealed record TenantListSnapshot(
             eTag,
             ReadModelFreshnessState.Stale,
             false,
-            false,
-            null);
+            false);
 
-    public static TenantListSnapshot Degraded(IReadOnlyList<TenantListRow> rows, string message)
+    public static TenantListSnapshot Degraded(
+        IReadOnlyList<TenantListRow> rows,
+        TenantListReason reason = TenantListReason.ProjectionDegraded)
         => new(
             TenantListSurfaceKind.Degraded,
             rows,
@@ -112,5 +110,5 @@ public sealed record TenantListSnapshot(
             ReadModelFreshnessState.Unknown,
             true,
             false,
-            message);
+            reason);
 }
