@@ -1,64 +1,50 @@
 using System.Globalization;
-using System.Text;
 
 namespace Hexalith.Tenants.UI.State.TenantList;
 
-public sealed record TenantListNavigationContext(
-    string? Tab,
-    string? Scope,
-    string? Search,
-    string? Status,
-    string SortColumn,
-    bool SortDescending,
-    string? Cursor,
-    string? SelectedTenantId,
-    string? Anchor) {
-    public string ToReturnUrl() {
-        StringBuilder builder = new("/tenants");
-        AppendQuery(builder, "tab", Tab);
-        AppendQuery(builder, "scope", Scope);
-        AppendQuery(builder, "search", Search);
-        AppendQuery(builder, "status", Status);
-        AppendQuery(builder, "sort", SortColumn == TenantListSortColumns.TenantId ? null : SortColumn);
-        AppendQuery(builder, "desc", SortDescending ? bool.TrueString : null);
-        AppendQuery(builder, "cursor", Cursor);
-        AppendQuery(builder, "selected", SelectedTenantId);
-        AppendQuery(builder, "anchor", Anchor);
-        return builder.ToString();
-    }
+/// <summary>
+/// Builds tenant detail and audit links from canonical workspace state.
+/// </summary>
+/// <param name="WorkspaceState">The canonical workspace state to preserve in return links.</param>
+public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceState)
+{
+    /// <summary>
+    /// Returns the canonical workspace URL.
+    /// </summary>
+    public string ToReturnUrl()
+        => WorkspaceState.ToCanonicalUrl();
 
-    public string ToDetailUrl(TenantListRow row) {
+    /// <summary>
+    /// Builds a tenant detail URL with canonical return state.
+    /// </summary>
+    public string ToDetailUrl(TenantListRow row)
+    {
         ArgumentNullException.ThrowIfNull(row);
 
-        TenantListNavigationContext selected = this with {
+        TenantWorkspaceState selected = WorkspaceState with
+        {
             SelectedTenantId = row.TenantId,
             Anchor = $"tenant-row-{row.TenantId}",
         };
         string tenantId = Uri.EscapeDataString(row.TenantId);
-        string returnUrl = Uri.EscapeDataString(selected.ToReturnUrl());
+        string returnUrl = Uri.EscapeDataString(selected.ToCanonicalUrl());
         return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}?returnUrl={returnUrl}");
     }
 
-    public string ToAuditUrl(TenantListRow row) {
+    /// <summary>
+    /// Builds a tenant audit URL with canonical return and focus state.
+    /// </summary>
+    public string ToAuditUrl(TenantListRow row)
+    {
         ArgumentNullException.ThrowIfNull(row);
 
-        TenantListNavigationContext selected = this with {
+        TenantWorkspaceState selected = WorkspaceState with
+        {
             SelectedTenantId = row.TenantId,
             Anchor = $"tenant-row-{row.TenantId}",
         };
         string tenantId = Uri.EscapeDataString(row.TenantId);
-        string returnUrl = Uri.EscapeDataString(selected.ToReturnUrl());
+        string returnUrl = Uri.EscapeDataString(selected.ToCanonicalUrl());
         return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor)}");
-    }
-
-    private static void AppendQuery(StringBuilder builder, string key, string? value) {
-        if (string.IsNullOrWhiteSpace(value)) {
-            return;
-        }
-
-        _ = builder.Append(builder.Length > "/tenants".Length ? '&' : '?');
-        _ = builder.Append(Uri.EscapeDataString(key));
-        _ = builder.Append('=');
-        _ = builder.Append(Uri.EscapeDataString(value));
     }
 }

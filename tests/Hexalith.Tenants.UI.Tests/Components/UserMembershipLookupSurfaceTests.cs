@@ -4,6 +4,7 @@ using Bunit;
 
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
@@ -54,6 +55,8 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-role']").TextContent.ShouldContain("Tenant owner");
         cut.Find("[data-testid='tenants-user-status']").TextContent.ShouldContain("Active");
         cut.Find("[data-testid='tenants-user-truth-state']").TextContent.ShouldContain("Current");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldContain(
+            "/tenants?tab=users&userId=target.user%40example");
         cut.Markup.ShouldNotContain("Lifecycle", Case.Insensitive);
         cut.Markup.ShouldNotContain("tenants-my-list", Case.Insensitive);
         cut.Markup.ShouldNotContain("remove", Case.Insensitive);
@@ -89,6 +92,36 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Query_parameter_changes_reapply_lookup_state_on_the_existing_component()
+    {
+        List<UserTenantMembershipRequest> requests = [];
+        RegisterServices(call =>
+        {
+            UserTenantMembershipRequest request = call.ArgAt<UserTenantMembershipRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)],
+                targetUserId: request.TargetUserId));
+        });
+
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "user.one"));
+        cut.WaitForAssertion(() => requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("user.one"));
+
+        cut.Render(parameters => parameters
+            .Add(component => component.InitialUserId, "user.two")
+            .Add(component => component.InitialSort, UserTenantMembershipSortColumns.Role)
+            .Add(component => component.InitialCursor, "user-two-cursor"));
+
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(2);
+            requests[^1].TargetUserId.ShouldBe("user.two");
+            requests[^1].Cursor.ShouldBe("user-two-cursor");
+        });
+    }
+
+    [Fact]
     public void User_lookup_invalid_submit_does_not_call_gateway_and_uses_assertive_state()
     {
         ITenantQueryGateway gateway = RegisterServices(UserTenantMembershipSnapshot.Unavailable());
@@ -99,6 +132,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-user-invalid']");
 
         cut.Find("[data-testid='tenants-user-invalid']").GetAttribute("role").ShouldBe("alert");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
         gateway.DidNotReceiveWithAnyArgs()
             .GetUserTenantsAsync(default!, default, default);
     }
@@ -119,6 +153,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-lookup-input']").GetAttribute("value").ShouldBe(string.Empty);
         cut.FindAll("[data-testid='tenants-user-lookup-results']").ShouldBeEmpty();
         cut.Markup.ShouldContain("User membership lookup cleared.");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users");
     }
 
     [Theory]
@@ -179,9 +214,11 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
                     targetUserId: "target.user"),
                 ReadySnapshot(
                     [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)],
+                    nextCursor: "opaque-next",
+                    hasMore: true,
                     targetUserId: "target.user"),
                 ReadySnapshot(
-                    [Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+                    [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)],
                     targetUserId: "target.user"),
             ]);
         List<UserTenantMembershipRequest> requests = [];
@@ -195,15 +232,19 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
         cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
 
-        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-user-lookup-sort", "name");
-        cut.Markup.ShouldContain("Visible memberships sorted.");
-
         cut.Find("[data-testid='tenants-user-lookup-next']").Click();
         cut.WaitForAssertion(() => requests[1].Cursor.ShouldBe("opaque-next"));
         cut.Markup.ShouldContain("tenant.gamma");
 
-        cut.Find("[data-testid='tenants-user-lookup-previous']").Click();
-        cut.WaitForAssertion(() => requests[2].Cursor.ShouldBeNull());
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-user-lookup-sort", "name");
+        cut.WaitForAssertion(() =>
+        {
+            requests[2].Cursor.ShouldBeNull();
+            cut.Markup.ShouldContain("tenant.alpha");
+            cut.Markup.ShouldContain("Visible memberships sorted.");
+            cut.Find("[data-testid='tenants-user-lookup-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants?tab=users&userId=target.user&sort=name");
 
         cut.Find("[data-testid='tenants-user-lookup-refresh']").Click();
         cut.WaitForAssertion(() => requests[3].ETag.ShouldBe("\"etag\""));

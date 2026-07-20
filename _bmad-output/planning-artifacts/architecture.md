@@ -211,7 +211,7 @@ fixed `global-administrators` scope.
   UI **reflects, never enforces**, and must stay safe even if it misjudges; role-scoping
   read from JWT claims.
 - **NFR-1 Performance/freshness:** cursor pagination + conditional requests (ETag/304);
-  ~1s warm render; ~500-event audit target. Budgets are `[ASSUMPTION]`.
+  ~1s warm tenant-read target remains `[ASSUMPTION]`; audit performance has no numeric target until the Product/Operations §16.14 decision record approves the representative dataset, budgets, test method, and fallback trigger.
 - **NFR-4 Observability/testability:** stable automation selectors/component contracts —
   never keyed on row text or color.
 - **NFR-5 No data-store edits:** corrections are forward compensating commands only.
@@ -284,7 +284,7 @@ verbatim) — translating directly into a **shared typed UI truth-state model**.
 2. **Authorization reflection (CP-9 / NFR-2)** — every actionable element reflects server
    auth, fail-closed; the UI is never the gate.
 3. **Freshness & eventual consistency (NFR-3)** — ETag/304 + projection-as-truth + Blazor
-   Auto reconnect re-derivation.
+   InteractiveServer circuit-reconnect re-derivation.
 4. **Support-safety / privacy (§10)** — no tokens, payloads, correlation-ids, raw metadata,
    or PII in any surface/log/receipt/copy; safe localized rejection text only.
 5. **Accessibility (WCAG 2.1 AA; conditional 2.2)** — no-color-only, live-region politeness

@@ -8,11 +8,13 @@ using Hexalith.FrontComposer.Shell.Components.Layout;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Pages;
+using Hexalith.Tenants.UI.Components.Users;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -139,6 +141,193 @@ public sealed class TenantListSurfaceTests : BunitContext
         await ChangeSearchAsync(cut, "acme");
 
         cut.WaitForAssertion(() => requests.ShouldContain(r => r.Search == "acme"));
+    }
+
+    [Fact]
+    public async Task Search_change_updates_canonical_workspace_url_and_resets_cursor()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
+            nextCursor: "next",
+            hasMore: true));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=before&cursor=opaque-cursor");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        await ChangeSearchAsync(cut, "after");
+
+        cut.WaitForAssertion(() =>
+        {
+            navigation.Uri.ShouldContain("search=after");
+            navigation.Uri.ShouldNotContain("opaque-cursor");
+        });
+    }
+
+    [Fact]
+    public async Task Tenant_grid_sort_updates_canonical_workspace_url_and_resets_cursor()
+    {
+        RegisterServices(ReadySnapshot(
+            [
+                Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None),
+                Row("tenant.beta", "Beta", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None),
+            ],
+            nextCursor: "next",
+            hasMore: true));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?cursor=opaque-cursor");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+
+        FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+        await cut.InvokeAsync(() => grid.SortByColumnAsync("Tenant", DataGridSortDirection.Descending));
+
+        cut.WaitForAssertion(() =>
+        {
+            navigation.Uri.ShouldContain("sort=name");
+            navigation.Uri.ShouldContain("desc=True");
+            navigation.Uri.ShouldNotContain("opaque-cursor");
+        });
+    }
+
+    [Fact]
+    public async Task Query_identity_change_clears_the_previous_cursor_history()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            if (request.Search == "after")
+            {
+                return Task.FromResult(ReadySnapshot(
+                    [Row("tenant.search", "Search", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+            }
+
+            return Task.FromResult(request.Cursor switch
+            {
+                null => ReadySnapshot(
+                    [Row("tenant.one", "One", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
+                    nextCursor: "cursor-two",
+                    hasMore: true),
+                "cursor-two" => ReadySnapshot(
+                    [Row("tenant.two", "Two", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)],
+                    nextCursor: "cursor-three",
+                    hasMore: true),
+                _ => ReadySnapshot(
+                    [Row("tenant.three", "Three", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]),
+            });
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.two"));
+        cut.Find("[data-testid='tenants-list-next']").Click();
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.three"));
+
+        await ChangeSearchAsync(cut, "after");
+
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].Search.ShouldBe("after");
+            requests[^1].Cursor.ShouldBeNull();
+            cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+    }
+
+    [Fact]
+    public async Task Switching_to_users_does_not_carry_a_tenant_cursor()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?cursor=tenant-list-cursor");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+
+        cut.WaitForAssertion(() =>
+        {
+            navigation.Uri.ShouldContain("tab=users");
+            navigation.Uri.ShouldNotContain("tenant-list-cursor");
+            cut.FindComponent<UserMembershipLookupPanel>().Instance.InitialCursor.ShouldBeNull();
+        });
+    }
+
+    [Fact]
+    public async Task Users_round_trip_preserves_and_reloads_the_tenant_query()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(request.Search == "filtered"
+                ? ReadySnapshot([Row("tenant.filtered", "Filtered", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
+                : ReadySnapshot([Row("tenant.default", "Default", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        });
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        await ChangeSearchAsync(cut, "filtered");
+        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.UsersTab));
+        await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
+
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBeGreaterThanOrEqualTo(3);
+            requests[^1].Search.ShouldBe("filtered");
+            requests[^1].Cursor.ShouldBeNull();
+            cut.Markup.ShouldContain("tenant.filtered");
+            cut.Markup.ShouldNotContain("tenant.default");
+        });
+    }
+
+    [Fact]
+    public void Same_route_query_navigation_reapplies_workspace_state()
+    {
+        List<TenantListRequest> requests = [];
+        RegisterServices(call =>
+        {
+            TenantListRequest request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            string suffix = request.Search ?? "default";
+            return Task.FromResult(ReadySnapshot(
+                [Row($"tenant.{suffix}", suffix, TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        });
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?search=first");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForAssertion(() => requests[^1].Search.ShouldBe("first"));
+
+        navigation.NavigateTo("/tenants?search=second");
+
+        cut.WaitForAssertion(() =>
+        {
+            requests[^1].Search.ShouldBe("second");
+            cut.Markup.ShouldContain("tenant.second");
+            cut.Markup.ShouldNotContain("tenant.first");
+        });
+    }
+
+    [Fact]
+    public void Canonical_deep_link_restores_the_grid_sort_direction()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?sort=name&desc=true");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+
+        cut.WaitForAssertion(() => grid.SortByAscending.ShouldBe(false));
     }
 
     [Fact]
@@ -310,6 +499,26 @@ public sealed class TenantListSurfaceTests : BunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+    }
+
+    [Fact]
+    public void Domain_component_styles_use_direction_safe_layout_properties()
+    {
+        string componentsRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components");
+        const string physicalDeclarationPattern =
+            @"(?im)(?:^|[;{""']\s*)(?:left|right|margin-(?:left|right)|padding-(?:left|right)|border-(?:left|right)(?:-(?:color|style|width))?|border-(?:top|bottom)-(?:left|right)-radius|float)\s*:|text-align\s*:\s*(?:left|right)\b";
+        string[] offenders = Directory
+            .GetFiles(componentsRoot, "*", SearchOption.AllDirectories)
+            .Where(path => path.EndsWith(".razor", StringComparison.Ordinal)
+                || path.EndsWith(".razor.css", StringComparison.Ordinal))
+            .Where(path => System.Text.RegularExpressions.Regex.IsMatch(
+                File.ReadAllText(path),
+                physicalDeclarationPattern,
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+            .Select(path => Path.GetRelativePath(componentsRoot, path))
+            .ToArray();
+
+        offenders.ShouldBeEmpty("Component layout must use logical properties so RTL remains direction-safe.");
     }
 
     // Drives a Fluent UI v5 FluentSelect the way a user selecting an option does: invoking the

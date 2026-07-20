@@ -90,6 +90,8 @@ NFR9: Responsive behavior is desktop-first while remaining safe at tablet and mo
 
 NFR10: A UI story is not ready or complete without applicable accessibility, localization, responsive, documentation/reference, and focused test evidence, or a Product/UX-approved row-specific fallback that records behavior, copy ownership, documentation evidence, replacement path, and owner approval.
 
+**Shared NFR10 evidence gate (authoritative for Stories 1.0–5.7):** Every story's ready and completion decision incorporates NFR10 together with PRD §9 and UX-DR33. A story's closing focused-check AC lists its additional story-specific lanes; it does not replace or narrow this shared gate. Evidence must cite the applicable accessibility, localization, responsive, documentation/reference (`FC-DOC` or the exact approved fallback), and focused-test sources/versions/results, or record the Product/UX-approved row-specific fallback with behavior, copy owner, documentation evidence, replacement path, and owner approval.
+
 ### Additional Requirements
 
 - **Starter/foundation requirement:** the selected starter is the existing `src/Hexalith.Tenants.UI` .NET 10 Blazor `InteractiveServer` web host composing FrontComposer Shell and Fluent UI Blazor V5. Epic 1 Story 1 must establish or reverify this bootstrap foundation rather than scaffold a parallel host: solution registration, one domain manifest, shell routing, authentication, BFF gateways, typed truth state, localization, tests, and SDK-container configuration. The historical `dotnet new blazor --interactivity Server -f net10.0` recipe is initialization history, not permission to recreate implemented work.
@@ -289,9 +291,9 @@ Operators, owners, and members can find authorized tenants, understand freshness
 
 ### Story 1.0: Reverify FrontComposer Shell and Fluent Contracts
 
-As a Tenants UI maintainer,
+As a Tenants UI maintainer protecting operator outcomes,
 I want the shared FrontComposer and Fluent contracts reverified against the corrected architecture and pinned dependencies,
-So that subsequent stories build on demonstrated capabilities and honest fallback boundaries.
+So that operators receive a stable, accessible, projection-honest workspace and subsequent stories build only on demonstrated capabilities and honest fallback boundaries.
 
 **Acceptance Criteria:**
 
@@ -860,6 +862,11 @@ So that I can distinguish current, stale, and unmeasurable data before trusting 
 
 **Acceptance Criteria:**
 
+**Given** Stories 1.2 through 1.9 consume tenant reads earlier in the documented story order
+**When** Story 1.10 is planned or reverified
+**Then** it is treated as the explicit transport-and-provenance correction for those already-consumed read surfaces, not as a prerequisite silently assumed complete
+**And** until `PLAT-FRESH-1`, `HOST-REF-1`, and `UI-READ-1` are verified, those surfaces remain honestly `unknown` where provenance is unavailable and fail closed where the safety contract requires it.
+
 **Given** the platform/composing host exposes separate Tenants-query and EventStore-command service references
 **When** the UI server-side gateways are configured
 **Then** query reads use the Tenants reference and commands/status lookup retain the EventStore command reference
@@ -973,7 +980,7 @@ So that I can understand platform-wide access without conflating it with tenant 
 **Then** Tenants-owned whole-string resources remain parity-checked and culture-aware
 **And** stable selectors identify entry, surface, rows, freshness, states, and return navigation without depending on identity text or color.
 
-**Given** historical Stories 4.1 and 4.2 implementation evidence
+**Given** pre-restructure implementation evidence historically numbered Stories 4.1 and 4.2 (not current Epic 4 Stories 4.1 and 4.2)
 **When** this corrected Story 1.11 contract is verified
 **Then** historical behavior is mapped to the current FR18, direct-read, freshness, authorization, IA, and evidence requirements without blindly rebuilding it
 **And** gaps are recorded as current work or external blockers rather than treated as waived by prior completion.
@@ -1098,10 +1105,10 @@ So that the user receives intended access without an unsupported invitation work
 **Then** the inline lifecycle remains accepted/projection-pending until an authoritative tenant-members re-query shows the target user with the explicit role and qualifying new provenance
 **And** unrelated row changes or the pre-existing membership state cannot confirm the attempt.
 
-**Given** the expected membership already exists before qualifying post-submit provenance, a retry is deduplicated, or confirmation cannot be established
+**Given** the same logical add attempt is replayed or deduplicated after its accepted result may already have materialized, or qualifying confirmation cannot be established
 **When** reconciliation completes
-**Then** the flow renders the supportable `already applied`, duplicate, or `unable to verify` state without false success
-**And** offers inspect audit, retry status lookup, refresh, continue read-only, or escalation as appropriate.
+**Then** same-attempt idempotent evidence may support `already applied` or duplicate, and missing qualifying evidence produces `unable to verify`, without false success
+**And** membership that authoritatively pre-existed this logical attempt remains the `UserAlreadyInTenant` rejection defined above—never `already applied`—with inspect audit, retry status lookup, refresh, continue read-only, or escalation offered as appropriate.
 
 **Given** the flow is cancelled, fails validation, loses permission, encounters rejection, or completes
 **When** focus handling runs
@@ -1197,6 +1204,8 @@ As an authorized tenant owner or operator,
 I want to remove a tenant member through a complete, evidence-backed flow,
 So that access is withdrawn deliberately, safely, and with supportable proof.
 
+**Delivery sizing decision:** Story 2.4 remains one acceptance and completion contract because fail-closed eligibility, preview, dispatch, projection confirmation, and WP-2A proof form one user-visible vertical outcome. If iteration planning cannot contain the work, use child delivery tasks **2.4a** (eligibility, preview, confirmation, dispatch) and **2.4b** (reconciliation, WP-2A proof, evidence/recovery), but keep Story 2.4 incomplete until both pass. These are task labels, not canonical story IDs; they do not change `sprint-status.yaml` without a separately approved reorganization.
+
 **Acceptance Criteria:**
 
 **Given** an authorized user reviews an eligible tenant member row
@@ -1256,8 +1265,8 @@ So that access is withdrawn deliberately, safely, and with supportable proof.
 
 **Given** validation failure, stale data, authorization loss, domain rejection, concurrency conflict, transport failure, duplicate handling, timeout, unable-to-verify, or proof failure occurs
 **When** the flow presents recovery
-**Then** it offers the applicable refresh, wait, retry status lookup, request permission, restore intended access, inspect audit, continue read-only, or escalation path
-**And** it does not promise undo, rollback, hidden editing, automatic re-addition, or any recovery the platform does not support.
+**Then** it offers the applicable refresh, wait, retry status lookup, request permission, inspect audit, continue read-only, or escalation path, and offers `restore intended access` only when the separately delivered correction capability is available
+**And** otherwise it states the correction capability is not ready without promising undo, rollback, hidden editing, automatic re-addition, or any recovery the platform does not support; Story 2.4 still completes FR12 and WP-2A without an Epic 5 dependency.
 
 **Given** a rerender, refresh, or circuit reconnect occurs during preview, submission, projection waiting, or audit waiting
 **When** state is restored
@@ -1304,7 +1313,12 @@ So that the tenant becomes available only after the system proves its creation.
 **Given** authorization reflection, command connectivity, lifecycle support, or creation eligibility is missing or indeterminate
 **When** action availability is evaluated
 **Then** the create action fails closed with a canonical inline unavailable reason and named recovery
-**And** server-side API/domain authorization remains the enforcement boundary: tenant creation is domain-enforced as global-administrator-only (`GlobalAdminRequired`), reflected for non-global-administrator callers as `missing permission` and surfaced, if dispatched anyway, as safe localized rejection text.
+**And** server-side API/domain authorization remains the enforcement boundary: tenant creation is global-administrator-only; non-global-administrator callers see `missing permission`, and a dispatched unauthorized request emits `InsufficientPermissionsRejection`, mapped by the UI to safe localized `InsufficientPermissions` text.
+
+**Given** the authorization-scoped tenant list is authoritatively empty and its freshness is `unknown` only because the first-tenant projection has no persisted write timestamp
+**When** an authorized global administrator otherwise satisfies validation, command connectivity, lifecycle support, and aggregate admission
+**Then** the create action remains available under the documented first-tenant bootstrap exception rather than deadlocking initial creation
+**And** `TenantAlreadyExists` remains the authoritative collision backstop; `unknown` freshness for a non-empty, ambiguous, unauthorized, or otherwise unproven list does not receive this exception.
 
 **Given** valid eligible input
 **When** the global administrator submits a deliberate attempt
@@ -2103,6 +2117,8 @@ So that governance access is withdrawn deliberately without ever leaving the pla
 
 Users can inspect contextual audit evidence, understand proof availability, and correct mistakes forward through linked compensating commands.
 
+**Legacy numbering note:** Historical Story 5.8 evidence refers to the pre-restructure single-authoritative-refresh/proof-association work now folded into current Stories 5.6 and 5.7. There is no current Story 5.8; references below label it as **former pre-restructure Story 5.8** and do not create a dependency or story ID.
+
 ### Story 5.1: Browse Tenant Audit Trail
 
 As an authorized Tenants user,
@@ -2253,6 +2269,11 @@ So that proof remains connected to the activity I need to understand rather than
 **When** entry labels, source-context banners, audit states, unavailable reasons, return notices, and recoveries render
 **Then** Tenants-owned whole-string resources remain parity-checked with named placeholders and culture-aware formatting
 **And** stable selectors identify each source kind, route scope, context banner, audit state, return/focus data, and unavailable recovery without depending on identity text or color.
+
+**Given** a Story 5.2 entry point displays audit availability beside its contextual link
+**When** pending, delayed, unavailable, missing-support, or available state is presented
+**Then** Story 5.2 consumes only the shared typed audit-availability model and canonical labels already defined by the planning stack
+**And** reachability is complete without depending on Story 5.4's later recovery-detail presentation; Story 5.4 enriches recovery behavior without becoming a prerequisite for navigation.
 
 **Given** Story 5.2 is limited to audit reachability
 **When** contextual entry points are complete
@@ -2631,7 +2652,7 @@ So that recovery is deliberate, projection-confirmed, and auditable without rewr
 **Then** Tenants-owned whole-string resources remain parity-checked with named placeholders and culture-aware formatting
 **And** stable selectors identify preview, all ten items, role, confirm/cancel, lock, lifecycle, original/corrective links, audit state, and recoveries without depending on identity text or color.
 
-**Given** historical Stories 5.6 and 5.8 implementation evidence
+**Given** historical Story 5.6 evidence plus former pre-restructure Story 5.8 evidence now folded into current Story 5.6
 **When** this corrected Story 5.6 contract is verified
 **Then** the existing preview/confirmation snapshot, membership gateway reuse, projection truth gate, proof-link UI, single-refresh provider, focus handling, localization, and tests are retained where they satisfy the current contract
 **And** historical completion does not waive complete preview, provenance-qualified confirmation/linking, terminal-state reconnect safety, support-safety, accessibility, or current evidence requirements.
@@ -2646,6 +2667,8 @@ So that recovery is deliberate, projection-confirmed, and auditable without rewr
 As an authorized global administrator,
 I want to issue a fixed-scope forward correction from proven platform-authority evidence,
 So that mistaken global-administrator changes can be corrected safely without treating them as tenant membership or rewriting history.
+
+**Delivery sizing decision:** Story 5.7 remains one acceptance and completion contract because fixed-scope evidence eligibility, complete-count/last-administrator safety, preview, dispatch, projection confirmation, and linked proof form one platform-governance outcome. If iteration planning cannot contain it, use child delivery tasks **5.7a** (evidence eligibility, complete current projection, preview, confirmation) and **5.7b** (dispatch, reconciliation, corrective proof linking), but keep Story 5.7 incomplete until both pass. These are task labels, not canonical story IDs.
 
 **Acceptance Criteria:**
 
@@ -2761,10 +2784,10 @@ So that mistaken global-administrator changes can be corrected safely without tr
 
 **Given** Story 5.7 composes completed Epic 4 authority commands with Epic 5 audit/correction foundations
 **When** the fixed-scope slice is implemented in one development session
-**Then** it reuses Story 4.1 availability, Stories 4.2–4.3 grant/remove command and projection behavior, Stories 5.1–5.4 evidence/recovery, and Story 5.6's proof plus folded historical Story 5.8 single-refresh foundations
+**Then** it reuses Story 4.1 availability, Stories 4.2–4.3 grant/remove command and projection behavior, Stories 5.1–5.4 evidence/recovery, and Story 5.6's proof plus the folded single-authoritative-refresh foundations
 **And** it introduces no generic recovery API, new authority semantics, tenant-domain coupling, or second lifecycle/proof architecture.
 
-**Given** historical Stories 5.7 and 5.8 implementation evidence
+**Given** historical Story 5.7 evidence plus former pre-restructure Story 5.8 evidence now folded into current Story 5.7
 **When** this corrected Story 5.7 contract is verified
 **Then** the existing global-administrator intent mapping, fixed gateway routing, correction snapshot/panel, complete projection handling, last-admin block, single-refresh provider, proof-link UI, localization, accessibility, and tests are retained where they satisfy the current contract
 **And** historical completion does not waive complete paging, current freshness, ten-item preview, pre-submit already-applied semantics, raced-rejection truth, provenance-qualified confirmation/linking, reconnect safety, or immutable history.

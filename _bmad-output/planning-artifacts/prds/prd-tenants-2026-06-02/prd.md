@@ -433,7 +433,7 @@ Targets are `[ASSUMPTION]` pending your numbers; methods noted. SMs cross-refere
 1. **Command endpoint route — RESOLVED (2026-07-15).** The command endpoint is `POST /api/v1/commands`; the 2026-07-15 correction preserves it explicitly and adopts no unversioned alias.
 2. **FrontComposer component gaps — fallback approval RESOLVED (2026-06-03); shell/command contract confirmation RESOLVED (2026-06-05).** Product/UX approved the flat-audit-list, inline-consequence-preview, and one-at-a-time fallbacks (see the [Fallback Approval Record](./../../fallback-approval-record-2026-06-03.md); the one-at-a-time scope is since superseded — aggregate-scoped per AD-12, see §4 / addendum §B); Story 1.0 confirmed `FC-LYT`, `FC-CMD`, `FC-CNC`, `FC-A11Y`, `FC-L10N`, and `FC-DOC` (see `_bmad-output/implementation-artifacts/story-1-0-spike-note-2026-06-05.md`). Building `<AuditTimeline>`/`<ConsequencePreview>`/shared `FC-TOK` capabilities in FrontComposer remains a post-fallback enhancement, not a blocker.
 3. **Tenant-list grid decision (`FC-TBL`) — RESOLVED by Story 1.2.** Current generated grid support is available but does not by itself satisfy cursor pagination, safety-column pinning, or six non-collapsing list states. Tenants uses a Tenants-specific `TenantDataGrid`; reusable grid capability remains a FrontComposer enhancement.
-4. **Localization resource ownership** — shared shell resources vs. Tenants-owned keys + adopter terminology.
+4. **Localization resource ownership — RESOLVED by architecture D4.** Tenants owns whole-string domain `.resx` keys and inherits only shell-chrome strings from `FcShellResources`; adopter terminology remains Tenants-owned domain copy.
 5. **WCAG 2.2 AA** — confirm what the pinned Fluent UI Blazor version (`5.0.0-rc.4-26180.1`, centrally consumed) actually supports; the 2.2 target is conditional.
 6. **RTL support** — in or out for v1? (none of the specs commit.)
 7. **Cursor durability across replicas/restarts — UI behavior RESOLVED (2026-07-15); durability itself remains deferred.** UI behavior on cursor invalidation is defined: restart from page 1 with an honest localized notice (SEARCH-CURSOR-1 / AD-10). Durability verification itself belongs to PLATFORM-OPS-1 before any multi-replica claim; the deferred backend epic stands.
@@ -454,7 +454,7 @@ Targets are `[ASSUMPTION]` pending your numbers; methods noted. SMs cross-refere
 - §5.3 — Mobile is read-only; no high-impact commands on mobile.
 - §7.2 (FR-6) / §13 — Sensitive configuration-value display is out of read MVP.
 - §8 (NFR-1) — Read-surface performance budgets (~1s warm) are placeholders pending confirmation.
-- §9 — WCAG 2.2 AA is a conditional target dependent on Fluent stack support; RTL undecided; localization resource ownership undecided.
+- §9 — WCAG 2.2 AA is a conditional target dependent on Fluent stack support; RTL remains undecided; localization resource ownership is resolved by architecture D4 (Tenants-owned domain strings, FrontComposer-owned shell chrome).
 - §14.2 — Audit contextual entry present-but-not-yet-available in MVP (hide vs. stub to be confirmed).
 - §15 — All metric targets are placeholders pending your numbers.
 - General — MVP = read-only foundation (`ui-01..06` equivalent) per your scope decision; full Phase 2 vision documented with command/audit/recovery in later phases.

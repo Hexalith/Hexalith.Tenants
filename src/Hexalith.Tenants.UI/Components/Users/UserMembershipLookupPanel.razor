@@ -132,10 +132,10 @@
                                           Value="@_sortColumn"
                                           ValueChanged="OnSortChanged"
                                           data-testid="tenants-user-lookup-sort">
-                                <FluentOption TValue="string" Value="@("tenant")">@Localizer["Tenants.UserLookup.Sort.Tenant"]</FluentOption>
-                                <FluentOption TValue="string" Value="@("name")">@Localizer["Tenants.UserLookup.Sort.Name"]</FluentOption>
-                                <FluentOption TValue="string" Value="@("role")">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
-                                <FluentOption TValue="string" Value="@("status")">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
+                                <FluentOption TValue="string" Value="@UserTenantMembershipSortColumns.Tenant">@Localizer["Tenants.UserLookup.Sort.Tenant"]</FluentOption>
+                                <FluentOption TValue="string" Value="@UserTenantMembershipSortColumns.Name">@Localizer["Tenants.UserLookup.Sort.Name"]</FluentOption>
+                                <FluentOption TValue="string" Value="@UserTenantMembershipSortColumns.Role">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
+                                <FluentOption TValue="string" Value="@UserTenantMembershipSortColumns.Status">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
                             </FluentSelect>
                         </FluentStack>
 
@@ -171,11 +171,12 @@
     private string? _currentCursor;
     private string _inputUserId = string.Empty;
     private string? _targetUserId;
-    private string _sortColumn = "tenant";
+    private string _sortColumn = UserTenantMembershipSortColumns.Tenant;
     private FluentTextInput _inputElement = default!;
     private ElementReference _statusElement;
     private bool _focusStatusPending;
     private bool _focusInputPending;
+    private bool _parametersInitialized;
     private string _announcement = string.Empty;
     private long _loadVersion;
 
@@ -206,9 +207,9 @@
     private IReadOnlyList<UserTenantMembershipRow> VisibleRows
         => _snapshot?.Rows.OrderBy(row => _sortColumn switch
         {
-            "name" => row.Name,
-            "role" => row.Role.ToString(),
-            "status" => row.Status.ToString(),
+            UserTenantMembershipSortColumns.Name => row.Name,
+            UserTenantMembershipSortColumns.Role => row.Role.ToString(),
+            UserTenantMembershipSortColumns.Status => row.Status.ToString(),
             _ => row.TenantId,
         }, StringComparer.Ordinal).ToArray() ?? [];
 
@@ -256,34 +257,54 @@
         };
 
     private string UserLookupReturnUrl
-    {
-        get
-        {
-            string userId = Uri.EscapeDataString(_targetUserId ?? _inputUserId);
-            string sort = Uri.EscapeDataString(_sortColumn);
-            string cursor = string.IsNullOrWhiteSpace(_currentCursor) ? string.Empty : $"&cursor={Uri.EscapeDataString(_currentCursor)}";
-            return UseWorkspaceRoute
-                ? $"/tenants?tab=users&userId={userId}&sort={sort}{cursor}"
-                : $"/tenants/users?userId={userId}&sort={sort}{cursor}";
-        }
-    }
+        => TenantWorkspaceState.FromQuery(
+            TenantWorkspaceState.UsersTab,
+            TenantWorkspaceState.AllScope,
+            _targetUserId ?? _inputUserId,
+            search: null,
+            status: null,
+            _sortColumn,
+            sortDescending: null,
+            _currentCursor,
+            selectedTenantId: null,
+            anchor: null).ToCanonicalUrl();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        _currentCursor = InitialCursor;
-        if (!string.IsNullOrWhiteSpace(InitialCursor))
+        string? incomingUserId = TenantWorkspaceState.NormalizeUserId(InitialUserId);
+        string incomingSort = TenantWorkspaceState.NormalizeUserSort(InitialSort);
+        string? incomingCursor = TenantWorkspaceState.NormalizeCursor(InitialCursor);
+        if (_parametersInitialized
+            && string.Equals(incomingUserId, _targetUserId, StringComparison.Ordinal)
+            && string.Equals(incomingSort, _sortColumn, StringComparison.Ordinal)
+            && string.Equals(incomingCursor, _currentCursor, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _parametersInitialized = true;
+        System.Threading.Interlocked.Increment(ref _loadVersion);
+        _currentCursor = incomingCursor;
+        _sortColumn = incomingSort;
+        _cursorHistory.Clear();
+        if (!string.IsNullOrWhiteSpace(_currentCursor))
         {
             // Deep-link at a non-first cursor: seed history with null so "Previous" returns to page 1
             // instead of being permanently disabled.
             _cursorHistory.Push(null);
         }
 
-        if (!string.IsNullOrEmpty(InitialUserId))
+        if (incomingUserId is null)
         {
-            _inputUserId = InitialUserId;
-            _sortColumn = string.IsNullOrWhiteSpace(InitialSort) ? _sortColumn : InitialSort;
-            await RunLookupAsync(InitialUserId, reuseETag: false).ConfigureAwait(false);
+            _inputUserId = string.Empty;
+            _targetUserId = null;
+            _snapshot = null;
+            _announcement = string.Empty;
+            return;
         }
+
+        _inputUserId = incomingUserId;
+        await RunLookupAsync(incomingUserId, reuseETag: false).ConfigureAwait(false);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -332,6 +353,7 @@
         _cursorHistory.Clear();
         _announcement = Localizer["Tenants.UserLookup.Announcement.Cleared"];
         _focusInputPending = true;
+        Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
 
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -357,10 +379,20 @@
         }
     }
 
-    private void OnSortChanged(string? value)
+    private async Task OnSortChanged(string? value)
     {
-        _sortColumn = value ?? "tenant";
+        _sortColumn = TenantWorkspaceState.NormalizeUserSort(value);
+        _currentCursor = null;
+        _cursorHistory.Clear();
         _announcement = Localizer["Tenants.UserLookup.Announcement.Sorted"];
+        if (!string.IsNullOrWhiteSpace(_targetUserId))
+        {
+            await RunLookupAsync(_targetUserId, reuseETag: false).ConfigureAwait(false);
+            await InvokeAsync(() => _announcement = Localizer["Tenants.UserLookup.Announcement.Sorted"]);
+            return;
+        }
+
+        Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
     }
 
     private async Task RunLookupAsync(string? targetUserId, bool reuseETag)
@@ -369,20 +401,21 @@
         // lookup or a Clear (the panel calls the gateway with no cancellation token).
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
 
-        if (!IsValidUserId(targetUserId))
+        string? normalizedTargetUserId = TenantWorkspaceState.NormalizeUserId(targetUserId);
+        if (normalizedTargetUserId is null)
         {
-            _targetUserId = targetUserId;
+            _targetUserId = null;
             _snapshot = UserTenantMembershipSnapshot.Invalid(
                 string.IsNullOrWhiteSpace(targetUserId)
                     ? UserTenantMembershipReason.MissingTargetUser
-                    : UserTenantMembershipReason.InvalidTargetUser,
-                targetUserId);
+                    : UserTenantMembershipReason.InvalidTargetUser);
             _announcement = Localizer["Tenants.UserLookup.Announcement.Invalid"];
             _focusStatusPending = true;
+            Navigation.NavigateTo(UserLookupReturnUrl, replace: true);
             return;
         }
 
-        string validTargetUserId = targetUserId!;
+        string validTargetUserId = normalizedTargetUserId;
         UserTenantMembershipSnapshot? previous = _snapshot;
         _targetUserId = validTargetUserId;
         _snapshot = UserTenantMembershipSnapshot.Loading() with
@@ -431,8 +464,4 @@
             _ => Localizer["Tenants.UserLookup.Announcement.Loading", targetUserId],
         };
 
-    private static bool IsValidUserId(string? userId)
-        => !string.IsNullOrWhiteSpace(userId)
-            && userId.Length <= 256
-            && !userId.Any(char.IsControl);
 }

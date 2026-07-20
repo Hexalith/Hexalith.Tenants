@@ -108,7 +108,17 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
     public void Tenant_row_entry_point_preserves_existing_detail_link_and_list_return_context()
     {
         RegisterFluentServices();
-        TenantListNavigationContext context = new(null, null, "alpha", TenantStatus.Active.ToString(), "name", true, "opaque-cursor", null, null);
+        TenantListNavigationContext context = new(TenantWorkspaceState.FromQuery(
+            tab: null,
+            scope: null,
+            userId: null,
+            search: "alpha",
+            status: TenantStatus.Active.ToString(),
+            sort: TenantListSortColumns.Name,
+            sortDescending: bool.TrueString,
+            cursor: "opaque-cursor",
+            selectedTenantId: null,
+            anchor: null));
         TenantListRow row = TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)) with
         {
             MemberCount = TenantCountValue.Known(2),

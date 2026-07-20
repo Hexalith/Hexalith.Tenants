@@ -304,7 +304,8 @@ public class PackageGovernanceTests {
         YamlBlockContainsKey(releaseJob, "dapr-version").ShouldBeFalse("Release uses the shared domain-release Dapr default instead of overriding it locally.");
         workflow.ShouldContain("publish-containers: true");
         workflow.ShouldContain("container-projects:");
-        workflow.ShouldContain("src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants");
+        releaseJob.ShouldContain("src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants");
+        releaseJob.ShouldNotContain("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj|tenants-ui");
         releaseJob.ShouldContain("secrets:");
         releaseJob.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
         releaseJob.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");

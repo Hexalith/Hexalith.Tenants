@@ -10,6 +10,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
 
+using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -198,12 +199,16 @@ public sealed class MyTenantsSurfaceTests : BunitContext
 
         requests[1].Cursor.ShouldBe("opaque-next-cursor");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Stale");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
+            "http://localhost/tenants?tab=tenants&scope=mine&cursor=opaque-next-cursor");
 
         cut.Find("[data-testid='tenants-my-previous']").Click();
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.alpha"));
 
         requests[2].Cursor.ShouldBeNull();
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
+            "http://localhost/tenants?tab=tenants&scope=mine");
     }
 
     [Fact]

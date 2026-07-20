@@ -268,6 +268,16 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void All_english_and_french_resources_have_key_parity()
+    {
+        string resourceRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources");
+        HashSet<string> englishKeys = ReadAllResourceKeys(Path.Combine(resourceRoot, "TenantsResources.resx"));
+        HashSet<string> frenchKeys = ReadAllResourceKeys(Path.Combine(resourceRoot, "TenantsResources.fr.resx"));
+
+        englishKeys.ShouldBe(frenchKeys);
+    }
+
+    [Fact]
     public void Audit_availability_resources_have_english_french_key_parity_and_no_machine_tokens()
     {
         string resourceRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Resources");
@@ -312,6 +322,24 @@ public sealed class TenantsUiCompositionTests
         // The left navigation is framework-owned now — no bespoke navigation slot/component.
         layout.ShouldNotContain("<Navigation>");
         layout.ShouldNotContain("OperationsShellNavigation");
+    }
+
+    [Fact]
+    public void Document_language_uses_the_active_request_culture()
+    {
+        string app = File.ReadAllText(
+            Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "App.razor"));
+
+        app.ShouldContain("<html lang=\"@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName\">");
+        app.ShouldNotContain("<html lang=\"en\">");
+    }
+
+    [Fact]
+    public void Release_workflow_does_not_claim_an_unsupported_tenants_ui_container_handoff()
+    {
+        string workflow = File.ReadAllText(Path.Combine(ProjectRoot(), ".github/workflows/release.yml"));
+
+        workflow.ShouldNotContain("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj|tenants-ui");
     }
 
     [Fact]
@@ -410,6 +438,15 @@ public sealed class TenantsUiCompositionTests
             .Descendants("data")
             .Select(static element => element.Attribute("name")?.Value)
             .Where(name => name is not null && prefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
+            .Select(name => name!)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static HashSet<string> ReadAllResourceKeys(string path)
+        => XDocument
+            .Load(path)
+            .Descendants("data")
+            .Select(static element => element.Attribute("name")?.Value)
+            .Where(static name => name is not null)
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
 

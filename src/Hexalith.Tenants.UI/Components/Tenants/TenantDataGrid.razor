@@ -7,13 +7,16 @@
                     ResizableColumns="true"
                     ReorderableColumns="false"
                     GenerateHeader="DataGridGeneratedHeaderType.Sticky"
-                    ItemKey="@(row => row.TenantId)">
+                    ItemKey="@(row => row.TenantId)"
+                    OnSortChanged="@SortChanged">
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Tenant"]"
                         ColumnId="tenant-id"
                         Class="tenants-critical tenants-critical--identity"
                         Width="220px"
                         Sortable="true"
                         SortBy="@_sortByTenant"
+                        IsDefaultSortColumn="@IsTenantNameSort"
+                        InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
             <div class="tenant-data-grid__identity"
                  id="@($"tenant-row-{context.TenantId}")"
@@ -40,6 +43,8 @@
                         Width="130px"
                         Sortable="true"
                         SortBy="@_sortByStatus"
+                        IsDefaultSortColumn="@IsStatusSort"
+                        InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
             <FluentBadge Appearance="BadgeAppearance.Tint"
                          Color="@StatusBadgeColor(context.Status)"
@@ -96,6 +101,24 @@
 
     [Parameter]
     public Func<TenantListRow, string> AuditHref { get; set; } = static row => $"/tenants/{Uri.EscapeDataString(row.TenantId)}/audit?source=tenant-list";
+
+    [Parameter]
+    public string SortColumn { get; set; } = TenantListSortColumns.TenantId;
+
+    [Parameter]
+    public bool SortDescending { get; set; }
+
+    [Parameter]
+    public EventCallback<DataGridSortEventArgs<TenantListRow>> SortChanged { get; set; }
+
+    private bool IsTenantNameSort
+        => string.Equals(SortColumn, TenantListSortColumns.Name, StringComparison.Ordinal);
+
+    private bool IsStatusSort
+        => string.Equals(SortColumn, TenantListSortColumns.Status, StringComparison.Ordinal);
+
+    private DataGridSortDirection InitialSortDirection
+        => SortDescending ? DataGridSortDirection.Descending : DataGridSortDirection.Ascending;
 
     private string ListReturnUrl(TenantListRow row)
     {

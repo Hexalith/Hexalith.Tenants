@@ -148,17 +148,22 @@
     <Body>
         @if (IsTenantListView && ShowList)
         {
-            <TenantDataGrid Rows="@_visibleRows" DetailHref="CreateDetailHref" AuditHref="CreateAuditHref" />
+            <TenantDataGrid Rows="@_visibleRows"
+                            DetailHref="CreateDetailHref"
+                            AuditHref="CreateAuditHref"
+                            SortColumn="@_sortColumn"
+                            SortDescending="@_sortDescending"
+                            SortChanged="OnTenantSortChanged" />
         }
         else if (IsMyTenantsView)
         {
-            <MyTenantsPanel InitialCursor="@QueryCursor" />
+            <MyTenantsPanel InitialCursor="@_workspaceState.Cursor" />
         }
         else if (IsUsersTab)
         {
-            <UserMembershipLookupPanel InitialUserId="@QueryUserId"
-                                       InitialSort="@QuerySort"
-                                       InitialCursor="@QueryCursor"
+            <UserMembershipLookupPanel InitialUserId="@_workspaceState.UserId"
+                                       InitialSort="@_workspaceState.Sort"
+                                       InitialCursor="@_workspaceState.Cursor"
                                        UseWorkspaceRoute="true"
                                        ShowBackLink="false" />
         }
@@ -186,6 +191,28 @@
     private const string AllTenantsScope = "all";
     private const string MyTenantsScope = "mine";
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private TenantWorkspaceState _workspaceState = TenantWorkspaceState.FromQuery(
+        tab: null,
+        scope: null,
+        userId: null,
+        search: null,
+        status: null,
+        sort: null,
+        sortDescending: null,
+        cursor: null,
+        selectedTenantId: null,
+        anchor: null);
+    private TenantWorkspaceState _tenantWorkspaceState = TenantWorkspaceState.FromQuery(
+        tab: null,
+        scope: null,
+        userId: null,
+        search: null,
+        status: null,
+        sort: null,
+        sortDescending: null,
+        cursor: null,
+        selectedTenantId: null,
+        anchor: null);
     private IReadOnlyList<TenantListRow> _visibleRows = [];
     private readonly Stack<string?> _cursorHistory = new();
     private string? _currentCursor;
@@ -197,9 +224,11 @@
     private string? _returnAnchor;
     private string _activeTabId = TenantsTabId;
     private string? _usersTabUserId;
+    private string _usersTabSort = UserTenantMembershipSortColumns.Tenant;
     private string _tenantScope = AllTenantsScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
+    private bool _initialized;
     private long _loadVersion;
 
     [Parameter]
@@ -224,7 +253,7 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "desc")]
-    public bool QuerySortDescending { get; set; }
+    public string? QuerySortDescending { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "cursor")]
@@ -270,12 +299,35 @@
     protected override async Task OnInitializedAsync()
     {
         RestoreContextFromQuery();
+        Navigation.NavigateTo(_workspaceState.ToCanonicalUrl(), replace: true);
+        _initialized = true;
 
         // When returning from a tenant detail surface the launching row may no longer be visible
         // after the list reloads, so move keyboard focus to the list heading and let the visible
         // return-context message explain that filters/sort/cursor/selection were restored.
         _focusHeadingPending = !string.IsNullOrWhiteSpace(_selectedTenantId);
 
+        if (IsTenantListView)
+        {
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_initialized)
+        {
+            return;
+        }
+
+        TenantWorkspaceState incoming = WorkspaceStateFromQuery();
+        if (incoming == _workspaceState)
+        {
+            return;
+        }
+
+        ApplyWorkspaceState(incoming, clearCursorHistory: true);
+        Navigation.NavigateTo(incoming.ToCanonicalUrl(), replace: true);
         if (IsTenantListView)
         {
             await LoadAsync(reuseETag: false).ConfigureAwait(false);
@@ -344,20 +396,26 @@
     {
         // Clearing the search term must reload the full cursor list from the server, not re-filter the
         // (now stale) search snapshot still held in _snapshot.
-        _search = null;
-        _statusFilter = null;
-        _sortColumn = TenantListSortColumns.TenantId;
-        _sortDescending = false;
-        _selectedTenantId = null;
-        _returnAnchor = null;
-        ResetPaging();
+        ApplyWorkspaceState(TenantWorkspaceState.FromQuery(
+            tab: TenantsTabId,
+            scope: AllTenantsScope,
+            userId: null,
+            search: null,
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: null,
+            selectedTenantId: null,
+            anchor: null), clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
     private async Task NextPageAsync()
     {
         _cursorHistory.Push(_currentCursor);
-        _currentCursor = _snapshot.NextCursor;
+        ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _snapshot.NextCursor });
+        NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
@@ -365,7 +423,8 @@
     {
         if (_cursorHistory.Count > 0)
         {
-            _currentCursor = _cursorHistory.Pop();
+            ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
+            NavigateToCanonicalWorkspace();
             await LoadAsync(reuseETag: false).ConfigureAwait(false);
         }
     }
@@ -374,8 +433,8 @@
     {
         // Cross-set server search, debounced by FluentTextInput (Immediate/ImmediateDelay) on the
         // renderer Dispatcher — NOT an in-memory re-filter. A changed term is a fresh query → first page.
-        _search = value;
-        ResetPaging();
+        ApplyWorkspaceState(CurrentWorkspaceState().WithSearch(value), clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
@@ -383,15 +442,9 @@
     {
         // Status participates in the server query (the search index for a term; the hydrated detail for the
         // cursor list), so a change reloads from the server rather than filtering only the loaded page.
-        _statusFilter = value;
-        ResetPaging();
+        ApplyWorkspaceState(CurrentWorkspaceState().WithStatus(value), clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false).ConfigureAwait(false);
-    }
-
-    private void ResetPaging()
-    {
-        _currentCursor = null;
-        _cursorHistory.Clear();
     }
 
     private void ApplyVisibleRows()
@@ -429,64 +482,65 @@
         => CurrentNavigationContext().ToAuditUrl(row);
 
     private TenantListNavigationContext CurrentNavigationContext()
-        => new(
-            IsTenantListView ? null : _activeTabId,
-            IsMyTenantsView ? _tenantScope : null,
-            _search,
-            _statusFilter,
-            _sortColumn,
-            _sortDescending,
-            _currentCursor,
-            _selectedTenantId,
-            _returnAnchor);
+        => new(CurrentWorkspaceState());
 
     private void RestoreContextFromQuery()
     {
-        _activeTabId = NormalizeTab(QueryTab);
-        _tenantScope = NormalizeScope(QueryScope);
-        _search = QuerySearch;
-        _statusFilter = QueryStatus;
-        _selectedTenantId = QuerySelectedTenantId;
-        _returnAnchor = QueryAnchor;
-
-        // sort/cursor in the URL are surface-specific. Adopt them into the tenant-list state only when the
-        // tenant list is the active surface; the My Tenants / Users panels consume their own InitialSort/
-        // InitialCursor, and feeding the list a foreign (user-lookup) cursor would load a bogus page.
-        bool tenantListActive = IsTenantListView;
-        _sortColumn = tenantListActive && !string.IsNullOrWhiteSpace(QuerySort) ? QuerySort : TenantListSortColumns.TenantId;
-        _sortDescending = tenantListActive && QuerySortDescending;
-        _currentCursor = tenantListActive ? QueryCursor : null;
+        ApplyWorkspaceState(WorkspaceStateFromQuery(), clearCursorHistory: true);
     }
+
+    private TenantWorkspaceState WorkspaceStateFromQuery()
+        => TenantWorkspaceState.FromQuery(
+            QueryTab,
+            QueryScope,
+            QueryUserId,
+            QuerySearch,
+            QueryStatus,
+            QuerySort,
+            QuerySortDescending,
+            QueryCursor,
+            QuerySelectedTenantId,
+            QueryAnchor);
 
     private async Task OnActiveTabChanged(string? activeTabId)
     {
         string previousTab = _activeTabId;
-        _activeTabId = NormalizeTab(activeTabId);
 
         // Remember the last looked-up user so a Users -> Tenants -> Users round-trip restores it (mirrors the
         // remembered tenant scope). The userId lives in the URL only while the Users tab is active, so capture
         // it before navigating away from that tab.
-        if (string.Equals(previousTab, UsersTabId, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(QueryUserId))
+        if (string.Equals(previousTab, UsersTabId, StringComparison.Ordinal))
         {
-            _usersTabUserId = QueryUserId;
+            _usersTabUserId = _workspaceState.UserId;
+            _usersTabSort = _workspaceState.Sort;
         }
 
-        if (IsUsersTab)
+        if (string.Equals(NormalizeTab(activeTabId), UsersTabId, StringComparison.Ordinal))
         {
             // Keep the remembered tenant scope so a Tenants -> Users -> Tenants round-trip can restore the
             // My tenants view, and restore the last looked-up user so the Users tab is not reset to a blank
             // form. Scope is inert on the Users tab (IsMyTenantsView requires the Tenants tab).
-            string userId = string.IsNullOrWhiteSpace(_usersTabUserId)
-                ? string.Empty
-                : $"&userId={Uri.EscapeDataString(_usersTabUserId)}";
-            Navigation.NavigateTo($"/tenants?tab=users{userId}", replace: true);
+            TenantWorkspaceState usersState = TenantWorkspaceState.FromQuery(
+                UsersTabId,
+                AllTenantsScope,
+                _usersTabUserId,
+                search: null,
+                status: null,
+                _usersTabSort,
+                sortDescending: null,
+                cursor: null,
+                selectedTenantId: null,
+                anchor: null);
+            ApplyWorkspaceState(usersState, clearCursorHistory: true);
+            Navigation.NavigateTo(usersState.ToCanonicalUrl(), replace: true);
             return;
         }
 
-        // Preserve the active list search/status/sort/cursor in the URL (mirrors OnTenantScopeChanged) so a
-        // refresh or shared link re-inits the same list instead of an empty default.
-        Navigation.NavigateTo(IsMyTenantsView ? "/tenants?tab=tenants&scope=mine" : CurrentNavigationContext().ToReturnUrl(), replace: true);
-        if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
+        // Restore the last tenant surface while resetting its cursor at the tab boundary.
+        TenantWorkspaceState tenantsState = _tenantWorkspaceState.WithTab(TenantsTabId);
+        ApplyWorkspaceState(tenantsState, clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
+        if (IsTenantListView)
         {
             await LoadAsync(reuseETag: false).ConfigureAwait(false);
         }
@@ -494,10 +548,10 @@
 
     private async Task OnTenantScopeChanged(string? scope)
     {
-        _tenantScope = NormalizeScope(scope);
-        Navigation.NavigateTo(IsMyTenantsView ? "/tenants?tab=tenants&scope=mine" : CurrentNavigationContext().ToReturnUrl(), replace: true);
+        ApplyWorkspaceState(CurrentWorkspaceState().WithScope(scope), clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
 
-        if (IsTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
+        if (IsTenantListView)
         {
             await LoadAsync(reuseETag: false).ConfigureAwait(false);
         }
@@ -506,6 +560,75 @@
     private static string NormalizeTab(string? value)
         => string.Equals(value, UsersTabId, StringComparison.OrdinalIgnoreCase) ? UsersTabId : TenantsTabId;
 
-    private static string NormalizeScope(string? value)
-        => string.Equals(value, MyTenantsScope, StringComparison.OrdinalIgnoreCase) ? MyTenantsScope : AllTenantsScope;
+    private async Task OnTenantSortChanged(DataGridSortEventArgs<TenantListRow> args)
+    {
+        string sortColumn = args.Column?.ColumnId switch
+        {
+            "tenant-id" => TenantListSortColumns.Name,
+            "tenant-status" => TenantListSortColumns.Status,
+            _ => TenantListSortColumns.TenantId,
+        };
+        ApplyWorkspaceState(
+            CurrentWorkspaceState().WithSort(sortColumn, descending: args.SortByAscending is false),
+            clearCursorHistory: true);
+        NavigateToCanonicalWorkspace();
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
+    }
+
+    private TenantWorkspaceState CurrentWorkspaceState()
+        => IsUsersTab
+            ? _workspaceState
+            : TenantWorkspaceState.FromQuery(
+                _activeTabId,
+                _tenantScope,
+                userId: null,
+                _search,
+                _statusFilter,
+                _sortColumn,
+                _sortDescending ? bool.TrueString : null,
+                _currentCursor,
+                _selectedTenantId,
+                _returnAnchor);
+
+    private void ApplyWorkspaceState(TenantWorkspaceState state, bool clearCursorHistory = false)
+    {
+        _workspaceState = state;
+        _activeTabId = state.Tab;
+        if (clearCursorHistory)
+        {
+            _cursorHistory.Clear();
+            if (state.Tab == TenantsTabId && !string.IsNullOrWhiteSpace(state.Cursor))
+            {
+                _cursorHistory.Push(null);
+            }
+        }
+
+        if (state.Tab == UsersTabId)
+        {
+            _usersTabUserId = state.UserId;
+            _usersTabSort = state.Sort;
+            return;
+        }
+
+        _tenantWorkspaceState = state;
+        _tenantScope = state.Scope;
+        _search = state.Search;
+        _statusFilter = state.Status;
+        _sortColumn = state.Sort;
+        _sortDescending = state.SortDescending;
+        _currentCursor = state.Cursor;
+        _selectedTenantId = state.SelectedTenantId;
+        _returnAnchor = state.Anchor;
+    }
+
+    private void NavigateToCanonicalWorkspace()
+    {
+        _workspaceState = CurrentWorkspaceState();
+        if (_workspaceState.Tab == TenantsTabId)
+        {
+            _tenantWorkspaceState = _workspaceState;
+        }
+
+        Navigation.NavigateTo(_workspaceState.ToCanonicalUrl(), replace: true);
+    }
 }
