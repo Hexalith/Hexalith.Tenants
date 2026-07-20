@@ -304,8 +304,17 @@ public class PackageGovernanceTests {
         YamlBlockContainsKey(releaseJob, "dapr-version").ShouldBeFalse("Release uses the shared domain-release Dapr default instead of overriding it locally.");
         workflow.ShouldContain("publish-containers: true");
         workflow.ShouldContain("container-projects:");
-        releaseJob.ShouldContain("src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants");
-        releaseJob.ShouldNotContain("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj|tenants-ui");
+        string[][] containerMappings = GetYamlLiteralBlockLines(releaseJob, "container-projects")
+            .Select(mapping => mapping.Split('|', StringSplitOptions.TrimEntries))
+            .ToArray();
+        containerMappings.ShouldNotBeEmpty();
+        containerMappings.ShouldAllBe(mapping => mapping.Length == 2, "Each release container mapping must contain exactly one project and repository.");
+        containerMappings.Any(mapping => mapping is ["src/Hexalith.Tenants/Hexalith.Tenants.csproj", "tenants"])
+            .ShouldBeTrue("The server container must remain in the release map.");
+        containerMappings.Any(mapping => mapping.Length == 2
+                && (string.Equals(mapping[0], "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", StringComparison.Ordinal)
+                    || string.Equals(mapping[1], "tenants-ui", StringComparison.Ordinal)))
+            .ShouldBeFalse("The UI image is environment-composed and must not be published by this release map.");
         releaseJob.ShouldContain("secrets:");
         releaseJob.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
         releaseJob.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");

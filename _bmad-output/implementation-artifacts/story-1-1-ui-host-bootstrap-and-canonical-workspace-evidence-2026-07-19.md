@@ -52,6 +52,7 @@ This is the pre-change classification. It distinguishes source/runtime evidence 
 ## External/platform constraints
 
 - `PLATFORM-OPS-1`: no platform-owned browser/assistive-technology viewport harness was available for phone/tablet/desktop, forced-colors, reduced-motion, and interactive focus evidence. Do not treat bUnit or source scans as a substitute for that runtime proof.
+- `HTTP-TARGET-1`: caller-supplied `userId` and search text remain intentionally unbounded because no domain-owned maximum exists. Canonical encoding is safe, but an extreme URL can be rejected by Kestrel or an upstream proxy with HTTP 414 before the component runs. Platform Operations owns the deployed request-target limit; reopen this gap when that limit is published or a 414 is observed, then align product UX and server validation rather than silently truncating identity or search text. The separately authoritative EventStore opaque cursor limit is enforced at 4,096 characters.
 - `HOST-REF-1`, `UI-READ-1`, `PLAT-FRESH-1`, and `SEARCH-CURSOR-1` remain later-story constraints; this story does not absorb direct-read freshness, protected search-cursor, or platform hosting work.
 
 ## Evidence decision
@@ -78,6 +79,63 @@ The following checks ran after the implementation changes:
 | `aspire wait tenants-ui --timeout 60 --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive` | `tenants-ui` Healthy. |
 | Exact route-smoke command | Not retained. The recorded route statuses are non-reproducible and are not accepted as AC10 completion evidence. |
 
+### Resolved UI package output
+
+`dotnet list src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj package --include-transitive` exited **0** on 2026-07-20. The resolved output was:
+
+```text
+Top-level
+Hexalith.Memories.Client.Rest                    2.14.0
+Hexalith.Memories.Contracts                      2.14.0
+Microsoft.AspNetCore.App.Internal.Assets          10.0.10 (auto-referenced)
+Microsoft.FluentUI.AspNetCore.Components          5.0.0-rc.4-26180.1
+
+Transitive
+ByteAether.Ulid                                   1.3.8
+Dapr.AspNetCore                                   1.18.4
+Dapr.Client                                       1.18.4
+Dapr.Common                                       1.18.4
+Dapr.Protos                                       1.18.4
+Fluxor                                            6.10.0
+Fluxor.Blazor.Web                                 6.10.0
+Google.Api.CommonProtos                           2.17.0
+Google.Protobuf                                   3.35.0
+Grpc.Core.Api                                     2.80.0
+Grpc.Net.Client                                   2.80.0
+Grpc.Net.Common                                   2.80.0
+Grpc.Reflection                                   2.80.0
+Hexalith.Commons.UniqueIds                        2.28.2
+Hexalith.EventStore.Client                        3.77.2
+Hexalith.EventStore.Contracts                     3.77.2
+Microsoft.AspNetCore.Authentication.OpenIdConnect 10.0.10
+Microsoft.AspNetCore.Http.Connections.Client      10.0.10
+Microsoft.AspNetCore.SignalR.Client               10.0.10
+Microsoft.AspNetCore.SignalR.Client.Core          10.0.10
+Microsoft.Bcl.Cryptography                        10.0.2
+Microsoft.Extensions.AmbientMetadata.Application  10.8.0
+Microsoft.Extensions.Compliance.Abstractions      10.8.0
+Microsoft.Extensions.DependencyInjection.AutoActivation 10.8.0
+Microsoft.Extensions.Diagnostics.ExceptionSummarization 10.8.0
+Microsoft.Extensions.Http.Diagnostics             10.8.0
+Microsoft.Extensions.Http.Resilience              10.8.0
+Microsoft.Extensions.Resilience                   10.8.0
+Microsoft.Extensions.Telemetry                    10.8.0
+Microsoft.Extensions.Telemetry.Abstractions       10.8.0
+Microsoft.FluentUI.AspNetCore.Components.Icons    5.0.0-rc.4-26180.1
+Microsoft.IdentityModel.Abstractions              8.19.2
+Microsoft.IdentityModel.JsonWebTokens             8.19.2
+Microsoft.IdentityModel.Logging                   8.19.2
+Microsoft.IdentityModel.Protocols                 8.19.2
+Microsoft.IdentityModel.Protocols.OpenIdConnect   8.19.2
+Microsoft.IdentityModel.Tokens                    8.19.2
+NUlid                                              1.7.3
+Polly.Core                                         8.4.2
+Polly.Extensions                                   8.4.2
+Polly.RateLimiting                                 8.4.2
+System.IdentityModel.Tokens.Jwt                    8.19.2
+System.Reactive                                    7.0.0
+```
+
 ## Code-review remediation evidence
 
 These commands were rerun after all 15 accepted review patches, including the final same-component user-query and My Tenants navigation-order changes:
@@ -103,10 +161,10 @@ The refreshed Aspire graph reported `eventstore` and `security` Running/Healthy 
 | 4 | verified | Immutable `TenantWorkspaceState`, transition tests, sort callback, cursor resets, canonical URL synchronization, and canonical compatibility returns are green. |
 | 5 | verified | Existing BFF-only source scans and composition/support-safety tests remain green; no browser transport/token storage was introduced. |
 | 6 | verified | Full EN/FR resource sets contain 1,156 matching keys; whole-string resource tests pass; document language follows `CurrentUICulture`. |
-| 7 | blocked | Fluent/FrontComposer governance and bUnit coverage pass, but authenticated workspace tab/focus behavior and French browser rendering were not exercised with reproducible commands/artifacts. |
+| 7 | verified | Fluent/FrontComposer governance passes; authenticated Playwright evidence covers one-main composition, keyboard focus retained on the selected Users tab, desktop/tablet/mobile overflow, mobile navigation toggle, forced colors, reduced motion, and French interactive rendering through the supported culture cookie. |
 | 8 | verified as RTL-ready only | Physical left/right layout declarations are rejected across component CSS. No claim is made that RTL was tested or shipped. |
 | 9 | blocked | Local SDK container publish succeeded as `tenants-ui`, but the shared publisher requires `/alive` and the UI host intentionally does not own platform health plumbing. The unsupported release mapping was removed and the production handoff remains `PLATFORM-OPS-1`. |
-| 10 | blocked | Focused UI/contract/build/container checks are green, but exact route-smoke and Playwright commands/artifact paths were not retained, and authenticated/French browser interaction remains unavailable. |
+| 10 | verified | Release UI 933/933, Contracts 112/112, focused review 65/65, hosted route smoke 6/6, package resolution, diff hygiene, and authenticated EN/FR Playwright commands/artifacts are retained below. |
 
 ## Browser and platform evidence
 
@@ -122,6 +180,7 @@ The following observations were recorded from the repository-available `playwrig
 
 - `PLATFORM-OPS-1`: AppHost `memories` can exit with code 1 during refresh and requires a platform-owned restart to release the UI dependency; the final UI resource still reached Healthy.
 - `PLATFORM-OPS-1`: production UI image publication remains blocked until a platform-owned liveness contract and release-authority configuration are available; Story 1.1 does not add Tenants-owned health infrastructure.
+- `HTTP-TARGET-1`: hosting request-target policy remains external; intentionally unbounded canonical user/search text can receive HTTP 414 before application handling.
 - `HOST-REF-1`, `UI-READ-1`, `PLAT-FRESH-1`, and `SEARCH-CURSOR-1`: later-story/platform constraints remain explicitly deferred. This story does not absorb direct-read freshness, production hosting, protected search-cursor, or multi-replica platform work.
 
 ## Code-review runtime evidence — 2026-07-20
@@ -148,3 +207,43 @@ Retained Playwright artifacts:
 - `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/console-2026-07-19T22-14-54-581Z.log` — browser console log (only the unrelated Keycloak favicon 404).
 
 This attempt replaces the earlier “test principal unavailable” statement: the development principal and browser harness are available. AC7/AC10 remain incomplete because a local canonical-navigation defect prevents the workspace from rendering, so responsive, focus, forced-colors, and French runtime assertions cannot yet run. AC9 remains blocked on the platform-owned `/alive` and durable publication-authority contracts.
+
+## Post-patch verification — 2026-07-20
+
+This section supersedes the patch-blocked AC7/AC10 conclusion immediately above. Static rendering now compares canonical state with the request path, ignores non-interactive Fluent tab-disposal callbacks, and never redirects canonical `/tenants` to itself.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -m:1 -warnaserror` | 0 | Build succeeded; 0 warnings, 0 errors. |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noColor -noLogo` | 0 | Passed 933, failed 0, skipped 0. |
+| `tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests -noColor -noLogo -class Hexalith.Tenants.UI.Tests.State.TenantWorkspaceStateTests -class Hexalith.Tenants.UI.Tests.Components.TenantListSurfaceTests -class Hexalith.Tenants.UI.Tests.Components.UserMembershipLookupSurfaceTests -class Hexalith.Tenants.UI.Tests.Components.MyTenantsSurfaceTests` | 0 | Passed 65, failed 0, skipped 0. |
+| `dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-restore -m:1 -warnaserror` | 0 | Build succeeded; 0 warnings, 0 errors. |
+| `tests/Hexalith.Tenants.Contracts.Tests/bin/Release/net10.0/Hexalith.Tenants.Contracts.Tests -noColor -noLogo` | 0 | Passed 112, failed 0, skipped 0. |
+| `dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj --configuration Release --no-restore -m:1 -warnaserror` | 0 | Built the Release resource explicitly because the Aspire integration fixture launches project resources with `--no-build`; 0 warnings, 0 errors. |
+| `dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build --filter 'FullyQualifiedName~Hexalith.Tenants.IntegrationTests.TenantsUiRouteSmokeTests' --logger 'console;verbosity=normal'` | 0 | Passed 6/6. `/tenants` returned 200 and the Users compatibility route redirected before query with the default sort omitted. |
+| `git diff --check` | 0 | No whitespace errors. |
+| `aspire run --non-interactive --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` | 0 after Ctrl+C cleanup | Started the foreground evidence AppHost. |
+| `aspire wait tenants-ui --timeout 180 --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --non-interactive` | 0 | `tenants-ui` reached Healthy at the Aspire-discovered endpoint `http://localhost:62448`. |
+
+Authenticated Playwright used `/tmp/hexalith-story11-playwright/cli.config.json` with `ignoreHTTPSErrors=true` and retained output under `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/`. The checked-in development credential was read at runtime for the password fill and is intentionally not retained in this report.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `playwright-cli -s=story11auth open --config=/tmp/hexalith-story11-playwright/cli.config.json` then `playwright-cli -s=story11auth goto 'http://localhost:62448/authentication/challenge?returnUrl=%2Ftenants'` | 0 | Opened the supported Keycloak sign-in flow. |
+| `playwright-cli -s=story11auth fill e17 admin-user`, credential fill from the checked-in development realm, then `playwright-cli -s=story11auth click e30` | 0 | Authenticated and landed at exactly `http://localhost:62448/tenants`; no redirect loop. |
+| `playwright-cli -s=story11auth resize 1280 720` plus the retained `run-code` assertion for URL, one main, one workspace, both local tabs, signed-in state, and `scrollWidth <= innerWidth` | 0 | `{url:http://localhost:62448/tenants, mainCount:1, workspaceCount:1, viewport:1280, scrollWidth:1280, tenantTabCount:1, usersTabCount:1}`. |
+| `playwright-cli -s=story11auth run-code "async page => { await page.locator('fluent-tab#users').click(); await page.waitForURL('**/tenants?tab=users'); await page.waitForSelector('[data-testid=tenants-user-lookup]'); ... }"` | 0 | URL became `/tenants?tab=users`; `document.activeElement` was `FLUENT-TAB#users`, `aria-selected=true`, and one lookup surface rendered. |
+| `playwright-cli -s=story11auth resize 768 1024` and `playwright-cli -s=story11auth resize 375 812`, each followed by overflow/one-main assertions | 0 | Tablet `scrollWidth=768`; mobile `scrollWidth=375`; mobile exposed one `Toggle navigation` control. |
+| `playwright-cli -s=story11auth run-code "async page => { await page.emulateMedia({ reducedMotion: 'reduce', forcedColors: 'active' }); ... }"` | 0 | Both `prefers-reduced-motion: reduce` and `forced-colors: active` matched. |
+| `playwright-cli -s=story11auth state-save /tmp/hexalith-story11-playwright/auth-state.json`, `playwright-cli -s=story11fr state-load /tmp/hexalith-story11-playwright/auth-state.json`, and `playwright-cli -s=story11fr cookie-set .AspNetCore.Culture 'c=fr-FR\|uic=fr-FR' --domain=localhost --path=/` | 0 | Reused only the authenticated storage state and selected the supported French request culture. |
+| `playwright-cli -s=story11fr reload` plus the retained post-hydration French assertion | 0 | After interactive hydration: `lang=fr`, title/heading `Locataires`, French skip link and `Utilisateurs`, and no horizontal overflow. |
+| `playwright-cli -s=story11auth console error` and `playwright-cli -s=story11fr console error` | 0 | Only unrelated Keycloak/UI favicon 404s; no circuit, navigation, or application exception. |
+
+Retained post-patch artifacts:
+
+- `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/authenticated-workspace-en-2026-07-20.yml`
+- `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/authenticated-workspace-fr-2026-07-20.yml`
+- `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/console-2026-07-20T06-27-27-738Z.log`
+- `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/console-2026-07-20T06-27-28-130Z.log`
+
+AC7 and AC10 are now verified. AC9 remains conservatively blocked on platform-owned production liveness/publication authority, and `HTTP-TARGET-1` remains an explicitly recorded hosting-policy gap.

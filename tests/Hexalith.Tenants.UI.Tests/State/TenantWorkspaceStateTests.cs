@@ -24,12 +24,12 @@ public sealed class TenantWorkspaceStateTests
 
         state.Tab.ShouldBe(TenantWorkspaceState.UsersTab);
         state.Scope.ShouldBe(TenantWorkspaceState.AllScope);
-        state.UserId.ShouldBe("user.target");
+        state.UserId.ShouldBe(" user.target ");
         state.Search.ShouldBeNull();
         state.Status.ShouldBeNull();
         state.Sort.ShouldBe(UserTenantMembershipSortColumns.Name);
         state.SortDescending.ShouldBeFalse();
-        state.Cursor.ShouldBe("lookup-cursor");
+        state.Cursor.ShouldBeNull();
         state.SelectedTenantId.ShouldBeNull();
         state.Anchor.ShouldBeNull();
     }
@@ -87,15 +87,29 @@ public sealed class TenantWorkspaceStateTests
         state.WithSearch("beta").Cursor.ShouldBeNull();
         state.WithStatus(TenantStatus.Disabled.ToString()).Cursor.ShouldBeNull();
         state.WithSort(TenantListSortColumns.Status, descending: false).Cursor.ShouldBeNull();
+        state.WithSort(state.Sort, descending: false).Cursor.ShouldBeNull();
         state.WithScope(TenantWorkspaceState.MyScope).Cursor.ShouldBeNull();
         state.WithTab(TenantWorkspaceState.UsersTab).Cursor.ShouldBeNull();
+
+        TenantWorkspaceState users = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.UsersTab,
+            scope: null,
+            userId: "user.one",
+            search: null,
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: "user-cursor",
+            selectedTenantId: null,
+            anchor: null);
+        users.WithUserId("user.two").Cursor.ShouldBeNull();
     }
 
     [Fact]
-    public void Search_and_opaque_context_values_are_not_truncated_without_an_authoritative_limit()
+    public void Safe_text_is_unbounded_but_opaque_cursors_honor_the_authoritative_limit()
     {
         string search = new('s', 512);
-        string cursor = new('c', 8192);
+        string cursor = new('c', 4096);
         string selectedTenantId = new('t', 512);
         string anchor = new('a', 512);
 
@@ -130,10 +144,12 @@ public sealed class TenantWorkspaceStateTests
             anchor: null);
 
         users.UserId.ShouldBe(userId);
+
+        TenantWorkspaceState.NormalizeCursor(new string('c', 4097)).ShouldBeNull();
     }
 
     [Fact]
-    public void Descending_tenant_id_sort_round_trips_canonically()
+    public void Descending_tenant_id_sort_is_normalized_away_without_a_grid_interaction()
     {
         TenantWorkspaceState state = TenantWorkspaceState.FromQuery(
             tab: TenantWorkspaceState.TenantsTab,
@@ -148,8 +164,64 @@ public sealed class TenantWorkspaceStateTests
             anchor: null);
 
         state.Sort.ShouldBe(TenantListSortColumns.TenantId);
-        state.SortDescending.ShouldBeTrue();
-        state.ToCanonicalUrl().ShouldBe("/tenants?desc=True");
+        state.SortDescending.ShouldBeFalse();
+        state.ToCanonicalUrl().ShouldBe("/tenants");
+    }
+
+    [Fact]
+    public void Cursor_is_dropped_when_active_query_identity_is_missing_invalid_or_normalized()
+    {
+        TenantWorkspaceState missingUser = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.UsersTab,
+            scope: null,
+            userId: null,
+            search: null,
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: "opaque-cursor",
+            selectedTenantId: null,
+            anchor: null);
+        missingUser.Cursor.ShouldBeNull();
+
+        TenantWorkspaceState invalidSort = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: "alpha",
+            status: null,
+            sort: "unsupported",
+            sortDescending: null,
+            cursor: "opaque-cursor",
+            selectedTenantId: null,
+            anchor: null);
+        invalidSort.Cursor.ShouldBeNull();
+
+        TenantWorkspaceState normalizedStatus = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: "alpha",
+            status: "active",
+            sort: TenantListSortColumns.Name,
+            sortDescending: bool.FalseString,
+            cursor: "opaque-cursor",
+            selectedTenantId: null,
+            anchor: null);
+        normalizedStatus.Cursor.ShouldBeNull();
+
+        TenantWorkspaceState valid = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.AllScope,
+            userId: null,
+            search: "alpha",
+            status: TenantStatus.Active.ToString(),
+            sort: TenantListSortColumns.Name,
+            sortDescending: bool.FalseString,
+            cursor: "opaque-cursor",
+            selectedTenantId: null,
+            anchor: null);
+        valid.Cursor.ShouldBe("opaque-cursor");
     }
 
     [Fact]

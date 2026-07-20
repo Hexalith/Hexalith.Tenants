@@ -44,6 +44,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-list-search']").NodeName.ShouldBe("FLUENT-TEXT-INPUT");
         cut.Find("[data-testid='tenants-list-reset']").NodeName.ShouldBe("FLUENT-BUTTON");
+        cut.Find("[data-testid='tenants-list-sort-tenant']").Closest("fluent-button").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-list-sort-status']").Closest("fluent-button").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("/tenants/tenant.alpha");
         cut.Find("[data-testid='tenants-list-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-list-copy-reference']").TextContent.ShouldContain("Copy");
@@ -272,7 +274,6 @@ public sealed class TenantListSurfaceTests : BunitContext
                 ? ReadySnapshot([Row("tenant.filtered", "Filtered", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)])
                 : ReadySnapshot([Row("tenant.default", "Default", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
         });
-
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         await ChangeSearchAsync(cut, "filtered");
@@ -318,6 +319,50 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Canonical_workspace_url_does_not_navigate_to_itself()
+    {
+        RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current));
+        Bunit.TestDoubles.BunitNavigationManager navigation =
+            (Bunit.TestDoubles.BunitNavigationManager)Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants");
+        int navigationCount = navigation.History.Count;
+
+        _ = Render<TenantsWorkspace>();
+
+        navigation.History.Count.ShouldBe(navigationCount);
+        navigation.Uri.ShouldBe("http://localhost/tenants");
+    }
+
+    [Fact]
+    public void Disposing_workspace_does_not_navigate_to_the_remaining_tab()
+    {
+        RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current));
+        SetRendererInfo(new RendererInfo("Static", isInteractive: false));
+        Bunit.TestDoubles.BunitNavigationManager navigation =
+            (Bunit.TestDoubles.BunitNavigationManager)Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        int navigationCount = navigation.History.Count;
+
+        cut.Dispose();
+
+        navigation.History.Count.ShouldBe(navigationCount);
+        navigation.Uri.ShouldBe("http://localhost/tenants");
+    }
+
+    [Fact]
+    public void Normalized_equal_invalid_query_is_replaced_with_the_canonical_url()
+    {
+        RegisterServices(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?tab=invalid");
+
+        _ = Render<TenantsWorkspace>();
+
+        navigation.Uri.ShouldBe("http://localhost/tenants");
+    }
+
+    [Fact]
     public void Canonical_deep_link_restores_the_grid_sort_direction()
     {
         RegisterServices(ReadySnapshot(
@@ -328,6 +373,26 @@ public sealed class TenantListSurfaceTests : BunitContext
         FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
 
         cut.WaitForAssertion(() => grid.SortByAscending.ShouldBe(false));
+    }
+
+    [Fact]
+    public void Same_route_sort_navigation_recreates_the_grid_with_the_new_sort_state()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None)]));
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants?sort=name&desc=true");
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        FluentDataGrid<TenantListRow> originalGrid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+
+        navigation.NavigateTo("/tenants?sort=status");
+
+        cut.WaitForAssertion(() =>
+        {
+            FluentDataGrid<TenantListRow> updatedGrid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+            ReferenceEquals(updatedGrid, originalGrid).ShouldBeFalse();
+            updatedGrid.SortByAscending.ShouldBe(true);
+        });
     }
 
     [Fact]
@@ -514,11 +579,56 @@ public sealed class TenantListSurfaceTests : BunitContext
             .Where(path => System.Text.RegularExpressions.Regex.IsMatch(
                 File.ReadAllText(path),
                 physicalDeclarationPattern,
-                System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant)
+                || ContainsAsymmetricPhysicalShorthand(File.ReadAllText(path)))
             .Select(path => Path.GetRelativePath(componentsRoot, path))
             .ToArray();
 
         offenders.ShouldBeEmpty("Component layout must use logical properties so RTL remains direction-safe.");
+    }
+
+    [Theory]
+    [InlineData(".sample { margin: 0 1rem 0 2rem; }")]
+    [InlineData(".sample { padding: 1px 2px 3px 4px; }")]
+    [InlineData(".sample { border-width: 1px 2px 3px 4px; }")]
+    [InlineData(".sample { border-radius: 2px 4px; }")]
+    public void Direction_safety_guard_detects_asymmetric_physical_shorthands(string styles)
+        => ContainsAsymmetricPhysicalShorthand(styles).ShouldBeTrue();
+
+    private static bool ContainsAsymmetricPhysicalShorthand(string styles)
+    {
+        const string shorthandPattern =
+            @"(?im)(?:^|[;{]\s*)(?<property>margin|padding|border-(?:width|style|color)|border-radius)\s*:\s*(?<value>[^;{}]+)";
+        foreach (System.Text.RegularExpressions.Match declaration in System.Text.RegularExpressions.Regex.Matches(
+            styles,
+            shorthandPattern,
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+        {
+            string property = declaration.Groups["property"].Value;
+            string[] values = System.Text.RegularExpressions.Regex.Split(
+                    declaration.Groups["value"].Value.Trim(),
+                    @"\s+")
+                .Where(value => value.Length > 0 && value != "/")
+                .ToArray();
+
+            if (string.Equals(property, "border-radius", StringComparison.OrdinalIgnoreCase))
+            {
+                if (values.Length > 1 && values.Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (values.Length == 4
+                && !string.Equals(values[1], values[3], StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Drives a Fluent UI v5 FluentSelect the way a user selecting an option does: invoking the
@@ -560,6 +670,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
     private static TenantListSnapshot ReadySnapshot(

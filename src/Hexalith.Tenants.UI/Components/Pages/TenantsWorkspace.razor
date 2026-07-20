@@ -1,5 +1,6 @@
 @page "/"
 @page "/tenants"
+@implements IDisposable
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.UI.Components.Users
 @inject IStringLocalizer<TenantsResources> Localizer
@@ -229,6 +230,7 @@
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
     private bool _initialized;
+    private bool _disposed;
     private long _loadVersion;
 
     [Parameter]
@@ -271,6 +273,9 @@
     [SupplyParameterFromQuery(Name = "userId")]
     public string? QueryUserId { get; set; }
 
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     private bool IsTenantsTab
         => string.Equals(_activeTabId, TenantsTabId, StringComparison.Ordinal);
 
@@ -299,7 +304,7 @@
     protected override async Task OnInitializedAsync()
     {
         RestoreContextFromQuery();
-        Navigation.NavigateTo(_workspaceState.ToCanonicalUrl(), replace: true);
+        NavigateToCanonicalWorkspaceIfNeeded(_workspaceState);
         _initialized = true;
 
         // When returning from a tenant detail surface the launching row may no longer be visible
@@ -323,11 +328,12 @@
         TenantWorkspaceState incoming = WorkspaceStateFromQuery();
         if (incoming == _workspaceState)
         {
+            NavigateToCanonicalWorkspaceIfNeeded(incoming);
             return;
         }
 
         ApplyWorkspaceState(incoming, clearCursorHistory: true);
-        Navigation.NavigateTo(incoming.ToCanonicalUrl(), replace: true);
+        NavigateToCanonicalWorkspaceIfNeeded(incoming);
         if (IsTenantListView)
         {
             await LoadAsync(reuseETag: false).ConfigureAwait(false);
@@ -504,6 +510,11 @@
 
     private async Task OnActiveTabChanged(string? activeTabId)
     {
+        if (!RendererInfo.IsInteractive || _disposed || string.IsNullOrWhiteSpace(activeTabId))
+        {
+            return;
+        }
+
         string previousTab = _activeTabId;
 
         // Remember the last looked-up user so a Users -> Tenants -> Users round-trip restores it (mirrors the
@@ -532,7 +543,7 @@
                 selectedTenantId: null,
                 anchor: null);
             ApplyWorkspaceState(usersState, clearCursorHistory: true);
-            Navigation.NavigateTo(usersState.ToCanonicalUrl(), replace: true);
+            NavigateToCanonicalWorkspaceIfNeeded(usersState);
             return;
         }
 
@@ -629,6 +640,31 @@
             _tenantWorkspaceState = _workspaceState;
         }
 
-        Navigation.NavigateTo(_workspaceState.ToCanonicalUrl(), replace: true);
+        NavigateToCanonicalWorkspaceIfNeeded(_workspaceState);
     }
+
+    private bool NavigateToCanonicalWorkspaceIfNeeded(TenantWorkspaceState state)
+    {
+        string canonicalUrl = state.ToCanonicalUrl();
+        string currentUrl = HttpContext is null
+            ? Navigation.ToBaseRelativePath(Navigation.Uri)
+            : $"{HttpContext.Request.Path}{HttpContext.Request.QueryString}";
+        int fragmentIndex = currentUrl.IndexOf('#', StringComparison.Ordinal);
+        if (fragmentIndex >= 0)
+        {
+            currentUrl = currentUrl[..fragmentIndex];
+        }
+
+        currentUrl = $"/{currentUrl.TrimStart('/')}";
+        if (string.Equals(currentUrl, canonicalUrl, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        Navigation.NavigateTo(canonicalUrl, replace: true);
+        return true;
+    }
+
+    public void Dispose()
+        => _disposed = true;
 }

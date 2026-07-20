@@ -1,0 +1,87 @@
+- generic [ref=e86]:
+  - link "Skip to content" [ref=e87] [cursor=pointer]:
+    - /url: "#fc-main-content"
+  - link "Skip to navigation" [ref=e88] [cursor=pointer]:
+    - /url: "#fc-nav"
+  - generic [ref=e90]:
+    - generic [ref=e92]:
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - button "Toggle navigation" [ref=e95]:
+            - generic "Toggle navigation" [ref=e96] [cursor=pointer]:
+              - img [ref=e98]
+          - generic:
+            - generic:
+              - generic:
+                - generic: Tenants
+        - generic [ref=e100]:
+          - generic: Hexalith Tenants
+      - generic [ref=e101]:
+        - button "Change theme" [ref=e103] [cursor=pointer]:
+          - generic [ref=e104]:
+            - generic:
+              - generic [ref=e105]: "Change theme: Light"
+              - generic [ref=e106]: Light
+          - img [ref=e108]
+        - button "Open command palette" [ref=e110] [cursor=pointer]:
+          - img [ref=e112]
+        - button "Open settings" [ref=e114] [cursor=pointer]:
+          - img [ref=e116]
+        - generic "Signed in as Admin User" [ref=e119] [cursor=pointer]:
+          - generic [ref=e120]: AU
+    - generic [ref=e130]:
+      - status [ref=e131]: Density set to Comfortable.
+      - main [ref=e132]:
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - generic: Tenant workspace
+            - generic [ref=e136]:
+              - heading "Tenants" [level=1] [ref=e137]:
+                - generic: Tenants
+              - generic "Tenant workspace sections" [ref=e140]:
+                - tablist [ref=e141]:
+                  - generic:
+                    - tab "Tenants" [ref=e142] [cursor=pointer]:
+                      - generic [ref=e143]:
+                        - generic: Tenants
+                    - tab "Users" [active] [selected] [ref=e144] [cursor=pointer]:
+                      - generic [ref=e145]:
+                        - generic: Users
+                - tabpanel [ref=e185]
+          - generic [ref=e187]:
+            - generic:
+              - generic [ref=e188]:
+                - heading "User membership lookup controls" [level=2] [ref=e189]:
+                  - button "User membership lookup controls" [expanded] [ref=e190] [cursor=pointer]:
+                    - generic [ref=e191]: User membership lookup controls
+                  - generic [ref=e192]:
+                    - img
+                - region "User membership lookup controls" [ref=e193]:
+                  - form "User membership lookup controls" [ref=e194]:
+                    - generic [ref=e195]:
+                      - generic [ref=e196]:
+                        - generic [ref=e197]:
+                          - generic [ref=e198]: User identifier
+                          - generic "User identifier" [ref=e199]:
+                            - textbox [ref=e201]
+                        - paragraph [ref=e202]: Use the exact caller-supplied user identifier. The value is not parsed as a GUID or ULID.
+                      - generic [ref=e204]:
+                        - generic [ref=e206] [cursor=pointer]:
+                          - generic: Look up
+                        - generic [ref=e208] [cursor=pointer]:
+                          - generic: Clear
+                        - generic [ref=e210]:
+                          - generic: Refresh
+              - generic [ref=e211]:
+                - heading "User membership lookup ready" [level=2] [ref=e212]:
+                  - button "User membership lookup ready" [expanded] [ref=e213] [cursor=pointer]:
+                    - generic [ref=e214]: User membership lookup ready
+                  - generic [ref=e215]:
+                    - img
+                - region "User membership lookup ready" [ref=e216]:
+                  - status [ref=e217]:
+                    - heading "User membership lookup ready" [level=2] [ref=e218]
+                    - paragraph [ref=e219]: Enter a user identifier to run an authorization-scoped membership lookup.
+    - generic [ref=e184]:
+      - generic: Hexalith Tenants © 2026

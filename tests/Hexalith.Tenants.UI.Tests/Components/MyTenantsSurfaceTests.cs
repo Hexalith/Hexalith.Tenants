@@ -184,9 +184,11 @@ public sealed class MyTenantsSurfaceTests : BunitContext
             eTag: "\"etag\"");
         Queue<UserTenantMembershipSnapshot> snapshots = new([firstPage, secondPage, firstPage]);
         List<UserTenantMembershipRequest> requests = [];
+        List<string> requestUris = [];
         RegisterServices(call =>
         {
             requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            requestUris.Add(Services.GetRequiredService<NavigationManager>().Uri);
             return Task.FromResult(snapshots.Dequeue());
         });
 
@@ -198,6 +200,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.beta"));
 
         requests[1].Cursor.ShouldBe("opaque-next-cursor");
+        requestUris[1].ShouldBe("http://localhost/tenants?tab=tenants&scope=mine&cursor=opaque-next-cursor");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Stale");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
             "http://localhost/tenants?tab=tenants&scope=mine&cursor=opaque-next-cursor");
@@ -206,6 +209,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("tenant.alpha"));
 
         requests[2].Cursor.ShouldBeNull();
+        requestUris[2].ShouldBe("http://localhost/tenants?tab=tenants&scope=mine");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Current");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
             "http://localhost/tenants?tab=tenants&scope=mine");

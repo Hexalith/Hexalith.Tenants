@@ -127,13 +127,12 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
             .GetAsync("/tenants/users?userId=operator.support-01")
             .ConfigureAwait(false);
 
-        // The user-lookup route canonicalizes its query string (it appends the default sort) with a
-        // redirect, preserving the prefilled user id. The Aspire client does not auto-follow redirects,
-        // so the smoke test asserts the canonicalization target directly.
+        // The compatibility route redirects before issuing the lookup and preserves the prefilled user
+        // identifier. Canonical workspace URLs omit the default tenant sort.
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         string location = response.Headers.Location?.ToString() ?? string.Empty;
         location.ShouldContain("userId=operator.support-01");
-        location.ShouldContain("sort=tenant");
+        location.ShouldNotContain("sort=");
     }
 
     [DaprFact]
@@ -168,6 +167,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
 
         DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(UiRouteReadinessTimeout);
         HttpStatusCode? lastStatusCode = null;
+        Uri? lastLocation = null;
         string lastMarkup = string.Empty;
 
         while (true) {
@@ -176,6 +176,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
                 .ConfigureAwait(false);
 
             lastStatusCode = response.StatusCode;
+            lastLocation = response.Headers.Location;
             lastMarkup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.OK
@@ -192,7 +193,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
 
         lastStatusCode.ShouldBe(
             HttpStatusCode.OK,
-            $"Hosted UI route '{requestUri}' did not return HTTP 200 before the readiness timeout.");
+            $"Hosted UI route '{requestUri}' did not return HTTP 200 before the readiness timeout. Last Location: {lastLocation?.ToString() ?? "<none>"}.");
         lastMarkup.ShouldContain(readinessMarker, Case.Insensitive);
         return lastMarkup;
     }

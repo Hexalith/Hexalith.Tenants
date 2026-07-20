@@ -165,8 +165,8 @@
     {
         _cursorHistory.Push(_currentCursor);
         _currentCursor = _snapshot.NextCursor;
-        await LoadAsync(reuseETag: false).ConfigureAwait(false);
         await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);
+        await LoadAsync(reuseETag: false).ConfigureAwait(false);
     }
 
     private async Task PreviousPageAsync()
@@ -174,8 +174,8 @@
         if (_cursorHistory.Count > 0)
         {
             _currentCursor = _cursorHistory.Pop();
-            await LoadAsync(reuseETag: false).ConfigureAwait(false);
             await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);
+            await LoadAsync(reuseETag: false).ConfigureAwait(false);
         }
     }
 

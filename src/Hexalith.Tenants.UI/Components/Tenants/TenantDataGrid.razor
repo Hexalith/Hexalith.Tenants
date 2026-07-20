@@ -4,6 +4,7 @@
 
 <div class="tenant-data-grid" data-testid="tenants-list-grid">
     <FluentDataGrid Items="@Rows.AsQueryable()"
+                    @key="GridSortStateKey"
                     ResizableColumns="true"
                     ReorderableColumns="false"
                     GenerateHeader="DataGridGeneratedHeaderType.Sticky"
@@ -18,24 +19,29 @@
                         IsDefaultSortColumn="@IsTenantNameSort"
                         InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
-            <div class="tenant-data-grid__identity"
-                 id="@($"tenant-row-{context.TenantId}")"
-                 data-testid="tenants-list-tenant-id">
-                <div class="tenant-data-grid__identity-line">
-                    <a class="tenant-data-grid__detail-link"
-                       href="@DetailHref(context)"
-                       title="@context.TenantId"
-                       data-testid="tenants-list-detail-link"
-                       aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
-                        <strong>@context.TenantId</strong>
-                    </a>
-                    <SupportSafeCopyButton Value="@context.TenantId"
-                                           ValueKind="SupportSafeCopyValueKind.TenantId"
-                                           AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", context.TenantId]"
-                                           TestId="tenants-list-copy-reference" />
+            <HeaderCellTitleTemplate>
+                <FluentText As="TextTag.Span" data-testid="tenants-list-sort-tenant">@Localizer["Tenants.List.Column.Tenant"]</FluentText>
+            </HeaderCellTitleTemplate>
+            <ChildContent>
+                <div class="tenant-data-grid__identity"
+                     id="@($"tenant-row-{context.TenantId}")"
+                     data-testid="tenants-list-tenant-id">
+                    <div class="tenant-data-grid__identity-line">
+                        <a class="tenant-data-grid__detail-link"
+                           href="@DetailHref(context)"
+                           title="@context.TenantId"
+                           data-testid="tenants-list-detail-link"
+                           aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
+                            <strong>@context.TenantId</strong>
+                        </a>
+                        <SupportSafeCopyButton Value="@context.TenantId"
+                                               ValueKind="SupportSafeCopyValueKind.TenantId"
+                                               AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", context.TenantId]"
+                                               TestId="tenants-list-copy-reference" />
+                    </div>
+                    <span>@context.Name</span>
                 </div>
-                <span>@context.Name</span>
-            </div>
+            </ChildContent>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Status"]"
                         ColumnId="tenant-status"
@@ -46,12 +52,17 @@
                         IsDefaultSortColumn="@IsStatusSort"
                         InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
-            <FluentBadge Appearance="BadgeAppearance.Tint"
-                         Color="@StatusBadgeColor(context.Status)"
-                         IconStart="@StatusIcon(context.Status)"
-                         Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")">
-                @StatusLabel(context.Status)
-            </FluentBadge>
+            <HeaderCellTitleTemplate>
+                <FluentText As="TextTag.Span" data-testid="tenants-list-sort-status">@Localizer["Tenants.List.Column.Status"]</FluentText>
+            </HeaderCellTitleTemplate>
+            <ChildContent>
+                <FluentBadge Appearance="BadgeAppearance.Tint"
+                             Color="@StatusBadgeColor(context.Status)"
+                             IconStart="@StatusIcon(context.Status)"
+                             Class="@($"tenant-data-grid__status tenant-data-grid__status--{StatusCss(context.Status)}")">
+                    @StatusLabel(context.Status)
+                </FluentBadge>
+            </ChildContent>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Members"]" ColumnId="tenant-members" Width="115px">
             @CountLabel(context.MemberCount)
@@ -119,6 +130,9 @@
 
     private DataGridSortDirection InitialSortDirection
         => SortDescending ? DataGridSortDirection.Descending : DataGridSortDirection.Ascending;
+
+    private string GridSortStateKey
+        => $"{SortColumn}:{SortDescending}";
 
     private string ListReturnUrl(TenantListRow row)
     {

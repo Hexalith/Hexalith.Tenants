@@ -1,0 +1,84 @@
+- generic [ref=e100]:
+  - link "Passer au contenu" [ref=e101] [cursor=pointer]:
+    - /url: "#fc-main-content"
+  - link "Passer à la navigation" [ref=e102] [cursor=pointer]:
+    - /url: "#fc-nav"
+  - generic [ref=e104]:
+    - generic [ref=e106]:
+      - generic [ref=e107]:
+        - button "Basculer la navigation" [ref=e109]:
+          - generic "Basculer la navigation" [ref=e110] [cursor=pointer]:
+            - img [ref=e112]
+        - generic [ref=e114]:
+          - generic: Hexalith Tenants
+      - generic [ref=e115]:
+        - button "Changer de thème" [ref=e117] [cursor=pointer]:
+          - generic [ref=e118]:
+            - generic:
+              - generic [ref=e119]: "Changer de thème: Clair"
+              - generic [ref=e120]: Clair
+          - img [ref=e122]
+        - button "Ouvrir la palette de commandes" [ref=e124] [cursor=pointer]:
+          - img [ref=e126]
+        - button "Ouvrir les paramètres" [ref=e128] [cursor=pointer]:
+          - img [ref=e130]
+        - generic "Connecté en tant que Admin User" [ref=e133] [cursor=pointer]:
+          - generic [ref=e134]: AU
+    - navigation "Navigation principale" [ref=e137]:
+      - generic "Locataires" [ref=e139] [cursor=pointer]:
+        - img [ref=e142]
+    - generic [ref=e144]:
+      - status [ref=e145]: Densité réglée sur Compact.
+      - main [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - generic: Espace locataires
+            - generic [ref=e150]:
+              - heading "Locataires" [active] [level=1] [ref=e151]:
+                - generic: Locataires
+              - generic [ref=e153]:
+                - generic "Sections de l'espace locataires" [ref=e154]:
+                  - tablist [ref=e155]:
+                    - generic:
+                      - tab "Locataires" [selected] [ref=e156] [cursor=pointer]:
+                        - generic [ref=e157]:
+                          - generic: Locataires
+                      - tab "Utilisateurs" [ref=e158] [cursor=pointer]:
+                        - generic [ref=e159]:
+                          - generic: Utilisateurs
+                  - tabpanel [ref=e160]
+                - generic [ref=e161]:
+                  - generic [ref=e162]:
+                    - generic [ref=e163]: Vue des locataires
+                    - generic "Vue des locataires" [ref=e164] [cursor=pointer]:
+                      - generic [ref=e165]:
+                        - combobox [ref=e166]: Tous les locataires
+                        - img [ref=e168]
+                  - generic [ref=e170]:
+                    - generic [ref=e171]: Rechercher des locataires
+                    - generic "Rechercher des locataires" [ref=e172]:
+                      - searchbox [ref=e174]
+                  - generic [ref=e175]:
+                    - generic [ref=e176]: Statut
+                    - generic "Statut" [ref=e177] [cursor=pointer]:
+                      - generic [ref=e178]:
+                        - combobox [ref=e179]
+                        - img [ref=e181]
+                  - generic [ref=e184] [cursor=pointer]:
+                    - generic: Actualiser
+                  - generic [ref=e186] [cursor=pointer]:
+                    - generic: Réinitialiser les filtres
+          - generic [ref=e188]:
+            - heading "Créer un locataire" [level=2] [ref=e189]:
+              - button "Créer un locataire" [ref=e190] [cursor=pointer]:
+                - generic [ref=e191]: Créer un locataire
+              - generic [ref=e192]:
+                - img
+            - generic: Créer le locataire
+            - generic: Actualiser le statut
+          - alert [ref=e193]:
+            - heading "Locataires indisponibles" [level=2] [ref=e194]
+            - paragraph [ref=e195]: Tenant query gateway is unavailable.
+    - generic [ref=e198]:
+      - generic: Hexalith Tenants © 2026

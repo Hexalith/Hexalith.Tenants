@@ -30,6 +30,8 @@ public sealed record TenantWorkspaceState(
     string? SelectedTenantId,
     string? Anchor)
 {
+    private const int MaximumCursorLength = 4096;
+
     /// <summary>Identifies the tenant list and self-audit tab.</summary>
     public const string TenantsTab = "tenants";
 
@@ -59,19 +61,33 @@ public sealed record TenantWorkspaceState(
     {
         string normalizedTab = IsUsersTab(tab) ? UsersTab : TenantsTab;
         string normalizedScope = normalizedTab == TenantsTab && IsMyScope(scope) ? MyScope : AllScope;
-        string? normalizedCursor = NormalizeOpaque(cursor);
 
         if (normalizedTab == UsersTab)
         {
+            string? normalizedUserId = NormalizeUserId(userId);
+            string normalizedUserSort = NormalizeUserSort(sort);
             return new TenantWorkspaceState(
                 UsersTab,
                 AllScope,
-                NormalizeUserId(userId),
+                normalizedUserId,
                 null,
                 null,
-                NormalizeUserSort(sort),
+                normalizedUserSort,
                 false,
-                normalizedCursor,
+                CanRetainUsersCursor(
+                    tab,
+                    scope,
+                    userId,
+                    search,
+                    status,
+                    sort,
+                    sortDescending,
+                    selectedTenantId,
+                    anchor,
+                    normalizedUserId,
+                    normalizedUserSort)
+                        ? NormalizeOpaque(cursor)
+                        : null,
                 null,
                 null);
         }
@@ -86,21 +102,49 @@ public sealed record TenantWorkspaceState(
                 null,
                 TenantListSortColumns.TenantId,
                 false,
-                normalizedCursor,
+                CanRetainMyTenantsCursor(
+                    tab,
+                    scope,
+                    userId,
+                    search,
+                    status,
+                    sort,
+                    sortDescending,
+                    selectedTenantId,
+                    anchor)
+                        ? NormalizeOpaque(cursor)
+                        : null,
                 null,
                 null);
         }
 
         string normalizedSort = NormalizeTenantSort(sort);
+        string? normalizedSearch = NormalizeSearch(search);
+        string? normalizedStatus = NormalizeStatus(status);
+        bool normalizedSortDescending = normalizedSort != TenantListSortColumns.TenantId
+            && ParseBoolean(sortDescending);
         return new TenantWorkspaceState(
             TenantsTab,
             AllScope,
             null,
-            NormalizeSearch(search),
-            NormalizeStatus(status),
+            normalizedSearch,
+            normalizedStatus,
             normalizedSort,
-            ParseBoolean(sortDescending),
-            normalizedCursor,
+            normalizedSortDescending,
+            CanRetainAllTenantsCursor(
+                tab,
+                scope,
+                userId,
+                search,
+                status,
+                sort,
+                sortDescending,
+                normalizedSearch,
+                normalizedStatus,
+                normalizedSort,
+                normalizedSortDescending)
+                    ? NormalizeOpaque(cursor)
+                    : null,
             NormalizeContextValue(selectedTenantId),
             NormalizeContextValue(anchor));
     }
@@ -290,17 +334,95 @@ public sealed record TenantWorkspaceState(
         => bool.TryParse(value, out bool parsed) && parsed;
 
     private static string? NormalizeContextValue(string? value)
-        => NormalizeSafeText(value);
+        => string.IsNullOrWhiteSpace(value) || value.Any(char.IsControl)
+            ? null
+            : value.Trim();
 
     private static string? NormalizeOpaque(string? value)
-        => string.IsNullOrWhiteSpace(value) || value.Any(char.IsControl)
+        => string.IsNullOrWhiteSpace(value)
+            || value.Length > MaximumCursorLength
+            || value.Any(char.IsControl)
             ? null
             : value;
 
     private static string? NormalizeSafeText(string? value)
         => string.IsNullOrWhiteSpace(value) || value.Any(char.IsControl)
             ? null
-            : value.Trim();
+            : value;
+
+    private static bool CanRetainUsersCursor(
+        string? tab,
+        string? scope,
+        string? userId,
+        string? search,
+        string? status,
+        string? sort,
+        string? sortDescending,
+        string? selectedTenantId,
+        string? anchor,
+        string? normalizedUserId,
+        string normalizedSort)
+        => string.Equals(tab, UsersTab, StringComparison.Ordinal)
+            && IsAbsentOrExact(scope, AllScope)
+            && normalizedUserId is not null
+            && string.Equals(userId, normalizedUserId, StringComparison.Ordinal)
+            && IsAbsent(search)
+            && IsAbsent(status)
+            && IsAbsentOrExact(sort, normalizedSort)
+            && IsAbsent(sortDescending)
+            && IsAbsent(selectedTenantId)
+            && IsAbsent(anchor);
+
+    private static bool CanRetainMyTenantsCursor(
+        string? tab,
+        string? scope,
+        string? userId,
+        string? search,
+        string? status,
+        string? sort,
+        string? sortDescending,
+        string? selectedTenantId,
+        string? anchor)
+        => IsAbsentOrExact(tab, TenantsTab)
+            && string.Equals(scope, MyScope, StringComparison.Ordinal)
+            && IsAbsent(userId)
+            && IsAbsent(search)
+            && IsAbsent(status)
+            && IsAbsent(sort)
+            && IsAbsent(sortDescending)
+            && IsAbsent(selectedTenantId)
+            && IsAbsent(anchor);
+
+    private static bool CanRetainAllTenantsCursor(
+        string? tab,
+        string? scope,
+        string? userId,
+        string? search,
+        string? status,
+        string? sort,
+        string? sortDescending,
+        string? normalizedSearch,
+        string? normalizedStatus,
+        string normalizedSort,
+        bool normalizedSortDescending)
+        => IsAbsentOrExact(tab, TenantsTab)
+            && IsAbsentOrExact(scope, AllScope)
+            && IsAbsent(userId)
+            && IsAbsentOrExact(search, normalizedSearch)
+            && IsAbsentOrExact(status, normalizedStatus)
+            && IsAbsentOrExact(sort, normalizedSort)
+            && IsValidSortDirection(sortDescending, normalizedSortDescending);
+
+    private static bool IsValidSortDirection(string? value, bool normalized)
+        => value is null
+            ? !normalized
+            : bool.TryParse(value, out bool parsed) && parsed == normalized;
+
+    private static bool IsAbsent(string? value)
+        => value is null;
+
+    private static bool IsAbsentOrExact(string? value, string? normalized)
+        => value is null || string.Equals(value, normalized, StringComparison.Ordinal);
 
     private static void AppendQuery(StringBuilder builder, string key, string? value)
     {

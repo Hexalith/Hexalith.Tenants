@@ -25,7 +25,7 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class UserMembershipLookupSurfaceTests : BunitContext
 {
     [Fact]
-    public void User_lookup_direct_route_prefills_target_and_renders_authorization_scoped_results()
+    public void Compatibility_user_lookup_route_canonicalizes_before_querying()
     {
         List<UserTenantMembershipRequest> requests = [];
         RegisterServices(call =>
@@ -43,25 +43,11 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
 
         NavigateToLookup("target.user@example");
         IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
-        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
 
-        requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("target.user@example");
+        requests.ShouldBeEmpty();
         cut.Find("[data-testid='tenants-user-lookup-input']").GetAttribute("value").ShouldBe("target.user@example");
-        cut.Find("[data-testid='tenants-user-lookup-target']").TextContent.ShouldContain("target.user@example");
-        cut.FindAll("[data-testid='tenants-user-row']").Count.ShouldBe(2);
-        cut.Find("[data-testid='tenants-user-tenant-id']").TextContent.ShouldContain("tenant.alpha");
-        cut.FindAll("[data-testid='tenants-user-copy-reference']").Count.ShouldBe(2);
-        cut.Find("[data-testid='tenants-user-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
-        cut.Find("[data-testid='tenants-user-role']").TextContent.ShouldContain("Tenant owner");
-        cut.Find("[data-testid='tenants-user-status']").TextContent.ShouldContain("Active");
-        cut.Find("[data-testid='tenants-user-truth-state']").TextContent.ShouldContain("Current");
-        Services.GetRequiredService<NavigationManager>().Uri.ShouldContain(
-            "/tenants?tab=users&userId=target.user%40example");
-        cut.Markup.ShouldNotContain("Lifecycle", Case.Insensitive);
-        cut.Markup.ShouldNotContain("tenants-my-list", Case.Insensitive);
-        cut.Markup.ShouldNotContain("remove", Case.Insensitive);
-        cut.Markup.ShouldNotContain("change role", Case.Insensitive);
-        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
+            "http://localhost/tenants?tab=users&userId=target.user%40example");
     }
 
     [Fact]
@@ -78,7 +64,8 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
                 targetUserId: "USER.Target-01"));
         });
 
-        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.UseWorkspaceRoute, true));
         cut.Find("[data-testid='tenants-user-lookup-input']").Change("USER.Target-01");
         cut.Find("form").Submit();
         cut.WaitForElement("[data-testid='tenants-user-empty']");
@@ -105,13 +92,15 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         });
 
         IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
-            .Add(component => component.InitialUserId, "user.one"));
+            .Add(component => component.InitialUserId, "user.one")
+            .Add(component => component.UseWorkspaceRoute, true));
         cut.WaitForAssertion(() => requests.ShouldHaveSingleItem().TargetUserId.ShouldBe("user.one"));
 
         cut.Render(parameters => parameters
             .Add(component => component.InitialUserId, "user.two")
             .Add(component => component.InitialSort, UserTenantMembershipSortColumns.Role)
-            .Add(component => component.InitialCursor, "user-two-cursor"));
+            .Add(component => component.InitialCursor, "user-two-cursor")
+            .Add(component => component.UseWorkspaceRoute, true));
 
         cut.WaitForAssertion(() =>
         {
@@ -144,8 +133,9 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
             targetUserId: "target.user"));
 
-        NavigateToLookup("target.user");
-        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
         cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
 
         cut.Find("[data-testid='tenants-user-lookup-clear']").Click();
@@ -185,8 +175,9 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         };
         RegisterServices(snapshot);
 
-        NavigateToLookup("target.user");
-        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
         cut.WaitForElement($"[data-testid='{selector}']");
 
         cut.Find($"[data-testid='{selector}']").GetAttribute("role").ShouldBe(expectedRole);
@@ -228,8 +219,9 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             return Task.FromResult(snapshots.Dequeue());
         });
 
-        NavigateToLookup("target.user");
-        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
         cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
 
         cut.Find("[data-testid='tenants-user-lookup-next']").Click();
@@ -249,6 +241,39 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-user-lookup-refresh']").Click();
         cut.WaitForAssertion(() => requests[3].ETag.ShouldBe("\"etag\""));
         requests.All(request => request.TargetUserId == "target.user").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Superseded_sort_lookup_does_not_overwrite_the_newer_announcement()
+    {
+        TaskCompletionSource<UserTenantMembershipSnapshot> pendingSort = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callCount = 0;
+        RegisterServices(_ => Interlocked.Increment(ref callCount) == 1
+            ? Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)],
+                targetUserId: "target.user"))
+            : pendingSort.Task);
+        IRenderedComponent<UserMembershipLookupPanel> cut = Render<UserMembershipLookupPanel>(parameters => parameters
+            .Add(component => component.InitialUserId, "target.user")
+            .Add(component => component.UseWorkspaceRoute, true));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
+        FluentSelect<string, string> sort = cut.FindComponents<FluentSelect<string, string>>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-user-lookup-sort", StringComparison.Ordinal));
+
+        Task sortTask = cut.InvokeAsync(() => sort.ValueChanged.InvokeAsync(UserTenantMembershipSortColumns.Name));
+        cut.WaitForAssertion(() => callCount.ShouldBe(2));
+        cut.Find("[data-testid='tenants-user-lookup-clear']").Click();
+        pendingSort.SetResult(ReadySnapshot(
+            [Row("tenant.beta", "Beta", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            targetUserId: "target.user"));
+        await sortTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("User membership lookup cleared."));
+        cut.Markup.ShouldNotContain("Visible memberships sorted.");
+        cut.FindAll("[data-testid='tenants-user-lookup-results']").ShouldBeEmpty();
     }
 
     [Fact]

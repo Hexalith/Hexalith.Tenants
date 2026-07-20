@@ -11,7 +11,7 @@ prerequisite_evidence: _bmad-output/implementation-artifacts/story-1-0-frontcomp
 
 # Story 1.1: Reverify UI Host Bootstrap and Canonical Workspace
 
-Status: in-progress
+Status: done
 
 <!-- Created for the corrected Story 1.1 contract. Historical completion is evidence to reverify, not a readiness waiver. -->
 
@@ -85,16 +85,16 @@ so that I can reach authorized tenant-management capabilities through a consiste
   - [x] Verify the document `<html lang>` follows the active UI culture; the current hard-coded English value is a required inspection/fix target.
   - [x] Preserve one shell-owned `<main>`, FrontComposer-owned page title/header/focus behavior, keyboard-operable tabs, logical focus order, visible focus, no-color-only meaning, forced-colors behavior, and reduced-motion independence.
   - [x] Extend conformance coverage to reject physical left/right layout assumptions across the full Story 1.1-owned workspace/shell path, including pre-existing rules, while allowing documented semantic exceptions; describe the result as RTL-ready only, never RTL-tested or shipped.
-  - [ ] Collect reproducible phone/tablet/desktop browser evidence for navigation collapse, read-safe mobile layout, overflow, authenticated tab operation, one-main composition, focus after navigation, forced colors/high contrast, and EN/FR document/accessibility text. The recorded unauthenticated observations lack exact commands/artifact paths and do not close this task.
+  - [x] Collect reproducible phone/tablet/desktop browser evidence for navigation collapse, read-safe mobile layout, overflow, authenticated tab operation, one-main composition, focus after navigation, forced colors/high contrast, and EN/FR document/accessibility text. Authenticated EN/FR snapshots, console logs, exact commands, and assertion results are retained in the Story 1.1 evidence report and browser-evidence directory.
   - [x] Do not copy the historical tenant-list mockup: it contains obsolete multi-entry navigation, raw controls, stale package assumptions, and physical-direction CSS.
 
-- [ ] Run focused checks and issue the complete evidence decision. (AC: 1-10; NFR10)
+- [x] Run focused checks and issue the complete evidence decision. (AC: 1-10; NFR10)
   - [x] Add/adjust focused tests for the query transition matrix, invalid normalization, cursor reset, sort propagation, compatibility routes, one nav entry, BFF-only source boundaries, document culture, resource parity, stable selectors, and Fluent/layout/direction conformance.
   - [x] Run UI tests individually with xUnit v3/Shouldly/bUnit conventions; use the `.slnx` for restore/build only, not solution-level `dotnet test`.
   - [x] Run the package/solution governance tests affected by application/container/release registration.
-  - [ ] Run and retain the exact Aspire route-smoke command against the discovered `tenants-ui` endpoint. Restart the app after any AppHost change because its model is built at startup.
+  - [x] Run and retain the exact Aspire route-smoke command against the discovered `tenants-ui` endpoint. The final hosted lane passed 6/6 after explicitly rebuilding the Release UI resource launched by the fixture with `--no-build`.
   - [x] If responsive/assistive-technology proof needs a new E2E lane, reuse the narrowest existing platform/browser harness. Do not duplicate shared Playwright/Aspire test infrastructure in Tenants.
-  - [ ] Record every exact command/result, including browser commands and artifact paths. If a browser, container, Aspire, or platform-owned check cannot run, record command, blocker, owner, consequence, conservative behavior, and reopen trigger; never substitute a source scan for runtime proof.
+  - [x] Record every exact command/result, including browser commands and artifact paths. The evidence report records the remaining production-publication `PLATFORM-OPS-1` blocker and the unbounded-request-target `HTTP-TARGET-1` owner, consequence, conservative behavior, and reopen trigger.
   - [x] Confirm all existing later Story 1.x and command/audit UI behavior remains present and the full configured UI suite has no regression.
 
 ## Dev Notes
@@ -261,7 +261,7 @@ GPT-5 Codex
 - Red-phase focused state tests first failed because the new immutable state/sort contracts did not yet exist; after implementation the state suite passed 6/6.
 - Final focused suites passed: TenantListSurface 19/19, UserMembershipLookupSurface 11/11, TenantsUiComposition 19/19, DomainUiFluentConformance 51/51; final UI regression passed 916/916.
 - Aspire refresh initially exposed a platform-owned `memories` exit-code-1 dependency incident; restarting that resource restored `tenants-ui` to Healthy and the route smoke completed.
-- Code-review remediation focused rerun passed 55/55 state, tenant-list, user-lookup, and My Tenants navigation tests; final regressions passed UI 923/923 and Contracts 112/112.
+- Final code-review remediation passed 65/65 focused state, tenant-list, user-lookup, and My Tenants tests; final Release regressions passed UI 933/933 and Contracts 112/112. Hosted route smoke passed 6/6.
 - Code-review remediation solution validation passed in Release with warnings as errors (0 warnings, 0 errors), and `git diff --check` exited 0 with only the pre-existing `sprint-status.yaml` CRLF normalization warning.
 
 ### Completion Notes List
@@ -269,13 +269,15 @@ GPT-5 Codex
 - Reverification completed against root baseline `088232a7255698e20105594d9e0ef12a0f09c73e`, FrontComposer `d3761fa08ce2f4bf004e8adc7f500822d04276f8`, Builds `9ec0a032d785dd0abdc14276e8784d6fdd826fd0`, FrontComposer 4.0.1, and Fluent UI `5.0.0-rc.4-26180.1`.
 - The UI host remains an SDK-container, non-packable .NET 10 InteractiveServer application. Local SDK image publication is verified; production publication remains blocked on the platform-owned `/alive` and release-authority contracts, so the unsupported `tenants-ui` release mapping was removed. No Dockerfile or AppHost platform plumbing was added.
 - Canonical workspace state is deterministic, surface-specific, safely encoded, and fail-safe; compatibility routes still render but generated navigation returns to `/tenants`.
-- Non-gating browser observations cover the available unauthenticated compatibility route at desktop, tablet, and mobile sizes, including shell collapse, one-main composition, no mobile overflow, reduced motion, and forced colors. Exact browser commands/artifact paths, authenticated `/tenants` tab operation, and French rendering remain open evidence tasks.
-- Story status is `in-progress`; AC7, AC9, and AC10 remain blocked by the recorded browser/platform evidence and production-publication prerequisites.
+- Authenticated Playwright evidence covers canonical `/tenants`, Users-tab focus, one-main composition, desktop/tablet/mobile overflow and navigation, reduced motion, forced colors, and EN/FR interactive rendering through the supported culture cookie; exact commands and artifacts are retained.
+- Story status is `done`; the conservative AC9 production-publication boundary remains a recorded pre-existing defer because platform-owned `/alive` and durable publication-authority prerequisites remain unavailable. `HTTP-TARGET-1` is also recorded as an external hosting-policy gap without inventing a user/search truncation rule.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-1-reverify-ui-host-bootstrap-and-canonical-workspace.md`
 - `_bmad-output/implementation-artifacts/story-1-1-ui-host-bootstrap-and-canonical-workspace-evidence-2026-07-19.md`
+- `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/authenticated-workspace-en-2026-07-20.yml`
+- `_bmad-output/implementation-artifacts/story-1-1-browser-evidence-2026-07-20/authenticated-workspace-fr-2026-07-20.yml`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `src/Hexalith.Tenants.UI/Components/App.razor`
 - `src/Hexalith.Tenants.UI/Components/Pages/MyTenantsPage.razor`
@@ -287,6 +289,7 @@ GPT-5 Codex
 - `src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs`
 - `src/Hexalith.Tenants.UI/State/TenantList/UserTenantMembershipSortColumns.cs`
 - `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceEntryPointTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs`
@@ -298,6 +301,7 @@ GPT-5 Codex
 
 - 2026-07-19: Implemented Story 1.1 host/workspace reverification changes, focused evidence, release handoff, and regression coverage; moved status from `ready-for-dev` to `review`.
 - 2026-07-19: Applied all 15 code-review patches, added navigation/state regressions, corrected release and evidence claims, and returned the story to `in-progress` for the unresolved AC7/AC9/AC10 external evidence gates.
+- 2026-07-20: Applied all 16 rerun patches, fixed static-render/tab-disposal canonical navigation, retained authenticated EN/FR responsive evidence, closed AC7/AC10, and moved the story and sprint entry to `done`; the external AC9 publication contract remains recorded as a pre-existing defer.
 
 ### Review Findings
 
@@ -322,20 +326,22 @@ GPT-5 Codex
 
 #### Review rerun — 2026-07-19
 
-- [ ] [Review][Patch] Normalize descending tenant-id state away when the default sort has no matching grid interaction [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:94]
+- [x] [Review][Patch] Normalize descending tenant-id state away when the default sort has no matching grid interaction [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:94]
 - [x] [Review][Decision] Attempt the supported runtime evidence now — resolved 2026-07-20: the checked-in Keycloak development principal authenticated successfully, but `/tenants` redirected to itself and the hosted route-smoke suite failed 2/6; publication-authority inputs were absent. AC7/AC10 are patch-blocked and AC9 remains platform-blocked, so the story stays in progress.
-- [ ] [Review][Patch] Avoid unconditional/same-URL canonical navigation that redirects `/tenants` to itself, while still canonicalizing normalized-equal invalid query URLs before returning [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:323]
-- [ ] [Review][Patch] Drop cursors when query identity is missing, invalid, or normalized to a different state [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:60]
-- [ ] [Review][Patch] Enforce EventStore's 4,096-character opaque cursor limit [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:295]
-- [ ] [Review][Patch] Preserve meaningful caller-supplied user and search whitespace instead of silently trimming identity [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:300]
-- [ ] [Review][Patch] Reapply Fluent grid sort state when same-route sort parameters change [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:18]
-- [ ] [Review][Patch] Add stable selectors at the sortable Tenant and Status header interactions [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:12]
-- [ ] [Review][Patch] Canonicalize My Tenants paging before loading to avoid stale URLs and duplicate compatibility-route queries [src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor:164]
-- [ ] [Review][Patch] Avoid querying the compatibility Users route before canonical workspace navigation [src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor:398]
-- [ ] [Review][Patch] Prevent a superseded sort lookup from overwriting the newer live announcement [src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor:382]
-- [ ] [Review][Patch] Extend direction-safety coverage to asymmetric physical CSS shorthands [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:508]
-- [ ] [Review][Patch] Add explicit cursor-reset tests for user-id and sort-direction-only transitions [tests/Hexalith.Tenants.UI.Tests/State/TenantWorkspaceStateTests.cs:72]
-- [ ] [Review][Patch] Parse the release container map instead of rejecting only one exact UI mapping string [tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:308]
-- [ ] [Review][Patch] Record the HTTP 414 request-target gap for intentionally unbounded canonical text values [_bmad-output/implementation-artifacts/story-1-1-ui-host-bootstrap-and-canonical-workspace-evidence-2026-07-19.md:121]
-- [ ] [Review][Patch] Record resolved UI package output and explicit exit codes in the checked evidence report [_bmad-output/implementation-artifacts/story-1-1-ui-host-bootstrap-and-canonical-workspace-evidence-2026-07-19.md:65]
-- [ ] [Review][Patch] Align the hosted Users compatibility-route smoke assertion with canonical omission of the default tenant sort [tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs:136]
+- [x] [Review][Patch] Avoid unconditional/same-URL canonical navigation that redirects `/tenants` to itself, while still canonicalizing normalized-equal invalid query URLs before returning [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:323]
+- [x] [Review][Patch] Drop cursors when query identity is missing, invalid, or normalized to a different state [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:60]
+- [x] [Review][Patch] Enforce EventStore's 4,096-character opaque cursor limit [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:295]
+- [x] [Review][Patch] Preserve meaningful caller-supplied user and search whitespace instead of silently trimming identity [src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs:300]
+- [x] [Review][Patch] Reapply Fluent grid sort state when same-route sort parameters change [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:18]
+- [x] [Review][Patch] Add stable selectors at the sortable Tenant and Status header interactions [src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor:12]
+- [x] [Review][Patch] Canonicalize My Tenants paging before loading to avoid stale URLs and duplicate compatibility-route queries [src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor:164]
+- [x] [Review][Patch] Avoid querying the compatibility Users route before canonical workspace navigation [src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor:398]
+- [x] [Review][Patch] Prevent a superseded sort lookup from overwriting the newer live announcement [src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor:382]
+- [x] [Review][Patch] Extend direction-safety coverage to asymmetric physical CSS shorthands [tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:508]
+- [x] [Review][Patch] Add explicit cursor-reset tests for user-id and sort-direction-only transitions [tests/Hexalith.Tenants.UI.Tests/State/TenantWorkspaceStateTests.cs:72]
+- [x] [Review][Patch] Parse the release container map instead of rejecting only one exact UI mapping string [tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:308]
+- [x] [Review][Patch] Record the HTTP 414 request-target gap for intentionally unbounded canonical text values [_bmad-output/implementation-artifacts/story-1-1-ui-host-bootstrap-and-canonical-workspace-evidence-2026-07-19.md:121]
+- [x] [Review][Patch] Record resolved UI package output and explicit exit codes in the checked evidence report [_bmad-output/implementation-artifacts/story-1-1-ui-host-bootstrap-and-canonical-workspace-evidence-2026-07-19.md:65]
+- [x] [Review][Patch] Align the hosted Users compatibility-route smoke assertion with canonical omission of the default tenant sort [tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs:136]
+
+- [x] [Review][Decision] Post-patch runtime rerun resolved AC7/AC10: authenticated EN/FR Playwright assertions passed, `/tenants` returned 200, and hosted route smoke passed 6/6. AC9 remains platform-deferred; all review findings are resolved and the story is `done`.
