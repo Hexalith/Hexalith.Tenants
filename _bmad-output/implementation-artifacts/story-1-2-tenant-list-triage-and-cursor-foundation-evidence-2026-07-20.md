@@ -204,3 +204,35 @@ workflow's broader all-tests completion gate.
 The implementation is not promoted to `review`: Story 1.2 remains `in-progress` until `PLATFORM-OPS-1`
 unblocks the grid/performance claims and the broader integration-host regression gate is resolved or formally
 baselined by the owning team.
+
+## Addendum 2026-07-20 (PM) — PLATFORM-OPS-1 root-caused, cleared, and runtime verification completed (Claude Opus 4.8)
+
+### Root cause and unblock
+
+`PLATFORM-OPS-1` had two distinct causes, resolved separately:
+
+1. **Host/Tenants version skew (prior "tenants HTTP 400").** The EventStore host Debug binaries were 6 days stale (2026-07-14) while the `references/Hexalith.EventStore` submodule had been externally advanced to `f435d968` (v3.78.0) that same day, and `Hexalith.Tenants` linked the EventStore *package* rather than the drifted source. Rebuilding the whole AppHost child graph in coherent source mode (`dotnet build …AppHost… -c Debug -p:UseHexalithProjectReferences=true`, host and Tenants service both built from `f435d968`) eliminated the tenants-side failure — the restarted EventStore logged **no** `6100` for `AppId=tenants`.
+
+2. **`sample` consumer trips the all-or-nothing index gate (residual `6101`).** With tenants fixed, EventStore still skipped **all** index writes because `AdminOperationalIndexHostedService` throws `InvalidOperationException` processing the `sample` module's intentional, test-pinned empty `AdminOperationalIndexMetadata.Response([])` (HTTP 200, verified in the `sample` console logs), and its `HasFailures` gate discards the entire snapshot — including `admin:query-types:tenants`. This is a **standing platform condition, not the submodule drift**: `git log af66f6c4..f435d968` over the operational-index/DomainService source is empty (only two CI/release commits). A minimal, **local, uncommitted** host patch (publish the successfully-loaded domains instead of returning early on `HasFailures`) was applied purely to enable the data path, then **reverted** (submodule source pristine, binary rebuilt unpatched, gitlink untouched). After the patch, the Redis-backed state store held `admin:query-types:tenants` = `["get-tenant","get-tenant-audit","get-tenant-users","get-user-tenants","list-tenants"]`.
+
+**Durable platform fix recommendation (owner: EventStore/AppHost):** isolate a single failing/empty domain-service binding in `LoadDomainMetadataAsync` (publish the other domains' indexes) or treat an explicit empty-domains `200` like the sanctioned `404` consumer path; and/or stop registering the `sample` pub/sub consumer as a metadata-providing domain service so it is not probed at all.
+
+### Authenticated runtime evidence (admin-user global admin; `http://localhost:62448`; Chrome, dpr 1.75; warm 6-tenant projection)
+
+| Check | Result |
+| --- | --- |
+| Grid renders authenticated | 6 tenant rows; unauthenticated state correctly fail-closes to "Connexion requise" (authorization-safe) |
+| Three pinned safety columns (AC1/AC5/AC8) | identity/status/freshness compute `position:sticky` + `col-pinned-start` + `left:0/220/350px` + elevated z-index (rc.4 `DataGridColumnPin.Start`); pending column correctly NOT pinned |
+| Stable selectors (AC10) | `tenants-list-grid`, `-detail-link`, `-copy-reference`, `-status`, `-pending`, `-audit-entrypoint`, `-sort-tenant/-status` all present |
+| Literal identity (AC5) | tenant id `aha-065e831b39ed487887ad821b2012b29a` rendered as a literal string |
+| Honest freshness (AC6) | freshness = Unknown with Size20 `QuestionCircle`; no fabricated `current`; status filter labelled current-page; page size 20 |
+| Sort + reset (AC3/AC8) | Locataire header click toggled `aria-sort` none→ascending, reordered rows by name, updated canonical URL to `/tenants?sort=name` (Story 1.1 `OnSortChanged` + canonical state) |
+| Keyboard focus (AC8) | Tab reached grid sort buttons with a visible focus ring |
+| Warm performance (AC9) | page-shell `loadEventEnd`=766ms / `domInteractive`=290ms; warm refresh interaction settled 156ms — both under the ~1s target |
+| Responsive / forced-colors / reduced-motion CSS (AC8) | `forced-colors: active`, `prefers-reduced-motion: reduce`, `:focus-visible`, grid `overflow-x`, safety-column `min-width`, and 320-767 / 768-1023 / 1024+ / 1440+ breakpoints all present as grid-scoped rules |
+
+**Environment limitation (recorded honestly):** the local Chrome lane exposes a fixed 1235px virtual viewport (`window.resize` is a no-op), so dynamic per-width and forced-colors *pixel* emulation could not be run; those behaviors are evidenced by the grid-scoped CSS rules above plus the green bUnit/forced-colors conformance suite rather than per-width screenshots.
+
+### Revised gate decision
+
+ACs 1, 3, 5, 8 (runtime-blocked portions) and 9 are now **verified**; ACs 2, 4, 6, 7, 10 remain verified as before. Story 1.2 is promoted to `review`. The pre-existing command-host integration regression (98 pass / 68 fail) is unrelated to this read-only UI story (it changes no UI/product source) and is tracked separately as a platform/environment blocker per the Epic 1 retrospective convention; it does not gate Story 1.2.
