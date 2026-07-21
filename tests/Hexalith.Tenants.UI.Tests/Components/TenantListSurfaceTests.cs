@@ -30,13 +30,16 @@ public sealed class TenantListSurfaceTests : BunitContext
     [Fact]
     public void Workspace_renders_grid_controls_stable_selectors_and_truth_state()
     {
+        const string tenantId = "  tenant/%2F?x=é&glyph=о  ";
         TenantListSnapshot snapshot = ReadySnapshot(
             [
-                Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Stale, TenantPendingState.None),
+                Row(tenantId, "Alpha", TenantStatus.Active, ReadModelFreshnessState.Stale, TenantPendingState.None),
             ],
             nextCursor: "next-cursor",
             hasMore: true);
         RegisterServices(snapshot);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", tenantId).SetVoidResult();
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
@@ -46,13 +49,17 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-reset']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-list-sort-tenant']").Closest("fluent-button").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-list-sort-status']").Closest("fluent-button").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull().ShouldContain("/tenants/tenant.alpha");
+        cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull();
+        cut.Find("[data-testid='tenants-list-detail-link'] strong").TextContent.ShouldBe(tenantId);
         cut.Find("[data-testid='tenants-list-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-list-copy-reference']").TextContent.ShouldContain("Copy");
         cut.Find("[data-testid='tenants-copy-reference']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-list-truth-state']").TextContent.ShouldContain("Stale");
-        cut.Markup.ShouldContain("tenant.alpha");
         cut.Markup.ShouldContain("No pending changes");
+
+        cut.Find("[data-surface-testid='tenants-list-copy-reference']").Click();
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe(tenantId);
     }
 
     [Fact]
@@ -804,6 +811,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("tenants-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
+        styles.ShouldContain("overflow-wrap: anywhere");
+        styles.ShouldContain("white-space: break-spaces");
         styles.ShouldNotContain("animation:", Case.Insensitive);
         styles.ShouldNotContain("transition:", Case.Insensitive);
     }

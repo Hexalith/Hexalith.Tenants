@@ -1,73 +1,44 @@
 namespace Hexalith.Tenants.UI.Services.SupportSafety;
 
-public enum SupportSafeCopyValueKind {
-    TenantId,
-    UserId,
-    ConfigurationKey,
-    SafeConfigurationValue,
-    ApprovedReference,
-}
-
-public enum SupportSafeCopyEligibility {
-    Allowed,
-    Empty,
-    Unsafe,
-}
-
-public static class SupportSafeCopyClassifier {
-    private static readonly string[] IdentifierUnsafeFragments =
-    [
-        "bearer ",
-        "jwt",
-        "eyj",
-        "metadata",
-        "correlation",
-        "stack trace",
-        "exception",
-        "cursor",
-        "etag",
-        "messageid",
-        "payload",
-        "problem detail",
-    ];
-
-    private static readonly string[] StrictUnsafeFragments =
-    [
-        "secret",
-        "password",
-        "token",
-        "credential",
-        "connectionstring",
-        "bearer ",
-        "metadata",
-        "correlation",
-        "stack trace",
-        "exception",
-        "jwt",
-        "eyj",
-        "cursor",
-        "etag",
-        "messageid",
-        "payload",
-        "problem detail",
-        "infrastructure",
-        "@",
-    ];
-
-    public static SupportSafeCopyEligibility Classify(string? value, SupportSafeCopyValueKind kind) {
-        if (string.IsNullOrWhiteSpace(value)) {
+/// <summary>
+/// Applies the final fail-closed copy eligibility check immediately before clipboard interop.
+/// </summary>
+public static class SupportSafeCopyClassifier
+{
+    /// <summary>
+    /// Classifies a caller-supplied literal using its explicit surface approval and data kind.
+    /// </summary>
+    /// <param name="value">The exact literal that would be written to the clipboard.</param>
+    /// <param name="kind">The approved data contract represented by the literal.</param>
+    /// <param name="isApproved">Whether the authorized outer surface explicitly approved the literal.</param>
+    /// <returns>The fail-closed clipboard eligibility.</returns>
+    public static SupportSafeCopyEligibility Classify(
+        string? value,
+        SupportSafeCopyValueKind kind,
+        bool isApproved)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return SupportSafeCopyEligibility.Empty;
         }
 
-        string[] fragments = kind is SupportSafeCopyValueKind.TenantId or SupportSafeCopyValueKind.UserId
-            ? IdentifierUnsafeFragments
-            : StrictUnsafeFragments;
-
-        return fragments.Any(fragment => value.Contains(fragment, StringComparison.OrdinalIgnoreCase))
-            ? SupportSafeCopyEligibility.Unsafe
-            : SupportSafeCopyEligibility.Allowed;
+        bool isKnownKind = kind is SupportSafeCopyValueKind.TenantId
+            or SupportSafeCopyValueKind.UserId
+            or SupportSafeCopyValueKind.ConfigurationKey
+            or SupportSafeCopyValueKind.SafeConfigurationValue
+            or SupportSafeCopyValueKind.ApprovedReference;
+        return isApproved && isKnownKind
+            ? SupportSafeCopyEligibility.Allowed
+            : SupportSafeCopyEligibility.Unsafe;
     }
 
-    public static bool IsAllowed(string? value, SupportSafeCopyValueKind kind)
-        => Classify(value, kind) == SupportSafeCopyEligibility.Allowed;
+    /// <summary>
+    /// Determines whether a caller-supplied literal is eligible for clipboard interop.
+    /// </summary>
+    /// <param name="value">The exact literal that would be written to the clipboard.</param>
+    /// <param name="kind">The approved data contract represented by the literal.</param>
+    /// <param name="isApproved">Whether the authorized outer surface explicitly approved the literal.</param>
+    /// <returns><see langword="true"/> only when the literal is non-empty and explicitly approved.</returns>
+    public static bool IsAllowed(string? value, SupportSafeCopyValueKind kind, bool isApproved)
+        => Classify(value, kind, isApproved) is SupportSafeCopyEligibility.Allowed;
 }

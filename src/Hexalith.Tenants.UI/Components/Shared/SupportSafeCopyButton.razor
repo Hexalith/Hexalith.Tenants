@@ -4,42 +4,57 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<TenantsResources> Localizer
 
-<span class="support-safe-copy"
-      data-testid="@TestId"
-      data-copy-kind="@ValueKind">
-    <FluentButton Appearance="ButtonAppearance.Subtle"
-                  IconStart="@FcFluentIcons.Copy16()"
-                  Class="@ButtonCss"
-                  data-testid="tenants-copy-reference"
-                  data-surface-testid="@TestId"
-                  data-copy-kind="@ValueKind"
-                  aria-label="@AccessibleName"
-                  OnClick="CopyAsync">
-        <span class="support-safe-copy__text">@Localizer["Tenants.Copy.Action"]</span>
-    </FluentButton>
-    <span class="@FeedbackCss"
-          role="status"
-          aria-live="@_livePoliteness"
-          data-testid="@($"{TestId}-feedback")">
-        @_feedback
+@if (IsEligible)
+{
+    <span class="support-safe-copy"
+          data-testid="@TestId"
+          data-copy-kind="@ValueKind">
+        <FluentButton Appearance="ButtonAppearance.Subtle"
+                      IconStart="@FcFluentIcons.Copy16()"
+                      Class="@ButtonCss"
+                      data-testid="tenants-copy-reference"
+                      data-surface-testid="@TestId"
+                      data-copy-kind="@ValueKind"
+                      aria-label="@AccessibleName"
+                      OnClick="CopyAsync">
+            <span class="support-safe-copy__text">@Localizer["Tenants.Copy.Action"]</span>
+        </FluentButton>
+        <span class="@FeedbackCss"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              data-testid="@($"{TestId}-feedback")">
+            @_feedback
+        </span>
     </span>
-</span>
+}
 
 @code {
     private const string ClipboardModulePath = "./js/tenantsClipboard.js";
 
     private IJSObjectReference? _module;
     private string _feedback = string.Empty;
-    private string _livePoliteness = "polite";
     private CopyFeedbackKind _feedbackKind = CopyFeedbackKind.Ready;
+    private string _observedValue = string.Empty;
+    private SupportSafeCopyValueKind _observedValueKind = SupportSafeCopyValueKind.Unknown;
+    private bool _observedIsApproved;
+    private string _observedAccessibleName = string.Empty;
+    private long _inputVersion;
+    private int _activationInProgress;
 
     [Parameter]
     public string Value { get; set; } = string.Empty;
 
     [Parameter]
-    public SupportSafeCopyValueKind ValueKind { get; set; } = SupportSafeCopyValueKind.ApprovedReference;
+    [EditorRequired]
+    public SupportSafeCopyValueKind ValueKind { get; set; } = SupportSafeCopyValueKind.Unknown;
 
     [Parameter]
+    [EditorRequired]
+    public bool IsApproved { get; set; }
+
+    [Parameter]
+    [EditorRequired]
     public string AccessibleName { get; set; } = string.Empty;
 
     [Parameter]
@@ -51,56 +66,137 @@
     private string FeedbackCss
         => $"support-safe-copy__feedback support-safe-copy__feedback--{_feedbackKind.ToString().ToLowerInvariant()}";
 
+    private bool IsEligible
+        => !string.IsNullOrWhiteSpace(AccessibleName)
+            && SupportSafeCopyClassifier.IsAllowed(Value, ValueKind, IsApproved);
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_observedValue, Value, StringComparison.Ordinal)
+            && _observedValueKind == ValueKind
+            && _observedIsApproved == IsApproved
+            && string.Equals(_observedAccessibleName, AccessibleName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _observedValue = IsEligible ? Value : string.Empty;
+        _observedValueKind = ValueKind;
+        _observedIsApproved = IsApproved;
+        _observedAccessibleName = AccessibleName;
+        _ = Interlocked.Increment(ref _inputVersion);
+        _feedback = string.Empty;
+        _feedbackKind = CopyFeedbackKind.Ready;
+    }
+
     private async Task CopyAsync()
     {
-        SupportSafeCopyEligibility eligibility = SupportSafeCopyClassifier.Classify(Value, ValueKind);
-        if (eligibility is SupportSafeCopyEligibility.Empty)
+        if (Interlocked.CompareExchange(ref _activationInProgress, 1, 0) != 0)
         {
-            SetFeedback(CopyFeedbackKind.Empty, "Tenants.Copy.Feedback.Empty", "assertive");
             return;
         }
 
-        if (eligibility is SupportSafeCopyEligibility.Unsafe)
-        {
-            SetFeedback(CopyFeedbackKind.Unsafe, "Tenants.Copy.Feedback.Unsafe", "assertive");
-            return;
-        }
-
+        CopyInput input = new(Value, ValueKind, IsApproved, AccessibleName, Volatile.Read(ref _inputVersion));
         try
         {
+            if (!input.IsEligible)
+            {
+                return;
+            }
+
+            await ClearFeedbackAsync(input.Version).ConfigureAwait(false);
+
             IJSObjectReference module = _module
                 ??= await JS.InvokeAsync<IJSObjectReference>("import", ClipboardModulePath).ConfigureAwait(false);
+            bool writeStarted = false;
+            await InvokeAsync(async () =>
+            {
+                if (!IsCurrent(input.Version) || !input.IsEligible)
+                {
+                    return;
+                }
 
-            await module.InvokeVoidAsync("writeText", Value).ConfigureAwait(false);
-            SetFeedback(CopyFeedbackKind.Copied, "Tenants.Copy.Feedback.Copied", "polite");
+                writeStarted = true;
+                await module.InvokeVoidAsync("writeText", input.Value).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+            if (!writeStarted)
+            {
+                return;
+            }
+
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Copied, "Tenants.Copy.Feedback.Copied").ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Canceled, "Tenants.Copy.Feedback.Canceled").ConfigureAwait(false);
         }
         catch (JSDisconnectedException)
         {
-            SetFeedback(CopyFeedbackKind.Disconnected, "Tenants.Copy.Feedback.Disconnected", "assertive");
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Disconnected, "Tenants.Copy.Feedback.Disconnected").ConfigureAwait(false);
         }
         catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_INSECURE", StringComparison.Ordinal))
         {
-            SetFeedback(CopyFeedbackKind.Insecure, "Tenants.Copy.Feedback.Insecure", "assertive");
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Insecure, "Tenants.Copy.Feedback.Insecure").ConfigureAwait(false);
         }
         catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_MISSING", StringComparison.Ordinal))
         {
-            SetFeedback(CopyFeedbackKind.Unavailable, "Tenants.Copy.Feedback.Unavailable", "assertive");
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Unavailable, "Tenants.Copy.Feedback.Unavailable").ConfigureAwait(false);
         }
         catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_NOT_ALLOWED", StringComparison.Ordinal))
         {
-            SetFeedback(CopyFeedbackKind.Permission, "Tenants.Copy.Feedback.PermissionDenied", "assertive");
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Permission, "Tenants.Copy.Feedback.PermissionDenied").ConfigureAwait(false);
         }
         catch (JSException)
         {
-            SetFeedback(CopyFeedbackKind.Failed, "Tenants.Copy.Feedback.Failed", "assertive");
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Failed, "Tenants.Copy.Feedback.Failed").ConfigureAwait(false);
+        }
+        finally
+        {
+            Volatile.Write(ref _activationInProgress, 0);
         }
     }
 
-    private void SetFeedback(CopyFeedbackKind kind, string resourceKey, string politeness)
+    private bool IsCurrent(long version)
+        => Volatile.Read(ref _inputVersion) == version;
+
+    private async Task ClearFeedbackAsync(long version)
     {
-        _feedbackKind = kind;
-        _feedback = Localizer[resourceKey];
-        _livePoliteness = politeness;
+        await InvokeAsync(() =>
+        {
+            if (IsCurrent(version))
+            {
+                _feedbackKind = CopyFeedbackKind.Ready;
+                _feedback = string.Empty;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+    }
+
+    private async Task PublishFeedbackAsync(long version, CopyFeedbackKind kind, string resourceKey)
+    {
+        if (!IsCurrent(version))
+        {
+            return;
+        }
+
+        await InvokeAsync(() =>
+        {
+            if (IsCurrent(version))
+            {
+                _feedbackKind = CopyFeedbackKind.Ready;
+                _feedback = string.Empty;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (IsCurrent(version))
+            {
+                _feedbackKind = kind;
+                _feedback = Localizer[resourceKey];
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -124,12 +220,23 @@
     {
         Ready,
         Copied,
-        Empty,
-        Unsafe,
+        Canceled,
         Unavailable,
         Insecure,
         Permission,
         Disconnected,
         Failed,
+    }
+
+    private readonly record struct CopyInput(
+        string Value,
+        SupportSafeCopyValueKind ValueKind,
+        bool IsApproved,
+        string AccessibleName,
+        long Version)
+    {
+        public bool IsEligible
+            => !string.IsNullOrWhiteSpace(AccessibleName)
+                && SupportSafeCopyClassifier.IsAllowed(Value, ValueKind, IsApproved);
     }
 }

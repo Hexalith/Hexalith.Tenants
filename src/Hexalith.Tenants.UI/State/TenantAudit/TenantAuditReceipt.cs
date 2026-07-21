@@ -55,17 +55,17 @@ public sealed record TenantAuditReceipt(
 
         string outcome = $"{row.EventType} ({row.Category})";
         TenantAuditReceiptState state = ResolveState(row, outcome, surfaceKind, auditState);
-        string? commandReference = SafeApprovedReference(supportSafeCommandReference);
+        string? commandReference = TenantAuditSupportSafety.SafeApprovedReference(supportSafeCommandReference);
         string copyableReferenceText = BuildCopyableReferenceText(row, outcome, commandReference, state);
 
         return new(
-            SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId),
+            TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId),
             SafeTarget(row),
-            SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId),
+            TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId),
             outcome,
             row.Timestamp,
             row.Freshness,
-            SafeApprovedReference(row.EventReference) ?? string.Empty,
+            TenantAuditSupportSafety.SafeApprovedReference(row.EventReference) ?? string.Empty,
             commandReference,
             state,
             copyableReferenceText);
@@ -75,9 +75,9 @@ public sealed record TenantAuditReceipt(
         string? requestedReference,
         string tenantId,
         string? supportSafeCommandReference = null) {
-        string auditReference = SafeApprovedReference(requestedReference) ?? string.Empty;
-        string scope = SafeIdentifier(tenantId, SupportSafeCopyValueKind.TenantId);
-        string? commandReference = SafeApprovedReference(supportSafeCommandReference);
+        string auditReference = TenantAuditSupportSafety.SafeApprovedReference(requestedReference) ?? string.Empty;
+        string scope = TenantAuditSupportSafety.SafeIdentifier(tenantId, SupportSafeCopyValueKind.TenantId);
+        string? commandReference = TenantAuditSupportSafety.SafeApprovedReference(supportSafeCommandReference);
 
         return new(
             string.Empty,
@@ -133,10 +133,10 @@ public sealed record TenantAuditReceipt(
     }
 
     private static bool HasRequiredFields(TenantAuditRow row, string outcome)
-        => !string.IsNullOrWhiteSpace(SafeApprovedReference(row.EventReference))
-            && !string.IsNullOrWhiteSpace(SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId))
+        => !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeApprovedReference(row.EventReference))
+            && !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeIdentifier(row.ActorId, SupportSafeCopyValueKind.UserId))
             && !string.IsNullOrWhiteSpace(SafeTarget(row))
-            && !string.IsNullOrWhiteSpace(SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId))
+            && !string.IsNullOrWhiteSpace(TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId))
             && !string.IsNullOrWhiteSpace(outcome);
 
     private static string BuildCopyableReferenceText(
@@ -144,7 +144,7 @@ public sealed record TenantAuditReceipt(
         string outcome,
         string? commandReference,
         TenantAuditReceiptState state) {
-        string? auditReference = SafeApprovedReference(row.EventReference);
+        string? auditReference = TenantAuditSupportSafety.SafeApprovedReference(row.EventReference);
         if (state is TenantAuditReceiptState.Partial || string.IsNullOrWhiteSpace(auditReference)) {
             return string.Empty;
         }
@@ -152,14 +152,14 @@ public sealed record TenantAuditReceipt(
         StringBuilder builder = new();
         AppendLine(builder, "Audit reference", auditReference);
         AppendLine(builder, "Command reference", commandReference);
-        AppendLine(builder, "Tenant scope", SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId));
+        AppendLine(builder, "Tenant scope", TenantAuditSupportSafety.SafeIdentifier(row.Scope, SupportSafeCopyValueKind.TenantId));
         AppendLine(builder, "Target", SafeTarget(row));
-        AppendLine(builder, "Outcome", SafeApprovedReference(outcome));
+        AppendLine(builder, "Outcome", TenantAuditSupportSafety.SafeApprovedReference(outcome));
         AppendLine(builder, "Projection marker", row.Freshness.ToString());
         AppendLine(builder, "Timestamp", row.Timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture));
 
         string result = builder.ToString();
-        return SupportSafeCopyClassifier.IsAllowed(result, SupportSafeCopyValueKind.ApprovedReference)
+        return TenantAuditSupportSafety.IsSafe(result, SupportSafeCopyValueKind.ApprovedReference)
             ? result
             : string.Empty;
     }
@@ -171,7 +171,7 @@ public sealed record TenantAuditReceipt(
     }
 
     private static string SafeTarget(TenantAuditRow row)
-        => SafeIdentifier(row.Target, TargetValueKind(row));
+        => TenantAuditSupportSafety.SafeIdentifier(row.Target, TargetValueKind(row));
 
     private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row) {
         string userMarker = $"userId: {row.Target}";
@@ -185,9 +185,4 @@ public sealed record TenantAuditReceipt(
             : SupportSafeCopyValueKind.TenantId;
     }
 
-    private static string SafeIdentifier(string? value, SupportSafeCopyValueKind kind)
-        => SupportSafeCopyClassifier.IsAllowed(value, kind) ? value! : string.Empty;
-
-    private static string? SafeApprovedReference(string? value)
-        => SupportSafeCopyClassifier.IsAllowed(value, SupportSafeCopyValueKind.ApprovedReference) ? value : null;
 }

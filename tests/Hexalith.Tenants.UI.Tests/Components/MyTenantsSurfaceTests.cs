@@ -26,13 +26,16 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     [Fact]
     public void My_tenants_route_renders_memberships_stable_selectors_and_no_mutation_controls()
     {
+        const string tenantId = "  tenant/%2F?x=é&glyph=о  ";
         RegisterServices(ReadySnapshot(
             [
-                Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current),
+                Row(tenantId, "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current),
                 Row("tenant.beta", "Beta", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Unknown),
             ],
             nextCursor: "next",
             hasMore: true));
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", tenantId).SetVoidResult();
 
         IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
         cut.WaitForElement("[data-testid='tenants-my-list']");
@@ -40,7 +43,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-my-refresh']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-my-back']").GetAttribute("href").ShouldBe("/tenants?tab=tenants&scope=mine");
         cut.FindAll("[data-testid='tenants-my-row']").Count.ShouldBe(2);
-        cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldContain("tenant.alpha");
+        cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldBe(tenantId);
         cut.FindAll("[data-testid='tenants-my-copy-reference']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-my-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
@@ -52,6 +55,10 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.Markup.ShouldNotContain("change role", Case.Insensitive);
         cut.Markup.ShouldNotContain("command", Case.Insensitive);
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+
+        cut.Find("[data-surface-testid='tenants-my-copy-reference']").Click();
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe(tenantId);
     }
 
     [Fact]
@@ -297,6 +304,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         styles.ShouldContain("overflow-x: auto");
         styles.ShouldContain("min-width:");
         styles.ShouldContain("white-space: nowrap");
+        styles.ShouldContain("white-space: break-spaces");
         styles.ShouldContain("tenants-my-critical");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr) auto");
     }

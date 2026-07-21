@@ -29,14 +29,15 @@
     overflow-wrap: anywhere;
 }
 
-/* identity id: single line, clipped with an ellipsis so it can never overrun the copy
-   affordance; the full value stays reachable via the copy button + the link title. */
+/* Preserve the exact caller-supplied identifier, including significant whitespace, while
+   allowing long content to wrap without overrunning the copy affordance. */
 .tenant-data-grid__detail-link {
     color: LinkText;
     min-width: 0;
     overflow: hidden;
+    overflow-wrap: anywhere;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: break-spaces;
 }
 
 .tenant-data-grid__detail-link:focus-visible {

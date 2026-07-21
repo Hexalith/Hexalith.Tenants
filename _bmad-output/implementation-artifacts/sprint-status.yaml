@@ -58,7 +58,7 @@ development_status:
   1-5-user-membership-lookup: done
   1-6-read-only-tenant-configuration: backlog
   1-7-tenant-member-table-and-action-availability: done
-  1-8-support-safe-identifier-copy-and-read-experience-evidence: backlog
+  1-8-support-safe-identifier-copy-and-read-experience-evidence: done
   1-9-authoritative-memories-search-with-protected-paging: backlog
   1-10-direct-tenants-reads-and-authoritative-freshness: backlog
   1-11-authorized-global-administrator-review: backlog

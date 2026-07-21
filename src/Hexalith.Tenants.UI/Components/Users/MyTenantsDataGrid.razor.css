@@ -28,16 +28,17 @@
 .my-tenants-grid__identity strong,
 .my-tenants-grid__identity span {
     overflow-wrap: anywhere;
+    white-space: break-spaces;
 }
 
-/* identity id link: single line, clipped with an ellipsis so it can never overrun the copy
-   affordance; the full value stays reachable via the copy button + the link title. */
+/* Preserve the exact caller-supplied identifier, including significant whitespace, while
+   allowing long content to wrap without overrunning the copy affordance. */
 .my-tenants-grid__detail-link {
     color: LinkText;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: break-spaces;
 }
 
 .my-tenants-grid__detail-link:focus-visible {

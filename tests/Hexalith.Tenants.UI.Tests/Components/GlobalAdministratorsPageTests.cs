@@ -37,6 +37,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", "platform-admin.alpha").SetVoidResult();
 
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
@@ -54,6 +56,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         cut.Markup.ShouldNotContain("/api/users", Case.Insensitive);
         cut.Markup.ShouldNotContain("tenant ownership", Case.Insensitive);
         cut.Markup.ShouldContain("data-testid=\"tenants-global-admins-list\"");
+
+        cut.Find("[data-surface-testid='tenants-global-admins-copy-user-id']").Click();
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe("platform-admin.alpha");
     }
 
     [Fact]

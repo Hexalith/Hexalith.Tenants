@@ -305,7 +305,7 @@
 
             bool currentExists = Detail.Configuration.TryGetValue(request.Key, out string? currentValue);
             string currentState = currentExists
-                ? SafeConfigurationDisplay(currentValue!)
+                ? SafeConfigurationDisplay(request.Key, currentValue!)
                 : Localizer["Tenants.Configuration.Set.Preview.CurrentState.Absent"];
             return
             [
@@ -711,8 +711,8 @@
         _focusValuePending = focusTarget is TenantCommandFocusTarget.Value;
     }
 
-    private string SafeConfigurationDisplay(string value)
-        => SupportSafeCopyClassifier.IsAllowed(value, SupportSafeCopyValueKind.SafeConfigurationValue)
+    private string SafeConfigurationDisplay(string key, string value)
+        => LegacyConfigurationDisplaySanitizer.IsDisplayable(key, value)
             ? value
             : Localizer["Tenants.Configuration.Value.Unavailable"];
 

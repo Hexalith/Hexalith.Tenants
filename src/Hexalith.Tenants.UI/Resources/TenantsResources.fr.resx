@@ -1686,23 +1686,26 @@
   <data name="Tenants.Copy.Feedback.Copied" xml:space="preserve">
     <value>Copié.</value>
   </data>
+  <data name="Tenants.Copy.Feedback.Canceled" xml:space="preserve">
+    <value>La copie n'a pas pu être effectuée. Sélectionnez la valeur et copiez-la manuellement.</value>
+  </data>
   <data name="Tenants.Copy.Feedback.Disconnected" xml:space="preserve">
-    <value>Presse-papiers déconnecté. La copie n'a pas été effectuée.</value>
+    <value>Presse-papiers déconnecté. La copie n'a pas été effectuée. Sélectionnez la valeur et copiez-la manuellement.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Empty" xml:space="preserve">
     <value>Aucune valeur n'est disponible à copier.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Failed" xml:space="preserve">
-    <value>La copie a échoué.</value>
+    <value>La copie a échoué. Sélectionnez la valeur et copiez-la manuellement.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Insecure" xml:space="preserve">
-    <value>Le presse-papiers est indisponible dans ce contexte de navigateur.</value>
+    <value>Le presse-papiers est indisponible dans ce contexte de navigateur. Sélectionnez la valeur et copiez-la manuellement.</value>
   </data>
   <data name="Tenants.Copy.Feedback.PermissionDenied" xml:space="preserve">
-    <value>L'autorisation du presse-papiers n'a pas été accordée.</value>
+    <value>L'autorisation du presse-papiers n'a pas été accordée. Sélectionnez la valeur et copiez-la manuellement.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Unavailable" xml:space="preserve">
-    <value>Presse-papiers indisponible.</value>
+    <value>Presse-papiers indisponible. Sélectionnez la valeur et copiez-la manuellement.</value>
   </data>
   <data name="Tenants.Copy.Feedback.Unsafe" xml:space="preserve">
     <value>Cette valeur n'est pas sûre pour le support.</value>

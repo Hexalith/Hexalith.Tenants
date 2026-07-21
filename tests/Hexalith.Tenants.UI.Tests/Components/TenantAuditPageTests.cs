@@ -36,6 +36,8 @@ public sealed class TenantAuditPageTests : BunitContext
             nextCursor: "next-cursor",
             hasMore: true);
         StubTenantQueryGateway gateway = RegisterServices(snapshot);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler writeHandler = module.SetupVoid("writeText", "event-safe-reference").SetVoidResult();
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
@@ -55,6 +57,23 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
         cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
         cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
+
+        cut.Find("[data-surface-testid='tenants-audit-copy-reference']").Click();
+        cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
+        writeHandler.Invocations.Single().Arguments[0].ShouldBe("event-safe-reference");
+    }
+
+    [Fact]
+    public void Tenant_audit_page_omits_grid_copy_for_an_unsafe_raw_event_reference()
+    {
+        RegisterServices(ReadySnapshot([Row("Bearer raw-token", AuditEventCategory.Access)]));
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+
+        cut.FindAll("[data-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
+        cut.FindAll("[data-surface-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
     }
 
     [Fact]

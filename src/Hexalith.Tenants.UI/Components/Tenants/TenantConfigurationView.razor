@@ -130,13 +130,6 @@
                                          data-testid="tenants-config-row">
                                         <code data-testid="tenants-config-key"
                                               aria-label="@Localizer["Tenants.Configuration.KeyAccessible", context.Key]">@context.Key</code>
-                                        @if (context.IsSafe)
-                                        {
-                                            <SupportSafeCopyButton Value="@context.Key"
-                                                                   ValueKind="SupportSafeCopyValueKind.ConfigurationKey"
-                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationKey", context.Key]"
-                                                                   TestId="tenants-config-copy-reference" />
-                                        }
                                     </div>
                                 </TemplateColumn>
                                 <TemplateColumn Title="@Localizer["Tenants.Configuration.Header.Value"]"
@@ -144,14 +137,8 @@
                                                 Width="260px">
                                     @if (context.IsSafe)
                                     {
-                                        <div class="tenant-config__literal-row">
-                                            <code class="tenant-config__value"
-                                                  aria-label="@Localizer["Tenants.Configuration.ValueAccessible", context.DisplayValue]">@context.DisplayValue</code>
-                                            <SupportSafeCopyButton Value="@context.DisplayValue"
-                                                                   ValueKind="SupportSafeCopyValueKind.SafeConfigurationValue"
-                                                                   AccessibleName="@Localizer["Tenants.Copy.Label.ConfigurationValue", context.Key]"
-                                                                   TestId="tenants-config-copy-reference" />
-                                        </div>
+                                        <code class="tenant-config__value"
+                                              aria-label="@Localizer["Tenants.Configuration.ValueAccessible", context.DisplayValue]">@context.DisplayValue</code>
                                     }
                                     else
                                     {
@@ -313,8 +300,7 @@
 
     private ConfigurationRow ToRow(KeyValuePair<string, string> item)
     {
-        bool isKeySafe = SupportSafeCopyClassifier.IsAllowed(item.Key, SupportSafeCopyValueKind.ConfigurationKey);
-        bool isSafe = isKeySafe && SupportSafeCopyClassifier.IsAllowed(item.Value, SupportSafeCopyValueKind.SafeConfigurationValue);
+        bool isSafe = LegacyConfigurationDisplaySanitizer.IsDisplayable(item.Key, item.Value);
         string displayValue = isSafe ? item.Value : Localizer["Tenants.Configuration.Value.Unavailable"];
         return new(
             NamespaceLabel(item.Key),

@@ -34,33 +34,41 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class TenantDetailSurfaceTests : BunitContext
 {
-    private static readonly string[] AllowedConfigurationCopyKinds =
-    [
-        "ConfigurationKey",
-        "SafeConfigurationValue",
-    ];
-
     [Fact]
     public void Detail_page_loads_through_gateway_and_renders_operational_overview()
     {
+        const string tenantId = "  tenant/%2F?x=é&glyph=о  ";
+        const string memberId = "  user/%2F?x=é&glyph=о  ";
+        TenantDetail detail = Detail(
+            tenantId,
+            new Dictionary<string, string> { ["billing.mode"] = "trial" },
+            TenantStatus.Active,
+            [
+                new TenantMember(memberId, TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+            ]);
         List<TenantDetailRequest> requests = [];
         RegisterServices(call =>
         {
             requests.Add(call.ArgAt<TenantDetailRequest>(0));
-            return Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current));
+            return Task.FromResult(TenantDetailSnapshot.Ready(detail, "\"etag\"", ReadModelFreshnessState.Current));
         });
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
+        JSRuntimeInvocationHandler tenantWrite = module.SetupVoid("writeText", tenantId).SetVoidResult();
+        JSRuntimeInvocationHandler memberWrite = module.SetupVoid("writeText", memberId).SetVoidResult();
 
         Services.GetRequiredService<NavigationManager>()
             .NavigateTo("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha%26selected%3Dtenant.alpha");
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
-            .Add(page => page.TenantId, "tenant.alpha"));
+            .Add(page => page.TenantId, tenantId));
         cut.WaitForElement("[data-testid='tenants-detail-identity']");
 
-        requests.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        requests.ShouldHaveSingleItem().TenantId.ShouldBe(tenantId);
         cut.Find("[data-testid='tenants-detail-back']").GetAttribute("href").ShouldBe("/tenants?search=alpha&selected=tenant.alpha");
         cut.Find("[data-testid='tenants-detail-truth-state']").TextContent.ShouldContain("Current");
-        cut.Find("[data-testid='tenants-detail-identity']").TextContent.ShouldContain("tenant.alpha");
+        cut.Find(".tenant-detail__literal").TextContent.ShouldBe(tenantId);
+        cut.Find("[data-testid='tenants-member-user-id'] code").TextContent.ShouldBe(memberId);
         cut.Find("[data-testid='tenants-edit-metadata-flow']").TextContent.ShouldContain("Alpha");
         cut.Find("[data-testid='tenants-detail-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-detail-copy-reference']").TextContent.ShouldContain("Copy");
@@ -71,8 +79,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-detail-configuration-summary']").TextContent.ShouldContain("1 configuration keys");
         cut.Find("[data-testid='tenants-config-set-flow']");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
-        cut.Markup.ShouldContain("aria-label=\"Full tenant identifier tenant.alpha\"");
+        cut.Find(".tenant-detail__literal").GetAttribute("aria-label").ShouldBe($"Full tenant identifier {tenantId}");
         cut.Markup.ShouldContain("aria-label=\"Tenant status Active\"");
+
+        cut.Find("[data-surface-testid='tenants-detail-copy-reference']").Click();
+        cut.WaitForAssertion(() => tenantWrite.Invocations.Count.ShouldBe(1));
+        tenantWrite.Invocations.Single().Arguments[0].ShouldBe(tenantId);
+
+        cut.Find("[data-surface-testid='tenants-member-copy-reference']").Click();
+        cut.WaitForAssertion(() => memberWrite.Invocations.Count.ShouldBe(1));
+        memberWrite.Invocations.Single().Arguments[0].ShouldBe(memberId);
     }
 
     [Fact]
@@ -212,7 +228,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Configuration_view_groups_namespaces_redacts_sensitive_values_and_preserves_accessible_literals()
+    public void Configuration_view_preserves_legacy_safe_display_but_omits_copy_without_a_positive_safe_model()
     {
         RegisterServices(_ => Task.FromResult(TenantDetailSnapshot.Ready(Detail("tenant.alpha"), "\"etag\"", ReadModelFreshnessState.Current)));
         TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>
@@ -235,11 +251,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("Unavailable");
         cut.Markup.ShouldContain("data-testid=\"tenants-config-key\"");
         cut.Markup.ShouldContain("data-testid=\"tenants-config-value-state\"");
-        cut.FindAll("[data-testid='tenants-config-copy-reference']").Count.ShouldBe(4);
-        cut.FindAll("[data-testid='tenants-config-copy-reference']")
-            .ShouldAllBe(static copy => AllowedConfigurationCopyKinds.Contains(copy.GetAttribute("data-copy-kind"), StringComparer.Ordinal));
+        cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
+        cut.FindAll("[data-copy-kind='ConfigurationKey']").ShouldBeEmpty();
+        cut.FindAll("[data-copy-kind='SafeConfigurationValue']").ShouldBeEmpty();
         cut.Markup.ShouldContain("aria-label=\"Full configuration key billing.mode\"");
         cut.Markup.ShouldContain("aria-label=\"Visible configuration value trial\"");
+        cut.Markup.ShouldContain("trial");
         cut.Markup.ShouldNotContain("secret-host");
         cut.Markup.ShouldNotContain("Password=hidden");
         cut.Markup.ShouldNotContain("raw-token");
@@ -322,7 +339,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("billing.mode");
         cut.Find("[data-testid='tenants-config-table']").TextContent.ShouldContain("trial");
-        cut.FindAll("[data-testid='tenants-config-copy-reference']").Count.ShouldBe(2);
+        cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-config-value-state']").Count(item => item.TextContent.Contains("Unavailable", StringComparison.Ordinal)).ShouldBe(5);
         cut.Markup.ShouldNotContain("EventStore metadata", Case.Insensitive);
         cut.Markup.ShouldNotContain("raw-cursor", Case.Insensitive);
@@ -799,6 +816,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             "TenantDetailPage.razor.css"));
 
         styles.ShouldContain("overflow-wrap: anywhere");
+        styles.ShouldContain("white-space: break-spaces");
         styles.ShouldContain("grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr))");
         styles.ShouldContain("@media (max-width: 767px)");
         styles.ShouldContain("grid-template-columns: minmax(0, 1fr)");
@@ -829,6 +847,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             "MemberAccessReview.razor.css"));
 
         memberStyles.ShouldContain("overflow-wrap: anywhere");
+        memberStyles.ShouldContain("white-space: break-spaces");
         memberStyles.ShouldContain("grid-template-columns");
         memberStyles.ShouldContain("min-width");
         memberStyles.ShouldContain("@media (max-width: 767px)");
@@ -893,6 +912,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         copyStyles.ShouldContain(":focus-visible");
         copyStyles.ShouldContain("@media (forced-colors: active)");
         copyStyles.ShouldContain("min-inline-size");
+        copyStyles.ShouldNotContain("animation:", Case.Insensitive);
+        copyStyles.ShouldNotContain("transition:", Case.Insensitive);
     }
 
     [Fact]
@@ -1128,11 +1149,19 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         component.ShouldContain("IJSRuntime");
         component.ShouldContain("JSDisconnectedException");
         component.ShouldNotContain("HttpClient");
+        component.ShouldNotContain("ILogger");
+        component.ShouldNotContain("Console.");
+        component.ShouldNotContain("JsonSerializer");
         component.ShouldNotContain("localStorage", Case.Insensitive);
         component.ShouldNotContain("sessionStorage", Case.Insensitive);
         script.ShouldContain("navigator.clipboard.writeText");
         script.ShouldNotContain("document.execCommand", Case.Insensitive);
         script.ShouldNotContain("GET /api/", Case.Insensitive);
+        script.ShouldNotContain("fetch(", Case.Insensitive);
+        script.ShouldNotContain("XMLHttpRequest", Case.Insensitive);
+        script.ShouldNotContain("sendBeacon", Case.Insensitive);
+        script.ShouldNotContain("console.", Case.Insensitive);
+        script.ShouldNotContain("JSON.stringify", Case.Insensitive);
         script.ShouldNotContain("access_token", Case.Insensitive);
         script.ShouldNotContain("localStorage", Case.Insensitive);
         script.ShouldNotContain("sessionStorage", Case.Insensitive);
