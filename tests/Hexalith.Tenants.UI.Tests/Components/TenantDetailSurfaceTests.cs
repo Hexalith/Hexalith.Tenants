@@ -792,7 +792,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         request.Status.ShouldBe(TenantStatus.Disabled);
         request.SortColumn.ShouldBe(TenantListSortColumns.Name);
         request.SortDescending.ShouldBeTrue();
-        request.Cursor.ShouldBe("cursor-1");
+        request.Cursor.ShouldBeNull();
         cut.Find("[data-testid='tenants-list-return-context']").TextContent.ShouldContain("tenant.beta");
         cut.Markup.ShouldContain("tenant.beta");
         cut.Markup.ShouldNotContain("tenant.alpha");
