@@ -237,6 +237,9 @@
   <data name="Tenants.MyTenants.Description" xml:space="preserve">
     <value>Read-only view of tenants visible to your signed-in account.</value>
   </data>
+  <data name="Tenants.MyTenants.DetailLinkLabel" xml:space="preserve">
+    <value>Open tenant details for {0}</value>
+  </data>
   <data name="Tenants.MyTenants.Freshness.Aging" xml:space="preserve">
     <value>Aging</value>
   </data>
@@ -266,6 +269,9 @@
   </data>
   <data name="Tenants.MyTenants.Refresh" xml:space="preserve">
     <value>Refresh</value>
+  </data>
+  <data name="Tenants.MyTenants.ReturnContext" xml:space="preserve">
+    <value>Returned from tenant {0}. Your My Tenants view was restored on the authorized first page.</value>
   </data>
   <data name="Tenants.MyTenants.Role.TenantContributor" xml:space="preserve">
     <value>Tenant contributor</value>

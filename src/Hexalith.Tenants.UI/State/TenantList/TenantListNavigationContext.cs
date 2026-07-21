@@ -21,15 +21,30 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
     {
         ArgumentNullException.ThrowIfNull(row);
 
+        return ToDetailUrl(row.TenantId, $"tenant-row-{row.TenantId}");
+    }
+
+    /// <summary>
+    /// Builds a tenant detail URL with canonical return state for a literal tenant identifier and
+    /// return-focus anchor. Shared by the scope=all list grid and the scope=mine self-audit grid so both
+    /// surfaces reuse the same detail route and restore their own selection/anchor on return.
+    /// </summary>
+    /// <param name="tenantId">The literal, caller-supplied tenant identifier.</param>
+    /// <param name="anchor">The return-focus anchor matching the originating row element id.</param>
+    public string ToDetailUrl(string tenantId, string anchor)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
+
         TenantWorkspaceState selected = WorkspaceState with
         {
             Cursor = null,
-            SelectedTenantId = row.TenantId,
-            Anchor = $"tenant-row-{row.TenantId}",
+            SelectedTenantId = tenantId,
+            Anchor = anchor,
         };
-        string tenantId = Uri.EscapeDataString(row.TenantId);
+        string encodedTenantId = Uri.EscapeDataString(tenantId);
         string returnUrl = Uri.EscapeDataString(selected.ToCanonicalUrl());
-        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}?returnUrl={returnUrl}");
+        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{encodedTenantId}?returnUrl={returnUrl}");
     }
 
     /// <summary>

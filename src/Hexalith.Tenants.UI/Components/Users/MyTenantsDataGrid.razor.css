@@ -30,6 +30,27 @@
     overflow-wrap: anywhere;
 }
 
+/* identity id link: single line, clipped with an ellipsis so it can never overrun the copy
+   affordance; the full value stays reachable via the copy button + the link title. */
+.my-tenants-grid__detail-link {
+    color: LinkText;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.my-tenants-grid__detail-link:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+    .my-tenants-grid__detail-link:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
 .my-tenants-grid__badge {
     white-space: nowrap;
 }

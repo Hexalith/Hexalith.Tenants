@@ -113,6 +113,15 @@
                 @Localizer["Tenants.List.ReturnContext", _selectedTenantId]
             </FluentText>
         }
+        @if (IsMyTenantsView && !string.IsNullOrWhiteSpace(_selectedTenantId))
+        {
+            <FluentText As="TextTag.Paragraph"
+                        Size="TextSize.Size300"
+                        Color="Color.Lightweight"
+                        data-testid="tenants-my-return-context">
+                @Localizer["Tenants.MyTenants.ReturnContext", _selectedTenantId]
+            </FluentText>
+        }
     </HeaderMetadata>
     @* Search + status moved up into the single toolbar control bar (Aspire-style); the former
        Filters band is intentionally empty. Sorting is performed in-grid via the FluentDataGrid

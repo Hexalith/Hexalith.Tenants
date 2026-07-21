@@ -237,6 +237,9 @@
   <data name="Tenants.MyTenants.Description" xml:space="preserve">
     <value>Vue en lecture seule des locataires visibles pour votre compte connecté.</value>
   </data>
+  <data name="Tenants.MyTenants.DetailLinkLabel" xml:space="preserve">
+    <value>Ouvrir les détails du locataire {0}</value>
+  </data>
   <data name="Tenants.MyTenants.Freshness.Aging" xml:space="preserve">
     <value>Vieillissant</value>
   </data>
@@ -266,6 +269,9 @@
   </data>
   <data name="Tenants.MyTenants.Refresh" xml:space="preserve">
     <value>Actualiser</value>
+  </data>
+  <data name="Tenants.MyTenants.ReturnContext" xml:space="preserve">
+    <value>Retour depuis le locataire {0}. Votre vue Mes locataires a été restaurée sur la première page autorisée.</value>
   </data>
   <data name="Tenants.MyTenants.Role.TenantContributor" xml:space="preserve">
     <value>Contributeur du locataire</value>

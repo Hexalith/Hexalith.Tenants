@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-19T16:57:33+02:00
-last_updated: 2026-07-21T05:04:59+02:00
+last_updated: 2026-07-21T05:38:23+02:00
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -54,7 +54,7 @@ development_status:
   1-1-reverify-ui-host-bootstrap-and-canonical-workspace: done
   1-2-tenant-list-triage-and-cursor-foundation: done
   1-3-tenant-detail-navigation-and-overview: done
-  1-4-my-tenants-self-audit: backlog
+  1-4-my-tenants-self-audit: review
   1-5-user-membership-lookup: done
   1-6-read-only-tenant-configuration: backlog
   1-7-tenant-member-table-and-action-availability: done

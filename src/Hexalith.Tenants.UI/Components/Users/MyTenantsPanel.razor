@@ -67,7 +67,7 @@
             <MyTenantsState Kind="UserTenantMembershipSurfaceKind.Degraded" OnRefresh="RefreshAsync" />
         }
 
-        <MyTenantsDataGrid Rows="@_snapshot.Rows" ReturnUrl="@EffectiveReturnUrl" />
+        <MyTenantsDataGrid Rows="@_snapshot.Rows" DetailHref="DetailHrefFor" ReturnUrl="@EffectiveReturnUrl" />
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
             <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
@@ -180,6 +180,18 @@
     }
 
     private string BuildReturnUrl()
+        => MyTenantsWorkspaceState().ToCanonicalUrl();
+
+    // Builds the shared /tenants/{tenantId} detail drill-in for a self-audit row, reusing the scope=all
+    // navigation mechanism. The return URL carries scope=mine plus the selection and a return-focus anchor
+    // that matches this row's element id; the cursor is reset so return lands on the authorized first page
+    // (mirroring the scope=all list detail behavior), where the workspace shows the return-context banner
+    // and restores focus to the heading.
+    private string DetailHrefFor(UserTenantMembershipRow row)
+        => new TenantListNavigationContext(MyTenantsWorkspaceState())
+            .ToDetailUrl(row.TenantId, $"tenants-my-row-{row.TenantId}");
+
+    private TenantWorkspaceState MyTenantsWorkspaceState()
         => TenantWorkspaceState.FromQuery(
             TenantWorkspaceState.TenantsTab,
             TenantWorkspaceState.MyScope,
@@ -190,5 +202,5 @@
             sortDescending: null,
             _currentCursor,
             selectedTenantId: null,
-            anchor: null).ToCanonicalUrl();
+            anchor: null);
 }

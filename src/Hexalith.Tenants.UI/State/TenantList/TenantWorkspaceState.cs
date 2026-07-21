@@ -116,8 +116,8 @@ public sealed record TenantWorkspaceState(
                     anchor)
                         ? NormalizeOpaque(cursor)
                         : null,
-                null,
-                null);
+                NormalizeContextValue(selectedTenantId),
+                NormalizeContextValue(anchor));
         }
 
         string normalizedSort = NormalizeTenantSort(sort);
@@ -267,6 +267,8 @@ public sealed record TenantWorkspaceState(
             AppendQuery(builder, "tab", TenantsTab);
             AppendQuery(builder, "scope", MyScope);
             AppendQuery(builder, "cursor", Cursor);
+            AppendQuery(builder, "selected", SelectedTenantId);
+            AppendQuery(builder, "anchor", Anchor);
             return builder.ToString();
         }
 

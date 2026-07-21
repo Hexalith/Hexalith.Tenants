@@ -14,9 +14,23 @@
                         Width="260px"
                         Pin="DataGridColumnPin.Start">
             <div class="my-tenants-grid__identity"
+                 id="@($"{SelectorPrefix}-row-{context.TenantId}")"
                  data-testid="@($"{SelectorPrefix}-row")">
                 <div class="my-tenants-grid__identity-line">
-                    <strong data-testid="@($"{SelectorPrefix}-tenant-id")">@context.TenantId</strong>
+                    @if (DetailHref is not null)
+                    {
+                        <a class="my-tenants-grid__detail-link"
+                           href="@DetailHref(context)"
+                           title="@context.TenantId"
+                           data-testid="@($"{SelectorPrefix}-detail-link")"
+                           aria-label="@Localizer[$"{ResourcePrefix}.DetailLinkLabel", context.TenantId]">
+                            <strong data-testid="@($"{SelectorPrefix}-tenant-id")">@context.TenantId</strong>
+                        </a>
+                    }
+                    else
+                    {
+                        <strong data-testid="@($"{SelectorPrefix}-tenant-id")">@context.TenantId</strong>
+                    }
                     <SupportSafeCopyButton Value="@context.TenantId"
                                            ValueKind="SupportSafeCopyValueKind.TenantId"
                                            AccessibleName="@Localizer["Tenants.Copy.Label.TenantId", context.TenantId]"
@@ -82,6 +96,12 @@
 
     [Parameter]
     public string SelectorPrefix { get; set; } = "tenants-my";
+
+    // Opt-in tenant-detail drill-in. When null (the Users lookup surface) the identity renders as plain
+    // text; when provided (the My Tenants self-audit surface) the identity becomes a link to the shared
+    // /tenants/{tenantId} detail route carrying canonical return context.
+    [Parameter]
+    public Func<UserTenantMembershipRow, string>? DetailHref { get; set; }
 
     [Parameter]
     public string? TargetUserId { get; set; }

@@ -229,6 +229,79 @@ public sealed class TenantWorkspaceStateTests
     }
 
     [Fact]
+    public void My_scope_carries_selection_and_anchor_return_context_and_round_trips_through_the_canonical_url()
+    {
+        // Story 1.4 AC5: returning from a My Tenants detail drill-in restores scope=mine plus selection and
+        // the return-focus anchor. The MyScope branch now carries selected/anchor (previously dropped) and
+        // the canonical URL emits them, so a redirect on return does not strip the selection.
+        TenantWorkspaceState state = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.MyScope,
+            userId: null,
+            search: null,
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: null,
+            selectedTenantId: "tenant.alpha",
+            anchor: "tenants-my-row-tenant.alpha");
+
+        state.Scope.ShouldBe(TenantWorkspaceState.MyScope);
+        state.SelectedTenantId.ShouldBe("tenant.alpha");
+        state.Anchor.ShouldBe("tenants-my-row-tenant.alpha");
+        state.ToCanonicalUrl().ShouldBe(
+            "/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+    }
+
+    [Fact]
+    public void My_scope_detail_drill_in_resets_cursor_and_preserves_the_authorized_first_page_return()
+    {
+        // The shared navigation context builds the /tenants/{id} detail URL for a self-audit row. The return
+        // URL carries scope=mine + selection + anchor and resets the cursor to the authorized first page,
+        // mirroring the scope=all list detail behavior.
+        TenantWorkspaceState myScope = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.MyScope,
+            userId: null,
+            search: null,
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: "opaque-cursor",
+            selectedTenantId: null,
+            anchor: null);
+
+        string detailUrl = new TenantListNavigationContext(myScope)
+            .ToDetailUrl("tenant.alpha", "tenants-my-row-tenant.alpha");
+
+        detailUrl.ShouldBe(
+            "/tenants/tenant.alpha?returnUrl="
+            + Uri.EscapeDataString("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha"));
+    }
+
+    [Fact]
+    public void My_scope_query_changing_transitions_null_stale_selection_and_anchor()
+    {
+        TenantWorkspaceState state = TenantWorkspaceState.FromQuery(
+            tab: TenantWorkspaceState.TenantsTab,
+            scope: TenantWorkspaceState.MyScope,
+            userId: null,
+            search: null,
+            status: null,
+            sort: null,
+            sortDescending: null,
+            cursor: null,
+            selectedTenantId: "tenant.alpha",
+            anchor: "tenants-my-row-tenant.alpha");
+
+        // Switching scope (a query-changing transition) must drop the stale selection/anchor and cursor.
+        TenantWorkspaceState allScope = state.WithScope(TenantWorkspaceState.AllScope);
+        allScope.SelectedTenantId.ShouldBeNull();
+        allScope.Anchor.ShouldBeNull();
+        allScope.Cursor.ShouldBeNull();
+    }
+
+    [Fact]
     public void Canonical_urls_are_deterministic_and_compatibility_safe()
     {
         TenantWorkspaceState state = TenantWorkspaceState.FromQuery(

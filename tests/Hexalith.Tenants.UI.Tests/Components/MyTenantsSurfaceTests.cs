@@ -216,6 +216,56 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void My_tenants_scope_sends_no_browser_supplied_target_user_id()
+    {
+        // AC1 (UI level): the scope=mine surface builds its membership request with no TargetUserId, so the
+        // authenticated identity is derived server-side by the gateway (GetMyTenantsAsync) and a browser can
+        // never substitute a target from this surface.
+        List<UserTenantMembershipRequest> requests = [];
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
+        });
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForElement("[data-testid='tenants-my-list']");
+
+        requests.ShouldNotBeEmpty();
+        requests[0].TargetUserId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void My_tenants_rows_expose_a_shared_detail_drill_in_and_a_focus_anchor_id()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner, ReadModelFreshnessState.Current)]));
+
+        IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
+        cut.WaitForElement("[data-testid='tenants-my-list']");
+
+        // AC5: the self-audit row drills into the shared /tenants/{tenantId} detail route (same component as
+        // scope=all), carrying canonical scope=mine return context (selection + return-focus anchor) and
+        // resetting the cursor to the authorized first page.
+        var detailLink = cut.Find("[data-testid='tenants-my-detail-link']");
+        detailLink.NodeName.ShouldBe("A");
+        string? href = detailLink.GetAttribute("href");
+        href.ShouldNotBeNull();
+        href.ShouldStartWith("/tenants/tenant.alpha?returnUrl=");
+        string decodedReturnUrl = Uri.UnescapeDataString(href!["/tenants/tenant.alpha?returnUrl=".Length..]);
+        decodedReturnUrl.ShouldBe("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+
+        // AC7: the identity element carries the id the ReturnFocus anchor points at, so focus-on-return
+        // resolves (previously the id was missing and focus was a no-op).
+        cut.Find("[data-testid='tenants-my-row']").Id.ShouldBe("tenants-my-row-tenant.alpha");
+
+        // The self-audit Role column is preserved alongside the new drill-in.
+        cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
+        cut.Markup.ShouldNotContain("access_token", Case.Insensitive);
+    }
+
+    [Fact]
     public void My_tenants_components_have_no_browser_backend_http_or_token_storage()
     {
         string projectRoot = ProjectRoot();

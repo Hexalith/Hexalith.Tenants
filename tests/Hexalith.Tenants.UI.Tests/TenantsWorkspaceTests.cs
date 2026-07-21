@@ -154,6 +154,43 @@ public sealed class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
+    public void Workspace_mine_scope_restores_return_context_after_a_detail_drill_in()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
+        gateway.GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready(
+                [MembershipRow("tenant.alpha", "Alpha", TenantRole.TenantOwner)],
+                nextCursor: null,
+                hasMore: false,
+                eTag: "\"etag\"",
+                freshness: ReadModelFreshnessState.Current)));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+
+        // Simulate returning from the shared tenant-detail route: scope=mine plus the restored selection and
+        // return-focus anchor (AC5).
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+
+        IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-my-list']");
+
+        // The scope=mine return-context banner renders (distinct testid from the scope=all banner) and names
+        // the restored selection.
+        cut.Find("[data-testid='tenants-my-return-context']").TextContent.ShouldContain("tenant.alpha");
+        cut.FindAll("[data-testid='tenants-list-return-context']").ShouldBeEmpty();
+
+        // The canonical URL preserves the selection/anchor so a redirect does not strip the restored context.
+        Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
+            "http://localhost/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+    }
+
+    [Fact]
     public void Workspace_users_tab_prefills_lookup_from_query_without_claiming_all_users_inventory()
     {
         List<UserTenantMembershipRequest> requests = [];
@@ -325,6 +362,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.MyTenants.Column.Tenant"] = "Tenant",
             ["Tenants.MyTenants.ControlsLabel"] = "My Tenants controls",
             ["Tenants.MyTenants.Description"] = "Read-only view of tenants visible to your signed-in account.",
+            ["Tenants.MyTenants.DetailLinkLabel"] = "Open tenant details for {0}",
             ["Tenants.MyTenants.Freshness.Current"] = "Current",
             ["Tenants.MyTenants.Freshness.Stale"] = "Stale",
             ["Tenants.MyTenants.Freshness.Unknown"] = "Unknown",
@@ -333,6 +371,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             ["Tenants.MyTenants.PaginationLabel"] = "My Tenants pages",
             ["Tenants.MyTenants.Previous"] = "Previous",
             ["Tenants.MyTenants.Refresh"] = "Refresh",
+            ["Tenants.MyTenants.ReturnContext"] = "Returned from tenant {0}. Your My Tenants view was restored on the authorized first page.",
             ["Tenants.MyTenants.Role.TenantOwner"] = "Tenant owner",
             ["Tenants.MyTenants.Role.TenantReader"] = "Tenant reader",
             ["Tenants.MyTenants.Role.Unknown"] = "Unknown role",
