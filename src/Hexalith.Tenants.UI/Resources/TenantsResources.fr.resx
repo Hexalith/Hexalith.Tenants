@@ -126,6 +126,9 @@
   <data name="Tenants.List.Notice.SearchUnavailable" xml:space="preserve">
     <value>La recherche protégée sur l'ensemble des locataires est temporairement indisponible. Vous pouvez continuer à parcourir la liste autorisée.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
+    <value>La page de recherche protégée n'était plus disponible. La recherche a redémarré depuis la première page.</value>
+  </data>
   <data name="Tenants.List.Reason.GatewayUnavailable" xml:space="preserve">
     <value>La liste autorisée des locataires n'a pas pu être chargée. Réessayez plus tard.</value>
   </data>
@@ -137,6 +140,9 @@
   </data>
   <data name="Tenants.List.Reason.RowEnrichmentUnavailable" xml:space="preserve">
     <value>Le nombre de membres ou de propriétaires est indisponible. L'identité et l'état du cycle de vie des locataires autorisés restent utilisables.</value>
+  </data>
+  <data name="Tenants.List.Reason.SearchPartiallyAvailable" xml:space="preserve">
+    <value>Certains résultats de recherche n'ont pas pu être vérifiés. Seules les lignes de locataire autorisées et vérifiées sont affichées.</value>
   </data>
   <data name="Tenants.List.SearchLabel" xml:space="preserve">
     <value>Rechercher des locataires</value>
@@ -210,8 +216,14 @@
   <data name="Tenants.List.StatusFilterLabel" xml:space="preserve">
     <value>Statut sur la page actuelle</value>
   </data>
+  <data name="Tenants.List.StatusFilterLabel.Authoritative" xml:space="preserve">
+    <value>Statut parmi les candidats indexés</value>
+  </data>
   <data name="Tenants.List.PageLocalSemantics" xml:space="preserve">
     <value>Les filtres de statut et le tri des colonnes s'appliquent uniquement à la page autorisée actuelle.</value>
+  </data>
+  <data name="Tenants.List.AuthoritativeSearchSemantics" xml:space="preserve">
+    <value>La recherche et le statut s'appliquent aux candidats de locataire indexés. Seules les lignes autorisées et vérifiées sont affichées ; le tri s'applique dans cette page protégée.</value>
   </data>
   <data name="Tenants.List.Title" xml:space="preserve">
     <value>Locataires</value>

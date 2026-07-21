@@ -126,6 +126,9 @@
   <data name="Tenants.List.Notice.SearchUnavailable" xml:space="preserve">
     <value>Protected whole-set search is temporarily unavailable. You can continue browsing the authorized tenant list.</value>
   </data>
+  <data name="Tenants.List.Notice.SearchRefreshed" xml:space="preserve">
+    <value>The protected search page was no longer available. Search has restarted from the first page.</value>
+  </data>
   <data name="Tenants.List.Reason.GatewayUnavailable" xml:space="preserve">
     <value>The authorized tenant list could not be loaded. Try again later.</value>
   </data>
@@ -137,6 +140,9 @@
   </data>
   <data name="Tenants.List.Reason.RowEnrichmentUnavailable" xml:space="preserve">
     <value>Member or owner counts are unavailable. Authorized tenant identity and lifecycle state remain usable.</value>
+  </data>
+  <data name="Tenants.List.Reason.SearchPartiallyAvailable" xml:space="preserve">
+    <value>Some search results could not be verified. Only authorized tenant rows that were verified are shown.</value>
   </data>
   <data name="Tenants.List.SearchLabel" xml:space="preserve">
     <value>Search tenants</value>
@@ -210,8 +216,14 @@
   <data name="Tenants.List.StatusFilterLabel" xml:space="preserve">
     <value>Status on current page</value>
   </data>
+  <data name="Tenants.List.StatusFilterLabel.Authoritative" xml:space="preserve">
+    <value>Status across indexed candidates</value>
+  </data>
   <data name="Tenants.List.PageLocalSemantics" xml:space="preserve">
     <value>Status filters and column sorting apply to the current authorized page only.</value>
+  </data>
+  <data name="Tenants.List.AuthoritativeSearchSemantics" xml:space="preserve">
+    <value>Search and status apply across indexed tenant candidates. Only authorized, verified tenant rows are shown; sorting applies within this protected page.</value>
   </data>
   <data name="Tenants.List.Title" xml:space="preserve">
     <value>Tenants</value>

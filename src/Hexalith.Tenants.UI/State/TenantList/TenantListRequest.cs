@@ -9,10 +9,9 @@ public sealed record TenantListRequest(
     TenantStatus? Status = null,
     string SortColumn = TenantListSortColumns.TenantId,
     bool SortDescending = false,
-    string? ETag = null);
-
-public static class TenantListSortColumns {
-    public const string TenantId = "tenantId";
-    public const string Name = "name";
-    public const string Status = "status";
+    string? ETag = null,
+    string? SearchCursor = null) {
+    /// <summary>Returns a support-safe description that omits both cursor values and the search term.</summary>
+    public override string ToString()
+        => $"{nameof(TenantListRequest)} {{ PageSize = {PageSize}, HasSearch = {!string.IsNullOrWhiteSpace(Search)}, Status = {Status}, SortColumn = {SortColumn}, SortDescending = {SortDescending}, HasETag = {ETag is not null} }}";
 }

@@ -2,25 +2,37 @@ using System.Net;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
-using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
+
+using MemoriesOmittedReason = Hexalith.Memories.Contracts.V1.OmittedReason;
+using MemoriesScoredResult = Hexalith.Memories.Contracts.V1.ScoredResult;
+using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 internal sealed class TenantQueryGateway(
     IEventStoreGatewayClient queryClient,
-    IUserContextAccessor userContextAccessor) : ITenantQueryGateway {
+    IUserContextAccessor userContextAccessor,
+    MemoriesClient memoriesClient,
+    ITenantSearchCursorCodec searchCursorCodec) : ITenantQueryGateway {
     private const string SystemTenant = "system";
     private const string GlobalAdministratorsAggregateId = "global-administrators";
     private const string TenantIndexAggregateId = "index";
+    private const string SearchAxis = "syntactic";
+    private const string TenantSourcePrefix = "tenant:";
+    private const int DefaultPageSize = 20;
+    private const int MaximumPageSize = 100;
+    private const int MaximumHydrationConcurrency = 8;
 
     public async Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
@@ -398,22 +410,326 @@ internal sealed class TenantQueryGateway(
             return TenantListSnapshot.Unauthorized();
         }
 
-        bool searchRequested = !string.IsNullOrWhiteSpace(request.Search);
-        TenantListSnapshot snapshot = await ListByCursorAsync(
-            searchRequested ? request with { Search = null } : request,
-            previous,
-            cancellationToken).ConfigureAwait(false);
+        TenantListRequest canonicalRequest = CanonicalizeListRequest(request);
+        if (canonicalRequest.Search is null) {
+            return await ListByCursorAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
+        }
 
-        // SEARCH-CURSOR-1 is not verified. Keep the authorization-safe ordinary cursor list usable and
-        // report a localized, non-blocking notice instead of using the former plaintext offset cursor.
-        // Search-unavailable takes precedence over an invalid-cursor list-refreshed notice: telling the
-        // operator their search term was ignored is more important than the page-reset detail, and both
-        // cannot share the single notice slot.
-        return searchRequested
-            && snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized)
-                ? snapshot with { Notice = TenantListReason.SearchUnavailable }
-                : snapshot;
+        string userId = userContextAccessor.UserId!;
+        string scope = TenantSearchCursorScopes.Create(
+            userId,
+            canonicalRequest.Search,
+            canonicalRequest.Status?.ToString(),
+            canonicalRequest.SortColumn,
+            canonicalRequest.SortDescending,
+            canonicalRequest.PageSize);
+
+        bool cursorRecovered = !searchCursorCodec.TryDecode(canonicalRequest.SearchCursor, scope, out int rawOffset);
+        try {
+            MemoriesSearchResult? result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken)
+                .ConfigureAwait(false);
+            if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: true)) {
+                return await FallBackFromSearchAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
+            }
+
+            MemoriesSearchResult validResult = result!;
+            if (rawOffset > validResult.TotalCount) {
+                rawOffset = 0;
+                cursorRecovered = true;
+                result = await SearchMemoriesAsync(canonicalRequest, rawOffset, cancellationToken).ConfigureAwait(false);
+                if (!IsValidSearchResult(result, canonicalRequest, rawOffset, allowOffsetBeyondTotal: false)) {
+                    return await FallBackFromSearchAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
+                }
+
+                validResult = result!;
+            }
+
+            return await BuildAuthoritativeSearchSnapshotAsync(
+                canonicalRequest,
+                validResult,
+                rawOffset,
+                scope,
+                cursorRecovered,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        }
+        catch (Exception ex) when (IsSearchAvailabilityFailure(ex)) {
+            return await FallBackFromSearchAsync(canonicalRequest, previous, cancellationToken).ConfigureAwait(false);
+        }
     }
+
+    private static TenantListRequest CanonicalizeListRequest(TenantListRequest request) {
+        int pageSize = request.PageSize is >= 1 and <= MaximumPageSize ? request.PageSize : DefaultPageSize;
+        string? search = string.IsNullOrWhiteSpace(request.Search) || request.Search.Any(char.IsControl)
+            ? null
+            : request.Search;
+        TenantStatus? status = request.Status is not null && Enum.IsDefined(request.Status.Value)
+            ? request.Status
+            : null;
+        string sort = request.SortColumn switch {
+            TenantListSortColumns.Name => TenantListSortColumns.Name,
+            TenantListSortColumns.Status => TenantListSortColumns.Status,
+            _ => TenantListSortColumns.TenantId,
+        };
+
+        return request with {
+            PageSize = pageSize,
+            Search = search,
+            Status = status,
+            SortColumn = sort,
+            SearchCursor = search is null ? null : request.SearchCursor,
+        };
+    }
+
+    private async Task<MemoriesSearchResult> SearchMemoriesAsync(
+        TenantListRequest request,
+        int offset,
+        CancellationToken cancellationToken) {
+        IReadOnlyDictionary<string, string>? filters = request.Status is null
+            ? null
+            : new Dictionary<string, string>(StringComparer.Ordinal) {
+                ["status"] = request.Status.Value.ToString(),
+            };
+        var memoriesRequest = new SearchRequest(
+            TenantSearchCursorScopes.SearchIndex,
+            SearchAxis,
+            request.Search,
+            MaxResults: request.PageSize,
+            Offset: offset,
+            Explain: false,
+            TokenBudget: null,
+            AttributeFilters: filters);
+        return await memoriesClient.SearchAsync(memoriesRequest, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool IsValidSearchResult(
+        MemoriesSearchResult? result,
+        TenantListRequest request,
+        int offset,
+        bool allowOffsetBeyondTotal) {
+        if (result is null
+            || result.Results is null
+            || result.TotalCount < 0
+            || result.TotalCount > int.MaxValue
+            || result.Results.Count > request.PageSize
+            || !string.Equals(result.Query, request.Search, StringComparison.Ordinal)
+            || result.Degraded
+            || result.OmittedCount != 0
+            || result.OmittedReason != MemoriesOmittedReason.None
+            || result.UnavailableAxes?.Count > 0
+            || result.AxesUsed is null
+            || result.AxesUsed.Count != 1
+            || !string.Equals(result.AxesUsed[0], SearchAxis, StringComparison.Ordinal)
+            || (!result.HasIndexedMemoryUnits && (result.TotalCount != 0 || result.Results.Count != 0))) {
+            return false;
+        }
+
+        if (!allowOffsetBeyondTotal && offset > result.TotalCount) {
+            return false;
+        }
+
+        if (offset <= result.TotalCount
+            && (long)offset + result.Results.Count > result.TotalCount) {
+            return false;
+        }
+
+        foreach (MemoriesScoredResult? hit in result.Results) {
+            if (hit is null || !string.Equals(hit.Axis, SearchAxis, StringComparison.Ordinal)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async Task<TenantListSnapshot> BuildAuthoritativeSearchSnapshotAsync(
+        TenantListRequest request,
+        MemoriesSearchResult result,
+        int rawOffset,
+        string scope,
+        bool cursorRecovered,
+        CancellationToken cancellationToken) {
+        var candidates = new List<(int Ordinal, string TenantId)>(result.Results.Count);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < result.Results.Count; index++) {
+            string? sourceUri = result.Results[index].SourceUri;
+            if (sourceUri is null
+                || !sourceUri.StartsWith(TenantSourcePrefix, StringComparison.Ordinal)
+                || sourceUri.Length == TenantSourcePrefix.Length) {
+                continue;
+            }
+
+            string tenantId = sourceUri[TenantSourcePrefix.Length..];
+            if (tenantId.Any(char.IsControl) || !seen.Add(tenantId)) {
+                continue;
+            }
+
+            candidates.Add((index, tenantId));
+        }
+
+        using var concurrency = new SemaphoreSlim(MaximumHydrationConcurrency, MaximumHydrationConcurrency);
+        Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure)>[] hydrationTasks = candidates
+            .Select(candidate => HydrateSearchCandidateAsync(candidate, request.Status, concurrency, cancellationToken))
+            .ToArray();
+        (int Ordinal, TenantListRow? Row, bool OperationalFailure)[] outcomes = await Task
+            .WhenAll(hydrationTasks)
+            .ConfigureAwait(false);
+
+        bool operationalFailure = outcomes.Any(static outcome => outcome.OperationalFailure);
+        IReadOnlyList<TenantListRow> rows = SortSearchRows(
+            outcomes
+                .Where(static outcome => outcome.Row is not null)
+                .OrderBy(static outcome => outcome.Ordinal)
+                .Select(static outcome => outcome.Row!)
+                .ToArray(),
+            request.SortColumn,
+            request.SortDescending);
+
+        if (operationalFailure && rows.Count == 0) {
+            return await FallBackFromSearchAsync(request, previous: null, cancellationToken).ConfigureAwait(false);
+        }
+
+        int nextOffset = checked(rawOffset + result.Results.Count);
+        bool hasMore = nextOffset < result.TotalCount;
+        string? nextCursor = hasMore ? searchCursorCodec.Encode(scope, nextOffset) : null;
+        ReadModelFreshnessState freshness = AggregateFreshness(rows);
+        TenantListSurfaceKind kind = rows.Count == 0
+            ? TenantListSurfaceKind.FilteredEmpty
+            : operationalFailure ? TenantListSurfaceKind.Degraded
+            : freshness == ReadModelFreshnessState.Stale ? TenantListSurfaceKind.Stale
+            : TenantListSurfaceKind.Ready;
+
+        return new TenantListSnapshot(
+            kind,
+            rows,
+            nextCursor,
+            hasMore,
+            ETag: null,
+            freshness,
+            IsDegraded: operationalFailure,
+            IsAuthorizationScopedEmpty: rows.Count == 0,
+            Reason: operationalFailure ? TenantListReason.SearchPartiallyAvailable : TenantListReason.None,
+            Notice: cursorRecovered ? TenantListReason.SearchRefreshed : TenantListReason.None,
+            IsAuthoritativeSearch: true,
+            PagingRecovered: cursorRecovered);
+    }
+
+    private async Task<(int Ordinal, TenantListRow? Row, bool OperationalFailure)> HydrateSearchCandidateAsync(
+        (int Ordinal, string TenantId) candidate,
+        TenantStatus? status,
+        SemaphoreSlim concurrency,
+        CancellationToken cancellationToken) {
+        await concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            EventStoreQueryResult<TenantDetail> result = await queryClient
+                .SubmitQueryAsync<TenantDetail>(CreateDetailRequest(candidate.TenantId), ifNoneMatch: null, cancellationToken)
+                .ConfigureAwait(false);
+            TenantDetail? detail = result.Payload;
+            if (result.IsNotModified
+                || detail is null
+                || result.Metadata?.IsDegraded == true
+                || !string.Equals(detail.TenantId, candidate.TenantId, StringComparison.Ordinal)
+                || detail.Name is null
+                || detail.Members is null) {
+                return (candidate.Ordinal, null, true);
+            }
+
+            if (status is not null && detail.Status != status.Value) {
+                return (candidate.Ordinal, null, false);
+            }
+
+            ReadModelFreshnessState freshness = ResolveFreshness(result.Metadata);
+            return (
+                candidate.Ordinal,
+                new TenantListRow(
+                    detail.TenantId,
+                    detail.Name,
+                    detail.Status,
+                    TenantCountValue.Known(detail.Members.Count),
+                    TenantCountValue.Known(detail.Members.Count(static member => member.Role == TenantRole.TenantOwner)),
+                    TenantPendingState.Unknown,
+                    freshness),
+                false);
+        }
+        catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound) {
+            return (candidate.Ordinal, null, false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        }
+        catch (Exception ex) when (IsHydrationAvailabilityFailure(ex)) {
+            return (candidate.Ordinal, null, true);
+        }
+        finally {
+            _ = concurrency.Release();
+        }
+    }
+
+    private async Task<TenantListSnapshot> FallBackFromSearchAsync(
+        TenantListRequest request,
+        TenantListSnapshot? previous,
+        CancellationToken cancellationToken) {
+        TenantListRequest fallbackRequest = request with {
+            Search = null,
+            SearchCursor = null,
+            ETag = null,
+        };
+        TenantListSnapshot? reusable = previous?.IsAuthoritativeSearch == false ? previous : null;
+        TenantListSnapshot fallback = await ListByCursorAsync(fallbackRequest, reusable, cancellationToken)
+            .ConfigureAwait(false);
+        return fallback.Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized
+            ? fallback
+            : fallback with {
+                Notice = TenantListReason.SearchUnavailable,
+                IsAuthoritativeSearch = false,
+                PagingRecovered = false,
+            };
+    }
+
+    private static IReadOnlyList<TenantListRow> SortSearchRows(
+        IReadOnlyList<TenantListRow> rows,
+        string sortColumn,
+        bool descending) {
+        IOrderedEnumerable<TenantListRow> ordered = sortColumn switch {
+            TenantListSortColumns.Name => descending
+                ? rows.OrderByDescending(static row => row.Name, StringComparer.OrdinalIgnoreCase)
+                : rows.OrderBy(static row => row.Name, StringComparer.OrdinalIgnoreCase),
+            TenantListSortColumns.Status => descending
+                ? rows.OrderByDescending(static row => row.Status)
+                : rows.OrderBy(static row => row.Status),
+            _ => descending
+                ? rows.OrderByDescending(static row => row.TenantId, StringComparer.Ordinal)
+                : rows.OrderBy(static row => row.TenantId, StringComparer.Ordinal),
+        };
+        return sortColumn == TenantListSortColumns.TenantId
+            ? ordered.ToArray()
+            : ordered.ThenBy(static row => row.TenantId, StringComparer.Ordinal).ToArray();
+    }
+
+    private static ReadModelFreshnessState AggregateFreshness(IReadOnlyList<TenantListRow> rows)
+        => rows.Count == 0 || rows.Any(static row => row.Freshness == ReadModelFreshnessState.Unknown)
+            ? ReadModelFreshnessState.Unknown
+            : rows.Any(static row => row.Freshness == ReadModelFreshnessState.Stale)
+                ? ReadModelFreshnessState.Stale
+                : ReadModelFreshnessState.Current;
+
+    private static bool IsSearchAvailabilityFailure(Exception exception)
+        => exception is MemoriesRemoteException
+            or HttpRequestException
+            or TimeoutException
+            or JsonException
+            or InvalidOperationException
+            or ArithmeticException
+            || exception is OperationCanceledException;
+
+    private static bool IsHydrationAvailabilityFailure(Exception exception)
+        => exception is EventStoreGatewayException
+            or HttpRequestException
+            or TimeoutException
+            or JsonException
+            || exception is OperationCanceledException;
 
     private async Task<TenantListSnapshot> ListByCursorAsync(
         TenantListRequest request,

@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -17,6 +18,14 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.UI.State.UserTenants;
+
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+
+using MemoriesSearchResult = Hexalith.Memories.Contracts.V1.SearchResult;
+using MemoriesScoredResult = Hexalith.Memories.Contracts.V1.ScoredResult;
+using MemoriesSourceType = Hexalith.Memories.Contracts.V1.SourceType;
 
 using NSubstitute;
 
@@ -1505,16 +1514,209 @@ public sealed class TenantQueryGatewayTests
         snapshot.ToString().ShouldNotContain("memories-search", Case.Insensitive);
     }
 
-    private static TenantQueryGateway CreateGateway(CapturingGatewayClient client, string? userId = "operator-user")
-        => CreateGateway((IEventStoreGatewayClient)client, userId);
+    [Fact]
+    public async Task List_search_uses_exact_memories_request_and_only_authoritative_hydrated_fields()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult(
+            "needle",
+            totalCount: 8,
+            Hit("not-a-tenant"),
+            Hit("tenant:alpha"),
+            Hit("tenant:alpha"),
+            Hit("tenant:hidden"),
+            Hit("tenant:gamma")));
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha") with { Name = "Authoritative Alpha" });
+        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "hidden"));
+        client.EnqueueQueryResult(Detail("gamma") with { Name = "Authoritative Gamma" });
+        var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
-    private static TenantQueryGateway CreateGateway(IEventStoreGatewayClient client, string? userId = "operator-user")
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(
+                Search: "needle",
+                Status: TenantStatus.Active,
+                SortColumn: TenantListSortColumns.Name,
+                SortDescending: true,
+                PageSize: 5),
+            previous: null,
+            CancellationToken.None);
+
+        SearchRequest request = memories.SearchRequests.ShouldHaveSingleItem();
+        request.TenantId.ShouldBe("tenants-index");
+        request.Axis.ShouldBe("syntactic");
+        request.Query.ShouldBe("needle");
+        request.Offset.ShouldBe(0);
+        request.MaxResults.ShouldBe(5);
+        request.Explain.ShouldBeFalse();
+        request.TokenBudget.ShouldBeNull();
+        request.AttributeFilters.ShouldNotBeNull()["status"].ShouldBe(nameof(TenantStatus.Active));
+        client.SubmittedQueries.Select(query => query.Request.AggregateId).ShouldBe(["alpha", "hidden", "gamma"]);
+        snapshot.IsAuthoritativeSearch.ShouldBeTrue();
+        snapshot.Rows.Select(row => row.TenantId).ShouldBe(["gamma", "alpha"]);
+        snapshot.Rows.ShouldAllBe(row => row.PendingState == TenantPendingState.Unknown);
+        snapshot.Rows.ShouldAllBe(row => row.Name.StartsWith("Authoritative", StringComparison.Ordinal));
+        snapshot.HasMore.ShouldBeTrue();
+        snapshot.NextCursor.ShouldNotBeNull();
+        snapshot.NextCursor.ShouldNotBe("5");
+        string scope = TenantSearchCursorScopes.Create(
+            "operator-user",
+            "needle",
+            nameof(TenantStatus.Active),
+            TenantListSortColumns.Name,
+            descending: true,
+            pageSize: 5);
+        codec.TryDecode(snapshot.NextCursor, scope, out int nextOffset).ShouldBeTrue();
+        nextOffset.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task List_search_operational_partial_keeps_verified_rows_and_reports_generic_degradation()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", 2, Hit("tenant:alpha"), Hit("tenant:beta")));
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"));
+        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "raw secret"));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 2),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Degraded);
+        snapshot.IsAuthoritativeSearch.ShouldBeTrue();
+        snapshot.Reason.ShouldBe(TenantListReason.SearchPartiallyAvailable);
+        snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("alpha");
+        snapshot.ToString().ShouldNotContain("raw secret", Case.Insensitive);
+        snapshot.ToString().ShouldNotContain("needle", Case.Sensitive);
+    }
+
+    [Fact]
+    public async Task List_search_total_operational_hydration_loss_falls_back_to_ordinary_list()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
+        CapturingGatewayClient client = new();
+        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "unavailable"));
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+            [new TenantSummary("fallback", "Fallback", TenantStatus.Active)],
+            "ordinary-next",
+            true));
+        client.EnqueueQueryResult(Detail("fallback"));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", Cursor: "ordinary-current"),
+            previous: null,
+            CancellationToken.None);
+
+        snapshot.IsAuthoritativeSearch.ShouldBeFalse();
+        snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
+        snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("fallback");
+        client.SubmittedQueries[1].Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("ordinary-current");
+    }
+
+    [Fact]
+    public async Task List_search_recovers_once_at_page_zero_when_index_shrinks()
+    {
+        var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
+        string scope = TenantSearchCursorScopes.Create(
+            "operator-user",
+            "needle",
+            status: null,
+            TenantListSortColumns.TenantId,
+            descending: false,
+            pageSize: 20);
+        string cursor = codec.Encode(scope, 50);
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", totalCount: 1));
+        memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(Detail("alpha"));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", SearchCursor: cursor),
+            previous: null,
+            CancellationToken.None);
+
+        memories.SearchRequests.Select(request => request.Offset).ShouldBe([50, 0]);
+        snapshot.IsAuthoritativeSearch.ShouldBeTrue();
+        snapshot.PagingRecovered.ShouldBeTrue();
+        snapshot.Notice.ShouldBe(TenantListReason.SearchRefreshed);
+        snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("alpha");
+    }
+
+    [Fact]
+    public async Task List_search_rejects_contradictory_response_and_uses_sanitized_fallback()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", 1, Hit("tenant:unsafe")) with
+        {
+            Degraded = true,
+            OmittedCount = 1,
+            OmittedReason = Hexalith.Memories.Contracts.V1.OmittedReason.Combined,
+            UnavailableAxes = ["semantic"],
+        });
+        CapturingGatewayClient client = new();
+        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle"),
+            previous: null,
+            CancellationToken.None);
+
+        client.SubmittedQueries.ShouldHaveSingleItem().Request.QueryType.ShouldBe(ListTenantsQuery.QueryType);
+        snapshot.IsAuthoritativeSearch.ShouldBeFalse();
+        snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
+        snapshot.ToString().ShouldNotContain("unsafe", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task List_search_propagates_caller_cancellation_without_fallback()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        StubMemoriesClient memories = new();
+        memories.Enqueue(new OperationCanceledException(cancellation.Token));
+        CapturingGatewayClient client = new();
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        await Should.ThrowAsync<OperationCanceledException>(() => gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle"),
+            previous: null,
+            cancellation.Token));
+
+        client.SubmittedQueries.ShouldBeEmpty();
+    }
+
+    private static TenantQueryGateway CreateGateway(
+        CapturingGatewayClient client,
+        string? userId = "operator-user",
+        StubMemoriesClient? memoriesClient = null,
+        ITenantSearchCursorCodec? searchCursorCodec = null)
+        => CreateGateway((IEventStoreGatewayClient)client, userId, memoriesClient, searchCursorCodec);
+
+    private static TenantQueryGateway CreateGateway(
+        IEventStoreGatewayClient client,
+        string? userId = "operator-user",
+        StubMemoriesClient? memoriesClient = null,
+        ITenantSearchCursorCodec? searchCursorCodec = null)
     {
         IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
         userContext.UserId.Returns(userId);
         userContext.TenantId.Returns("tenant.context");
 
-        return new TenantQueryGateway(client, userContext);
+        return new TenantQueryGateway(
+            client,
+            userContext,
+            memoriesClient ?? new StubMemoriesClient(),
+            searchCursorCodec ?? new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
     }
 
     private static QueryResponseMetadata ProjectionBackedMetadata(
@@ -1528,6 +1730,30 @@ public sealed class TenantQueryGatewayTests
         {
             Provenance = QueryResponseProvenance.ProjectionBacked,
             Lifecycle = lifecycle,
+        };
+
+    private static MemoriesSearchResult SearchResult(
+        string query,
+        long totalCount,
+        params MemoriesScoredResult[] results)
+        => new()
+        {
+            Query = query,
+            TotalCount = totalCount,
+            HasIndexedMemoryUnits = totalCount > 0,
+            Results = results,
+            AxesUsed = ["syntactic"],
+        };
+
+    private static MemoriesScoredResult Hit(string sourceUri)
+        => new()
+        {
+            MemoryUnitId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture),
+            Score = 1,
+            ContentSnippet = "index-only content that must never render",
+            SourceUri = sourceUri,
+            SourceType = MemoriesSourceType.Projection,
+            Axis = "syntactic",
         };
 
     private sealed class CapturingGatewayClient : IEventStoreGatewayClient
@@ -1638,6 +1864,44 @@ public sealed class TenantQueryGatewayTests
 
         public void EnqueueException(Exception exception)
             => _responses.Enqueue(exception);
+    }
+
+    private sealed class StubMemoriesClient : MemoriesClient
+    {
+        private readonly Queue<object> _responses = new();
+
+        public StubMemoriesClient()
+            : base(
+                new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
+                Options.Create(new MemoriesClientOptions()),
+                NullLogger<MemoriesClient>.Instance)
+        {
+        }
+
+        public List<SearchRequest> SearchRequests { get; } = [];
+
+        public void Enqueue(MemoriesSearchResult result)
+            => _responses.Enqueue(result);
+
+        public void Enqueue(Exception exception)
+            => _responses.Enqueue(exception);
+
+        public override Task<MemoriesSearchResult> SearchAsync(SearchRequest request, CancellationToken ct)
+        {
+            SearchRequests.Add(request);
+            if (_responses.Count == 0)
+            {
+                throw new HttpRequestException("Memories unavailable.");
+            }
+
+            object response = _responses.Dequeue();
+            if (response is Exception exception)
+            {
+                throw exception;
+            }
+
+            return Task.FromResult((MemoriesSearchResult)response);
+        }
     }
 
     private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);

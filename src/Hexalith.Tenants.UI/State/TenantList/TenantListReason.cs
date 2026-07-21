@@ -25,4 +25,10 @@ public enum TenantListReason
 
     /// <summary>Protected whole-set search is unavailable and the ordinary cursor list is shown.</summary>
     SearchUnavailable,
+
+    /// <summary>Some search candidates could not be verified operationally.</summary>
+    SearchPartiallyAvailable,
+
+    /// <summary>Protected search paging was invalidated and restarted from the first raw page.</summary>
+    SearchRefreshed,
 }

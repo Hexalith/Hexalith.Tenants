@@ -6,6 +6,7 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
 
 <FcAggregateListPage TItem="TenantListRow"
                      @ref="_listPage"
@@ -62,7 +63,7 @@
                         <FluentSelect TOption="string" TValue="string"
                                       Value="@_statusFilter"
                                       ValueChanged="OnStatusFilterChanged"
-                                      Label="@Localizer["Tenants.List.StatusFilterLabel"]"
+                                  Label="@Localizer[StatusFilterLabelKey]"
                                       data-testid="tenants-list-status-filter"
                                       aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
                             <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
@@ -97,7 +98,9 @@
                                 Size="TextSize.Size200"
                                 Color="Color.Lightweight"
                                 data-testid="tenants-list-page-local-semantics">
-                        @Localizer["Tenants.List.PageLocalSemantics"]
+                        @Localizer[_snapshot.IsAuthoritativeSearch
+                            ? "Tenants.List.AuthoritativeSearchSemantics"
+                            : "Tenants.List.PageLocalSemantics"]
                     </FluentText>
                 }
             }
@@ -192,6 +195,7 @@
                             AuditHref="CreateAuditHref"
                             SortColumn="@_sortColumn"
                             SortDescending="@_sortDescending"
+                            PreserveRowOrder="@_snapshot.IsAuthoritativeSearch"
                             SortChanged="OnTenantSortChanged" />
         }
         else if (IsMyTenantsView)
@@ -212,7 +216,7 @@
         {
             <nav aria-label="@Localizer["Tenants.List.PaginationLabel"]">
                 <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
-                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                    <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-previous" Disabled="@(!HasPreviousPage)" OnClick="PreviousPageAsync">
                         @Localizer["Tenants.List.Previous"]
                     </FluentButton>
                     <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-list-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
@@ -273,6 +277,8 @@
     private bool _initialized;
     private bool _disposed;
     private long _loadVersion;
+    private CancellationTokenSource? _loadCancellation;
+    private TenantSearchPagingState? _searchPaging;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "tab")]
@@ -330,7 +336,27 @@
         => IsTenantsTab && string.Equals(_tenantScope, MyTenantsScope, StringComparison.Ordinal);
 
     private bool HasPageLocalFilter
-        => !string.IsNullOrWhiteSpace(_statusFilter);
+        => !_snapshot.IsAuthoritativeSearch && !string.IsNullOrWhiteSpace(_statusFilter);
+
+    private bool HasActiveSearch
+        => !string.IsNullOrWhiteSpace(_search);
+
+    private bool HasPreviousPage
+        => HasActiveSearch
+            ? SearchPaging.HasPrevious(_snapshot.IsAuthoritativeSearch)
+            : _cursorHistory.Count > 0;
+
+    private TenantSearchPagingState SearchPaging
+        => _searchPaging ??= (TenantSearchPagingState?)Services.GetService(typeof(TenantSearchPagingState))
+            ?? new TenantSearchPagingState();
+
+    private string? AuthenticatedUserId
+        => (Services.GetService(typeof(IUserContextAccessor)) as IUserContextAccessor)?.UserId;
+
+    private string StatusFilterLabelKey
+        => _snapshot.IsAuthoritativeSearch
+            ? "Tenants.List.StatusFilterLabel.Authoritative"
+            : "Tenants.List.StatusFilterLabel";
 
     // The list/grid surface (the former else branch): everything that is not a blocking/empty list state.
     // The Stale/Degraded list-surface banners still render in the States slot above this body.
@@ -346,6 +372,7 @@
         => _snapshot.Notice switch
         {
             TenantListReason.ListRefreshed => Localizer["Tenants.List.Notice.ListRefreshed"],
+            TenantListReason.SearchRefreshed => Localizer["Tenants.List.Notice.SearchRefreshed"],
             TenantListReason.SearchUnavailable => Localizer["Tenants.List.Notice.SearchUnavailable"],
             _ => string.Empty,
         };
@@ -354,6 +381,7 @@
         => _snapshot.Notice switch
         {
             TenantListReason.ListRefreshed => "tenants-list-refreshed-notice",
+            TenantListReason.SearchRefreshed => "tenants-list-search-refreshed-notice",
             TenantListReason.SearchUnavailable => "tenants-list-search-unavailable-notice",
             _ => "tenants-list-notice",
         };
@@ -409,22 +437,44 @@
     private async Task LoadAsync(bool reuseETag)
     {
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        CancellationToken cancellationToken = _loadCancellation.Token;
         TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
         _snapshot = TenantListSnapshot.Loading();
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
+        string? searchScope = HasActiveSearch && !string.IsNullOrWhiteSpace(AuthenticatedUserId)
+            ? TenantSearchCursorScopes.Create(
+                AuthenticatedUserId!,
+                _search!,
+                status?.ToString(),
+                _sortColumn,
+                _sortDescending,
+                _pageSize)
+            : null;
+        SearchPaging.EnsureScope(searchScope);
         TenantListRequest request = new(
-            Cursor: _currentCursor,
+            Cursor: HasActiveSearch ? SearchPaging.FallbackCursor : _currentCursor,
             PageSize: _pageSize,
             Search: _search,
             Status: status,
             SortColumn: _sortColumn,
             SortDescending: _sortDescending,
-            ETag: reuseETag ? previous.ETag : null);
+            ETag: reuseETag ? previous.ETag : null,
+            SearchCursor: HasActiveSearch ? SearchPaging.SearchCursor : null);
 
-        TenantListSnapshot snapshot = await QueryGateway
-            .ListTenantsAsync(request, previous, CancellationToken.None);
+        TenantListSnapshot snapshot;
+        try
+        {
+            snapshot = await QueryGateway.ListTenantsAsync(request, previous, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
 
         await InvokeAsync(() =>
         {
@@ -441,6 +491,10 @@
                 or TenantListSurfaceKind.Degraded)
             {
                 _lastConfirmedSnapshot = snapshot;
+            }
+            if (snapshot.PagingRecovered || snapshot.Notice == TenantListReason.SearchRefreshed)
+            {
+                SearchPaging.RecoverSearch();
             }
             if (snapshot.Notice == TenantListReason.ListRefreshed)
             {
@@ -492,6 +546,13 @@
 
     private async Task NextPageAsync()
     {
+        if (HasActiveSearch)
+        {
+            SearchPaging.MoveNext(_snapshot.IsAuthoritativeSearch, _snapshot.NextCursor);
+            await LoadAsync(reuseETag: false);
+            return;
+        }
+
         _cursorHistory.Push(_currentCursor);
         ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _snapshot.NextCursor });
         NavigateToCanonicalWorkspace();
@@ -500,6 +561,16 @@
 
     private async Task PreviousPageAsync()
     {
+        if (HasActiveSearch)
+        {
+            if (SearchPaging.TryMovePrevious(_snapshot.IsAuthoritativeSearch))
+            {
+                await LoadAsync(reuseETag: false);
+            }
+
+            return;
+        }
+
         if (_cursorHistory.Count > 0)
         {
             ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
@@ -510,8 +581,6 @@
 
     private async Task OnSearchChanged(string? value)
     {
-        // Search is intentionally unavailable until SEARCH-CURSOR-1. A changed term still starts a fresh
-        // ordinary server query at page one, which returns a non-blocking notice without page-local search.
         ApplyWorkspaceState(CurrentWorkspaceState().WithSearch(value), clearCursorHistory: true);
         NavigateToCanonicalWorkspace();
         await LoadAsync(reuseETag: false);
@@ -544,9 +613,13 @@
     {
         IEnumerable<TenantListRow> rows = _snapshot.Rows;
 
-        // The current tenant-list contract has no whole-set status or sort fields. Keep these controls
-        // honest as page-local presentation over the authorized server page. Search never filters this
-        // page: until SEARCH-CURSOR-1 exists, the gateway returns the ordinary list with a notice.
+        if (_snapshot.IsAuthoritativeSearch)
+        {
+            _visibleRows = _snapshot.Rows;
+            return;
+        }
+
+        // Ordinary-list fallback retains the existing page-local status and sorting semantics.
         if (Enum.TryParse(_statusFilter, out TenantStatus status))
         {
             rows = rows.Where(r => r.Status == status);
@@ -753,5 +826,9 @@
     }
 
     public void Dispose()
-        => _disposed = true;
+    {
+        _disposed = true;
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+    }
 }

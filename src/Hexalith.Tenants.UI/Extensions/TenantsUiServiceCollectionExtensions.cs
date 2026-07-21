@@ -6,7 +6,9 @@ using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantList;
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -32,6 +34,10 @@ public static class TenantsUiServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+
+        _ = services.AddDataProtection();
+        services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
+        services.TryAddScoped<TenantSearchPagingState>();
 
         services.AddAuthorizationCore(options =>
             options.AddPolicy(
@@ -68,7 +74,7 @@ public static class TenantsUiServiceCollectionExtensions
             }
 
             o.ApiToken = configuration["HEXALITH_MEMORIES_API_TOKEN"];
-        });
+        }).RemoveAllLoggers();
 
         services.TryAddScoped<ITenantsBffComposition, TenantsBffComposition>();
         services.Configure<FcShellOptions>(configuration.GetSection("Hexalith:Shell"));

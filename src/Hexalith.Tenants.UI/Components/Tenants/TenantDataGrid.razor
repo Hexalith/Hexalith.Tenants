@@ -15,8 +15,8 @@
                         Class="tenants-critical tenants-critical--identity"
                         Width="220px"
                         Sortable="true"
-                        SortBy="@_sortByTenant"
-                        IsDefaultSortColumn="@IsTenantNameSort"
+                        SortBy="@TenantSort"
+                        IsDefaultSortColumn="@(!PreserveRowOrder && IsTenantNameSort)"
                         InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
             <HeaderCellTitleTemplate>
@@ -49,8 +49,8 @@
                         Class="tenants-critical tenants-critical--status"
                         Width="130px"
                         Sortable="true"
-                        SortBy="@_sortByStatus"
-                        IsDefaultSortColumn="@IsStatusSort"
+                        SortBy="@StatusSort"
+                        IsDefaultSortColumn="@(!PreserveRowOrder && IsStatusSort)"
                         InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
             <HeaderCellTitleTemplate>
@@ -133,6 +133,9 @@
     public bool SortDescending { get; set; }
 
     [Parameter]
+    public bool PreserveRowOrder { get; set; }
+
+    [Parameter]
     public EventCallback<DataGridSortEventArgs<TenantListRow>> SortChanged { get; set; }
 
     private bool IsTenantNameSort
@@ -144,8 +147,14 @@
     private DataGridSortDirection InitialSortDirection
         => SortDescending ? DataGridSortDirection.Descending : DataGridSortDirection.Ascending;
 
+    private GridSort<TenantListRow>? TenantSort
+        => PreserveRowOrder ? null : _sortByTenant;
+
+    private GridSort<TenantListRow>? StatusSort
+        => PreserveRowOrder ? null : _sortByStatus;
+
     private string GridSortStateKey
-        => $"{SortColumn}:{SortDescending}";
+        => $"{SortColumn}:{SortDescending}:{PreserveRowOrder}";
 
     private string ListReturnUrl(TenantListRow row)
     {

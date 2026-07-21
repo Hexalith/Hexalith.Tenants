@@ -8,7 +8,9 @@ using Hexalith.Tenants.UI.Components;
 using Hexalith.Tenants.UI.Composition;
 using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantList;
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -21,6 +23,9 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddFluentUIComponents();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddDataProtection();
+builder.Services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
+builder.Services.TryAddScoped<TenantSearchPagingState>();
 
 builder.Services.AddHexalithFrontComposerQuickstart(
     o => o.ScanAssemblies(typeof(TenantsFrontComposerDomain).Assembly));
@@ -83,16 +88,13 @@ else {
     builder.Services.TryAddScoped<ITenantQueryGateway, UnavailableTenantQueryGateway>();
 }
 
-// Reserved composition seam for Story 1.9/SEARCH-CURSOR-1. Story 1.2 does not resolve this client from
-// TenantQueryGateway and never creates a plaintext search cursor; non-empty search uses the ordinary
-// authorization-safe cursor list with a localized notice.
 _ = builder.Services.AddMemoriesClient(o => {
     if (Uri.TryCreate(builder.Configuration["Memories:BaseAddress"], UriKind.Absolute, out Uri? memoriesBaseAddress)) {
         o.Endpoint = memoriesBaseAddress;
     }
 
     o.ApiToken = builder.Configuration["HEXALITH_MEMORIES_API_TOKEN"];
-});
+}).RemoveAllLoggers();
 
 // IUserContextAccessor is provided by the FrontComposer authentication bridge
 // (ClaimsPrincipalUserContextAccessor), configured above with the eventstore:tenant / sub claim

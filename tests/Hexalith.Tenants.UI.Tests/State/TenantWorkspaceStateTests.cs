@@ -126,7 +126,7 @@ public sealed class TenantWorkspaceStateTests
             anchor);
 
         state.Search.ShouldBe(search);
-        state.Cursor.ShouldBe(cursor);
+        state.Cursor.ShouldBeNull();
         state.SelectedTenantId.ShouldBe(selectedTenantId);
         state.Anchor.ShouldBe(anchor);
 
@@ -225,7 +225,8 @@ public sealed class TenantWorkspaceStateTests
             cursor: "opaque-cursor",
             selectedTenantId: null,
             anchor: null);
-        valid.Cursor.ShouldBe("opaque-cursor");
+        valid.Cursor.ShouldBeNull();
+        valid.ToCanonicalUrl().ShouldNotContain("cursor=", Case.Sensitive);
     }
 
     [Fact]
@@ -317,7 +318,7 @@ public sealed class TenantWorkspaceStateTests
             anchor: "tenant-row-tenant.alpha");
 
         state.ToCanonicalUrl().ShouldBe(
-            "/tenants?search=alpha%20beta&status=Disabled&sort=name&desc=True&cursor=opaque-cursor&selected=tenant.alpha&anchor=tenant-row-tenant.alpha");
+            "/tenants?search=alpha%20beta&status=Disabled&sort=name&desc=True&selected=tenant.alpha&anchor=tenant-row-tenant.alpha");
 
         TenantWorkspaceState users = state.WithTab(TenantWorkspaceState.UsersTab).WithUserId("user/target");
         users.ToCanonicalUrl().ShouldBe("/tenants?tab=users&userId=user%2Ftarget&sort=name");

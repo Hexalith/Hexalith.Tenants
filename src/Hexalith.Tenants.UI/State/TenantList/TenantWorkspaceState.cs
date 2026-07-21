@@ -137,7 +137,7 @@ public sealed record TenantWorkspaceState(
             normalizedStatus,
             normalizedSort,
             normalizedSortDescending,
-            CanRetainAllTenantsCursor(
+            normalizedSearch is null && CanRetainAllTenantsCursor(
                 tab,
                 scope,
                 userId,
@@ -280,7 +280,10 @@ public sealed record TenantWorkspaceState(
         AppendQuery(builder, "status", Status);
         AppendQuery(builder, "sort", Sort == TenantListSortColumns.TenantId ? null : Sort);
         AppendQuery(builder, "desc", SortDescending ? bool.TrueString : null);
-        AppendQuery(builder, "cursor", Cursor);
+        if (Search is null)
+        {
+            AppendQuery(builder, "cursor", Cursor);
+        }
         AppendQuery(builder, "selected", SelectedTenantId);
         AppendQuery(builder, "anchor", Anchor);
         return builder.ToString();
