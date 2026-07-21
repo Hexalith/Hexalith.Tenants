@@ -32,6 +32,8 @@ public sealed record TenantWorkspaceState(
 {
     private const int MaximumCursorLength = 4096;
 
+    private const int MaximumUserIdLength = 256;
+
     /// <summary>Identifies the tenant list and self-audit tab.</summary>
     public const string TenantsTab = "tenants";
 
@@ -194,8 +196,8 @@ public sealed record TenantWorkspaceState(
             Sort,
             SortDescending ? bool.TrueString : null,
             cursor: null,
-            SelectedTenantId,
-            Anchor);
+            selectedTenantId: null,
+            anchor: null);
 
     /// <summary>
     /// Returns a state transition to a status filter and resets the query cursor.
@@ -210,8 +212,8 @@ public sealed record TenantWorkspaceState(
             Sort,
             SortDescending ? bool.TrueString : null,
             cursor: null,
-            SelectedTenantId,
-            Anchor);
+            selectedTenantId: null,
+            anchor: null);
 
     /// <summary>
     /// Returns a state transition to a tenant-list sort and resets the query cursor.
@@ -226,8 +228,8 @@ public sealed record TenantWorkspaceState(
             sort,
             descending ? bool.TrueString : null,
             cursor: null,
-            SelectedTenantId,
-            Anchor);
+            selectedTenantId: null,
+            anchor: null);
 
     /// <summary>
     /// Returns a state transition to a user identifier and resets the lookup cursor.
@@ -282,7 +284,15 @@ public sealed record TenantWorkspaceState(
     /// Normalizes a caller-supplied user identifier without treating it as a numeric identity.
     /// </summary>
     public static string? NormalizeUserId(string? value)
-        => NormalizeSafeText(value);
+    {
+        // Keep the identifier literal (no parsing/recasing) but trim surrounding whitespace and bound the
+        // length so an accidental paste (e.g. " user.target ") cannot query a different identity or push an
+        // unbounded string into the query payload and canonical URL.
+        string? trimmed = NormalizeSafeText(value)?.Trim();
+        return string.IsNullOrEmpty(trimmed) || trimmed.Length > MaximumUserIdLength
+            ? null
+            : trimmed;
+    }
 
     /// <summary>
     /// Normalizes an opaque cursor without parsing or exposing its contents.

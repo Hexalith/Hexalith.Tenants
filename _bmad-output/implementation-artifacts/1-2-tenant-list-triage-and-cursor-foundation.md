@@ -16,7 +16,7 @@ external_gates:
 
 # Story 1.2: Tenant List Triage and Cursor Foundation
 
-Status: review
+Status: done
 
 <!-- Created for the corrected Story 1.2 contract. Historical completion is evidence to reverify, not a readiness waiver. -->
 
@@ -378,9 +378,61 @@ GPT-5 Codex (initial implementation, tests, and 2026-07-20 baseline evidence); C
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantListSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
 
+File List reconciled during the 2026-07-21 code review (previously omitted changed files):
+
+- `src/Hexalith.Tenants.UI/Components/App.razor`
+- `src/Hexalith.Tenants.UI/Components/Pages/MyTenantsPage.razor`
+- `src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor`
+- `src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor`
+- `src/Hexalith.Tenants.UI/State/TenantList/TenantWorkspaceState.cs` (Story 1.1 user-owned; preserved/extended)
+- `src/Hexalith.Tenants.UI/State/TenantList/UserTenantMembershipSortColumns.cs`
+- `scripts/validate-nuget-packages.py`
+- `tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs`
+- `tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs`
+- `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceEntryPointTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/State/TenantWorkspaceStateTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs`
+
 ### Change Log
 
 - 2026-07-20: Captured the corrected Story 1.2 baseline and historical-review reconciliation; moved sprint tracking to `in-progress`.
 - 2026-07-20: Implemented and tested the corrected cursor, truth, grid, state, localization, accessibility, and support-safety contracts; recorded `PLATFORM-OPS-1` and the unrelated integration-host regression, leaving the story `in-progress`.
 - 2026-07-20: Rechecked the live Aspire/browser and complete integration gates; refined the external blocker evidence without changing implementation or status.
 - 2026-07-20: Root-caused and cleared `PLATFORM-OPS-1` (EventStore host/Tenants-service version skew from a stale binary + the all-or-nothing operational-index gate tripped by the `sample` consumer's empty metadata response); ran authenticated browser verification of grid rendering, three-column sticky pinning, sort/`aria-sort` + canonical URL, keyboard focus, and warm-load performance (766ms shell load / 156ms warm refresh, both < ~1s); checked the three runtime subtasks; reverted the local platform enablement patch (submodule pristine); advanced Status to `review`. No Story 1.2 product source changed.
+
+### Review Findings — BMAD Code Review (2026-07-20)
+
+_Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) over the committed diff `088232a..9166f7e` (src + tests + scripts, 35 files). 22 raw findings → 1 decision-needed, 6 patch, 6 deferred, 5 dismissed. Every substantive finding was re-verified against live source before triage. The Acceptance Auditor confirmed AC1–AC7 + AC10 and all Preserve constraints are met; the items below are correctness/UX/hygiene refinements, not AC failures._
+
+**Decision-needed (resolved 2026-07-21 → Patch):**
+
+- [x] [Review][Patch] User-id lookup dropped whitespace-trim and the 256-char length cap — `NormalizeUserId`→`NormalizeSafeText` returns the caller value untrimmed and unbounded, and a test (`Safe_text_is_unbounded…`) locks this. A pasted `" user.target "` queries a *different* identity (`%20user.target%20`), and an unbounded id flows into the query/URL. **Decision (Administrator, 2026-07-21): restore trim AND 256-char cap** — `Trim()` surrounding whitespace and reject `Length > 256`; update the `Safe_text_is_unbounded…` test to assert the trimmed/capped behavior. `[State/TenantList/TenantWorkspaceState.cs:348]`
+
+**Patch:**
+
+- [x] [Review][Patch] Stale list state is masked by FilteredEmpty when a page-local status filter empties the visible page — the `else if` guard (and the `ShowList` guard) excludes only `Degraded`, not `Stale`; when `Kind==Stale` + a status filter matches 0 rows on the page, the FilteredEmpty branch wins and the `Stale` branch never renders → the operator loses the stale warning and the Refresh affordance. Fix: extend the exclusion to `is not (Degraded or Stale)`, mirroring the existing Degraded precedent. `[Components/Pages/TenantsWorkspace.razor:149,330]`
+- [x] [Review][Patch] `SearchUnavailable` notice is dropped on invalid-cursor page-one recovery — recovery sets `Notice = ListRefreshed`, so the final gate `snapshot.Notice == TenantListReason.None` is false and `SearchUnavailable` is never applied; a searching operator whose cursor expired sees only "list refreshed" and is never told their search term was ignored. Fix: when `searchRequested`, prefer/compose `SearchUnavailable` even after a recovery `ListRefreshed` (single Notice slot → recommend SearchUnavailable wins). `[Services/Gateways/TenantQueryGateway.cs:409-412,439]`
+- [x] [Review][Patch] Return-context (`SelectedTenantId`/`Anchor`) not cleared on `WithSearch`/`WithStatus`/`WithSort` — these pass the selection markers through, while `WithScope`/`WithTab`/`WithUserId` reset them to null; after returning from a detail surface, a new search/status/sort keeps stale `selected`/`anchor` in the canonical URL and the "Returned from tenant X" banner lingers across an unrelated fresh query. Fix: null `selectedTenantId`/`anchor` in the three query-changing transitions, matching the scope/tab precedent. `[State/TenantList/TenantWorkspaceState.cs ~187-230]`
+- [x] [Review][Patch] `<html lang>` can emit an invalid `"iv"` under the invariant culture — `App.razor` renders `CultureInfo.CurrentUICulture.TwoLetterISOLanguageName` (= `"iv"` for `InvariantCulture`), and `Program.cs` calls `UseRequestLocalization()` with no configured default/supported cultures, so invariant is reachable (always under invariant-globalization container mode). The dynamic value is a genuine improvement over the old hardcoded `"en"` (French pages now get `lang="fr"`); clamp non-{en,fr} to a supported tag to keep the fix without the invalid-lang edge. `[Components/App.razor:4]`
+- [x] [Review][Patch] Dead `Aging`-producing code — `AggregateRowFreshness` (private static, the only method returning `ReadModelFreshnessState.Aging`) has zero call sites after `SearchTenantsAsync`/`HydrateSearchRowsAsync` were removed; live freshness comes from `ResolveFreshness` (Current/Stale/Unknown only), so `aging` correctly cannot render — but the orphan should be deleted (its survival relies on IDE0051/CA1811 not being error-ratcheted). `[Services/Gateways/TenantQueryGateway.cs:677]`
+- [x] [Review][Patch] Story File List is materially incomplete vs the diff — omits `Components/App.razor`, `Components/Pages/MyTenantsPage.razor`, `Components/Users/MyTenantsPanel.razor`, `Components/Users/UserMembershipLookupPanel.razor`, `State/TenantList/TenantWorkspaceState.cs`, `State/TenantList/UserTenantMembershipSortColumns.cs`, `scripts/validate-nuget-packages.py`, and several test files (`PackageGovernanceTests`, `CiQualityGateScriptTests`, `TenantsUiRouteSmokeTests`, `AuditEvidenceEntryPointTests`, `MyTenantsSurfaceTests`, `UserMembershipLookupSurfaceTests`). Update the File List for AC10 traceability. `[File List]`
+
+**Deferred (low-severity follow-ups; also logged to `deferred-work.md`):**
+
+- [x] [Review][Defer] `NextPageAsync` does not guard `_snapshot.NextCursor == null` [Components/Pages/TenantsWorkspace.razor:484-487] — deferred, low-severity (defensive only; the platform cursor contract guarantees a next cursor when `HasMore`).
+- [x] [Review][Defer] Grid can't return to the default `TenantId` ordering except via toolbar Reset, and FluentDataGrid's 3-state "unsorted" click can't be represented (`OnTenantSortChanged` forces Name/Status) [Components/Pages/TenantsWorkspace.razor OnTenantSortChanged] — deferred, low-severity (UX limitation, workaround exists).
+- [x] [Review][Defer] Brittle source-text guard tests (`ShouldNotContain("Cursor")`, `Split("Cursor = null").Length`, `ShouldNotContain("ConfigureAwait(false)")`) assert source text not behavior, and a stale `TenantsWorkspaceTests` resource stub still defines removed `Tenants.List.ReturnContext`/`Tenants.List.Sort.*` keys [TenantListSurfaceTests.cs / TenantsWorkspaceTests.cs] — deferred, low-severity (test tech-debt).
+- [x] [Review][Defer] Duplicated tab/scope literal constants (`"tenants"/"users"/"all"/"mine"`) declared independently in `TenantsWorkspace.razor` and `TenantWorkspaceState.cs` [both files] — deferred, low-severity (DRY nit; silent routing break if one changes).
+- [x] [Review][Defer] Redundant `IconLabel` + `aria-label` + visible text on status/pending/truth badges [TenantDataGrid.razor / TruthStateBadge.razor] — deferred, low-severity (a11y tidiness; double-read risk only if `aria-label` later removed).
+- [x] [Review][Defer] Disclosed runtime-verification gaps — invalid-cursor recovery wire-path (list query populating the `reasonCode` problem-details extension) and per-width/forced-colors responsive behavior proven by unit doubles + grid-scoped CSS + conformance rather than full browser emulation (fixed 1235px lane) [story evidence] — deferred, low-severity.
+
+**Dismissed (noise / false positive / by-design):**
+
+- Pending badge `QuestionCircle` for non-`None` state — `TenantPendingState` has only `None`/`Unknown`; `QuestionCircle`+`Important` for Unknown is correct per the locked UX mapping.
+- Root `/` → `/tenants` redirect — intended canonicalization; both `@page "/"` and `@page "/tenants"` are declared and `/tenants` is the canonical form (AD-1).
+- Page size absent from the canonical URL — mandated by AD-2 (page size is circuit-local); opaque anchor cursors don't encode page size, so a restored cursor + default size returns the correct anchored page (no window corruption).
+- Package-governance churn (OpenTelemetry / Diagnostics.Abstractions expected-deps) — tracks the working-tree submodule-pointer drift (EventStore/FrontComposer) and keeps the guard accurate; no `.csproj`/`Directory.Packages.props` version added.
+- Pending/refreshing "Informative" deviation — for the only rendered value (Unknown) `Important` is the correct locked mapping, not a deviation.

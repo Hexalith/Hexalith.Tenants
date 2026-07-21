@@ -24,7 +24,7 @@ public sealed class TenantWorkspaceStateTests
 
         state.Tab.ShouldBe(TenantWorkspaceState.UsersTab);
         state.Scope.ShouldBe(TenantWorkspaceState.AllScope);
-        state.UserId.ShouldBe(" user.target ");
+        state.UserId.ShouldBe("user.target");
         state.Search.ShouldBeNull();
         state.Status.ShouldBeNull();
         state.Sort.ShouldBe(UserTenantMembershipSortColumns.Name);
@@ -143,7 +143,11 @@ public sealed class TenantWorkspaceStateTests
             selectedTenantId: null,
             anchor: null);
 
-        users.UserId.ShouldBe(userId);
+        // User identifiers now honor a 256-char cap and are trimmed for query/URL safety, so this 512-char id is rejected.
+        users.UserId.ShouldBeNull();
+        TenantWorkspaceState.NormalizeUserId("  user.target  ").ShouldBe("user.target");
+        TenantWorkspaceState.NormalizeUserId(new string('u', 256)).ShouldNotBeNull();
+        TenantWorkspaceState.NormalizeUserId(new string('u', 257)).ShouldBeNull();
 
         TenantWorkspaceState.NormalizeCursor(new string('c', 4097)).ShouldBeNull();
     }

@@ -330,8 +330,12 @@ public sealed class TenantsUiCompositionTests
         string app = File.ReadAllText(
             Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "Components", "App.razor"));
 
-        app.ShouldContain("<html lang=\"@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName\">");
+        // Document language is driven by the active request culture (not a hardcoded value)...
+        app.ShouldContain("CultureInfo.CurrentUICulture.TwoLetterISOLanguageName");
+        // ...but clamped to a supported tag so the invariant culture cannot emit an invalid lang="iv".
+        app.ShouldContain("? \"fr\" : \"en\"");
         app.ShouldNotContain("<html lang=\"en\">");
+        app.ShouldNotContain("lang=\"iv\"");
     }
 
     [Fact]

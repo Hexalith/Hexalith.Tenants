@@ -406,9 +406,11 @@ internal sealed class TenantQueryGateway(
 
         // SEARCH-CURSOR-1 is not verified. Keep the authorization-safe ordinary cursor list usable and
         // report a localized, non-blocking notice instead of using the former plaintext offset cursor.
+        // Search-unavailable takes precedence over an invalid-cursor list-refreshed notice: telling the
+        // operator their search term was ignored is more important than the page-reset detail, and both
+        // cannot share the single notice slot.
         return searchRequested
             && snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized)
-            && snapshot.Notice == TenantListReason.None
                 ? snapshot with { Notice = TenantListReason.SearchUnavailable }
                 : snapshot;
     }
@@ -673,22 +675,6 @@ internal sealed class TenantQueryGateway(
                 || metadata.Lifecycle is not ProjectionLifecycleState.Unknown
             ? ResolveFreshness(metadata)
             : previous;
-
-    private static ReadModelFreshnessState AggregateRowFreshness(IReadOnlyList<TenantListRow> rows) {
-        if (rows.Any(static row => row.Freshness == ReadModelFreshnessState.Stale)) {
-            return ReadModelFreshnessState.Stale;
-        }
-
-        if (rows.Any(static row => row.Freshness == ReadModelFreshnessState.Unknown)) {
-            return ReadModelFreshnessState.Unknown;
-        }
-
-        if (rows.Any(static row => row.Freshness == ReadModelFreshnessState.Aging)) {
-            return ReadModelFreshnessState.Aging;
-        }
-
-        return ReadModelFreshnessState.Current;
-    }
 
     private static TenantDetailSurfaceKind ResolveDetailKindForFreshness(
         TenantDetailSurfaceKind previous,
